@@ -17,7 +17,18 @@ Coverage (per the #911 vBRIEF acceptance criteria):
 - Conflicts outside [Unreleased] -> exit 1.
 - Path errors -> exit 2.
 
-Story: #911. Pure stdlib; tests use ``tmp_path`` for isolation.
+#1003 follow-up coverage (truncated orphan-header dedup gap):
+
+- Orphan-header detection (``is_orphan_header``) and content-prefix
+  normalization (``content_prefix``) unit coverage.
+- Orphan stubs on the HEAD side, the branch side, and BOTH sides collapse
+  instead of accumulating; a stderr WARN is emitted on every drop.
+- Content-prefix dedup fallback collapses issue-numberless duplicates.
+- A four-rebase cascade synthetic and a v0.26.2-shaped fixture assert the
+  truncated ``gh_rest.py`` stubs collapse to a single canonical entry.
+
+Story: #911 (base) + #1003 (orphan-stub follow-up). Pure stdlib; tests use
+``tmp_path`` for isolation.
 """
 
 from __future__ import annotations
@@ -516,3 +527,273 @@ class TestIssueNumbers:
 
     def test_no_issue_returns_empty(self):
         assert resolver.issue_numbers("- entry without issue") == set()
+
+
+# ---------------------------------------------------------------------------
+# #1003 -- truncated orphan-header dedup gap
+# ---------------------------------------------------------------------------
+
+
+#: The truncated orphan header shape that shipped twice in v0.26.2: an
+#: entry-start that opens a bold span but never closes it and carries no
+#: ``(#NNN)`` reference. It is a strict text prefix of ``VALID_GH_REST``.
+ORPHAN_STUB = "- **feat(scripts): `gh_rest.py` REST-fallback helpers"
+
+#: The canonical, well-formed entry the orphan stubs partially duplicate
+#: (released line 30 of the v0.26.2 CHANGELOG).
+VALID_GH_REST = (
+    "- **feat(scripts): `gh_rest.py` REST-fallback helpers for "
+    "`gh` mutations and reads (#961)** -- REST helpers for gh."
+)
+
+
+class TestOrphanHeaderDetection:
+    def test_truncated_header_is_orphan(self):
+        assert resolver.is_orphan_header(ORPHAN_STUB) is True
+
+    def test_full_entry_with_close_and_issue_is_not_orphan(self):
+        assert resolver.is_orphan_header(VALID_GH_REST) is False
+
+    def test_closed_bold_without_issue_is_not_orphan(self):
+        # A closing ``**`` means the header is not truncated, even with no
+        # ``(#NNN)`` -- such an entry is handled by the content-prefix path.
+        assert (
+            resolver.is_orphan_header("- **feat: shipped a thing** -- did it")
+            is False
+        )
+
+    def test_plain_bullet_without_bold_is_not_orphan(self):
+        assert resolver.is_orphan_header("- plain entry without bold") is False
+
+    def test_open_bold_with_issue_is_not_orphan(self):
+        # An issue number is a valid dedup key, so an unclosed bold span that
+        # still carries ``(#NNN)`` is NOT treated as an orphan.
+        assert resolver.is_orphan_header("- **feat: thing (#42)") is False
+
+    def test_content_prefix_strips_bullet_and_bold(self):
+        assert (
+            resolver.content_prefix("- **feat: cool thing** -- body (#5)")
+            == "feat: cool thing -- body (#5)"
+        )
+
+    def test_content_prefix_collapses_whitespace_and_lowercases(self):
+        assert (
+            resolver.content_prefix("-   **FEAT:   Spaced   Out**")
+            == "feat: spaced out"
+        )
+
+
+class TestOrphanStubDedup:
+    def test_orphan_on_head_side_dropped(self):
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            + ORPHAN_STUB + "\n"
+            + VALID_GH_REST + "\n"
+            "=======\n"
+            "- branch new entry (#999)\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        lines = new.split("\n")
+        # The standalone truncated header line is gone ...
+        assert ORPHAN_STUB not in lines
+        # ... but the canonical full entry and the branch entry survive.
+        assert VALID_GH_REST in lines
+        assert "- branch new entry (#999)" in new
+        # The truncated prefix now appears only inside the full entry.
+        assert new.count(ORPHAN_STUB) == 1
+
+    def test_orphan_on_branch_side_dropped(self):
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            + VALID_GH_REST + "\n"
+            "=======\n"
+            + ORPHAN_STUB + "\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        assert ORPHAN_STUB not in new.split("\n")
+        assert VALID_GH_REST in new.split("\n")
+        assert new.count(ORPHAN_STUB) == 1
+
+    def test_orphan_on_both_sides_collapse_to_single_header(self):
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            + ORPHAN_STUB + "\n"
+            + VALID_GH_REST + "\n"
+            "=======\n"
+            + ORPHAN_STUB + "\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        # At most one occurrence of the header prefix remains.
+        assert new.count(ORPHAN_STUB) == 1
+        assert ORPHAN_STUB not in new.split("\n")
+        assert VALID_GH_REST in new.split("\n")
+
+    def test_orphan_drop_emits_stderr_warning(self, capsys):
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            + ORPHAN_STUB + "\n"
+            + VALID_GH_REST + "\n"
+            "=======\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        err = capsys.readouterr().err
+        assert "WARN" in err
+        assert "orphan" in err.lower()
+
+    def test_clean_resolve_emits_no_warning(self, capsys):
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            "- master (#100)\n"
+            "=======\n"
+            "- branch (#911)\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        assert "WARN" not in capsys.readouterr().err
+
+
+class TestContentPrefixFallback:
+    def test_issue_numberless_duplicate_collapsed(self):
+        entry = "- **chore: tidy up the build pipeline** -- housekeeping"
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            + entry + "\n"
+            "=======\n"
+            + entry + "\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        # The duplicate issue-numberless entry collapses to a single copy.
+        assert new.count(entry) == 1
+
+    def test_distinct_issue_numberless_entries_both_kept(self):
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            "- **chore: alpha task** -- first\n"
+            "=======\n"
+            "- **chore: beta task** -- second\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        assert "alpha task" in new
+        assert "beta task" in new
+
+
+class TestUnionMergeOrphanAndPrefix:
+    def test_orphan_dropped_from_head_with_warning(self):
+        head = [("Added", [ORPHAN_STUB, VALID_GH_REST])]
+        warnings: list[str] = []
+        merged = resolver.union_merge(head, [], warnings=warnings)
+        assert merged == [("Added", [VALID_GH_REST])]
+        assert len(warnings) == 1
+        assert "HEAD" in warnings[0]
+
+    def test_orphan_dropped_from_branch_with_warning(self):
+        head = [("Added", [VALID_GH_REST])]
+        branch = [("Added", [ORPHAN_STUB])]
+        warnings: list[str] = []
+        merged = resolver.union_merge(head, branch, warnings=warnings)
+        assert merged == [("Added", [VALID_GH_REST])]
+        assert len(warnings) == 1
+        assert "branch" in warnings[0]
+
+    def test_content_prefix_dedup_in_union_merge(self):
+        entry = "- **chore: same** -- body"
+        merged = resolver.union_merge([("Added", [entry])], [("Added", [entry])])
+        assert merged == [("Added", [entry])]
+
+    def test_warnings_optional_when_not_supplied(self):
+        # No ``warnings`` kwarg -> orphans still dropped, no crash.
+        merged = resolver.union_merge([("Added", [ORPHAN_STUB])], [])
+        assert merged == [("Added", [])]
+
+
+class TestCascadingRebaseSynthetic:
+    @staticmethod
+    def _extract_added_block(changelog: str) -> str:
+        """Return the body of the resolved ``### Added`` subsection."""
+        out: list[str] = []
+        in_added = False
+        for ln in changelog.split("\n"):
+            if ln.strip() == "### Added":
+                in_added = True
+                continue
+            if in_added:
+                if ln.startswith(("## ", "### ")):
+                    break
+                out.append(ln)
+        block = "\n".join(out).strip("\n")
+        return block + "\n" if block else ""
+
+    def test_four_rebase_cascade_collapses_orphans(self):
+        # Round 0 master state: just the canonical full entry.
+        head_block = VALID_GH_REST + "\n"
+        for _ in range(4):
+            # Each rebase re-introduces a truncated orphan stub on the branch.
+            body = (
+                "### Added\n"
+                "<<<<<<< HEAD\n"
+                + head_block
+                + "=======\n"
+                + ORPHAN_STUB + "\n"
+                + ">>>>>>> sha\n"
+            )
+            new, _ = resolver.resolve_changelog(_build_changelog(body))
+            assert new is not None
+            # Orphans never accumulate: no standalone stub line, and the
+            # prefix appears only inside the single canonical entry.
+            assert ORPHAN_STUB not in new.split("\n")
+            assert new.count(ORPHAN_STUB) == 1
+            head_block = self._extract_added_block(new)
+        # After the cascade the resolved Added block holds exactly one entry.
+        assert head_block.strip() == VALID_GH_REST
+
+
+class TestV0262PublishedFixture:
+    def test_v0262_orphan_stubs_collapse(self):
+        # Mirrors the v0.26.2 published shape: two truncated gh_rest.py stubs
+        # (released lines 26 and 28) interleaved with valid entries plus the
+        # canonical full entry (line 30), wrapped in a conflict so the helper
+        # processes the section (AC-4).
+        head_block = (
+            ORPHAN_STUB + "\n"  # line-26 orphan
+            "- **perf(tests,tasks): mark watchdog tests slow (#975)** -- slow.\n"
+            + ORPHAN_STUB + "\n"  # line-28 orphan
+            "- **feat(scripts): CHANGELOG union-merge helper (#911)** -- helper.\n"
+            + VALID_GH_REST + "\n"  # line-30 canonical full entry
+        )
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            + head_block
+            + "=======\n"
+            "- **feat(scripts): rebasing branch entry (#1001)** -- new work.\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        # Both truncated stubs collapse: no standalone orphan line remains.
+        assert ORPHAN_STUB not in new.split("\n")
+        # The prefix survives only inside the single canonical full entry.
+        assert new.count(ORPHAN_STUB) == 1
+        # Every valid entry is preserved.
+        for ref in ("(#975)", "(#911)", "(#961)", "(#1001)"):
+            assert ref in new

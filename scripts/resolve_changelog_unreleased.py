@@ -90,6 +90,16 @@ ENTRY_BULLET_RE = re.compile(r"^\s*-\s")
 #: considered duplicates iff their sets share at least one number.
 ISSUE_NUM_RE = re.compile(r"\(#(\d+)\)")
 
+#: Entry-start with an opening bold marker (``- **`` / ``* **``). A deft
+#: CHANGELOG entry canonically opens ``- **<conventional-commit subject>** --``;
+#: a *truncated* header keeps the opening ``**`` but loses the closing ``**``
+#: (and the trailing ``(#NNN)``), which is the orphan-stub shape #1003 fixes.
+ENTRY_BOLD_OPEN_RE = re.compile(r"^\s*[-*]\s+\*\*")
+
+#: Number of normalized leading characters used by the content-prefix dedup
+#: fallback for entries that carry no ``(#NNN)`` reference (#1003).
+CONTENT_PREFIX_LEN = 60
+
 #: Conflict markers (the three-state union of git's standard merge markers).
 CONFLICT_HEAD_PREFIX = "<<<<<<< "
 CONFLICT_SEP = "======="
@@ -273,9 +283,54 @@ def issue_numbers(entry_text: str) -> set[str]:
     return set(ISSUE_NUM_RE.findall(entry_text))
 
 
+def is_orphan_header(entry_text: str) -> bool:
+    """Return ``True`` when ``entry_text`` is a truncated orphan header (#1003).
+
+    A deft CHANGELOG entry canonically opens
+    ``- **<subject>** -- <body> (#NNN)``. A cascade rebase can splice a
+    *truncated* header that keeps the opening ``**`` but loses the closing
+    ``**`` AND the ``(#NNN)`` reference, e.g.::
+
+        - **feat(scripts): `gh_rest.py` REST-fallback helpers
+
+    Such a stub has no ``(#NNN)`` dedup key, so the union-merge helper used to
+    preserve a fresh copy on every rebase -- two duplicate stubs shipped in
+    v0.26.2. An orphan header is detected as an entry whose first line opens a
+    bold span (``- **`` / ``* **``) but does NOT close it on that line
+    (fewer than two ``**`` markers), AND carries no ``(#NNN)`` reference
+    anywhere in the entry.
+    """
+    first_line = entry_text.split("\n", 1)[0]
+    if not ENTRY_BOLD_OPEN_RE.match(first_line):
+        return False
+    # A well-formed header closes its bold span on the same line (>= 2 ``**``).
+    if first_line.count("**") >= 2:
+        return False
+    # A trailing issue reference is a valid dedup key -- not an orphan.
+    return not issue_numbers(entry_text)
+
+
+def content_prefix(entry_text: str) -> str:
+    """Return a normalized leading-content key for prefix-based dedup (#1003).
+
+    Entries that carry no ``(#NNN)`` reference have no issue-number dedup key.
+    To stop issue-numberless duplicates from accumulating across cascade
+    rebases, the helper falls back to a normalized content prefix: the first
+    line with its bullet marker and bold markers stripped, whitespace
+    collapsed, lowercased, and truncated to :data:`CONTENT_PREFIX_LEN` chars.
+    """
+    first_line = entry_text.split("\n", 1)[0]
+    stripped = re.sub(r"^\s*[-*]\s+", "", first_line, count=1)
+    stripped = stripped.replace("**", "")
+    stripped = " ".join(stripped.split())
+    return stripped[:CONTENT_PREFIX_LEN].lower()
+
+
 def union_merge(
     head_sections: list[tuple[str, list[str]]],
     branch_sections: list[tuple[str, list[str]]],
+    *,
+    warnings: list[str] | None = None,
 ) -> list[tuple[str, list[str]]]:
     """Union-merge branch entries into HEAD's section structure.
 
@@ -287,18 +342,43 @@ def union_merge(
     - Subsections that exist only in the branch side are appended after
       all HEAD subsections in the order they first appear in the branch.
 
-    The dedup heuristic is intentionally conservative: an entry with NO
-    issue numbers is treated as unique (no overlap possible), so it is
-    always prepended -- this avoids dropping a branch's first commit-time
-    CHANGELOG line that may not yet carry a closing reference.
+    Two #1003 safeguards stop truncated / issue-numberless stubs from
+    accumulating across cascade rebases:
+
+    - **Orphan-header drop.** A truncated orphan header (see
+      :func:`is_orphan_header`) has no dedup key, so it used to be prepended
+      fresh on every rebase. Such stubs are now DROPPED from BOTH sides and
+      never dedup against valid entries; each drop is recorded in
+      ``warnings`` (when supplied) so the caller can surface a stderr WARN.
+    - **Content-prefix fallback.** A branch entry with NO ``(#NNN)``
+      reference is deduplicated against HEAD by a normalized content prefix
+      (see :func:`content_prefix`) when no HEAD entry shares its prefix it is
+      still prepended, so a genuinely new issue-numberless entry survives.
     """
+
+    def _warn(side: str, name: str, entry_text: str) -> None:
+        if warnings is None:
+            return
+        first_line = entry_text.split("\n", 1)[0]
+        subsection = name or "(ambient)"
+        warnings.append(
+            f"dropped truncated orphan header from {side} side under "
+            f"'{subsection}': {first_line!r}"
+        )
+
     head_dict: dict[str, list[str]] = {}
     head_order: list[str] = []
     for name, entries in head_sections:
+        kept: list[str] = []
+        for e in entries:
+            if is_orphan_header(e):
+                _warn("HEAD", name, e)
+                continue
+            kept.append(e)
         if name in head_dict:
-            head_dict[name].extend(entries)
+            head_dict[name].extend(kept)
         else:
-            head_dict[name] = list(entries)
+            head_dict[name] = list(kept)
             head_order.append(name)
 
     for name, entries in branch_sections:
@@ -306,15 +386,25 @@ def union_merge(
             head_dict[name] = []
             head_order.append(name)
         existing_nums: set[str] = set()
+        existing_prefixes: set[str] = set()
         for e in head_dict[name]:
             existing_nums |= issue_numbers(e)
+            existing_prefixes.add(content_prefix(e))
         new_entries: list[str] = []
         for e in entries:
+            if is_orphan_header(e):
+                _warn("branch", name, e)
+                continue
             nums = issue_numbers(e)
             if nums and nums & existing_nums:
                 continue
+            if not nums and content_prefix(e) in existing_prefixes:
+                # Content-prefix fallback: an issue-numberless entry whose
+                # normalized prefix already exists in HEAD is a duplicate.
+                continue
             new_entries.append(e)
             existing_nums |= nums
+            existing_prefixes.add(content_prefix(e))
         # Prepend in branch-side order so the leftmost branch entry ends up
         # at the top of the resolved section.
         head_dict[name] = new_entries + head_dict[name]
@@ -411,6 +501,7 @@ def resolve_changelog(content: str) -> tuple[str | None, str]:
     # Resolve each conflict block, walking back-to-front so earlier indices
     # remain valid as we splice replacement lines in.
     new_lines = list(lines)
+    warnings: list[str] = []
     for head_idx, sep_idx, tail_idx in reversed(blocks):
         # Sides are sliced exclusive of the markers themselves.
         head_side = new_lines[head_idx + 1 : sep_idx]
@@ -418,7 +509,7 @@ def resolve_changelog(content: str) -> tuple[str | None, str]:
         ambient = find_ambient_subsection(new_lines, head_idx, unreleased_start)
         head_parsed = parse_side(head_side, ambient)
         branch_parsed = parse_side(branch_side, ambient)
-        merged = union_merge(head_parsed, branch_parsed)
+        merged = union_merge(head_parsed, branch_parsed, warnings=warnings)
         rendered = render_resolved(merged, ambient)
         new_lines[head_idx : tail_idx + 1] = rendered
 
@@ -437,6 +528,11 @@ def resolve_changelog(content: str) -> tuple[str | None, str]:
                 "unresolvable: conflict markers remain after resolve "
                 "(internal error -- please file an issue)"
             )
+
+    # Surface any dropped orphan stubs on stderr so the operator can recover
+    # the canonical entry manually if the drop was unexpected (#1003 AC-1).
+    for warning in warnings:
+        print(f"WARN resolve_changelog: {warning}", file=sys.stderr)
 
     new_content = "\n".join(new_lines)
     if had_trailing_newline:
