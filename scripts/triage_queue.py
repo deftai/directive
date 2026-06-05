@@ -1277,14 +1277,19 @@ def build_queue(
         if not isinstance(n, int):
             continue
         is_continuation = _resolve_continuation(issue, n, opts.continuation_numbers)
-        if drop_net_new and not is_continuation:
+        is_orphan = n in opts.orphan_issue_numbers
+        # finishBeforeStart drops NET-NEW work only. ORPHAN items (D13 /
+        # #1132 -- committed work the framework risks losing) and
+        # continuation work survive, so the policy never hides an orphan the
+        # operator must still see.
+        if drop_net_new and not is_continuation and not is_orphan:
             continue
         latest = decisions.get(n)
         latest_decision = latest.get("decision") if isinstance(latest, dict) else None
         # D13 (#1132): ORPHAN takes precedence over every other group --
         # an orphan is work the framework already committed to and risks
         # losing, so it surfaces above RESUME / URGENT / untriaged.
-        if n in opts.orphan_issue_numbers:
+        if is_orphan:
             group = "ORPHAN"
         else:
             group = derive_group(latest_decision, n in opts.active_referenced)

@@ -396,7 +396,12 @@ def order_cohort(resolved: list[ResolvedStory], project_root: Path) -> list[Reso
 
     def _key(story: ResolvedStory) -> tuple:
         plan = _plan(_load_json(story.path) or {})
-        issues = _issue_numbers(plan)
+        # Match the extraction the maps were built with -- both
+        # continuation_by_issue_number and bucket_deficit_by_issue_number key
+        # on triage_queue._issue_numbers_from_plan (x-vbrief/github-issue refs
+        # only), so the lookup must use the same narrow set rather than the
+        # broader resolution-time _issue_numbers (which also scans Traces).
+        issues = triage_queue._issue_numbers_from_plan(plan)
         cont_orders = [continuation_map[n] for n in issues if n in continuation_map]
         deficits = [deficit_map[n] for n in issues if n in deficit_map]
         return triage_queue.selection_ordering_key(

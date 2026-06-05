@@ -557,6 +557,23 @@ def test_build_queue_finish_before_start_requires_flag():
     assert sorted(i.number for i in items) == [1, 2]
 
 
+def test_build_queue_finish_before_start_keeps_orphans():
+    """ORPHAN items (D13 / #1132) survive finishBeforeStart -- only net-new drops."""
+    issues = [_issue(1), _issue(2), _issue(3)]
+    options = triage_queue.QueueBuildOptions(
+        continuation_numbers=frozenset({2}),
+        orphan_issue_numbers=frozenset({3}),
+        finish_before_start=True,
+        wip_at_cap=True,
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    numbers = [i.number for i in items]
+    # Net-new #1 dropped; continuation #2 and orphan #3 both survive.
+    assert set(numbers) == {2, 3}
+    # ORPHAN tops GROUP_ORDER, so the orphan leads the surviving rows.
+    assert numbers[0] == 3
+
+
 # --- continuation_by_issue_number (filesystem-truth) ------------------------
 
 
