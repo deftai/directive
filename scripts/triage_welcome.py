@@ -597,6 +597,13 @@ def session_start_nudge_lines(
         ranked.append((1, count, "pending-decisions", backlog_nudge))
     for nudge in detect_lifecycle_nudges(project_root, now=now):
         ranked.append((nudge.tier, nudge.magnitude, nudge.nudge_id, nudge.message))
+    # Ranking is tier-primary (rate-of-harm), then a coarse magnitude tiebreaker,
+    # then id. NOTE (#1508 review): within a tier the magnitude units are
+    # intentionally NOT normalized in v1 -- a lifecycle nudge's magnitude is
+    # dormancy-days while the backlog's is a decision count, so dormancy-days
+    # effectively dominates same-tier ordering. That is acceptable because the
+    # budgeted surface only shows the single top headline plus a `+N more`
+    # pointer; the full, separately-grouped list lives in `task capacity:show`.
     ranked.sort(key=lambda item: (item[0], -item[1], item[2]))
 
     budget = max(0, budget)
@@ -615,6 +622,7 @@ def run_default_mode(
     *,
     output_fn: Callable[[str], None] | None = None,
     write_history: bool = True,
+    now: datetime | None = None,
 ) -> WelcomeOutcome:
     """Default-mode session-start surface (#1309) + budgeted nudges (#1419 S6).
 
@@ -623,12 +631,15 @@ def run_default_mode(
     appends the budgeted shared session-start nudge ranking so the
     lifecycle-hygiene nudges ride the same surface as the Slice-5 backlog
     one-liner. Always advisory -- never changes the delegate's exit code.
+
+    *now* is forwarded to the lifecycle detector so callers / tests can pin a
+    deterministic clock; ``None`` uses the real clock (#1508 review).
     """
     out_fn = output_fn or default_output
     outcome = _cli_run_default_mode(
         project_root, output_fn=out_fn, write_history=write_history
     )
-    for line in session_start_nudge_lines(project_root):
+    for line in session_start_nudge_lines(project_root, now=now):
         out_fn(line)
     return outcome
 

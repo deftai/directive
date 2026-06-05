@@ -1278,8 +1278,7 @@ def test_custom_thresholds_make_a_short_dormancy_stranded(tmp_path: Path) -> Non
 def test_run_default_mode_surfaces_stranded_trichotomy(tmp_path: Path) -> None:
     """a1 via triage:welcome: default mode surfaces the trichotomy as the top nudge."""
     _seed_project_definition(tmp_path)
-    # Dormant 60d (relative to wall-clock now, since run_default_mode has no now hook).
-    stamp = _iso_days_ago(60)
+    stamp = _iso_before(60)
     _seed_child(tmp_path, "completed", "2026-01-01-done", status="completed", updated=stamp)
     _seed_child(tmp_path, "active", "2026-01-01-todo", status="running", updated=stamp)
     _seed_epic(
@@ -1293,7 +1292,10 @@ def test_run_default_mode_surfaces_stranded_trichotomy(tmp_path: Path) -> None:
         ],
     )
     output = _CapturedOutput()
-    outcome = triage_welcome.run_default_mode(tmp_path, output_fn=output, write_history=False)
+    # now=_NOW pins the clock so the dormancy maths are deterministic (#1508).
+    outcome = triage_welcome.run_default_mode(
+        tmp_path, output_fn=output, write_history=False, now=_NOW
+    )
     assert outcome.exit_code == 0
     joined = output.joined()
     assert "[TIER-1]" in joined
@@ -1308,14 +1310,37 @@ def test_run_default_mode_surfaces_needs_estimation(tmp_path: Path) -> None:
         tmp_path,
         "pending",
         "2026-01-01-epic-stale",
-        updated=_iso_days_ago(40),
+        updated=_iso_before(40),
         status="pending",
     )
     output = _CapturedOutput()
-    triage_welcome.run_default_mode(tmp_path, output_fn=output, write_history=False)
+    triage_welcome.run_default_mode(
+        tmp_path, output_fn=output, write_history=False, now=_NOW
+    )
     joined = output.joined()
     assert "[TIER-2]" in joined
     assert "needs estimation" in joined
+
+
+def test_all_unresolved_children_fall_back_to_stale_epic(tmp_path: Path) -> None:
+    """#1508 review: an epic whose declared children are all missing on disk
+    (deleted without updating the parent references) still surfaces a nudge
+    via the stale-epic fallback rather than falling silently through.
+    """
+    _seed_epic(
+        tmp_path,
+        "active",
+        "2026-01-01-epic-orphan-refs",
+        updated=_iso_before(40),
+        children=[
+            "completed/2026-01-01-ghost-a.vbrief.json",
+            "active/2026-01-01-ghost-b.vbrief.json",
+        ],
+    )
+    nudges = _lifecycle_hygiene.detect_lifecycle_nudges(tmp_path, now=_NOW)
+    assert len(nudges) == 1
+    assert nudges[0].kind == "stale-epic"
+    assert "needs estimation" in nudges[0].message
 
 
 def test_session_start_nudge_lines_budget_one_with_overflow(tmp_path: Path) -> None:

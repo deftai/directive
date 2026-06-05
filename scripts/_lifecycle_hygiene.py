@@ -407,9 +407,15 @@ def detect_lifecycle_nudges(
             continue
 
         child_names = _child_ref_names(record.plan)
-        if child_names:
-            nudge = _stranded_nudge(record, child_names, index, thresholds, now_dt)
+        resolved = [index[name] for name in child_names if name in index]
+        if resolved:
+            nudge = _stranded_nudge(record, child_names, resolved, thresholds, now_dt)
         else:
+            # Two cases route here: a truly undecomposed epic (no child refs at
+            # all) AND an epic whose declared children are ALL unresolvable on
+            # disk (e.g. child vBRIEFs deleted without updating the parent's
+            # references). Both surface as a stale-epic nudge so a stranded epic
+            # cannot fall silently through every path (#1508 review).
             nudge = _stale_epic_nudge(record, thresholds, now_dt)
         if nudge is not None:
             nudges.append(nudge)
@@ -421,12 +427,15 @@ def detect_lifecycle_nudges(
 def _stranded_nudge(
     epic: _VbriefOnDisk,
     child_names: list[str],
-    index: dict[str, _VbriefOnDisk],
+    resolved: list[_VbriefOnDisk],
     thresholds: EpicThresholds,
     now: datetime,
 ) -> LifecycleNudge | None:
-    """Stranded-slice (Tier 1) nudge for a partially-completed dormant epic."""
-    resolved = [index[name] for name in child_names if name in index]
+    """Stranded-slice (Tier 1) nudge for a partially-completed dormant epic.
+
+    *resolved* is the subset of the epic's declared children that exist on disk
+    (the caller routes an all-unresolvable epic to the stale-epic path instead).
+    """
     completed = [c for c in resolved if _is_completed(c)]
     total = len(child_names)
     # Partially-completed: at least one child done AND not every child done
