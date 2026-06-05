@@ -422,13 +422,13 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ⊗ Overwrite an existing `.github/PULL_REQUEST_TEMPLATE.md` without explicit user approval.
 
-### Headless Coverage Warning — Desktop App / TUI (#1027)
+### Headless Coverage Warning — display-bound GUI entry points (#1027)
 
-! When the Phase 2 project type resolves to **Desktop App** or **TUI** — any project whose entry point runs a display-bound event loop (pygame, tkinter, PyQt/PySide, Kivy, Electron) — warn the user BEFORE writing `PROJECT-DEFINITION.vbrief.json`:
+! The trigger is a **display-bound GUI event loop** (pygame, tkinter, PyQt/PySide, Kivy, Electron) that cannot run without a real display — typically a **Desktop App** project type, or a TUI that embeds such a GUI. Terminal-UI frameworks (textual, urwid, blessed, ncurses) run in the terminal and DO support headless testing (e.g. textual's `App.run_async()` + `Pilot`), so a standard TUI is NOT in scope — do not omit its coverage. When the Phase 2 project type resolves to a display-bound GUI project, warn the user BEFORE writing `PROJECT-DEFINITION.vbrief.json`:
 
 > "Heads up: pygame/tkinter event loops can't be tested headlessly, so the display-bound entry point (e.g. `src/ui.py`) reports near-zero coverage and drags the overall percentage below the 85% threshold. I recommend excluding the UI entry point from coverage measurement and keeping it thin — push testable logic (state, scoring, input handling) into separate modules."
 
-! When scaffolding or advising on `pyproject.toml` for a Desktop App / TUI project, add the display-bound entry point to `[tool.coverage.run] omit` so `task check` measures logic modules only:
+! When scaffolding or advising on `pyproject.toml` for a display-bound GUI project, add the display-bound entry point to `[tool.coverage.run] omit` so `task check` measures logic modules only:
 
 ```toml
 [tool.coverage.run]
@@ -442,7 +442,8 @@ omit = [
 
 - ! Keep the omit narrow — exclude only the event-loop shell, never a module that also holds business logic. If logic and the loop are mixed, recommend refactoring the logic into a separate, fully-tested module first.
 - ~ Point the user at `languages/python.md` (the `Headless GUI / event-loop testing` section under Patterns) for the headless-test pattern (`SDL_VIDEODRIVER=dummy`) and the full coverage-omit rationale.
-- ⊗ Silently accept the default 85% coverage gate for a Desktop App / TUI project without surfacing the headless blind spot — the agent reports an inflated per-session coverage that collapses when the full `src/` is measured (the 2026-05-10 tic-tac-toe desktop-UI swarm recurrence).
+- ⊗ Apply the omit to a headless-capable terminal-UI project (textual/urwid/blessed/ncurses) — those frameworks test headlessly, so omitting them hides measurable coverage, the opposite of the intended effect.
+- ⊗ Silently accept the default 85% coverage gate for a display-bound GUI project without surfacing the headless blind spot — the agent reports an inflated per-session coverage that collapses when the full `src/` is measured (the 2026-05-10 tic-tac-toe desktop-UI swarm recurrence).
 
 ### Template
 
