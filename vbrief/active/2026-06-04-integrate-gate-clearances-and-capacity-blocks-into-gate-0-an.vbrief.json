@@ -6,7 +6,7 @@
   "plan": {
     "id": "enforcement-and-launch-integration",
     "title": "Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Threads judgment-gate clearances and capacity block modes into the story-start Gate 0 and the headless swarm:launch consent token, and appends authority-bearing events to the durable audit log. Block-gated stories ship solo in v1 until per-commit trailer attribution lands.",
@@ -84,6 +84,7 @@
         "type": "x-vbrief/closes",
         "title": "Issue #987"
       }
-    ]
+    ],
+    "updated": "2026-06-05T00:18:24Z"
   }
 }

@@ -6,7 +6,7 @@
   "plan": {
     "id": "continuation-precedence-selection",
     "title": "Add continuation precedence and deficit-biased selection to the queue",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Implements continuation precedence and deficit-biased selection in the queue and cohort-fill so a started epic's remaining stories outrank net-new work and under-target capacity buckets get preferentially promoted. This realizes the RFC lexicographic selection sort on top of the rank field from Slice 1 and the bucket tallies from the capacity engine.",
@@ -69,7 +69,8 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-05T00:18:24Z"
     },
     "references": [
       {
@@ -84,6 +85,6 @@
         "title": "Issue #987"
       }
     ],
-    "updated": "2026-06-04T23:28:15Z"
+    "updated": "2026-06-05T00:18:24Z"
   }
 }

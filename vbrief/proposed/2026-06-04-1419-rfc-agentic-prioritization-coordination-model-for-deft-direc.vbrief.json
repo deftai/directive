@@ -38,7 +38,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-04-add-continuation-precedence-and-deficit-biased-selection-to.vbrief.json",
+        "uri": "completed/2026-06-04-add-continuation-precedence-and-deficit-biased-selection-to.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add continuation precedence and deficit-biased selection to the queue",
         "TrustLevel": "internal"
@@ -68,7 +68,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-04-integrate-gate-clearances-and-capacity-blocks-into-gate-0-an.vbrief.json",
+        "uri": "active/2026-06-04-integrate-gate-clearances-and-capacity-blocks-into-gate-0-an.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch",
         "TrustLevel": "internal"
