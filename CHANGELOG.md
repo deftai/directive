@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`task triage:bootstrap` no longer crashes a reader thread on non-ASCII command output on Windows (#1002)** -- when bootstrap inferred your repo slug from `git remote get-url origin`, it captured the subprocess output without forcing UTF-8, so on a Windows codepage (cp1252) any non-ASCII byte in git's output raised a `UnicodeDecodeError` deep in Python's subprocess reader thread. The capture now routes through the shared UTF-8-safe helper (`encoding="utf-8", errors="replace"`), so localized or non-ASCII git output decodes cleanly instead of crashing the read. Closes #1002.
 
 ### Removed
 

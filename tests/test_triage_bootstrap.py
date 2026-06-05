@@ -176,6 +176,76 @@ def test_populate_cache_reports_failure_on_fetch_all_error(tmp_path: Path) -> No
 
 
 # ---------------------------------------------------------------------------
+# _infer_repo_from_git -- cp1252 subprocess reader-thread decode (#1002)
+# ---------------------------------------------------------------------------
+
+
+def test_infer_repo_from_git_routes_through_run_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#1002: git-origin inference uses the UTF-8-safe capture helper.
+
+    Regression guard against reverting to ``subprocess.run(..., text=True)``
+    with no explicit ``encoding`` -- the default locale-codepage decode is
+    the cp1252 reader-thread crash (#798 chain at the subprocess-read
+    surface). The inference MUST delegate to
+    ``_safe_subprocess.run_text``, which FORCES ``encoding="utf-8",
+    errors="replace"``. Cross-platform deterministic: it asserts the
+    routing, not a platform-specific decode outcome.
+    """
+    calls: list[dict[str, Any]] = []
+
+    def _spy_run_text(cmd: Any, **kwargs: Any) -> SimpleNamespace:
+        calls.append({"cmd": list(cmd), **kwargs})
+        return SimpleNamespace(
+            returncode=0,
+            stdout="https://github.com/deftai/directive.git\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(triage_bootstrap.shutil, "which", lambda _name: "git")
+    monkeypatch.setattr(triage_bootstrap, "run_text", _spy_run_text)
+
+    result = triage_bootstrap._infer_repo_from_git(cwd=None)
+
+    assert result == "deftai/directive"
+    assert len(calls) == 1, "inference must shell out exactly once via run_text"
+    assert calls[0]["cmd"] == ["git", "remote", "get-url", "origin"]
+    # The bounded #952 timeout is preserved through the safe helper.
+    assert calls[0]["timeout"] == triage_bootstrap._GIT_INFER_TIMEOUT_S
+
+
+def test_subprocess_capture_decodes_non_ascii_as_utf8() -> None:
+    """#1002: the capture path decodes non-ASCII stdout without crashing.
+
+    Faithful reproduction of the cp1252 reader-thread crash: a child
+    process writes raw high bytes -- including ``0x8f``, the exact byte
+    from the #1002 traceback (``'charmap' codec can't decode byte 0x8f``)
+    -- to its stdout buffer. triage_bootstrap now routes its subprocess
+    capture through ``_safe_subprocess.run_text``, which FORCES
+    ``encoding="utf-8", errors="replace"``, so valid UTF-8 survives and
+    the lone undecodable byte becomes U+FFFD instead of raising
+    ``UnicodeDecodeError`` from the subprocess reader thread.
+    """
+    run_text = triage_bootstrap.run_text
+    # 'caf\xc3\xa9' = cafe-with-acute; '\xe2\x9c\x93' = U+2713 check mark
+    # (both valid UTF-8); the trailing lone '\x8f' is undecodable.
+    script = (
+        "import sys\n"
+        "sys.stdout.buffer.write(b'caf\\xc3\\xa9 \\xe2\\x9c\\x93 \\x8f')\n"
+        "sys.stdout.buffer.flush()\n"
+    )
+    result = run_text([sys.executable, "-c", script])
+
+    assert result.returncode == 0
+    # Valid UTF-8 multibyte sequences decode correctly...
+    assert "caf\u00e9" in result.stdout
+    assert "\u2713" in result.stdout
+    # ...and the lone undecodable byte became the replacement char, not a crash.
+    assert "\ufffd" in result.stdout
+
+
+# ---------------------------------------------------------------------------
 # step_backfill_audit_log
 # ---------------------------------------------------------------------------
 

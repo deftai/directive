@@ -81,6 +81,11 @@ from typing import Any
 # project root.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# UTF-8-safe subprocess capture (#1366 / #1002). MUST be imported after the
+# ``sys.path`` insert above so the sibling helper resolves whether deft is the
+# project root or installed as a ``deft/`` subdirectory.
+from _safe_subprocess import run_text  # noqa: E402 -- needs sys.path insert above
+
 # UTF-8 self-reconfigure (mirrors #814 fix). The Windows cp1252 default
 # would crash on the ✓ / ⚠ glyphs we print in the recap.
 for _stream in (sys.stdout, sys.stderr):
@@ -308,16 +313,21 @@ def _infer_repo_from_git(cwd: Path | None = None) -> str | None:
     (#952 defensive). On timeout / OSError the function returns
     ``None`` and the caller falls back to its existing skip-with-OK
     branch.
+
+    The capture is routed through :func:`_safe_subprocess.run_text`
+    (#1366), which FORCES ``encoding="utf-8", errors="replace"`` so a
+    non-ASCII byte on the captured stream (e.g. a localized ``git``
+    warning on stderr) decodes to U+FFFD instead of crashing Python's
+    subprocess reader thread with ``UnicodeDecodeError`` under the
+    Windows cp1252 codepage (#1002, the #798 chain at the
+    subprocess-read surface).
     """
 
     if shutil.which("git") is None:
         return None
     try:
-        proc = subprocess.run(  # noqa: S603
+        proc = run_text(
             ["git", "remote", "get-url", "origin"],
-            capture_output=True,
-            text=True,
-            check=False,
             cwd=str(cwd) if cwd is not None else None,
             timeout=_GIT_INFER_TIMEOUT_S,
         )
