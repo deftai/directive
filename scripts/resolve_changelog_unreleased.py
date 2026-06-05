@@ -316,12 +316,17 @@ def content_prefix(entry_text: str) -> str:
     Entries that carry no ``(#NNN)`` reference have no issue-number dedup key.
     To stop issue-numberless duplicates from accumulating across cascade
     rebases, the helper falls back to a normalized content prefix: the first
-    line with its bullet marker and bold markers stripped, whitespace
-    collapsed, lowercased, and truncated to :data:`CONTENT_PREFIX_LEN` chars.
+    line with its bullet marker, bold markers, and any ``(#NNN)`` references
+    stripped, whitespace collapsed, lowercased, and truncated to
+    :data:`CONTENT_PREFIX_LEN` chars. Dropping the ``(#NNN)`` token lets a
+    cross-parity duplicate collapse -- a HEAD entry that carries the issue
+    reference and an otherwise-identical branch entry that does not still
+    share a prefix.
     """
     first_line = entry_text.split("\n", 1)[0]
     stripped = re.sub(r"^\s*[-*]\s+", "", first_line, count=1)
     stripped = stripped.replace("**", "")
+    stripped = ISSUE_NUM_RE.sub("", stripped)
     stripped = " ".join(stripped.split())
     return stripped[:CONTENT_PREFIX_LEN].lower()
 
@@ -352,7 +357,7 @@ def union_merge(
       ``warnings`` (when supplied) so the caller can surface a stderr WARN.
     - **Content-prefix fallback.** A branch entry with NO ``(#NNN)``
       reference is deduplicated against HEAD by a normalized content prefix
-      (see :func:`content_prefix`) when no HEAD entry shares its prefix it is
+      (see :func:`content_prefix`); when no HEAD entry shares its prefix it is
       still prepended, so a genuinely new issue-numberless entry survives.
     """
 

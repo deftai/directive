@@ -570,10 +570,12 @@ class TestOrphanHeaderDetection:
         # still carries ``(#NNN)`` is NOT treated as an orphan.
         assert resolver.is_orphan_header("- **feat: thing (#42)") is False
 
-    def test_content_prefix_strips_bullet_and_bold(self):
+    def test_content_prefix_strips_bullet_bold_and_issue_ref(self):
+        # The ``(#5)`` token is stripped so a cross-parity duplicate (HEAD with
+        # the ref, branch without) still shares a prefix.
         assert (
             resolver.content_prefix("- **feat: cool thing** -- body (#5)")
-            == "feat: cool thing -- body (#5)"
+            == "feat: cool thing -- body"
         )
 
     def test_content_prefix_collapses_whitespace_and_lowercases(self):
@@ -695,6 +697,22 @@ class TestContentPrefixFallback:
         assert new is not None
         assert "alpha task" in new
         assert "beta task" in new
+
+    def test_cross_parity_duplicate_collapsed(self):
+        # HEAD carries the issue ref; the branch re-adds the same entry without
+        # it. Stripping ``(#NNN)`` from the prefix lets the numberless branch
+        # near-duplicate collapse against the HEAD entry (Greptile P2 / AC-2).
+        body = (
+            "### Added\n"
+            "<<<<<<< HEAD\n"
+            "- **chore: tidy build** -- cleanup (#123)\n"
+            "=======\n"
+            "- **chore: tidy build** -- cleanup\n"
+            ">>>>>>> sha\n"
+        )
+        new, _ = resolver.resolve_changelog(_build_changelog(body))
+        assert new is not None
+        assert new.count("chore: tidy build") == 1
 
 
 class TestUnionMergeOrphanAndPrefix:
