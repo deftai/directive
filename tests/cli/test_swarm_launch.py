@@ -813,3 +813,26 @@ class TestAuthorityAudit:
         rc = sl.main(["--stories", "100", "--no-audit", "--project-root", str(project)])
         assert rc == sl.EXIT_OK
         assert self._audit_records(project) == []
+
+    def test_unconsumed_clearance_is_not_logged(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        """A supplied clearance whose gate never matched is NOT recorded as consumed.
+
+        The story has no file_scope, so no judgment gate matches and the
+        clearance is never consumed -- only the allocation:approved event is
+        written, never a (false) gate:cleared event.
+        """
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        cf = tmp_path / "clearances.json"
+        cf.write_text(
+            json.dumps([{"gate_id": GATE_ID, "cleared_scope": "deadbeef"}]),
+            encoding="utf-8",
+        )
+        rc = sl.main(
+            ["--stories", "100", "--gate-clearances", str(cf), "--project-root", str(project)]
+        )
+        assert rc == sl.EXIT_OK
+        records = self._audit_records(project)
+        assert any(r["event_type"] == "allocation:approved" for r in records)
+        assert not any(r["event_type"] == "gate:cleared" for r in records)

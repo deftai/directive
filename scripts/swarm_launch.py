@@ -968,6 +968,17 @@ def main(argv: list[str] | None = None) -> int:
     # gate clearance to the durable, committed audit log. Best-effort -- an
     # audit write failure warns but never fails an otherwise-ready launch.
     if not args.no_audit and append_authority_event is not None:
+        # Only clearances actually CONSUMED this run are recorded as
+        # gate:cleared -- a clearance is consumed when its gate_id matched at
+        # least one story's block-tier gates AND that gate ended up cleared
+        # (matched but not fired). Logging every supplied clearance would
+        # over-report the durable record-of-record (Greptile review, PR #1507).
+        consumed_gate_ids = {
+            gate_id
+            for status in gate_statuses
+            for gate_id in status.matched_block
+            if gate_id not in status.fired_block
+        }
         try:
             append_authority_event(
                 project_root,
@@ -983,6 +994,8 @@ def main(argv: list[str] | None = None) -> int:
                 log_name=AUTHORITY_LOG_NAME,
             )
             for clearance in gate_clearances:
+                if clearance.get("gate_id") not in consumed_gate_ids:
+                    continue
                 append_authority_event(
                     project_root,
                     event_type="gate:cleared",

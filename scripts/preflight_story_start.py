@@ -520,12 +520,17 @@ def append_authority_event(
     """
     path = authority_log_path(project_root, log_name=log_name)
     path.parent.mkdir(parents=True, exist_ok=True)
-    entry: dict[str, Any] = {
-        "event_id": str(uuid.uuid4()),
-        "timestamp": _utc_now_iso(now),
-        "event_type": event_type,
-    }
-    entry.update(payload)
+    # Build with the payload first, then stamp the three canonical fields LAST
+    # so a payload key can never silently overwrite event_id / timestamp /
+    # event_type (the protected record-of-record identity).
+    entry: dict[str, Any] = dict(payload)
+    entry.update(
+        {
+            "event_id": str(uuid.uuid4()),
+            "timestamp": _utc_now_iso(now),
+            "event_type": event_type,
+        }
+    )
     line = json.dumps(entry, sort_keys=True, ensure_ascii=False)
     with open(path, "a", encoding="utf-8") as handle:
         handle.write(line + "\n")
