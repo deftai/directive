@@ -434,14 +434,15 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 		if rootName == "" {
 			rootName = parts[0]
 		}
-		// zip-slip / CodeQL go/zipslip: reject any path-traversal segment on the
-		// RAW entry name before it is used in any filesystem operation. GitHub
-		// source tarballs never contain ".." segments, so this is a no-op for
-		// valid input and closes the traversal taint path at the source.
-		for _, seg := range parts {
-			if seg == ".." {
-				return "", fmt.Errorf("tar entry contains a '..' path segment: %q", hdr.Name)
-			}
+		// zip-slip / CodeQL go/zipslip: reject any path-traversal element on the
+		// RAW entry name before it is used in any filesystem operation. This is
+		// the exact barrier shape CodeQL's go/zipslip sanitizer model recognises
+		// -- strings.Contains(name, "..") on the entry name, dominating the
+		// MkdirAll / OpenFile sinks below. GitHub source tarballs never contain
+		// ".." elements, so this is a no-op for valid input and closes the
+		// traversal taint path at the source.
+		if strings.Contains(name, "..") {
+			return "", fmt.Errorf("tar entry contains a '..' path element: %q", hdr.Name)
 		}
 		if tarPathExcluded(parts) {
 			continue

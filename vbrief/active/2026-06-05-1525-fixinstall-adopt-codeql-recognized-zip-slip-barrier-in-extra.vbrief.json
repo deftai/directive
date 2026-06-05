@@ -1,0 +1,41 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1525"
+  },
+  "plan": {
+    "title": "fix(install): adopt CodeQL-recognized zip-slip barrier in extractCoreTarball (clears go/zipslip alert #6)",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(install): adopt CodeQL-recognized zip-slip barrier in extractCoreTarball (clears go/zipslip alert #6)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1525",
+      "Overview": "## Summary\r\n\r\nCodeQL code-scanning alert #6 (`go/zipslip`, security severity HIGH) flags `extractCoreTarball` in `cmd/deft-install/upgrade.go` even though the extractor is already guarded against path traversal. The finding is a **false positive caused by an unrecognized sanitizer shape**, not a real vulnerability — but we want a green scan rather than a standing dismissal.\r\n\r\n## Why CodeQL still flags it\r\n\r\nThe current guards are correct but not the form CodeQL's `go/zipslip` model recognizes:\r\n- Traversal is rejected with a per-segment loop (`seg == \"..\"`), not `strings.Contains(name, \"..\")`.\r\n- The containment barrier checks `filepath.Clean(target)`, while the `os.MkdirAll` / `os.OpenFile` sinks consume the raw `target` value — so CodeQL does not propagate the barrier to the sink.\r\n\r\nCodeQL's documented \"GOOD\" sanitizer (rule help for `go/zipslip`) is `strings.Contains(name, \"..\")` on the entry name, dominating the filesystem sinks.\r\n\r\n## Fix\r\n\r\nIn `extractCoreTarball`, replace the per-segment `..` loop with the CodeQL-recognized barrier on the raw entry name:\r\n\r\n```go\r\nif strings.Contains(name, \"..\") {\r\n    return \"\", fmt.Errorf(\"tar entry contains a '..' path element: %q\", hdr.Name)\r\n}\r\n```\r\n\r\nKeep the existing `HasPrefix(filepath.Clean(target), dest+sep)` check and symlink-skip as defense-in-depth. Add a regression test that a `..`-containing tar entry is rejected and nothing escapes the destination.\r\n\r\n## Acceptance criteria\r\n\r\n- AC-1: `extractCoreTarball` rejects any tar entry whose name contains `..`, with a regression test in `cmd/deft-install/upgrade_test.go`.\r\n- AC-2: existing extractor tests still pass; `task check` green.\r\n- AC-3: after merge, CodeQL re-scan resolves `go/zipslip` alert #6 (or, if it persists, dismiss as confirmed false positive).\r\n- AC-4: CHANGELOG `[Unreleased]` entry.\r\n\r\n## Notes\r\n\r\nThe input is a trusted GitHub source tarball (`codeload` for `deftai/directive`), so real-world exploitability was already near-zero; this change is to satisfy the scanner's recognized-barrier shape. Refs code-scanning alert #6.\r\n"
+    },
+    "items": [
+      {
+        "title": "AC-1:  rejects any tar entry whose name contains , with a regression test in .",
+        "status": "proposed"
+      },
+      {
+        "title": "AC-2: existing extractor tests still pass;  green.",
+        "status": "proposed"
+      },
+      {
+        "title": "AC-3: after merge, CodeQL re-scan resolves  alert #6 (or, if it persists, dismiss as confirmed false positive).",
+        "status": "proposed"
+      },
+      {
+        "title": "AC-4: CHANGELOG  entry.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1525",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1525: fix(install): adopt CodeQL-recognized zip-slip barrier in extractCoreTarball (clears go/zipslip alert #6)"
+      }
+    ],
+    "updated": "2026-06-05T21:00:34Z"
+  }
+}

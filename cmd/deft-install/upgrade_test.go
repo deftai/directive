@@ -222,6 +222,29 @@ func TestExtractCoreTarball_SkipsPaxGlobalHeader(t *testing.T) {
 	}
 }
 
+// TestExtractCoreTarball_RejectsPathTraversal is the go/zipslip (code-scanning
+// alert #6) regression: a tar entry whose name contains a ".." path element
+// MUST be rejected before any filesystem write, and nothing may escape the
+// destination directory. Exercises the CodeQL-recognized strings.Contains(name,
+// "..") barrier in extractCoreTarball.
+func TestExtractCoreTarball_RejectsPathTraversal(t *testing.T) {
+	// makeCoreTarball prefixes the wrapper dir, so "../evil.txt" becomes the
+	// entry "deftai-directive-abc1234/../evil.txt" -- a ".." element.
+	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{
+		"../evil.txt": "pwned",
+	})
+	dest := t.TempDir()
+	if _, err := extractCoreTarball(tarball, dest); err == nil {
+		t.Fatal("expected extractCoreTarball to reject a '..' traversal entry, got nil error")
+	} else if !strings.Contains(err.Error(), "..") {
+		t.Errorf("error should name the rejected '..' entry, got: %v", err)
+	}
+	// The traversal target MUST NOT have been written outside the destination.
+	if _, statErr := os.Stat(filepath.Join(filepath.Dir(dest), "evil.txt")); !os.IsNotExist(statErr) {
+		t.Errorf("traversal entry escaped the destination dir (stat err=%v)", statErr)
+	}
+}
+
 func TestShaFromContentRoot(t *testing.T) {
 	cases := map[string]string{
 		"deftai-directive-6136b66abcdef": "6136b66abcdef",
