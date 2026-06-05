@@ -345,7 +345,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 **Track 1 (technical) — 8 steps:**
 - Step 1: Ask project name (infer from build files or directory name, confirm)
-- Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
+- Step 2: Ask project type (CLI, TUI, Desktop App, REST API, Web App, Library, other)
 - Step 3: Ask deployment platform:
   1. Cross-platform (Linux / macOS / Windows)
   2. Windows-native
@@ -398,7 +398,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 **Track 2 (middle ground) — 4 steps:**
 - Step 1: Ask project name (infer from build files or directory name, confirm)
-- Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
+- Step 2: Ask project type (CLI, TUI, Desktop App, REST API, Web App, Library, other)
 - Step 3: Ask languages (show detected, confirm or adjust; if none detected, infer from type and ask)
 - Step 4: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
 - Default coverage to USER.md Defaults without asking
@@ -421,6 +421,28 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 4. ~ If the user declines, note that `deft-directive-refinement` Pre-Flight will offer to scaffold later when needed.
 
 ⊗ Overwrite an existing `.github/PULL_REQUEST_TEMPLATE.md` without explicit user approval.
+
+### Headless Coverage Warning — Desktop App / TUI (#1027)
+
+! When the Phase 2 project type resolves to **Desktop App** or **TUI** — any project whose entry point runs a display-bound event loop (pygame, tkinter, PyQt/PySide, Kivy, Electron) — warn the user BEFORE writing `PROJECT-DEFINITION.vbrief.json`:
+
+> "Heads up: pygame/tkinter event loops can't be tested headlessly, so the display-bound entry point (e.g. `src/ui.py`) reports near-zero coverage and drags the overall percentage below the 85% threshold. I recommend excluding the UI entry point from coverage measurement and keeping it thin — push testable logic (state, scoring, input handling) into separate modules."
+
+! When scaffolding or advising on `pyproject.toml` for a Desktop App / TUI project, add the display-bound entry point to `[tool.coverage.run] omit` so `task check` measures logic modules only:
+
+```toml
+[tool.coverage.run]
+omit = [
+  "*/tests/*",
+  "*/venv/*",
+  "*/.venv/*",
+  "src/ui.py",        # display-bound pygame/tkinter event loop -- cannot run headlessly (#1027)
+]
+```
+
+- ! Keep the omit narrow — exclude only the event-loop shell, never a module that also holds business logic. If logic and the loop are mixed, recommend refactoring the logic into a separate, fully-tested module first.
+- ~ Point the user at `languages/python.md` (the `Headless GUI / event-loop testing` section under Patterns) for the headless-test pattern (`SDL_VIDEODRIVER=dummy`) and the full coverage-omit rationale.
+- ⊗ Silently accept the default 85% coverage gate for a Desktop App / TUI project without surfacing the headless blind spot — the agent reports an inflated per-session coverage that collapses when the full `src/` is measured (the 2026-05-10 tic-tac-toe desktop-UI swarm recurrence).
 
 ### Template
 
