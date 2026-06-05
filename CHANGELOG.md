@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-- **`deft-install` archive extraction now uses the CodeQL-recognized zip-slip barrier, clearing a high-severity code-scanning false positive (#1525)** -- the framework tarball extractor was already guarded against path traversal, but the guard shape was not the one CodeQL's `go/zipslip` model recognizes, so alert #6 stayed open. The extractor now rejects any tar entry whose name contains `..` via `strings.Contains` (keeping the cleaned-target containment check as defense-in-depth), with a regression test. Closes #1525. Refs code-scanning alert #6.
+- **`deft-install` archive extraction adopts CodeQL's recognized zip-slip barrier shape (#1525, #1528)** -- the framework tarball extractor was already guarded against path traversal, but not in the form CodeQL's `go/zipslip` model recognizes, so alert #6 stayed open. The extractor now rejects any tar entry whose raw `hdr.Name` contains `..` at the source and validates the exact extraction target against the destination directory before any write (symlink entries still skipped as defense-in-depth), with a regression test. Closes #1528. Refs #1525, code-scanning alert #6.
 
 ### Removed
 

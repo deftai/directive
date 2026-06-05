@@ -419,6 +419,17 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 			return "", fmt.Errorf("tar: %w", err)
 		}
 
+		// zip-slip / CodeQL go/zipslip: sanitize the RAW archive entry name --
+		// the taint source from tr.Next() -- before any filesystem path is
+		// derived from it. strings.Contains(hdr.Name, "..") on the original
+		// header name is the barrier shape CodeQL's go/zipslip model recognises,
+		// and rejecting at the source cuts every downstream MkdirAll / OpenFile
+		// path. GitHub source tarballs never contain ".." entries, so this is a
+		// no-op for valid input.
+		if strings.Contains(hdr.Name, "..") {
+			return "", fmt.Errorf("tar entry contains a '..' path element: %q", hdr.Name)
+		}
+
 		name := strings.TrimPrefix(filepath.ToSlash(hdr.Name), "./")
 		if name == "" {
 			continue
@@ -434,26 +445,16 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 		if rootName == "" {
 			rootName = parts[0]
 		}
-		// zip-slip / CodeQL go/zipslip: reject any path-traversal element on the
-		// RAW entry name before it is used in any filesystem operation. This is
-		// the exact barrier shape CodeQL's go/zipslip sanitizer model recognises
-		// -- strings.Contains(name, "..") on the entry name, dominating the
-		// MkdirAll / OpenFile sinks below. GitHub source tarballs never contain
-		// ".." elements, so this is a no-op for valid input and closes the
-		// traversal taint path at the source.
-		if strings.Contains(name, "..") {
-			return "", fmt.Errorf("tar entry contains a '..' path element: %q", hdr.Name)
-		}
 		if tarPathExcluded(parts) {
 			continue
 		}
 
+		// filepath.Join cleans its result, so target is already lexically clean;
+		// validate THAT exact value (not a separate filepath.Clean copy) so the
+		// checked path is the one that flows into the MkdirAll / OpenFile sinks
+		// below -- the containment barrier CodeQL go/zipslip recognises.
 		target := filepath.Join(cleanDest, filepath.FromSlash(name))
-		// zip-slip / CodeQL go/zipslip canonical barrier: the cleaned target
-		// path MUST stay within destDir. Wrapping the target in filepath.Clean
-		// is the form CodeQL recognises as a sanitizer on the path that flows
-		// into the MkdirAll / OpenFile sinks below.
-		if !strings.HasPrefix(filepath.Clean(target), cleanDest+string(os.PathSeparator)) {
+		if !strings.HasPrefix(target, cleanDest+string(os.PathSeparator)) {
 			return "", fmt.Errorf("tar entry escapes destination: %q", hdr.Name)
 		}
 

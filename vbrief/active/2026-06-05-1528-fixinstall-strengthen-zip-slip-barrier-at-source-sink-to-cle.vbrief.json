@@ -1,0 +1,46 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1528"
+  },
+  "plan": {
+    "title": "fix(install): strengthen zip-slip barrier at source + sink to clear go/zipslip alert #6 (follow-up to #1525)",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(install): strengthen zip-slip barrier at source + sink to clear go/zipslip alert #6 (follow-up to #1525)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1528",
+      "Overview": "## Summary\r\n\r\nFollow-up to #1525 / PR #1526. That change adopted `strings.Contains(name, \"..\")` (on the derived `name`) to clear CodeQL `go/zipslip` alert #6, but the post-merge `master` CodeQL re-scan still reports the alert OPEN at `cmd/deft-install/upgrade.go:414` — verified via the code-scanning instances API (`refs/heads/master 5b4b680 state=open`). The PR-ref check that suggested \"cleared\" was misleading: CodeQL PR analysis does not re-list a pre-existing alert per PR ref, so the authoritative signal is the default-branch re-scan, which still flags it.\r\n\r\n## Why the first attempt missed\r\n\r\n- The barrier checked the *derived* `name`, not the original taint source `hdr.Name` (the value CodeQL tracks from `tr.Next()` at line 414).\r\n- The containment check validated `filepath.Clean(target)` while the `os.MkdirAll` / `os.OpenFile` sinks consumed the raw `target` — so CodeQL's dataflow never saw the validated value reach the sink.\r\n\r\n## Fix (iteration 2)\r\n\r\n1. Sanitize the **raw `hdr.Name`** at the source: `if strings.Contains(hdr.Name, \"..\") { return error }` immediately after the header read, before any path derivation.\r\n2. Validate the **exact `target`** that flows to the sinks: `filepath.Join` already returns a cleaned path, so check `strings.HasPrefix(target, cleanDest+sep)` on `target` itself (drop the separate `filepath.Clean(target)` copy).\r\n3. Remove the now-redundant `name`-based barrier.\r\n\r\nThe existing `TestExtractCoreTarball_RejectsPathTraversal` still covers rejection.\r\n\r\n## Acceptance criteria\r\n\r\n- AC-1: barrier sanitizes `hdr.Name` at the source; sink consumes the validated `target`.\r\n- AC-2: `task check` green; extractor tests pass.\r\n- AC-3: after merge, the `master` CodeQL re-scan resolves `go/zipslip` alert #6 to \"fixed\". If it STILL persists despite this, dismiss alert #6 as a confirmed false positive (the extractor is provably safe).\r\n- AC-4: CHANGELOG `[Unreleased]` entry.\r\n\r\nRefs #1525, code-scanning alert #6.\r\n"
+    },
+    "items": [
+      {
+        "title": "AC-1: barrier sanitizes  at the source; sink consumes the validated .",
+        "status": "proposed"
+      },
+      {
+        "title": "AC-2:  green; extractor tests pass.",
+        "status": "proposed"
+      },
+      {
+        "title": "AC-3: after merge, the  CodeQL re-scan resolves  alert #6 to \"fixed\". If it STILL persists despite this, dismiss alert #6 as a confirmed false positive (the extractor is provably safe).",
+        "status": "proposed"
+      },
+      {
+        "title": "AC-4: CHANGELOG  entry.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1528",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1528: fix(install): strengthen zip-slip barrier at source + sink to clear go/zipslip alert #6 (follow-up to #1525)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1525",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1525"
+      }
+    ],
+    "updated": "2026-06-05T22:00:31Z"
+  }
+}
