@@ -13,3 +13,4 @@
 2026-05-22T19:16:30Z actor=task policy:enforce-branches allowDirectCommitsToMaster=false previous=True
 2026-05-22T19:48:49Z actor=task policy:allow-direct-commits allowDirectCommitsToMaster=true previous=True
 2026-06-05T15:44:19Z actor=triage-welcome field=plan.policy.wipCap value=15 previous=None changed=true
+2026-06-07T20:59:00Z actor=task policy:enforce-branches allowDirectCommitsToMaster=false previous=True
