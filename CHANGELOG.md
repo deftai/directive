@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarm operators can persist a coding sub-agent backend in project policy (#1531a)** -- `task policy:subagent-backend` sets the preferred coding sub-agent provider for swarm leaf workers; `task policy:subagent-backends` lists available providers and their role capabilities without spawning a harness; `task policy:show` surfaces the resolved value. Refs #1531.
 
 ### Changed
+- **Dispatched workers see provider-neutral backend and role metadata in the agent preamble (#1531c)** -- `templates/agent-prompt-preamble.md` documents `## Worker metadata` fields (`dispatch_provider`, `worker_role`, `selected_backend`, `routing_policy`) separately from the five-field #1378 allocation-context contract, with shared role-boundary expectations across Composer, Grok Build, Cursor/cloud, and future adapters and audit visibility in dispatch envelopes or terminal status output. Refs #1531.
 
 ### Fixed
 - **Linux `deft-install --yes` now bootstraps required tools or fails loud (#1538)** -- non-interactive Linux installs previously reported missing `uv`, `task`, and `gh` with manual fallback prose while still exiting success, leaving fresh WSL consumers with a doctor-failing tree. The installer now attempts portable user-local bootstrap for those tools and only claims success when they are on PATH; otherwise it exits non-zero with structured JSON guidance. Refs #1538.
