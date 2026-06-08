@@ -18,7 +18,7 @@
       {
         "id": "1531b-swarm-skill-provider-neutral-routing-a1",
         "title": "Given an operator reads the swarm skill, when they reach heterogeneous dispatch guidance, then it explicitly separates dispatch provider, worker role, and model or agent selection.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an operator reads the swarm skill, when they reach heterogeneous dispatch guidance, then it explicitly separates dispatch provider, worker role, and model or agent selection.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
@@ -27,7 +27,7 @@
       {
         "id": "1531b-swarm-skill-provider-neutral-routing-a2",
         "title": "Given the guidance names supported backend examples, then it includes Composer-class coding agents, Grok Build spawn_subagent workers, Cursor or cloud agents, and future adapters without treating any one backend as mandatory.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the guidance names supported backend examples, then it includes Composer-class coding agents, Grok Build spawn_subagent workers, Cursor or cloud agents, and future adapters without treating any one backend as mandatory.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
@@ -36,7 +36,7 @@
       {
         "id": "1531b-swarm-skill-provider-neutral-routing-a3",
         "title": "Given a user considers cheaper leaf agents, then the skill states that orchestration, review-cycle decisions, conflict-resolution rebase, merge, and release gates remain on strong or review-capable agents.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a user considers cheaper leaf agents, then the skill states that orchestration, review-cycle decisions, conflict-resolution rebase, merge, and release gates remain on strong or review-capable agents.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
