@@ -18,7 +18,7 @@
       {
         "id": "1531c-preamble-provider-metadata-a1",
         "title": "Given a worker prompt includes allocation context, when backend metadata is present, then the preamble explains dispatch provider, worker role, and backend or routing-policy fields without changing the five-field #1378 recognition contract.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worker prompt includes allocation context, when backend metadata is present, then the preamble explains dispatch provider, worker role, and backend or routing-policy fields without changing the five-field #1378 recognition contract.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
@@ -27,7 +27,7 @@
       {
         "id": "1531c-preamble-provider-metadata-a2",
         "title": "Given a provider-neutral dispatch uses Composer, Grok Build, Cursor/cloud agents, or a future adapter, then the preamble gives each worker the same role-boundary expectations.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a provider-neutral dispatch uses Composer, Grok Build, Cursor/cloud agents, or a future adapter, then the preamble gives each worker the same role-boundary expectations.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
@@ -36,7 +36,7 @@
       {
         "id": "1531c-preamble-provider-metadata-a3",
         "title": "Given a review cycle or postmortem inspects worker output, then the preamble requires the selected backend or routing policy to be audit-visible in the dispatch envelope or status output.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a review cycle or postmortem inspects worker output, then the preamble requires the selected backend or routing policy to be audit-visible in the dispatch envelope or status output.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
