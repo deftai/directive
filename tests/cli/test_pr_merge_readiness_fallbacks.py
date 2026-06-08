@@ -139,6 +139,25 @@ def _greptile_rest_payload(sha: str = _HEAD_SHA, confidence: int = 5) -> str:
     ])
 
 
+def _informal_clean_jq_body() -> str:
+    """Synthetic informal clean body patterned on PR #1541 (#1543)."""
+    return (
+        "The review on `ac9f42a` has completed — no stall on my end. "
+        "Both previously flagged issues are now resolved.\n\n"
+        "The current diff is clean. No new issues to flag — the implementation "
+        "looks solid. Good to proceed to the confidence exit gate.\n"
+    )
+
+
+def _informal_clean_rest_payload() -> str:
+    return json.dumps([
+        {
+            "user": {"login": "greptile-apps[bot]"},
+            "body": _informal_clean_jq_body(),
+        },
+    ])
+
+
 def _pr_rest_payload(
     sha: str = _HEAD_SHA, state: str = "open", merged: bool = False,
 ) -> str:
@@ -209,6 +228,41 @@ class TestPrimaryPath:
         assert result.via == pr_merge_readiness.VIA_PRIMARY
         assert result.merge_ready is False
         assert any("No Greptile rolling-summary" in f for f in result.failures)
+
+
+class TestInformalCleanFallbacks:
+    def test_primary_informal_clean_blocked_with_targeted_diagnostic(self, monkeypatch):
+        install_fake_gh(monkeypatch, {
+            "head-sha": _ns(stdout=_HEAD_SHA + "\n"),
+            "comments-jq": _ns(stdout=_informal_clean_jq_body()),
+        })
+        result = pr_merge_readiness.compute_gate_result(
+            pr_number=1541, repo="deftai/directive",
+        )
+        assert result.via == pr_merge_readiness.VIA_PRIMARY
+        assert result.merge_ready is False
+        assert result.verdict.informal_clean is True
+        assert any(
+            "informal-clean missing-canonical-fields" in f
+            for f in result.failures
+        )
+
+    def test_fallback1_informal_clean_blocked_with_targeted_diagnostic(self, monkeypatch):
+        install_fake_gh(monkeypatch, {
+            "head-sha": _ns(stdout=_HEAD_SHA + "\n"),
+            "comments-jq": _ns(stderr="gh rate-limited", returncode=1),
+            "comments-rest": _ns(stdout=_informal_clean_rest_payload()),
+        })
+        result = pr_merge_readiness.compute_gate_result(
+            pr_number=1541, repo="deftai/directive",
+        )
+        assert result.via == pr_merge_readiness.VIA_FALLBACK1
+        assert result.merge_ready is False
+        assert result.verdict.informal_clean is True
+        assert any(
+            "informal-clean missing-canonical-fields" in f
+            for f in result.failures
+        )
 
 
 # ---------------------------------------------------------------------------
