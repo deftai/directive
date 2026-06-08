@@ -270,6 +270,24 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 If the exit condition is not met, go back to Step 2.
 
+### Informal-clean missing canonical fields (#1543)
+
+Greptile can post a **separate** informal clean reply that says prior issues are resolved and the current diff is clean while omitting the canonical rolling-summary fields Directive merge gates require: `Last reviewed commit:` and `Confidence Score: X/5`. `task pr:merge-ready` and `task swarm:verify-review-clean` correctly refuse merge-ready in this state -- prose alone cannot prove review currency or confidence.
+
+! When the latest Greptile bot comment is found, reports P0=0 and P1=0, but BOTH canonical fields are unparsed, classify the state as **`informal-clean missing-canonical-fields`** (see `scripts/pr_merge_readiness.py`) instead of treating it as "review still writing" or silently polling.
+
+! Recovery for informal-clean missing canonical fields -- route to ONE of these operator actions; do NOT keep polling:
+
+1. Comment `@greptileai review` on the PR to retrigger a canonical rolling summary on the current HEAD.
+2. Wait for Greptile to edit its primary rolling-summary comment with both canonical fields, then re-run `task pr:merge-ready -- <N>`.
+3. Document an explicit operator override per `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 (merge with rationale in the merge commit body).
+
+⊗ Treat informal clean Greptile prose (`current diff is clean`, `looks solid`, `no new issues`) as merge-ready without canonical `Last reviewed commit:` and `Confidence Score: X/5` evidence.
+
+⊗ Keep polling silently when `task pr:merge-ready` reports the informal-clean missing-canonical-fields diagnostic -- this is a blocked recovery state, not a late-arriving review.
+
+~ Swarm pollers MUST surface this state via the `### (6) INFORMAL-CLEAN` terminal exit in `templates/swarm-greptile-poller-prompt.md` instead of falling through to generic `(4) TIMEOUT` or `(5) STALL`.
+
 ## Submitting GitHub Reviews
 
 ! When submitting PR reviews via the GitHub MCP tool, always use `pull_request_review_write` with method `create` and the appropriate event:

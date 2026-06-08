@@ -1,0 +1,101 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1543"
+  },
+  "plan": {
+    "id": "1543-review-cycle-greptile-informal-clean-fields",
+    "title": "review-cycle: handle Greptile informal clean replies without canonical fields",
+    "status": "completed",
+    "narratives": {
+      "Description": "Greptile can post an informal clean reply that says a PR diff is clean while omitting the canonical rolling-summary fields Directive needs for deterministic merge gating. This story preserves the strict gate while making the review-cycle skill, poller prompt, and parser diagnostics recognize the state and route operators to a targeted recovery or documented override.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1543",
+      "Overview": "## Summary\nPR #1541 exposed a review-cycle gap: Greptile can post an informal clean reply that says the diff is clean, while omitting the canonical rolling-summary fields that Directive's merge gates require: `Last reviewed commit:` and `Confidence Score: X/5`.\n\nThe deterministic gates are correct to block in this state because they cannot prove the review is current or confidence is above the threshold. However, the review-cycle skill, poller prompt, and merge-readiness diagnostics should recognize this specific state and route it cleanly instead of leaving the swarm monitor in an ambiguous stall.\n\n## Observed\n- `task pr:merge-ready -- 1541` reports P0=0 and P1=0 but fails because it cannot parse `Last reviewed commit:` or `Confidence Score` from the Greptile body.\n- `task swarm:verify-review-clean -- 1540 1541` blocks the cohort for the same reason.\n- The latest Greptile bot comment on PR #1541 is human-readable and clean, but not the canonical rolling-summary format.\n\n## Expected\nDirective should fail loud with a targeted recovery path when Greptile posts an informal clean response without canonical fields.\n\nThe fix should not loosen the merge gate to accept prose such as \"looks solid\". It should preserve the requirement for current reviewed SHA and confidence evidence, or require an explicit documented override.\n\n## Proposed scope\n- Update `skills/deft-directive-review-cycle/SKILL.md` to document the \"informal clean but missing canonical fields\" state and the operator choices.\n- Update `templates/swarm-greptile-poller-prompt.md` so pollers report this as a distinct terminal/blocked state instead of generic timeout/stall.\n- Update `scripts/pr_merge_readiness.py` diagnostics to distinguish informal-clean missing fields from a review that is still writing or absent.\n- Add focused tests for the parser/diagnostics and content guidance.\n\n## Acceptance criteria\n- Given a Greptile bot comment that says prior issues are resolved / current diff is clean but omits `Last reviewed commit:` and `Confidence Score`, `task pr:merge-ready` exits non-zero with a diagnostic that names the informal-clean missing-canonical-fields state and gives a recovery path.\n- Given a swarm cohort hits this state, the review-cycle guidance routes to either requesting a canonical Greptile summary/retrigger or a documented override, not silent polling.\n- The merge gate still refuses to treat informal clean prose alone as merge-ready.\n- Tests pin the parser behavior and the review-cycle/poller guidance.\n\n## References\n- PR #1541: provider backend policy story blocked by missing canonical Greptile fields\n- PR #1540/#1541 Wave 1 swarm verifier: `task swarm:verify-review-clean -- 1540 1541`\n- Related gates: `scripts/pr_merge_readiness.py`, `scripts/swarm_verify_review_clean.py`",
+      "ImplementationPlan": "1. Update scripts/pr_merge_readiness.py so missing canonical Greptile fields in an informal clean reply produce a distinct non-clean diagnostic with a targeted recovery path, while preserving the strict SHA and confidence requirements for CLEAN.\n2. Add parser tests in tests/cli/test_pr_merge_readiness.py for informal-clean missing-field comments and any necessary fallback coverage in tests/cli/test_pr_merge_readiness_fallbacks.py.\n3. Update skills/deft-directive-review-cycle/SKILL.md and templates/swarm-greptile-poller-prompt.md so review-cycle agents and swarm pollers classify this as a blocked recovery state instead of generic stall/timeout.\n4. Add or update content tests in tests/content/test_review_cycle_skill.py and tests/content/test_swarm_poller_template.py to pin the guidance.",
+      "UserStory": "As a swarm monitor, I want informal clean Greptile replies without canonical fields to fail loud with a recovery path, so that I do not merge without reviewed-SHA and confidence evidence or keep polling indefinitely.",
+      "Labels": "bug, swarm, skills"
+    },
+    "items": [
+      {
+        "id": "1543-review-cycle-greptile-informal-clean-fields-a1",
+        "title": "Given a Greptile bot comment says prior issues are resolved and the current diff is clean but omits canonical fields, task pr:merge-ready exits non-zero with an informal-clean missing-canonical-fields diagnostic and recovery path.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a Greptile bot comment says prior issues are resolved and the current diff is clean but omits `Last reviewed commit:` and `Confidence Score`, `task pr:merge-ready` exits non-zero with a diagnostic that names the informal-clean missing-canonical-fields state and gives a recovery path.",
+          "Traces": "https://github.com/deftai/directive/issues/1543"
+        }
+      },
+      {
+        "id": "1543-review-cycle-greptile-informal-clean-fields-a2",
+        "title": "Given a swarm cohort hits this state, review-cycle and poller guidance routes to requesting canonical evidence, retriggering, or a documented override instead of silent polling.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a swarm cohort hits this state, the review-cycle guidance routes to either requesting a canonical Greptile summary/retrigger or a documented override, not silent polling.",
+          "Traces": "https://github.com/deftai/directive/issues/1543"
+        }
+      },
+      {
+        "id": "1543-review-cycle-greptile-informal-clean-fields-a3",
+        "title": "Given an informal clean Greptile comment lacks reviewed-SHA and confidence fields, when task pr:merge-ready evaluates the PR, then the deterministic merge gate refuses to report merge-ready.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an informal clean Greptile comment lacks reviewed-SHA and confidence fields, when task pr:merge-ready evaluates the PR, then the deterministic merge gate refuses to report merge-ready.",
+          "Traces": "https://github.com/deftai/directive/issues/1543"
+        }
+      },
+      {
+        "id": "1543-review-cycle-greptile-informal-clean-fields-a4",
+        "title": "Given the focused parser and content tests run, then they fail before the informal-clean diagnostic and guidance exist and pass after the parser and docs are updated.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the focused parser and content tests run, then they fail before the informal-clean diagnostic and guidance exist and pass after the parser and docs are updated.",
+          "Traces": "https://github.com/deftai/directive/issues/1543"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1543",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1543: review-cycle: handle Greptile informal clean replies without canonical fields"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/pr_merge_readiness.py",
+          "tests/cli/test_pr_merge_readiness.py",
+          "tests/cli/test_pr_merge_readiness_fallbacks.py",
+          "skills/deft-directive-review-cycle/SKILL.md",
+          "templates/swarm-greptile-poller-prompt.md",
+          "tests/content/test_review_cycle_skill.py",
+          "tests/content/test_swarm_poller_template.py"
+        ],
+        "verify_commands": [
+          "pytest tests/cli/test_pr_merge_readiness.py tests/cli/test_pr_merge_readiness_fallbacks.py -k informal",
+          "pytest tests/content/test_review_cycle_skill.py tests/content/test_swarm_poller_template.py -k greptile",
+          "task check"
+        ],
+        "expected_outputs": [
+          "merge-readiness parser reports informal-clean missing canonical fields as a distinct non-clean state",
+          "review-cycle and poller guidance document recovery without weakening the merge gate"
+        ],
+        "depends_on": [],
+        "conflict_group": "review-cycle-greptile-parser-guidance",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-08T14:25:10Z"
+    },
+    "updated": "2026-06-08T14:25:10Z"
+  }
+}

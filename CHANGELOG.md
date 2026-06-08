@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Greptile informal clean replies without canonical fields now fail loud with a recovery path (#1543)** -- when Greptile posts a separate "diff is clean" comment but omits `Last reviewed commit:` and `Confidence Score: X/5`, merge gates still block (prose alone is not merge-ready) yet `task pr:merge-ready`, the review-cycle skill, and swarm pollers now classify the `informal-clean missing-canonical-fields` state and route operators to retrigger Greptile, wait for canonical evidence, or document an override instead of silent polling. Closes #1543.
 - **`deft-install` archive extraction adopts CodeQL's recognized zip-slip barrier shape (#1525, #1528)** -- the framework tarball extractor was already guarded against path traversal, but not in the form CodeQL's `go/zipslip` model recognizes, so alert #6 stayed open. The extractor now rejects any tar entry whose raw `hdr.Name` contains `..` at the source and validates the exact extraction target against the destination directory before any write (symlink entries still skipped as defense-in-depth), with a regression test. Closes #1528. Refs #1525, code-scanning alert #6.
 
 ### Removed
