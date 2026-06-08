@@ -355,7 +355,11 @@ class TestEvaluateGates:
         assert any("P1" in f for f in failures)
 
     def test_informal_clean_emits_targeted_diagnostic(self):
-        v = self._verdict(informal_clean=True)
+        v = self._verdict(
+            informal_clean=True,
+            last_reviewed_sha=None,
+            confidence=None,
+        )
         failures = merge_readiness.evaluate_gates(
             1, "abc1234567890def1234567890abcdef12345678", v,
         )
@@ -366,7 +370,11 @@ class TestEvaluateGates:
         assert "Could not parse `Last reviewed commit:`" not in failures[0]
 
     def test_informal_clean_refuses_merge_ready(self):
-        v = self._verdict(informal_clean=True)
+        v = self._verdict(
+            informal_clean=True,
+            last_reviewed_sha=None,
+            confidence=None,
+        )
         failures = merge_readiness.evaluate_gates(1, "abc1234", v)
         assert failures != []
 

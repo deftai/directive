@@ -257,7 +257,6 @@ import re
 
 _INFORMAL_CLEAN_SIGNAL_RE = re.compile(
     r"(?:"
-    r"current diff is clean|"
     r"diff is clean|"
     r"(?:prior |previously flagged )?issues? (?:are )?now resolved|"
     r"all prior issues resolved|"

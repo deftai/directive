@@ -6,7 +6,7 @@
   "plan": {
     "id": "1543-review-cycle-greptile-informal-clean-fields",
     "title": "review-cycle: handle Greptile informal clean replies without canonical fields",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Greptile can post an informal clean reply that says a PR diff is clean while omitting the canonical rolling-summary fields Directive needs for deterministic merge gating. This story preserves the strict gate while making the review-cycle skill, poller prompt, and parser diagnostics recognize the state and route operators to a targeted recovery or documented override.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1543",
@@ -19,7 +19,7 @@
       {
         "id": "1543-review-cycle-greptile-informal-clean-fields-a1",
         "title": "Given a Greptile bot comment says prior issues are resolved and the current diff is clean but omits canonical fields, task pr:merge-ready exits non-zero with an informal-clean missing-canonical-fields diagnostic and recovery path.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a Greptile bot comment says prior issues are resolved and the current diff is clean but omits `Last reviewed commit:` and `Confidence Score`, `task pr:merge-ready` exits non-zero with a diagnostic that names the informal-clean missing-canonical-fields state and gives a recovery path.",
           "Traces": "https://github.com/deftai/directive/issues/1543"
@@ -28,7 +28,7 @@
       {
         "id": "1543-review-cycle-greptile-informal-clean-fields-a2",
         "title": "Given a swarm cohort hits this state, review-cycle and poller guidance routes to requesting canonical evidence, retriggering, or a documented override instead of silent polling.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a swarm cohort hits this state, the review-cycle guidance routes to either requesting a canonical Greptile summary/retrigger or a documented override, not silent polling.",
           "Traces": "https://github.com/deftai/directive/issues/1543"
@@ -37,7 +37,7 @@
       {
         "id": "1543-review-cycle-greptile-informal-clean-fields-a3",
         "title": "Given an informal clean Greptile comment lacks reviewed-SHA and confidence fields, when task pr:merge-ready evaluates the PR, then the deterministic merge gate refuses to report merge-ready.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an informal clean Greptile comment lacks reviewed-SHA and confidence fields, when task pr:merge-ready evaluates the PR, then the deterministic merge gate refuses to report merge-ready.",
           "Traces": "https://github.com/deftai/directive/issues/1543"
@@ -46,7 +46,7 @@
       {
         "id": "1543-review-cycle-greptile-informal-clean-fields-a4",
         "title": "Given the focused parser and content tests run, then they fail before the informal-clean diagnostic and guidance exist and pass after the parser and docs are updated.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the focused parser and content tests run, then they fail before the informal-clean diagnostic and guidance exist and pass after the parser and docs are updated.",
           "Traces": "https://github.com/deftai/directive/issues/1543"
@@ -93,8 +93,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-08T14:25:10Z"
     },
-    "updated": "2026-06-08T13:59:10Z"
+    "updated": "2026-06-08T14:25:10Z"
   }
 }
