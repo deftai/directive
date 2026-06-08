@@ -1056,6 +1056,19 @@ def test_resolve_swarm_subagent_backend_rejects_unknown_id(
     assert result.error and "warp-tab" in result.error
 
 
+def test_resolve_swarm_subagent_backend_rejects_null_value(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(
+        project_root, {"policy": {"swarmSubagentBackend": None}}
+    )
+    result = policy_module.resolve_swarm_subagent_backend(project_root)
+    assert result.backend_id is None
+    assert result.source == "default-on-error"
+    assert result.error and "must be a string" in result.error
+
+
 def test_set_swarm_subagent_backend_writes_and_audits(
     policy_module, project_root, monkeypatch
 ):

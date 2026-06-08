@@ -2157,6 +2157,12 @@ def resolve_swarm_subagent_backend(
         return SwarmSubagentBackendResult(None, "default", error=None)
 
     raw = policy_block["swarmSubagentBackend"]
+    if raw is None:
+        return SwarmSubagentBackendResult(
+            None,
+            "default-on-error",
+            error="plan.policy.swarmSubagentBackend must be a string; got null",
+        )
     validation_errors = validate_swarm_subagent_backend(raw)
     if validation_errors:
         return SwarmSubagentBackendResult(

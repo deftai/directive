@@ -179,6 +179,8 @@ def test_subagent_backends_lists_catalog_without_harness(
     monkeypatch.setenv("DEFT_PROBE_CURSOR_CLOUD", "yes")
     monkeypatch.delenv("DEFT_PROBE_COMPOSER", raising=False)
     monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    monkeypatch.delenv("GROK_BUILD", raising=False)
+    monkeypatch.delenv("DEFT_AGENT_RUNTIME", raising=False)
     rc = policy_set_module.main(
         ["subagent-backends", "--project-root", str(project_root)]
     )
