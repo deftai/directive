@@ -67,7 +67,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-08-add-provider-neutral-worker-metadata-to-the-agent-preamble.vbrief.json",
+        "uri": "completed/2026-06-08-add-provider-neutral-worker-metadata-to-the-agent-preamble.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add provider-neutral worker metadata to the agent preamble",
         "TrustLevel": "internal"
@@ -111,6 +111,6 @@
         "model_tier": "high"
       }
     },
-    "updated": "2026-06-08T00:41:47Z"
+    "updated": "2026-06-08T16:03:39Z"
   }
 }

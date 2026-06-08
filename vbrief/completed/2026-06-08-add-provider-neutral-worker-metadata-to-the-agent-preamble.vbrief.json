@@ -6,7 +6,7 @@
   "plan": {
     "id": "1531c-preamble-provider-metadata",
     "title": "Add provider-neutral worker metadata to the agent preamble",
-    "status": "running",
+    "status": "completed",
     "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story updates the canonical dispatch preamble so implementation workers can see which backend and role they were assigned without relying on Grok Build-specific wording. It is independently buildable because it owns the dispatch-envelope contract text and can preserve existing allocation-context fields while adding provider-neutral metadata guidance.",
@@ -18,7 +18,7 @@
       {
         "id": "1531c-preamble-provider-metadata-a1",
         "title": "Given a worker prompt includes allocation context, when backend metadata is present, then the preamble explains dispatch provider, worker role, and backend or routing-policy fields without changing the five-field #1378 recognition contract.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worker prompt includes allocation context, when backend metadata is present, then the preamble explains dispatch provider, worker role, and backend or routing-policy fields without changing the five-field #1378 recognition contract.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
@@ -27,7 +27,7 @@
       {
         "id": "1531c-preamble-provider-metadata-a2",
         "title": "Given a provider-neutral dispatch uses Composer, Grok Build, Cursor/cloud agents, or a future adapter, then the preamble gives each worker the same role-boundary expectations.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a provider-neutral dispatch uses Composer, Grok Build, Cursor/cloud agents, or a future adapter, then the preamble gives each worker the same role-boundary expectations.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
@@ -36,7 +36,7 @@
       {
         "id": "1531c-preamble-provider-metadata-a3",
         "title": "Given a review cycle or postmortem inspects worker output, then the preamble requires the selected backend or routing policy to be audit-visible in the dispatch envelope or status output.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a review cycle or postmortem inspects worker output, then the preamble requires the selected backend or routing policy to be audit-visible in the dispatch envelope or status output.",
           "Traces": "https://github.com/deftai/directive/issues/1531"
@@ -64,7 +64,8 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-08T16:03:39Z"
     },
     "references": [
       {
@@ -80,6 +81,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-08T00:41:51Z"
+    "updated": "2026-06-08T16:03:39Z"
   }
 }
