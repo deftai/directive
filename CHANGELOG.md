@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Swarm skill documents provider-neutral sub-agent routing (#1531b)** -- heterogeneous dispatch guidance now separates dispatch provider, worker role, and model selection; Composer-class, Grok Build, Cursor/cloud, and future adapters are first-class backends with strong-agent gates for orchestration, review, rebase, merge, and release. Refs #1531.
+
 ### Fixed
 - **Linux `deft-install --yes` now bootstraps required tools or fails loud (#1538)** -- non-interactive Linux installs previously reported missing `uv`, `task`, and `gh` with manual fallback prose while still exiting success, leaving fresh WSL consumers with a doctor-failing tree. The installer now attempts portable user-local bootstrap for those tools and only claims success when they are on PATH; otherwise it exits non-zero with structured JSON guidance. Refs #1538.
 - **Greptile informal clean replies without canonical fields now fail loud with a recovery path (#1543)** -- when Greptile posts a separate "diff is clean" comment but omits `Last reviewed commit:` and `Confidence Score: X/5`, merge gates still block (prose alone is not merge-ready) yet `task pr:merge-ready`, the review-cycle skill, and swarm pollers now classify the `informal-clean missing-canonical-fields` state and route operators to retrigger Greptile, wait for canonical evidence, or document an override instead of silent polling. Closes #1543.
