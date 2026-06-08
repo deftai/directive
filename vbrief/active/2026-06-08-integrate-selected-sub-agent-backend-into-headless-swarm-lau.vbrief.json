@@ -87,30 +87,6 @@
         "TrustLevel": "external"
       },
       {
-        "uri": "pending/2026-06-08-add-persistent-sub-agent-backend-policy-and-availability-gat.vbrief.json",
-        "type": "x-vbrief/plan",
-        "title": "Add persistent sub-agent backend policy and availability gate",
-        "TrustLevel": "internal"
-      },
-      {
-        "uri": "pending/2026-06-08-document-provider-neutral-sub-agent-routing-in-the-swarm-ski.vbrief.json",
-        "type": "x-vbrief/plan",
-        "title": "Document provider-neutral sub-agent routing in the swarm skill",
-        "TrustLevel": "internal"
-      },
-      {
-        "uri": "pending/2026-06-08-add-provider-neutral-worker-metadata-to-the-agent-preamble.vbrief.json",
-        "type": "x-vbrief/plan",
-        "title": "Add provider-neutral worker metadata to the agent preamble",
-        "TrustLevel": "internal"
-      },
-      {
-        "uri": "pending/2026-06-08-pin-provider-neutral-sub-agent-guidance-with-content-tests.vbrief.json",
-        "type": "x-vbrief/plan",
-        "title": "Pin provider-neutral sub-agent guidance with content tests",
-        "TrustLevel": "internal"
-      },
-      {
         "uri": "https://github.com/deftai/directive/issues/1531",
         "type": "x-vbrief/github-issue",
         "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch",
