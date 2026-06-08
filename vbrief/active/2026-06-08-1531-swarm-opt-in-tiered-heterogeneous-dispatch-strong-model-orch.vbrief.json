@@ -55,7 +55,7 @@
         "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)"
       },
       {
-        "uri": "active/2026-06-08-add-persistent-sub-agent-backend-policy-and-availability-gat.vbrief.json",
+        "uri": "completed/2026-06-08-add-persistent-sub-agent-backend-policy-and-availability-gat.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add persistent sub-agent backend policy and availability gate",
         "TrustLevel": "internal"
