@@ -409,7 +409,15 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		var toolsErr error
 		missingTools, toolsErr = EnsureCoreTools(w, nonInteractive)
 		if toolsErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: tool probe: %v\n", toolsErr)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", toolsErr)
+			if jsonOut {
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				if encErr := enc.Encode(coreToolsBootstrapBlockResult(missingTools, toolsErr)); encErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: JSON encode failed: %v\n", encErr)
+				}
+			}
+			return 1
 		}
 	}
 

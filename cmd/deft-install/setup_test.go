@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -1180,18 +1182,268 @@ func TestEnsureTaskfile_IdempotentWhenPresent(t *testing.T) {
 	}
 }
 
-// TestEnsureCoreTools_ReportsMissing is a smoke for Epic-4 item 3/4:
-// the probe returns a list (possibly empty) and never panics; in real runs
-// the list drives the JSON result and fallback messaging.
+// TestEnsureCoreTools_ReportsMissing is a smoke for Epic-4 item 3/4 on
+// non-Linux hosts: the probe returns a list (possibly empty) and never
+// panics; in real runs the list drives the JSON result and fallback messaging.
 func TestEnsureCoreTools_ReportsMissing(t *testing.T) {
+	origGOOS := goosForCoreTools
+	goosForCoreTools = func() string { return "darwin" }
+	defer func() { goosForCoreTools = origGOOS }()
+
 	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
 	missing, err := EnsureCoreTools(w, true)
 	if err != nil {
 		t.Fatalf("EnsureCoreTools errored: %v", err)
 	}
-	// missing may be non-empty on test runner (no task/uv etc); just assert
-	// it is a slice (possibly empty) and function is safe.
 	_ = missing
+}
+
+func withLinuxCoreToolSeams(t *testing.T, lookPath func(string) (string, error), bootstrap func(*Wizard, []string) error) func() {
+	t.Helper()
+	origGOOS := goosForCoreTools
+	origLook := lookPathFunc
+	origBootstrap := bootstrapLinuxCoreToolsFunc
+	goosForCoreTools = func() string { return "linux" }
+	lookPathFunc = lookPath
+	bootstrapLinuxCoreToolsFunc = bootstrap
+	return func() {
+		goosForCoreTools = origGOOS
+		lookPathFunc = origLook
+		bootstrapLinuxCoreToolsFunc = origBootstrap
+	}
+}
+
+// TestEnsureCoreTools_LinuxBootstrapSuccess verifies Linux --yes bootstrap
+// clears doctor-required tools from missing_tools after a successful portable
+// install (#1538).
+func TestEnsureCoreTools_LinuxBootstrapSuccess(t *testing.T) {
+	present := map[string]bool{}
+	restore := withLinuxCoreToolSeams(t,
+		func(file string) (string, error) {
+			if present[file] {
+				return "/home/test/.local/bin/" + file, nil
+			}
+			return "", exec.ErrNotFound
+		},
+		func(w *Wizard, missing []string) error {
+			for _, tool := range missing {
+				switch tool {
+				case "uv", "task", "gh":
+					present[tool] = true
+				}
+			}
+			return nil
+		},
+	)
+	defer restore()
+
+	var out bytes.Buffer
+	w := NewWizardWithLayout(strings.NewReader(""), &out, false, false)
+	missing, err := EnsureCoreTools(w, true)
+	if err != nil {
+		t.Fatalf("EnsureCoreTools returned error: %v", err)
+	}
+	for _, tool := range []string{"uv", "task", "gh"} {
+		if !present[tool] {
+			t.Errorf("bootstrap seam did not mark %q installed", tool)
+		}
+	}
+	for _, tool := range missing {
+		if tool == "uv" || tool == "task" || tool == "gh" {
+			t.Errorf("required tool %q still reported missing after bootstrap: %v", tool, missing)
+		}
+	}
+	if !strings.Contains(out.String(), "Bootstrapping required core tools") {
+		t.Errorf("expected bootstrap log line; got:\n%s", out.String())
+	}
+}
+
+// TestEnsureCoreTools_LinuxBootstrapUnsupportedFailLoud verifies unsupported
+// Linux bootstrap returns a structured ErrCoreToolsBootstrap instead of
+// success-plus-fallback prose (#1538).
+func TestEnsureCoreTools_LinuxBootstrapUnsupportedFailLoud(t *testing.T) {
+	restore := withLinuxCoreToolSeams(t,
+		func(file string) (string, error) {
+			return "", exec.ErrNotFound
+		},
+		func(w *Wizard, missing []string) error {
+			return &ErrCoreToolsBootstrap{
+				Missing: missing,
+				Detail:  "no supported fetcher on PATH (need curl or wget for portable Linux bootstrap)",
+			}
+		},
+	)
+	defer restore()
+
+	var out bytes.Buffer
+	w := NewWizardWithLayout(strings.NewReader(""), &out, false, false)
+	missing, err := EnsureCoreTools(w, true)
+	if err == nil {
+		t.Fatal("expected bootstrap failure error, got nil")
+	}
+	var bootErr *ErrCoreToolsBootstrap
+	if !errors.As(err, &bootErr) {
+		t.Fatalf("expected *ErrCoreToolsBootstrap, got %T: %v", err, err)
+	}
+	if !strings.Contains(err.Error(), "curl or wget") {
+		t.Errorf("expected fetcher detail in error, got: %v", err)
+	}
+	for _, want := range []string{"uv", "task", "gh"} {
+		if !containsString(missing, want) {
+			t.Errorf("missing_tools should include %q, got %v", want, missing)
+		}
+	}
+	if strings.Contains(out.String(), "consent implied by --yes") {
+		t.Errorf("unsupported bootstrap must not emit legacy success fallback prose; got:\n%s", out.String())
+	}
+}
+
+// TestEnsureCoreTools_LinuxBootstrapStillMissingAfterInstall verifies bootstrap
+// that completes without wiring tools onto PATH fails loud (#1538).
+func TestEnsureCoreTools_LinuxBootstrapStillMissingAfterInstall(t *testing.T) {
+	restore := withLinuxCoreToolSeams(t,
+		func(file string) (string, error) {
+			return "", exec.ErrNotFound
+		},
+		func(w *Wizard, missing []string) error {
+			return nil
+		},
+	)
+	defer restore()
+
+	_, err := EnsureCoreTools(NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false), true)
+	if err == nil {
+		t.Fatal("expected error when required tools remain missing after bootstrap")
+	}
+	if !strings.Contains(err.Error(), "still missing") {
+		t.Errorf("expected post-bootstrap missing detail, got: %v", err)
+	}
+}
+
+// TestEnsureCoreTools_NonLinuxNonInteractiveKeepsFallback verifies non-Linux
+// --yes runs still emit manual fallback guidance without attempting bootstrap.
+func TestEnsureCoreTools_NonLinuxNonInteractiveKeepsFallback(t *testing.T) {
+	origGOOS := goosForCoreTools
+	origLook := lookPathFunc
+	goosForCoreTools = func() string { return "windows" }
+	lookPathFunc = func(file string) (string, error) {
+		if file == "uv" {
+			return "", exec.ErrNotFound
+		}
+		return "/bin/" + file, nil
+	}
+	defer func() {
+		goosForCoreTools = origGOOS
+		lookPathFunc = origLook
+	}()
+
+	var out bytes.Buffer
+	missing, err := EnsureCoreTools(NewWizardWithLayout(strings.NewReader(""), &out, false, false), true)
+	if err != nil {
+		t.Fatalf("non-Linux fallback path should not error: %v", err)
+	}
+	if len(missing) != 1 || missing[0] != "uv" {
+		t.Fatalf("expected only uv missing, got %v", missing)
+	}
+	if !strings.Contains(out.String(), "Fallbacks") {
+		t.Errorf("expected fallback guidance on non-Linux host; got:\n%s", out.String())
+	}
+}
+
+// TestCoreToolsBootstrapBlockResult_JSONShape pins the structured --json
+// refusal object for Linux bootstrap failures (#1538).
+func TestCoreToolsBootstrapBlockResult_JSONShape(t *testing.T) {
+	missing := []string{"gh", "task", "uv"}
+	err := &ErrCoreToolsBootstrap{
+		Missing: missing,
+		Detail:  "no supported fetcher on PATH (need curl or wget for portable Linux bootstrap)",
+	}
+	obj := coreToolsBootstrapBlockResult(missing, err)
+	if obj["success"] != false {
+		t.Errorf("success = %v, want false", obj["success"])
+	}
+	if obj["error_code"] != coreToolsBootstrapBlockCode {
+		t.Errorf("error_code = %v, want %q", obj["error_code"], coreToolsBootstrapBlockCode)
+	}
+	gotMissing, ok := obj["missing_tools"].([]string)
+	if !ok {
+		t.Fatalf("missing_tools type = %T, want []string", obj["missing_tools"])
+	}
+	if len(gotMissing) != 3 {
+		t.Errorf("missing_tools = %v, want 3 entries", gotMissing)
+	}
+	rem, ok := obj["remediation"].([]string)
+	if !ok || len(rem) == 0 {
+		t.Fatalf("remediation must be a non-empty []string, got %T %v", obj["remediation"], obj["remediation"])
+	}
+	if _, err := json.Marshal(obj); err != nil {
+		t.Fatalf("block result is not JSON-marshalable: %v", err)
+	}
+}
+
+func containsString(items []string, want string) bool {
+	for _, item := range items {
+		if item == want {
+			return true
+		}
+	}
+	return false
+}
+
+// TestPrependLinuxLocalBin_PrependsHomeLocalBin verifies ~/.local/bin is
+// injected ahead of the existing PATH for post-bootstrap re-probes (#1538).
+func TestPrependLinuxLocalBin_PrependsHomeLocalBin(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	localBin := filepath.Join(home, ".local", "bin")
+	orig := os.Getenv("PATH")
+	t.Cleanup(func() { os.Setenv("PATH", orig) })
+
+	os.Setenv("PATH", "/usr/bin")
+	if err := prependLinuxLocalBin(); err != nil {
+		t.Fatalf("prependLinuxLocalBin: %v", err)
+	}
+	got := os.Getenv("PATH")
+	if !strings.HasPrefix(got, localBin+string(os.PathListSeparator)) {
+		t.Errorf("PATH = %q, want prefix %q", got, localBin+string(os.PathListSeparator))
+	}
+}
+
+// TestInstallTaskLinux_PassesInstallerFlagsDirectly pins the go-task installer
+// invocation that the Linux CI path exercises. The downloaded installer expects
+// its own flags directly; passing the shell-style "-s --" sentinel makes it exit
+// with "Illegal option -s" (#1538 CI follow-up).
+func TestInstallTaskLinux_PassesInstallerFlagsDirectly(t *testing.T) {
+	origRun := runCmdFunc
+	defer func() { runCmdFunc = origRun }()
+
+	var gotName string
+	var gotArgs []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		gotName = name
+		gotArgs = append([]string{}, args...)
+		return nil
+	}
+
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	if err := installTaskLinux(w); err != nil {
+		t.Fatalf("installTaskLinux returned error: %v", err)
+	}
+	if gotName != "sh" {
+		t.Fatalf("run command name = %q, want sh", gotName)
+	}
+	if len(gotArgs) != 2 || gotArgs[0] != "-c" {
+		t.Fatalf("run command args = %v, want [-c <script>]", gotArgs)
+	}
+	script := gotArgs[1]
+	if strings.Contains(script, "-s --") {
+		t.Fatalf("task installer script still contains invalid shell sentinel -s --:\n%s", script)
+	}
+	if !strings.Contains(script, `sh "$tmpdir/install.sh" -d -b "${HOME}/.local/bin"`) {
+		t.Fatalf("task installer script missing direct flag invocation; got:\n%s", script)
+	}
 }
 
 // TestEnsureTaskfile_PreservesExistingIncludes covers the Greptile P1 fix:
