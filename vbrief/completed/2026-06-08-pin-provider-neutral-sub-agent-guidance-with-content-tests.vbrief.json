@@ -7,7 +7,7 @@
     "id": "1531d-provider-guidance-tests",
     "title": "Pin provider-neutral sub-agent guidance with content tests",
     "status": "completed",
-    "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story adds focused content tests for the provider-neutral swarm and preamble guidance after the documentation stories land. It is sequenced after the text updates so the test assertions can pin the final wording without forcing implementation workers to edit the same files concurrently.",
       "ImplementationPlan": "1. Update the source file tests/content/test_swarm_skill.py with test functions that assert the swarm skill names provider-neutral backend choice and includes Composer-class, Grok Build, Cursor/cloud, and future adapter examples.\n2. Verify the test evidence by running pytest tests/content/test_swarm_skill.py -k provider_neutral and confirm the assertions fail on Grok Build-only wording and pass with the updated skill and preamble text.",

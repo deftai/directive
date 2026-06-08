@@ -7,7 +7,7 @@
     "id": "1531b-swarm-skill-provider-neutral-routing",
     "title": "Document provider-neutral sub-agent routing in the swarm skill",
     "status": "completed",
-    "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story updates the swarm operator guidance so heterogeneous dispatch is described as a provider-neutral capability rather than a Grok Build-only path. It is independently buildable because it owns the swarm skill text and does not need to modify dispatch templates or tests directly.",
       "ImplementationPlan": "1. Update the source file skills/deft-directive-swarm/SKILL.md to separate dispatch provider, worker role, and model or agent selection in the heterogeneous dispatch guidance.\n2. Verify the change with focused content tests in tests/content/test_swarm_skill.py by ensuring the skill text exposes provider-neutral backend evidence and safe role-boundary assertions.",

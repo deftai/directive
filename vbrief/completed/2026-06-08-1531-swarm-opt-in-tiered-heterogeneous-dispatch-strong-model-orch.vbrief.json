@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The swarm skill currently frames heterogeneous leaf-agent routing around the Grok Build spawn_subagent path, but the operator-facing capability should be provider-neutral. This story turns the issue discussion into concrete swarm guidance so users can choose Composer-class coding agents, Grok Build agents, Cursor/cloud agents, or future adapters for leaf implementation while preserving strong-model control for orchestration, review, merge, and release gates.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1531",
@@ -109,8 +109,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-08T16:54:49Z"
     },
-    "updated": "2026-06-08T16:03:39Z"
+    "updated": "2026-06-08T16:54:49Z"
   }
 }

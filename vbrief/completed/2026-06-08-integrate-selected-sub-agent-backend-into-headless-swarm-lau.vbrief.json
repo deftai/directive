@@ -7,7 +7,7 @@
     "id": "1531e-headless-launch-backend-integration",
     "title": "Integrate selected sub-agent backend into headless swarm launch and audit output",
     "status": "completed",
-    "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story makes the stored sub-agent backend policy load-bearing during headless swarm launch. It is independently buildable because it owns the launch-manifest consumption path and fail-loud checks, while depending on the policy/probe story for backend discovery and stored selection.",
       "ImplementationPlan": "1. Update the source files scripts/swarm_launch.py and tasks/swarm.yml so task swarm:launch reads plan.policy.swarmSubagentBackend, checks it against the current harness probe, and refuses headless dispatch when the policy is missing or unavailable.\n2. Add focused tests in tests/cli/test_swarm_launch.py that verify missing-policy failure, unavailable-backend failure with listed alternatives, and successful launch-manifest audit fields for selected backend and worker role.",
