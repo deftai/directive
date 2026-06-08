@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from pending/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json"
+  },
+  "plan": {
+    "id": "1531b-swarm-skill-provider-neutral-routing",
+    "title": "Document provider-neutral sub-agent routing in the swarm skill",
+    "status": "completed",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "narratives": {
+      "Description": "This story updates the swarm operator guidance so heterogeneous dispatch is described as a provider-neutral capability rather than a Grok Build-only path. It is independently buildable because it owns the swarm skill text and does not need to modify dispatch templates or tests directly.",
+      "ImplementationPlan": "1. Update the source file skills/deft-directive-swarm/SKILL.md to separate dispatch provider, worker role, and model or agent selection in the heterogeneous dispatch guidance.\n2. Verify the change with focused content tests in tests/content/test_swarm_skill.py by ensuring the skill text exposes provider-neutral backend evidence and safe role-boundary assertions.",
+      "UserStory": "As a swarm operator, I want the swarm skill to describe sub-agent backend choice independently of Grok Build, so that I can route leaf coding work to Composer or another provider without losing Deft guardrails.",
+      "Traces": "https://github.com/deftai/directive/issues/1531"
+    },
+    "items": [
+      {
+        "id": "1531b-swarm-skill-provider-neutral-routing-a1",
+        "title": "Given an operator reads the swarm skill, when they reach heterogeneous dispatch guidance, then it explicitly separates dispatch provider, worker role, and model or agent selection.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an operator reads the swarm skill, when they reach heterogeneous dispatch guidance, then it explicitly separates dispatch provider, worker role, and model or agent selection.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531b-swarm-skill-provider-neutral-routing-a2",
+        "title": "Given the guidance names supported backend examples, then it includes Composer-class coding agents, Grok Build spawn_subagent workers, Cursor or cloud agents, and future adapters without treating any one backend as mandatory.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the guidance names supported backend examples, then it includes Composer-class coding agents, Grok Build spawn_subagent workers, Cursor or cloud agents, and future adapters without treating any one backend as mandatory.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531b-swarm-skill-provider-neutral-routing-a3",
+        "title": "Given a user considers cheaper leaf agents, then the skill states that orchestration, review-cycle decisions, conflict-resolution rebase, merge, and release gates remain on strong or review-capable agents.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a user considers cheaper leaf agents, then the skill states that orchestration, review-cycle decisions, conflict-resolution rebase, merge, and release gates remain on strong or review-capable agents.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-swarm/SKILL.md"
+        ],
+        "verify_commands": [
+          "pytest tests/content/test_swarm_skill.py -k provider_neutral"
+        ],
+        "expected_outputs": [
+          "swarm skill guidance carries provider-neutral backend terminology and safety boundaries"
+        ],
+        "depends_on": [
+          "1531a-subagent-backend-policy-and-probe"
+        ],
+        "conflict_group": "swarm-skill-provider-guidance",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-08T15:35:43Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-08T15:35:43Z"
+  }
+}

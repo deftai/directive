@@ -975,59 +975,326 @@ func EnsureTaskfile(w *Wizard, projectDir string) (bool, error) {
 	return modified, nil
 }
 
-// EnsureCoreTools probes for the four canonical toolchain binaries required
-// for full Deft operation (uv, go-task as "task", Python, gh). In
-// non-interactive/--yes mode it reports missing ones with clear manual
-// fallbacks (Epic-4) without attempting privileged installs (UAC/sudo
-// concerns addressed by documentation + delegation to setup_*.ps1 / winget).
-// Returns the list of missing tools (for JSON result) as a non-nil slice
-// (empty when none missing) for stable JSON emission.
-func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
-	candidates := map[string][]string{
-		"task":   {"task"},
-		"uv":     {"uv"},
-		"python": {"python", "python3"},
-		"gh":     {"gh"},
+// coreToolCandidates maps canonical tool names to PATH probe aliases.
+var coreToolCandidates = map[string][]string{
+	"task":   {"task"},
+	"uv":     {"uv"},
+	"python": {"python", "python3"},
+	"gh":     {"gh"},
+}
+
+// linuxBootstrapRequiredTools are the doctor-critical tools the Linux --yes
+// path MUST bootstrap or fail loud on before claiming install success (#1538).
+var linuxBootstrapRequiredTools = []string{"uv", "task", "gh"}
+
+// coreToolsBootstrapBlockCode is the machine-readable error_code emitted on
+// stdout in --json mode when Linux non-interactive bootstrap cannot satisfy
+// required tools (#1538).
+const coreToolsBootstrapBlockCode = "core_tools_bootstrap_unavailable"
+
+// coreToolsBootstrapBlockMessage is the short human-facing error headline for
+// unsupported / incomplete Linux bootstrap (#1538).
+const coreToolsBootstrapBlockMessage = "required core tools could not be bootstrapped automatically"
+
+// goosForCoreTools is the platform gate for the Linux bootstrap path. Tests
+// override it to exercise Linux behaviour on any host.
+var goosForCoreTools = func() string { return runtime.GOOS }
+
+// bootstrapLinuxCoreToolsFunc installs portable Linux user-local copies of
+// missing required tools. Tests replace it to avoid real network/package work.
+var bootstrapLinuxCoreToolsFunc = bootstrapLinuxCoreTools
+
+// ErrCoreToolsBootstrap is returned when Linux --yes bootstrap cannot satisfy
+// doctor-required tools (uv, task, gh) without claiming install success.
+type ErrCoreToolsBootstrap struct {
+	Missing []string
+	Detail  string
+}
+
+func (e *ErrCoreToolsBootstrap) Error() string {
+	if e == nil {
+		return coreToolsBootstrapBlockMessage
 	}
+	missing := strings.Join(e.Missing, ", ")
+	if missing == "" {
+		return e.Detail
+	}
+	return fmt.Sprintf("%s (still missing: %s)", e.Detail, missing)
+}
+
+// coreToolsBootstrapBlockResult builds the single machine-readable JSON object
+// emitted on stdout when Linux core-tool bootstrap refuses install success in
+// --json mode (#1538). Mirrors dirtyTreeBlockResult: stdout stays one JSON
+// object with actionable structured fields.
+func coreToolsBootstrapBlockResult(missing []string, err error) map[string]any {
+	missingOut := missing
+	if missingOut == nil {
+		missingOut = []string{}
+	}
+	why := coreToolsBootstrapBlockMessage
+	if err != nil {
+		why = err.Error()
+	}
+	return map[string]any{
+		"success":       false,
+		"error":         coreToolsBootstrapBlockMessage,
+		"error_code":    coreToolsBootstrapBlockCode,
+		"missing_tools": missingOut,
+		"why":           why,
+		"remediation": []string{
+			"Install uv, task, and gh on your PATH before re-running deft-install --yes",
+			"uv: https://docs.astral.sh/uv/getting-started/installation/",
+			"task: https://taskfile.dev/installation/",
+			"gh: https://cli.github.com/",
+		},
+		"warnings": []string{},
+	}
+}
+
+// probeCoreToolsMissing returns the sorted list of canonical tools absent from
+// PATH. Uses lookPathFunc so tests can inject discovery outcomes.
+func probeCoreToolsMissing() []string {
 	var missing []string
-	for name, alts := range candidates {
+	for name, alts := range coreToolCandidates {
 		found := false
 		for _, a := range alts {
-			if _, err := exec.LookPath(a); err == nil {
+			if _, err := lookPathFunc(a); err == nil {
 				found = true
 				break
-			} else {
-				// Surface non-ENOENT LookPath failures (permission denied,
-				// stat error on an entry in PATH, etc.) so agent logs carry
-				// the trace instead of silently treating the alt as missing.
-				// ErrNotFound is the expected "not on PATH" case and stays
-				// silent (SLizard P1 go-silent-error-branch). Experiments A+B
-				// (PR #1385): bare-else + nested-if shape AND log.Printf (the
-				// literal call form SLizard's recommendation text names) so
-				// the detector unambiguously sees the canonical error-branch
-				// logger. log uses stderr by default so the user-visible
-				// behaviour is unchanged.
-				if !errors.Is(err, exec.ErrNotFound) {
-					log.Printf("warning: LookPath %q: %v", a, err)
-				}
+			} else if !errors.Is(err, exec.ErrNotFound) {
+				log.Printf("warning: LookPath %q: %v", a, err)
 			}
 		}
 		if !found {
 			missing = append(missing, name)
 		}
 	}
-	if len(missing) == 0 {
-		w.printf("Core tools present: task, uv, python, gh.\n")
-		return []string{}, nil
+	sort.Strings(missing)
+	return missing
+}
+
+// missingLinuxBootstrapRequired filters missing to the doctor-required subset
+// in canonical sorted order.
+func missingLinuxBootstrapRequired(missing []string) []string {
+	required := map[string]bool{}
+	for _, t := range linuxBootstrapRequiredTools {
+		required[t] = true
 	}
-	sort.Strings(missing) // deterministic JSON output regardless of map iteration (Greptile P2)
-	w.printf("Missing core tools (consent implied by --yes): %s\n", strings.Join(missing, ", "))
+	var out []string
+	for _, t := range missing {
+		if required[t] {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+func printCoreToolsFallbacks(w *Wizard, missing []string) {
+	w.printf("Missing core tools: %s\n", strings.Join(missing, ", "))
 	w.printf("  Fallbacks (run manually or via platform package manager):\n")
 	w.printf("    Windows: winget install --id <ID> or scripts/setup_windows.ps1\n")
 	w.printf("    macOS:   brew install go-task uv python gh\n")
 	w.printf("    Linux:   apt/brew equivalent for task uv python3 gh\n")
 	w.printf("  See docs/getting-started.md and QUICK-START.md for details.\n")
+}
+
+// EnsureCoreTools probes for the four canonical toolchain binaries required
+// for full Deft operation (uv, go-task as "task", Python, gh). In Linux
+// non-interactive/--yes mode it bootstraps doctor-required tools (uv, task,
+// gh) via portable user-local installers or fails loud with structured output
+// instead of claiming success with fallback prose only (#1538). Other
+// platforms keep the Epic-4 manual-fallback guidance. Returns the list of
+// missing tools (for JSON result) as a non-nil slice (empty when none
+// missing) for stable JSON emission.
+func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
+	missing := probeCoreToolsMissing()
+	if len(missing) == 0 {
+		w.printf("Core tools present: task, uv, python, gh.\n")
+		return []string{}, nil
+	}
+
+	requiredMissing := missingLinuxBootstrapRequired(missing)
+	if nonInteractive && goosForCoreTools() == "linux" && len(requiredMissing) > 0 {
+		w.printf("Bootstrapping required core tools for Linux --yes: %s\n", strings.Join(requiredMissing, ", "))
+		if err := bootstrapLinuxCoreToolsFunc(w, requiredMissing); err != nil {
+			return requiredMissing, err
+		}
+		if err := prependLinuxLocalBin(); err != nil {
+			return requiredMissing, &ErrCoreToolsBootstrap{
+				Missing: requiredMissing,
+				Detail:  fmt.Sprintf("could not wire ~/.local/bin onto PATH: %v", err),
+			}
+		}
+		missing = probeCoreToolsMissing()
+		requiredMissing = missingLinuxBootstrapRequired(missing)
+		if len(requiredMissing) > 0 {
+			return requiredMissing, &ErrCoreToolsBootstrap{
+				Missing: requiredMissing,
+				Detail:  "bootstrap completed but required tools are still missing from PATH",
+			}
+		}
+		if len(missing) == 0 {
+			w.printf("Core tools present after Linux bootstrap: task, uv, python, gh.\n")
+		} else {
+			w.printf("Required core tools bootstrapped; optional still missing: %s\n", strings.Join(missing, ", "))
+		}
+		return missing, nil
+	}
+
+	printCoreToolsFallbacks(w, missing)
+	if nonInteractive {
+		w.printf("  (--yes on non-Linux hosts does not auto-install; use platform setup scripts.)\n")
+	}
 	return missing, nil
+}
+
+// prependLinuxLocalBin prepends $HOME/.local/bin to the process PATH so
+// post-bootstrap LookPath probes see user-local installs (#1538).
+func prependLinuxLocalBin() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	localBin := filepath.Join(home, ".local", "bin")
+	if err := os.MkdirAll(localBin, 0o755); err != nil {
+		return err
+	}
+	sep := string(os.PathListSeparator)
+	current := os.Getenv("PATH")
+	if current == "" {
+		return os.Setenv("PATH", localBin)
+	}
+	if pathListEntryPresent(current, localBin, sep) {
+		return nil
+	}
+	return os.Setenv("PATH", localBin+sep+current)
+}
+
+func pathListEntryPresent(pathEnv, entry, sep string) bool {
+	for _, p := range strings.Split(pathEnv, sep) {
+		if p == entry {
+			return true
+		}
+	}
+	return false
+}
+
+// linuxBootstrapFetcherAvailable reports whether curl or wget is on PATH for
+// the portable install scripts (#1538).
+func linuxBootstrapFetcherAvailable() bool {
+	for _, bin := range []string{"curl", "wget"} {
+		if _, err := lookPathFunc(bin); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// linuxBootstrapArch maps runtime.GOARCH to the architecture token used by
+// upstream gh/task release asset names.
+func linuxBootstrapArch(goarch string) (string, bool) {
+	switch goarch {
+	case "amd64":
+		return "amd64", true
+	case "arm64":
+		return "arm64", true
+	case "arm":
+		return "armv6", true
+	default:
+		return "", false
+	}
+}
+
+// bootstrapLinuxCoreTools installs missing doctor-required tools into
+// ~/.local/bin using portable, non-root scripts/downloads (#1538).
+func bootstrapLinuxCoreTools(w *Wizard, missing []string) error {
+	if !linuxBootstrapFetcherAvailable() {
+		return &ErrCoreToolsBootstrap{
+			Missing: missing,
+			Detail:  "no supported fetcher on PATH (need curl or wget for portable Linux bootstrap)",
+		}
+	}
+	if _, err := os.UserHomeDir(); err != nil {
+		return &ErrCoreToolsBootstrap{
+			Missing: missing,
+			Detail:  fmt.Sprintf("cannot resolve home directory for user-local bootstrap: %v", err),
+		}
+	}
+	if err := prependLinuxLocalBin(); err != nil {
+		return &ErrCoreToolsBootstrap{
+			Missing: missing,
+			Detail:  fmt.Sprintf("cannot prepare ~/.local/bin: %v", err),
+		}
+	}
+	arch, ok := linuxBootstrapArch(runtime.GOARCH)
+	if !ok {
+		return &ErrCoreToolsBootstrap{
+			Missing: missing,
+			Detail:  fmt.Sprintf("unsupported Linux architecture %q for portable bootstrap", runtime.GOARCH),
+		}
+	}
+	for _, tool := range missing {
+		var err error
+		switch tool {
+		case "uv":
+			err = installUVLinux(w)
+		case "task":
+			err = installTaskLinux(w)
+		case "gh":
+			err = installGhLinux(w, arch)
+		default:
+			continue
+		}
+		if err != nil {
+			return &ErrCoreToolsBootstrap{
+				Missing: missing,
+				Detail:  fmt.Sprintf("failed to bootstrap %s: %v", tool, err),
+			}
+		}
+	}
+	return nil
+}
+
+func installUVLinux(w *Wizard) error {
+	w.printf("  Installing uv via Astral install script...\n")
+	// Download to a temp file first so a curl failure propagates to runCmdFunc.
+	// A bare `curl | sh` pipeline masks curl's exit status (POSIX uses the last
+	// command's status), which would report bootstrap success on network errors.
+	return runCmdFunc(w.out, "sh", "-c", `set -e
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+curl -fsSL https://astral.sh/uv/install.sh -o "$tmpdir/install.sh"
+sh "$tmpdir/install.sh"`)
+}
+
+func installTaskLinux(w *Wizard) error {
+	w.printf("  Installing task via taskfile.dev install script...\n")
+	return runCmdFunc(w.out, "sh", "-c", `set -e
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+curl -fsSL https://taskfile.dev/install.sh -o "$tmpdir/install.sh"
+sh "$tmpdir/install.sh" -d -b "${HOME}/.local/bin"`)
+}
+
+func installGhLinux(w *Wizard, arch string) error {
+	w.printf("  Installing gh via GitHub CLI release tarball...\n")
+	script := fmt.Sprintf(`
+set -e
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+tag="$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+if [ -z "$tag" ]; then
+  echo "could not resolve latest gh release tag" >&2
+  exit 1
+fi
+ver="${tag#v}"
+asset="gh_${ver}_linux_%s.tar.gz"
+url="https://github.com/cli/cli/releases/download/${tag}/${asset}"
+curl -fsSL "$url" -o "$tmpdir/gh.tgz"
+tar -xzf "$tmpdir/gh.tgz" -C "$tmpdir"
+install -m 0755 "$tmpdir"/gh_*/bin/gh "${HOME}/.local/bin/gh"
+`, arch)
+	return runCmdFunc(w.out, "sh", "-c", script)
 }
 
 // ---------------------------------------------------------------------------

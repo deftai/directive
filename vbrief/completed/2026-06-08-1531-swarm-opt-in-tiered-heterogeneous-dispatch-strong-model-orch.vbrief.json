@@ -1,0 +1,117 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1531"
+  },
+  "plan": {
+    "title": "swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The swarm skill currently frames heterogeneous leaf-agent routing around the Grok Build spawn_subagent path, but the operator-facing capability should be provider-neutral. This story turns the issue discussion into concrete swarm guidance so users can choose Composer-class coding agents, Grok Build agents, Cursor/cloud agents, or future adapters for leaf implementation while preserving strong-model control for orchestration, review, merge, and release gates.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1531",
+      "Overview": "## Summary\r\r\n\r\r\nMake `deft-directive-swarm` support an **opt-in tiered / heterogeneous agent topology** across provider-neutral sub-agent backends, including Grok Build (`spawn_subagent`), Composer-class coding agents, Cursor/cloud agents, and future adapters: a strong-model **orchestrator/strategist** that spawns cheaper, high-context **leaf code-runners** (e.g. Composer-class models), each on one focused vBRIEF in an isolated worktree, with a strong-model **reviewer/merge** tier.\r\r\n\r\r\nThis is a provider-neutral extension of the existing platform adapter (#1342 / #1331), not a from-scratch capability. It maps directly to the two-agent (initializer + coding agent) and Layer 5 orchestrator -> Layer 7 commodity-coder architecture in `docs/the-harness-is-everything.md`.\r\r\n\r\r\n## Scope update — provider-neutral sub-agent choice\r\n\r\nThis issue should not be limited to Grok Build routing. The user-facing capability is broader: when running coding work through `deft-directive-swarm` or related build/review flows, the operator should be able to choose which sub-agent backend handles leaf implementation work, including Composer-class agents, Grok Build agents, Cursor/cloud agents, or future coding-agent providers.\r\n\r\nThe design should separate three concerns:\r\n\r\n1. **Dispatch provider** — the runtime primitive used to launch the child worker, such as `spawn_subagent`, Cursor Composer/task agents, cloud agents, or another adapter.\r\n2. **Worker role** — what the child is allowed to do: leaf implementation, initializer/spec-tightening, review monitor, merge/rebase, or release gate.\r\n3. **Model/agent selection** — the operator or harness policy that maps a role plus vBRIEF attributes to a concrete agent/model, for example Composer for code-runner work and a stronger model for orchestration/review.\r\n\r\nThis keeps Deft model-agnostic while still exposing enough structured metadata for the operator to route work intentionally. Grok Build remains one backend implementation of the idea, not the only target.\r\n\r\n## Discussion needed — adapter shape\r\n\r\nBefore implementation, run a short design/discussion phase on the adapter contract. Open questions to resolve:\r\n\r\n- Should Deft expose a first-class `subagentProvider` / `workerBackend` choice in policy, launch manifests, or swarm prompts, or should that remain external harness configuration?\r\n- Should the choice be per cohort, per story, per role, or all three?\r\n- What stable provider-neutral fields should every dispatch envelope carry so Composer, Grok Build, Cursor agents, and future tools can all route consistently?\r\n- Which roles are safe for lower-cost coding agents, and which must stay on a strong/review-capable agent by policy?\r\n- How should Deft record the selected backend in audit output so review cycles and postmortems know which worker type produced a change?\r\n\r\n## Motivation\r\r\n\r\r\n- **Cost / latency**: keep the expensive strategist turns rare; push the high-volume implementation work to cheap, fast, 200K-context leaf models.\r\r\n- **Quality is gate-bounded, not model-bounded**: the skill's gates (`task check`, file-overlap audit, Greptile review cycle) are model-agnostic, so a weaker leaf model is acceptable for *implementation* as long as the gates hold and the spec is tight.\r\r\n\r\r\n## Findings from design discussion\r\r\n\r\r\n1. **deft treats `spawn_subagent` as an opaque dispatch primitive.** Every usage (Phase 3 Step 2d, preamble §9, `swarm/swarm.md`) passes only: canonical preamble + adapted worktree prompt + worktree path. There is no model / agent-type parameter anywhere on the deft side today.\r\r\n2. **Model selection is a property of the GROKbuild harness — confirmed.** The operator configures a GROKbuild **routing file** that maps task attributes -> model (e.g. -> Composer 2.5). So deft neither pins nor needs to pin the child model; the router decides at the harness layer. This is the cleaner split: deft stays model-agnostic; GROKbuild routes.\r\r\n   - **Design consequence**: the previously-proposed optional `worker_model` pass-through field on the dispatch token is likely **unnecessary**. deft's real leverage is making task attributes **legible to the router**, not selecting the model itself.\r\r\n3. **Opt-in only.** Tiering is enabled by the operator's presence of a routing file; deft does not force it. A future `plan.policy.swarmTiering` setting could declare a repo's intended task-attribute -> tier mapping for documentation/consistency. No change to the default grok-build path otherwise.\r\r\n4. **Model-tiering and the \"initializer/document-writer\" role ship together — they are one feature.** A cheap leaf model fails hardest on an under-specified vBRIEF, so the spec-tightening step is the *safety margin* for the cheap tier, not a follow-up. In deft this does NOT require a new heavyweight agent type: `deft-directive-decompose`, `task swarm:readiness`, and `deft-directive-refinement` already do the initializer's job. Express it as a pre-dispatch readiness gate.\r\r\n5. **Routing is invisible to deft at dispatch time.** Because the GROKbuild routing file resolves the model after deft hands off, the swarm monitor cannot know which tier a given task will land on. Two consequences: (a) the spec-quality gate must be **unconditional** (applied to every swarm dispatch, not gated on a known-cheap tier); (b) deft must surface the routing signals so the router can classify reliably.\r\r\n\r\r\n## Proposed scope (skill changes)\r\r\n\r\r\n- **Phase 3 — Tiered / heterogeneous dispatch subsection**: document the topology (strategist/orchestrator, initializer/doc-writer, code-runner) and the routing-file-driven model assignment, with the safety rule that **gates, review cycle, merge cascade, and conflict-resolution rebase stay on the strong model**; only leaf *implementation* is routed to the cheap tier.\r\r\n- **Expose routing signals**: ensure the vBRIEF / dispatch envelope surfaces the attributes the GROKbuild routing file keys on (candidate signals: `plan.metadata.kind`, labels, acceptance-criteria count / complexity, file scope) so the router can classify tasks deterministically. deft stays model-agnostic.\r\r\n- **Unconditional pre-dispatch readiness gate**: every vBRIEF dispatched into the swarm MUST pass `task swarm:readiness` clean and have non-empty, file-scoped `plan.items` — because deft cannot see which model the router will assign, the tight-spec safety margin applies to all dispatches.\r\r\n- **Phase 4**: make the heartbeat sweep (#1365) explicitly recursive for trees of depth > 1.\r\r\n\r\r\n## Risks / guardrails\r\r\n\r\r\n- Never route the cheap model onto the merge cascade, Phase 5->6 release gate, or conflict-resolution rebase (irreversible-damage surfaces) — keep those task attributes mapped to the strong tier in the routing file.\r\r\n- The Duplicate-Agent failure mode multiplies with tree depth — heartbeats required at every level.\r\r\n- Keep the orchestrator conversation shallow (existing Phase 4 context-length discipline).\r\r\n\r\r\n## Open questions\r\r\n\r\r\n1. **What does the GROKbuild routing file key on?** (task type, labels, file globs, explicit tag, heuristic?) — determines which signals deft must make legible in the vBRIEF / dispatch envelope. _(Routing file now exists; need its keys to align deft's exposed attributes.)_\r\r\n2. Should deft document a `plan.policy.swarmTiering` mapping that mirrors the routing file, or leave tiering entirely operator-owned in GROKbuild?\r\r\n3. How does deft keep its exposed signals in sync with the routing file so they don't drift?\r\r\n\r\r\n## References\r\r\n\r\r\n- `skills/deft-directive-swarm/SKILL.md` (Phase 3 Step 2d, Phase 4)\r\r\n- `templates/agent-prompt-preamble.md` §9 (sub-agent spawn rules), #1378 (`## Allocation context` token)\r\r\n- `docs/the-harness-is-everything.md` (initializer + coding agent; orchestrator/commodity-coder layering)\r\r\n- #1342 (platform adapter / spawn_subagent launch path), #1331 (runtime decoupling), #1365 (heartbeat contract)\r\r\n\r\r\n---\r\r\n\r\r\n_Filed from a design discussion; to be iterated._\r\r\n",
+      "Labels": "enhancement, design, swarm, skills, grok-build, harness",
+      "ImplementationPlan": "1. Update skills/deft-directive-swarm/SKILL.md and templates/agent-prompt-preamble.md to separate dispatch provider, worker role, and model or agent selection, including Composer-class coding agents, Grok Build, Cursor/cloud agents, and future adapters.\n2. Add focused content tests in tests/content/test_swarm_skill.py and any directly relevant swarm template test to verify the provider-neutral terminology, safe role boundaries, and discussion/open-question guidance are present without hard-coding Grok Build as the only backend.",
+      "UserStory": "As a swarm operator, I want to choose the coding sub-agent backend per role, so that I can use Composer or other cheaper coding agents for leaf work while keeping high-risk orchestration and merge tasks on stronger agents."
+    },
+    "items": [
+      {
+        "title": "Document provider-neutral sub-agent backend selection in the swarm skill",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the swarm skill is read by an operator, when it describes tiered or heterogeneous dispatch, then it explicitly separates dispatch provider, worker role, and model or agent selection instead of presenting Grok Build as the only supported backend.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "title": "Define safe role boundaries for cheaper coding agents",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a user wants to route leaf coding work to Composer or another cheaper coding agent, the guidance states that orchestration, review-cycle decisions, conflict-resolution rebase, merge, and release gates remain mapped to strong/review-capable agents.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "title": "Add tests that pin provider-neutral swarm guidance",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the content test suite runs, it fails if the swarm guidance omits Composer-class agents or future adapters, or if it regresses to a Grok Build-only description of sub-agent routing.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "swarm",
+      "skills",
+      "grok-build",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)"
+      },
+      {
+        "uri": "completed/2026-06-08-add-persistent-sub-agent-backend-policy-and-availability-gat.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Add persistent sub-agent backend policy and availability gate",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-08-document-provider-neutral-sub-agent-routing-in-the-swarm-ski.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Document provider-neutral sub-agent routing in the swarm skill",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-08-add-provider-neutral-worker-metadata-to-the-agent-preamble.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Add provider-neutral worker metadata to the agent preamble",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-08-pin-provider-neutral-sub-agent-guidance-with-content-tests.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Pin provider-neutral sub-agent guidance with content tests",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-08-integrate-selected-sub-agent-backend-into-headless-swarm-lau.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Integrate selected sub-agent backend into headless swarm launch and audit output",
+        "TrustLevel": "internal"
+      }
+    ],
+    "id": "1531-provider-neutral-subagent-choice",
+    "metadata": {
+      "kind": "epic",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-swarm/SKILL.md",
+          "templates/agent-prompt-preamble.md",
+          "tests/content/test_swarm_skill.py"
+        ],
+        "verify_commands": [
+          "pytest tests/content/test_swarm_skill.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "content tests cover provider-neutral sub-agent backend guidance",
+          "full task check remains green after swarm guidance changes"
+        ],
+        "depends_on": [],
+        "conflict_group": "swarm-provider-adapter-guidance",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-08T16:54:49Z"
+    },
+    "updated": "2026-06-08T16:54:49Z"
+  }
+}

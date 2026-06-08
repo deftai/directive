@@ -101,6 +101,28 @@ def gates_pass(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sl, "run_readiness_gate", lambda path, root: (0, "OK"))
 
 
+def _write_project_def(project: Path, policy: dict) -> None:
+    """Write a minimal PROJECT-DEFINITION with the given plan.policy block."""
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {"policy": policy},
+    }
+    path = project / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+@pytest.fixture
+def backend_ready(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Configure a valid, probe-available sub-agent backend policy (#1531e)."""
+    _write_project_def(project, {"swarmSubagentBackend": "grok-build"})
+    monkeypatch.setenv("DEFT_PROBE_GROK_BUILD", "yes")
+
+
+@pytest.fixture
+def launch_ready(gates_pass, backend_ready) -> None:
+    """Gates pass and sub-agent backend policy is ready for manifest emission."""
+
+
 # ---------------------------------------------------------------------------
 # a1 -- story resolution
 # ---------------------------------------------------------------------------
@@ -218,7 +240,7 @@ class TestGateEnforcement:
         assert "sA" in err
         assert "readiness" in err
 
-    def test_all_gates_pass_exits_ok(self, project: Path, gates_pass, capsys) -> None:
+    def test_all_gates_pass_exits_ok(self, project: Path, launch_ready, capsys) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         rc = sl.main(["--stories", "100", "--project-root", str(project)])
         assert rc == sl.EXIT_OK
@@ -232,7 +254,7 @@ class TestGateEnforcement:
 
 
 class TestManifestShape:
-    def test_manifest_object_has_c2_fields(self, project: Path, gates_pass, capsys) -> None:
+    def test_manifest_object_has_c2_fields(self, project: Path, launch_ready, capsys) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         rc = sl.main(["--stories", "100", "--project-root", str(project)])
         assert rc == sl.EXIT_OK
@@ -243,12 +265,15 @@ class TestManifestShape:
             "worktree_path",
             "branch",
             "allocation_context",
+            "subagent_backend",
+            "dispatch_provider",
+            "worker_role",
         }
         assert entry["story_id"] == "sA"
         assert entry["vbrief_path"].endswith("a.vbrief.json")
         assert entry["branch"] == "swarm/sA"
 
-    def test_allocation_context_has_1378_fields(self, project: Path, gates_pass, capsys) -> None:
+    def test_allocation_context_has_1378_fields(self, project: Path, launch_ready, capsys) -> None:
         active = project / "vbrief" / "active"
         _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
         _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
@@ -274,21 +299,21 @@ class TestManifestShape:
         assert manifest[0]["branch"] == "swarm/cohort-x/sA"
 
     def test_solo_dispatch_kind_for_single_story_without_group(
-        self, project: Path, gates_pass, capsys
+        self, project: Path, launch_ready, capsys
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         sl.main(["--stories", "100", "--project-root", str(project)])
         ctx = json.loads(capsys.readouterr().out)[0]["allocation_context"]
         assert ctx["dispatch_kind"] == "solo"
 
-    def test_default_worktree_path_when_no_map(self, project: Path, gates_pass, capsys) -> None:
+    def test_default_worktree_path_when_no_map(self, project: Path, launch_ready, capsys) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         sl.main(["--stories", "100", "--project-root", str(project)])
         entry = json.loads(capsys.readouterr().out)[0]
         assert ".deft-scratch/worktrees/sA" in entry["worktree_path"]
 
     def test_worktree_map_consumed_via_injected_resolver(
-        self, project: Path, gates_pass, monkeypatch, capsys, tmp_path: Path
+        self, project: Path, launch_ready, monkeypatch, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         map_path = tmp_path / "wt-map.json"
@@ -324,7 +349,7 @@ class TestManifestShape:
         assert captured["create_missing"] is True
 
     def test_no_create_worktrees_flag_forwarded(
-        self, project: Path, gates_pass, monkeypatch, capsys, tmp_path: Path
+        self, project: Path, launch_ready, monkeypatch, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         map_path = tmp_path / "wt-map.json"
@@ -353,7 +378,7 @@ class TestManifestShape:
         assert captured["create_missing"] is False
 
     def test_worktree_map_without_resolver_exits_config_error(
-        self, project: Path, gates_pass, monkeypatch, capsys, tmp_path: Path
+        self, project: Path, launch_ready, monkeypatch, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         map_path = tmp_path / "wt-map.json"
@@ -366,7 +391,7 @@ class TestManifestShape:
         assert "resolver" in capsys.readouterr().err
 
     def test_worktree_map_resolver_raising_exits_config_error(
-        self, project: Path, gates_pass, monkeypatch, capsys, tmp_path: Path
+        self, project: Path, launch_ready, monkeypatch, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         map_path = tmp_path / "wt-map.json"
@@ -382,7 +407,7 @@ class TestManifestShape:
         assert rc == sl.EXIT_CONFIG_ERROR
         assert "collision" in capsys.readouterr().err
 
-    def test_output_file_written(self, project: Path, gates_pass, capsys, tmp_path: Path) -> None:
+    def test_output_file_written(self, project: Path, launch_ready, capsys, tmp_path: Path) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         out_path = tmp_path / "manifest.json"
         rc = sl.main(
@@ -393,7 +418,7 @@ class TestManifestShape:
         assert written[0]["story_id"] == "sA"
 
     def test_output_write_failure_exits_config_error(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         # --output points at an existing directory, so write_text raises OSError.
@@ -407,7 +432,7 @@ class TestManifestShape:
         assert captured.out.strip() == ""
 
     def test_worktree_map_duplicate_story_id_exits_config_error(
-        self, project: Path, gates_pass, monkeypatch, capsys, tmp_path: Path
+        self, project: Path, launch_ready, monkeypatch, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         map_path = tmp_path / "wt-map.json"
@@ -433,7 +458,9 @@ class TestManifestShape:
 
 
 class TestAutonomousMode:
-    def test_autonomous_records_batching_rationale(self, project: Path, gates_pass, capsys) -> None:
+    def test_autonomous_records_batching_rationale(
+        self, project: Path, launch_ready, capsys
+    ) -> None:
         active = project / "vbrief" / "active"
         _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
         _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
@@ -445,13 +472,15 @@ class TestAutonomousMode:
             assert rationale is not None
             assert rationale.strip() != ""
 
-    def test_non_autonomous_leaves_rationale_null(self, project: Path, gates_pass, capsys) -> None:
+    def test_non_autonomous_leaves_rationale_null(
+        self, project: Path, launch_ready, capsys
+    ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         sl.main(["--stories", "100", "--project-root", str(project)])
         ctx = json.loads(capsys.readouterr().out)[0]["allocation_context"]
         assert ctx["batching_rationale"] is None
 
-    def test_explicit_batching_rationale_honored(self, project: Path, gates_pass, capsys) -> None:
+    def test_explicit_batching_rationale_honored(self, project: Path, launch_ready, capsys) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         sl.main(
             [
@@ -501,7 +530,7 @@ class TestConfigErrors:
 
 class TestCohortOrdering:
     def test_continuation_orders_first(
-        self, project: Path, gates_pass, monkeypatch, capsys
+        self, project: Path, launch_ready, monkeypatch, capsys
     ) -> None:
         active = project / "vbrief" / "active"
         _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])  # net-new
@@ -516,7 +545,7 @@ class TestCohortOrdering:
         assert [m["story_id"] for m in manifest] == ["sB", "sA"]
 
     def test_deficit_orders_most_under_target_first(
-        self, project: Path, gates_pass, monkeypatch, capsys
+        self, project: Path, launch_ready, monkeypatch, capsys
     ) -> None:
         active = project / "vbrief" / "active"
         _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
@@ -533,7 +562,7 @@ class TestCohortOrdering:
         assert [m["story_id"] for m in manifest] == ["sB", "sA"]
 
     def test_continuation_beats_deficit(
-        self, project: Path, gates_pass, monkeypatch, capsys
+        self, project: Path, launch_ready, monkeypatch, capsys
     ) -> None:
         active = project / "vbrief" / "active"
         _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])  # net-new, big deficit
@@ -549,7 +578,7 @@ class TestCohortOrdering:
         assert [m["story_id"] for m in manifest] == ["sB", "sA"]
 
     def test_neutral_orders_by_filename_proxy(
-        self, project: Path, gates_pass, monkeypatch, capsys
+        self, project: Path, launch_ready, monkeypatch, capsys
     ) -> None:
         # No continuation / deficit signal -> the date_key (relpath) proxy
         # orders deterministically by date-prefixed filename, regardless of
@@ -564,7 +593,7 @@ class TestCohortOrdering:
         assert [m["story_id"] for m in manifest] == ["sA", "sB"]
 
     def test_cohort_vbriefs_reflects_ordering(
-        self, project: Path, gates_pass, monkeypatch, capsys
+        self, project: Path, launch_ready, monkeypatch, capsys
     ) -> None:
         active = project / "vbrief" / "active"
         _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
@@ -638,7 +667,7 @@ def _clearance_file(tmp_path: Path, project: Path, *, paths: list[str]) -> Path:
 
 class TestGateClearanceEnforcement:
     def test_enforce_uncleared_block_gate_aborts(
-        self, project: Path, gates_pass, capsys
+        self, project: Path, launch_ready, capsys
     ) -> None:
         _engine()
         _write_story(
@@ -654,7 +683,7 @@ class TestGateClearanceEnforcement:
         assert "block-gated" in err
 
     def test_enforce_cleared_block_gate_launches(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         """a2: a recorded clearance permits the gated (solo) story to launch."""
         _write_story(
@@ -675,7 +704,7 @@ class TestGateClearanceEnforcement:
         assert [m["story_id"] for m in manifest] == ["sA"]
 
     def test_advise_default_launches_uncleared_gated_story(
-        self, project: Path, gates_pass, capsys
+        self, project: Path, launch_ready, capsys
     ) -> None:
         """Advisory default surfaces the uncleared block gate but still launches."""
         _engine()
@@ -690,7 +719,7 @@ class TestGateClearanceEnforcement:
         assert "advisory" in captured.err.lower()
 
     def test_enforce_block_gated_story_in_cohort_must_ship_solo(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         """A cleared block-gated story still cannot ride a multi-story cohort (v1)."""
         active = project / "vbrief" / "active"
@@ -712,7 +741,7 @@ class TestGateClearanceEnforcement:
         assert "solo" in capsys.readouterr().err.lower()
 
     def test_envelope_carries_gate_clearances(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         """The consent token gains a gate_clearances field when clearances are supplied."""
         _write_story(
@@ -732,7 +761,7 @@ class TestGateClearanceEnforcement:
         assert ctx["gate_clearances"][0]["gate_id"] == GATE_ID
 
     def test_malformed_gate_clearances_file_exits_config_error(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         bad = tmp_path / "bad.json"
@@ -744,7 +773,7 @@ class TestGateClearanceEnforcement:
         assert "gate-clearances" in capsys.readouterr().err
 
     def test_non_array_gate_clearances_file_exits_config_error(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         bad = tmp_path / "obj.json"
@@ -773,7 +802,7 @@ class TestAuthorityAudit:
         ]
 
     def test_successful_launch_appends_allocation_approved(
-        self, project: Path, gates_pass, capsys
+        self, project: Path, launch_ready, capsys
     ) -> None:
         """a3: a successful launch appends an allocation:approved authority event."""
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
@@ -786,7 +815,7 @@ class TestAuthorityAudit:
         assert "event_id" in approval and "timestamp" in approval
 
     def test_consumed_clearance_appends_gate_cleared(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         _write_story(
             project / "vbrief" / "active", "a.vbrief.json",
@@ -807,7 +836,7 @@ class TestAuthorityAudit:
         assert cleared[0]["gate_id"] == GATE_ID
 
     def test_no_audit_flag_suppresses_audit(
-        self, project: Path, gates_pass, capsys
+        self, project: Path, launch_ready, capsys
     ) -> None:
         _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
         rc = sl.main(["--stories", "100", "--no-audit", "--project-root", str(project)])
@@ -815,7 +844,7 @@ class TestAuthorityAudit:
         assert self._audit_records(project) == []
 
     def test_unconsumed_clearance_is_not_logged(
-        self, project: Path, gates_pass, capsys, tmp_path: Path
+        self, project: Path, launch_ready, capsys, tmp_path: Path
     ) -> None:
         """A supplied clearance whose gate never matched is NOT recorded as consumed.
 
@@ -836,3 +865,117 @@ class TestAuthorityAudit:
         records = self._audit_records(project)
         assert any(r["event_type"] == "allocation:approved" for r in records)
         assert not any(r["event_type"] == "gate:cleared" for r in records)
+
+
+# ---------------------------------------------------------------------------
+# #1531e -- sub-agent backend policy enforcement
+# ---------------------------------------------------------------------------
+
+
+class TestSubagentBackendPolicy:
+    def test_missing_policy_exits_before_manifest(
+        self, project: Path, gates_pass, capsys
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_GATE_FAILED
+        captured = capsys.readouterr()
+        assert captured.out.strip() == ""
+        err = captured.err
+        assert "Select a coding sub-agent backend" in err
+        assert "composer" in err
+        assert "grok-build" in err
+        assert "task policy:subagent-backend" in err
+
+    def test_unavailable_backend_lists_alternatives(
+        self, project: Path, gates_pass, capsys, monkeypatch
+    ) -> None:
+        _write_project_def(project, {"swarmSubagentBackend": "composer"})
+        monkeypatch.delenv("DEFT_PROBE_COMPOSER", raising=False)
+        monkeypatch.setenv("DEFT_PROBE_GROK_BUILD", "yes")
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_GATE_FAILED
+        err = capsys.readouterr().err
+        assert "composer" in err
+        assert "unavailable" in err
+        assert "grok-build" in err
+        assert "task policy:subagent-backend" in err
+
+    def test_available_backend_adds_audit_metadata(
+        self, project: Path, launch_ready, capsys
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        entry = json.loads(capsys.readouterr().out)[0]
+        assert entry["subagent_backend"] == "grok-build"
+        assert entry["dispatch_provider"] == "grok"
+        assert entry["worker_role"] == sl.LEAF_CODING_WORKER_ROLE
+        ctx = entry["allocation_context"]
+        assert set(ctx) == {
+            "dispatch_kind",
+            "allocation_plan_id",
+            "batching_rationale",
+            "cohort_vbriefs",
+            "operator_approval_evidence",
+        }
+
+    def test_autonomous_missing_policy_fails_non_interactively(
+        self, project: Path, gates_pass, capsys
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(
+            ["--stories", "100", "--autonomous", "--project-root", str(project)]
+        )
+        assert rc == sl.EXIT_GATE_FAILED
+        assert capsys.readouterr().out.strip() == ""
+
+    def test_autonomous_unavailable_backend_fails_non_interactively(
+        self, project: Path, gates_pass, capsys, monkeypatch
+    ) -> None:
+        _write_project_def(project, {"swarmSubagentBackend": "cursor-cloud"})
+        monkeypatch.delenv("DEFT_PROBE_CURSOR_CLOUD", raising=False)
+        monkeypatch.delenv("CURSOR_AGENT", raising=False)
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(
+            ["--stories", "100", "--autonomous", "--project-root", str(project)]
+        )
+        assert rc == sl.EXIT_GATE_FAILED
+        err = capsys.readouterr().err
+        assert "cursor-cloud" in err
+        assert "task policy:subagent-backend" in err
+
+    def test_backend_without_leaf_role_fails(
+        self, project: Path, gates_pass, capsys, monkeypatch
+    ) -> None:
+        fake_result = type(
+            "Result",
+            (),
+            {"backend_id": "review-only", "source": "typed", "error": None},
+        )()
+        monkeypatch.setattr(
+            sl, "resolve_swarm_subagent_backend", lambda root: fake_result
+        )
+        monkeypatch.setattr(
+            sl,
+            "probe_subagent_backends",
+            lambda: [
+                type(
+                    "Desc",
+                    (),
+                    {
+                        "backend_id": "review-only",
+                        "display_name": "Review only",
+                        "roles": ("review-monitor",),
+                        "available": True,
+                    },
+                )()
+            ],
+        )
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_GATE_FAILED
+        err = capsys.readouterr().err
+        assert "leaf-implementation" in err
+        assert "review-only" in err

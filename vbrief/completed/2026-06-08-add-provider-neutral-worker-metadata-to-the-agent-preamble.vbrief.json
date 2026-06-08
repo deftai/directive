@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from pending/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json"
+  },
+  "plan": {
+    "id": "1531c-preamble-provider-metadata",
+    "title": "Add provider-neutral worker metadata to the agent preamble",
+    "status": "completed",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "narratives": {
+      "Description": "This story updates the canonical dispatch preamble so implementation workers can see which backend and role they were assigned without relying on Grok Build-specific wording. It is independently buildable because it owns the dispatch-envelope contract text and can preserve existing allocation-context fields while adding provider-neutral metadata guidance.",
+      "ImplementationPlan": "1. Update the source file templates/agent-prompt-preamble.md near the allocation context and sub-agent spawn rules to document provider-neutral worker metadata such as dispatch provider, worker role, and selected backend or routing policy.\n2. Verify the preamble contract with tests/content/test_swarm_skill.py assertions that preserve the five-field allocation-context evidence while checking the new backend metadata guidance.",
+      "UserStory": "As a dispatched coding worker, I want my prompt to declare my backend and role in provider-neutral terms, so that I can follow the right constraints without depending on one harness name.",
+      "Traces": "https://github.com/deftai/directive/issues/1531"
+    },
+    "items": [
+      {
+        "id": "1531c-preamble-provider-metadata-a1",
+        "title": "Given a worker prompt includes allocation context, when backend metadata is present, then the preamble explains dispatch provider, worker role, and backend or routing-policy fields without changing the five-field #1378 recognition contract.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a worker prompt includes allocation context, when backend metadata is present, then the preamble explains dispatch provider, worker role, and backend or routing-policy fields without changing the five-field #1378 recognition contract.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531c-preamble-provider-metadata-a2",
+        "title": "Given a provider-neutral dispatch uses Composer, Grok Build, Cursor/cloud agents, or a future adapter, then the preamble gives each worker the same role-boundary expectations.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a provider-neutral dispatch uses Composer, Grok Build, Cursor/cloud agents, or a future adapter, then the preamble gives each worker the same role-boundary expectations.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531c-preamble-provider-metadata-a3",
+        "title": "Given a review cycle or postmortem inspects worker output, then the preamble requires the selected backend or routing policy to be audit-visible in the dispatch envelope or status output.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a review cycle or postmortem inspects worker output, then the preamble requires the selected backend or routing policy to be audit-visible in the dispatch envelope or status output.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "templates/agent-prompt-preamble.md"
+        ],
+        "verify_commands": [
+          "pytest tests/content/test_swarm_skill.py -k provider_neutral"
+        ],
+        "expected_outputs": [
+          "agent preamble documents provider-neutral worker metadata without breaking allocation context"
+        ],
+        "depends_on": [
+          "1531a-subagent-backend-policy-and-probe"
+        ],
+        "conflict_group": "agent-preamble-provider-metadata",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-08T16:03:39Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-08T16:03:39Z"
+  }
+}

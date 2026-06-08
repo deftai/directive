@@ -446,3 +446,160 @@ def test_swarm_anti_patterns_1487_bullet_present() -> None:
         f"{_SWARM_PATH}: no Anti-Patterns bullet citing #1487 + "
         "swarm:complete-cohort found -- the cohort-sweep anti-pattern is missing"
     )
+
+
+# ---------------------------------------------------------------------------
+# 6. #1531 -- provider-neutral sub-agent routing + preamble metadata
+# ---------------------------------------------------------------------------
+#
+# Wave 3 pins the provider-neutral guidance landed by #1531b (swarm skill)
+# and #1531c (agent preamble). Tests fail if either surface regresses to
+# Grok Build-only wording or drops backend / role metadata for dispatched
+# workers. Stable substring matches (not full-text).
+
+_PREAMBLE_PATH = "templates/agent-prompt-preamble.md"
+
+_STEP1B_HEADER = "### Step 1b: Provider-neutral sub-agent routing (#1531)"
+_STEP1B_END = "### Step 2a: Orchestrated Launch (start_agent available)"
+
+_PREAMBLE_SECTION_HEADER = "## 2.6 Provider-neutral worker metadata (#1531)"
+_PREAMBLE_SECTION_END = "## 3. PowerShell 5.1 non-ASCII rule (#798)"
+
+# Load-bearing tokens inside Phase 3 Step 1b (#1531b).
+_PROVIDER_NEUTRAL_SWARM_TOKENS = (
+    "provider-neutral",
+    "Heterogeneous dispatch is provider-neutral",
+    "Dispatch provider",
+    "Worker role",
+    "Model or agent selection",
+    "Composer-class",
+    "Grok Build",
+    "Cursor/cloud",
+    "future adapter",
+    "not a Grok Build-only path",
+)
+
+# Anti-Patterns must retain the Grok Build-only regression guard (#1531).
+_PROVIDER_NEUTRAL_SWARM_ANTI_PATTERN_TOKENS = (
+    "Grok Build-only",
+    "#1531",
+    "Composer-class",
+    "Cursor/cloud",
+    "future adapter",
+)
+
+# Load-bearing tokens inside preamble §2.6 (#1531c).
+_PROVIDER_NEUTRAL_PREAMBLE_TOKENS = (
+    "provider-neutral",
+    "Composer-class coding agents",
+    "Grok Build (`spawn_subagent`)",
+    "Cursor/cloud agents",
+    "future adapters",
+    "## Worker metadata",
+    "dispatch_provider",
+    "worker_role",
+    "selected_backend",
+    "routing_policy",
+    "Role-boundary expectations (all providers)",
+    "dispatch envelope",
+)
+
+
+def _read_preamble() -> str:
+    return (_REPO_ROOT / _PREAMBLE_PATH).read_text(encoding="utf-8")
+
+
+def _step1b_block(text: str) -> str:
+    """Return Phase 3 Step 1b, bounded to Step 2a."""
+    start = text.find(_STEP1B_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_STEP1B_HEADER}' heading -- "
+        "the #1531 provider-neutral routing section is missing"
+    )
+    end = text.find(_STEP1B_END, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_STEP1B_END}' heading not found after Step 1b -- "
+        "cannot bound the #1531 block"
+    )
+    return text[start:end]
+
+
+def _preamble_section_26_block(text: str) -> str:
+    """Return preamble §2.6, bounded to §3."""
+    start = text.find(_PREAMBLE_SECTION_HEADER)
+    assert start != -1, (
+        f"{_PREAMBLE_PATH}: missing '{_PREAMBLE_SECTION_HEADER}' heading -- "
+        "the #1531 worker-metadata section is missing"
+    )
+    end = text.find(_PREAMBLE_SECTION_END, start)
+    assert end != -1 and end > start, (
+        f"{_PREAMBLE_PATH}: '{_PREAMBLE_SECTION_END}' heading not found after "
+        "§2.6 -- cannot bound the #1531 block"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("token", _PROVIDER_NEUTRAL_SWARM_TOKENS)
+def test_provider_neutral_swarm_step1b_token_present(token: str) -> None:
+    """Step 1b must pin provider-neutral backend choice and adapter examples (#1531)."""
+    block = _step1b_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 3 Step 1b missing provider-neutral token "
+        f"{token!r} -- see #1531b acceptance criteria"
+    )
+
+
+def test_provider_neutral_swarm_step1b_separates_three_concerns() -> None:
+    """Step 1b must list dispatch provider, worker role, and model selection separately."""
+    block = _step1b_block(_read_swarm())
+    positions = [block.find(label) for label in (
+        "Dispatch provider",
+        "Worker role",
+        "Model or agent selection",
+    )]
+    assert all(p != -1 for p in positions), (
+        f"{_SWARM_PATH}: Phase 3 Step 1b must enumerate all three routing "
+        f"concerns; positions: {positions}"
+    )
+    assert positions == sorted(positions), (
+        f"{_SWARM_PATH}: Phase 3 Step 1b routing concerns are out of order; "
+        f"positions: {positions}"
+    )
+
+
+@pytest.mark.parametrize("token", _PROVIDER_NEUTRAL_SWARM_ANTI_PATTERN_TOKENS)
+def test_provider_neutral_swarm_anti_pattern_token_present(token: str) -> None:
+    """Anti-Patterns must guard against Grok Build-only routing regressions (#1531)."""
+    text = _read_swarm()
+    anti_start = text.find("## Anti-Patterns")
+    assert anti_start != -1, (
+        f"{_SWARM_PATH}: missing '## Anti-Patterns' section heading"
+    )
+    anti_block = text[anti_start:]
+    assert token in anti_block, (
+        f"{_SWARM_PATH}: Anti-Patterns missing #1531 provider-neutral token "
+        f"{token!r} -- must forbid Grok Build-only regressions"
+    )
+
+
+@pytest.mark.parametrize("token", _PROVIDER_NEUTRAL_PREAMBLE_TOKENS)
+def test_provider_neutral_preamble_section_26_token_present(token: str) -> None:
+    """Preamble §2.6 must carry provider-neutral backend and role metadata (#1531)."""
+    block = _preamble_section_26_block(_read_preamble())
+    assert token in block, (
+        f"{_PREAMBLE_PATH}: §2.6 missing provider-neutral token "
+        f"{token!r} -- see #1531c acceptance criteria"
+    )
+
+
+def test_provider_neutral_preamble_worker_metadata_is_required_rule() -> None:
+    """§2.6 must mark intentional backend-routed dispatch with a ! MUST rule."""
+    block = _preamble_section_26_block(_read_preamble())
+    pattern = re.compile(
+        r"!\s+Every intentional backend-routed dispatch MUST carry",
+        re.MULTILINE,
+    )
+    assert pattern.search(block), (
+        f"{_PREAMBLE_PATH}: §2.6 must open the Worker metadata requirement "
+        "with a `!` MUST rule (#1531c)"
+    )

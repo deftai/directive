@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1538"
+  },
+  "plan": {
+    "title": "Linux installer --yes reports missing core tools instead of bootstrapping them",
+    "status": "completed",
+    "narratives": {
+      "Description": "The Linux installer currently detects missing core tools during --yes installs but only reports fallback instructions, leaving a fresh WSL or Linux consumer with a doctor-failing install. This story makes the non-interactive Linux path either bootstrap the required core tools safely or fail loudly before claiming success, so first-session setup is not left in a broken state.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1538",
+      "Overview": "## Summary\nThe published Linux installer succeeds in WSL, but in `--yes` mode it does not install/bootstrap the core follow-up tools it detects as missing. It reports `uv`, `task`, and `gh` as missing, with doctor also warning on `go` and `node`.\n\n## Repro\nEnvironment: fresh WSL2 Ubuntu, default user `msadams`.\n\nCommands:\n\n```bash\ncurl -L -o /home/msadams/install-linux-amd64 https://github.com/deftai/directive/releases/latest/download/install-linux-amd64\nchmod +x /home/msadams/install-linux-amd64\nrm -rf /home/msadams/repos/deft/installer-smoke\nmkdir -p /home/msadams/repos/deft/installer-smoke\n/home/msadams/install-linux-amd64 --yes --repo-root /home/msadams/repos/deft/installer-smoke --json\n```\n\nObserved installer version:\n\n```text\ndeft-install v0.42.1\n```\n\n## Observed\nThe install itself exits 0 and deposits `.deft/core`, `AGENTS.md`, `.agents/skills`, `.githooks`, `Taskfile.yml`, `vbrief/`, and guard files correctly. However, output includes:\n\n```text\nMissing core tools (consent implied by --yes): gh, task, uv\n  Fallbacks (run manually or via platform package manager):\n    Windows: winget install --id <ID> or scripts/setup_windows.ps1\n    macOS:   brew install go-task uv python gh\n    Linux:   apt/brew equivalent for task uv python3 gh\n```\n\nThe doctor handoff then reports:\n\n```json\n{\"check\":\"dependency\",\"message\":\"uv (Astral Python runner) not found - required - install: https://docs.astral.sh/uv/\",\"severity\":\"error\",\"tool\":\"uv\"}\n```\n\nand warnings for `task`, `go`, and `node`.\n\n## Expected\nIn Linux `--yes` / non-interactive mode, the installer should either:\n\n1. bootstrap required core tools where safe/portable, at least `uv`, `task`, and `gh`; or\n2. fail loud before claiming install success if required post-install doctor dependencies cannot be satisfied automatically; or\n3. clearly document that Linux tool bootstrap is not implemented and that `--yes` only reports missing tools.\n\nThe current message says consent is implied by `--yes`, which suggests the installer should take action rather than only emit fallback instructions.\n\n## Notes\nThis came from setting up a fresh WSL maintainer lane to verify the Linux installer path. The installer payload deposit worked; the issue is the expected core-tool bootstrap behavior after detection.",
+      "Labels": "bug, adoption-blocker, installer, doctor",
+      "ImplementationPlan": "1. Update the installer source file cmd/deft-install/setup.go around EnsureCoreTools so Linux non-interactive installs handle missing uv, task, and gh with a deterministic bootstrap or a fail-loud unsupported-bootstrap result instead of success-plus-fallback prose.\n2. Add focused test fixtures and assertions in cmd/deft-install/setup_test.go that exercise the Linux missing-tool path with injectable command/probe seams, verifying JSON missing_tools, user-facing output, and doctor-handoff evidence without invoking real package managers.",
+      "UserStory": "As a Linux adopter, I want deft-install --yes to leave required Deft tools installed or fail loudly, so that my first doctor run is actionable and not silently broken."
+    },
+    "items": [
+      {
+        "title": "Bootstrap or fail-loud for missing Linux core tools in non-interactive installer runs",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a fresh Linux or WSL environment missing uv, task, and gh, when install-linux-amd64 --yes --repo-root <project> --json runs and the supported bootstrap path is available, then the installer installs or wires those required tools and the JSON result does not leave them in missing_tools.",
+          "Traces": "https://github.com/deftai/directive/issues/1538"
+        }
+      },
+      {
+        "title": "Report unsupported Linux bootstrap as a deterministic installer failure",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a Linux environment where the installer cannot safely bootstrap required tools, when the non-interactive install reaches the core-tool phase, then it exits non-zero with structured actionable output instead of printing consent implied by --yes and still claiming install success.",
+          "Traces": "https://github.com/deftai/directive/issues/1538"
+        }
+      },
+      {
+        "title": "Add focused installer tests for the Linux missing-tool branch",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given mocked tool discovery and bootstrap outcomes, the installer test suite asserts the success, failure, and fallback-output behavior for Linux --yes missing-tool handling without requiring real apt, brew, network access, or root privileges.",
+          "Traces": "https://github.com/deftai/directive/issues/1538"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer",
+      "doctor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1538",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1538: Linux installer --yes reports missing core tools instead of bootstrapping them"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/setup_test.go"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install -run TestEnsureCoreTools",
+          "task check"
+        ],
+        "expected_outputs": [
+          "focused Go installer tests cover Linux missing-tool bootstrap or fail-loud behavior",
+          "full task check remains green after the installer change"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer-tool-bootstrap",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-08T01:11:03Z"
+    },
+    "updated": "2026-06-08T01:11:03Z",
+    "id": "1538-linux-installer-core-tool-bootstrap"
+  }
+}

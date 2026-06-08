@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json"
+  },
+  "plan": {
+    "id": "1531a-subagent-backend-policy-and-probe",
+    "title": "Add persistent sub-agent backend policy and availability gate",
+    "status": "completed",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "narratives": {
+      "Description": "This story gives Deft a durable project-level policy for the user-selected coding sub-agent backend and a runtime capability probe that lists available backends in the current harness. It is independently buildable because it owns the policy/task/probe surface; the later launch story consumes that policy before dispatch.",
+      "ImplementationPlan": "1. Update the source files scripts/policy.py, scripts/policy_set.py, and tasks/policy.yml so plan.policy.swarmSubagentBackend can be shown, changed, and audited from the normal policy surface.\n2. Add focused tests in tests/cli/test_policy.py and tests/cli/test_policy_set.py that verify backend listing/probe output, user-changeable policy storage, and policy:show evidence without invoking a real harness.",
+      "UserStory": "As a swarm operator, I want my selected coding sub-agent backend stored in project policy and checked against the current harness, so that swarm stops and asks me when the configured agent is unavailable.",
+      "Traces": "https://github.com/deftai/directive/issues/1531"
+    },
+    "items": [
+      {
+        "id": "1531a-subagent-backend-policy-and-probe-a1",
+        "title": "Given the user changes the backend through the policy task surface, then the selected value is stored under plan.policy in PROJECT-DEFINITION and task policy:show reports the current value and source.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the user changes the backend through the policy task surface, then the selected value is stored under plan.policy in PROJECT-DEFINITION and task policy:show reports the current value and source.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531a-subagent-backend-policy-and-probe-a2",
+        "title": "Given the current harness exposes Composer, Grok Build, Cursor/cloud, or future adapters, then a backend-listing command or probe returns stable provider IDs and role capabilities for swarm to display.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the current harness exposes Composer, Grok Build, Cursor/cloud, or future adapters, then a backend-listing command or probe returns stable provider IDs and role capabilities for swarm to display.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531a-subagent-backend-policy-and-probe-a3",
+        "title": "Given a user changes their mind after initial setup, then rerunning the policy command updates the stored backend value without editing vBRIEF story files.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a user changes their mind after initial setup, then rerunning the policy command updates the stored backend value without editing vBRIEF story files.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/policy.py",
+          "scripts/policy_set.py",
+          "tasks/policy.yml",
+          "tests/cli/test_policy.py",
+          "tests/cli/test_policy_set.py"
+        ],
+        "verify_commands": [
+          "pytest tests/cli/test_policy.py tests/cli/test_policy_set.py -k subagent",
+          "task check"
+        ],
+        "expected_outputs": [
+          "policy tests cover persistent sub-agent backend selection and policy:show output",
+          "backend-listing probe returns stable provider IDs and role capabilities"
+        ],
+        "depends_on": [],
+        "conflict_group": "swarm-subagent-backend-policy",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-08T01:15:37Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-08T01:15:37Z"
+  }
+}

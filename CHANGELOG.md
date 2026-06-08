@@ -20,6 +20,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **GitHub Markdown body posting now has a safe path for backticks and shell metacharacters (#1555)** -- agents can post issue bodies, PR bodies, and issue/PR comments through `task scm:body:*` without embedding Markdown in double-quoted shell commands, preserving literal backticks, dollar signs, quotes, and fenced code blocks. The helper performs live `gh` read-back after mutations so cached `ghx` GETs cannot hide stale body content. Closes #1555. Refs #1554.
+
+### Removed
+
+## [0.43.0] - 2026-06-08
+
+> Linux installer bootstrap and provider-neutral swarm dispatch, with stronger review-cycle diagnostics.
+
+### Added
+- **Content tests pin provider-neutral swarm guidance (#1531d)** -- content tests now fail if the swarm skill or agent preamble regresses to Grok Build-only sub-agent routing or drops backend and role metadata for dispatched workers. Refs #1531.
+- **Swarm operators can persist a coding sub-agent backend in project policy (#1531a)** -- `task policy:subagent-backend` sets the preferred coding sub-agent provider for swarm leaf workers; `task policy:subagent-backends` lists available providers and their role capabilities without spawning a harness; `task policy:show` surfaces the resolved value. Refs #1531.
+- **Headless swarm launch enforces selected sub-agent backend (#1531e)** -- `task swarm:launch` now refuses to emit a manifest when `plan.policy.swarmSubagentBackend` is missing or probe-unavailable, listing detected alternatives and the policy command to choose one; successful launches include audit-visible backend, dispatch provider, and worker-role metadata on each manifest entry without altering the #1378 allocation-context contract. Refs #1531.
+
+### Changed
+- **Dispatched workers see provider-neutral backend and role metadata in the agent preamble (#1531c)** -- the agent preamble now carries a worker metadata section that records dispatch provider, assigned role, and backend routing identity separately from the five-field #1378 allocation-context contract; role-boundary expectations apply uniformly across Composer, Grok Build, Cursor/cloud, and future adapters, and workers must surface routing metadata in their terminal status messages for postmortem audit traceability. Refs #1531.
+
+- **Swarm skill documents provider-neutral sub-agent routing (#1531)** -- heterogeneous dispatch guidance now separates dispatch provider, worker role, and model selection; Composer-class, Grok Build, Cursor/cloud, and future adapters are first-class backends with strong-agent gates for orchestration, review, rebase, merge, and release. Refs #1531.
+
+### Fixed
+- **Linux `deft-install --yes` now bootstraps required tools or fails loud (#1538)** -- non-interactive Linux installs previously reported missing `uv`, `task`, and `gh` with manual fallback prose while still exiting success, leaving fresh WSL consumers with a doctor-failing tree. The installer now attempts portable user-local bootstrap for those tools and only claims success when they are on PATH; otherwise it exits non-zero with structured JSON guidance. Refs #1538.
+- **Greptile informal clean replies without canonical fields now fail loud with a recovery path (#1543)** -- when Greptile posts a separate "diff is clean" comment but omits `Last reviewed commit:` and `Confidence Score: X/5`, merge gates still block (prose alone is not merge-ready) yet `task pr:merge-ready`, the review-cycle skill, and swarm pollers now classify the `informal-clean missing-canonical-fields` state and route operators to retrigger Greptile, wait for canonical evidence, or document an override instead of silent polling. Closes #1543.
+
 - **`deft-install` archive extraction adopts CodeQL's recognized zip-slip barrier shape (#1525, #1528)** -- the framework tarball extractor was already guarded against path traversal, but not in the form CodeQL's `go/zipslip` model recognizes, so alert #6 stayed open. The extractor now rejects any tar entry whose raw `hdr.Name` contains `..` at the source and validates the exact extraction target against the destination directory before any write (symlink entries still skipped as defense-in-depth), with a regression test. Closes #1528. Refs #1525, code-scanning alert #6.
 
 ### Removed
@@ -3150,7 +3171,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.42.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.43.0...HEAD
+[0.43.0]: https://github.com/deftai/directive/compare/v0.42.1...v0.43.0
 [0.42.1]: https://github.com/deftai/directive/compare/v0.42.0...v0.42.1
 [0.42.0]: https://github.com/deftai/directive/compare/v0.41.0...v0.42.0
 [0.41.0]: https://github.com/deftai/directive/compare/v0.40.0...v0.41.0
