@@ -1144,6 +1144,8 @@ def test_probe_subagent_backends_honours_env_override(
 ):
     monkeypatch.setenv("DEFT_PROBE_COMPOSER", "1")
     monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    monkeypatch.delenv("GROK_BUILD", raising=False)
+    monkeypatch.delenv("DEFT_AGENT_RUNTIME", raising=False)
     entries = policy_module.probe_subagent_backends()
     by_id = {entry.backend_id: entry for entry in entries}
     assert by_id["composer"].available is True
