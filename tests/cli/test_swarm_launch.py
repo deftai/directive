@@ -910,7 +910,7 @@ class TestSubagentBackendPolicy:
         assert rc == sl.EXIT_OK
         entry = json.loads(capsys.readouterr().out)[0]
         assert entry["subagent_backend"] == "grok-build"
-        assert entry["dispatch_provider"] == "grok-build"
+        assert entry["dispatch_provider"] == "grok"
         assert entry["worker_role"] == sl.LEAF_CODING_WORKER_ROLE
         ctx = entry["allocation_context"]
         assert set(ctx) == {
@@ -945,3 +945,37 @@ class TestSubagentBackendPolicy:
         err = capsys.readouterr().err
         assert "cursor-cloud" in err
         assert "task policy:subagent-backend" in err
+
+    def test_backend_without_leaf_role_fails(
+        self, project: Path, gates_pass, capsys, monkeypatch
+    ) -> None:
+        fake_result = type(
+            "Result",
+            (),
+            {"backend_id": "review-only", "source": "typed", "error": None},
+        )()
+        monkeypatch.setattr(
+            sl, "resolve_swarm_subagent_backend", lambda root: fake_result
+        )
+        monkeypatch.setattr(
+            sl,
+            "probe_subagent_backends",
+            lambda: [
+                type(
+                    "Desc",
+                    (),
+                    {
+                        "backend_id": "review-only",
+                        "display_name": "Review only",
+                        "roles": ("review-monitor",),
+                        "available": True,
+                    },
+                )()
+            ],
+        )
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_GATE_FAILED
+        err = capsys.readouterr().err
+        assert "leaf-implementation" in err
+        assert "review-only" in err

@@ -135,6 +135,13 @@ LEAF_CODING_WORKER_ROLE = "leaf-implementation"
 #: Recovery command surfaced when backend policy is missing or unavailable.
 SUBAGENT_BACKEND_SET_CMD = "task policy:subagent-backend -- --set {backend_id}"
 
+#: Provider-neutral dispatch routing ids keyed by backend catalog id (#1531e).
+_DISPATCH_PROVIDER_BY_BACKEND: dict[str, str] = {
+    "composer": "cursor",
+    "grok-build": "grok",
+    "cursor-cloud": "cursor",
+}
+
 # An x-vbrief/github-issue URI of the form
 # ``https://github.com/<owner>/<repo>/issues/<N>``.
 _ISSUE_URI_RE = re.compile(r"/issues/(\d+)")
@@ -495,7 +502,22 @@ def enforce_subagent_backend_policy(
             f"{SUBAGENT_BACKEND_SET_CMD.format(backend_id='<id>')}"
         )
 
+    if LEAF_CODING_WORKER_ROLE not in selected.roles:
+        roles_text = ", ".join(selected.roles) if selected.roles else "(none)"
+        return None, (
+            f"plan.policy.swarmSubagentBackend={result.backend_id!r} does not "
+            f"support worker role {LEAF_CODING_WORKER_ROLE!r} "
+            f"(roles=[{roles_text}]).\n"
+            f"Choose a leaf-implementation backend: "
+            f"{SUBAGENT_BACKEND_SET_CMD.format(backend_id='<id>')}"
+        )
+
     return selected, None
+
+
+def dispatch_provider_for(backend_id: str) -> str:
+    """Map a catalog backend id to its provider-neutral dispatch provider."""
+    return _DISPATCH_PROVIDER_BY_BACKEND.get(backend_id, backend_id)
 
 
 # ---------------------------------------------------------------------------
@@ -1053,7 +1075,9 @@ def main(argv: list[str] | None = None) -> int:
         operator_approval_evidence=operator_approval,
         gate_clearances=gate_clearances,
         subagent_backend=backend.backend_id if backend is not None else None,
-        dispatch_provider=backend.backend_id if backend is not None else None,
+        dispatch_provider=(
+            dispatch_provider_for(backend.backend_id) if backend is not None else None
+        ),
         worker_role=LEAF_CODING_WORKER_ROLE if backend is not None else None,
     )
 
