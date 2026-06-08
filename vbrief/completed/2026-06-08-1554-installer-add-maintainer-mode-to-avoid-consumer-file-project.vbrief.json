@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "installer: add maintainer mode to avoid consumer file projections in framework repo",
-    "status": "running",
+    "status": "completed",
     "id": "1554-installer-maintainer-mode-tooling",
     "planRef": "#1554",
     "narratives": {
@@ -80,7 +80,8 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "Issue #1554 and its follow-up comments define the maintainer-mode installer scope and acceptance refinements."
-      }
+      },
+      "completedAt": "2026-06-08T19:58:11Z"
     },
     "references": [
       {
@@ -89,6 +90,6 @@
         "title": "Issue #1554: installer: add maintainer mode to avoid consumer file projections in framework repo"
       }
     ],
-    "updated": "2026-06-08T19:22:18Z"
+    "updated": "2026-06-08T19:58:11Z"
   }
 }
