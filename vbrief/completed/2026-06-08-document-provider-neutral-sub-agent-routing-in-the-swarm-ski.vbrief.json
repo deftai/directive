@@ -6,7 +6,7 @@
   "plan": {
     "id": "1531b-swarm-skill-provider-neutral-routing",
     "title": "Document provider-neutral sub-agent routing in the swarm skill",
-    "status": "running",
+    "status": "completed",
     "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story updates the swarm operator guidance so heterogeneous dispatch is described as a provider-neutral capability rather than a Grok Build-only path. It is independently buildable because it owns the swarm skill text and does not need to modify dispatch templates or tests directly.",
@@ -64,7 +64,8 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-08T15:35:43Z"
     },
     "references": [
       {
@@ -80,6 +81,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-08T00:41:50Z"
+    "updated": "2026-06-08T15:35:43Z"
   }
 }
