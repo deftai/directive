@@ -1411,6 +1411,41 @@ func TestPrependLinuxLocalBin_PrependsHomeLocalBin(t *testing.T) {
 	}
 }
 
+// TestInstallTaskLinux_PassesInstallerFlagsDirectly pins the go-task installer
+// invocation that the Linux CI path exercises. The downloaded installer expects
+// its own flags directly; passing the shell-style "-s --" sentinel makes it exit
+// with "Illegal option -s" (#1538 CI follow-up).
+func TestInstallTaskLinux_PassesInstallerFlagsDirectly(t *testing.T) {
+	origRun := runCmdFunc
+	defer func() { runCmdFunc = origRun }()
+
+	var gotName string
+	var gotArgs []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		gotName = name
+		gotArgs = append([]string{}, args...)
+		return nil
+	}
+
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	if err := installTaskLinux(w); err != nil {
+		t.Fatalf("installTaskLinux returned error: %v", err)
+	}
+	if gotName != "sh" {
+		t.Fatalf("run command name = %q, want sh", gotName)
+	}
+	if len(gotArgs) != 2 || gotArgs[0] != "-c" {
+		t.Fatalf("run command args = %v, want [-c <script>]", gotArgs)
+	}
+	script := gotArgs[1]
+	if strings.Contains(script, "-s --") {
+		t.Fatalf("task installer script still contains invalid shell sentinel -s --:\n%s", script)
+	}
+	if !strings.Contains(script, `sh "$tmpdir/install.sh" -d -b "${HOME}/.local/bin"`) {
+		t.Fatalf("task installer script missing direct flag invocation; got:\n%s", script)
+	}
+}
+
 // TestEnsureTaskfile_PreservesExistingIncludes covers the Greptile P1 fix:
 // when a Taskfile already declares a top-level includes: block (with user
 // namespaces), EnsureTaskfile extends that block rather than appending a

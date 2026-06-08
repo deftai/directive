@@ -1273,7 +1273,7 @@ func installTaskLinux(w *Wizard) error {
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 curl -fsSL https://taskfile.dev/install.sh -o "$tmpdir/install.sh"
-sh "$tmpdir/install.sh" -s -- -d -b "${HOME}/.local/bin"`)
+sh "$tmpdir/install.sh" -d -b "${HOME}/.local/bin"`)
 }
 
 func installGhLinux(w *Wizard, arch string) error {
