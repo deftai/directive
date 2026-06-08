@@ -6,7 +6,7 @@
   "plan": {
     "id": "1531a-subagent-backend-policy-and-probe",
     "title": "Add persistent sub-agent backend policy and availability gate",
-    "status": "running",
+    "status": "completed",
     "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story gives Deft a durable project-level policy for the user-selected coding sub-agent backend and a runtime capability probe that lists available backends in the current harness. It is independently buildable because it owns the policy/task/probe surface; the later launch story consumes that policy before dispatch.",
@@ -68,7 +68,8 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-08T01:15:37Z"
     },
     "references": [
       {
@@ -84,6 +85,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-08T00:41:49Z"
+    "updated": "2026-06-08T01:15:37Z"
   }
 }
