@@ -62,7 +62,11 @@ When present, the section documents these fields in order:
 - `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (e.g. `composer`, `grok-build`, `cursor-cloud`) | null -- which catalogued coding backend the operator selected for this role.
 - `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route.
 
-Populate `selected_backend` OR `routing_policy` (or both when the operator sets a default backend and also maintains a routing file); at least one MUST be non-null when `worker_role` is `leaf-implementation` and the dispatch is intentionally tiered.
+Populate `selected_backend` OR `routing_policy` (or both when the operator sets a default backend and also maintains a routing file). Nullability by role:
+
+- `leaf-implementation` + intentionally tiered dispatch: at least one MUST be non-null.
+- `orchestrator`, `review-monitor`, or `merge-release` + explicit backend routing: at least one MUST be non-null so strong-tier audit traces stay reconstructable.
+- Any role on the harness-default agent with no tiering decision: both MAY be null; `dispatch_provider` and `worker_role` remain required.
 
 **Role-boundary expectations (all providers):** the same boundaries apply whether the worker runs on Composer, Grok Build, Cursor/cloud, or a future adapter:
 
