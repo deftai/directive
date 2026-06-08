@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Swarm operators can persist a coding sub-agent backend in project policy (#1531a)** -- `task policy:subagent-backend` stores `plan.policy.swarmSubagentBackend` in PROJECT-DEFINITION (shown via `task policy:show`), and `task policy:subagent-backends` probes stable provider ids and role capabilities without spawning a harness. Refs #1531.
 
 ### Changed
 

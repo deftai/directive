@@ -53,3 +53,19 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" wip-cap {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  subagent-backend:
+    desc: "Set plan.policy.swarmSubagentBackend to a known coding sub-agent provider id (#1531a). -- task policy:subagent-backend -- --set composer|grok-build|cursor-cloud"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" subagent-backend {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  subagent-backends:
+    desc: "Probe stable sub-agent backend ids, role capabilities, and harness availability without spawning workers (#1531a). -- task policy:subagent-backends [-- --format=json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" subagent-backends {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
