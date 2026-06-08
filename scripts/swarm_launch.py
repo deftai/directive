@@ -100,6 +100,19 @@ try:  # pragma: no cover -- core sibling in this repo
 except Exception:  # noqa: BLE001
     append_authority_event = None  # type: ignore[assignment]
 
+# Sub-agent backend policy + probe (#1531a / #1531e). Guarded so tests can
+# stub the seams when the policy module is unavailable.
+try:  # pragma: no cover -- core sibling in this repo
+    from policy import (  # type: ignore  # noqa: E402
+        SubagentBackendDescriptor,
+        probe_subagent_backends,
+        resolve_swarm_subagent_backend,
+    )
+except Exception:  # noqa: BLE001
+    SubagentBackendDescriptor = None  # type: ignore[assignment,misc]
+    probe_subagent_backends = None  # type: ignore[assignment]
+    resolve_swarm_subagent_backend = None  # type: ignore[assignment]
+
 EXIT_OK = 0
 EXIT_GATE_FAILED = 1
 EXIT_CONFIG_ERROR = 2
@@ -115,6 +128,19 @@ GATE_ENFORCE = "enforce"
 #: Durable authority-event log file (under vbrief/.audit/) -- allocation
 #: approvals + consumed gate clearances per RFC #1419 Receipts & Audit.
 AUTHORITY_LOG_NAME = "authority-events.jsonl"
+
+#: Default worker role for headless coding-worker dispatch (#1531e).
+LEAF_CODING_WORKER_ROLE = "leaf-implementation"
+
+#: Recovery command surfaced when backend policy is missing or unavailable.
+SUBAGENT_BACKEND_SET_CMD = "task policy:subagent-backend -- --set {backend_id}"
+
+#: Provider-neutral dispatch routing ids keyed by backend catalog id (#1531e).
+_DISPATCH_PROVIDER_BY_BACKEND: dict[str, str] = {
+    "composer": "cursor",
+    "grok-build": "grok",
+    "cursor-cloud": "cursor",
+}
 
 # An x-vbrief/github-issue URI of the form
 # ``https://github.com/<owner>/<repo>/issues/<N>``.
@@ -413,6 +439,88 @@ def enforce_gates(
 
 
 # ---------------------------------------------------------------------------
+# Sub-agent backend policy (#1531e)
+# ---------------------------------------------------------------------------
+
+
+def _format_probed_backends(backends: list[Any]) -> str:
+    """Human-readable probe listing for fail-loud stderr."""
+    lines: list[str] = []
+    for entry in backends:
+        avail = "available" if entry.available else "unavailable"
+        roles = ", ".join(entry.roles)
+        lines.append(f"  {entry.backend_id} ({avail}; roles=[{roles}])")
+    return "\n".join(lines)
+
+
+def enforce_subagent_backend_policy(
+    project_root: Path,
+) -> tuple[SubagentBackendDescriptor | None, str | None]:
+    """Validate ``plan.policy.swarmSubagentBackend`` before headless dispatch.
+
+    Returns ``(descriptor, None)`` when the stored backend is present and
+    probe-available, or ``(None, reason)`` on the first failure. Never
+    prompts -- ``--autonomous`` and interactive launches share this path.
+    """
+    if resolve_swarm_subagent_backend is None or probe_subagent_backends is None:
+        return None, (
+            "sub-agent backend policy module is not importable "
+            "(scripts/policy.py)."
+        )
+
+    result = resolve_swarm_subagent_backend(project_root)
+    probed = probe_subagent_backends()
+
+    if result.backend_id is None:
+        detail = result.error or "plan.policy.swarmSubagentBackend is not set."
+        listing = _format_probed_backends(probed)
+        return None, (
+            f"{detail}\n"
+            "Select a coding sub-agent backend before headless dispatch:\n"
+            f"{listing}\n"
+            "Probe harness availability: task policy:subagent-backends\n"
+            f"Persist a choice: {SUBAGENT_BACKEND_SET_CMD.format(backend_id='<id>')}"
+        )
+
+    selected = next((e for e in probed if e.backend_id == result.backend_id), None)
+    if selected is None:
+        known = ", ".join(e.backend_id for e in probed)
+        return None, (
+            f"plan.policy.swarmSubagentBackend={result.backend_id!r} is not a "
+            f"known backend id (known: {known}).\n"
+            f"Persist a valid choice: {SUBAGENT_BACKEND_SET_CMD.format(backend_id='<id>')}"
+        )
+
+    if not selected.available:
+        available_ids = [e.backend_id for e in probed if e.available]
+        avail_text = ", ".join(available_ids) if available_ids else "(none)"
+        return None, (
+            f"plan.policy.swarmSubagentBackend={result.backend_id!r} is "
+            f"unavailable in the current harness.\n"
+            f"Available backend ids: {avail_text}\n"
+            f"Choose a different backend: "
+            f"{SUBAGENT_BACKEND_SET_CMD.format(backend_id='<id>')}"
+        )
+
+    if LEAF_CODING_WORKER_ROLE not in selected.roles:
+        roles_text = ", ".join(selected.roles) if selected.roles else "(none)"
+        return None, (
+            f"plan.policy.swarmSubagentBackend={result.backend_id!r} does not "
+            f"support worker role {LEAF_CODING_WORKER_ROLE!r} "
+            f"(roles=[{roles_text}]).\n"
+            f"Choose a leaf-implementation backend: "
+            f"{SUBAGENT_BACKEND_SET_CMD.format(backend_id='<id>')}"
+        )
+
+    return selected, None
+
+
+def dispatch_provider_for(backend_id: str) -> str:
+    """Map a catalog backend id to its provider-neutral dispatch provider."""
+    return _DISPATCH_PROVIDER_BY_BACKEND.get(backend_id, backend_id)
+
+
+# ---------------------------------------------------------------------------
 # Gate-clearance integration (#1419 Slice 7)
 # ---------------------------------------------------------------------------
 
@@ -634,6 +742,9 @@ def build_manifest(
     batching_rationale: str | None,
     operator_approval_evidence: str | None,
     gate_clearances: list[dict] | None = None,
+    subagent_backend: str | None = None,
+    dispatch_provider: str | None = None,
+    worker_role: str | None = None,
 ) -> list[dict]:
     """Build the C2 launch-manifest array (one envelope per story).
 
@@ -642,6 +753,10 @@ def build_manifest(
     7) so the dispatched worker's Gate 0 can recognise the pre-recorded
     clearance. The field is OMITTED when there are no clearances so the
     historical five-field #1378 consent token is unchanged for the common case.
+
+    Top-level ``subagent_backend``, ``dispatch_provider``, and ``worker_role``
+    fields (#1531e) carry audit-visible routing metadata without altering the
+    #1378 allocation-context recognition contract.
     """
     cohort_vbriefs = [story.relpath for story in resolved]
     manifest: list[dict] = []
@@ -660,15 +775,20 @@ def build_manifest(
         }
         if gate_clearances:
             allocation_context["gate_clearances"] = gate_clearances
-        manifest.append(
-            {
-                "story_id": story.story_id,
-                "vbrief_path": story.relpath,
-                "worktree_path": worktree_path,
-                "branch": _derive_branch(group, story.story_id),
-                "allocation_context": allocation_context,
-            }
-        )
+        entry: dict[str, Any] = {
+            "story_id": story.story_id,
+            "vbrief_path": story.relpath,
+            "worktree_path": worktree_path,
+            "branch": _derive_branch(group, story.story_id),
+            "allocation_context": allocation_context,
+        }
+        if subagent_backend is not None:
+            entry["subagent_backend"] = subagent_backend
+        if dispatch_provider is not None:
+            entry["dispatch_provider"] = dispatch_provider
+        if worker_role is not None:
+            entry["worker_role"] = worker_role
+        manifest.append(entry)
     return manifest
 
 
@@ -867,6 +987,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         return EXIT_GATE_FAILED
 
+    backend, backend_error = enforce_subagent_backend_policy(project_root)
+    if backend_error is not None:
+        print(f"Error: {backend_error}", file=sys.stderr)
+        return EXIT_GATE_FAILED
+
     # Cohort-fill ordering (#1419 Slice 2 / #987): continuation-first,
     # deficit-biased among net-new, then rank/date. Reorders the dispatch
     # manifest (and each envelope's cohort_vbriefs list) so finishing started
@@ -949,6 +1074,11 @@ def main(argv: list[str] | None = None) -> int:
         batching_rationale=batching_rationale,
         operator_approval_evidence=operator_approval,
         gate_clearances=gate_clearances,
+        subagent_backend=backend.backend_id if backend is not None else None,
+        dispatch_provider=(
+            dispatch_provider_for(backend.backend_id) if backend is not None else None
+        ),
+        worker_role=LEAF_CODING_WORKER_ROLE if backend is not None else None,
     )
 
     rendered = json.dumps(manifest, indent=2)
