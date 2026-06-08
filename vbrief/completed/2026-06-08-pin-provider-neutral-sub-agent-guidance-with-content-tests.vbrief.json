@@ -6,7 +6,7 @@
   "plan": {
     "id": "1531d-provider-guidance-tests",
     "title": "Pin provider-neutral sub-agent guidance with content tests",
-    "status": "running",
+    "status": "completed",
     "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story adds focused content tests for the provider-neutral swarm and preamble guidance after the documentation stories land. It is sequenced after the text updates so the test assertions can pin the final wording without forcing implementation workers to edit the same files concurrently.",
@@ -66,7 +66,8 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-08T16:44:25Z"
     },
     "references": [
       {
@@ -82,6 +83,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-08T00:41:52Z"
+    "updated": "2026-06-08T16:44:25Z"
   }
 }
