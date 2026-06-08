@@ -2098,13 +2098,9 @@ def _probe_backend_available(backend_id: str) -> bool:
         runtime = os.environ.get("DEFT_AGENT_RUNTIME", "").strip().lower()
         return _probe_env_truthy("GROK_BUILD") or runtime == "grok-build"
     if backend_id == "composer":
-        return _probe_env_truthy("CURSOR_COMPOSER") or _probe_env_truthy(
-            "DEFT_PROBE_COMPOSER"
-        )
+        return _probe_env_truthy("CURSOR_COMPOSER")
     if backend_id == "cursor-cloud":
-        return _probe_env_truthy("CURSOR_AGENT") or _probe_env_truthy(
-            "DEFT_PROBE_CURSOR_CLOUD"
-        )
+        return _probe_env_truthy("CURSOR_AGENT")
     return False
 
 
@@ -2576,7 +2572,7 @@ def _inspect_swarm_subagent_backend(
         name=FIELD_SWARM_SUBAGENT_BACKEND,
         current=None,
         default=None,
-        source="default",
+        source="default-on-error",
     )
 
 

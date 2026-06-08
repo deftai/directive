@@ -1091,6 +1091,21 @@ def test_set_swarm_subagent_backend_updates_without_vbrief_story_edit(
     assert resolved.source == "typed"
 
 
+def test_inspect_swarm_subagent_backend_invalid_value_reports_error_source(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(
+        project_root, {"policy": {"swarmSubagentBackend": "warp-tab"}}
+    )
+    field = policy_module.inspect_one_policy(
+        policy_module.FIELD_SWARM_SUBAGENT_BACKEND, project_root
+    )
+    assert field is not None
+    assert field.current is None
+    assert field.source == "default-on-error"
+
+
 def test_inspect_swarm_subagent_backend_registered_in_policy_show(
     policy_module, project_root, monkeypatch
 ):
