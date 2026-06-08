@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1554"
+  },
+  "plan": {
+    "title": "installer: add maintainer mode to avoid consumer file projections in framework repo",
+    "status": "running",
+    "id": "1554-installer-maintainer-mode-tooling",
+    "planRef": "#1554",
+    "narratives": {
+      "Description": "Add a maintainer-specific installer path for directive framework checkouts so maintainers can bootstrap tools without projecting consumer files into the repository. The story covers Linux/WSL maintainer setup, consumer behavior preservation, and documentation that clearly separates maintainer and consumer installer flows.",
+      "ImplementationPlan": "Update the Go installer maintainer-mode flow to bootstrap or fail loud for maintainer-required tools while skipping consumer file projections in framework checkouts. Extend setup tests and installer/docs coverage for maintainer-mode JSON, consumer-mode compatibility, and the optional `ghx` caching-tool distinction.",
+      "UserStory": "As a directive maintainer, I want the installer to bootstrap maintainer tools without projecting consumer files, so that framework checkouts stay clean while Linux setup remains fast.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1554",
+      "Overview": "## Summary\nWhen the published Linux installer is run against the directive framework repository itself, it treats the checkout like a consumer project and rewrites/deposits consumer-managed files. Maintainer checkouts need a first-class installer mode that bootstraps tools and payload checks without replacing maintainer-owned project files.\n\nObserved during Ubuntu/WSL validation of `deft-install v0.43.0`:\n\n```bash\n/home/msadams/install-linux-amd64 --yes --upgrade --repo-root /home/msadams/repos/deft/directive --json\n```\n\nThe Linux bootstrap fix worked: missing `gh`, `task`, and `uv` were installed successfully. But the installer also staged consumer-style changes in the framework repo, including:\n\n- `AGENTS.md` managed-section header rewritten toward consumer-installed shape\n- `.gitignore` additions for `.deft/core.bak-*`, `.deft/*.bak-*`, and `vbrief/*.lock`\n- `.gitattributes` additions marking `.deft/core/**` as generated/vendored\n- consumer support files such as `greptile.json`, CodeQL config, core guard workflow, and lifecycle `.gitkeep` files\n\nFor a maintainer checkout, `AGENTS.md`, `.gitignore`, and `.gitattributes` must remain the repository-maintainer versions from the checkout, not the consumer installer projections.\n\n## Proposal\nAdd an explicit maintainer mode to `cmd/deft-install`, for example:\n\n```bash\ndeft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json\n```\n\n## Expected behavior\nIn `--maintainer` mode, the installer should:\n\n- Still perform Linux core-tool bootstrap in `--yes` mode (`gh`, `task`, `uv`) and report missing unsupported tools clearly.\n- Detect that `--repo-root` is the directive framework repository or accept the explicit `--maintainer` flag as authority.\n- Preserve maintainer-owned files such as `AGENTS.md`, `.gitignore`, `.gitattributes`, `Taskfile.yml`, repo workflows, and repo-local policy files unless a maintainer-specific update path explicitly owns them.\n- Avoid depositing consumer-only guard/config files into the maintainer repo unless they are already part of the repo source of truth.\n- Emit JSON that records `maintainer_mode: true` and lists any skipped consumer projections.\n\n## Acceptance criteria\n- Given a directive framework checkout and `--maintainer`, when the Linux installer runs with `--yes --upgrade --json`, then it bootstraps missing core tools but leaves `AGENTS.md`, `.gitignore`, and `.gitattributes` byte-for-byte unchanged.\n- Given a consumer project and no `--maintainer`, existing consumer install behavior remains unchanged.\n- Given `--maintainer` outside a directive framework checkout, the installer fails loud or emits an actionable warning rather than silently applying the wrong projection.\n- Tests cover maintainer mode in `cmd/deft-install/setup_test.go` with fixture assertions for skipped consumer projections and unchanged maintainer files.\n\n## Labels\nSuggested: `installer`, `enhancement`, `source-of-truth`.",
+      "Labels": "enhancement, installer, source-of-truth"
+    },
+    "items": [
+      {
+        "title": "Add maintainer-mode installer behavior",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a directive framework checkout, when `deft-install --yes --upgrade --maintainer --repo-root <checkout> --json` runs, then `git status --short` shows no installer-created changes to tracked maintainer-owned files."
+        }
+      },
+      {
+        "title": "Preserve consumer installer behavior",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a consumer project, when the installer runs without `--maintainer`, then the existing consumer projection files are still created or updated and the consumer install tests continue to pass."
+        }
+      },
+      {
+        "title": "Report maintainer tooling status",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given maintainer mode, when JSON output is requested, then the response includes separate maintainer-tool status for `go`, `node`, and `ghx` without marking those tools required for consumer mode."
+        }
+      },
+      {
+        "title": "Document maintainer and consumer setup flows",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the install docs, when a maintainer reads setup guidance, then README links to CONTRIBUTING for framework setup and getting-started does not duplicate maintainer instructions."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "installer",
+      "source-of-truth"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/main.go",
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/setup_test.go",
+          "scripts/setup_ghx.py",
+          "tests/cli/test_setup_ghx.py",
+          "README.md",
+          "CONTRIBUTING.md",
+          "docs/getting-started.md"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install",
+          "uv run pytest tests/cli/test_setup_ghx.py -q"
+        ],
+        "expected_outputs": [
+          "maintainer-mode installer tests pass",
+          "ghx setup tests pass"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer-maintainer-mode",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "Issue #1554 and its follow-up comments define the maintainer-mode installer scope and acceptance refinements."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1554",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1554: installer: add maintainer mode to avoid consumer file projections in framework repo"
+      }
+    ],
+    "updated": "2026-06-08T19:22:18Z"
+  }
+}

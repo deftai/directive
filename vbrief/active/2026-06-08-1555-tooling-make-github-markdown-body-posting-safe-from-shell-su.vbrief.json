@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1555"
+  },
+  "plan": {
+    "title": "tooling: make GitHub Markdown body posting safe from shell substitution",
+    "status": "running",
+    "id": "1555-safe-github-markdown-body-posting",
+    "planRef": "#1555",
+    "narratives": {
+      "Description": "Add a canonical safe path for posting Markdown-rich GitHub issue, comment, and PR bodies so agents do not accidentally let the shell interpret backticks or other metacharacters. The story covers a reusable helper or task surface, documentation, and tests that preserve literal Markdown through GitHub mutations.",
+      "ImplementationPlan": "Implement a small GitHub body-posting helper or task wrapper that accepts stdin or a file and invokes `gh api` through safe subprocess handling without shell interpolation. Update SCM guidance and agent prompt guidance with examples for create, edit, and live read-back, then add tests with backticks, dollar signs, quotes, and fenced code blocks.",
+      "UserStory": "As a directive agent operator, I want GitHub Markdown body posting to avoid shell interpolation, so that issue comments and PR bodies preserve the exact text I intended.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1555",
+      "Overview": "## Summary\nAgents can corrupt GitHub issue/comment bodies when Markdown containing backticks is embedded inside double-quoted shell commands. In Bash, text like `` `ghx` `` is command substitution, so the shell executes the command and replaces the intended literal Markdown before `gh api` receives the payload.\n\nThis happened during WSL validation while adding a `ghx` requirement to #1554: the intended phrase \"include `ghx`\" was posted as \"include Work seamlessly with GitHub from the command line\" because the shell expanded the backticked `ghx` token.\n\n## Problem\nDirective currently tells agents to prefer task/gh surfaces, but it does not give a deterministic safe path for posting Markdown-rich issue comments, PR bodies, or issue bodies. This leaves agents to hand-roll shell quoting around Markdown, which is brittle for backticks, dollar signs, here-doc boundaries, and other shell metacharacters.\n\n## Proposal\nAdd a canonical safe body-posting surface and guidance, for example:\n\n- A task wrapper that accepts body text from stdin or a file and calls `gh api` with `shell=False` / safe subprocess handling.\n- Documentation/rules that forbid inline Markdown bodies with backticks inside double-quoted shell commands.\n- Examples for creating/editing GitHub issues and comments using JSON/stdin, single-quoted heredocs, or temporary body files.\n- Read-back guidance: use live `gh` immediately after mutations, because `ghx` may return cached stale GET responses.\n\n## Acceptance criteria\n- Directive rules or SCM docs explicitly warn that Markdown backticks inside double-quoted shell commands trigger shell command substitution.\n- A canonical helper/task exists for posting GitHub issue/comment/PR Markdown bodies without shell interpolation.\n- The helper uses safe subprocess capture (`encoding=\"utf-8\", errors=\"replace\"`) and avoids `shell=True`.\n- Examples cover issue creation, issue comment creation, and issue comment edit/read-back.\n- Tests cover a body containing literal backticks, dollar signs, quotes, and a fenced code block.\n\nRefs #1554.\n",
+      "Labels": "tooling, scm, agent-safety"
+    },
+    "items": [
+      {
+        "title": "Add safe GitHub body posting helper",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a Markdown body containing literal backticks, when the canonical helper posts it to a GitHub issue comment, then the live read-back contains the same backtick text unchanged."
+        }
+      },
+      {
+        "title": "Document shell-substitution hazards and safe examples",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the SCM and agent guidance, when an agent needs to post GitHub Markdown, then the docs show safe create, edit, and read-back examples that do not embed Markdown in double-quoted shell commands."
+        }
+      },
+      {
+        "title": "Use safe subprocess and live read-back semantics",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the helper implementation, when tests inspect the subprocess invocation, then it avoids `shell=True`, uses UTF-8 replacement-safe capture, and performs mutation read-back through live `gh`."
+        }
+      },
+      {
+        "title": "Cover literal Markdown payloads in tests",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a test payload with backticks, dollar signs, quotes, and a fenced code block, when the helper builds the GitHub API request, then the serialized body preserves each literal character."
+        }
+      }
+    ],
+    "tags": [
+      "tooling",
+      "scm",
+      "agent-safety"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/github_body.py",
+          "tasks/scm.yml",
+          "scm/github.md",
+          "templates/agent-prompt-preamble.md",
+          "tests/test_github_body.py",
+          "tests/test_scm_call.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/test_github_body.py tests/test_scm_call.py -q",
+          "task verify:scm-boundary"
+        ],
+        "expected_outputs": [
+          "GitHub body-posting helper tests pass",
+          "SCM boundary verification remains clean"
+        ],
+        "depends_on": [],
+        "conflict_group": "github-body-posting",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "Issue #1555 was created from the observed WSL GitHub comment mutation failure and references #1554 as the triggering incident."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1555",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1555: tooling: make GitHub Markdown body posting safe from shell substitution"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1554",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1554"
+      }
+    ],
+    "updated": "2026-06-08T19:22:19Z"
+  }
+}

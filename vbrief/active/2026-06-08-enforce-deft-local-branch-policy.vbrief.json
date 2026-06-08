@@ -1,0 +1,67 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for re-enabling Deft local branch-protection policy in the directive framework repo.",
+    "created": "2026-06-08T19:23:00Z",
+    "updated": "2026-06-08T19:23:00Z"
+  },
+  "plan": {
+    "id": "enforce-deft-local-branch-policy",
+    "title": "Enforce Deft local branch policy",
+    "status": "running",
+    "narratives": {
+      "Description": "Re-enable the Deft local branch-policy gate for the directive framework repository so local hooks and checks no longer permit default-branch commits by project policy. This is a narrow governance change that should be handled independently from the installer and GitHub-body tooling stories.",
+      "ImplementationPlan": "Update `vbrief/PROJECT-DEFINITION.vbrief.json` so `plan.policy.allowDirectCommitsToMaster` resolves to `false`. Verify the policy rendering and branch gate behavior through the existing task surfaces without changing unrelated project configuration.",
+      "UserStory": "As a directive maintainer, I want Deft local branch protection enforced, so that local commits follow the same branch-first workflow expected by the repository."
+    },
+    "items": [
+      {
+        "title": "Disable direct default-branch commits in project policy",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the directive project policy, when `task policy:show -- --field=plan.policy.allowDirectCommitsToMaster` runs, then it reports `current: false`."
+        }
+      },
+      {
+        "title": "Verify branch policy gates still run",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the updated policy, when `task verify:branch` runs from a feature branch, then it passes while still resolving the typed policy field from `PROJECT-DEFINITION.vbrief.json`."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "vbrief/PROJECT-DEFINITION.vbrief.json"
+        ],
+        "verify_commands": [
+          "task policy:show -- --field=plan.policy.allowDirectCommitsToMaster",
+          "task verify:branch"
+        ],
+        "expected_outputs": [
+          "policy show reports current false",
+          "branch verification passes on feature branch"
+        ],
+        "depends_on": [],
+        "conflict_group": "project-policy",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "User requested re-enabling Deft branch policy during the WSL swarm-readiness session."
+      }
+    },
+    "references": [
+      {
+        "uri": "urn:deft:user-request:2026-06-08-enforce-local-branch-policy",
+        "type": "x-vbrief/user-request",
+        "title": "User request: flip local Deft branch policy back on during branch work",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-08T19:22:19Z"
+  }
+}
