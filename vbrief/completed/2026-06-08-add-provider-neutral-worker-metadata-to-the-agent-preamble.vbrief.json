@@ -7,7 +7,7 @@
     "id": "1531c-preamble-provider-metadata",
     "title": "Add provider-neutral worker metadata to the agent preamble",
     "status": "completed",
-    "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story updates the canonical dispatch preamble so implementation workers can see which backend and role they were assigned without relying on Grok Build-specific wording. It is independently buildable because it owns the dispatch-envelope contract text and can preserve existing allocation-context fields while adding provider-neutral metadata guidance.",
       "ImplementationPlan": "1. Update the source file templates/agent-prompt-preamble.md near the allocation context and sub-agent spawn rules to document provider-neutral worker metadata such as dispatch provider, worker role, and selected backend or routing policy.\n2. Verify the preamble contract with tests/content/test_swarm_skill.py assertions that preserve the five-field allocation-context evidence while checking the new backend metadata guidance.",
