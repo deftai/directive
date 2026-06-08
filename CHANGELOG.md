@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Swarm operators can persist a coding sub-agent backend in project policy (#1531a)** -- `task policy:subagent-backend` sets the preferred coding sub-agent provider for swarm leaf workers; `task policy:subagent-backends` lists available providers and their role capabilities without spawning a harness; `task policy:show` surfaces the resolved value. Refs #1531.
 
 ### Changed
+- **Dispatched workers see provider-neutral backend and role metadata in the agent preamble (#1531c)** -- the agent preamble now carries a worker metadata section that records dispatch provider, assigned role, and backend routing identity separately from the five-field #1378 allocation-context contract; role-boundary expectations apply uniformly across Composer, Grok Build, Cursor/cloud, and future adapters, and workers must surface routing metadata in their terminal status messages for postmortem audit traceability. Refs #1531.
 
 - **Swarm skill documents provider-neutral sub-agent routing (#1531)** -- heterogeneous dispatch guidance now separates dispatch provider, worker role, and model selection; Composer-class, Grok Build, Cursor/cloud, and future adapters are first-class backends with strong-agent gates for orchestration, review, rebase, merge, and release. Refs #1531.
 
