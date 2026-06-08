@@ -6,7 +6,7 @@
   "plan": {
     "id": "1531e-headless-launch-backend-integration",
     "title": "Integrate selected sub-agent backend into headless swarm launch and audit output",
-    "status": "running",
+    "status": "completed",
     "planRef": "active/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
     "narratives": {
       "Description": "This story makes the stored sub-agent backend policy load-bearing during headless swarm launch. It is independently buildable because it owns the launch-manifest consumption path and fail-loud checks, while depending on the policy/probe story for backend discovery and stored selection.",
@@ -77,7 +77,8 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-08T15:50:53Z"
     },
     "references": [
       {
@@ -93,6 +94,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-08T00:41:53Z"
+    "updated": "2026-06-08T15:50:53Z"
   }
 }
