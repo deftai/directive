@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "tooling: make GitHub Markdown body posting safe from shell substitution",
-    "status": "running",
+    "status": "completed",
     "id": "1555-safe-github-markdown-body-posting",
     "planRef": "#1555",
     "narratives": {
@@ -78,7 +78,8 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "Issue #1555 was created from the observed WSL GitHub comment mutation failure and references #1554 as the triggering incident."
-      }
+      },
+      "completedAt": "2026-06-08T19:53:17Z"
     },
     "references": [
       {
@@ -92,6 +93,6 @@
         "title": "Issue #1554"
       }
     ],
-    "updated": "2026-06-08T19:22:19Z"
+    "updated": "2026-06-08T19:53:17Z"
   }
 }

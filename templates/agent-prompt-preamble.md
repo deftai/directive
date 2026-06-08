@@ -119,6 +119,22 @@ gh pr update-branch <N>                      # GraphQL mutation
 
 The forbidden surfaces are convenient and well-documented but route through GraphQL; under N concurrent workers they exhaust the bucket within minutes. Use the explicit REST forms above. Mutations to REST endpoints (`gh api -X POST/PATCH/PUT/DELETE /repos/...`) do not consume GraphQL budget and are fine; mutations to the `/graphql` endpoint (`gh api -X POST /graphql -f query=...`) DO consume GraphQL budget and are subject to the same throttle.
 
+## 5.5 Safe Markdown body posting (#1555)
+
+Markdown-rich GitHub bodies MUST NOT be embedded inside double-quoted shell commands. In Bash and zsh, backticks perform command substitution before `gh` receives the text, so a phrase like ``"include `ghx`"`` can be posted as the output of running `ghx` instead of the literal Markdown.
+
+Use the canonical safe wrapper for issue bodies, PR bodies, and issue/PR comments:
+
+```bash path=null start=null
+task scm:body:comment:create -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
+task scm:body:comment:edit -- --repo OWNER/REPO --comment 123456789 --body-file "$bodyFile"
+task scm:body:issue:create -- --repo OWNER/REPO --title "Title" --body-file "$bodyFile"
+task scm:body:issue:edit -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFile"
+task scm:body:pr:edit -- --repo OWNER/REPO --pr 42 --body-file "$bodyFile"
+```
+
+The wrapper reads UTF-8 body text from a file or stdin, sends JSON to `gh api --input -` via `_safe_subprocess.run_text` with `shell=False`, and prints the live post-mutation read-back object. Use live `gh` for immediate verification after mutations; do not use `ghx` for the first read-back because it may serve a cached stale GET.
+
 ## 6. No Draft re-toggling within a single review cycle
 
 Once a PR transitions Draft -> Ready, keep it Ready unless a P0 finding requires re-Draft. Repeated Draft<->Ready toggles cost GraphQL mutations and trigger stale CheckRun states downstream (Greptile re-runs, branch-protection re-evaluations).

@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **GitHub Markdown body posting now has a safe path for backticks and shell metacharacters (#1555)** -- agents can post issue bodies, PR bodies, and issue/PR comments through `task scm:body:*` without embedding Markdown in double-quoted shell commands, preserving literal backticks, dollar signs, quotes, and fenced code blocks. The helper performs live `gh` read-back after mutations so cached `ghx` GETs cannot hide stale body content. Closes #1555. Refs #1554.
 - **`deft-install` archive extraction adopts CodeQL's recognized zip-slip barrier shape (#1525, #1528)** -- the framework tarball extractor was already guarded against path traversal, but not in the form CodeQL's `go/zipslip` model recognizes, so alert #6 stayed open. The extractor now rejects any tar entry whose raw `hdr.Name` contains `..` at the source and validates the exact extraction target against the destination directory before any write (symlink entries still skipped as defense-in-depth), with a regression test. Closes #1528. Refs #1525, code-scanning alert #6.
 
 ### Removed

@@ -11,6 +11,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Rules that apply to every `gh` invocation, regardless of context.
 
 - ! Use `--body-file` for PR and issue bodies longer than one line -- inline `--body` strings break on special characters, newlines, and shell escaping across platforms
+- ! For Markdown-rich issue bodies, PR bodies, and issue/PR comments, prefer the canonical safe wrapper: `task scm:body:* -- --repo OWNER/NAME ... --body-file <path>`. It reads UTF-8 body text from a file or stdin, sends JSON to `gh api` without shell interpolation, and immediately performs live `gh` read-back.
+- ! Never place Markdown containing backticks inside a double-quoted shell command. In Bash and zsh, a body fragment like ``"include `ghx`"`` runs command substitution before `gh` receives the text, corrupting the posted body.
 - ! Write `--body-file` temp files to the OS temp directory, not the worktree -- writing temp files inside the worktree triggers `rm` denylist collisions that block autonomous swarm agents in Warp (the agent cannot delete files via `rm` in autonomous mode)
   - **PowerShell:**
     ```powershell
@@ -29,9 +31,44 @@ Rules that apply to every `gh` invocation, regardless of context.
   - After `gh pr create`: run `gh pr view <number>` to confirm title, body, and labels rendered correctly
   - After `gh issue create`: run `gh issue view <number>` to confirm body content
   - After `gh pr edit`: re-fetch and verify the edited field
+- ! Use live `gh` for immediate read-back after a mutation. Do not use `ghx` for the first verification GET because it may serve a cached stale response.
 - ~ Prefer `gh api` for structured/programmatic queries (filtering, bulk reads, JSON output) and `gh pr`/`gh issue` for quick ad-hoc commands
 - ⊗ Construct multi-line `--body` strings inline in shell commands -- always write to a temp file and use `--body-file`
+- ⊗ Construct Markdown-rich `gh api -f body="..."` or `gh issue comment --body "..."` commands when the body contains backticks, dollar signs, quotes, or fenced code blocks -- use a body file and the `scm:body:*` wrapper instead
 - ⊗ Write `--body-file` temp files inside the worktree or repository directory -- always use the OS temp directory (`$env:TEMP` on PowerShell, `$TMPDIR` or `/tmp` on Unix)
+
+## Safe Markdown Body Posting (#1555)
+
+Use `scripts/github_body.py` through the task surface whenever an agent needs to post or edit Markdown-rich GitHub text. The helper accepts `--body-file <path>` or `--body-file -`, wraps the body as JSON inside Python, calls `gh api --input -` through the UTF-8-safe subprocess helper, and prints the live read-back object returned by `gh`.
+
+Safe issue creation:
+
+```bash
+task scm:body:issue:create -- \
+  --repo deftai/directive \
+  --title "tooling: safe body example" \
+  --body-file "$bodyFile"
+```
+
+Safe issue or PR comment creation:
+
+```bash
+task scm:body:comment:create -- \
+  --repo deftai/directive \
+  --issue 1555 \
+  --body-file "$bodyFile"
+```
+
+Safe issue comment edit with live read-back:
+
+```bash
+task scm:body:comment:edit -- \
+  --repo deftai/directive \
+  --comment 123456789 \
+  --body-file "$bodyFile"
+```
+
+The helper's stdout is the live post-mutation GitHub object, so inspect the `body` field from that output first. If you need a second manual verification, use live REST through `gh api repos/OWNER/REPO/issues/comments/<id>` or `gh api repos/OWNER/REPO/issues/<number>`; do not use `ghx` for immediate read-back after the mutation because it may return a cached GET.
 
 ## PR Workflow Conventions
 

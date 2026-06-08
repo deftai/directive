@@ -1,9 +1,9 @@
 version: '3'
 
 # ---------------------------------------------------------------------------
-# scm.yml -- STUB for #883 v1 cache layer (Story 1) + #976 REST opt-in.
+# scm.yml -- STUB for #883 v1 cache layer (Story 1) + #976 REST opt-in + #1555 safe body posting.
 #
-# DO NOT EXTEND. DO NOT ADD NEW COMMANDS HERE.
+# DO NOT EXTEND except for the narrow #1555 body-posting carve-out below.
 #
 # The full scm:* task namespace lives at #881; this file is replaced wholesale
 # when #881 lands. The stub exposes the minimum surface the #883 v1 cache
@@ -13,6 +13,7 @@ version: '3'
 #   - scm:issue:view    (thin wrapper over `ghx|gh issue view`)
 #   - scm:issue:close   (thin wrapper over `ghx|gh issue close`)
 #   - scm:issue:edit    (thin wrapper over `ghx|gh issue edit`)
+#   - scm:body:*        (#1555 safe Markdown body posting via scripts/github_body.py)
 #
 # Each command is a thin pass-through to `ghx <verb>` (when ghx is on PATH)
 # or `gh <verb>` (fallback). Output JSON via the consumer-supplied --json
@@ -33,10 +34,11 @@ version: '3'
 # stub deliberately does not re-implement; #881 owns the full surface.
 #
 # Forward-compat marker: the ONLY scm:* surface in v1 is the four issue:*
-# commands above. PR commands (scm:pr:list/view/merge/close) and any
-# additional scm:* surface are EXPLICITLY deferred to #881; do not add them
-# here. See vbrief/active/2026-05-05-883-story-1-scm-stub.vbrief.json for
-# the full Story 1 scope and vbrief/active/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json
+# commands above plus the #1555 body-posting safety wrapper. PR commands
+# (scm:pr:list/view/merge/close) and any additional scm:* surface are
+# EXPLICITLY deferred to #881; do not add them here. See
+# vbrief/active/2026-05-05-883-story-1-scm-stub.vbrief.json for the full
+# Story 1 scope and vbrief/active/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json
 # for the epic chain context.
 # ---------------------------------------------------------------------------
 
@@ -82,3 +84,43 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue edit {{.CLI_ARGS}}
+
+  body:issue:create:
+    desc: "[#1555] Safely create an issue body from --body-file without shell Markdown interpolation"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" issue-create {{.CLI_ARGS}}
+
+  body:issue:edit:
+    desc: "[#1555] Safely edit an issue body from --body-file and live gh read-back"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" issue-edit {{.CLI_ARGS}}
+
+  body:comment:create:
+    desc: "[#1555] Safely create an issue/PR comment body from --body-file and live gh read-back"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" comment-create {{.CLI_ARGS}}
+
+  body:comment:edit:
+    desc: "[#1555] Safely edit an issue comment body from --body-file and live gh read-back"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" comment-edit {{.CLI_ARGS}}
+
+  body:pr:edit:
+    desc: "[#1555] Safely edit a PR body from --body-file and live gh read-back"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" pr-edit {{.CLI_ARGS}}
