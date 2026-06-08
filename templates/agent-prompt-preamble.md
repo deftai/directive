@@ -77,7 +77,7 @@ Populate `selected_backend` OR `routing_policy` (or both when the operator sets 
 **Audit visibility:** review cycles and postmortems MUST be able to reconstruct which backend and role produced a change without inferring it from harness-specific prose.
 
 - ! Dispatchers MUST populate `## Worker metadata` in the dispatch envelope whenever backend routing is intentional (headless `task swarm:launch`, monitor dispatch, or manual orchestrator spawn).
-- ! Workers MUST echo `dispatch_provider`, `worker_role`, and `selected_backend` or `routing_policy` in the final status message per §11 (e.g. `DONE: ... (role leaf-implementation, backend composer, PR #N)`). Omitting backend/role from the terminal message when metadata was present in the envelope is a hard `⊗`.
+- ! Workers MUST echo `dispatch_provider`, `worker_role`, and `selected_backend` or `routing_policy` in the final status message per §11 (e.g. `DONE: ... (commit <sha>, PR #N, role leaf-implementation, backend composer)`). Omitting backend/role from the terminal message when metadata was present in the envelope is a hard `⊗`.
 
 Worked example (a tiered leaf worker on Composer):
 
@@ -255,7 +255,7 @@ The parent monitor watches via `scripts/subagent_monitor.py` (three-state exit 0
 
 Every worker MUST send a final status message before exiting its tool loop, regardless of outcome:
 
-- Success: `DONE: <one-line summary> (commit <sha>, PR #N)`
+- Success: `DONE: <one-line summary> (commit <sha>, PR #N)` -- when the dispatch envelope carried `## Worker metadata` per §2.6, extend the parenthetical with `role <worker_role>` and `backend <selected_backend|routing_policy>` (e.g. `DONE: ... (commit <sha>, PR #N, role leaf-implementation, backend composer)`).
 - Halted at cap: `BLOCKED: <reason> (review-cycle iter <i>/3, wall-clock <t>m/<cap>m)`
 - Failure: `FAILED: <reason> + recovery hint`
 - Stand-down: `STOOD-DOWN: <reason>` (e.g. user said "wait" with no follow-up dispatch)
