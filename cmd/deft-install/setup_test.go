@@ -1390,6 +1390,27 @@ func containsString(items []string, want string) bool {
 	return false
 }
 
+// TestPrependLinuxLocalBin_PrependsHomeLocalBin verifies ~/.local/bin is
+// injected ahead of the existing PATH for post-bootstrap re-probes (#1538).
+func TestPrependLinuxLocalBin_PrependsHomeLocalBin(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	localBin := filepath.Join(home, ".local", "bin")
+	orig := os.Getenv("PATH")
+	t.Cleanup(func() { os.Setenv("PATH", orig) })
+
+	os.Setenv("PATH", "/usr/bin")
+	if err := prependLinuxLocalBin(); err != nil {
+		t.Fatalf("prependLinuxLocalBin: %v", err)
+	}
+	got := os.Getenv("PATH")
+	if !strings.HasPrefix(got, localBin+string(os.PathListSeparator)) {
+		t.Errorf("PATH = %q, want prefix %q", got, localBin+string(os.PathListSeparator))
+	}
+}
+
 // TestEnsureTaskfile_PreservesExistingIncludes covers the Greptile P1 fix:
 // when a Taskfile already declares a top-level includes: block (with user
 // namespaces), EnsureTaskfile extends that block rather than appending a

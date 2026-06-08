@@ -1162,14 +1162,12 @@ func prependLinuxLocalBin() error {
 	sep := string(os.PathListSeparator)
 	current := os.Getenv("PATH")
 	if current == "" {
-		os.Setenv("PATH", localBin)
-		return nil
+		return os.Setenv("PATH", localBin)
 	}
 	if pathListEntryPresent(current, localBin, sep) {
 		return nil
 	}
-	os.Setenv("PATH", localBin+sep+current)
-	return nil
+	return os.Setenv("PATH", localBin+sep+current)
 }
 
 func pathListEntryPresent(pathEnv, entry, sep string) bool {
@@ -1259,12 +1257,23 @@ func bootstrapLinuxCoreTools(w *Wizard, missing []string) error {
 
 func installUVLinux(w *Wizard) error {
 	w.printf("  Installing uv via Astral install script...\n")
-	return runCmdFunc(w.out, "sh", "-c", `curl -LsSf https://astral.sh/uv/install.sh | sh`)
+	// Download to a temp file first so a curl failure propagates to runCmdFunc.
+	// A bare `curl | sh` pipeline masks curl's exit status (POSIX uses the last
+	// command's status), which would report bootstrap success on network errors.
+	return runCmdFunc(w.out, "sh", "-c", `set -e
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+curl -fsSL https://astral.sh/uv/install.sh -o "$tmpdir/install.sh"
+sh "$tmpdir/install.sh"`)
 }
 
 func installTaskLinux(w *Wizard) error {
 	w.printf("  Installing task via taskfile.dev install script...\n")
-	return runCmdFunc(w.out, "sh", "-c", `curl -fsSL https://taskfile.dev/install.sh | sh -s -- -d -b "${HOME}/.local/bin"`)
+	return runCmdFunc(w.out, "sh", "-c", `set -e
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+curl -fsSL https://taskfile.dev/install.sh -o "$tmpdir/install.sh"
+sh "$tmpdir/install.sh" -s -- -d -b "${HOME}/.local/bin"`)
 }
 
 func installGhLinux(w *Wizard, arch string) error {
