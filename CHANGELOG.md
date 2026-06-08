@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Content tests pin provider-neutral swarm guidance (#1531d)** -- content tests now fail if the swarm skill or agent preamble regresses to Grok Build-only sub-agent routing or drops backend and role metadata for dispatched workers. Refs #1531.
 - **Swarm operators can persist a coding sub-agent backend in project policy (#1531a)** -- `task policy:subagent-backend` sets the preferred coding sub-agent provider for swarm leaf workers; `task policy:subagent-backends` lists available providers and their role capabilities without spawning a harness; `task policy:show` surfaces the resolved value. Refs #1531.
 - **Headless swarm launch enforces selected sub-agent backend (#1531e)** -- `task swarm:launch` now refuses to emit a manifest when `plan.policy.swarmSubagentBackend` is missing or probe-unavailable, listing detected alternatives and the policy command to choose one; successful launches include audit-visible backend, dispatch provider, and worker-role metadata on each manifest entry without altering the #1378 allocation-context contract. Refs #1531.
 
