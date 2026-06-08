@@ -188,7 +188,7 @@ def test_subagent_backends_lists_catalog_without_harness(
     assert "grok-build" in out
     assert "cursor-cloud" in out
     assert "leaf-implementation" in out
-    assert "cursor-cloud" in out and "available" in out
+    assert "cursor-cloud" in out and "\tavailable" in out
 
 
 def test_subagent_backends_json_format(policy_set_module, project_root, capsys):
