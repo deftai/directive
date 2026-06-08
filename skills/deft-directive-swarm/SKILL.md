@@ -41,7 +41,7 @@ or invoke `task verify:branch`. The swarm skill creates branches per agent so th
 
 ## Running Swarms in Grok Build / Non-Warp Environments
 
-Minimal runtime contract for running swarms outside Warp:
+Minimal runtime contract for the Grok Build dispatch-provider path (one supported backend among several -- see Phase 3 Step 1b for provider-neutral heterogeneous routing):
 
 - One isolated git worktree per agent (identical to the Warp path — see Phase 2)
 - Workers launched via `spawn_subagent` dispatch (Phase 3 Step 2d)
@@ -323,6 +323,31 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 
 ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime.
 ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence.
+
+### Step 1b: Provider-neutral sub-agent routing (#1531)
+
+! **Heterogeneous dispatch is provider-neutral.** Tiered / heterogeneous swarm topology is an opt-in extension of the platform adapter (#1342 / #1331), not a Grok Build-only path. When routing leaf workers, the monitor separates three concerns that MUST NOT be collapsed:
+
+1. **Dispatch provider** — the runtime primitive or adapter that launches the child worker (e.g. `spawn_subagent`, `start_agent`, Cursor Composer/task agents, cloud agents, or a future adapter).
+2. **Worker role** — what the child is permitted to do: leaf implementation, orchestrator/strategist, review-cycle monitor, conflict-resolution rebase, merge, or release gate. Role boundaries are load-bearing regardless of which dispatch provider is active.
+3. **Model or agent selection** — the operator or harness policy that maps role plus vBRIEF attributes to a concrete agent/model. deft stays model-agnostic at dispatch time; the harness or provider backend resolves the concrete model.
+
+! **Supported backend examples (none mandatory):** Composer-class coding agents, Grok Build `spawn_subagent` workers, Cursor/cloud agents, and future adapters are all first-class examples. No single backend is required — Grok Build is one implementation of provider-neutral routing, not the only target.
+
+~ **Policy surface (#1531a):** `plan.policy.swarmSubagentBackend` (set via `task policy:subagent-backend`) records the operator's preferred coding sub-agent provider for leaf workers; `task policy:subagent-backends` probes stable provider IDs and role capabilities. The policy complements — does not replace — per-dispatch provider selection at launch time.
+
+! **Role boundaries for cheaper leaf agents:** Cheaper, high-context leaf agents are appropriate for **leaf implementation** work in isolated worktrees when vBRIEF scope is tight and gates (`task check`, Greptile review cycle) hold. The following roles MUST remain on strong, review-capable agents regardless of backend availability:
+
+- orchestration and cohort monitoring (the monitor / strategist conversation)
+- review-cycle decisions (fix-or-defer judgment, P0/P1 triage)
+- conflict-resolution rebase during merge cascades
+- merge cascade execution and protected-issue gates
+- release gates (Phase 5->6 version bump approval, `task release` surfaces)
+
+⊗ Treat Grok Build `spawn_subagent` as the only supported sub-agent backend in swarm guidance — provider-neutral routing explicitly includes Composer-class coding agents, Cursor/cloud agents, and future adapters (#1531).
+⊗ Route orchestration, review-cycle decisions, conflict-resolution rebase, merge cascade, or release gates to cheaper leaf agents — irreversible-damage surfaces stay on strong/review-capable agents (#1531).
+
+Cross-references: `scripts/policy.py` (`KNOWN_SUBAGENT_BACKEND_IDS`, `SWARM_WORKER_ROLES`), `templates/agent-prompt-preamble.md` (dispatch envelope metadata), `docs/the-harness-is-everything.md` (orchestrator -> commodity-coder layering). Refs #1531.
 
 ### Step 2a: Orchestrated Launch (start_agent available)
 
@@ -830,5 +855,6 @@ CONSTRAINTS:
 - ⊗ Run `git checkout` (any branch) -- including the brief `cd <other-worktree>; git checkout master --quiet` shape -- in a worktree the merging agent does not own during Phase 6 Step 3 (Update Master) or Step 4 (Clean Up). Post-merge state-update semantics MUST be performed via `git fetch origin <base-branch>` from the merger's OWN worktree, never by switching HEAD on a sibling worktree another agent is actively using. Recurrence record: PR #797 merge session (2026-05-01); companion to the Sub-Agent Role Separation rules (#727) -- this anti-pattern extends the same boundary discipline from sub-agent spawn shape to worktree HEAD operations (#800)
 - ⊗ Skip the Phase 0 Step 0.5 lifecycle bridge (#1025) and let the Step 1 preflight gate reject candidate scope vBRIEFs wholesale. The setup skill deposits scope vBRIEFs in `vbrief/proposed/` and the refinement skill leaves them in `vbrief/pending/`; the swarm Phase 0 Step 1 preflight only accepts `vbrief/active/` with `plan.status == "running"`. The bridge step (`task scope:promote -- <path>` then `task scope:activate -- <path>`) is the contract that converts proposed/pending candidates to active before allocation -- bypassing it re-surfaces the originating 2026-05-10 first-session consumer-swarm failure mode (`Invalid transition: 'activate' requires file in pending/`)
 - ⊗ Auto-promote + activate every candidate in `vbrief/proposed/` or `vbrief/pending/` during the Phase 0 Step 0.5 bridge without explicit user approval (#1025). Proposed-stage vBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4); silent promotion bypasses the user's lifecycle intent and may flip `plan.status` to `running` on scopes the user has not yet refined. Broad affirmatives (`proceed`, `do it`, `go ahead`) do NOT satisfy the bridge approval gate -- require an explicit `yes` / `confirmed` / `approve`
+- ⊗ Describe heterogeneous sub-agent routing as Grok Build-only — provider-neutral dispatch separates dispatch provider, worker role, and model or agent selection; Composer-class coding agents, Cursor/cloud agents, and future adapters are first-class backends alongside Grok Build `spawn_subagent` (#1531)
 - ⊗ Fall through to the manual-terminal fallback (Step 2b) when spawn_subagent is available -- Step 2d is the first-class grok-build launch path; manual terminal is for environments with no orchestration primitive at all (#1331)
 - ⊗ Surface, propose, or discuss the Phase 5 -> 6 merge cascade gate while `task swarm:verify-review-clean -- <pr-numbers...>` has not yet exited 0 on the current cohort (#1364). Keying the transition on poller lifecycle completion alone -- i.e. treating "every poller sub-agent returned a terminal message" as sufficient to surface the merge gate -- is the recurrence pattern from the #1166 swarm execution where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate. The cohort verifier is the only authoritative CLEAN signal at the cohort level; a poller's `clean_gate_holdout=*` exit IS a non-CLEAN report and MUST hold the gate even when every sub-agent has technically returned

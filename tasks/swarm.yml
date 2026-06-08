@@ -27,7 +27,7 @@ tasks:
   # Companion script: scripts/swarm_launch.py
   # Companion test:   tests/cli/test_swarm_launch.py
   launch:
-    desc: "Resolve a pre-approved cohort, enforce the #810 + swarm:readiness gates per story, and emit the launch-manifest JSON (#1387)"
+    desc: "Resolve a pre-approved cohort, enforce the #810 + swarm:readiness gates and sub-agent backend policy per story, and emit the launch-manifest JSON (#1387, #1531e)"
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"

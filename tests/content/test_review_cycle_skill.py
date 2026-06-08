@@ -173,6 +173,57 @@ def test_phase2_step1_late_arriving_references_poller_template() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _informal_clean_section() -> str:
+    """Return the #1543 informal-clean guidance section from the skill."""
+    text = _read_skill()
+    start = text.find("### Informal-clean missing canonical fields (#1543)")
+    assert start != -1, (
+        f"{_REVIEW_CYCLE_PATH}: must document informal-clean missing "
+        "canonical fields (#1543)"
+    )
+    # Section runs until the next top-level Phase heading or Submitting block.
+    end_markers = [
+        text.find("## Submitting GitHub Reviews", start),
+        text.find("## Anti-Patterns", start),
+    ]
+    end = min(i for i in end_markers if i != -1)
+    return text[start:end]
+
+
+def test_greptile_informal_clean_section_present() -> None:
+    """Review-cycle skill must document informal-clean missing canonical fields (#1543)."""
+    section = _informal_clean_section()
+    assert "informal-clean missing-canonical-fields" in section
+
+
+def test_greptile_informal_clean_recovery_path_tokens() -> None:
+    """Informal-clean guidance must route to retrigger, canonical evidence, or override."""
+    section = _informal_clean_section()
+    assert "@greptileai review" in section
+    assert "documented override" in section or "operator override" in section
+    assert "Do NOT keep polling" in section or "do not keep polling" in section.lower()
+
+
+def test_greptile_informal_clean_must_not_accept_prose_alone() -> None:
+    """Informal-clean guidance must forbid treating prose alone as merge-ready."""
+    section = _informal_clean_section()
+    pattern = re.compile(
+        r"^\u2297 Treat informal clean Greptile prose",
+        re.MULTILINE,
+    )
+    assert pattern.search(section), (
+        f"{_REVIEW_CYCLE_PATH}: informal-clean section must contain a "
+        "`\u2297 Treat informal clean Greptile prose...` MUST NOT rule (#1543)"
+    )
+
+
+def test_greptile_informal_clean_references_poller_template() -> None:
+    """Informal-clean guidance must cross-reference the poller template terminal exit."""
+    section = _informal_clean_section()
+    assert "templates/swarm-greptile-poller-prompt.md" in section
+    assert "(6) INFORMAL-CLEAN" in section
+
+
 def test_phase2_step1_no_cp1252_mojibake() -> None:
     """The newly-added rules MUST NOT contain the cp1252 mojibake form of
     \u2297 (e.g. `\u0393\u00E8\u00F9` -- the Windows-1252 round-trip

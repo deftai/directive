@@ -1013,3 +1013,163 @@ def test_escalate_reviewer_disagreement_no_record_when_not_escalating(
     )
     assert routing.escalates is False
     assert policy_module.count_pending_decisions(project_root) == 0
+
+
+# ---------------------------------------------------------------------------
+# swarm sub-agent backend policy + probe (#1531a)
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_swarm_subagent_backend_default_when_unset(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(project_root, {})
+    result = policy_module.resolve_swarm_subagent_backend(project_root)
+    assert result.backend_id is None
+    assert result.source == "default"
+    assert result.error is None
+
+
+def test_resolve_swarm_subagent_backend_typed_value(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(
+        project_root, {"policy": {"swarmSubagentBackend": "grok-build"}}
+    )
+    result = policy_module.resolve_swarm_subagent_backend(project_root)
+    assert result.backend_id == "grok-build"
+    assert result.source == "typed"
+
+
+def test_resolve_swarm_subagent_backend_rejects_unknown_id(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(
+        project_root, {"policy": {"swarmSubagentBackend": "warp-tab"}}
+    )
+    result = policy_module.resolve_swarm_subagent_backend(project_root)
+    assert result.backend_id is None
+    assert result.source == "default-on-error"
+    assert result.error and "warp-tab" in result.error
+
+
+def test_resolve_swarm_subagent_backend_rejects_null_value(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(
+        project_root, {"policy": {"swarmSubagentBackend": None}}
+    )
+    result = policy_module.resolve_swarm_subagent_backend(project_root)
+    assert result.backend_id is None
+    assert result.source == "default-on-error"
+    assert result.error and "must be a string" in result.error
+
+
+def test_set_swarm_subagent_backend_writes_and_audits(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_COMPOSER", raising=False)
+    _write_project_def(project_root, {})
+    changed, audit = policy_module.set_swarm_subagent_backend(
+        project_root, backend_id="composer", actor="test"
+    )
+    assert changed is True
+    assert "swarmSubagentBackend=composer" in audit
+    data = json.loads(
+        (project_root / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert data["plan"]["policy"]["swarmSubagentBackend"] == "composer"
+
+
+def test_set_swarm_subagent_backend_updates_without_vbrief_story_edit(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(project_root, {})
+    policy_module.set_swarm_subagent_backend(
+        project_root, backend_id="grok-build", actor="test"
+    )
+    changed, _ = policy_module.set_swarm_subagent_backend(
+        project_root, backend_id="composer", actor="test"
+    )
+    assert changed is True
+    resolved = policy_module.resolve_swarm_subagent_backend(project_root)
+    assert resolved.backend_id == "composer"
+    assert resolved.source == "typed"
+
+
+def test_inspect_swarm_subagent_backend_invalid_value_reports_error_source(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(
+        project_root, {"policy": {"swarmSubagentBackend": "warp-tab"}}
+    )
+    field = policy_module.inspect_one_policy(
+        policy_module.FIELD_SWARM_SUBAGENT_BACKEND, project_root
+    )
+    assert field is not None
+    assert field.current is None
+    assert field.source == "default-on-error"
+
+
+def test_inspect_swarm_subagent_backend_registered_in_policy_show(
+    policy_module, project_root, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    _write_project_def(
+        project_root, {"policy": {"swarmSubagentBackend": "cursor-cloud"}}
+    )
+    field = policy_module.inspect_one_policy(
+        policy_module.FIELD_SWARM_SUBAGENT_BACKEND, project_root
+    )
+    assert field is not None
+    assert field.current == "cursor-cloud"
+    assert field.source == "typed"
+
+
+def test_probe_subagent_backends_returns_stable_catalog(
+    policy_module, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_COMPOSER", raising=False)
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    monkeypatch.delenv("DEFT_PROBE_CURSOR_CLOUD", raising=False)
+    monkeypatch.delenv("GROK_BUILD", raising=False)
+    monkeypatch.delenv("DEFT_AGENT_RUNTIME", raising=False)
+    entries = policy_module.probe_subagent_backends()
+    ids = [entry.backend_id for entry in entries]
+    assert ids == ["composer", "cursor-cloud", "grok-build"]
+    by_id = {entry.backend_id: entry for entry in entries}
+    assert by_id["composer"].roles == ("leaf-implementation",)
+    assert "leaf-implementation" in by_id["grok-build"].roles
+    assert "review-monitor" in by_id["grok-build"].roles
+    assert "orchestrator" in by_id["cursor-cloud"].roles
+
+
+def test_probe_subagent_backends_honours_env_override(
+    policy_module, monkeypatch
+):
+    monkeypatch.setenv("DEFT_PROBE_COMPOSER", "1")
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    monkeypatch.delenv("GROK_BUILD", raising=False)
+    monkeypatch.delenv("DEFT_AGENT_RUNTIME", raising=False)
+    entries = policy_module.probe_subagent_backends()
+    by_id = {entry.backend_id: entry for entry in entries}
+    assert by_id["composer"].available is True
+    assert by_id["grok-build"].available is False
+
+
+def test_subagent_backends_json_round_trip(policy_module, monkeypatch):
+    monkeypatch.setenv("DEFT_PROBE_GROK_BUILD", "true")
+    entries = policy_module.probe_subagent_backends()
+    payload = json.loads(policy_module.subagent_backends_to_json(entries))
+    assert len(payload["backends"]) == 3
+    grok = next(b for b in payload["backends"] if b["id"] == "grok-build")
+    assert grok["available"] is True
+    assert "leaf-implementation" in grok["roles"]

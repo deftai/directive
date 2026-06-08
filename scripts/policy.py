@@ -2017,6 +2017,219 @@ def set_policy(
     return changed, audit_entry
 
 
+# ---------------------------------------------------------------------------
+# Swarm sub-agent backend policy (#1531a)
+# ---------------------------------------------------------------------------
+#
+# ``plan.policy.swarmSubagentBackend`` stores the operator-selected coding
+# sub-agent backend for swarm leaf workers. The catalog + probe surface
+# lists stable provider IDs and role capabilities without invoking a real
+# harness -- availability is inferred from lightweight env signals (or
+# ``DEFT_PROBE_<BACKEND>`` overrides for tests).
+
+#: Stable provider IDs for known coding sub-agent backends.
+KNOWN_SUBAGENT_BACKEND_IDS: frozenset[str] = frozenset(
+    {"composer", "grok-build", "cursor-cloud"}
+)
+
+#: Worker roles a backend may advertise for swarm routing (#1531).
+SWARM_WORKER_ROLES: frozenset[str] = frozenset(
+    {
+        "leaf-implementation",
+        "orchestrator",
+        "review-monitor",
+        "merge-release",
+    }
+)
+
+_SUBAGENT_BACKEND_CATALOG: dict[str, dict[str, Any]] = {
+    "composer": {
+        "display_name": "Composer-class coding agent",
+        "roles": ("leaf-implementation",),
+    },
+    "grok-build": {
+        "display_name": "Grok Build (spawn_subagent)",
+        "roles": ("leaf-implementation", "review-monitor"),
+    },
+    "cursor-cloud": {
+        "display_name": "Cursor / cloud agent",
+        "roles": ("leaf-implementation", "orchestrator", "review-monitor"),
+    },
+}
+
+
+@dataclass(frozen=True)
+class SubagentBackendDescriptor:
+    """One catalogued sub-agent backend with probe availability."""
+
+    backend_id: str
+    display_name: str
+    roles: tuple[str, ...]
+    available: bool
+
+
+@dataclass(frozen=True)
+class SwarmSubagentBackendResult:
+    """Resolved ``plan.policy.swarmSubagentBackend`` state."""
+
+    backend_id: str | None
+    source: str  # one of: 'typed', 'default', 'default-on-error'
+    error: str | None = None
+
+
+def _probe_env_truthy(name: str) -> bool:
+    """True when *name* is set to a recognised truthy string."""
+    return os.environ.get(name, "").strip().lower() in _TRUTHY
+
+
+def _probe_backend_available(backend_id: str) -> bool:
+    """Lightweight availability probe -- never invokes a real harness.
+
+    Tests (and operators) MAY force availability via
+    ``DEFT_PROBE_<BACKEND>`` where ``<BACKEND>`` is the uppercased id
+    with hyphens replaced by underscores (e.g. ``DEFT_PROBE_GROK_BUILD``).
+    """
+    env_key = f"DEFT_PROBE_{backend_id.upper().replace('-', '_')}"
+    override = os.environ.get(env_key)
+    if override is not None:
+        return override.strip().lower() in _TRUTHY
+
+    if backend_id == "grok-build":
+        runtime = os.environ.get("DEFT_AGENT_RUNTIME", "").strip().lower()
+        return _probe_env_truthy("GROK_BUILD") or runtime == "grok-build"
+    if backend_id == "composer":
+        return _probe_env_truthy("CURSOR_COMPOSER")
+    if backend_id == "cursor-cloud":
+        return _probe_env_truthy("CURSOR_AGENT")
+    return False
+
+
+def probe_subagent_backends() -> list[SubagentBackendDescriptor]:
+    """Return the stable backend catalog with per-entry availability.
+
+    Pure-stdlib; does not spawn sub-agents or shell out to a harness.
+    Sorted by ``backend_id`` for deterministic CLI / JSON output.
+    """
+    out: list[SubagentBackendDescriptor] = []
+    for backend_id in sorted(_SUBAGENT_BACKEND_CATALOG):
+        meta = _SUBAGENT_BACKEND_CATALOG[backend_id]
+        out.append(
+            SubagentBackendDescriptor(
+                backend_id=backend_id,
+                display_name=str(meta["display_name"]),
+                roles=tuple(meta["roles"]),
+                available=_probe_backend_available(backend_id),
+            )
+        )
+    return out
+
+
+def validate_swarm_subagent_backend(value: Any) -> list[str]:
+    """Validate a ``plan.policy.swarmSubagentBackend`` payload."""
+    errors: list[str] = []
+    if value is None:
+        return errors
+    if not isinstance(value, str) or not value.strip():
+        errors.append(
+            "plan.policy.swarmSubagentBackend must be a non-empty string; "
+            f"got {type(value).__name__} ({value!r})"
+        )
+        return errors
+    bid = value.strip()
+    if bid not in KNOWN_SUBAGENT_BACKEND_IDS:
+        errors.append(
+            "plan.policy.swarmSubagentBackend must be one of "
+            f"{sorted(KNOWN_SUBAGENT_BACKEND_IDS)}; got {bid!r}"
+        )
+    return errors
+
+
+def resolve_swarm_subagent_backend(
+    project_root: Path | None = None,
+) -> SwarmSubagentBackendResult:
+    """Resolve ``plan.policy.swarmSubagentBackend`` from PROJECT-DEFINITION."""
+    data, err = load_project_definition(project_root)
+    if data is None:
+        return SwarmSubagentBackendResult(None, "default", error=err)
+
+    policy_block = _get_policy_block(data)
+    if "swarmSubagentBackend" not in policy_block:
+        return SwarmSubagentBackendResult(None, "default", error=None)
+
+    raw = policy_block["swarmSubagentBackend"]
+    if raw is None:
+        return SwarmSubagentBackendResult(
+            None,
+            "default-on-error",
+            error="plan.policy.swarmSubagentBackend must be a string; got null",
+        )
+    validation_errors = validate_swarm_subagent_backend(raw)
+    if validation_errors:
+        return SwarmSubagentBackendResult(
+            None,
+            "default-on-error",
+            error=validation_errors[0],
+        )
+    return SwarmSubagentBackendResult(str(raw).strip(), "typed", error=None)
+
+
+def set_swarm_subagent_backend(
+    project_root: Path,
+    *,
+    backend_id: str,
+    actor: str = "agent",
+    note: str = "",
+) -> tuple[bool, str]:
+    """Write ``plan.policy.swarmSubagentBackend`` to PROJECT-DEFINITION."""
+    bid = backend_id.strip()
+    errors = validate_swarm_subagent_backend(bid)
+    if errors:
+        raise ValueError(errors[0])
+
+    path = project_definition_path(project_root)
+    if not path.is_file():
+        raise FileNotFoundError(f"PROJECT-DEFINITION not found at {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    plan = data.setdefault("plan", {})
+    if not isinstance(plan, dict):
+        raise ValueError("PROJECT-DEFINITION 'plan' is not an object")
+    policy_block = plan.setdefault("policy", {})
+    if not isinstance(policy_block, dict):
+        raise ValueError("plan.policy is not an object")
+
+    previous = policy_block.get("swarmSubagentBackend")
+    policy_block["swarmSubagentBackend"] = bid
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    changed = previous != bid
+    parts = [
+        f"actor={actor}",
+        f"swarmSubagentBackend={bid}",
+        f"previous={previous!r}",
+    ]
+    if note:
+        parts.append("note=" + note.replace("\n", " ").replace("\r", " "))
+    audit_entry = " ".join(parts)
+    append_audit_log(project_root, audit_entry)
+    return changed, audit_entry
+
+
+def subagent_backends_to_json(backends: list[SubagentBackendDescriptor]) -> str:
+    """Serialise probe output for ``task policy:subagent-backends --format=json``."""
+    payload = {
+        "backends": [
+            {
+                "id": entry.backend_id,
+                "display_name": entry.display_name,
+                "roles": list(entry.roles),
+                "available": entry.available,
+            }
+            for entry in backends
+        ]
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
 def disclosure_line(result: PolicyResult) -> str:
     """One-liner disclosure phrasing for AGENTS.md / setup interview echo."""
     if result.allow_direct_commits:
@@ -2075,6 +2288,7 @@ FIELD_TRIAGE_SCOPE_IGNORES: str = "plan.policy.triageScopeIgnores"
 FIELD_TRIAGE_RANKING_LABELS: str = "plan.policy.triageRankingLabels"
 FIELD_TRIAGE_AUTO_CLASSIFY: str = "plan.policy.triageAutoClassify"
 FIELD_TRIAGE_HOLD_MARKERS: str = "plan.policy.triageHoldMarkers"
+FIELD_SWARM_SUBAGENT_BACKEND: str = "plan.policy.swarmSubagentBackend"
 
 #: Framework-default literals for the list-shaped policy fields. The
 #: branch / WIP defaults are sourced from existing module constants
@@ -2336,6 +2550,38 @@ def _inspect_triage_hold_markers(
     )
 
 
+def _inspect_swarm_subagent_backend(
+    data: dict | None, project_root: Path
+) -> PolicyField:
+    """Inspect ``plan.policy.swarmSubagentBackend`` (#1531a)."""
+    policy_block = _get_policy_block(data)
+    if "swarmSubagentBackend" not in policy_block:
+        return PolicyField(
+            name=FIELD_SWARM_SUBAGENT_BACKEND,
+            current=None,
+            default=None,
+            source="default",
+        )
+    raw = policy_block["swarmSubagentBackend"]
+    if (
+        isinstance(raw, str)
+        and raw.strip()
+        and raw.strip() in KNOWN_SUBAGENT_BACKEND_IDS
+    ):
+        return PolicyField(
+            name=FIELD_SWARM_SUBAGENT_BACKEND,
+            current=raw.strip(),
+            default=None,
+            source="typed",
+        )
+    return PolicyField(
+        name=FIELD_SWARM_SUBAGENT_BACKEND,
+        current=None,
+        default=None,
+        source="default-on-error",
+    )
+
+
 #: Registered typed-policy inspectors. Future typed-flag children append
 #: a new ``_inspect_<field>`` callable here AND its definition above; the
 #: show CLI surfaces it automatically with no other wiring. Append-only
@@ -2358,6 +2604,7 @@ _REGISTERED_POLICIES: tuple[
     _inspect_triage_ranking_labels,
     _inspect_triage_auto_classify,
     _inspect_triage_hold_markers,
+    _inspect_swarm_subagent_backend,
 )
 
 

@@ -43,7 +43,7 @@ placeholders below are the ONLY single-braced tokens.
 
 TASK: You are a review-cycle agent for PR #{pr_number} in {repo}. Embody `skills/deft-directive-review-cycle/SKILL.md` end-to-end as a single coherent role -- you handle BOTH polling Greptile for review state AND fixing any P0/P1 findings. Do NOT split into separate "poll" and "fix" agents. Do NOT exit until the exit condition is met OR you hit a terminal error / timeout.
 
-DO NOT STOP until ONE of the five terminal exit conditions below fires.
+DO NOT STOP until ONE of the six terminal exit conditions below fires.
 
 ## Role posture
 
@@ -248,6 +248,42 @@ confidence = int(m.group(1)) if m else None
 
 The clean threshold is `confidence > 3`, i.e. 4/5 or 5/5. Lower scores indicate Greptile is uncertain -- do NOT exit clean.
 
+### Informal-clean missing canonical fields (#1543)
+
+Greptile sometimes posts a separate informal clean reply (`current diff is clean`, `prior issues are now resolved`, `no new issues`, `looks solid`) without the canonical rolling-summary fields `Last reviewed commit:` and `Confidence Score: X/5`. This is NOT "review still writing" and MUST NOT fall through to silent polling or generic `(5) STALL`.
+
+```python
+import re
+
+_INFORMAL_CLEAN_SIGNAL_RE = re.compile(
+    r"(?:"
+    r"diff is clean|"
+    r"(?:prior |previously flagged )?issues? (?:are )?now resolved|"
+    r"all prior issues resolved|"
+    r"no new issues(?: to flag)?|"
+    r"looks solid|"
+    r"good to proceed"
+    r")",
+    re.IGNORECASE,
+)
+
+def is_informal_clean_missing_canonical_fields(
+    body: str,
+    last_reviewed_sha,
+    confidence,
+    has_blocking: bool,
+) -> bool:
+    if last_reviewed_sha is not None or confidence is not None:
+        return False
+    if has_blocking:
+        return False
+    if body.strip().startswith("Greptile encountered an error while reviewing this PR"):
+        return False
+    return _INFORMAL_CLEAN_SIGNAL_RE.search(body) is not None
+```
+
+When `is_informal_clean_missing_canonical_fields(...)` is True on the current poll, exit immediately via `### (6) INFORMAL-CLEAN` below. Do NOT increment `stall_streak` toward `(5) STALL` -- the recovery path is retrigger / canonical evidence / documented override, not more polling.
+
 ## CLEAN gate evaluation, `clean_gate_holdout`, and per-poll instrumentation (#1039)
 
 The (1) CLEAN terminal exit is an AND of the five conditions enumerated under `### (1) CLEAN` below. A parse failure in ANY of the five (regex doesn't match Greptile's actual rendering / parse silently returns None / a `CI / *` check is `pending` rather than `completed`) keeps both `has_blocking = False` AND `is_clean = False` simultaneously, dropping the poller into the fall-through path that polls until the `{poll_cap_minutes}`-minute cap (PR #1038 recurrence, 2026-05-11; #1039). The gate evaluator below names the FIRST failing condition (in (1)/(2)/(3)/(4)/(5) order) as `clean_gate_holdout` so the per-poll log AND the (4) TIMEOUT / (5) STALL exit messages surface WHICH of the five conditions held the gate -- the operator MUST NEVER have to ask "which condition failed?" (Tier 3 per-condition fail-loud, #1039).
@@ -308,7 +344,7 @@ Also track a `stall_streak` counter across polls: increment when `has_blocking i
 
 ## Terminal exit conditions
 
-When ANY of the five conditions below fires, send the corresponding message to `{parent_agent_id}` and exit. Each message body MUST end with the exact line `-- no more polling, exiting now` so the parent can detect the exit unambiguously.
+When ANY of the six conditions below fires, send the corresponding message to `{parent_agent_id}` and exit. Each message body MUST end with the exact line `-- no more polling, exiting now` so the parent can detect the exit unambiguously.
 
 ### (1) CLEAN
 
@@ -330,7 +366,7 @@ Send to parent:
       Last reviewed commit: <sha>
       -- no more polling, exiting now
 
-**Swarm-orchestrated terminal contract (#1364):** when this poller is dispatched as part of a swarm cohort (parent monitor is running `skills/deft-directive-swarm/SKILL.md` Phase 6), this exact subject line -- `PR #{pr_number} CLEAN -- ready for merge` -- with `confidence > 3` recorded on the **current HEAD** is the ONLY acceptable "review complete" signal the swarm monitor accepts toward the Phase 5 -> 6 merge-gate transition. The four other terminal exits below ((2) NEW P0/P1 FINDINGS escalation, (3) ERRORED, (4) TIMEOUT, (5) STALL) are NOT "review complete" signals for swarm purposes: each one MUST force either fresh poller re-dispatch on the same PR or explicit user escalation BEFORE the monitor surfaces the Phase 5 -> 6 gate. The monitor enforces this structurally via `task swarm:verify-review-clean` (#1364); see `skills/deft-directive-swarm/SKILL.md` Phase 5 Exit Condition for the cohort verifier mandate. A poller that has terminated lifecycle-clean (i.e. the sub-agent process exited normally) but with `clean_gate_holdout != None` HAS NOT "reported review-clean" for swarm-cycle purposes -- the verifier picks the gap up and the monitor re-dispatches.
+**Swarm-orchestrated terminal contract (#1364):** when this poller is dispatched as part of a swarm cohort (parent monitor is running `skills/deft-directive-swarm/SKILL.md` Phase 6), this exact subject line -- `PR #{pr_number} CLEAN -- ready for merge` -- with `confidence > 3` recorded on the **current HEAD** is the ONLY acceptable "review complete" signal the swarm monitor accepts toward the Phase 5 -> 6 merge-gate transition. The five other terminal exits below ((2) NEW P0/P1 FINDINGS escalation, (3) ERRORED, (4) TIMEOUT, (5) STALL, (6) INFORMAL-CLEAN) are NOT "review complete" signals for swarm purposes: each one MUST force either fresh poller re-dispatch on the same PR or explicit user escalation BEFORE the monitor surfaces the Phase 5 -> 6 gate. The monitor enforces this structurally via `task swarm:verify-review-clean` (#1364); see `skills/deft-directive-swarm/SKILL.md` Phase 5 Exit Condition for the cohort verifier mandate. A poller that has terminated lifecycle-clean (i.e. the sub-agent process exited normally) but with `clean_gate_holdout != None` HAS NOT "reported review-clean" for swarm-cycle purposes -- the verifier picks the gap up and the monitor re-dispatches.
 
 ### (2) NEW P0/P1 FINDINGS
 
@@ -403,6 +439,30 @@ Increment the `stall_streak` counter introduced under `## CLEAN gate evaluation,
         clean_gate_holdout: <which-of-the-five-conditions-failed>
       Parent should diagnose via Tier 1 instrumentation log.
       -- no more polling, exiting now
+
+### (6) INFORMAL-CLEAN
+
+`is_informal_clean_missing_canonical_fields(...)` is True on the current poll: Greptile posted informal clean prose but omitted BOTH canonical fields `Last reviewed commit:` and `Confidence Score: X/5`. This is the **`informal-clean missing-canonical-fields`** blocked recovery state (#1543). Do NOT keep polling.
+
+Send:
+
+    Subject: PR #{pr_number} informal-clean missing canonical fields -- recovery required
+    Body:
+      Greptile informal-clean missing-canonical-fields state (#1543).
+      Latest Greptile comment says the diff is clean / prior issues resolved,
+      but lacks canonical `Last reviewed commit:` and `Confidence Score: X/5`.
+      Recovery options:
+        (1) comment `@greptileai review` to retrigger a canonical rolling summary
+        (2) wait for Greptile to edit its primary summary with both canonical fields
+        (3) document an explicit operator override per swarm SKILL Phase 6 Step 1
+      Latest state:
+        last_reviewed_sha: unparsed
+        head_sha: <sha>
+        confidence: unparsed
+        has_blocking: False
+      -- no more polling, exiting now
+
+**Swarm-orchestrated terminal contract (#1543):** like `(3) ERRORED`, `(4) TIMEOUT`, and `(5) STALL`, this exit is NOT a "review complete" signal for `task swarm:verify-review-clean`. The monitor MUST re-dispatch or escalate; do NOT surface the Phase 5 -> 6 merge gate until canonical evidence or a documented override resolves the state.
 
 ## Constraints (non-negotiable)
 

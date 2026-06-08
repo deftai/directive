@@ -87,6 +87,18 @@ def _section_body(sha: str, confidence: int, p0: int, p1: int, p2: int) -> str:
     )
 
 
+def _informal_clean_body() -> str:
+    """Synthetic informal clean reply patterned on PR #1541 (#1543)."""
+    return (
+        "The review on `ac9f42a` has completed — no stall on my end. "
+        "Both previously flagged issues are now resolved:\n\n"
+        "- **P1** (resolved): inspector consistency fixed.\n"
+        "- **P2** (resolved/outdated): redundant fallback clauses removed.\n\n"
+        "The current diff is clean. No new issues to flag — the implementation "
+        "looks solid. Good to proceed to the confidence exit gate.\n"
+    )
+
+
 # ---------------------------------------------------------------------------
 # parse_greptile_body
 # ---------------------------------------------------------------------------
@@ -234,6 +246,26 @@ class TestParseGreptileBody:
         assert v.confidence == 5
         assert v.last_reviewed_sha == "85c0b1de994a"
 
+    def test_informal_clean_missing_canonical_fields_detected(self):
+        body = _informal_clean_body()
+        v = merge_readiness.parse_greptile_body(body)
+        assert v.found is True
+        assert v.informal_clean is True
+        assert v.last_reviewed_sha is None
+        assert v.confidence is None
+        assert v.p0_count == 0
+        assert v.p1_count == 0
+
+    def test_informal_clean_helper_false_when_canonical_fields_present(self):
+        body = _clean_body()
+        v = merge_readiness.parse_greptile_body(body)
+        assert v.informal_clean is False
+
+    def test_informal_clean_not_confused_with_still_writing(self):
+        body = "## Greptile Summary\n\nStill analyzing your changes...\n"
+        v = merge_readiness.parse_greptile_body(body)
+        assert v.informal_clean is False
+
 
 # ---------------------------------------------------------------------------
 # evaluate_gates
@@ -322,6 +354,30 @@ class TestEvaluateGates:
         assert any("confidence" in f.lower() for f in failures)
         assert any("P1" in f for f in failures)
 
+    def test_informal_clean_emits_targeted_diagnostic(self):
+        v = self._verdict(
+            informal_clean=True,
+            last_reviewed_sha=None,
+            confidence=None,
+        )
+        failures = merge_readiness.evaluate_gates(
+            1, "abc1234567890def1234567890abcdef12345678", v,
+        )
+        assert len(failures) == 1
+        assert "informal-clean missing-canonical-fields" in failures[0]
+        assert "@greptileai review" in failures[0]
+        assert "documented override" in failures[0] or "operator override" in failures[0]
+        assert "Could not parse `Last reviewed commit:`" not in failures[0]
+
+    def test_informal_clean_refuses_merge_ready(self):
+        v = self._verdict(
+            informal_clean=True,
+            last_reviewed_sha=None,
+            confidence=None,
+        )
+        failures = merge_readiness.evaluate_gates(1, "abc1234", v)
+        assert failures != []
+
 
 # ---------------------------------------------------------------------------
 # main / CLI
@@ -409,3 +465,28 @@ class TestMain:
         payload = json.loads(out)
         assert payload["merge_ready"] is True
         assert payload["pr_number"] == 1
+
+    def test_informal_clean_exits_1_with_recovery_path(self, monkeypatch, capsys):
+        sha = "abc1234567890def1234567890abcdef12345678"
+        self._patch_gh(monkeypatch, sha, _informal_clean_body())
+        rc = merge_readiness.main(["1541", "--repo", "deftai/directive"])
+        assert rc == merge_readiness.EXIT_MERGE_BLOCKED
+        out = capsys.readouterr().out
+        assert "MERGE-BLOCKED" in out
+        assert "informal-clean missing-canonical-fields" in out
+        assert "@greptileai review" in out
+
+    def test_informal_clean_json_payload(self, monkeypatch, capsys):
+        sha = "abc1234567890def1234567890abcdef12345678"
+        self._patch_gh(monkeypatch, sha, _informal_clean_body())
+        rc = merge_readiness.main(
+            ["1541", "--repo", "deftai/directive", "--json"],
+        )
+        assert rc == merge_readiness.EXIT_MERGE_BLOCKED
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["merge_ready"] is False
+        assert payload["verdict"]["informal_clean"] is True
+        assert any(
+            "informal-clean missing-canonical-fields" in f
+            for f in payload["failures"]
+        )

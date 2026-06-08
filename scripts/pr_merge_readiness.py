@@ -150,6 +150,37 @@ _SECTION_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Informal-clean prose signals (#1543). Greptile sometimes posts a separate
+# human-readable "all resolved / diff is clean" comment without the canonical
+# rolling-summary fields. These patterns distinguish that state from a
+# review that is still writing or a malformed partial summary.
+_INFORMAL_CLEAN_SIGNAL_RE = re.compile(
+    r"(?:"
+    r"diff is clean|"
+    r"(?:prior |previously flagged )?issues? (?:are )?now resolved|"
+    r"all prior issues resolved|"
+    r"no new issues(?: to flag)?|"
+    r"looks solid|"
+    r"good to proceed"
+    r")",
+    re.IGNORECASE,
+)
+
+_INFORMAL_CLEAN_STATE = "informal-clean missing-canonical-fields"
+
+_INFORMAL_CLEAN_DIAGNOSTIC = (
+    f"Greptile {_INFORMAL_CLEAN_STATE} state (#1543): the latest Greptile bot "
+    "comment says the diff is clean / prior issues are resolved, but omits the "
+    "canonical rolling-summary fields `Last reviewed commit:` and "
+    "`Confidence Score: X/5` that merge gates require. Prose alone cannot "
+    "prove review currency or confidence. Recovery: (1) comment "
+    "`@greptileai review` on the PR to retrigger a canonical rolling summary, "
+    "(2) wait for Greptile to edit its primary summary comment with both "
+    "canonical fields on the current HEAD, or (3) document an explicit "
+    "operator override per skills/deft-directive-swarm/SKILL.md Phase 6 "
+    "Step 1. Do NOT keep polling -- this is not 'review still writing'."
+)
+
 
 @dataclass
 class GreptileVerdict:
@@ -161,7 +192,26 @@ class GreptileVerdict:
     p0_count: int
     p1_count: int
     p2_count: int
+    informal_clean: bool = False        # clean prose but missing canonical fields (#1543)
     raw_body_excerpt: str = ""          # first ~200 chars for debugging
+
+
+def is_informal_clean_missing_canonical_fields(
+    verdict: GreptileVerdict, body: str,
+) -> bool:
+    """Return True when Greptile posted informal clean prose without canonical fields.
+
+    Mirrors the detection contract in
+    ``templates/swarm-greptile-poller-prompt.md`` and
+    ``skills/deft-directive-review-cycle/SKILL.md`` (#1543).
+    """
+    if not verdict.found or verdict.errored:
+        return False
+    if verdict.last_reviewed_sha is not None or verdict.confidence is not None:
+        return False
+    if verdict.p0_count > 0 or verdict.p1_count > 0:
+        return False
+    return _INFORMAL_CLEAN_SIGNAL_RE.search(body) is not None
 
 
 def parse_greptile_body(body: str) -> GreptileVerdict:
@@ -248,7 +298,7 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
                 # -- preserves badge-source-of-truth when both surfaces emit.
                 p2_count = count
 
-    return GreptileVerdict(
+    verdict = GreptileVerdict(
         found=True,
         errored=errored,
         last_reviewed_sha=last_reviewed_sha,
@@ -258,6 +308,9 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
         p2_count=p2_count,
         raw_body_excerpt=body[:200],
     )
+    if is_informal_clean_missing_canonical_fields(verdict, body):
+        verdict.informal_clean = True
+    return verdict
 
 
 # ---- gh wrappers ------------------------------------------------------------
@@ -426,6 +479,10 @@ def evaluate_gates(pr_number: int, head_sha: str | None, verdict: GreptileVerdic
             "Retry via @greptileai or escalate per "
             "skills/deft-directive-swarm/SKILL.md Phase 6 Step 1."
         )
+
+    if verdict.informal_clean:
+        failures.append(_INFORMAL_CLEAN_DIAGNOSTIC)
+        return failures
 
     if verdict.last_reviewed_sha is None:
         failures.append(

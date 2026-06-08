@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1001"
+    "description": "Scope vBRIEF ingested from GitHub issue #1001",
+    "updated": "2026-06-08T17:35:57Z"
   },
   "plan": {
     "title": "fix(release_publish): REST `/releases/tags/{tag}` 404s on draft releases (post-#961 regression)",
-    "status": "cancelled",
+    "status": "completed",
     "narratives": {
       "Description": "The REST migration in #961 routed scripts/release_publish.py through GET /repos/{owner}/{repo}/releases/tags/{tag}, which returns 404 for draft releases and breaks task release:publish on a freshly cut draft. The fix resolves the release by id (or by scanning the releases list for the matching tag_name) so the publish step flips draft=false without the manual gh release edit recovery used during the v0.26.2 cut.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1001",
@@ -51,7 +52,7 @@
         "title": "Issue #1001: fix(release_publish): REST `/releases/tags/{tag}` 404s on draft releases (post-#961 regression)"
       }
     ],
-    "updated": "2026-06-05T16:12:14Z",
+    "updated": "2026-06-08T17:35:57Z",
     "id": "story-1001-release-publish-draft-404",
     "metadata": {
       "kind": "story",

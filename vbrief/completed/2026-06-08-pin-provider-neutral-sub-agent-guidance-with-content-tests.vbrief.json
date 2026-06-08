@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from pending/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json"
+  },
+  "plan": {
+    "id": "1531d-provider-guidance-tests",
+    "title": "Pin provider-neutral sub-agent guidance with content tests",
+    "status": "completed",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "narratives": {
+      "Description": "This story adds focused content tests for the provider-neutral swarm and preamble guidance after the documentation stories land. It is sequenced after the text updates so the test assertions can pin the final wording without forcing implementation workers to edit the same files concurrently.",
+      "ImplementationPlan": "1. Update the source file tests/content/test_swarm_skill.py with test functions that assert the swarm skill names provider-neutral backend choice and includes Composer-class, Grok Build, Cursor/cloud, and future adapter examples.\n2. Verify the test evidence by running pytest tests/content/test_swarm_skill.py -k provider_neutral and confirm the assertions fail on Grok Build-only wording and pass with the updated skill and preamble text.",
+      "UserStory": "As a maintainer, I want content tests to pin provider-neutral sub-agent guidance, so that future edits cannot regress the swarm docs back to a Grok Build-only model.",
+      "Traces": "https://github.com/deftai/directive/issues/1531"
+    },
+    "items": [
+      {
+        "id": "1531d-provider-guidance-tests-a1",
+        "title": "Given the content tests run, they fail if skills/deft-directive-swarm/SKILL.md omits Composer-class agents, Cursor/cloud agents, future adapters, or provider-neutral backend wording.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the content tests run, they fail if skills/deft-directive-swarm/SKILL.md omits Composer-class agents, Cursor/cloud agents, future adapters, or provider-neutral backend wording.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531d-provider-guidance-tests-a2",
+        "title": "Given the content tests run, they fail if templates/agent-prompt-preamble.md omits provider-neutral backend or role metadata guidance for dispatched workers.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the content tests run, they fail if templates/agent-prompt-preamble.md omits provider-neutral backend or role metadata guidance for dispatched workers.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531d-provider-guidance-tests-a3",
+        "title": "Given the content tests run after both documentation stories land, pytest tests/content/test_swarm_skill.py passes and reports the provider-neutral assertions as covered.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the content tests run after both documentation stories land, pytest tests/content/test_swarm_skill.py passes and reports the provider-neutral assertions as covered.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tests/content/test_swarm_skill.py"
+        ],
+        "verify_commands": [
+          "pytest tests/content/test_swarm_skill.py -k provider_neutral"
+        ],
+        "expected_outputs": [
+          "content tests fail on Grok Build-only regressions and pass with provider-neutral guidance"
+        ],
+        "depends_on": [
+          "1531a-subagent-backend-policy-and-probe",
+          "1531b-swarm-skill-provider-neutral-routing",
+          "1531c-preamble-provider-metadata"
+        ],
+        "conflict_group": "swarm-provider-guidance-tests",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-08T16:44:25Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-08T16:44:25Z"
+  }
+}

@@ -508,7 +508,18 @@
 - **#1419** -- Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch -- `[completed]`
 - **#1419** -- Surface human-clearance backlog and the earned-autonomy dial -- `[completed]`
 - **#1419** -- Wire plan.metadata.rank into selection ordering and roadmap render -- `[completed]`
+- **#1001** -- fix(release_publish): REST `/releases/tags/{tag}` 404s on draft releases (post-#961 regression) -- `[completed]`
 - **#1002** -- fix(triage_bootstrap): cp1252 decode UnicodeDecodeError in subprocess._readerthread on Windows (#798 chain at new surface) -- `[completed]`
 - **#1003** -- fix(scripts/resolve_changelog_unreleased): dedup gap on truncated/issue-numberless entries (#911 follow-up) -- `[completed]`
 - **#1027** -- Coverage threshold blind spot: pygame/tkinter event loops can't run headlessly, dragging overall % below 85% threshold -- `[completed]`
+- **#1525** -- fix(install): adopt CodeQL-recognized zip-slip barrier in extractCoreTarball (clears go/zipslip alert #6) -- `[completed]`
+- **#1528** -- fix(install): strengthen zip-slip barrier at source + sink to clear go/zipslip alert #6 (follow-up to #1525) -- `[completed]`
+- **#1531** -- swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners) -- `[completed]`
+- **#1538** -- Linux installer --yes reports missing core tools instead of bootstrapping them -- `[completed]`
+- **#1543** -- review-cycle: handle Greptile informal clean replies without canonical fields -- `[completed]`
+- **#1531** -- Add persistent sub-agent backend policy and availability gate -- `[completed]`
+- **#1531** -- Add provider-neutral worker metadata to the agent preamble -- `[completed]`
+- **#1531** -- Document provider-neutral sub-agent routing in the swarm skill -- `[completed]`
+- **#1531** -- Integrate selected sub-agent backend into headless swarm launch and audit output -- `[completed]`
+- **#1531** -- Pin provider-neutral sub-agent guidance with content tests -- `[completed]`
 

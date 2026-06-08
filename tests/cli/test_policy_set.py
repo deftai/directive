@@ -105,3 +105,106 @@ def test_missing_project_def_returns_config_error(policy_set_module, tmp_path, c
     assert rc == 2
     assert "not found" in err
     assert "task setup" in err
+
+
+# ---------------------------------------------------------------------------
+# subagent backend policy surface (#1531a)
+# ---------------------------------------------------------------------------
+
+
+def test_subagent_backend_writes_typed_policy(
+    policy_set_module, project_root, capsys, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    rc = policy_set_module.main(
+        [
+            "subagent-backend",
+            "--set",
+            "grok-build",
+            "--project-root",
+            str(project_root),
+            "--actor",
+            "test",
+        ]
+    )
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "swarmSubagentBackend=grok-build" in out
+    assert "source: typed" in out
+    data = json.loads(
+        (project_root / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert data["plan"]["policy"]["swarmSubagentBackend"] == "grok-build"
+
+
+def test_subagent_backend_rerun_updates_stored_value(
+    policy_set_module, project_root, capsys, monkeypatch
+):
+    monkeypatch.delenv("DEFT_PROBE_COMPOSER", raising=False)
+    policy_set_module.main(
+        [
+            "subagent-backend",
+            "--set",
+            "grok-build",
+            "--project-root",
+            str(project_root),
+        ]
+    )
+    capsys.readouterr()
+    rc = policy_set_module.main(
+        [
+            "subagent-backend",
+            "--set",
+            "composer",
+            "--project-root",
+            str(project_root),
+        ]
+    )
+    out = capsys.readouterr().out
+    assert rc == 0
+    data = json.loads(
+        (project_root / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert data["plan"]["policy"]["swarmSubagentBackend"] == "composer"
+    assert "swarmSubagentBackend='composer'" in out or "swarmSubagentBackend=composer" in out
+
+
+def test_subagent_backends_lists_catalog_without_harness(
+    policy_set_module, project_root, capsys, monkeypatch
+):
+    monkeypatch.setenv("DEFT_PROBE_CURSOR_CLOUD", "yes")
+    monkeypatch.delenv("DEFT_PROBE_COMPOSER", raising=False)
+    monkeypatch.delenv("DEFT_PROBE_GROK_BUILD", raising=False)
+    monkeypatch.delenv("GROK_BUILD", raising=False)
+    monkeypatch.delenv("DEFT_AGENT_RUNTIME", raising=False)
+    rc = policy_set_module.main(
+        ["subagent-backends", "--project-root", str(project_root)]
+    )
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "composer" in out
+    assert "grok-build" in out
+    assert "cursor-cloud" in out
+    assert "leaf-implementation" in out
+    assert "cursor-cloud" in out and "\tavailable" in out
+
+
+def test_subagent_backends_json_format(policy_set_module, project_root, capsys):
+    rc = policy_set_module.main(
+        [
+            "subagent-backends",
+            "--format",
+            "json",
+            "--project-root",
+            str(project_root),
+        ]
+    )
+    out = capsys.readouterr().out
+    assert rc == 0
+    payload = json.loads(out)
+    assert len(payload["backends"]) == 3
+    assert all("id" in row and "roles" in row for row in payload["backends"])

@@ -2,7 +2,7 @@
 
 This is the canonical preamble that orchestrators (this conversation, swarm-skill dispatchers, monitor agents, scheduled / cloud agents) MUST include verbatim or by reference in any implementation sub-agent's dispatch envelope. It encodes the rules learned from prior recurrence patterns so each fresh dispatch starts with the institutional memory already loaded.
 
-The orchestrator copies the section bodies into the worker prompt; the worker reads them as binding rules. Orchestrators MAY trim sections that are demonstrably out of scope (e.g. a docs-only worker may skip the rate-limit-throttle section), but MUST NOT silently drop the AGENTS.md read mandate, the #810 vBRIEF gate, or the PowerShell 5.1 non-ASCII rule.
+The orchestrator copies the section bodies into the worker prompt; the worker reads them as binding rules. Orchestrators MAY trim sections that are demonstrably out of scope (e.g. a docs-only worker may skip the rate-limit-throttle section), but MUST NOT silently drop the AGENTS.md read mandate, the #810 vBRIEF gate, the #1378 allocation-context token, the #1531 worker-metadata section when backend routing applies, or the PowerShell 5.1 non-ASCII rule.
 
 ## 1. Read AGENTS.md before any other tool call
 
@@ -48,6 +48,49 @@ Worked example (a swarm-cohort member):
 ```
 
 A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `batching_rationale` null, and lists only its own vBRIEF in `cohort_vbriefs`; such a section does NOT by itself satisfy the consent token, so the Story Start Gate falls through to the #1371 prose carve-out for a lone interactive dispatch.
+
+## 2.6 Provider-neutral worker metadata (#1531)
+
+Heterogeneous swarm dispatch (#1531) assigns each worker a **dispatch provider** (the runtime primitive that launched the agent), a **worker role** (what the agent is allowed to do), and a **selected backend** or **routing policy** (how the harness maps that role to a concrete agent). These fields are provider-neutral: Composer-class coding agents, Grok Build (`spawn_subagent`), Cursor/cloud agents, and future adapters share the same contract.
+
+! Every intentional backend-routed dispatch MUST carry a separate `## Worker metadata` section in the dispatch envelope, placed AFTER `## Allocation context` and BEFORE the task body. This section is advisory metadata for the worker and for audit; it does NOT replace, extend, or reorder the five-field #1378 `## Allocation context` recognition contract above.
+
+When present, the section documents these fields in order:
+
+- `dispatch_provider`: the runtime primitive that launched this worker -- e.g. `spawn_subagent`, `start_agent`, `cursor-composer`, `cursor-cloud-agent`, or a future adapter id. Names the harness surface, not the model.
+- `worker_role`: the role boundary for this dispatch -- one of `leaf-implementation`, `orchestrator`, `review-monitor`, or `merge-release` (stable ids from `scripts/policy.py` `SWARM_WORKER_ROLES`). Tells the worker which preamble rules and skill surfaces apply.
+- `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (e.g. `composer`, `grok-build`, `cursor-cloud`) | null -- which catalogued coding backend the operator selected for this role.
+- `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route.
+
+Populate `selected_backend` OR `routing_policy` (or both when the operator sets a default backend and also maintains a routing file). Nullability by role:
+
+- `leaf-implementation` + intentionally tiered dispatch: at least one MUST be non-null.
+- `orchestrator`, `review-monitor`, or `merge-release` + explicit backend routing: at least one MUST be non-null so strong-tier audit traces stay reconstructable.
+- Any role on the harness-default agent with no tiering decision: both MAY be null; `dispatch_provider` and `worker_role` remain required.
+
+**Role-boundary expectations (all providers):** the same boundaries apply whether the worker runs on Composer, Grok Build, Cursor/cloud, or a future adapter:
+
+- ! `leaf-implementation` workers implement scoped vBRIEF work in their assigned worktree only -- gates (`task check`, file-scope audit, Greptile review cycle) are model-agnostic and MUST still pass.
+- ! `orchestrator`, `review-monitor`, and `merge-release` roles MUST run on strong or review-capable agents; dispatchers MUST NOT route these roles to cheap leaf backends.
+- ⊗ Route a cheap leaf backend onto the merge cascade, Phase 5->6 release gate, conflict-resolution rebase, or review-cycle merge-ready decision -- these are irreversible-damage surfaces that stay on the strong tier regardless of provider.
+
+**Audit visibility:** review cycles and postmortems MUST be able to reconstruct which backend and role produced a change without inferring it from harness-specific prose.
+
+- ! Dispatchers MUST populate `## Worker metadata` in the dispatch envelope whenever backend routing is intentional (headless `task swarm:launch`, monitor dispatch, or manual orchestrator spawn).
+- ! Workers MUST echo `dispatch_provider`, `worker_role`, and `selected_backend` or `routing_policy` in the final status message per §11 (e.g. `DONE: ... (commit <sha>, PR #N, role leaf-implementation, backend composer)`). Omitting backend/role from the terminal message when metadata was present in the envelope is a hard `⊗`.
+
+Worked example (a tiered leaf worker on Composer):
+
+```markdown
+## Worker metadata
+
+- dispatch_provider: spawn_subagent
+- worker_role: leaf-implementation
+- selected_backend: composer
+- routing_policy: null
+```
+
+Reference: `plan.policy.swarmSubagentBackend` (#1531a), `task policy:subagent-backends`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
 
 ## 3. PowerShell 5.1 non-ASCII rule (#798)
 
@@ -171,6 +214,7 @@ If you (the worker) need to spawn a sub-agent yourself:
 - Sub-agents MUST have non-overlapping file scopes. Use the parent vBRIEF's `files_owned` / `files_must_not_touch` to partition.
 - Destructive operations (worktree removal, branch deletion, force-push) run alone, never in parallel.
 - Each sub-agent receives its own dispatch envelope including this preamble (or a reference to it).
+- Each child dispatch MUST carry its own `## Worker metadata` section per §2.6 when backend routing applies: set `dispatch_provider` and `worker_role` for the child's actual harness and role; propagate or override `selected_backend` / `routing_policy` so audit trails remain reconstructable at every tree depth (#1531).
 - Coordinate shared append-only files (CHANGELOG, lessons.md) with explicit ownership at dispatch time.
 - Sub-agents inherit the parent worker's `GH_TOKEN`; they MUST NOT mint or fall back to a different credential. Identity separation per §8 cascades through the spawn tree.
 
@@ -211,7 +255,7 @@ The parent monitor watches via `scripts/subagent_monitor.py` (three-state exit 0
 
 Every worker MUST send a final status message before exiting its tool loop, regardless of outcome:
 
-- Success: `DONE: <one-line summary> (commit <sha>, PR #N)`
+- Success: `DONE: <one-line summary> (commit <sha>, PR #N)` -- when the dispatch envelope carried `## Worker metadata` per §2.6, extend the parenthetical with `role <worker_role>` and `backend <selected_backend|routing_policy>` (e.g. `DONE: ... (commit <sha>, PR #N, role leaf-implementation, backend composer)`).
 - Halted at cap: `BLOCKED: <reason> (review-cycle iter <i>/3, wall-clock <t>m/<cap>m)`
 - Failure: `FAILED: <reason> + recovery hint`
 - Stand-down: `STOOD-DOWN: <reason>` (e.g. user said "wait" with no follow-up dispatch)

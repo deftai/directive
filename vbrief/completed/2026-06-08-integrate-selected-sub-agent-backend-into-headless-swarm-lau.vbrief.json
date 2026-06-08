@@ -1,0 +1,99 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json"
+  },
+  "plan": {
+    "id": "1531e-headless-launch-backend-integration",
+    "title": "Integrate selected sub-agent backend into headless swarm launch and audit output",
+    "status": "completed",
+    "planRef": "completed/2026-06-08-1531-swarm-opt-in-tiered-heterogeneous-dispatch-strong-model-orch.vbrief.json",
+    "narratives": {
+      "Description": "This story makes the stored sub-agent backend policy load-bearing during headless swarm launch. It is independently buildable because it owns the launch-manifest consumption path and fail-loud checks, while depending on the policy/probe story for backend discovery and stored selection.",
+      "ImplementationPlan": "1. Update the source files scripts/swarm_launch.py and tasks/swarm.yml so task swarm:launch reads plan.policy.swarmSubagentBackend, checks it against the current harness probe, and refuses headless dispatch when the policy is missing or unavailable.\n2. Add focused tests in tests/cli/test_swarm_launch.py that verify missing-policy failure, unavailable-backend failure with listed alternatives, and successful launch-manifest audit fields for selected backend and worker role.",
+      "UserStory": "As a headless swarm operator, I want task swarm:launch to enforce my selected sub-agent backend before dispatch, so that an unavailable Composer, Grok Build, or other agent never fails silently mid-swarm.",
+      "Traces": "https://github.com/deftai/directive/issues/1531"
+    },
+    "items": [
+      {
+        "id": "1531e-headless-launch-backend-integration-a1",
+        "title": "Given plan.policy.swarmSubagentBackend is absent, when task swarm:launch is asked to emit a launch manifest for coding workers, then it exits non-zero before dispatch and tells the user to select a backend from the detected options.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given plan.policy.swarmSubagentBackend is absent, when task swarm:launch is asked to emit a launch manifest for coding workers, then it exits non-zero before dispatch and tells the user to select a backend from the detected options.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531e-headless-launch-backend-integration-a2",
+        "title": "Given plan.policy.swarmSubagentBackend names a backend that is unavailable in the current harness, when task swarm:launch runs, then it fails loud with the missing backend, the available backend IDs, and the command or prompt needed to choose a new backend.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given plan.policy.swarmSubagentBackend names a backend that is unavailable in the current harness, when task swarm:launch runs, then it fails loud with the missing backend, the available backend IDs, and the command or prompt needed to choose a new backend.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531e-headless-launch-backend-integration-a3",
+        "title": "Given the selected backend is available, when task swarm:launch emits the launch manifest, then each entry includes audit-visible backend, dispatch provider, and worker role metadata without changing the existing allocation-context recognition contract.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the selected backend is available, when task swarm:launch emits the launch manifest, then each entry includes audit-visible backend, dispatch provider, and worker role metadata without changing the existing allocation-context recognition contract.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      },
+      {
+        "id": "1531e-headless-launch-backend-integration-a4",
+        "title": "Given task swarm:launch runs with --autonomous, then missing or unavailable backend policy still fails non-interactively instead of prompting or falling back to an implicit default.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task swarm:launch runs with --autonomous, then missing or unavailable backend policy still fails non-interactively instead of prompting or falling back to an implicit default.",
+          "Traces": "https://github.com/deftai/directive/issues/1531"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/swarm_launch.py",
+          "tasks/swarm.yml",
+          "tests/cli/test_swarm_launch.py"
+        ],
+        "verify_commands": [
+          "pytest tests/cli/test_swarm_launch.py -k subagent",
+          "task check"
+        ],
+        "expected_outputs": [
+          "swarm launch tests fail loud for missing or unavailable backend policy",
+          "launch manifest includes selected backend and worker-role audit metadata when backend is available"
+        ],
+        "depends_on": [
+          "1531a-subagent-backend-policy-and-probe"
+        ],
+        "conflict_group": "swarm-headless-backend-launch",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-08T15:50:53Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1531",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-08T15:50:53Z"
+  }
+}

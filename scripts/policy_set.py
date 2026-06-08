@@ -29,11 +29,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from policy import (  # noqa: E402
     DEFAULT_WIP_CAP,
+    KNOWN_SUBAGENT_BACKEND_IDS,
     disclosure_line,
+    probe_subagent_backends,
     resolve_policy,
+    resolve_swarm_subagent_backend,
     resolve_wip_cap,
     set_policy,
+    set_swarm_subagent_backend,
     set_wip_cap,
+    subagent_backends_to_json,
 )
 
 CAPABILITY_COST_DISCLOSURE = (
@@ -106,6 +111,39 @@ def _build_parser() -> argparse.ArgumentParser:
     wip.add_argument("--actor", default="task policy:wip-cap")
     wip.add_argument("--note", default="")
     wip.add_argument("--project-root", default=".")
+
+    subagent = sub.add_parser(
+        "subagent-backend",
+        help=(
+            "Set plan.policy.swarmSubagentBackend to a known coding "
+            "sub-agent provider id (#1531a)."
+        ),
+    )
+    subagent.add_argument(
+        "--set",
+        dest="backend_id",
+        required=True,
+        choices=sorted(KNOWN_SUBAGENT_BACKEND_IDS),
+        help="Backend id (composer, grok-build, cursor-cloud).",
+    )
+    subagent.add_argument("--actor", default="task policy:subagent-backend")
+    subagent.add_argument("--note", default="")
+    subagent.add_argument("--project-root", default=".")
+
+    backends = sub.add_parser(
+        "subagent-backends",
+        help=(
+            "List stable sub-agent backend ids, role capabilities, and "
+            "harness availability without invoking a real harness (#1531a)."
+        ),
+    )
+    backends.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format (default: text).",
+    )
+    backends.add_argument("--project-root", default=".")
     return parser
 
 
@@ -143,6 +181,10 @@ def main(argv: list[str] | None = None) -> int:
         target = True
     elif args.cmd == "wip-cap":
         return _apply_wip_cap(args, project_root)
+    elif args.cmd == "subagent-backend":
+        return _apply_subagent_backend(args, project_root)
+    elif args.cmd == "subagent-backends":
+        return _apply_subagent_backends(args, project_root)
     else:  # pragma: no cover -- argparse enforces one of the above
         parser.print_help()
         return 2
@@ -225,6 +267,56 @@ def _apply_wip_cap(args, project_root: Path) -> int:
     print(
         f"[deft policy] plan.policy.wipCap={result.cap} (source: {result.source})."
     )
+    return 0
+
+
+def _apply_subagent_backend(args, project_root: Path) -> int:
+    """Handle the ``subagent-backend`` subcommand (#1531a)."""
+    try:
+        changed, audit_entry = set_swarm_subagent_backend(
+            project_root,
+            backend_id=args.backend_id,
+            actor=args.actor,
+            note=args.note,
+        )
+    except FileNotFoundError as exc:
+        print(f"\u274c {exc}", file=sys.stderr)
+        print(
+            "  Recovery: run `task setup` to generate "
+            "vbrief/PROJECT-DEFINITION.vbrief.json.",
+            file=sys.stderr,
+        )
+        return 2
+    except (ValueError, OSError) as exc:
+        print(f"\u274c Config error: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"\u2713 plan.policy.swarmSubagentBackend={args.backend_id}.")
+    if changed:
+        print(f"  audit: meta/policy-changes.log :: {audit_entry}")
+    else:
+        print("  no-op: value already matched (audit entry still appended for trail).")
+    result = resolve_swarm_subagent_backend(project_root)
+    print(
+        "[deft policy] plan.policy.swarmSubagentBackend="
+        f"{result.backend_id!r} (source: {result.source})."
+    )
+    return 0
+
+
+def _apply_subagent_backends(args, project_root: Path) -> int:
+    """Handle the ``subagent-backends`` probe/list subcommand (#1531a)."""
+    _ = project_root  # reserved for future project-scoped adapters
+    entries = probe_subagent_backends()
+    if args.format == "json":
+        print(subagent_backends_to_json(entries))
+        return 0
+    for entry in entries:
+        roles = ", ".join(entry.roles)
+        avail = "available" if entry.available else "unavailable"
+        print(
+            f"{entry.backend_id}\t{entry.display_name}\troles=[{roles}]\t{avail}"
+        )
     return 0
 
 

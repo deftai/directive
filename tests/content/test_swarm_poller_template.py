@@ -1143,14 +1143,14 @@ def test_ac4_regression_clean_exit_unchanged_on_pre_1039_bodies() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_template_section_intro_says_five_terminal_exits(template_text: str) -> None:
-    """Template MUST advertise FIVE terminal exit conditions (#1039 AC-2)."""
-    assert "five terminal exit conditions" in template_text, (
-        "template intro must say `five terminal exit conditions` (#1039)"
+def test_template_section_intro_says_six_terminal_exits(template_text: str) -> None:
+    """Template MUST advertise SIX terminal exit conditions (#1039 + #1543)."""
+    assert "six terminal exit conditions" in template_text, (
+        "template intro must say `six terminal exit conditions` (#1543)"
     )
     assert (
-        "When ANY of the five conditions below fires" in template_text
-    ), "`## Terminal exit conditions` intro must enumerate five conditions (#1039)"
+        "When ANY of the six conditions below fires" in template_text
+    ), "`## Terminal exit conditions` intro must enumerate six conditions (#1543)"
 
 
 def test_template_contains_evaluate_clean_gate_function(template_text: str) -> None:
@@ -1293,6 +1293,36 @@ def test_template_recurrence_record_cites_1039(template_text: str) -> None:
     assert "5794b0e7" in template_text, (
         "template must cite the wedged poller agent id `5794b0e7-...` (#1039)"
     )
+
+
+def test_greptile_informal_clean_detector_in_template(template_text: str) -> None:
+    """Template MUST encode informal-clean missing canonical fields detection (#1543)."""
+    assert "is_informal_clean_missing_canonical_fields" in template_text
+    assert "informal-clean missing-canonical-fields" in template_text
+    assert "current diff is clean" in template_text
+
+
+def test_greptile_informal_clean_terminal_exit_in_template(template_text: str) -> None:
+    """Template MUST contain the `### (6) INFORMAL-CLEAN` terminal exit (#1543)."""
+    assert "### (6) INFORMAL-CLEAN" in template_text
+    assert (
+        "informal-clean missing canonical fields -- recovery required"
+        in template_text
+    )
+    informal_idx = template_text.index(
+        "Subject: PR #{pr_number} informal-clean missing canonical fields"
+    )
+    informal_block = template_text[informal_idx : informal_idx + 1500]
+    assert "@greptileai review" in informal_block
+    assert "-- no more polling, exiting now" in informal_block
+    assert "swarm:verify-review-clean" not in informal_block or (
+        "NOT a \"review complete\" signal" in informal_block
+    )
+
+
+def test_greptile_informal_clean_not_stall_fallback(template_text: str) -> None:
+    """Informal-clean guidance must route away from generic STALL polling (#1543)."""
+    assert "Do NOT increment `stall_streak` toward `(5) STALL`" in template_text
 
 
 def test_template_platform_adapter_unification_1342_phase6(template_text: str) -> None:
