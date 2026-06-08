@@ -312,6 +312,7 @@ class TestMain:
         assert rc == 0
         out = capsys.readouterr().out
         assert "ghx not on PATH" in out
+        assert "Consumer projects only require gh" in out
         assert "#884" in out
 
     def test_yes_and_check_combined_returns_2(
@@ -345,6 +346,7 @@ class TestMain:
         out = capsys.readouterr().out
         assert "Skipping ghx install" in out
         assert "recommended for speed" in out
+        assert "consumer projects only require gh" in out
 
     def test_env_var_opt_out_skips_prompt_and_install(
         self,

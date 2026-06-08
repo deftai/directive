@@ -81,6 +81,30 @@ uv sync
 task check
 ```
 
+### Linux / WSL Maintainer Bootstrap
+
+If you are bootstrapping a framework checkout with a published `deft-install`
+binary, use maintainer mode:
+
+```bash
+deft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json
+```
+
+Maintainer mode validates that `--repo-root` is a `deftai/directive` checkout,
+reports core setup status, and skips consumer projections such as `AGENTS.md`,
+`.gitignore`, `.gitattributes`, guard workflows, consumer `vbrief/` scaffolding,
+and root Taskfile wiring. That keeps the maintainer-owned repository files from
+being rewritten by the consumer installer path.
+
+`ghx` is maintainer and swarm tooling: it speeds up repeated read-only GitHub API
+calls and helps protect shared rate limits. Consumer projects require `gh` for
+GitHub-backed workflows and work normally without `ghx`. Maintainers can opt in
+with:
+
+```bash
+task setup:ghx
+```
+
 ## Running Tests
 
 Run the test suite:

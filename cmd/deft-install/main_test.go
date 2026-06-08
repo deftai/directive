@@ -1515,7 +1515,7 @@ func TestInstall_DirtyTreeUpgradeFailsLoudNonInteractive(t *testing.T) {
 	}
 	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
 
-	code := install(false, "", false, true, true, proj, false, false, false)
+	code := install(false, "", false, true, true, proj, false, false, false, false)
 	if code == 0 {
 		t.Error("dirty-tree --upgrade --yes must exit non-zero (fail loud), got 0")
 	}
@@ -1552,7 +1552,7 @@ func TestInstall_DirtyTreeUpgradeJSONStructuredObject(t *testing.T) {
 		t.Fatalf("os.Pipe: %v", perr)
 	}
 	os.Stdout = wPipe
-	code := install(false, "", false, true, true, proj, true, false, false)
+	code := install(false, "", false, true, true, proj, true, false, false, false)
 	_ = wPipe.Close()
 	os.Stdout = oldStdout
 	stdout, _ := io.ReadAll(r)
@@ -1611,7 +1611,7 @@ func TestInstall_ForceUpgradesDirtyTree(t *testing.T) {
 	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
 	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
 
-	code := install(false, "", false, true, true, proj, false, false, true)
+	code := install(false, "", false, true, true, proj, false, false, true, false)
 	if code != 0 {
 		t.Fatalf("--force upgrade of a dirty tree must succeed (exit 0), got %d", code)
 	}
@@ -1652,8 +1652,107 @@ func TestInstallSummary_JSONObjectIncludesBackupAndPreviousVersion(t *testing.T)
 			t.Errorf("%s must be a non-nil []string array, got %T", field, obj[field])
 		}
 	}
+	if obj["maintainer_mode"] != false {
+		t.Errorf("maintainer_mode = %v, want false by default", obj["maintainer_mode"])
+	}
+	if _, ok := obj["maintainer_tools"].([]maintainerToolStatus); !ok {
+		t.Errorf("maintainer_tools must be a non-nil []maintainerToolStatus array, got %T", obj["maintainer_tools"])
+	}
+	if _, ok := obj["skipped_consumer_projections"].([]string); !ok {
+		t.Errorf("skipped_consumer_projections must be a non-nil []string array, got %T", obj["skipped_consumer_projections"])
+	}
 	if _, err := json.Marshal(obj); err != nil {
 		t.Fatalf("success result is not JSON-marshalable: %v", err)
+	}
+}
+
+func TestInstallSummary_JSONObjectIncludesMaintainerMode(t *testing.T) {
+	s := installSummary{
+		result:          &WizardResult{ProjectDir: "/repo/directive", DeftDir: "/repo/directive/.deft/core", Update: true},
+		nonInteractive:  true,
+		upgrade:         true,
+		maintainerMode:  true,
+		maintainerTools: []maintainerToolStatus{{Name: "ghx", Binary: "ghx", Present: false, Required: false, Purpose: "optional cache"}},
+		skippedConsumerProjections: []string{
+			"AGENTS.md",
+			".gitignore",
+		},
+		payloadLayout: payloadLayoutAbsent,
+		strategy:      "maintainer-mode",
+	}
+
+	obj := s.jsonObject()
+	if obj["maintainer_mode"] != true {
+		t.Errorf("maintainer_mode = %v, want true", obj["maintainer_mode"])
+	}
+	tools, ok := obj["maintainer_tools"].([]maintainerToolStatus)
+	if !ok || len(tools) != 1 || tools[0].Name != "ghx" {
+		t.Fatalf("maintainer_tools malformed: %#v", obj["maintainer_tools"])
+	}
+	skipped, ok := obj["skipped_consumer_projections"].([]string)
+	if !ok || len(skipped) != 2 {
+		t.Fatalf("skipped_consumer_projections malformed: %#v", obj["skipped_consumer_projections"])
+	}
+	if obj["taskfile_wired"] != false {
+		t.Errorf("taskfile_wired = %v, want false in maintainer mode", obj["taskfile_wired"])
+	}
+	if _, err := json.Marshal(obj); err != nil {
+		t.Fatalf("maintainer result is not JSON-marshalable: %v", err)
+	}
+}
+
+func TestInstallMaintainerMode_JSONStdoutIsSingleObject(t *testing.T) {
+	origLookPath := lookPathFunc
+	defer func() { lookPathFunc = origLookPath }()
+	lookPathFunc = func(name string) (string, error) { return "", exec.ErrNotFound }
+
+	proj := t.TempDir()
+	for _, rel := range []string{
+		"main.md",
+		"cmd/deft-install/main.go",
+		"templates/agent-prompt-preamble.md",
+		"scripts/setup_ghx.py",
+	} {
+		path := filepath.Join(proj, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("fixture\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
+
+	oldStdout := os.Stdout
+	r, wPipe, perr := os.Pipe()
+	if perr != nil {
+		t.Fatalf("os.Pipe: %v", perr)
+	}
+	os.Stdout = wPipe
+	code := installMaintainerMode(
+		NewWizardWithLayout(strings.NewReader(""), os.Stdout, false, false),
+		&WizardResult{ProjectDir: proj, DeftDir: filepath.Join(proj, ".deft", "core"), Update: true},
+		true,
+		true,
+		true,
+		false,
+	)
+	_ = wPipe.Close()
+	os.Stdout = oldStdout
+	stdout, _ := io.ReadAll(r)
+
+	if code != 0 {
+		t.Fatalf("installMaintainerMode returned %d, want 0", code)
+	}
+	var obj map[string]any
+	if err := json.Unmarshal(stdout, &obj); err != nil {
+		t.Fatalf("maintainer --json stdout must be a single JSON object: %v\nstdout=%q", err, stdout)
+	}
+	if obj["maintainer_mode"] != true {
+		t.Errorf("maintainer_mode = %v, want true", obj["maintainer_mode"])
+	}
+	if _, ok := obj["maintainer_tools"].([]any); !ok {
+		t.Errorf("maintainer_tools must marshal as an array, got %#v", obj["maintainer_tools"])
 	}
 }
 

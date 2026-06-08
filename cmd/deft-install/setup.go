@@ -993,7 +993,7 @@ func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 	for name, alts := range candidates {
 		found := false
 		for _, a := range alts {
-			if _, err := exec.LookPath(a); err == nil {
+			if _, err := lookPathFunc(a); err == nil {
 				found = true
 				break
 			} else {
@@ -1028,6 +1028,84 @@ func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 	w.printf("    Linux:   apt/brew equivalent for task uv python3 gh\n")
 	w.printf("  See docs/getting-started.md and QUICK-START.md for details.\n")
 	return missing, nil
+}
+
+type maintainerToolStatus struct {
+	Name     string `json:"name"`
+	Binary   string `json:"binary"`
+	Present  bool   `json:"present"`
+	Required bool   `json:"required"`
+	Purpose  string `json:"purpose"`
+}
+
+var maintainerToolDefinitions = []maintainerToolStatus{
+	{Name: "go", Binary: "go", Required: true, Purpose: "build and test cmd/deft-install"},
+	{Name: "node", Binary: "node", Required: true, Purpose: "maintainer-side documentation and release tooling"},
+	{Name: "ghx", Binary: "ghx", Required: false, Purpose: "optional cached GitHub CLI proxy for maintainer and swarm read-only calls"},
+}
+
+func EnsureMaintainerTools(w *Wizard) []maintainerToolStatus {
+	statuses := make([]maintainerToolStatus, 0, len(maintainerToolDefinitions))
+	var missing []string
+	for _, def := range maintainerToolDefinitions {
+		status := def
+		_, err := lookPathFunc(def.Binary)
+		status.Present = err == nil
+		if err != nil && !errors.Is(err, exec.ErrNotFound) {
+			log.Printf("warning: LookPath %q: %v", def.Binary, err)
+		}
+		if !status.Present {
+			missing = append(missing, def.Name)
+		}
+		statuses = append(statuses, status)
+	}
+	if len(missing) == 0 {
+		w.printf("Maintainer tools present: go, node, ghx.\n")
+		return statuses
+	}
+	w.printf("Maintainer tools missing or optional: %s\n", strings.Join(missing, ", "))
+	w.printf("  Required for framework development: go, node.\n")
+	w.printf("  Optional acceleration: ghx (install with `task setup:ghx`; consumers only need gh).\n")
+	return statuses
+}
+
+func skippedConsumerProjectionNames() []string {
+	return []string{
+		"framework_payload",
+		"AGENTS.md",
+		".agents/skills",
+		".gitignore",
+		".gitattributes",
+		"greptile.json",
+		"codeql_config",
+		"core_guard_workflow",
+		"vbrief_scaffold",
+		"consumer_git_hooks",
+		"Taskfile.yml",
+		"scoped_staging",
+	}
+}
+
+func validateMaintainerCheckout(projectDir string) error {
+	if !isDirectiveFrameworkCheckout(projectDir) {
+		return fmt.Errorf("--maintainer requires --repo-root to point at a directive framework checkout; missing maintainer source markers under %s", projectDir)
+	}
+	return nil
+}
+
+func isDirectiveFrameworkCheckout(projectDir string) bool {
+	for _, rel := range []string{
+		"main.md",
+		"cmd/deft-install/main.go",
+		"templates/agent-prompt-preamble.md",
+		"scripts/setup_ghx.py",
+	} {
+		info, err := os.Stat(filepath.Join(projectDir, filepath.FromSlash(rel)))
+		if err != nil || info.IsDir() {
+			return false
+		}
+	}
+	return true
 }
 
 // ---------------------------------------------------------------------------
@@ -1436,6 +1514,16 @@ func PrintNextSteps(w *Wizard, result *WizardResult, configDir string, skillsCre
 	w.printf("     start setup automatically, tell it: \"Use AGENTS.md\"\n")
 	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT-DEFINITION.vbrief.json\n")
 	w.printf("\n")
+}
+
+func PrintMaintainerNextSteps(w *Wizard, result *WizardResult, configDir string) {
+	w.printf("\n✓ Deft maintainer setup checked.\n\n")
+	w.printf("  Checkout     : %s%c\n", result.ProjectDir, os.PathSeparator)
+	w.printf("  User config  : %s%c\n", configDir, os.PathSeparator)
+	w.printf("  Projections  : skipped consumer AGENTS.md / .gitignore / vbrief / workflow deposits\n")
+	w.printf("\nNext steps:\n")
+	w.printf("  1. Run `task setup` from the framework checkout for maintainer hooks and ghx detection.\n")
+	w.printf("  2. Run `task check` before committing framework changes.\n\n")
 }
 
 // doHandoffToDoctor implements the #1339 (Epic-5) deterministic installer-to-doctor

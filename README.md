@@ -76,6 +76,18 @@ The installer guides you through choosing a project directory, installs git if n
 go run ./cmd/deft-install/
 ```
 
+Framework maintainers working in a clone of `deftai/directive` should use the
+maintainer installer mode when bootstrapping tools from a published binary:
+
+```bash
+deft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json
+```
+
+This mode checks maintainer tooling without projecting consumer-managed files
+such as `AGENTS.md`, `.gitignore`, `.gitattributes`, guard workflows, or
+consumer `vbrief/` scaffolding into the framework repository. See
+[`CONTRIBUTING.md`](./CONTRIBUTING.md) for maintainer setup details.
+
 ### 2. Set Up Your Preferences
 
 Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PROJECT-DEFINITION.vbrief.json`) but adapt to different users:

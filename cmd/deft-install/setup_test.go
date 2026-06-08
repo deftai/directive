@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -1192,6 +1193,72 @@ func TestEnsureCoreTools_ReportsMissing(t *testing.T) {
 	// missing may be non-empty on test runner (no task/uv etc); just assert
 	// it is a slice (possibly empty) and function is safe.
 	_ = missing
+}
+
+func TestEnsureMaintainerTools_ReportsSeparateMaintainerOnlyStatuses(t *testing.T) {
+	origLookPath := lookPathFunc
+	defer func() { lookPathFunc = origLookPath }()
+
+	lookPathFunc = func(name string) (string, error) {
+		switch name {
+		case "go", "node":
+			return "/usr/bin/" + name, nil
+		default:
+			return "", exec.ErrNotFound
+		}
+	}
+
+	var out bytes.Buffer
+	w := NewWizardWithLayout(strings.NewReader(""), &out, false, false)
+	statuses := EnsureMaintainerTools(w)
+
+	byName := map[string]maintainerToolStatus{}
+	for _, status := range statuses {
+		byName[status.Name] = status
+	}
+	if !byName["go"].Present || !byName["go"].Required {
+		t.Errorf("go status = %#v, want present required maintainer tool", byName["go"])
+	}
+	if !byName["node"].Present || !byName["node"].Required {
+		t.Errorf("node status = %#v, want present required maintainer tool", byName["node"])
+	}
+	if byName["ghx"].Present || byName["ghx"].Required {
+		t.Errorf("ghx status = %#v, want missing optional maintainer acceleration tool", byName["ghx"])
+	}
+	if !strings.Contains(out.String(), "consumers only need gh") {
+		t.Errorf("maintainer tool guidance should distinguish ghx from consumer gh requirement; got:\n%s", out.String())
+	}
+}
+
+func TestMaintainerCheckoutDetection(t *testing.T) {
+	tmp := t.TempDir()
+	for _, rel := range []string{
+		"main.md",
+		"cmd/deft-install/main.go",
+		"templates/agent-prompt-preamble.md",
+		"scripts/setup_ghx.py",
+	} {
+		path := filepath.Join(tmp, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("fixture\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if !isDirectiveFrameworkCheckout(tmp) {
+		t.Fatal("expected fixture with maintainer source markers to be detected as directive framework checkout")
+	}
+	if err := os.Remove(filepath.Join(tmp, "main.md")); err != nil {
+		t.Fatal(err)
+	}
+	if isDirectiveFrameworkCheckout(tmp) {
+		t.Fatal("missing main.md must fail maintainer checkout detection")
+	}
+	if err := validateMaintainerCheckout(tmp); err == nil {
+		t.Fatal("validateMaintainerCheckout must fail outside a directive framework checkout")
+	}
 }
 
 // TestEnsureTaskfile_PreservesExistingIncludes covers the Greptile P1 fix:

@@ -72,6 +72,8 @@ Options:
                             default on --upgrade (accepted as an alias)
   --force, --allow-dirty    Upgrade even when the working tree is dirty (bypass
                             the default clean-tree requirement)
+  --maintainer              Maintainer checkout mode: bootstrap/report tooling
+                            without consumer file projections
   --repo-root <path>        Target project directory (enables fully non-interactive
                             installs when combined with --yes)
   --json                    Emit structured JSON result to stdout (success, paths,
@@ -87,6 +89,7 @@ Windows-style aliases:
   /upgrade                  Same as --upgrade
   /require-clean            Same as --require-clean
   /force, /allow-dirty      Same as --force
+  /maintainer               Same as --maintainer
   /repo-root <path>         Same as --repo-root
   /json                     Same as --json
   /debug                    Same as --debug
@@ -103,6 +106,8 @@ Examples:
   deft-install --yes --repo-root C:\proj    Non-interactive agent install
   deft-install --yes --repo-root . --json   Machine-readable result for scripting
   deft-install --yes --upgrade --repo-root .  Force refresh of existing install
+  deft-install --yes --upgrade --maintainer --repo-root . --json
+                                            Maintainer setup for a directive checkout
   deft-install /yes /repo-root .            Windows-style non-interactive
 `, version, UserConfigDir())
 }
@@ -125,6 +130,7 @@ func normalizeArgs(args []string) []string {
 		"/require-clean":   "--require-clean",
 		"/force":           "--force",
 		"/allow-dirty":     "--allow-dirty",
+		"/maintainer":      "--maintainer",
 		"/repo-root":       "--repo-root",
 		"/json":            "--json",
 	}
@@ -153,6 +159,7 @@ func main() {
 	requireClean := flag.Bool("require-clean", false, "deprecated no-op: a dirty tree is refused by default on --upgrade (#1458)")
 	force := flag.Bool("force", false, "upgrade even when the working tree is dirty (bypass the default clean-tree requirement)")
 	allowDirty := flag.Bool("allow-dirty", false, "alias for --force")
+	maintainer := flag.Bool("maintainer", false, "maintainer checkout mode: bootstrap/report tools without consumer file projections")
 	repoRoot := flag.String("repo-root", "", "target project dir for non-interactive installs")
 	jsonOut := flag.Bool("json", false, "emit JSON result instead of (or with) prose for agents")
 	flag.Usage = printUsage
@@ -171,7 +178,7 @@ func main() {
 	// --force and --allow-dirty are synonyms: either bypasses the #1458
 	// default dirty-tree refusal of a dirty working tree on --upgrade.
 	forceDirty := *force || *allowDirty
-	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut, *requireClean, forceDirty)
+	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut, *requireClean, forceDirty, *maintainer)
 	if runtime.GOOS == "windows" && !nonInt {
 		pressEnterToExit()
 	}
@@ -184,10 +191,14 @@ func main() {
 // force carries the #1458 dirty-tree bypass (--force / --allow-dirty); a dirty
 // working tree refuses an --upgrade by default and only force bypasses it.
 // requireClean is a deprecated no-op alias kept for back-compat (#1458).
-func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut, requireClean, force bool) int {
+// maintainer selects the #1554 framework-checkout setup path: it validates that
+// --repo-root points at this repository's source tree, reports maintainer tools,
+// and skips every consumer projection so AGENTS.md / .gitignore / workflows stay
+// maintainer-owned.
+func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut, requireClean, force, maintainer bool) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
-		fmt.Printf("[debug] defaultBranch=%s branch=%s legacyLayout=%v nonInteractive=%v upgrade=%v repoRoot=%s json=%v\n", defaultBranch, branch, legacyLayout, nonInteractive, upgrade, repoRoot, jsonOut)
+		fmt.Printf("[debug] defaultBranch=%s branch=%s legacyLayout=%v nonInteractive=%v upgrade=%v repoRoot=%s json=%v maintainer=%v\n", defaultBranch, branch, legacyLayout, nonInteractive, upgrade, repoRoot, jsonOut, maintainer)
 	}
 
 	var result *WizardResult
@@ -253,6 +264,10 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	if err := EnsureGit(w); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
+	}
+
+	if maintainer {
+		return installMaintainerMode(w, result, nonInteractive, upgrade, jsonOut, debug)
 	}
 
 	// #1453 Layer 1 / #1458: dirty-working-tree GATE BEFORE an --upgrade payload
@@ -400,6 +415,7 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// implied by the --yes flag; interactive consent is future (or via doctor).
 	var taskfileChanged bool
 	missingTools := []string{} // non-nil for consistent JSON (never null when --json even without --yes; Greptile P2)
+	maintainerTools := []maintainerToolStatus{}
 	if nonInteractive {
 		var tfErr error
 		taskfileChanged, tfErr = EnsureTaskfile(w, result.ProjectDir)
@@ -466,6 +482,7 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 			upgrade:         upgrade,
 			taskfileWired:   taskfileChanged,
 			missingTools:    missingTools,
+			maintainerTools: maintainerTools,
 			configDir:       configDir,
 			skillsCreated:   skillsCreated,
 			payloadLayout:   payloadLayout,
@@ -522,6 +539,72 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	return 0
 }
 
+func installMaintainerMode(w *Wizard, result *WizardResult, nonInteractive, upgrade, jsonOut, debug bool) int {
+	msgWriter := w
+	if jsonOut {
+		msgWriter = NewWizardWithLayout(strings.NewReader(""), os.Stderr, debug, result.LegacyLayout)
+	}
+
+	if err := validateMaintainerCheckout(result.ProjectDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			if encErr := enc.Encode(map[string]any{
+				"success":     false,
+				"error_code":  "maintainer_mode_requires_framework_checkout",
+				"error":       err.Error(),
+				"project_dir": result.ProjectDir,
+			}); encErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: JSON encode failed: %v\n", encErr)
+			}
+		}
+		return 1
+	}
+
+	missingTools := []string{}
+	var toolsErr error
+	if nonInteractive {
+		missingTools, toolsErr = EnsureCoreTools(msgWriter, nonInteractive)
+		if toolsErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: tool probe: %v\n", toolsErr)
+		}
+	}
+	maintainerTools := EnsureMaintainerTools(msgWriter)
+
+	configDir, err := CreateUserConfigDir(msgWriter)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
+	summary := installSummary{
+		result:                     result,
+		nonInteractive:             nonInteractive,
+		upgrade:                    upgrade,
+		missingTools:               missingTools,
+		maintainerMode:             true,
+		maintainerTools:            maintainerTools,
+		skippedConsumerProjections: skippedConsumerProjectionNames(),
+		configDir:                  configDir,
+		payloadLayout:              payloadLayoutAbsent,
+		strategy:                   "maintainer-mode",
+	}
+
+	if jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(summary.jsonObject()); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: JSON encode failed: %v\n", err)
+		}
+		PrintMaintainerNextSteps(msgWriter, result, configDir)
+		return 0
+	}
+
+	PrintMaintainerNextSteps(msgWriter, result, configDir)
+	return 0
+}
+
 // installSummary carries the fields install() reports in the --json success
 // object. Extracted from the inline map so the success-result shape -- notably
 // the #1458 backup_path / previous_version additions -- is unit-testable
@@ -532,6 +615,7 @@ type installSummary struct {
 	upgrade         bool
 	taskfileWired   bool
 	missingTools    []string
+	maintainerTools []maintainerToolStatus
 	configDir       string
 	skillsCreated   bool
 	payloadLayout   string // clone | vendored | absent (#1425)
@@ -541,6 +625,9 @@ type installSummary struct {
 	stagedPaths     []string
 	backupPath      string // out-of-tree swap backup, "" when no swap ran (#1458)
 	previousVersion string // pre-upgrade manifest tag, "" when unknown (#1458)
+
+	maintainerMode             bool
+	skippedConsumerProjections []string
 }
 
 // jsonObject renders the --json success result. Slice fields are normalised to
@@ -560,26 +647,37 @@ func (s installSummary) jsonObject() map[string]any {
 	if stagedPaths == nil {
 		stagedPaths = []string{}
 	}
+	maintainerTools := s.maintainerTools
+	if maintainerTools == nil {
+		maintainerTools = []maintainerToolStatus{}
+	}
+	skippedConsumerProjections := s.skippedConsumerProjections
+	if skippedConsumerProjections == nil {
+		skippedConsumerProjections = []string{}
+	}
 	return map[string]any{
-		"success":          true,
-		"version":          version,
-		"project_dir":      s.result.ProjectDir,
-		"deft_dir":         s.result.DeftDir,
-		"legacy_layout":    s.result.LegacyLayout,
-		"update":           s.result.Update,
-		"non_interactive":  s.nonInteractive,
-		"upgrade":          s.upgrade,
-		"taskfile_wired":   s.taskfileWired,
-		"missing_tools":    missingTools,
-		"user_config_dir":  s.configDir,
-		"skills_created":   s.skillsCreated,
-		"payload_layout":   s.payloadLayout,
-		"strategy":         s.strategy,
-		"dirty_tree":       s.dirty,
-		"dirty_files":      dirtyFiles,
-		"staged_paths":     stagedPaths,
-		"backup_path":      s.backupPath,
-		"previous_version": s.previousVersion,
+		"success":                      true,
+		"version":                      version,
+		"project_dir":                  s.result.ProjectDir,
+		"deft_dir":                     s.result.DeftDir,
+		"legacy_layout":                s.result.LegacyLayout,
+		"update":                       s.result.Update,
+		"non_interactive":              s.nonInteractive,
+		"upgrade":                      s.upgrade,
+		"taskfile_wired":               s.taskfileWired,
+		"missing_tools":                missingTools,
+		"maintainer_mode":              s.maintainerMode,
+		"maintainer_tools":             maintainerTools,
+		"skipped_consumer_projections": skippedConsumerProjections,
+		"user_config_dir":              s.configDir,
+		"skills_created":               s.skillsCreated,
+		"payload_layout":               s.payloadLayout,
+		"strategy":                     s.strategy,
+		"dirty_tree":                   s.dirty,
+		"dirty_files":                  dirtyFiles,
+		"staged_paths":                 stagedPaths,
+		"backup_path":                  s.backupPath,
+		"previous_version":             s.previousVersion,
 	}
 }
 

@@ -14,7 +14,25 @@ Deft Directive is a Markdown framework that provides layered behavioral rules, w
 
 ## Installation
 
-<!-- TODO: Cover installer download, shell one-liner, and manual clone paths -->
+Download a platform installer from the Deft release page and run it from the
+project you want to adopt:
+
+```bash
+deft-install --yes --repo-root . --json
+```
+
+For existing consumer projects, the headless upgrade path is:
+
+```bash
+deft-install --yes --upgrade --repo-root . --json
+```
+
+Those consumer flows intentionally project Deft-managed files into your project
+root (`AGENTS.md`, skills pointers, gitignore entries, vbrief scaffolding, and
+related guard configuration). Framework maintainers working inside a
+`deftai/directive` checkout should instead follow
+[`CONTRIBUTING.md`](../CONTRIBUTING.md) and use `--maintainer`; maintainer setup
+checks tools without rewriting consumer-managed files.
 
 ---
 

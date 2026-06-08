@@ -8,7 +8,9 @@ is the recommended drop-in proxy for ``gh`` -- it caches read-only API
 calls so multi-agent swarms (and the deft ``scm:*`` task surface) do not
 hammer the GitHub rate limiter; v0.26.0's ``scm:*`` stub already prefers
 ``ghx`` over ``gh`` at runtime via :mod:`scripts.scm`'s
-``_BINARY_PREFERENCE`` ladder when ``ghx`` is on PATH.
+``_BINARY_PREFERENCE`` ladder when ``ghx`` is on PATH. It is maintainer and
+swarm tooling, not a consumer installer prerequisite: consumer installs require
+``gh`` for GitHub-backed workflows and transparently ignore ``ghx`` when absent.
 
 Behaviour matrix:
 
@@ -138,7 +140,8 @@ def prompt_consent(stream_in: object | None = None, stream_out: object | None = 
     sout = stream_out if stream_out is not None else sys.stdout
     print(
         "\n[setup_ghx] ghx is the recommended GitHub CLI cache proxy for deft "
-        "(prevents rate-limiting in multi-agent swarms; speeds up scm:* calls).",
+        "maintainers (prevents rate-limiting in multi-agent swarms; speeds up "
+        "scm:* calls). Consumer projects only require gh.",
         file=sout,
     )
     print(f"[setup_ghx] Upstream: https://github.com/brunoborges/ghx ({GHX_VERSION})", file=sout)
@@ -282,7 +285,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.check:
         print(
             "[setup_ghx] ghx not on PATH; recommended for speed -- "
-            "run `task setup` (without --check) to opt in. Refs #884."
+            "run `task setup` (without --check) to opt in. Consumer projects "
+            "only require gh. Refs #884."
         )
         return 0
 
@@ -306,6 +310,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not consent:
         print(
             "[setup_ghx] Skipping ghx install. ghx is recommended for speed "
+            "for maintainers and swarm runs; consumer projects only require gh "
             "(see https://github.com/brunoborges/ghx, #884)."
         )
         return 0

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`deft-install --maintainer` now bootstraps framework checkouts without consumer projections (#1554)** -- maintainers can run the published installer against a `deftai/directive` clone to check core and maintainer tooling while leaving maintainer-owned files like `AGENTS.md`, `.gitignore`, `.gitattributes`, guard workflows, and consumer vBRIEF scaffolding untouched. JSON output now identifies maintainer mode, skipped consumer projections, and maintainer-only tool status for Go, Node, and optional `ghx`; consumer installs still only require `gh`. Closes #1554.
 
 ### Changed
 
