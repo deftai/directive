@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Linux installer --yes reports missing core tools instead of bootstrapping them",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The Linux installer currently detects missing core tools during --yes installs but only reports fallback instructions, leaving a fresh WSL or Linux consumer with a doctor-failing install. This story makes the non-interactive Linux path either bootstrap the required core tools safely or fail loudly before claiming success, so first-session setup is not left in a broken state.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1538",
@@ -75,9 +75,10 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-08T01:11:03Z"
     },
-    "updated": "2026-06-08T00:41:48Z",
+    "updated": "2026-06-08T01:11:03Z",
     "id": "1538-linux-installer-core-tool-bootstrap"
   }
 }
