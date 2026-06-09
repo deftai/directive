@@ -156,10 +156,12 @@ def is_framework_source_context(framework_root: Path, project_root: Path) -> boo
 
     Vendored consumer installs execute framework tasks from ``.deft/core`` while
     the user working directory remains the consumer repo.  Equality of the two
-    resolved roots is the stable distinction: only the source checkout should run
-    source-repo self-tests by default.
+    lexical absolute roots is the stable distinction: only the source checkout
+    should run source-repo self-tests by default.  Do not resolve symlinks here:
+    a consumer project may symlink ``.deft/core`` to a local framework checkout
+    and should still run the consumer-safe gate.
     """
-    return framework_root.resolve() == project_root.resolve()
+    return Path(os.path.abspath(framework_root)) == Path(os.path.abspath(project_root))
 
 
 def dispatch_task_check(
@@ -194,12 +196,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _build_parser().parse_args(argv)
+    parser = _build_parser()
+    args = parser.parse_args(argv)
     if args.dispatch_task_check:
         if args.framework_root is None or args.project_root is None:
             raise SystemExit("--framework-root and --project-root are required")
         return dispatch_task_check(args.framework_root, args.project_root)
-    _build_parser().print_help()
+    parser.print_help()
     return 0
 
 

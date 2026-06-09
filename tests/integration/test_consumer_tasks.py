@@ -188,6 +188,46 @@ def test_task_check_dispatches_consumer_safe_gate_for_vendored_install(
     ]
 
 
+def test_task_check_dispatches_consumer_safe_gate_for_symlinked_core(
+    consumer_project: Path,
+) -> None:
+    """Symlinked ``.deft/core`` installs remain logical consumer installs."""
+    context = _load_module(
+        "project_context_dispatch_symlink",
+        SCRIPTS_DIR / "_project_context.py",
+    )
+    framework_root = consumer_project / ".deft" / "core"
+    framework_root.parent.mkdir(parents=True)
+    try:
+        framework_root.symlink_to(consumer_project, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"directory symlinks unavailable on this platform: {exc}")
+    calls: list[dict[str, object]] = []
+
+    def fake_runner(args, cwd=None):
+        calls.append({"args": args, "cwd": cwd})
+        return subprocess.CompletedProcess(args, 0)
+
+    rc = context.dispatch_task_check(
+        framework_root,
+        consumer_project,
+        runner=fake_runner,
+    )
+
+    assert rc == 0
+    assert calls == [
+        {
+            "args": [
+                "task",
+                "-t",
+                str(framework_root / "Taskfile.yml"),
+                "check:consumer",
+            ],
+            "cwd": str(consumer_project),
+        }
+    ]
+
+
 def test_task_check_dispatches_framework_self_check_in_framework_repo() -> None:
     """The source checkout still runs the full framework self-check by default."""
     context = _load_module("project_context_dispatch_source", SCRIPTS_DIR / "_project_context.py")
