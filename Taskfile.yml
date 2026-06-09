@@ -299,7 +299,15 @@ tasks:
 
   # Backward-compatible aliases -- project convention is `task check`, `task test`, etc.
   check:
-    desc: "Run all pre-commit checks (skips @pytest.mark.slow tests via pyproject addopts -- run `task check:slow` for the slow lane, #975)"
+    desc: "Run the context-appropriate pre-commit gate: full framework self-check in this repo, consumer-safe gate from vendored installs (#1519)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/_project_context.py" --dispatch-task-check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"
+
+  check:framework-source:
+    desc: "Run all framework source-repo pre-commit checks explicitly (skips @pytest.mark.slow tests via pyproject addopts -- run `task check:slow` for the slow lane, #975)."
     deps:
       - core:validate
       - core:lint
@@ -318,6 +326,19 @@ tasks:
       - verify-strategy-output
     cmds:
       - echo "All checks passed"
+
+  check:consumer:
+    desc: "Run the consumer-safe Deft quality gate for vendored installs (#1519)."
+    deps:
+      - doctor
+      - toolchain:check
+      - verify:branch
+      - verify:cache-fresh
+      - verify:wip-cap
+      - vbrief:validate
+      - verify-strategy-output
+    cmds:
+      - echo "Consumer checks passed"
 
   # D4 (#1124): framework self-check wrapper that passes
   # --allow-over-cap so deft's own landing-day overage (pending/+active/
