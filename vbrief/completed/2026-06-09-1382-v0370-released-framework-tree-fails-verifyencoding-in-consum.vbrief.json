@@ -20,7 +20,7 @@
       {
         "id": "1382-a1",
         "title": "Vendored framework exception paths are allowlisted",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the installer or local archive builder packages the framework for a consumer deposit, when the payload is extracted, then `history/archive/**` and completed vBRIEF history are absent while runtime files such as `scripts/verify_encoding.py` and `vbrief/schemas/**` are preserved.",
           "Traces": "Issue #1382 v0.45.0 reproduction list."
@@ -29,7 +29,7 @@
       {
         "id": "1382-a2",
         "title": "Consumer-owned corruption still fails",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same consumer repo also tracks a non-framework file containing mojibake or an unexpected BOM, when the encoding verifier runs, then it exits 1 and reports the consumer-owned file.",
           "Traces": "Issue #798 detection invariant."
@@ -38,7 +38,7 @@
       {
         "id": "1382-a3",
         "title": "Regression test covers direct vendored verify command shape",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given tests/cli/test_verify_encoding.py runs, then it pins the `.deft/core/` allow-list behavior so future package-layout changes do not regress #1382.",
           "Traces": "Issue #1382 direct `task deft:verify:encoding` path."

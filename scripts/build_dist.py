@@ -133,7 +133,7 @@ def _iter_source_files(
     produced archive is reproducible across runs and across platforms
     (the task contract ``test_idempotent_rerun`` depends on this).
 
-    Two pruning paths apply:
+    Three pruning paths apply:
 
     1. Directory pruning -- ``dirnames`` is mutated in place so any
        directory whose basename matches an exclude is skipped along with
@@ -146,12 +146,28 @@ def _iter_source_files(
        this branch the directory-only prune would silently fail to honor
        the documented intent for file-shaped artifacts (Greptile P1
        review on PR #773).
+    3. Path-prefix pruning -- directories and files whose repo-relative POSIX
+       path starts with an entry in ``excluded_prefixes`` are dropped, keeping
+       consumer archives free of source-repo forensic history while preserving
+       runtime siblings such as ``vbrief/schemas/**``.
     """
     entries: list[tuple[Path, str]] = []
     for dirpath, dirnames, filenames in os.walk(root):
         # Mutate dirnames in place to prune the walk -- canonical os.walk
         # idiom. Sort for determinism.
-        dirnames[:] = sorted(d for d in dirnames if d not in excludes)
+        kept_dirnames: list[str] = []
+        for dirname in sorted(dirnames):
+            if dirname in excludes:
+                continue
+            child = Path(dirpath) / dirname
+            try:
+                child_rel = child.relative_to(root).as_posix()
+            except ValueError:
+                continue
+            if _matches_excluded_prefix(child_rel, excluded_prefixes):
+                continue
+            kept_dirnames.append(dirname)
+        dirnames[:] = kept_dirnames
         for fname in sorted(filenames):
             if fname in excludes:
                 # File-level pruning -- catches single-file artifacts
