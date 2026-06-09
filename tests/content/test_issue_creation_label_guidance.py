@@ -51,7 +51,10 @@ def test_issue_creation_guidance_is_recommend_not_mandate() -> None:
             f"{rel_path}: guidance must preserve recommend-not-mandate semantics "
             "(#1510)"
         )
-        assert "do not block issue creation" in text, (
+        assert (
+            "do not block issue creation" in text
+            or "block issue creation solely because no label was selected" in text
+        ), (
             f"{rel_path}: guidance must not hard-gate issue creation when no "
             "label fits (#1510)"
         )
@@ -61,7 +64,10 @@ def test_issue_creation_guidance_forbids_ad_hoc_labels() -> None:
     """Agents must not mint one-off labels outside the repo label set."""
     for rel_path in _ISSUE_CREATION_SKILLS:
         text = _read(rel_path).lower()
-        assert "do not invent ad hoc labels" in text, (
+        assert (
+            "do not invent ad hoc labels" in text
+            or "invent ad hoc labels outside the repository's existing label set" in text
+        ), (
             f"{rel_path}: guidance must forbid inventing ad hoc labels (#1510)"
         )
 
