@@ -100,6 +100,17 @@ def test_contract_documents_host_ui_portability_rule():
     assert "bare letter such as `d` or `b`" in text
 
 
+def test_contract_documents_backend_selection_prompt_rule():
+    """Issue #1568 -- backend prompts are deterministic numbered menus."""
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "## Backend-selection prompts (#1568)" in text
+    assert "operator preference" in text
+    assert "probe availability" in text
+    assert "visible numbered options" in text
+    assert "`Discuss` and `Back` remaining the final two numbered options" in text
+    assert "Treat `cursor-cloud` as the implicit default" in text
+
+
 def test_host_portable_skills_pin_visible_number_mapping():
     missing = []
     for rel in HOST_PORTABLE_SKILLS:

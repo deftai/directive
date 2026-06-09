@@ -22,6 +22,12 @@ Host-native structured question tools are allowed only when they preserve the de
 - ! Agents MUST accept fallback chat replies only when they match the displayed number or the exact displayed option text, after trimming surrounding whitespace and ignoring case for text labels.
 - ⊗ Infer deterministic choices from alphabetic host UI affordances, keyboard shortcuts, or semantic guesses unless those letters were actually displayed as part of the canonical menu labels.
 - ⊗ Treat a bare letter such as `d` or `b` as `Defer`, `Discuss`, or `Back` when the rendered deterministic menu was numbered and did not display those letters as choices.
+## Backend-selection prompts (#1568)
+Backend-selection prompts are deterministic questions. They ask for operator preference and MAY show probe availability as context, but availability is not a default or recommendation.
+- ! A backend-selection prompt MUST render visible numbered options for each stable backend choice before `Discuss` and `Back`.
+- ! The backend options MUST appear before the final two entries, with `Discuss` and `Back` remaining the final two numbered options in that order.
+- ! Probe availability MUST be presented as status beside each backend choice, not as the ordering, recommendation, or default.
+- ⊗ Treat `cursor-cloud` as the implicit default merely because it is probe-available.
 ## Discuss-pause semantic (verbatim)
 Documented here as the single normative source so skill prose, tests, and downstream tooling all read the same words.
 - ! When the user selects `Discuss`, the agent MUST pause IMMEDIATELY.

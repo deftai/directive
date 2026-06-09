@@ -702,3 +702,86 @@ def test_swarm_anti_patterns_1557_token_present(token: str) -> None:
         f"{_SWARM_PATH}: Anti-Patterns missing #1557 token "
         f"{token!r} -- must forbid sandbox auth regressions"
     )
+
+
+# ---------------------------------------------------------------------------
+# 8. #1568 -- interactive backend selection before launch
+# ---------------------------------------------------------------------------
+
+_PHASE0_BACKEND_HEADER = "#### Phase 0e -- Interactive sub-agent backend selection (#1568)"
+_PHASE0_BACKEND_END = "#### Manual / GitHub-issue escape hatch"
+
+_INTERACTIVE_BACKEND_TOKENS = (
+    "task policy:subagent-backends",
+    "plan.policy.swarmSubagentBackend",
+    "before any `task swarm:launch`",
+    "operator preference",
+    "probe availability is supporting evidence only",
+    "do NOT imply `cursor-cloud` is the default just because it is probe-available",
+    "Local Composer/Cursor subagents (`composer`)",
+    "Cursor cloud agents (`cursor-cloud`)",
+    "Grok Build subagents (`grok-build`)",
+    "task policy:subagent-backend -- <id>",
+    "per-run launch-context choice",
+    "Autonomous/headless launch remains fail-closed",
+    "scripts/swarm_launch.py",
+)
+
+
+def _phase0_backend_block(text: str) -> str:
+    """Return the #1568 interactive backend-selection block."""
+    start = text.find(_PHASE0_BACKEND_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_PHASE0_BACKEND_HEADER}' heading -- "
+        "interactive swarms must ask for backend intent before launch"
+    )
+    end = text.find(_PHASE0_BACKEND_END, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_PHASE0_BACKEND_END}' heading not found after "
+        "the #1568 backend-selection block"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("token", _INTERACTIVE_BACKEND_TOKENS)
+def test_swarm_phase0_backend_selection_token_present(token: str) -> None:
+    """The interactive path must ask for backend intent before headless launch."""
+    block = _phase0_backend_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 0 backend-selection block missing token "
+        f"{token!r} -- see issue #1568 acceptance criteria"
+    )
+
+
+def test_swarm_phase0_backend_menu_uses_visible_numbered_options() -> None:
+    """Backend menu must use visible numbering with Discuss and Back final."""
+    block = _phase0_backend_block(_read_swarm())
+    options = (
+        "1. Local Composer/Cursor subagents (`composer`)",
+        "2. Cursor cloud agents (`cursor-cloud`)",
+        "3. Grok Build subagents (`grok-build`)",
+        "4. Discuss",
+        "5. Back",
+    )
+    positions = [block.find(option) for option in options]
+    assert all(position != -1 for position in positions), (
+        f"{_SWARM_PATH}: backend menu missing one or more visible numbered "
+        f"options; positions={dict(zip(options, positions, strict=True))}"
+    )
+    assert positions == sorted(positions), (
+        f"{_SWARM_PATH}: backend menu options must appear in canonical order; "
+        f"positions={dict(zip(options, positions, strict=True))}"
+    )
+
+
+def test_swarm_phase0_backend_menu_keeps_discuss_back_final() -> None:
+    """Discuss and Back must be the final two backend prompt choices."""
+    block = _phase0_backend_block(_read_swarm())
+    discuss = block.find("4. Discuss")
+    back = block.find("5. Back")
+    assert discuss != -1 and back != -1 and discuss < back, (
+        f"{_SWARM_PATH}: backend-selection menu must end with Discuss then Back"
+    )
+    assert "6." not in block[back:], (
+        f"{_SWARM_PATH}: backend-selection menu must not add options after Back"
+    )
