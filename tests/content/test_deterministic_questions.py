@@ -36,6 +36,13 @@ AFFECTED_SKILLS = (
     "skills/deft-directive-release/SKILL.md",
 )
 
+HOST_PORTABLE_SKILLS = (
+    "skills/deft-directive-triage/SKILL.md",
+    "skills/deft-directive-refinement/SKILL.md",
+    "skills/deft-directive-swarm/SKILL.md",
+    "skills/deft-directive-setup/SKILL.md",
+)
+
 
 def test_contract_file_exists():
     assert CONTRACT_PATH.is_file(), (
@@ -82,6 +89,38 @@ def test_contract_lists_discuss_not_subchoice_of_other():
     text = CONTRACT_PATH.read_text(encoding="utf-8")
     # The rule that Discuss is a top-level numbered option, not under Other.
     assert "NOT a sub-choice of any `Other` / `Custom` option" in text
+
+
+def test_contract_documents_host_ui_portability_rule():
+    text = CONTRACT_PATH.read_text(encoding="utf-8")
+    assert "## Host-UI portability rule (#1563)" in text
+    assert "visibly preserve the canonical numeric option labels" in text
+    assert "displayed number or the exact displayed option text" in text
+    assert "alphabetic host UI affordances" in text
+    assert "bare letter such as `d` or `b`" in text
+
+
+def test_host_portable_skills_pin_visible_number_mapping():
+    missing = []
+    for rel in HOST_PORTABLE_SKILLS:
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        if not all(
+            token in text
+            for token in (
+                "numeric option labels",
+                "exact displayed option text",
+            )
+        ):
+            missing.append(rel)
+    assert not missing, f"Skills missing host-portable numeric mapping: {missing}"
+
+
+def test_setup_skill_forbids_alphabetic_host_affordance_inference():
+    text = (
+        REPO_ROOT / "skills" / "deft-directive-setup" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    assert "alphabetic affordances" in text
+    assert "Infer deterministic answers from host-added letters" in text
 
 
 def test_each_affected_skill_cross_references_contract():

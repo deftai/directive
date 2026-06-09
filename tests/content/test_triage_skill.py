@@ -174,6 +174,17 @@ def test_triage_skill_reversibility_layer5_verb() -> None:
     )
 
 
+def test_triage_action_menu_is_host_portable_numbered_contract() -> None:
+    """Issue #1563 -- action menu replies map only to visible numbered choices."""
+    text = _read(_TRIAGE_PATH)
+    assert "1. Accept" in text
+    assert "5. Mark duplicate" in text
+    assert "6. Discuss" in text
+    assert "7. Back" in text
+    assert "displayed number (`1`-`7`) or exact displayed option text" in text
+    assert "bare letters such as `d` / `b`" in text
+
+
 # ---------------------------------------------------------------------------
 # 6. Thin pointer file -- mirrors test_deft_sync_pointer_exists pattern
 # ---------------------------------------------------------------------------

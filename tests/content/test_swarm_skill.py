@@ -46,6 +46,15 @@ def _read_swarm() -> str:
     return (_REPO_ROOT / _SWARM_PATH).read_text(encoding="utf-8")
 
 
+def test_swarm_deterministic_questions_are_host_portable() -> None:
+    """Issue #1563 -- swarm gates must preserve visible numeric labels."""
+    text = _read_swarm()
+    assert "render the canonical numbered menu in chat" in text
+    assert "numeric option labels" in text
+    assert "exact displayed option text" in text
+    assert "fallback chat replies MUST map only to the displayed number" in text
+
+
 def _phase6_step3_block(text: str) -> str:
     """Return the Phase 6 Step 3 (Update Master) block, sliced to Step 4."""
     start = text.find("### Step 3: Update Master")

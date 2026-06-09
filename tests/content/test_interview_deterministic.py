@@ -50,6 +50,14 @@ def test_rule8_heading_present(interview_text: str) -> None:
     )
 
 
+def test_rule2_host_portable_numeric_labels(interview_text: str) -> None:
+    """Issue #1563 -- structured rendering must preserve visible numeric labels."""
+    assert "Host-portable numeric labels (#1563)" in interview_text
+    assert "visibly preserves each canonical numeric option label" in interview_text
+    assert "exact displayed option text" in interview_text
+    assert "do not infer from host-added letters" in interview_text
+
+
 def test_rule8_confirm_step_is_mandatory(interview_text: str) -> None:
     """Rule 8 must declare the confirm-after-number-press step as MANDATORY."""
     lower = interview_text.lower()

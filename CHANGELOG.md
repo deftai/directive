@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Completed scopes no longer leave PROJECT-DEFINITION registry rows looking proposed (#1527)** -- `task scope:complete` now keeps the matching local project reference and registry item aligned when it moves a scope into `completed/`, and validation catches stale registry status if a referenced scope and its registry row drift apart. Closes #1527.
+- **Deterministic menus now stay portable across host UIs (#1563)** -- numbered decision flows now require visible numeric labels and strict fallback mapping to the displayed number or exact option text, so agents do not reinterpret alphabetic host affordances like `d` or `b` unless those letters were actually shown. Refs #1563.
+
 ### Removed
 
 ## [0.44.0] - 2026-06-08

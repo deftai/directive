@@ -31,7 +31,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Deterministic Questions Contract
 
-! Every numbered-menu prompt rendered in this skill (Phase 2 candidate selection, Phase 3 per-item decision walk) ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim -- on `Discuss` the agent halts the in-progress sequence and resumes only on an explicit user signal.
+! Every numbered-menu prompt rendered in this skill (Phase 2 candidate selection, Phase 3 per-item decision walk) ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): render the canonical numbered menu in chat unless the host UI visibly preserves numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim -- on `Discuss` the agent halts the in-progress sequence and resumes only on an explicit user signal.
 
 ## Phase 0 -- Sync
 
@@ -79,6 +79,7 @@ What would you like to do with this candidate?
 ```
 
 - ! `--resume-on <event>` on `task triage:defer` (D3 / #1123 -- ships in parallel; reference but do not hard-depend) records a resume condition with the defer entry; the resume condition surfaces in `task triage:queue` once met. When D3 has not landed yet, omit the flag -- the verb stays terminal-shape-compatible.
+- ! Map user replies only to the displayed number (`1`-`7`) or exact displayed option text. ⊗ Do NOT infer from alphabetic host affordances or bare letters such as `d` / `b` unless those letters were visibly rendered as choices.
 - ! On `Discuss`, halt the action sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. ⊗ Implicit resumption.
 - ! On `Back`, un-buffer the prior candidate's selection and re-render its action menu -- permitted only before the action has dispatched to a `task triage:*` command. Once dispatched, the audit entry is committed; revisions go through Layer 5 (`task triage:reset`).
 - ~ Bulk patterns: `task triage:bulk-{accept,reject,defer,needs-ac}` (#845 Story 4) for clear label-driven sweeps; bulk results still flow through the audit log so history stays coherent.

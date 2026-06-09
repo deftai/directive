@@ -101,7 +101,7 @@ Run these four checks, in order:
 
 ## Deterministic Questions Contract
 
-! Every numbered-menu prompt rendered in this skill (Phase 1 depth question, Phase 2 project type / deployment / language / strategy / branching gates, Phase 3 onboarding question, end-of-phase transition prompts, post-interview confirmation gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal (re-asks original question, says `resume`/`continue`, or re-issues prior selection). Implicit resumption is forbidden. The phase-transition question shapes ("Yes / Not now / Discuss / Back") in this skill already comply.
+! Every numbered-menu prompt rendered in this skill (Phase 1 depth question, Phase 2 project type / deployment / language / strategy / branching gates, Phase 3 onboarding question, end-of-phase transition prompts, post-interview confirmation gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): render the canonical numbered menu in chat unless the host UI visibly preserves numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal (re-asks original question, says `resume`/`continue`, or re-issues prior selection). Implicit resumption is forbidden. Fallback chat replies MUST map only to the displayed number or exact displayed option text; do not infer from alphabetic host affordances.
 
 ## Platform Detection
 
@@ -124,9 +124,9 @@ Run these four checks, in order:
 - ? Read `deft/main.md` or language files LATER when generating output
 
 **Interaction:**
-- ~ Use structured question tools when available (AskQuestion, question picker, multi-choice UI)
-- ~ Fall back to numbered text options if no structured tool exists
-- ⊗ Present choices as plain text when a structured tool is available
+- ~ Use structured question tools only when their visible option labels preserve the canonical numbers (for example, `1. Yes`) and their return value is the numeric selection or exact displayed option text.
+- ! Fall back to the numbered chat menu when the host UI may replace numbers with alphabetic affordances, unlabeled buttons, or any other non-canonical choice labels.
+- ⊗ Infer deterministic answers from host-added letters or shortcuts unless those letters were actually displayed in the canonical menu labels.
 
 **Defaults:**
 - ! Communicate that deft ships with best-in-class standards for 20+ languages
@@ -201,7 +201,7 @@ a new message. Repeat until all questions for their track are answered.
 - ⊗ List upcoming questions — only show the current one
 - ~ Provide numbered answer options with an "other" choice where appropriate
 - ! Mark which option is RECOMMENDED when showing choices
-- ~ Use structured question tools when available (AskQuestion, question picker)
+- ~ Use structured question tools only when visible option labels preserve the canonical numbers and returns map to numeric selections or exact displayed option text.
 
 ### Question Sequence
 
@@ -291,8 +291,8 @@ for project-scoped settings (strategy, coverage).
 
 ### Then
 
-- ! Emit a structured-tool question asking whether to continue to Phase 2 (project configuration). Options: Yes (continue), Not now (exit setup), Discuss, Back (revisit previous phase). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
-- ⊗ Ask the phase-transition question as plain-text conversational prose -- it is a user-facing question with enumerable paths and MUST go through the structured tool (#478).
+- ! Emit a structured-tool question asking whether to continue to Phase 2 (project configuration) only when the host preserves numeric labels; otherwise emit the deterministic numbered menu in chat. Options: `1. Yes (continue)`, `2. Not now (exit setup)`, `3. Discuss`, `4. Back (revisit previous phase)`. The numeric labels MUST remain visible and be returned as numeric selections or exact displayed option text.
+- ⊗ Ask the phase-transition question as unnumbered conversational prose or through a structured UI that hides the canonical numeric labels -- it is a deterministic menu and MUST preserve visible numbers (#478, #1563).
 
 ---
 
@@ -415,7 +415,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ! Before writing `PROJECT-DEFINITION.vbrief.json`, offer to scaffold a default GitHub PR template so downstream skills (`deft-directive-refinement` Pre-Flight, `deft-directive-pre-pr`) can satisfy their `.github/PULL_REQUEST_TEMPLATE.md` checks without blocking.
 
-1. ! Ask the user via the structured question tool: "Create a default GitHub PR template at `.github/PULL_REQUEST_TEMPLATE.md`? (Y/n)" (default: Yes).
+1. ! Ask the user with a deterministic numbered menu: "Create a default GitHub PR template at `.github/PULL_REQUEST_TEMPLATE.md`?" Options: `1. Yes`, `2. No`, `3. Discuss`, `4. Back`. Use a structured question tool only if those numeric labels remain visible and are returned as numeric selections or exact displayed option text.
 2. ! If the user accepts AND `.github/PULL_REQUEST_TEMPLATE.md` does NOT already exist: copy `templates/PULL_REQUEST_TEMPLATE.md` (shipped with deft) to `./.github/PULL_REQUEST_TEMPLATE.md` in the consumer project. Create `.github/` if it does not exist.
 3. ! If the file already exists, do NOT overwrite it — report that it is present and continue.
 4. ~ If the user declines, note that `deft-directive-refinement` Pre-Flight will offer to scaffold later when needed.
@@ -479,8 +479,8 @@ omit = [
 
 ### Then
 
-- ! Emit a structured-tool question asking whether to continue to Phase 3 (specification). Options: Yes (continue), Not now (exit setup), Discuss, Back (revisit previous phase). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
-- ⊗ Ask the phase-transition question as plain-text conversational prose -- it is a user-facing question with enumerable paths and MUST go through the structured tool (#478).
+- ! Emit a structured-tool question asking whether to continue to Phase 3 (specification) only when the host preserves numeric labels; otherwise emit the deterministic numbered menu in chat. Options: `1. Yes (continue)`, `2. Not now (exit setup)`, `3. Discuss`, `4. Back (revisit previous phase)`. The numeric labels MUST remain visible and be returned as numeric selections or exact displayed option text.
+- ⊗ Ask the phase-transition question as unnumbered conversational prose or through a structured UI that hides the canonical numeric labels -- it is a deterministic menu and MUST preserve visible numbers (#478, #1563).
 
 ### Follow-up: triage onboarding (#1143)
 
@@ -564,7 +564,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ! Mark which option is RECOMMENDED
 - ⊗ Ask multiple questions at once
 - ⊗ Make assumptions without clarifying
-- ~ Use structured question tools for each interview question
+- ~ Use structured question tools for interview questions only when they preserve visible numeric option labels and return numeric selections or exact displayed option text; otherwise render the numbered menu in chat.
 
 **Question Areas:**
 - ! Missing decisions (language, framework, deployment)
@@ -672,10 +672,10 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Handoff to deft-directive-build
 
-- ! Emit a structured-tool question asking whether to continue to the build phase. Options: Yes (continue), Not now (exit setup), Discuss, Back (revisit previous phase). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
+- ! Emit a structured-tool question asking whether to continue to the build phase only when the host preserves numeric labels; otherwise emit the deterministic numbered menu in chat. Options: `1. Yes (continue)`, `2. Not now (exit setup)`, `3. Discuss`, `4. Back (revisit previous phase)`. The numeric labels MUST remain visible and be returned as numeric selections or exact displayed option text.
 - ~ If platform supports skill invocation and the user picks Yes, invoke `skills/deft-directive-build/SKILL.md`
 - ⊗ Leave user with a dead end -- always offer the next step via the structured-tool phase-transition question
-- ⊗ Ask the handoff-to-build question as plain-text conversational prose -- it is a user-facing question with enumerable paths and MUST go through the structured tool (#478).
+- ⊗ Ask the handoff-to-build question as unnumbered conversational prose or through a structured UI that hides the canonical numeric labels -- it is a deterministic menu and MUST preserve visible numbers (#478, #1563).
 
 ## Warp Auto-Approve Warning
 
@@ -707,6 +707,6 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Ask about things inferable from codebase (Phase 2+)
 - ⊗ Skip phases without asking
 - ⊗ Generate files without confirming content
-- ⊗ Present choices as plain text when structured tools exist
+- ⊗ Present choices through a host UI that replaces the canonical numbers with alphabetic affordances or unlabeled buttons
 - ⊗ Resolve paths relative to the skill file, AGENTS.md, or framework directory instead of the user's pwd at skill entry
 - ⊗ Generate an authoritative PRD.md — PRD.md is a read-only export via `task prd:render`, never a source of truth

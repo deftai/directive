@@ -56,6 +56,8 @@ Enter confirm / b back / 0 discuss
 
 ! EVERY user-facing question MUST render via the structured question tool: click-commit on hosts that have one (e.g. Warp `ask_user_question`); plain-text with typed response otherwise. The agent MUST NOT emit a user-facing question as conversational prose regardless of whether the final answer content is enumerable or freeform. This is the Option A always-structured rendering rule (#478).
 
+! **Host-portable numeric labels (#1563).** For deterministic menus, a structured question tool satisfies this rule only when it visibly preserves each canonical numeric option label (for example, `1. Web / Cloud`) and returns the numeric selection or exact displayed option text. If the host UI may replace numbers with alphabetic affordances, unlabeled buttons, or any non-canonical choice labels, render the numbered menu in chat with typed response instead. Fallback chat replies map only to the displayed number or exact displayed option text; do not infer from host-added letters unless those letters were actually displayed.
+
 ! Freeform answer collection, when needed, MUST be a two-step flow:
 
 1. Structured-tool call with options such as `[Draft for me (I'll propose content) / Write my own / Defer / Discuss / Back]`.

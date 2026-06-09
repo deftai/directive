@@ -33,7 +33,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Deterministic Questions Contract
 
-! Every numbered-menu prompt rendered in this skill (Phase 0 Triage action menu, Phase 2 Evaluate per-item accept/reject, Phase 3 Reconcile flagged-item walk, Phase 4 Promote/Demote lifecycle gates, Phase 5 Prioritize reorder gates) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
+! Every numbered-menu prompt rendered in this skill (Phase 0 Triage action menu, Phase 2 Evaluate per-item accept/reject, Phase 3 Reconcile flagged-item walk, Phase 4 Promote/Demote lifecycle gates, Phase 5 Prioritize reorder gates) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): render the canonical numbered menu in chat unless the host UI visibly preserves numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden, and fallback chat replies MUST map only to the displayed number or exact displayed option text.
 
 ## When to Use
 

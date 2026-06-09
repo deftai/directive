@@ -46,6 +46,15 @@ def test_refinement_phase0_top_heading_present() -> None:
     )
 
 
+def test_refinement_deterministic_questions_are_host_portable() -> None:
+    """Issue #1563 -- refinement must preserve numeric labels across host UIs."""
+    text = _read(_REFINEMENT_PATH)
+    assert "render the canonical numbered menu in chat" in text
+    assert "numeric option labels" in text
+    assert "exact displayed option text" in text
+    assert "fallback chat replies MUST map only to the displayed number" in text
+
+
 def test_refinement_phase0_three_subphases_in_canonical_order() -> None:
     """Phase 0a / 0b / 0c MUST each be a `### ` heading and appear in that order."""
     text = _read(_REFINEMENT_PATH)
