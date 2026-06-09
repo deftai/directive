@@ -1,0 +1,122 @@
+---
+name: deft-directive-probe
+description: >
+  Adversarial plan stress-testing via relentless one-question-per-turn
+  interrogation. Use when the operator asks to run probe, /deft:run:probe,
+  or wants a plan challenged before committing to it.
+triggers:
+  - run probe
+  - /deft:run:probe
+  - probe
+  - probe my plan
+  - stress test
+---
+
+# Deft Directive Probe
+
+Stress-test a plan before committing to it — relentless interrogation until every branch of the decision tree is resolved.
+
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+> Strategy reference: [strategies/probe.md](../../strategies/probe.md). Probe is adversarial discovery — it assumes the plan has holes and sets out to find them.
+
+## When to Use
+
+- ~ Before committing to any significant design decision or architecture choice
+- ~ When a plan has been drafted but not yet stress-tested
+- ! When the user explicitly asks to be probed or challenged on their plan
+- ? Skip when the path forward is unambiguous and small in scope
+
+## No-Artifact Guard (active until probe complete)
+
+While probe completion criteria (below) are NOT met:
+
+- ⊗ Write or update any vBRIEF file (`vbrief/proposed/`, `vbrief/active/`, plan items, narratives)
+- ⊗ Update `vbrief/plan.vbrief.json` or register probe artifacts
+- ⊗ Post GitHub completion comments, close issues, or open PRs on behalf of the probe session
+- ⊗ Produce probe output markdown files instead of the canonical vBRIEF contract
+
+! Read existing context and interrogate only — artifacts land in the Output phase after completion.
+
+## Workflow
+
+### Step 1: Establish the plan
+
+- ! Read whatever plan, design, or spec exists in the conversation context
+- ~ If no plan is in context, ask ONE question: "What's the plan you want me to probe?"
+- ~ If codebase context is relevant, explore it to answer what you can before asking
+- ⊗ Ask follow-up questions before reading available context
+
+### Step 2: Interrogate relentlessly
+
+Walk the decision tree depth-first. For each unresolved branch:
+
+- ! Ask **ONE** focused question per message
+- ! For each question, provide your recommended answer with brief reasoning
+- ! If the codebase can answer a question, explore it instead of asking the user
+- ~ Follow the thread — if an answer opens new branches, pursue them before moving on
+- ⊗ Ask multiple questions at once
+- ⊗ Present batched decision lists, numbered option menus, or multi-item checklists in a single turn
+- ⊗ Accept vague answers — push back: "What does that mean concretely?"
+- ⊗ Move to the next branch before the current one is fully resolved
+
+#### First-turn contract
+
+! The first user-facing probe turn after loading this skill MUST contain exactly **one** focused question plus your recommended answer — nothing else that asks the user to decide among multiple items.
+
+- ⊗ Open with a summary of every open branch, a decision matrix, or a list of questions
+- ⊗ Batch "here are the areas we need to cover" bullets that substitute for the single-question rule
+
+#### Question focus areas
+
+- ! **Assumptions** — "This assumes X is guaranteed — is it?"
+- ! **Edge cases** — "What happens when Y is empty / null / at the limit?"
+- ! **Dependencies** — "This requires Z to exist — what if it doesn't?"
+- ! **Failure modes** — "How does this fail? How is that surfaced to the user?"
+- ! **Scaling** — "Does this hold at 10× the expected volume?"
+- ~ **Security surface** — "Who can reach this? What's the blast radius if it's wrong?"
+- ~ **Reversibility** — "Can this decision be changed later? What's the migration cost?"
+
+### Transition criteria (probe complete)
+
+- ! All major decision branches have been resolved
+- ! No open assumptions remain
+- ~ User has acknowledged the risks of any deliberately deferred decisions
+- ~ No new branches are surfaced by the last 2–3 questions
+
+## Output (after completion only)
+
+! Before writing output artifacts, follow the [Preparatory Guard](../../strategies/artifact-guards.md#preparatory-guard-light).
+
+`{scope}` is the project name from `PROJECT-DEFINITION.vbrief.json`, or the feature/component name if probing a sub-scope. Use the same value consistently throughout the session.
+
+- ! Produce a `vbrief/proposed/{scope}-probe.vbrief.json` scope vBRIEF with three mandatory narratives:
+  - `LockedDecisions` — what was resolved and why
+  - `SurfacedRisks` — concerns raised, even if not fully resolved
+  - `DeferredDecisions` — explicitly acknowledged items with justification
+- ! Each entry includes: **question asked**, **answer given**, **status** (locked / deferred / risk-accepted)
+- ! Persist significant decisions as vBRIEF narratives on the relevant plan items
+- ⊗ Write probe output to a hand-authored markdown file — use vBRIEF narratives for machine-consumable downstream work
+
+## Chaining Gate
+
+After the probe is complete and `vbrief/proposed/{scope}-probe.vbrief.json` is written:
+
+- ! Register artifacts in `./vbrief/plan.vbrief.json` (`completedStrategies`, `artifacts`)
+- ! Return to [interview.md Chaining Gate](../../strategies/interview.md#chaining-gate) when invoked from the interview flow
+- ! Locked decisions, surfaced risks, and deferred decisions MUST flow into subsequent strategies and spec generation
+- ⊗ End the session after probe without returning to the chaining gate or the invoking strategy's next-step menu
+
+**Standalone context:** If invoked from a standalone strategy menu rather than the interview chaining gate, return to the invoking strategy's menu instead.
+
+## Anti-Patterns
+
+- ⊗ Accepting "we'll figure it out later" without marking it as explicitly deferred
+- ⊗ Asking generic checklist questions instead of following the decision tree
+- ⊗ Letting vague answers pass without pushing for concrete specifics
+- ⊗ Stopping when the conversation feels comfortable — stop when no new branches emerge
+- ⊗ Writing artifacts before transition criteria are met
+
+## EXIT
+
+When probe output is written and chaining instructions are delivered, confirm: **deft-directive-probe complete -- exiting skill.** Return to the invoking strategy's chaining gate or next-step menu.

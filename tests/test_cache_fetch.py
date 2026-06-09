@@ -7,6 +7,9 @@ dropped" when the value actually counted already-fresh cache entries
 that did NOT need re-fetching). The rename introduces unambiguous
 canonical names while keeping the legacy aliases for one release of
 back-compat.
+
+Also covers #1562 REST-batched bootstrap defaults: zero local delay,
+paginated REST enumeration (no per-issue fetch), and in-loop progress.
 """
 
 from __future__ import annotations
@@ -15,13 +18,202 @@ import importlib
 import json
 import sys
 from pathlib import Path
+from typing import Any
+
+import pytest
 
 _SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 _cache_fetch = importlib.import_module("_cache_fetch")
+cache = importlib.import_module("cache")
 FetchAllReport = _cache_fetch.FetchAllReport
+run_fetch_all = _cache_fetch.run_fetch_all
+PROGRESS_EVERY_N = _cache_fetch.PROGRESS_EVERY_N
+
+
+def _rest_issue(number: int) -> dict[str, Any]:
+    return {
+        "number": number,
+        "title": f"issue {number}",
+        "body": "body",
+        "state": "open",
+        "labels": [],
+        "updated_at": "2026-06-09T00:00:00Z",
+    }
+
+
+# ---------------------------------------------------------------------------
+# #1562 -- delay-free REST-batched defaults + progress + REST enumeration
+# ---------------------------------------------------------------------------
+
+
+def test_default_delay_ms_is_zero_for_rest_batched_fetch() -> None:
+    """Production default must not reintroduce multi-minute local sleeps (#1562)."""
+    assert cache.DEFAULT_DELAY_MS == 0
+
+
+def test_run_fetch_all_default_delay_does_not_sleep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """REST-batched fetch with default delay_ms=0 must not call _sleep locally."""
+    cohort_size = 25
+    sleeps: list[float] = []
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_rest_issue(n) for n in range(1, cohort_size + 1)]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda s: sleeps.append(s))
+
+    report = run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=cache.DEFAULT_DELAY_MS,
+        state="open",
+        limit=1000,
+    )
+
+    assert report.issues_written == cohort_size
+    assert sleeps == []
+
+
+def test_run_fetch_all_explicit_delay_ms_still_paces(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Operators can still opt into local pacing via a positive delay_ms."""
+    sleeps: list[float] = []
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_rest_issue(1), _rest_issue(2)]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda s: sleeps.append(s))
+
+    run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=1,
+        delay_ms=500,
+        state="open",
+        limit=1000,
+    )
+
+    # Two issues at batch_size=1 -> per-issue sleep + batch checkpoint each.
+    assert len(sleeps) >= 2
+    assert all(s == pytest.approx(0.5) for s in sleeps)
+
+
+def test_run_fetch_all_uses_paginated_rest_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Enumeration stays on rest_issue_list_paginated; no per-issue reads (#1562)."""
+    list_calls: list[str] = []
+    subprocess_calls: list[Any] = []
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        list_calls.append(repo)
+        return [_rest_issue(1), _rest_issue(2)]
+
+    def spy_subprocess(*args: Any, **kwargs: Any) -> Any:
+        subprocess_calls.append((args, kwargs))
+        raise AssertionError("legacy GraphQL subprocess path must not run")
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_run_subprocess", spy_subprocess)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+
+    report = run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+    )
+
+    assert report.issues_written == 2
+    assert list_calls == ["deftai/directive"]
+    assert subprocess_calls == []
+
+
+def test_run_fetch_all_emits_progress_for_large_cohort(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Large cohorts emit enumerated + periodic writing progress (#1562)."""
+    total = PROGRESS_EVERY_N * 2
+    progress_lines: list[str] = []
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_rest_issue(n) for n in range(1, total + 1)]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+    monkeypatch.setattr(
+        _cache_fetch,
+        "_progress_writer",
+        lambda line: progress_lines.append(line),
+    )
+
+    report = run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+    )
+
+    assert report.issues_written == total
+    joined = "".join(progress_lines)
+    assert "enumerated=" in joined
+    assert "writing cache entries" in joined
+    assert f"processed={PROGRESS_EVERY_N}/{total}" in joined
+    assert f"processed={total}/{total}" in joined
+    assert "issues_written=" in joined
+    assert "already_fresh=" in joined
+    assert "issues_failed=" in joined
+
+
+def test_run_fetch_all_skips_progress_for_small_cohort(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cohorts below PROGRESS_EVERY_N stay quiet (fast enough without chatter)."""
+    progress_lines: list[str] = []
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_rest_issue(n) for n in range(1, PROGRESS_EVERY_N)]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+    monkeypatch.setattr(
+        _cache_fetch,
+        "_progress_writer",
+        lambda line: progress_lines.append(line),
+    )
+
+    run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+    )
+
+    assert progress_lines == []
 
 
 # ---------------------------------------------------------------------------

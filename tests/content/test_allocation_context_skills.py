@@ -227,3 +227,58 @@ def test_swarm_phase3_population_has_absent_section_prohibition() -> None:
         "dispatching a worker prompt without a populated ## Allocation context "
         "section (#1378)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 3. Swarm skill Phase 3 Step 1a documents sandbox auth remediation (#1557)
+# ---------------------------------------------------------------------------
+
+_STEP1A_HEADER = "### Step 1a: Worker Runtime and GitHub Auth Preflight (#1557)"
+_STEP1A_END = "### Step 1b: Provider-neutral sub-agent routing (#1531)"
+
+_SWARM_SANDBOX_AUTH_TOKENS = (
+    "scripts/platform_capabilities.py",
+    "scripts/github_auth_modes.py",
+    "sandbox_uid_remap",
+    "host-gh",
+    "injected-token",
+    "missing_injected_token",
+    "cloud-headless",
+    "Full-access execution",
+    "Trusted `gh` command allowlisting",
+    "Injected-token handoff",
+)
+
+
+def _swarm_phase3_step1a_block(text: str) -> str:
+    """Return the swarm-skill Phase 3 Step 1a (sandbox auth) block."""
+    start = text.find(_STEP1A_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_STEP1A_HEADER}' heading -- the #1557 "
+        "Phase 3 runtime/auth preflight step is missing"
+    )
+    end = text.find(_STEP1A_END, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_STEP1A_END}' heading not found after Step 1a -- "
+        "cannot bound the #1557 block"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("token", _SWARM_SANDBOX_AUTH_TOKENS)
+def test_swarm_phase3_step1a_sandbox_auth_token_present(token: str) -> None:
+    """Swarm Phase 3 Step 1a must carry #1557 sandbox/auth guidance tokens."""
+    block = _swarm_phase3_step1a_block(_read(_SWARM_PATH))
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 3 Step 1a missing #1557 token "
+        f"{token!r} -- see 1557d acceptance criteria"
+    )
+
+
+def test_swarm_phase3_step1a_is_must_step() -> None:
+    """The sandbox auth preflight step must be a `!` (MUST) requirement."""
+    block = _swarm_phase3_step1a_block(_read(_SWARM_PATH))
+    assert "! Before dispatching workers that will call `gh`" in block, (
+        f"{_SWARM_PATH}: Phase 3 Step 1a must carry the `!` MUST preflight "
+        "requirement for worker GitHub auth (#1557)"
+    )

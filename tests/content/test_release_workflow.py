@@ -30,6 +30,7 @@ Refs:
     form AND the SHA-pinned form so the ``draft: true`` contract pins
     independently of how the upstream version reference is encoded).
   - skills/deft-directive-release/SKILL.md -- canonical release workflow
+  - deftai/directive#1553 -- default-branch env bypass leak guidance
 """
 
 from __future__ import annotations
@@ -41,6 +42,8 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_YML = REPO_ROOT / ".github" / "workflows" / "release.yml"
+RELEASE_SKILL = REPO_ROOT / "skills" / "deft-directive-release" / "SKILL.md"
+RELEASING_DOC = REPO_ROOT / "docs" / "RELEASING.md"
 
 
 @pytest.fixture(scope="module")
@@ -243,4 +246,99 @@ def test_no_isdraft_false_flip_anywhere(workflow_text: str) -> None:
         "release.yml contains suspicious draft-flipping pattern(s): "
         f"{offenders}. Per #733 / #716 publish authority MUST remain with "
         "`task release:publish`."
+    )
+
+
+# ---------------------------------------------------------------------------
+# #1553 -- default-branch bypass guidance (skill + docs)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def release_skill_text() -> str:
+    assert RELEASE_SKILL.is_file(), f"release skill missing at {RELEASE_SKILL}"
+    return RELEASE_SKILL.read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def releasing_doc_text() -> str:
+    assert RELEASING_DOC.is_file(), f"RELEASING.md missing at {RELEASING_DOC}"
+    return RELEASING_DOC.read_text(encoding="utf-8")
+
+
+def test_release_skill_prefers_typed_policy_opt_out(release_skill_text: str) -> None:
+    """Release skill MUST prefer typed direct-commit policy over broad env-var (#1553)."""
+    section = release_skill_text
+    assert "task policy:allow-direct-commits" in section, (
+        "skills/deft-directive-release/SKILL.md must document "
+        "`task policy:allow-direct-commits -- --confirm` as the preferred "
+        "default-branch opt-out for release sessions (#1553)."
+    )
+    assert "allowDirectCommitsToMaster" in section, (
+        "skills/deft-directive-release/SKILL.md must reference the typed "
+        "allowDirectCommitsToMaster policy flag (#1553)."
+    )
+    assert "task policy:enforce-branches" in section, (
+        "skills/deft-directive-release/SKILL.md must document restoring "
+        "branch enforcement after the release session (#1553)."
+    )
+    # The skill must explicitly discourage wrapping the full release command.
+    assert re.search(
+        r"task release.*DEFT_ALLOW_DEFAULT_BRANCH_COMMIT|"
+        r"DEFT_ALLOW_DEFAULT_BRANCH_COMMIT.*task release",
+        section,
+        re.IGNORECASE,
+    ), (
+        "skills/deft-directive-release/SKILL.md must warn against wrapping "
+        "`task release` in DEFT_ALLOW_DEFAULT_BRANCH_COMMIT (#1553)."
+    )
+
+
+def test_release_skill_warns_env_bypass_is_process_wide(release_skill_text: str) -> None:
+    """Release skill MUST warn that the env-var bypass leaks into subprocesses (#1553)."""
+    section = release_skill_text
+    assert "process-wide" in section.lower(), (
+        "skills/deft-directive-release/SKILL.md must state that "
+        "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT is process-wide (#1553)."
+    )
+    for surface in ("task ci:local", "nested test", "temporary"):
+        assert surface in section.lower(), (
+            f"skills/deft-directive-release/SKILL.md must warn that the env-var "
+            f"bypass can leak into {surface!r} (#1553)."
+        )
+
+
+def test_releasing_doc_prefers_typed_policy_opt_out(releasing_doc_text: str) -> None:
+    """docs/RELEASING.md MUST mirror the typed-policy preference (#1553)."""
+    assert "task policy:allow-direct-commits" in releasing_doc_text, (
+        "docs/RELEASING.md must document `task policy:allow-direct-commits` "
+        "as the preferred default-branch opt-out (#1553)."
+    )
+    assert "task policy:enforce-branches" in releasing_doc_text, (
+        "docs/RELEASING.md must document restoring branch enforcement "
+        "after the release session (#1553)."
+    )
+
+
+def test_releasing_doc_warns_against_broad_env_bypass(releasing_doc_text: str) -> None:
+    """docs/RELEASING.md MUST warn against broad DEFT_ALLOW_DEFAULT_BRANCH_COMMIT (#1553)."""
+    text = releasing_doc_text.lower()
+    assert "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT" in releasing_doc_text, (
+        "docs/RELEASING.md must mention DEFT_ALLOW_DEFAULT_BRANCH_COMMIT (#1553)."
+    )
+    assert "process-wide" in text, (
+        "docs/RELEASING.md must state the env-var bypass is process-wide (#1553)."
+    )
+    assert "task ci:local" in releasing_doc_text, (
+        "docs/RELEASING.md must warn against wrapping `task ci:local` in the "
+        "env-var bypass (#1553)."
+    )
+    assert re.search(
+        r"task release.*DEFT_ALLOW_DEFAULT_BRANCH_COMMIT|"
+        r"DEFT_ALLOW_DEFAULT_BRANCH_COMMIT.*task release",
+        releasing_doc_text,
+        re.IGNORECASE,
+    ), (
+        "docs/RELEASING.md must warn against wrapping `task release` in "
+        "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT (#1553)."
     )

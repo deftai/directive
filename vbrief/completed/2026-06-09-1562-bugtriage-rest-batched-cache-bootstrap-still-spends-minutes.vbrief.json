@@ -1,0 +1,96 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1562"
+  },
+  "plan": {
+    "title": "bug(triage): REST-batched cache bootstrap still spends minutes in default local write delay",
+    "status": "completed",
+    "narratives": {
+      "Description": "The triage bootstrap path already retrieves issues through REST pagination, but the local cache write loop still sleeps by default. This story removes the multi-minute intentional delay from normal bootstrap runs and adds progress plus regression coverage so operators can tell work is moving.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1562",
+      "Overview": "## Summary\n\ntask triage:bootstrap now uses the REST-paginated cache fetch path, but the default runtime is still much slower than expected because cache_fetch_all keeps the old per-entry delay behavior during the local cache write loop.\n\nA live maintainer run on 2026-06-09 completed successfully but took about 388 seconds. The output showed populate_cache wrote 432 issues and skipped 39 fresh entries. The GitHub retrieve path should only need a handful of REST list pages at per_page=100, so the duration is not explained by remote issue retrieval.\n\n## Observed behavior\n\n- task triage:bootstrap spent several minutes in step 1 populate_cache with no intermediate progress.\n- Final recap: issues_written=432 already_fresh=39 issues_failed=0.\n- Total elapsed time: about 387.9s.\n\n## Code path checked\n\n- scripts/triage_bootstrap.py delegates to cache.cache_fetch_all.\n- scripts/cache.py delegates fetch-all to _cache_fetch.run_fetch_all.\n- scripts/_cache_fetch.py uses rest_issue_list_paginated for enumeration, so issue retrieval is REST-paginated rather than per-issue gh issue view.\n- scripts/cache.py still sets DEFAULT_DELAY_MS = 500.\n- _cache_fetch.run_fetch_all calls _maybe_sleep(delay_ms) after each issue write and again at every batch_size checkpoint.\n\nFor 432 writes with the current defaults, the intentional sleep budget alone is roughly (432 + 43) * 0.5s = 237.5s before local JSON rendering, scanning, and disk writes are counted.\n\n## Why this matters\n\nThe #1239 REST migration appears to have fixed the remote retrieval shape, but the old pacing defaults still make normal bootstrap feel hung. The UX is especially poor because populate_cache emits only start/done progress, so operators cannot tell whether the job is retrieving, sleeping, scanning, or stuck.\n\n## Suggested fix\n\n- Make the default delay 0 for the REST-paginated path, or only sleep on actual rate-limit/retry paths.\n- Add progress inside run_fetch_all for long cohorts, for example every N entries written/skipped.\n- Update stale comments/tests that still describe task scm:issue:view as the live implementation path.\n- Add a test that protects the production default from reintroducing multi-minute sleeps on REST-batched fetches. Current scale tests pass delay_ms=0, so they do not catch the slow default.\n\n## Acceptance criteria\n\n- A default task triage:bootstrap run for a few hundred open issues no longer spends minutes in intentional local sleeps.\n- The cache fetch path remains REST-paginated at per_page=100 and does not regress to per-issue GitHub reads.\n- Operators see progress during populate_cache on large cohorts.\n- Stale references to task scm:issue:view in this path are corrected or clearly marked historical.\n",
+      "Labels": "bug, triage, agent-experience",
+      "ImplementationPlan": "1. Update scripts/cache.py and scripts/_cache_fetch.py so the default REST-paginated cache fetch path does not sleep after every local issue write and emits periodic populate_cache progress for large cohorts.\n2. Add pytest verification evidence in tests/test_cache_fetch.py and tests/test_triage_bootstrap.py so production defaults stay delay-free for REST-batched fetches, REST pagination remains in use, and stale task scm:issue:view references are corrected or explicitly historical.",
+      "UserStory": "As a Deft operator, I want triage bootstrap to avoid intentional local sleeps and show progress, so that large cache refreshes no longer look hung for minutes.",
+      "Traces": "Issue #1562 maintainer timing report; scripts/cache.py DEFAULT_DELAY_MS; scripts/_cache_fetch.py run_fetch_all."
+    },
+    "items": [
+      {
+        "id": "1562-a1",
+        "title": "A default task triage:bootstrap run for a few hundred open issues no longer spends minutes in intentional local sleeps.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task triage:bootstrap uses the default cache_fetch_all settings, when the REST-paginated path writes a few hundred issues, then the production default does not add per-entry local sleep delays.",
+          "Traces": "Issue #1562 suggested fix; scripts/cache.py DEFAULT_DELAY_MS."
+        }
+      },
+      {
+        "id": "1562-a2",
+        "title": "The cache fetch path remains REST-paginated at per_page=100 and does not regress to per-issue GitHub reads.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the cache fetch path enumerates issues, when tests run, then they verify rest_issue_list_paginated remains the enumeration path and per-issue gh issue view is not reintroduced.",
+          "Traces": "Issue #1562 code path checked; scripts/_cache_fetch.py."
+        }
+      },
+      {
+        "id": "1562-a3",
+        "title": "Operators see progress during populate_cache on large cohorts.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given run_fetch_all processes a large cohort, when progress thresholds are reached, then populate_cache emits written/skipped/failed progress so operators can distinguish active work from a hang.",
+          "Traces": "Issue #1562 UX concern."
+        }
+      },
+      {
+        "id": "1562-a4",
+        "title": "Stale references to task scm:issue:view in this path are corrected or clearly marked historical.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given comments or tests describe the cache fetch implementation, when the story is complete, then stale task scm:issue:view references are removed or explicitly marked as historical rather than current behavior.",
+          "Traces": "Issue #1562 suggested fix."
+        }
+      }
+    ],
+    "id": "1562-rest-batched-cache-bootstrap-delay",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/cache.py",
+          "scripts/_cache_fetch.py",
+          "tests/test_cache_fetch.py",
+          "tests/test_triage_bootstrap.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/test_cache_fetch.py tests/test_triage_bootstrap.py"
+        ],
+        "expected_outputs": [
+          "cache fetch tests assert delay-free REST-batched defaults, progress output, and no per-issue GitHub read regression"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-cache-bootstrap",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:22:59Z"
+    },
+    "tags": [
+      "bug",
+      "triage",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1562",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1562: bug(triage): REST-batched cache bootstrap still spends minutes in default local write delay"
+      }
+    ],
+    "updated": "2026-06-09T15:22:59Z"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json"
+  },
+  "plan": {
+    "id": "1557c-thread-runtime-auth-contracts",
+    "title": "Thread runtime and GitHub auth modes through swarm dispatch contracts",
+    "status": "completed",
+    "planRef": "proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
+    "narratives": {
+      "Description": "Once runtime and auth modes are known, workers need those decisions in the same contract surfaces that already carry allocation and worker metadata. This story records runtime_mode and github_auth_mode in launch manifests and worker preambles so local and cloud workers enforce the correct credential rule.",
+      "ImplementationPlan": "1. Update scripts/swarm_launch.py so launch-manifest entries include runtime_mode and github_auth_mode fields derived from the validation layer and preserved alongside allocation_context.\n2. Update templates/agent-prompt-preamble.md and tests/cli/test_swarm_launch.py plus tests/content/test_agent_prompt_preamble_template.py as verification evidence that host-gh fallback is forbidden only for the wrong mode.",
+      "UserStory": "As a dispatched worker, I want the launch manifest and preamble to state my runtime and GitHub auth mode, so that I know whether host gh is allowed or injected credentials are required.",
+      "Traces": "Issue #1557 decomposition recommendation item 3; templates/agent-prompt-preamble.md identity separation section."
+    },
+    "items": [
+      {
+        "id": "1557c-a1",
+        "title": "Launch manifest carries runtime and auth mode",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given swarm launch emits a worker manifest, then each worker entry records runtime_mode and github_auth_mode without including secret token values.",
+          "Traces": "Issue #1557 proposal and decomposition recommendation item 3."
+        }
+      },
+      {
+        "id": "1557c-a2",
+        "title": "Worker preamble is mode-aware",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the worker preamble describes GitHub identity rules, then it forbids host gh fallback for injected-token or cloud/headless mode while allowing approved local host-gh mode after validation passes.",
+          "Traces": "templates/agent-prompt-preamble.md section 8; Issue #1557 acceptance criteria."
+        }
+      },
+      {
+        "id": "1557c-a3",
+        "title": "Tokens stay out of prompt contracts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given runtime and auth mode fields are threaded through dispatch contracts, then tests verify the manifest and preamble carry mode labels but do not include GH_TOKEN, GITHUB_TOKEN, or token values.",
+          "Traces": "Issue #1557 proposal: keep tokens out of prompts and transcripts."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/swarm_launch.py",
+          "templates/agent-prompt-preamble.md",
+          "tests/cli/test_swarm_launch.py",
+          "tests/content/test_agent_prompt_preamble_template.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_swarm_launch.py tests/content/test_agent_prompt_preamble_template.py"
+        ],
+        "expected_outputs": [
+          "swarm launch and prompt-preamble tests assert runtime_mode and github_auth_mode threading without token leakage"
+        ],
+        "depends_on": [
+          "1557a-runtime-capability-probe",
+          "1557b-github-auth-mode-validation"
+        ],
+        "conflict_group": "swarm-dispatch-contract",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:38:49Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1557",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1557: swarm: make GitHub credential policy runtime-aware for local agents",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1554",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1554"
+      }
+    ],
+    "updated": "2026-06-09T15:38:49Z"
+  }
+}

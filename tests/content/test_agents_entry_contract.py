@@ -286,6 +286,14 @@ _PROPAGATION_ACTION_VERBS: tuple[str, ...] = (
     "start agent",
 )
 
+#: Probe skill routing (#1518) -- trigger keywords and skill path MUST appear
+#: on both maintainer AGENTS.md and the consumer template.
+_PROPAGATION_PROBE_ROUTING_MARKERS: tuple[str, ...] = (
+    "run probe",
+    "/deft:run:probe",
+    "deft-directive-probe/SKILL.md",
+)
+
 
 def _normalize_whitespace(text: str) -> str:
     """Collapse all runs of whitespace (incl. tabs, CRLF, NBSP) to single spaces.
@@ -379,4 +387,20 @@ def test_propagation_action_verb_list_present_in_both_files() -> None:
     assert not agents_missing, (
         "AGENTS.md missing action-verb directive list token(s) from the "
         f"#1309 propagation gate (#810): {agents_missing}."
+    )
+
+
+def test_propagation_probe_routing_markers_present_in_both_files() -> None:
+    """#1518: probe trigger keywords and skill path MUST appear in both files."""
+    template = _read_template()
+    agents = _read_agents_md()
+    template_missing = _missing_markers(template, _PROPAGATION_PROBE_ROUTING_MARKERS)
+    agents_missing = _missing_markers(agents, _PROPAGATION_PROBE_ROUTING_MARKERS)
+    assert not template_missing, (
+        "templates/agents-entry.md missing probe routing marker(s) from the "
+        f"#1518 propagation gate: {template_missing}."
+    )
+    assert not agents_missing, (
+        "AGENTS.md missing probe routing marker(s) from the #1518 propagation "
+        f"gate: {agents_missing}."
     )

@@ -23,7 +23,10 @@ Frozen contracts implemented here
   [--base-branch <branch>] [--autonomous]``).
 - **C2** -- the launch-manifest JSON: a JSON array of objects
   ``{"story_id", "vbrief_path", "worktree_path", "branch",
-  "allocation_context"}`` where ``allocation_context`` is the #1378 token.
+  "allocation_context", "runtime_mode", "github_auth_mode", ...}`` where
+  ``allocation_context`` is the #1378 token and ``runtime_mode`` /
+  ``github_auth_mode`` (#1557c) carry worker credential policy labels
+  (never secret token values).
 - **C3** -- consumed via ``from swarm_worktrees import resolve_worktree_map``
   (delivered by a sibling story; the import is guarded so this engine and
   its tests build independently and the resolver is wired at integration).
@@ -112,6 +115,16 @@ except Exception:  # noqa: BLE001
     SubagentBackendDescriptor = None  # type: ignore[assignment,misc]
     probe_subagent_backends = None  # type: ignore[assignment]
     resolve_swarm_subagent_backend = None  # type: ignore[assignment]
+
+# Runtime probe + GitHub auth-mode inference (#1557a / #1557b / #1557c).
+# Guarded so tests can stub ``probe_worker_runtime_auth`` when the sibling
+# modules are unavailable.
+try:  # pragma: no cover -- core siblings in this repo
+    from github_auth_modes import infer_github_auth_mode  # type: ignore  # noqa: E402
+    from platform_capabilities import get_platform_capabilities  # type: ignore  # noqa: E402
+except Exception:  # noqa: BLE001
+    get_platform_capabilities = None  # type: ignore[assignment]
+    infer_github_auth_mode = None  # type: ignore[assignment]
 
 EXIT_OK = 0
 EXIT_GATE_FAILED = 1
@@ -521,6 +534,28 @@ def dispatch_provider_for(backend_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Worker runtime + GitHub auth mode labels (#1557c)
+# ---------------------------------------------------------------------------
+
+
+def probe_worker_runtime_auth() -> tuple[str, str]:
+    """Probe the launch environment and return ``(runtime_mode, github_auth_mode)``.
+
+    Labels are derived from the read-only runtime probe (#1557a) and auth-mode
+    inference (#1557b). Secret token values are never read or emitted -- only
+    mode names suitable for manifest / preamble contracts.
+    """
+    if get_platform_capabilities is None or infer_github_auth_mode is None:
+        msg = (
+            "runtime/auth mode modules are not importable "
+            "(scripts/platform_capabilities.py, scripts/github_auth_modes.py)."
+        )
+        raise RuntimeError(msg)
+    report = get_platform_capabilities()
+    return report.runtime_mode, infer_github_auth_mode(report)
+
+
+# ---------------------------------------------------------------------------
 # Gate-clearance integration (#1419 Slice 7)
 # ---------------------------------------------------------------------------
 
@@ -745,6 +780,8 @@ def build_manifest(
     subagent_backend: str | None = None,
     dispatch_provider: str | None = None,
     worker_role: str | None = None,
+    runtime_mode: str | None = None,
+    github_auth_mode: str | None = None,
 ) -> list[dict]:
     """Build the C2 launch-manifest array (one envelope per story).
 
@@ -757,6 +794,10 @@ def build_manifest(
     Top-level ``subagent_backend``, ``dispatch_provider``, and ``worker_role``
     fields (#1531e) carry audit-visible routing metadata without altering the
     #1378 allocation-context recognition contract.
+
+    ``runtime_mode`` and ``github_auth_mode`` (#1557c) label the worker
+    credential policy for each envelope. Mode labels only -- never secret
+    token values.
     """
     cohort_vbriefs = [story.relpath for story in resolved]
     manifest: list[dict] = []
@@ -788,6 +829,10 @@ def build_manifest(
             entry["dispatch_provider"] = dispatch_provider
         if worker_role is not None:
             entry["worker_role"] = worker_role
+        if runtime_mode is not None:
+            entry["runtime_mode"] = runtime_mode
+        if github_auth_mode is not None:
+            entry["github_auth_mode"] = github_auth_mode
         manifest.append(entry)
     return manifest
 
@@ -1063,6 +1108,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Error: {exc}", file=sys.stderr)
         return EXIT_CONFIG_ERROR
 
+    try:
+        runtime_mode, github_auth_mode = probe_worker_runtime_auth()
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return EXIT_CONFIG_ERROR
+
     manifest = build_manifest(
         resolved,
         project_root=project_root,
@@ -1079,6 +1130,8 @@ def main(argv: list[str] | None = None) -> int:
             dispatch_provider_for(backend.backend_id) if backend is not None else None
         ),
         worker_role=LEAF_CODING_WORKER_ROLE if backend is not None else None,
+        runtime_mode=runtime_mode,
+        github_auth_mode=github_auth_mode,
     )
 
     rendered = json.dumps(manifest, indent=2)

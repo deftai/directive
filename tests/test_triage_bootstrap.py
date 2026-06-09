@@ -106,6 +106,41 @@ def test_populate_cache_invokes_cache_fetch_all(tmp_path: Path) -> None:
     assert kwargs["source"] == "github-issue"
     assert kwargs["repo"] == "deftai/directive"
     assert kwargs["cache_root"] == tmp_path / ".deft-cache"
+    # #1562: bootstrap must not override delay_ms; production default is 0.
+    assert "delay_ms" not in kwargs
+
+
+def test_populate_cache_uses_delay_free_default_via_cache_module(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """step_populate_cache leaves delay_ms unset so cache.DEFAULT_DELAY_MS applies (#1562)."""
+    import cache as real_cache
+
+    monkeypatch.setattr(real_cache, "DEFAULT_DELAY_MS", 0)
+    sleeps: list[float] = []
+    rest_payload = [
+        {"number": n, "title": f"t{n}", "body": "b", "state": "open", "labels": []}
+        for n in range(1, 6)
+    ]
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return rest_payload
+
+    import _cache_fetch
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda s: sleeps.append(s))
+    monkeypatch.setattr(_cache_fetch, "_progress_writer", lambda _line: None)
+
+    outcome = triage_bootstrap.step_populate_cache(
+        tmp_path,
+        repo="deftai/directive",
+        cache_module=real_cache,
+    )
+
+    assert outcome.ok is True
+    assert sleeps == []
+    assert "issues_written=5" in outcome.message
 
 
 def test_populate_cache_skips_when_no_repo(tmp_path: Path) -> None:

@@ -76,6 +76,9 @@ _single_issue_fetcher: Callable[[str, int], dict[str, Any]] = rest_issue_view
 #: doesn't burn wall-clock.
 _sleep: Callable[[float], None] = time.sleep
 
+#: Progress writer; tests rebind to capture lines without stderr I/O.
+_progress_writer: Callable[[str], None] = sys.stderr.write
+
 #: Legacy subprocess seam preserved for back-compat with tests that
 #: pinned the pre-#1239 GraphQL flow. Unused on the REST path.
 _run_subprocess: Callable[..., Any] = subprocess.run
@@ -91,6 +94,10 @@ _RETRY_AFTER_RE: re.Pattern[str] = re.compile(r"Retry-After:\s*(\d+)", re.IGNORE
 #: Fallback Retry-After interval when the 429 stderr text omits the
 #: header. 60s mirrors GitHub's documented per-token recovery cadence.
 DEFAULT_RETRY_AFTER_FALLBACK_S: int = 60
+
+#: Emit in-loop progress every N processed issues on large cohorts so
+#: ``task triage:bootstrap`` step 1 does not look hung (#1562).
+PROGRESS_EVERY_N: int = 50
 
 
 class CacheFetchError(RuntimeError):
@@ -329,6 +336,15 @@ def run_fetch_all(
     """
     issues = _list_issues_rest(repo, state=state, limit=limit)
     report = FetchAllReport()
+    total = len(issues)
+    if total >= PROGRESS_EVERY_N:
+        _emit_fetch_progress(
+            repo=repo,
+            phase="enumerated",
+            processed=0,
+            total=total,
+            report=report,
+        )
 
     for i, issue in enumerate(issues):
         raw = _normalise_rest_issue(issue)
@@ -353,12 +369,23 @@ def run_fetch_all(
             report.issues_failed += 1
             report.failures.append({"key": key, "reason": str(exc)})
 
-        # Per-issue delay; batch-size checkpoint adds an extra pause so a
-        # quota-pressured run still has a chance to recover between
-        # cache:put writes (the REST core bucket can throttle just like
-        # GraphQL, even though it has a 10x larger headroom).
+        processed = i + 1
+        if total >= PROGRESS_EVERY_N and (
+            processed % PROGRESS_EVERY_N == 0 or processed == total
+        ):
+            _emit_fetch_progress(
+                repo=repo,
+                phase="writing",
+                processed=processed,
+                total=total,
+                report=report,
+            )
+
+        # Optional explicit pacing via ``--delay-ms``; production default
+        # is 0 (#1562) so normal REST-batched bootstrap does not sleep
+        # locally. Rate-limit recovery sleeps only on 429 retry paths.
         _maybe_sleep(delay_ms)
-        if (i + 1) % batch_size == 0:
+        if processed % batch_size == 0:
             _maybe_sleep(delay_ms)
 
     return report
@@ -398,6 +425,37 @@ def _list_issues_rest(repo: str, *, state: str, limit: int) -> list[dict[str, An
 def _maybe_sleep(delay_ms: int) -> None:
     if delay_ms > 0:
         _sleep(delay_ms / 1000.0)
+
+
+def _emit_fetch_progress(
+    *,
+    repo: str,
+    phase: str,
+    processed: int,
+    total: int,
+    report: FetchAllReport,
+) -> None:
+    """Write a single stderr progress line for long cache:fetch-all runs (#1562)."""
+    if phase == "enumerated":
+        line = (
+            f"cache:fetch-all progress repo={repo} "
+            f"enumerated={total} issues; writing cache entries...\n"
+        )
+    else:
+        line = (
+            f"cache:fetch-all progress repo={repo} "
+            f"processed={processed}/{total} "
+            f"issues_written={report.issues_written} "
+            f"already_fresh={report.already_fresh} "
+            f"issues_failed={report.issues_failed}\n"
+        )
+    try:
+        _progress_writer(line)
+        flush = getattr(sys.stderr, "flush", None)
+        if callable(flush):
+            flush()
+    except (OSError, ValueError):
+        pass
 
 
 # ---------------------------------------------------------------------------

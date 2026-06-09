@@ -196,6 +196,67 @@ Exit codes (three-state, mirrors `task verify:cache-fresh` /
 its reader thread on non-cp1252 bytes in a Greptile body it has to
 inspect on behalf of an agent that has gone dark.
 
+## Runtime and GitHub auth troubleshooting (#1557)
+
+Workers that stall in `validating` or `pushing` with GitHub failures often
+show healthy heartbeats while `gh` operations fail inside the worker sandbox.
+The parent monitor shell may pass `gh auth status` even when the worker
+execution envelope cannot authenticate or reach GitHub.
+
+! When a worker reports GitHub auth or API failures (in `last_message`,
+`terminal_state`, or `extra` diagnostics), classify the worker runtime and
+validate auth from the **worker worktree**, not the parent shell:
+
+```pwsh path=null start=null
+cd <worker-worktree>
+uv --project . run python scripts/platform_capabilities.py --json
+uv --project . run python scripts/github_auth_modes.py --json
+```
+
+### Runtime modes
+
+The capability probe (`scripts/platform_capabilities.py`, #1557a) classifies:
+
+- `local-unsandboxed` -- interactive local shell without Cursor native sandbox
+- `cursor-native-sandbox` -- Cursor native sandbox; UID 0 is remapped to the
+  host user (`sandbox_uid_remap`), not real root
+- `cloud-headless` -- cloud or headless runtime without local host context
+
+! When `sandbox_uid_remap` is true, do NOT interpret sandbox UID 0 or
+sandbox-root cwd ownership as host-root access. The probe reports
+`identity_kind: sandbox-remapped-local-user` and ownership as a sandbox view
+of the host filesystem.
+
+### Auth modes and failure shapes
+
+The auth validator (`scripts/github_auth_modes.py`, #1557b) checks from the
+same envelope that will run `gh`:
+
+- `host-gh` -- `gh auth status` plus minimal API reachability from the worker
+- `injected-token` -- requires `GH_TOKEN`, `GITHUB_TOKEN`, or
+  `GH_ENTERPRISE_TOKEN`; fails closed with `missing_injected_token` when
+  absent (typical for `cloud-headless` workers)
+
+### Remediation when host auth works but worker auth fails
+
+! When parent host `gh` auth succeeds but worker validation fails in
+`cursor-native-sandbox`, surface these operator choices (never paste token
+values into prompts or heartbeat records):
+
+- **Full-access execution** -- run GitHub steps with full filesystem/network
+  access so the worker shares the host `gh` credential store
+- **Trusted `gh` command allowlisting** -- allowlist the trusted `gh` command
+  path for the worker sandbox
+- **Injected-token handoff** -- bind credentials at the invocation layer
+  without exposing token values in dispatch envelopes or transcripts
+
+For `cloud-headless` workers missing injected credentials, re-dispatch with
+injected-token handoff or switch to a local interactive runtime. Do not assume
+host `gh` state is visible across the cloud boundary.
+
+Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1a,
+`scripts/platform_capabilities.py`, `scripts/github_auth_modes.py`. Refs #1557.
+
 ## Cross-references
 
 - `scripts/subagent_monitor.py` -- the canonical monitor helper

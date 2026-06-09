@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json"
+  },
+  "plan": {
+    "id": "1557a-runtime-capability-probe",
+    "title": "Add read-only runtime capability probe for worker environments",
+    "status": "completed",
+    "planRef": "proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
+    "narratives": {
+      "Description": "Local workers can execute in different runtime envelopes even on the same machine, so parent-shell assumptions are not enough. This story adds a read-only diagnostic probe that classifies local unsandboxed, Cursor native sandbox, and cloud/headless-like execution without treating sandbox-remapped UID 0 as real root.",
+      "ImplementationPlan": "1. Add the scripts/platform_capabilities.py file to inspect environment variables, /proc/self/uid_map, user identity, and basic filesystem ownership interpretation without mutating project state.\n2. Add pytest verification evidence in tests/cli/test_platform_capabilities.py for local-unsandboxed, cursor-native-sandbox UID remap, and cloud/headless-like missing-local-context cases.",
+      "UserStory": "As a swarm orchestrator, I want a runtime capability probe, so that worker dispatch decisions are based on the environment that will actually run the work.",
+      "Traces": "Issue #1557 decomposition recommendation item 1; issue #1557 Cursor native sandbox comment."
+    },
+    "items": [
+      {
+        "id": "1557a-a1",
+        "title": "Runtime mode classification is emitted",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given environment variables and platform files are available, when the probe runs, then it emits a structured runtime_mode such as local-unsandboxed, cursor-native-sandbox, or cloud-headless.",
+          "Traces": "Issue #1557 decomposition recommendation item 1."
+        }
+      },
+      {
+        "id": "1557a-a2",
+        "title": "Cursor sandbox UID remap is interpreted safely",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given /proc/self/uid_map maps sandbox UID 0 to CURSOR_ORIG_UID, when the probe reports identity, then it identifies sandbox-remapped local user execution rather than real-root execution.",
+          "Traces": "Issue #1557 suggested AC for Cursor native sandbox mode."
+        }
+      },
+      {
+        "id": "1557a-a3",
+        "title": "Probe remains read-only",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the runtime probe runs in a worker environment, then it reads environment and identity facts without writing credentials, changing GitHub auth state, or mutating vBRIEF lifecycle files.",
+          "Traces": "Issue #1557 smallest viable first slice."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/platform_capabilities.py",
+          "tests/cli/test_platform_capabilities.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_platform_capabilities.py"
+        ],
+        "expected_outputs": [
+          "runtime capability tests classify unsandboxed, Cursor sandbox remap, and cloud/headless-like execution"
+        ],
+        "depends_on": [],
+        "conflict_group": "runtime-capability-probe",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:22:58Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1557",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1557: swarm: make GitHub credential policy runtime-aware for local agents",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1554",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1554"
+      }
+    ],
+    "updated": "2026-06-09T15:22:58Z"
+  }
+}

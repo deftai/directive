@@ -23,13 +23,35 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Branch-Protection Policy Guard
 
-! Before any Phase 1 state mutation, run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Releases run on the configured base branch (default `master`) so the operator MUST be on the explicit-opt-in side of the policy OR have set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the release session. Concretely:
+! Before any Phase 1 state mutation, run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Releases run on the configured base branch (default `master`), so the operator MUST be on the explicit-opt-in side of the policy before the pipeline starts writing files.
+
+**Preferred path — typed direct-commit policy opt-out (#1553).** For a release session on the default branch, prefer the audited typed flag over the emergency env-var bypass:
+
+```
+task policy:allow-direct-commits -- --confirm
+```
+
+This writes `plan.policy.allowDirectCommitsToMaster = true` on `vbrief/PROJECT-DEFINITION.vbrief.json` with a capability-cost disclosure. After the release completes (or if the session aborts), restore enforcement:
+
+```
+task policy:enforce-branches
+```
+
+**Branch-guard probe (either path).** Regardless of which opt-out path you chose, confirm the guard passes before Phase 1 mutates state:
 
 ```
 uv run python scripts/preflight_branch.py --project-root . --quiet || exit 1
 ```
 
 or invoke `task verify:branch`. This is the canonical surface that surfaces the policy state to the operator before the pipeline starts writing files. The release pipeline's other safety surfaces (the dirty-tree guard, base-branch check, `task ci:local` gate) remain independent of this check.
+
+**Emergency env-var bypass — narrow scope only (#1553).** `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is process-wide: every child process, nested test, and temporary repository spawned from the same shell inherits it. During the v0.43.0 release attempt, wrapping the entire `task release` invocation in this env var let the bypass leak into the Step 5 `task ci:local` preflight, which caused `TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit` to fail because the vendored test repo allowed a direct `master` commit the test expected the hook to block.
+
+- ! Prefer `task policy:allow-direct-commits -- --confirm` for release sessions instead of exporting `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the whole shell.
+- ⊗ Wrap `task release`, `task ci:local`, or `task check` in `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` -- the env var is inherited by every subprocess and can produce false preflight failures before any release mutation.
+- ? If the env-var path is unavoidable, scope it to a **single** branch-guard probe only (e.g. `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 task verify:branch`) and do NOT export it for the release session. The release pipeline itself passes the bypass only in scoped subprocess `env=` for its authorised commit/tag/push mutations (#867); operators MUST NOT mirror that pattern at the shell level.
+
+The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess `env=` only (`scripts/release.py::_release_subprocess_env`, #867) so the parent shell stays clean. Operator-side env-var exports defeat that isolation.
 
 ## Deterministic Questions Contract
 
@@ -230,3 +252,4 @@ Where `<one-line guidance>` is one of:
 - ⊗ Hardcode `master` as the base branch -- delegate to the configured base branch from `task release --base-branch <branch>`
 - ⊗ Skip the post-create verify-isDraft gate (#724) -- a successful `gh release create` exit code does NOT prove the release actually landed in draft state; the 5-second poll-and-flip gate in `scripts/release.py` Step 11 is the only safety net against operator-error variants and partial-success races, and any manual recovery path that bypasses `scripts/release.py` MUST run `gh release view --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` before handing off to Phase 5
 - ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned
+- ⊗ Export `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire release session or wrap `task release` / `task ci:local` in it (#1553) -- the env var is process-wide and leaks into nested tests and temporary repos, producing false preflight failures. Prefer `task policy:allow-direct-commits -- --confirm` and restore with `task policy:enforce-branches` after the cut

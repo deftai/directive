@@ -187,3 +187,37 @@ def test_skill_frontmatter_discovery_found_files() -> None:
         f"in tests/content/test_skill_frontmatter.py cannot enforce "
         f"anything on an empty set."
     )
+
+
+# ---------------------------------------------------------------------------
+# #1518: Composer skill-porting reference contract
+# ---------------------------------------------------------------------------
+
+_COMPOSER_PORTING_REF = REPO_ROOT / "references" / "composer-skill-porting.md"
+
+_REQUIRED_PORTING_MARKERS: tuple[str, ...] = (
+    "Negative Triggers",
+    "Fast Path vs Isolation",
+    "Short Chat Expectations",
+    "references/",
+    "Do NOT trigger on",
+    "--body-file",
+)
+
+
+def test_composer_porting_reference_exists() -> None:
+    """references/composer-skill-porting.md must exist for Warp-to-Composer ports."""
+    assert _COMPOSER_PORTING_REF.is_file(), (
+        "references/composer-skill-porting.md is missing -- required by "
+        "issue #1518 story 1518b-composer-skill-porting-guidance"
+    )
+
+
+@pytest.mark.parametrize("marker", _REQUIRED_PORTING_MARKERS)
+def test_composer_porting_reference_covers_required_topics(marker: str) -> None:
+    """Composer porting reference must retain core authoring topics (#1518)."""
+    text = _COMPOSER_PORTING_REF.read_text(encoding="utf-8")
+    assert marker in text, (
+        f"references/composer-skill-porting.md must contain {marker!r} "
+        f"(issue #1518)"
+    )

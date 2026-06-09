@@ -1,0 +1,91 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json"
+  },
+  "plan": {
+    "id": "1518a-probe-skill-routing",
+    "title": "Add a discoverable Composer-facing probe skill",
+    "status": "completed",
+    "planRef": "proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
+    "narratives": {
+      "Description": "Composer agents currently see probe as a strategy document, not as a discoverable multi-turn workflow. This story adds a dedicated probe skill and routing so a request to run probe starts an interrogation loop instead of producing a premature artifact.",
+      "ImplementationPlan": "1. Create the new file skills/deft-directive-probe/SKILL.md by lifting the concrete one-question-per-turn contract from strategies/probe.md, including explicit first-turn and no-artifact-before-complete requirements.\n2. Update the AGENTS.md and templates/agents-entry.md routing code paths, then add pytest content tests in tests/content/test_agents_entry_contract.py and tests/content/test_probe_skill.py as verification evidence for trigger propagation.",
+      "UserStory": "As a Deft operator, I want run-probe requests to load an explicit probe skill, so that Composer agents ask one focused question before writing any artifacts.",
+      "Traces": "Issue #1518 comment: High priority add a Composer-facing probe skill; strategies/probe.md Workflow Step 2; AGENTS.md Skill Routing."
+    },
+    "items": [
+      {
+        "id": "1518a-a1",
+        "title": "Probe trigger loads explicit skill",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the user says run probe or /deft:run:probe, when an agent consults skill routing, then AGENTS.md and templates/agents-entry.md route to skills/deft-directive-probe/SKILL.md.",
+          "Traces": "Issue #1518 probe attachment recommendation A; AGENTS.md Skill Routing."
+        }
+      },
+      {
+        "id": "1518a-a2",
+        "title": "Probe first turn cannot batch decisions",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the probe skill is loaded, when the first user-facing probe turn is rendered, then the skill requires exactly one focused question plus the agent recommended answer and forbids batched decision lists.",
+          "Traces": "strategies/probe.md Step 2; Issue #1518 acceptance check."
+        }
+      },
+      {
+        "id": "1518a-a3",
+        "title": "Probe forbids premature artifacts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a probe session has not met completion criteria, when an agent follows the new skill, then vBRIEF writes, plan updates, and GitHub completion comments are explicitly forbidden.",
+          "Traces": "Issue #1518 comment; strategies/probe.md Transition criteria and Output sections."
+        }
+      },
+      {
+        "id": "1518a-a4",
+        "title": "Routing propagation is tested",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given consumer AGENTS.md is generated from templates/agents-entry.md, when content tests run, then the probe routing marker is asserted on both maintainer and template surfaces.",
+          "Traces": "AGENTS.md Template propagation discipline; tests/content/test_agents_entry_contract.py."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-probe/SKILL.md",
+          "AGENTS.md",
+          "templates/agents-entry.md",
+          "tests/content/test_agents_entry_contract.py",
+          "tests/content/test_probe_skill.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_agents_entry_contract.py tests/content/test_probe_skill.py"
+        ],
+        "expected_outputs": [
+          "content tests assert probe skill routing and frontmatter triggers without failing existing skill contracts"
+        ],
+        "depends_on": [],
+        "conflict_group": "probe-routing",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:22:54Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1518",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1518: Composer specific lessons learned",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-09T15:22:54Z"
+  }
+}

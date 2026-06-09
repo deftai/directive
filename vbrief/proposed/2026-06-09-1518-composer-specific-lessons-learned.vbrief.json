@@ -1,0 +1,44 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1518"
+  },
+  "plan": {
+    "title": "Composer specific lessons learned",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Composer specific lessons learned",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1518",
+      "Overview": "Here are three separate files containing direct advice from Composer running under Grok Build.  One relates to the Probe Strategy specifically, one relates to my personal Skills coming from the Warp environment, and the last is Composer's .md recommendations about how to translate Warp-tuned skills more generally to work with Composer.\n\n[composer-vs-warp-skills.md](https://github.com/user-attachments/files/28644281/composer-vs-warp-skills.md)\n[Composer Probe.txt](https://github.com/user-attachments/files/28644292/Composer.Probe.txt)\n[Composer Skills.txt](https://github.com/user-attachments/files/28644291/Composer.Skills.txt)"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1518",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1518: Composer specific lessons learned"
+      },
+      {
+        "uri": "completed/2026-06-09-add-a-discoverable-composer-facing-probe-skill.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Add a discoverable Composer-facing probe skill",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-09-document-composer-skill-porting-rules-for-warp-tuned-workflo.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Document Composer skill-porting rules for Warp-tuned workflows",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-09-add-mechanical-guardrails-against-premature-probe-completion.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Add mechanical guardrails against premature probe completion",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

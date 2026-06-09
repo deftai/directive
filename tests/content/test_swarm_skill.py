@@ -603,3 +603,93 @@ def test_provider_neutral_preamble_worker_metadata_is_required_rule() -> None:
         f"{_PREAMBLE_PATH}: §2.6 must open the Worker metadata requirement "
         "with a `!` MUST rule (#1531c)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 7. #1557 -- worker runtime classification + GitHub auth remediation
+# ---------------------------------------------------------------------------
+#
+# Wave 3 pins the sandbox credential remediation guidance landed by #1557d.
+# Tests fail if the swarm skill drops runtime-mode classification, host-gh
+# validation, cloud/headless injected-token failure, or sandbox remediation
+# language. Stable substring matches (not full-text).
+
+_STEP1A_HEADER = "### Step 1a: Worker Runtime and GitHub Auth Preflight (#1557)"
+_STEP1A_END = "### Step 1b: Provider-neutral sub-agent routing (#1531)"
+
+_SANDBOX_AUTH_TOKENS = (
+    "scripts/platform_capabilities.py",
+    "scripts/github_auth_modes.py",
+    "local-unsandboxed",
+    "cursor-native-sandbox",
+    "cloud-headless",
+    "sandbox_uid_remap",
+    "sandbox-remapped-local-user",
+    "sandbox view",
+    "host-gh",
+    "injected-token",
+    "missing_injected_token",
+    "gh auth status",
+    "Full-access execution",
+    "Trusted `gh` command allowlisting",
+    "Injected-token handoff",
+    "docs/subagent-heartbeat.md",
+    "#1557",
+)
+
+_SANDBOX_AUTH_ANTI_PATTERN_TOKENS = (
+    "parent-shell `gh auth status`",
+    "sandbox UID 0",
+    "#1557",
+)
+
+
+def _step1a_block(text: str) -> str:
+    """Return Phase 3 Step 1a, bounded to Step 1b."""
+    start = text.find(_STEP1A_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_STEP1A_HEADER}' heading -- "
+        "the #1557 worker runtime/auth preflight step is missing"
+    )
+    end = text.find(_STEP1A_END, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_STEP1A_END}' heading not found after Step 1a -- "
+        "cannot bound the #1557 block"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("token", _SANDBOX_AUTH_TOKENS)
+def test_swarm_phase3_step1a_sandbox_auth_token_present(token: str) -> None:
+    """Step 1a must pin runtime modes, auth validation, and remediation (#1557)."""
+    block = _step1a_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 3 Step 1a missing #1557 token "
+        f"{token!r} -- see 1557d acceptance criteria"
+    )
+
+
+def test_swarm_phase3_step1a_uid_remap_not_host_root() -> None:
+    """Step 1a must forbid presenting sandbox root as host-root ownership."""
+    block = _step1a_block(_read_swarm())
+    assert "not real root" in block, (
+        f"{_SWARM_PATH}: Phase 3 Step 1a must explain UID remap is not real root"
+    )
+    assert "host-root access" in block, (
+        f"{_SWARM_PATH}: Phase 3 Step 1a must warn against host-root misread"
+    )
+
+
+@pytest.mark.parametrize("token", _SANDBOX_AUTH_ANTI_PATTERN_TOKENS)
+def test_swarm_anti_patterns_1557_token_present(token: str) -> None:
+    """Anti-Patterns must guard against parent-shell auth and sandbox-root regressions."""
+    text = _read_swarm()
+    anti_start = text.find("## Anti-Patterns")
+    assert anti_start != -1, (
+        f"{_SWARM_PATH}: missing '## Anti-Patterns' section heading"
+    )
+    anti_block = text[anti_start:]
+    assert token in anti_block, (
+        f"{_SWARM_PATH}: Anti-Patterns missing #1557 token "
+        f"{token!r} -- must forbid sandbox auth regressions"
+    )

@@ -79,6 +79,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" -> `.deft/core/skills/deft-directive-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/skills/deft-directive-pre-pr/SKILL.md`
 - "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/skills/deft-directive-interview/SKILL.md`
+- "run probe" / "/deft:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md`
 - "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/skills/deft-directive-glossary/SKILL.md`
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/skills/deft-directive-gh-arch/SKILL.md`
 - "triage hygiene" / "work the cache" -> `.deft/core/skills/deft-directive-triage/SKILL.md`

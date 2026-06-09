@@ -134,7 +134,10 @@ _REPO_RE: re.Pattern[str] = re.compile(
 )
 
 DEFAULT_BATCH_SIZE: int = 10
-DEFAULT_DELAY_MS: int = 500
+#: REST-paginated fetch-all (#1239) no longer shells out per issue; the
+#: old 500 ms default burned minutes on hundred-issue cohorts (#1562).
+#: Explicit ``--delay-ms`` still paces local writes when operators need it.
+DEFAULT_DELAY_MS: int = 0
 DEFAULT_PRUNE_OLDER_THAN_DAYS: int = 30
 
 
@@ -891,8 +894,8 @@ def main(argv: list[str] | None = None) -> int:
     except (CacheError, CacheFetchError) as exc:
         # CacheFetchError is a sibling of CacheError (extends RuntimeError
         # directly to avoid a circular import in _cache_fetch). It surfaces
-        # from the scm:issue:list enumeration phase before the per-issue
-        # batch loop's try/except wraps anything; catching it here gives a
+        # from the REST list-enumeration phase before the local cache:put
+        # loop's try/except wraps anything; catching it here gives a
         # clean ``cache: error: ...`` exit instead of a raw traceback.
         print(f"cache: error: {exc}", file=sys.stderr)
         return 1

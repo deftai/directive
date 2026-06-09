@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1553"
+  },
+  "plan": {
+    "title": "release: document default-branch env bypass leak into nested tests",
+    "status": "completed",
+    "narratives": {
+      "Description": "Release operators can accidentally scope DEFT_ALLOW_DEFAULT_BRANCH_COMMIT too broadly when running the full release workflow. This story documents the safer typed-policy path and pins guidance so nested tests and temporary repos do not inherit the emergency bypass.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1553",
+      "Overview": "## Summary\n\nDuring the v0.43.0 release attempt, using `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the entire `task release` command let the release branch guard pass, but the environment variable leaked into nested `task ci:local` / Go installer tests.\n\nThat caused `TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit` to fail because the vendored test repo inherited the bypass and allowed a direct `master` commit that the test expected the hook to block.\n\n## Why this matters\n\nFuture release operators may choose the env-var bypass because the release skill currently names it as an emergency escape hatch for default-branch release commits. For a full release command, that is too broad: it affects child processes and isolated temp repos, producing a false release-preflight failure before any release mutation.\n\n## Desired outcome\n\nDocument and/or harden the release workflow so future releases are smoother:\n\n- Prefer the typed direct-commit policy opt-out for release sessions instead of wrapping the whole `task release` invocation in `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.\n- Warn that the env-var bypass is process-wide and can leak into nested tests or temp repos.\n- If the env-var path remains documented, scope it only to narrow branch-guard probes, not to `task release` / `task ci:local`.\n- Add content coverage in `tests/content/test_release_workflow.py` so the release skill preserves this guidance.\n\n## Observed failure\n\n`task release -- 0.43.0 --summary ...` stopped at Step 5, before any release mutation:\n\n- preflight git status: OK\n- branch == master: OK\n- vBRIEF lifecycle sync: OK\n- tag availability: OK\n- CI preflight: FAIL\n\nFailing test:\n\n`TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit`\n\nReason: inherited `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` caused the vendored pre-commit hook to allow a direct `master` commit.\n\n## Recovery used\n\nNo rollback was needed because the pipeline stopped before changelog promotion, tagging, pushing, or release creation. The tree stayed clean and `v0.43.0` did not exist as a tag or GitHub release.",
+      "Labels": "bug, Workflow",
+      "ImplementationPlan": "1. Update the skills/deft-directive-release/SKILL.md file and docs/RELEASING.md file so release operators prefer typed direct-commit policy opt-out instead of wrapping the full task release command in DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1.\n2. Add pytest verification evidence in tests/content/test_release_workflow.py so the release workflow guidance warns that the env-var bypass is process-wide and must not leak into task ci:local, nested tests, or temporary repos.",
+      "UserStory": "As a release operator, I want default-branch bypass guidance scoped to the release guard only, so that nested tests and temporary repos do not inherit an emergency commit bypass.",
+      "Traces": "Issue #1553 release failure report; skills/deft-directive-release/SKILL.md release workflow guidance; tests/content/test_release_workflow.py."
+    },
+    "items": [
+      {
+        "id": "1553-a1",
+        "title": "Release guidance prefers typed policy opt-out",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an operator needs to release from the default branch, when they read the release skill or release docs, then the guidance prefers the typed direct-commit policy opt-out over wrapping the full task release command in DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1.",
+          "Traces": "Issue #1553 desired outcome; skills/deft-directive-release/SKILL.md."
+        }
+      },
+      {
+        "id": "1553-a2",
+        "title": "Process-wide env bypass warning is explicit",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given DEFT_ALLOW_DEFAULT_BRANCH_COMMIT remains documented, when the release workflow mentions it, then the text warns that the env var is process-wide and can leak into task ci:local, nested tests, and temporary repositories.",
+          "Traces": "Issue #1553 observed failure."
+        }
+      },
+      {
+        "id": "1553-a3",
+        "title": "Content tests pin release bypass guidance",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given tests/content/test_release_workflow.py runs, then it fails if the release workflow drops the typed-policy preference or the warning against broad DEFT_ALLOW_DEFAULT_BRANCH_COMMIT scoping.",
+          "Traces": "Issue #1553 requested content coverage."
+        }
+      }
+    ],
+    "id": "1553-release-default-branch-bypass-guidance",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-release/SKILL.md",
+          "docs/RELEASING.md",
+          "tests/content/test_release_workflow.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_release_workflow.py"
+        ],
+        "expected_outputs": [
+          "release workflow content tests assert typed-policy guidance and process-wide env bypass warnings"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-bypass-guidance",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:22:57Z"
+    },
+    "tags": [
+      "bug",
+      "Workflow"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1553",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1553: release: document default-branch env bypass leak into nested tests"
+      }
+    ],
+    "updated": "2026-06-09T15:22:57Z"
+  }
+}

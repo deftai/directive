@@ -52,11 +52,13 @@ Ask the user (one question at a time):
 ### Step 2: Draft the skill
 
 - ! Follow the deft SKILL.md template below
-- ! Keep SKILL.md under 150 lines — split into `REFERENCE.md` if needed
+- ! Keep SKILL.md under 150 lines — split long templates into `references/*.md` (see [`references/composer-skill-porting.md`](../../references/composer-skill-porting.md))
 - ! Write the `description` field as if it's the only thing the agent will see when deciding whether to invoke this skill
+- ! Include negative triggers in `description` (`Do NOT trigger on …`) so near-miss phrases do not load the wrong skill
 - ~ Use the trigger words the user would naturally say
 - ! Use RFC2119 notation throughout (!=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY)
 - ~ Include attribution blockquote if inspired by an external source
+- ~ When porting Warp-tuned playbooks, read [`references/composer-skill-porting.md`](../../references/composer-skill-porting.md) for fast-path vs isolation, short-chat expectations, and Composer naming
 
 ### Step 3: Review with user
 
@@ -71,8 +73,9 @@ Iterate until approved.
 
 - ! Create the directory `skills/{skill-name}/`
 - ! Write `skills/{skill-name}/SKILL.md`
-- ~ Create `skills/{skill-name}/REFERENCE.md` if content exceeds 150 lines
+- ~ Create `skills/{skill-name}/REFERENCE.md` or `references/{topic}.md` if content exceeds 150 lines
 - ~ Create `skills/{skill-name}/scripts/` for deterministic helper scripts
+- ! When the skill creates GitHub issues or PRs, instruct authors to use `--body-file` with OS-temp paths — never inline multi-line `--body` strings (see `scm/github.md`)
 
 ---
 
@@ -84,6 +87,7 @@ name: {skill-name}
 description: >
   {What it does in 1–2 sentences}. Use when {specific triggers —
   what the user would say or what context activates this skill}.
+  Do NOT trigger on {near-miss phrase 1} or {near-miss phrase 2}.
 triggers:
   - {trigger phrase 1}
   - {trigger phrase 2}
@@ -139,18 +143,22 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 The description is **the only thing the agent sees** when deciding whether to load this skill. Write it to answer:
 1. What capability does this provide?
 2. When should it trigger? (use "Use when..." pattern)
+3. What near-miss phrases must NOT trigger it? (use "Do NOT trigger on..." pattern)
 
 - ! Max 1024 characters
 - ! Include "Use when [specific triggers]" in the description
+- ! Include "Do NOT trigger on [near-miss phrases]" when triggers could overlap another skill
 - ⊗ Vague descriptions ("helps with things") — the agent can't distinguish between skills
-- ! First sentence: what it does. Second sentence: when to use it.
+- ! First sentence: what it does. Second sentence: when to use it. Third (when needed): what not to trigger on.
 
 ---
 
 ## Anti-Patterns
 
 - ⊗ Omitting RFC2119 notation — deft skills use it consistently
-- ⊗ Putting all content in SKILL.md when it exceeds 150 lines — split into REFERENCE.md
+- ⊗ Putting all content in SKILL.md when it exceeds 150 lines — split into `references/*.md` or `REFERENCE.md`
 - ⊗ Vague trigger phrases — use phrases the user would actually type
+- ⊗ Overlapping triggers without negative triggers — add `Do NOT trigger on …` to the description
 - ⊗ Naming a GitHub-integrated skill without `gh` in the name
 - ⊗ Writing the description without a "Use when..." clause
+- ⊗ Inline multi-line `gh --body` strings in skill steps — use `--body-file` per `scm/github.md`

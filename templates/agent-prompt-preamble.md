@@ -92,6 +92,37 @@ Worked example (a tiered leaf worker on Composer):
 
 Reference: `plan.policy.swarmSubagentBackend` (#1531a), `task policy:subagent-backends`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
 
+## 2.7 Runtime and GitHub auth mode (#1557)
+
+Swarm launch manifests and worker dispatch envelopes MUST carry **runtime** and **GitHub auth mode** labels so each worker knows whether host `gh` credential store access is permitted. These fields are policy labels only -- they MUST NOT contain `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, or any secret token value.
+
+When present, document the fields in a separate `## Runtime and GitHub auth mode` section placed AFTER `## Worker metadata` (when present) and BEFORE the task body:
+
+- `runtime_mode`: one of `local-unsandboxed`, `cursor-native-sandbox`, or `cloud-headless` -- the execution envelope the worker runs in (from the read-only runtime probe, #1557a).
+- `github_auth_mode`: one of `host-gh` or `injected-token` -- which GitHub credential rule applies to this worker (#1557b).
+
+Launch-manifest entries (#1387 C2 contract) carry the same two fields at the top level alongside `allocation_context`. Workers MUST read the dispatch envelope (or launch manifest) and apply the identity-separation rules in §8 according to `github_auth_mode`, not the historical one-size-fits-all injected-token default.
+
+Worked example (local interactive worker with validated host gh):
+
+```markdown
+## Runtime and GitHub auth mode
+
+- runtime_mode: local-unsandboxed
+- github_auth_mode: host-gh
+```
+
+Worked example (cloud / headless worker):
+
+```markdown
+## Runtime and GitHub auth mode
+
+- runtime_mode: cloud-headless
+- github_auth_mode: injected-token
+```
+
+Reference: `scripts/platform_capabilities.py` (#1557a), `scripts/github_auth_modes.py` (#1557b), issue #1557.
+
 ## 3. PowerShell 5.1 non-ASCII rule (#798)
 
 If your shell is `pwsh 5.x` on Windows AND you are editing a file containing any non-ASCII glyph (em dashes, en dashes, arrows, smart quotes, ⊗, ✓, ellipses, emoji, ...), you MUST route the read AND write through Python `pathlib`:
@@ -207,21 +238,30 @@ Decision tree:
 
 The probe itself is a `core`-bucket call, so polling it cheaply does not consume GraphQL.
 
-## 8. Identity separation -- consume dispatcher credential, never fall back to host gh auth (#983)
+## 8. Identity separation -- mode-aware GitHub credential rules (#983 / #1557)
 
-Workers MUST consume the GitHub credential injected by the dispatcher (typically `GH_TOKEN` in the prompt-supplied env). Workers MUST NOT fall back to the host's `gh auth status` token.
+Workers MUST follow the GitHub credential rule recorded in the dispatch envelope's `github_auth_mode` field (§2.7) or launch manifest. The rule prevents maintainer/worker bucket coupling and audit conflation when modes are mixed across a cohort.
 
-Why: maintainer and workers sharing a single PAT couples the human review/merge workflow and N concurrent workers onto one 5,000-req/hr GraphQL bucket per identity. The maintainer gets rate-limited by their own swarm; audit logs conflate human and machine actions under one `actor.login`; a leaked worker prompt acts with the full scope of the maintainer's PAT instead of the narrow scope a worker actually needs (issues:write / pulls:write / contents:read). The architectural fix is bucket partitioning by identity -- the maintainer keeps their PAT for review/merge/release, workers consume a dedicated bot account or GitHub App installation token. The full pattern (provisioning, scoping, rotation, leaked-token recovery) lives at `patterns/multi-agent.md`.
+Why: maintainer and workers sharing a single PAT couples the human review/merge workflow and N concurrent workers onto one 5,000-req/hr GraphQL bucket per identity. The architectural fix is bucket partitioning by identity -- the maintainer keeps their PAT for review/merge/release, workers consume a dedicated bot account or GitHub App installation token (injected-token mode) or an explicitly approved host `gh` session (host-gh mode). The full pattern lives at `patterns/multi-agent.md`.
 
-Enforcement at the worker side:
+### injected-token mode (required for `github_auth_mode: injected-token` and always for `runtime_mode: cloud-headless`)
 
-- ! After AGENTS.md read, verify `GH_TOKEN` is set. If unset and no other dispatcher-supplied credential is present, FAIL LOUD with a clear error -- do not silently run under the host's `gh auth status` token.
+- ! Consume the GitHub credential injected by the dispatcher (typically `GH_TOKEN` / `GITHUB_TOKEN` / `GH_ENTERPRISE_TOKEN` in the prompt-supplied env). If unset and no other dispatcher-supplied credential is present, FAIL LOUD -- do not silently run under the host's `gh auth status` token.
 - ~ Confirm the credential's identity matches expectation: `gh api user --jq .login` should return the bot/App login, not the maintainer login. Mismatch is `BLOCKED: identity mismatch` to the parent.
-- ⊗ Inherit the maintainer's `gh auth status` token implicitly. The dispatch envelope is the contract; an implicit fallback re-introduces the bucket coupling and audit conflation this rule eliminates.
+- ⊗ Inherit the maintainer's `gh auth status` token implicitly. Host `gh` fallback is forbidden in injected-token and cloud-headless modes.
 
-Dispatchers (orchestrators / monitor agents / scheduled runs) are the other side of the contract: they MUST inject the worker credential into the env at spawn time and MUST NOT pass through the maintainer's credential. v1 deliberately ships docs-only per #983 non-goals; the env-var injection contract is operator-implemented today.
+### host-gh mode (permitted only when `github_auth_mode: host-gh`)
 
-This rule is complementary to S5 (REST-by-default) and S7 (rate-limit-aware throttle): REST-by-default reduces GraphQL demand on whichever bucket the worker is using; rate-limit throttle keeps the worker from exhausting its own bucket; identity separation prevents the worker bucket from being the maintainer's bucket. All three are required for stable swarm operation.
+Applies to local interactive workers (`runtime_mode: local-unsandboxed` or, after validation, `cursor-native-sandbox`) where swarm launch preflight confirmed `gh auth status` and repo access from the worker environment.
+
+- ! Use the worker environment's `gh` credential store -- the dispatch envelope explicitly authorises host `gh` for this worker. Do NOT require an injected `GH_TOKEN` when host gh auth is already valid in the worker shell.
+- ! Still verify identity before GitHub operations: `gh auth status` must pass and `gh api user --jq .login` must return the expected account.
+- ⊗ Fall back to host `gh` when `github_auth_mode` is `injected-token` or `runtime_mode` is `cloud-headless` -- those modes forbid host credential store use regardless of what is available on the host.
+- ~ When `runtime_mode: cursor-native-sandbox`, host `gh` may fail inside the sandbox even when the parent session is authenticated. Fail loud with remediation (full-access execution, trusted-path allowlist, or switch to injected-token handoff) rather than assuming parent auth is visible to the worker.
+
+Dispatchers MUST inject worker credentials for injected-token / cloud-headless dispatches and MUST record the selected `github_auth_mode` in the launch manifest and dispatch envelope. v1 deliberately keeps token injection operator-implemented; mode labels make the contract explicit without placing token values in prompts or transcripts.
+
+This rule is complementary to §5 (REST-by-default) and §7 (rate-limit-aware throttle): REST-by-default reduces GraphQL demand on whichever bucket the worker is using; rate-limit throttle keeps the worker from exhausting its own bucket; mode-aware identity separation prevents the worker bucket from being the maintainer's bucket when injected-token mode applies. All three are required for stable swarm operation.
 
 ## 9. Sub-agent spawn rules per #727
 
@@ -232,7 +272,7 @@ If you (the worker) need to spawn a sub-agent yourself:
 - Each sub-agent receives its own dispatch envelope including this preamble (or a reference to it).
 - Each child dispatch MUST carry its own `## Worker metadata` section per §2.6 when backend routing applies: set `dispatch_provider` and `worker_role` for the child's actual harness and role; propagate or override `selected_backend` / `routing_policy` so audit trails remain reconstructable at every tree depth (#1531).
 - Coordinate shared append-only files (CHANGELOG, lessons.md) with explicit ownership at dispatch time.
-- Sub-agents inherit the parent worker's `GH_TOKEN`; they MUST NOT mint or fall back to a different credential. Identity separation per §8 cascades through the spawn tree.
+- Sub-agents inherit the parent worker's credential policy: when the parent dispatch is `github_auth_mode: injected-token`, children MUST use the injected token; when `host-gh`, children inherit the same host-gh authorisation. They MUST NOT mint or fall back to a different credential mode than the parent envelope specifies. Identity separation per §8 cascades through the spawn tree.
 
 ## 10. Dispatcher lifecycle hygiene -- workers are all-or-nothing
 

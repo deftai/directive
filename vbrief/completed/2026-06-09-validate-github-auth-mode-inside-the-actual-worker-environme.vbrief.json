@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json"
+  },
+  "plan": {
+    "id": "1557b-github-auth-mode-validation",
+    "title": "Validate GitHub auth mode inside the actual worker environment",
+    "status": "completed",
+    "planRef": "proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
+    "narratives": {
+      "Description": "The observed failure showed parent shell GitHub authentication can pass while the worker sandbox still cannot authenticate or reach GitHub. This story adds deterministic validation for host-gh and injected-token modes from the environment that will perform GitHub operations.",
+      "ImplementationPlan": "1. Add the scripts/github_auth_modes.py file that consumes runtime probe output and validates host-gh versus injected-token GitHub modes with gh auth and a minimal API reachability check.\n2. Add pytest verification evidence in tests/cli/test_github_auth_modes.py for missing injected credentials, valid host-gh local mode, sandbox auth failure, and repo-access failure remediation.",
+      "UserStory": "As a swarm dispatcher, I want GitHub auth validation to run inside the worker environment, so that local workers fail before dispatch when host credentials are unusable.",
+      "Traces": "Issue #1557 decomposition recommendation item 2; issue #1557 auth-mode validation AC."
+    },
+    "items": [
+      {
+        "id": "1557b-a1",
+        "title": "Injected-token mode fails without token",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given github_auth_mode is injected-token, when no GH_TOKEN or GITHUB_TOKEN is available, then validation fails closed and does not fall back to host gh state.",
+          "Traces": "Issue #1557 cloud/headless acceptance criteria."
+        }
+      },
+      {
+        "id": "1557b-a2",
+        "title": "Host-gh mode validates actual worker reachability",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given github_auth_mode is host-gh, when validation runs from the worker environment, then it checks gh auth status and a minimal GitHub API call from that same environment.",
+          "Traces": "Issue #1557 local host-gh acceptance criteria."
+        }
+      },
+      {
+        "id": "1557b-a3",
+        "title": "Sandbox auth failure names remediation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given parent host auth works but worker sandbox GitHub auth fails, when validation reports the failure, then it names full-access execution, trusted command allowlisting, or injected-token handoff as remediation.",
+          "Traces": "Issue #1557 Cursor sandbox suggested expansion."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/github_auth_modes.py",
+          "tests/cli/test_github_auth_modes.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_github_auth_modes.py"
+        ],
+        "expected_outputs": [
+          "GitHub auth-mode tests fail closed for missing injected token and worker-environment auth failures"
+        ],
+        "depends_on": [
+          "1557a-runtime-capability-probe"
+        ],
+        "conflict_group": "github-auth-validation",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:29:36Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1557",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1557: swarm: make GitHub credential policy runtime-aware for local agents",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1554",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1554"
+      }
+    ],
+    "updated": "2026-06-09T15:29:36Z"
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json"
+  },
+  "plan": {
+    "id": "1518c-probe-session-guardrails",
+    "title": "Add mechanical guardrails against premature probe completion",
+    "status": "completed",
+    "planRef": "proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
+    "narratives": {
+      "Description": "The probe miss happened because prose rules allowed Composer to jump directly to artifact delivery. This story evaluates and implements a lightweight mechanical guard so probe artifacts cannot be marked complete while the session is still in interrogation mode.",
+      "ImplementationPlan": "1. Add a small scripts/probe_session.py helper module that records or validates whether a probe session is interrogating or complete before artifact registration.\n2. Wire the strategies/probe.md output guidance to that helper and add pytest verification evidence in tests/cli/test_probe_session.py and tests/content/test_strategy_chaining.py for incomplete and complete probe handoff cases.",
+      "UserStory": "As a Deft maintainer, I want probe completion to have a mechanical guard, so that agents cannot silently skip the interactive interrogation phase.",
+      "Traces": "Issue #1518 recommendation C; strategies/probe.md Transition criteria and Chaining Gate."
+    },
+    "items": [
+      {
+        "id": "1518c-a1",
+        "title": "Probe state model is explicit",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a probe session is started, when its state is recorded or validated, then the system distinguishes interrogate from complete and exposes the target, current branch, and resolved decisions.",
+          "Traces": "Issue #1518 recommendation C session state file."
+        }
+      },
+      {
+        "id": "1518c-a2",
+        "title": "Incomplete probe blocks completion markers",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a probe session is still interrogating, when code attempts to write a probe artifact or update completedStrategies.probe, then the guard fails with an actionable message.",
+          "Traces": "Issue #1518 recommendations A and C."
+        }
+      },
+      {
+        "id": "1518c-a3",
+        "title": "Complete probe allows artifact handoff",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the probe completion criteria are satisfied, when the same guard runs, then it allows the canonical vBRIEF artifact and chaining-gate update path.",
+          "Traces": "strategies/probe.md Transition criteria and Output sections."
+        }
+      },
+      {
+        "id": "1518c-a4",
+        "title": "Probe strategy documents the mechanical guard",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a maintainer reads strategies/probe.md, then the output section names the mechanical guard and describes the recovery path for incomplete sessions.",
+          "Traces": "strategies/probe.md Output and Chaining Gate."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "strategies/probe.md",
+          "scripts/probe_session.py",
+          "tests/cli/test_probe_session.py",
+          "tests/content/test_strategy_chaining.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_probe_session.py tests/content/test_strategy_chaining.py"
+        ],
+        "expected_outputs": [
+          "tests reject incomplete probe completion and accept completed probe handoff"
+        ],
+        "depends_on": [
+          "1518a-probe-skill-routing"
+        ],
+        "conflict_group": "probe-guardrails",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:30:51Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1518",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1518: Composer specific lessons learned",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-09T15:30:51Z"
+  }
+}

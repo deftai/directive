@@ -324,6 +324,49 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime.
 ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence.
 
+### Step 1a: Worker Runtime and GitHub Auth Preflight (#1557)
+
+! Before dispatching workers that will call `gh`, probe the **worker execution envelope** (not the parent monitor shell) for runtime mode and GitHub credential readiness. The read-only capability probe (`scripts/platform_capabilities.py`, #1557a) and auth validator (`scripts/github_auth_modes.py`, #1557b) MUST run from the same environment the worker will use.
+
+1. ! **Classify runtime mode** — run the capability probe from each worker worktree (or dispatch target):
+
+```pwsh path=null start=null
+uv --project . run python scripts/platform_capabilities.py --json
+```
+
+The probe returns one of:
+
+- `local-unsandboxed` — interactive local shell without Cursor native sandbox
+- `cursor-native-sandbox` — Cursor native sandbox; effective UID 0 inside the worker is a sandbox identity, not host root
+- `cloud-headless` — cloud or headless agent runtime without local host context
+
+2. ! **Interpret Cursor sandbox UID remap** — when `sandbox_uid_remap` is true, effective UID 0 inside the worker is **remapped to the host user**, not real root. The probe sets `identity_kind` to `sandbox-remapped-local-user`. Do NOT present sandbox UID 0 or sandbox-root ownership as proof of host-root access — cwd ownership and `/proc/self/uid_map` are interpreted as a **sandbox view** of the host filesystem, not as the host running as root.
+
+3. ! **Validate GitHub auth from the worker environment** — run auth validation from the same envelope:
+
+```pwsh path=null start=null
+uv --project . run python scripts/github_auth_modes.py --json
+```
+
+Modes:
+
+- `host-gh` (default for `local-unsandboxed` and `cursor-native-sandbox`) — requires `gh auth status` and a minimal GitHub API reachability check from the worker environment
+- `injected-token` (default for `cloud-headless`) — requires `GH_TOKEN`, `GITHUB_TOKEN`, or `GH_ENTERPRISE_TOKEN`; **fails closed** with `missing_injected_token` when absent and never falls back to host `gh` credential store
+
+4. ! **Surface remediation when parent host auth works but worker auth fails** — a common failure mode is the parent shell passing `gh auth status` while the worker sandbox cannot authenticate or reach GitHub. When validation reports `gh_auth_failed`, `api_unreachable`, or `repo_access_denied` in `cursor-native-sandbox`, surface these remediation paths to the operator (token values MUST NOT enter prompts or transcripts):
+
+   - **Full-access execution** — run the GitHub step with full filesystem/network access so the worker shares the host `gh` credential store
+   - **Trusted `gh` command allowlisting** — allowlist the trusted `gh` command path for the worker sandbox
+   - **Injected-token handoff** — bind credentials at the invocation layer (`GH_TOKEN` / `GITHUB_TOKEN`) without pasting token values into dispatch envelopes
+
+5. ! **Cloud/headless injected-token failure** — when runtime mode is `cloud-headless` and no injected token is available, validation fails with `missing_injected_token`. Do NOT assume host `gh` state is visible to cloud workers; re-dispatch with injected-token handoff or switch to a local interactive runtime.
+
+⊗ Assume parent-shell `gh auth status` proves worker-environment readiness — always validate from the worker envelope (#1557).
+⊗ Present sandbox UID 0 or sandbox-root cwd ownership as host-root access — UID remap means sandbox identity is a view of the host user (#1557).
+⊗ Paste `GH_TOKEN` / `GITHUB_TOKEN` values into worker prompts or dispatch envelopes — use invocation-layer handoff only (#1557).
+
+Cross-references: `scripts/platform_capabilities.py` (#1557a), `scripts/github_auth_modes.py` (#1557b), `tests/cli/test_platform_capabilities.py`, `tests/cli/test_github_auth_modes.py`, `docs/subagent-heartbeat.md` (runtime/auth troubleshooting). Refs #1557.
+
 ### Step 1b: Provider-neutral sub-agent routing (#1531)
 
 ! **Heterogeneous dispatch is provider-neutral.** Tiered / heterogeneous swarm topology is an opt-in extension of the platform adapter (#1342 / #1331), not a Grok Build-only path. When routing leaf workers, the monitor separates three concerns that MUST NOT be collapsed:
@@ -856,5 +899,7 @@ CONSTRAINTS:
 - ⊗ Skip the Phase 0 Step 0.5 lifecycle bridge (#1025) and let the Step 1 preflight gate reject candidate scope vBRIEFs wholesale. The setup skill deposits scope vBRIEFs in `vbrief/proposed/` and the refinement skill leaves them in `vbrief/pending/`; the swarm Phase 0 Step 1 preflight only accepts `vbrief/active/` with `plan.status == "running"`. The bridge step (`task scope:promote -- <path>` then `task scope:activate -- <path>`) is the contract that converts proposed/pending candidates to active before allocation -- bypassing it re-surfaces the originating 2026-05-10 first-session consumer-swarm failure mode (`Invalid transition: 'activate' requires file in pending/`)
 - ⊗ Auto-promote + activate every candidate in `vbrief/proposed/` or `vbrief/pending/` during the Phase 0 Step 0.5 bridge without explicit user approval (#1025). Proposed-stage vBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4); silent promotion bypasses the user's lifecycle intent and may flip `plan.status` to `running` on scopes the user has not yet refined. Broad affirmatives (`proceed`, `do it`, `go ahead`) do NOT satisfy the bridge approval gate -- require an explicit `yes` / `confirmed` / `approve`
 - ⊗ Describe heterogeneous sub-agent routing as Grok Build-only — provider-neutral dispatch separates dispatch provider, worker role, and model or agent selection; Composer-class coding agents, Cursor/cloud agents, and future adapters are first-class backends alongside Grok Build `spawn_subagent` (#1531)
+- ⊗ Assume parent-shell `gh auth status` proves a worker sandbox can authenticate or reach GitHub — always run `scripts/github_auth_modes.py` from the worker envelope and surface full-access execution, trusted `gh` allowlisting, or injected-token handoff when sandbox auth fails (#1557)
+- ⊗ Present Cursor sandbox UID 0 or sandbox-root cwd ownership as host-root access — `sandbox_uid_remap` means the sandbox identity is remapped to the host user, not real root (#1557)
 - ⊗ Fall through to the manual-terminal fallback (Step 2b) when spawn_subagent is available -- Step 2d is the first-class grok-build launch path; manual terminal is for environments with no orchestration primitive at all (#1331)
 - ⊗ Surface, propose, or discuss the Phase 5 -> 6 merge cascade gate while `task swarm:verify-review-clean -- <pr-numbers...>` has not yet exited 0 on the current cohort (#1364). Keying the transition on poller lifecycle completion alone -- i.e. treating "every poller sub-agent returned a terminal message" as sufficient to surface the merge gate -- is the recurrence pattern from the #1166 swarm execution where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate. The cohort verifier is the only authoritative CLEAN signal at the cohort level; a poller's `clean_gate_holdout=*` exit IS a non-CLEAN report and MUST hold the gate even when every sub-agent has technically returned

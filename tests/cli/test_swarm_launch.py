@@ -119,8 +119,13 @@ def backend_ready(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def launch_ready(gates_pass, backend_ready) -> None:
+def launch_ready(gates_pass, backend_ready, monkeypatch: pytest.MonkeyPatch) -> None:
     """Gates pass and sub-agent backend policy is ready for manifest emission."""
+    monkeypatch.setattr(
+        sl,
+        "probe_worker_runtime_auth",
+        lambda: ("local-unsandboxed", "host-gh"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -268,6 +273,8 @@ class TestManifestShape:
             "subagent_backend",
             "dispatch_provider",
             "worker_role",
+            "runtime_mode",
+            "github_auth_mode",
         }
         assert entry["story_id"] == "sA"
         assert entry["vbrief_path"].endswith("a.vbrief.json")
@@ -979,3 +986,97 @@ class TestSubagentBackendPolicy:
         err = capsys.readouterr().err
         assert "leaf-implementation" in err
         assert "review-only" in err
+
+
+# ---------------------------------------------------------------------------
+# #1557c -- runtime_mode + github_auth_mode in launch manifest
+# ---------------------------------------------------------------------------
+
+
+class TestRuntimeAuthContract:
+    def test_manifest_carries_runtime_and_auth_mode_labels(
+        self, project: Path, launch_ready, monkeypatch, capsys
+    ) -> None:
+        monkeypatch.setattr(
+            sl,
+            "probe_worker_runtime_auth",
+            lambda: ("cloud-headless", "injected-token"),
+        )
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        entry = json.loads(capsys.readouterr().out)[0]
+        assert entry["runtime_mode"] == "cloud-headless"
+        assert entry["github_auth_mode"] == "injected-token"
+
+    def test_manifest_labels_same_on_every_cohort_member(
+        self, project: Path, launch_ready, monkeypatch, capsys
+    ) -> None:
+        monkeypatch.setattr(
+            sl,
+            "probe_worker_runtime_auth",
+            lambda: ("cursor-native-sandbox", "host-gh"),
+        )
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
+        sl.main(["--stories", "100,200", "--project-root", str(project)])
+        manifest = json.loads(capsys.readouterr().out)
+        for entry in manifest:
+            assert entry["runtime_mode"] == "cursor-native-sandbox"
+            assert entry["github_auth_mode"] == "host-gh"
+
+    def test_manifest_never_includes_token_values(
+        self, project: Path, launch_ready, monkeypatch, capsys
+    ) -> None:
+        secret = "ghp_super_secret_token_value_must_not_leak"
+        monkeypatch.setenv("GH_TOKEN", secret)
+        monkeypatch.setenv("GITHUB_TOKEN", secret)
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        rendered = capsys.readouterr().out
+        assert secret not in rendered
+        entry = json.loads(rendered)[0]
+        assert "GH_TOKEN" not in entry
+        assert "GITHUB_TOKEN" not in entry
+
+    def test_build_manifest_threads_runtime_auth_without_tokens(self) -> None:
+        story = sl.ResolvedStory(
+            token="sA",
+            story_id="sA",
+            path=Path("vbrief/active/a.vbrief.json"),
+            relpath="vbrief/active/a.vbrief.json",
+        )
+        manifest = sl.build_manifest(
+            [story],
+            project_root=Path("."),
+            group=None,
+            base_branch="master",
+            worktree_records={},
+            dispatch_kind="solo",
+            allocation_plan_id=None,
+            batching_rationale=None,
+            operator_approval_evidence="test",
+            runtime_mode="local-unsandboxed",
+            github_auth_mode="host-gh",
+        )
+        entry = manifest[0]
+        assert entry["runtime_mode"] == "local-unsandboxed"
+        assert entry["github_auth_mode"] == "host-gh"
+        assert "GH_TOKEN" not in entry
+        assert "GITHUB_TOKEN" not in entry
+
+    def test_probe_unavailable_exits_config_error(
+        self, project: Path, launch_ready, monkeypatch, capsys
+    ) -> None:
+        def boom() -> tuple[str, str]:
+            raise RuntimeError("runtime/auth mode modules are not importable")
+
+        monkeypatch.setattr(sl, "probe_worker_runtime_auth", boom)
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_CONFIG_ERROR
+        captured = capsys.readouterr()
+        assert "runtime/auth mode" in captured.err
+        assert captured.out.strip() == ""

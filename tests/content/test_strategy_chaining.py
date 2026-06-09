@@ -151,7 +151,7 @@ class TestReadmeTypeColumn:
 # 3. Category consistency: preparatory strategies reference chaining gate
 # ---------------------------------------------------------------------------
 
-_PREPARATORY_FILES = ["map.md", "research.md", "discuss.md"]
+_PREPARATORY_FILES = ["map.md", "research.md", "discuss.md", "probe.md"]
 _SPEC_GENERATING_FILES = ["interview.md", "yolo.md", "speckit.md"]
 
 
@@ -250,3 +250,35 @@ class TestYoloV020OutputShape:
 
         # Mermaid and invoking updated for v0.20 handoff
         assert "v0.20 shape" in text.lower()
+
+
+# ---------------------------------------------------------------------------
+# 6. probe.md mechanical guard documentation (#1518c)
+# ---------------------------------------------------------------------------
+
+
+class TestProbeMechanicalGuard:
+    """probe.md must document the probe_session.py mechanical guard (#1518c)."""
+
+    _text = _read("strategies/probe.md")
+
+    def test_probe_strategy_documents_mechanical_guard_module(self) -> None:
+        assert "scripts/probe_session.py" in self._text, (
+            "strategies/probe.md must name scripts/probe_session.py as the mechanical guard"
+        )
+        assert "Mechanical guard" in self._text or "mechanical guard" in self._text.lower()
+
+    def test_probe_strategy_documents_interrogate_complete_states(self) -> None:
+        assert "interrogate" in self._text
+        assert "complete" in self._text
+        assert ".deft/probe-session.json" in self._text
+
+    def test_probe_strategy_documents_guard_commands(self) -> None:
+        assert "guard-artifact" in self._text
+        assert "guard-plan-registration" in self._text
+        assert "completedStrategies.probe" in self._text
+
+    def test_probe_strategy_documents_recovery_path(self) -> None:
+        assert "Recovery" in self._text or "recovery" in self._text.lower()
+        assert "probe_session.py complete" in self._text
+        assert "transition criteria" in self._text.lower()

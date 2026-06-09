@@ -67,6 +67,32 @@ Walk the decision tree depth-first. For each unresolved branch:
 
 ! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
 
+### Mechanical guard (`scripts/probe_session.py`)
+
+Probe completion is enforced mechanically — not by prose alone. A per-clone
+session file at `.deft/probe-session.json` records whether the session is still
+`interrogate` or `complete`, plus the probe `target`, `currentBranch`, and
+`resolvedDecisions`.
+
+- ! At probe start, record the session:
+  `uv run python scripts/probe_session.py start --target <scope>`
+- ! While interrogating, record locked/deferred/risk-accepted decisions and
+  branch focus with `record` / `set-branch` subcommands as branches resolve
+- ! Before writing probe output or registering `completedStrategies.probe`,
+  mark the session complete:
+  `uv run python scripts/probe_session.py complete`
+- ! Immediately before artifact or plan registration, run the guard:
+  - `uv run python scripts/probe_session.py guard-artifact --path vbrief/proposed/{scope}-probe.vbrief.json`
+  - `uv run python scripts/probe_session.py guard-plan-registration`
+- ⊗ Write probe artifacts or update `completedStrategies.probe` while the
+  session state is still `interrogate` — the guard exits non-zero with an
+  actionable recovery message
+
+**Recovery when the guard blocks handoff:** continue interrogation until the
+[transition criteria](#transition-criteria-probe-complete) are met, record
+decisions with `probe_session.py record`, run `probe_session.py complete`,
+then retry the guard before writing artifacts or updating `plan.vbrief.json`.
+
 `{scope}` is the project name from `PROJECT-DEFINITION.vbrief.json`, or the
 feature/component name if probing a sub-scope. Use the same value consistently
 throughout the session. Examples: `my-app-probe`, `auth-probe`.

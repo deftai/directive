@@ -6,6 +6,26 @@ The GitHub Actions workflow (`.github/workflows/release.yml`) builds installers 
 
 The interactive operator-side workflow (`task release` / `task release:publish` / `task release:rollback` / `task release:e2e`) is encoded in `skills/deft-directive-release/SKILL.md`. The notes below cover the underlying CI workflow and manual smoke-test procedure.
 
+## Default-branch release policy (#1553)
+
+Releases run on the configured base branch (default `master`). The branch-protection gate (#746 / #747) blocks unauthorised direct commits unless the project has opted in.
+
+**Prefer the typed policy opt-out** for a release session:
+
+```bash
+task policy:allow-direct-commits -- --confirm
+# ... run the release workflow ...
+task policy:enforce-branches   # restore after the cut (or on abort)
+```
+
+This writes `plan.policy.allowDirectCommitsToMaster = true` on `vbrief/PROJECT-DEFINITION.vbrief.json` with an audited capability-cost disclosure. It does not leak into child processes the way the emergency env-var bypass does.
+
+**Do not wrap `task release` or `task ci:local` in `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.** That env var is process-wide: every subprocess, nested test, and temporary repository spawned from the same shell inherits it. During the v0.43.0 release attempt this caused the Step 5 `task ci:local` preflight to fail (`TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit`) because a vendored test repo inherited the bypass and allowed a direct `master` commit the test expected the hook to block.
+
+If the env-var bypass is unavoidable, scope it to a **single** branch-guard probe only (for example `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 task verify:branch`) and do not export it for the release session. The release pipeline passes the bypass only in scoped subprocess `env=` for its authorised commit/tag/push mutations (#867); operators must not mirror that pattern at the shell level.
+
+See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard for the full operator workflow.
+
 ## What the Smoke Tests Verify
 
 Every build is tested on its native platform (including `macos-latest` and `ubuntu-24.04-arm`):

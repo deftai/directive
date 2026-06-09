@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json"
+  },
+  "plan": {
+    "id": "1518b-composer-skill-porting-guidance",
+    "title": "Document Composer skill-porting rules for Warp-tuned workflows",
+    "status": "completed",
+    "planRef": "proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
+    "narratives": {
+      "Description": "The Composer lessons include general guidance for translating Warp-oriented skills into Composer-friendly skills. This story captures that guidance as a reusable reference and updates the skill-authoring workflow so future skills include negative triggers, short-chat behavior, and fast-path versus isolation choices.",
+      "ImplementationPlan": "1. Add the reference file references/composer-skill-porting.md with the Composer skill-porting rules distilled from the issue attachments, keeping it focused on reusable skill-authoring behavior.\n2. Update the skills/deft-directive-write-skill/SKILL.md file and focused pytest content tests in tests/content/test_change_and_skills.py and tests/content/test_skill_frontmatter.py so the new reference and negative-trigger guidance are verified.",
+      "UserStory": "As a Deft skill author, I want Composer-specific porting rules in the skill-writing workflow, so that Warp-tuned playbooks become short, discoverable, and machine-checkable Composer skills.",
+      "Traces": "Issue #1518 attachments composer-vs-warp-skills.md and Composer Skills.txt; skills/deft-directive-write-skill/SKILL.md."
+    },
+    "items": [
+      {
+        "id": "1518b-a1",
+        "title": "Composer porting reference exists",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a contributor needs to port a Warp skill, when they read references/composer-skill-porting.md, then it explains thin SKILL.md files, references/ split, negative triggers, fast path versus isolation, and short chat expectations.",
+          "Traces": "Issue #1518 composer-vs-warp-skills.md attachment."
+        }
+      },
+      {
+        "id": "1518b-a2",
+        "title": "Skill writing workflow names Composer requirements",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a new skill is drafted through deft-directive-write-skill, when the template and process are followed, then the generated skill guidance includes negative trigger guidance and reference-doc splitting for long templates.",
+          "Traces": "skills/deft-directive-write-skill/SKILL.md Step 2 and Description Writing Rules."
+        }
+      },
+      {
+        "id": "1518b-a3",
+        "title": "Windows-safe GitHub body guidance is included",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a skill creates or comments on GitHub issues, when the updated authoring guidance is followed, then it instructs authors to prefer body files over inline long shell strings on Windows-sensitive paths.",
+          "Traces": "Issue #1518 Composer Skills shell notes; scm/github.md body-file rule."
+        }
+      },
+      {
+        "id": "1518b-a4",
+        "title": "Guidance is covered by focused content tests",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content tests run for skill authoring guidance, then they fail if the Composer porting reference or negative trigger requirement disappears.",
+          "Traces": "tests/content skill-frontmatter and change-and-skills coverage."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "references/composer-skill-porting.md",
+          "skills/deft-directive-write-skill/SKILL.md",
+          "tests/content/test_change_and_skills.py",
+          "tests/content/test_skill_frontmatter.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_change_and_skills.py tests/content/test_skill_frontmatter.py"
+        ],
+        "expected_outputs": [
+          "content tests assert Composer skill-porting guidance and skill-authoring requirements"
+        ],
+        "depends_on": [],
+        "conflict_group": "skill-authoring-guidance",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T15:22:56Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1518",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1518: Composer specific lessons learned",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-09T15:22:56Z"
+  }
+}

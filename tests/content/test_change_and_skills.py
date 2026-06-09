@@ -213,3 +213,51 @@ def test_setup_skill_phase3_no_authoritative_prd() -> None:
         "skills/deft-directive-setup/SKILL.md: must contain a \u2297 rule "
         "against generating an authoritative PRD.md"
     )
+
+
+# ---------------------------------------------------------------------------
+# #1518: Composer skill-porting guidance in write-skill workflow
+# ---------------------------------------------------------------------------
+
+def test_write_skill_references_composer_porting_guide() -> None:
+    """deft-directive-write-skill must reference the Composer porting guide."""
+    text = _read("skills/deft-directive-write-skill/SKILL.md")
+    assert "references/composer-skill-porting.md" in text, (
+        "skills/deft-directive-write-skill/SKILL.md: must reference "
+        "references/composer-skill-porting.md (issue #1518)"
+    )
+
+
+def test_write_skill_requires_negative_triggers() -> None:
+    """deft-directive-write-skill must require negative trigger guidance."""
+    text = _read("skills/deft-directive-write-skill/SKILL.md")
+    assert "Do NOT trigger on" in text, (
+        "skills/deft-directive-write-skill/SKILL.md: must include "
+        "negative trigger guidance (issue #1518)"
+    )
+    assert "negative trigger" in text.lower(), (
+        "skills/deft-directive-write-skill/SKILL.md: must name negative "
+        "triggers explicitly (issue #1518)"
+    )
+
+
+def test_write_skill_splits_long_content_to_references() -> None:
+    """deft-directive-write-skill must split long templates into references/."""
+    text = _read("skills/deft-directive-write-skill/SKILL.md")
+    assert "references/" in text, (
+        "skills/deft-directive-write-skill/SKILL.md: must reference "
+        "references/ for long template splits (issue #1518)"
+    )
+
+
+def test_write_skill_requires_body_file_for_github() -> None:
+    """deft-directive-write-skill must prefer --body-file over inline gh bodies."""
+    text = _read("skills/deft-directive-write-skill/SKILL.md")
+    assert "--body-file" in text, (
+        "skills/deft-directive-write-skill/SKILL.md: must instruct "
+        "authors to use --body-file for GitHub bodies (issue #1518)"
+    )
+    assert "scm/github.md" in text, (
+        "skills/deft-directive-write-skill/SKILL.md: must cross-reference "
+        "scm/github.md for body-file rules (issue #1518)"
+    )

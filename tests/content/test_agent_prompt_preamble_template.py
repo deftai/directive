@@ -166,3 +166,37 @@ def test_template_footer_concrete_vbrief_path(template_text: str) -> None:
     assert "vbrief/completed/" in template_text
     # Negative: the glob form must not survive
     assert "vbrief/.../954-orchestrator-agents-md-preamble-template" not in template_text
+
+
+def test_template_documents_runtime_and_github_auth_mode_fields(template_text: str) -> None:
+    """§2.7 documents runtime_mode and github_auth_mode dispatch contract fields (#1557c)."""
+    assert "Runtime and GitHub auth mode" in template_text
+    assert "runtime_mode" in template_text
+    assert "github_auth_mode" in template_text
+    assert "local-unsandboxed" in template_text
+    assert "cursor-native-sandbox" in template_text
+    assert "cloud-headless" in template_text
+    assert "host-gh" in template_text
+    assert "injected-token" in template_text
+
+
+def test_template_identity_section_forbids_host_gh_only_for_wrong_mode(
+    template_text: str,
+) -> None:
+    """§8 forbids host gh fallback for injected-token / cloud-headless, not for host-gh."""
+    assert "mode-aware GitHub credential rules" in template_text
+    assert "github_auth_mode: injected-token" in template_text
+    assert "runtime_mode: cloud-headless" in template_text
+    assert "Host `gh` fallback is forbidden in injected-token and cloud-headless modes" in (
+        template_text
+    )
+    assert "github_auth_mode: host-gh" in template_text
+    assert "explicitly authorises host `gh`" in template_text
+
+
+def test_template_contract_carries_mode_labels_not_token_values(template_text: str) -> None:
+    """Dispatch contracts name env vars but must not embed example token values (#1557)."""
+    assert "GH_TOKEN" in template_text
+    assert "GITHUB_TOKEN" in template_text
+    assert "ghp_" not in template_text
+    assert "github_pat_" not in template_text
