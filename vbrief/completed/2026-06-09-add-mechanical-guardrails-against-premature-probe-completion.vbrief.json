@@ -7,7 +7,7 @@
     "id": "1518c-probe-session-guardrails",
     "title": "Add mechanical guardrails against premature probe completion",
     "status": "completed",
-    "planRef": "proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
+    "planRef": "completed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
     "narratives": {
       "Description": "The probe miss happened because prose rules allowed Composer to jump directly to artifact delivery. This story evaluates and implements a lightweight mechanical guard so probe artifacts cannot be marked complete while the session is still in interrogation mode.",
       "ImplementationPlan": "1. Add a small scripts/probe_session.py helper module that records or validates whether a probe session is interrogating or complete before artifact registration.\n2. Wire the strategies/probe.md output guidance to that helper and add pytest verification evidence in tests/cli/test_probe_session.py and tests/content/test_strategy_chaining.py for incomplete and complete probe handoff cases.",

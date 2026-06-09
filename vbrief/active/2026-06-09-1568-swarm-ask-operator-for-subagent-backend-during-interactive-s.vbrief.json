@@ -1,0 +1,95 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1568"
+  },
+  "plan": {
+    "title": "swarm: ask operator for subagent backend during interactive setup",
+    "status": "running",
+    "narratives": {
+      "Description": "Interactive swarm setup currently lets backend selection surface as a late headless-launch failure when plan.policy.swarmSubagentBackend is unset. This story makes the swarm skill ask the operator for their intended subagent backend during setup, distinguishing preference from probe availability before launch.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1568",
+      "Overview": "## Summary\n\nDirective's interactive swarm setup should ask the operator which subagent backend they want before it reaches headless launch. Today, if `plan.policy.swarmSubagentBackend` is unset, the first clear backend-selection moment can appear as a `task swarm:launch` failure that lists probed backends. That makes the available cloud backend look like a default or recommendation, even when the operator intended local Composer/Cursor agents.\n\n## Problem\n\nThe backend guard is correct for autonomous/headless dispatch: it should fail closed when no backend is selected. But the interactive swarm skill has enough context to ask earlier, during allocation/setup, before launch planning hardens.\n\nA better operator experience is:\n\n- Detect `plan.policy.swarmSubagentBackend` is unset during interactive swarm setup.\n- Present the stable backend choices and probe status in a deterministic numbered menu.\n- Ask the operator whether to use local Composer/Cursor subagents, Cursor cloud agents, Grok Build, or discuss/back.\n- Persist the selected backend when appropriate, or record a per-run launch-context choice when the operator does not want to update project policy.\n- Avoid implying that the only probe-available backend is the recommended backend.\n\n## Acceptance criteria\n\n- Interactive swarm setup asks for a subagent backend before headless `task swarm:launch` is attempted when `plan.policy.swarmSubagentBackend` is unset.\n- The prompt distinguishes operator preference from probe availability.\n- The prompt follows the deterministic questions contract: visible numbered options, `Discuss` and `Back` as the final two options.\n- Autonomous/headless launch remains fail-closed when backend policy/launch context is missing.\n- Regression coverage pins the swarm skill guidance so future changes do not move backend selection back to a late failure message only.\n\n## Notes\n\nThis should be part of the current swarm so the next operator-run swarm can test the improved setup behavior.",
+      "Labels": "swarm, agent-experience",
+      "ImplementationPlan": "1. Update skills/deft-directive-swarm/SKILL.md Phase 0 / Phase 1 setup guidance so the interactive path runs task policy:subagent-backends, detects an unset plan.policy.swarmSubagentBackend, and presents a deterministic numbered backend-selection menu before any task swarm:launch call.\n2. Preserve the documented headless failure path in scripts/swarm_launch.py by treating it as existing behavior to verify, not as a prompt surface; the story should not change autonomous launch into an interactive prompt.\n3. Add or update tests/content/test_swarm_skill.py to assert the swarm skill names task policy:subagent-backends, distinguishes operator preference from probe availability, keeps Discuss and Back as the final backend prompt options, and explicitly says cursor-cloud is not an implicit default just because it is probe-available.\n4. If the deterministic menu contract needs cross-reference coverage, update tests/content/test_deterministic_questions.py to assert backend-selection prompts follow visible numbered-menu rules. Verification evidence: run uv run pytest tests/content/test_swarm_skill.py tests/content/test_deterministic_questions.py.",
+      "UserStory": "As a swarm operator, I want Directive to ask which subagent backend I intend to use before launch, so that cloud availability is not mistaken for a default when I want local agents.",
+      "Traces": "Issue #1568; skills/deft-directive-swarm/SKILL.md backend policy surface; task policy:subagent-backends; task swarm:launch fail-closed guard."
+    },
+    "items": [
+      {
+        "id": "1568-a1",
+        "title": "Interactive swarm setup asks for backend before launch",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given plan.policy.swarmSubagentBackend is unset, when the operator is using the interactive swarm setup path, then the skill asks for the intended subagent backend before attempting headless task swarm:launch.",
+          "Traces": "Issue #1568 interactive setup prompt."
+        }
+      },
+      {
+        "id": "1568-a2",
+        "title": "Prompt separates preference from availability",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given backend probes report only cursor-cloud as available, when the backend prompt is rendered, then it does not imply cursor-cloud is the recommended/default choice and clearly lets the operator choose local Composer/Cursor, Cursor cloud, Grok Build, Discuss, or Back.",
+          "Traces": "Issue #1568 operator preference versus probe availability."
+        }
+      },
+      {
+        "id": "1568-a3",
+        "title": "Headless launch remains fail-closed",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given autonomous/headless task swarm:launch runs without backend policy or launch-context selection, when launch validates backend policy, then it still fails closed with an actionable selection message.",
+          "Traces": "scripts/swarm_launch.py backend policy guard."
+        }
+      },
+      {
+        "id": "1568-a4",
+        "title": "Content tests pin deterministic backend prompt guidance",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content tests run, then they fail if the swarm skill drops the early backend-selection step, visible numbered options, or Discuss/Back finality.",
+          "Traces": "tests/content/test_swarm_skill.py."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1568",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1568: swarm: ask operator for subagent backend during interactive setup"
+      }
+    ],
+    "id": "1568-interactive-swarm-backend-selection",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-swarm/SKILL.md",
+          "tests/content/test_swarm_skill.py",
+          "contracts/deterministic-questions.md",
+          "tests/content/test_deterministic_questions.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_swarm_skill.py tests/content/test_deterministic_questions.py"
+        ],
+        "expected_outputs": [
+          "content tests assert interactive swarm asks for backend early while headless launch remains fail-closed"
+        ],
+        "depends_on": [
+          "1563-host-portable-deterministic-questions"
+        ],
+        "conflict_group": "interactive-swarm-backend-selection",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    }
+  }
+}

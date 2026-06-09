@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1519"
+  },
+  "plan": {
+    "title": "bug(check): consumer task check runs vendored framework self-tests and fails despite clean doctor",
+    "status": "running",
+    "narratives": {
+      "Description": "Consumer task check currently runs framework source-repo self-tests from a vendored .deft/core install and can fail despite a clean doctor. This story scopes the aggregate check so consumer repos get a useful quality gate distinct from framework self-tests.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1519",
+      "Overview": "## Summary\n\nIn a consumer repository with Deft installed under `.deft/core`, the root `task check` aggregate is not usable as a clean consumer quality gate. It runs the vendored Deft framework's own lint/test/content checks as if the consumer checkout were the Deft source repository, and those framework self-tests fail even when `task doctor -- --full --json` reports a clean install.\n\nThis appears to be a Deft Directive tooling/scoping defect, not an application defect in the consumer repo.\n\n## Environment\n\n- Consumer OS: Ubuntu 24.04.4 LTS, Linux arm64\n- Deft install layout: vendored payload at `.deft/core`\n- Deft version manifest:\n  - ref/tag: `v0.41.0`\n  - sha: `4f1fdc07a7480a837a84585346dab4ef7738a0ab`\n  - install_root: `.deft/core`\n- Root Taskfile includes `.deft/core/Taskfile.yml` with `flatten: true`\n- Toolchain present:\n  - Go: `go1.26.4 linux/arm64`\n  - uv: `0.11.19`\n  - task: `3.51.1`\n  - git: `2.43.0`\n  - gh: `2.45.0`\n- Doctor result:\n\n```json\n{\"findings\":[{\"check\":\"payload-staleness\",\"message\":\"no remote sha\",\"severity\":\"skip\",\"status\":\"skip\"}],\"ok\":true,\"project_root\":\"/home/parallels/work/site-todo-codex\",\"status\":\"completed\",\"summary\":{\"errors\":0,\"warnings\":0}}\n```\n\n## Reproduction\n\nFrom a Deft consumer repo with a clean doctor result and the root Taskfile including the vendored Deft taskfile:\n\n```bash\ntask doctor -- --full --json\ntask check\n```\n\n## Expected Behavior\n\nIn a consumer project, `task check` should either:\n\n1. Run consumer-app gates plus Deft install/structure gates that are valid for a vendored install, or\n2. Clearly split framework-source self-tests from consumer checks so the consumer can run a clean quality gate without being responsible for Deft source-repo fixtures and release tests.\n\nA clean `task doctor` should not be followed by a `task check` that fails because framework source-repo tests expect files not deposited in the vendored payload.\n\n## Actual Behavior\n\n`task check` invokes Deft framework checks under `.deft/core` and fails in framework self-tests/content checks. The consumer app's own checks can pass, but the aggregate remains red.\n\nObserved failure classes include:\n\n- `verify:encoding` flags checked-in files inside `.deft/core` for BOM/mojibake/non-ASCII corruption patterns.\n- Framework pytest tests fail because they expect Deft source-repo files that are absent in the vendored payload, for example:\n  - `.deft/core/.github/workflows/branch-gate.yml`\n  - `.deft/core/.gitignore`\n  - `.deft/core/.gitattributes`\n- Version resolver tests expect mocked `git describe` / fallback values, but installed manifest/version resolution returns the installed payload version `0.41.0`.\n- Safety gitignore tests read `.deft/core/.gitignore`, which is absent in this vendored install.\n\nA representative tail from the run:\n\n```text\n= 19 failed, 6987 passed, 6 skipped, 9 deselected, 1 xfailed, 6 errors in 27.38s =\ntask: Failed to run task \"check\": task: Failed to run task \"verify:encoding\": exit status 1\n```\n\nThe run also reports useful gates as passing before the framework-test failure, including vBRIEF validation, strategy-output shape validation, branch protection, toolchain availability, destructive-gh self-test, and SCM boundary checks.\n\n## Consumer Impact\n\nThis creates an ambiguous and disruptive quality gate for Deft consumers:\n\n- Application PRs cannot honestly report that global `task check` is clean, even when app-specific tests and Deft lifecycle gates pass.\n- Any CI or hook that requires root `task check` may block consumer application work for framework-source-test failures outside the application payload.\n- Agents must explain this caveat repeatedly, which lowers trust in the Deft build workflow.\n- The failure is especially confusing because `task doctor -- --full --json` reports `ok: true` with zero warnings/errors.\n\n## Why This Should Be Standalone From The Consumer Project\n\nThe consumer project is only a reproduction context. The underlying problem is the behavior of Deft's installed/vendored task surface: the aggregate consumer `task check` appears to run framework-source checks that are not valid for the installed payload shape.\n\n## Suggested Fix\n\nPossible approaches:\n\n1. Split aggregate checks by context:\n   - `task check` in a consumer repo should run consumer-safe checks only.\n   - Framework source-repo self-tests should live behind an explicit target such as `task framework:check` or run only when `.deft/core` is itself the repo root/source checkout.\n2. Make framework self-tests install-layout-aware and skip or adapt tests that require source-repo-only files such as `.github/workflows/branch-gate.yml`, `.gitignore`, and `.gitattributes`.\n3. Align `task doctor` and `task check` so a clean doctor does not leave the operator with a known-red aggregate check for the same installed payload.\n4. Provide a documented consumer app gate target, or deposit a root `task app:check` convention, so application PRs have a clean quality signal distinct from framework payload validation.\n\n## Acceptance Criteria\n\n- In a consumer repo with a clean Deft doctor and no application defects, `task check` exits 0 or clearly confines failures to application/consumer-valid gates.\n- Framework source-repo tests do not run from a vendored `.deft/core` install unless explicitly requested.\n- If any framework install integrity problem exists, `task doctor` and `task check` surface it consistently.\n- Documentation/AGENTS guidance clearly tells consumer agents which target is the authoritative pre-commit quality gate.\n",
+      "ImplementationPlan": "1. Update Taskfile/task definitions and any context-detection helper needed so task check in a consumer/vendored install runs consumer-safe gates rather than framework source-repo self-tests by default.\n2. Add regression coverage in tests/integration/test_consumer_tasks.py and focused task/core tests that simulate a vendored .deft/core install with clean doctor and assert the documented consumer quality gate exits cleanly or clearly routes framework self-tests behind an explicit target.",
+      "UserStory": "As a Deft consumer, I want task check to be a clean consumer quality gate, so that application work is not blocked by framework source-repo tests in the vendored payload.",
+      "Traces": "Issue #1519; tasks/core.yml task check aggregate; consumer install doctor/check behavior; related #1474."
+    },
+    "items": [
+      {
+        "id": "1519-a1",
+        "title": "Consumer check skips framework source-only tests",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a vendored .deft/core install in a consumer repo, when task check runs, then framework source-repo tests requiring absent files are not run unless explicitly requested.",
+          "Traces": "Issue #1519; tasks/core.yml task check aggregate; consumer install doctor/check behavior; related #1474."
+        }
+      },
+      {
+        "id": "1519-a2",
+        "title": "Doctor and check agree on install health",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task doctor reports a clean install, when task check runs in the same consumer context, then check does not fail for framework payload shape that doctor considers healthy.",
+          "Traces": "Issue #1519; tasks/core.yml task check aggregate; consumer install doctor/check behavior; related #1474."
+        }
+      },
+      {
+        "id": "1519-a3",
+        "title": "Authoritative consumer quality gate is documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given consumer AGENTS/docs guidance names pre-commit checks, then it clearly tells agents which task target is authoritative for consumer application work.",
+          "Traces": "Issue #1519; tasks/core.yml task check aggregate; consumer install doctor/check behavior; related #1474."
+        }
+      },
+      {
+        "id": "1519-a4",
+        "title": "Regression test covers vendored install shape",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given integration tests simulate a .deft/core vendored install, then they catch task check regressions that run source-only framework tests in the consumer context.",
+          "Traces": "Issue #1519; tasks/core.yml task check aggregate; consumer install doctor/check behavior; related #1474."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1519",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1519: bug(check): consumer task check runs vendored framework self-tests and fails despite clean doctor"
+      }
+    ],
+    "id": "1519-consumer-safe-task-check",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/core.yml",
+          "Taskfile.yml",
+          "tasks/verify.yml",
+          "scripts/_project_context.py",
+          "tests/integration/test_consumer_tasks.py",
+          "tests/cli/test_task_scripts.py",
+          "tests/cli/test_framework_doctor.py",
+          "templates/agents-entry.md"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/integration/test_consumer_tasks.py tests/cli/test_task_scripts.py tests/cli/test_framework_doctor.py"
+        ],
+        "expected_outputs": [
+          "consumer task integration tests assert task check is consumer-safe in vendored installs"
+        ],
+        "depends_on": [
+          "1523-consumer-deft-task-namespace-guidance"
+        ],
+        "conflict_group": "consumer-task-check-scope",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    }
+  }
+}

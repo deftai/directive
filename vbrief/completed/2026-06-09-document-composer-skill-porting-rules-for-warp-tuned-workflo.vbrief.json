@@ -7,7 +7,7 @@
     "id": "1518b-composer-skill-porting-guidance",
     "title": "Document Composer skill-porting rules for Warp-tuned workflows",
     "status": "completed",
-    "planRef": "proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
+    "planRef": "completed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
     "narratives": {
       "Description": "The Composer lessons include general guidance for translating Warp-oriented skills into Composer-friendly skills. This story captures that guidance as a reusable reference and updates the skill-authoring workflow so future skills include negative triggers, short-chat behavior, and fast-path versus isolation choices.",
       "ImplementationPlan": "1. Add the reference file references/composer-skill-porting.md with the Composer skill-porting rules distilled from the issue attachments, keeping it focused on reusable skill-authoring behavior.\n2. Update the skills/deft-directive-write-skill/SKILL.md file and focused pytest content tests in tests/content/test_change_and_skills.py and tests/content/test_skill_frontmatter.py so the new reference and negative-trigger guidance are verified.",

@@ -7,7 +7,7 @@
     "id": "1557b-github-auth-mode-validation",
     "title": "Validate GitHub auth mode inside the actual worker environment",
     "status": "completed",
-    "planRef": "proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
+    "planRef": "completed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
     "narratives": {
       "Description": "The observed failure showed parent shell GitHub authentication can pass while the worker sandbox still cannot authenticate or reach GitHub. This story adds deterministic validation for host-gh and injected-token modes from the environment that will perform GitHub operations.",
       "ImplementationPlan": "1. Add the scripts/github_auth_modes.py file that consumes runtime probe output and validates host-gh versus injected-token GitHub modes with gh auth and a minimal API reachability check.\n2. Add pytest verification evidence in tests/cli/test_github_auth_modes.py for missing injected credentials, valid host-gh local mode, sandbox auth failure, and repo-access failure remediation.",

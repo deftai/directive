@@ -7,7 +7,7 @@
     "id": "1557c-thread-runtime-auth-contracts",
     "title": "Thread runtime and GitHub auth modes through swarm dispatch contracts",
     "status": "completed",
-    "planRef": "proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
+    "planRef": "completed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
     "narratives": {
       "Description": "Once runtime and auth modes are known, workers need those decisions in the same contract surfaces that already carry allocation and worker metadata. This story records runtime_mode and github_auth_mode in launch manifests and worker preambles so local and cloud workers enforce the correct credential rule.",
       "ImplementationPlan": "1. Update scripts/swarm_launch.py so launch-manifest entries include runtime_mode and github_auth_mode fields derived from the validation layer and preserved alongside allocation_context.\n2. Update templates/agent-prompt-preamble.md and tests/cli/test_swarm_launch.py plus tests/content/test_agent_prompt_preamble_template.py as verification evidence that host-gh fallback is forbidden only for the wrong mode.",

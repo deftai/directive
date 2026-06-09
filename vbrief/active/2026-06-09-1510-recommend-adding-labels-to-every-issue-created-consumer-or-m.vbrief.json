@@ -1,0 +1,100 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1510"
+  },
+  "plan": {
+    "title": "Recommend adding labels to every issue created (consumer or maintainer)",
+    "status": "running",
+    "narratives": {
+      "Description": "Directive should recommend, not require, that newly created GitHub issues receive at least one existing repository label at creation time or explicitly note that no label was applied. This keeps triage/ranking workflows healthy without turning labels into a hard gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1510",
+      "Overview": "## Summary\r\n\r\nDirective should **recommend** (not mandate) that every issue created \u2014 whether by a consumer project's agent or by a directive maintainer \u2014 has at least one appropriate label applied at creation time, chosen from the repository's existing label set.\r\n\r\n## Rationale\r\n\r\nLabels are load-bearing across directive's own workflows:\r\n\r\n- **Triage / queue ranking** (`task triage:queue`, refinement, cache-as-authoritative work selection) relies on labels to rank and bucket work.\r\n- The **Issues gauge** in consumer tooling keys off labels (e.g. `blocker` / `P0` / `P1` severity conventions).\r\n- **Triage hygiene / lifecycle reconciliation** treats unlabeled issues as gaps.\r\n\r\nAn unlabeled issue silently falls out of these flows \u2014 it doesn't rank, doesn't surface in the right buckets, and needs a manual follow-up pass to fix.\r\n\r\n## Dogfood repro\r\n\r\nThis was hit immediately: a directive enhancement issue (deftai/directive#1509) was created without labels and required a separate manual step to add `enhancement` / `agent-experience` afterward. A create-time recommendation would have caught it.\r\n\r\n## Proposed placement\r\n\r\n- At the **issue-creation surfaces** (the skills/flows that file issues during build, review-cycle, triage, and ad-hoc maintainer filing): after creating an issue, check it has >= 1 label and, if not, suggest labels drawn from the repo's existing label set.\r\n- Pull candidate labels from `gh label list` (or the API) \u2014 **do not invent new labels ad hoc**; choose from what the repo already defines.\r\n\r\n## Recommend, not mandate\r\n\r\nConsistent with deftai/directive#1509: this should be a **soft nudge / opt-in** convention, not a hard gate. A maintainer or agent can knowingly create an unlabeled issue; the goal is to make \"no labels\" a deliberate choice rather than an accident.\r\n\r\n## Acceptance (ideas)\r\n\r\n- When a directive skill/agent creates an issue, it applies one or more labels selected from the repo's existing label set (or explicitly notes that none applied).\r\n- A triage-hygiene check can surface issues that have no labels for a later sweep.\r\n- Documented explicitly as recommend-not-mandate.\r\n\r\n## Relation\r\n\r\nCompanion to deftai/directive#1509 (project-level changelog/release-notes recommendation). Both are \"directive should recommend good project/issue hygiene\" items surfaced while dogfooding on `deftai/statusreport`.\r\n",
+      "Labels": "enhancement, triage, agent-experience",
+      "ImplementationPlan": "1. Update issue-creation guidance in skills/deft-directive-triage/SKILL.md, skills/deft-directive-refinement/SKILL.md, skills/deft-directive-gh-slice/SKILL.md, skills/deft-directive-gh-arch/SKILL.md, and skills/deft-directive-article-review/SKILL.md so agents fetch existing labels with gh label list or the API, choose appropriate existing labels when filing issues, and explicitly note when none are applied.\n2. Keep the language recommend-not-mandate: issue creation must not fail solely because no label is selected.\n3. Add focused content coverage in tests/content/test_triage_skill.py and tests/content/test_change_and_skills.py, or a new tests/content/test_issue_creation_label_guidance.py, to assert issue-filing guidance uses existing labels, avoids inventing ad hoc labels, and preserves the soft-nudge semantics. Verification evidence: run uv run pytest tests/content/test_triage_skill.py tests/content/test_change_and_skills.py tests/content/test_issue_creation_label_guidance.py if added.\n4. Sequence this after #1563 because both stories touch skills/deft-directive-triage/SKILL.md, skills/deft-directive-refinement/SKILL.md, and tests/content/test_triage_skill.py; integrate with the host-portable deterministic-menu language instead of editing those files concurrently.",
+      "UserStory": "As a maintainer or consumer-project agent, I want issue-creation workflows to recommend existing labels, so that new work enters triage queues and hygiene reports intentionally instead of becoming unlabeled drift.",
+      "Traces": "Issue #1510; issue-creation skills that call gh issue create; triage queue and cache-as-authoritative label workflows."
+    },
+    "items": [
+      {
+        "id": "1510-a1",
+        "title": "Issue-creation skills recommend existing labels",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a Directive skill files a GitHub issue, when label guidance is followed, then it recommends selecting at least one appropriate label from the repository's existing label set.",
+          "Traces": "Issue #1510 issue-creation surfaces."
+        }
+      },
+      {
+        "id": "1510-a2",
+        "title": "Guidance does not invent labels or hard-gate issue creation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given no suitable label is selected, when an issue is created, then the guidance allows an explicit no-label note rather than failing the workflow, and forbids inventing ad hoc labels outside the repo's label set.",
+          "Traces": "Issue #1510 recommend-not-mandate requirement."
+        }
+      },
+      {
+        "id": "1510-a3",
+        "title": "Triage rationale is documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an agent reads the guidance, then it explains that labels feed triage queue ranking, issue gauges, hygiene sweeps, and lifecycle reconciliation.",
+          "Traces": "Issue #1510 rationale."
+        }
+      },
+      {
+        "id": "1510-a4",
+        "title": "Content tests pin the label recommendation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content tests run, then they fail if issue-creation skills drop the existing-label recommendation, the no-ad-hoc-label rule, or the recommend-not-mandate language.",
+          "Traces": "tests/content label guidance coverage."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "triage",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1510",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1510: Recommend adding labels to every issue created (consumer or maintainer)"
+      }
+    ],
+    "id": "1510-issue-creation-label-recommendation",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-triage/SKILL.md",
+          "skills/deft-directive-refinement/SKILL.md",
+          "skills/deft-directive-gh-slice/SKILL.md",
+          "skills/deft-directive-gh-arch/SKILL.md",
+          "skills/deft-directive-article-review/SKILL.md",
+          "tests/content/test_triage_skill.py",
+          "tests/content/test_change_and_skills.py",
+          "tests/content/test_issue_creation_label_guidance.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_triage_skill.py tests/content/test_change_and_skills.py tests/content/test_issue_creation_label_guidance.py"
+        ],
+        "expected_outputs": [
+          "content tests assert issue creation recommends existing labels without mandating them"
+        ],
+        "depends_on": [
+          "1563-host-portable-deterministic-questions"
+        ],
+        "conflict_group": "issue-creation-label-guidance",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    }
+  }
+}

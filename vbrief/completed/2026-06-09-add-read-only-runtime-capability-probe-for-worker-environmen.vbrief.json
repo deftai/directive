@@ -7,7 +7,7 @@
     "id": "1557a-runtime-capability-probe",
     "title": "Add read-only runtime capability probe for worker environments",
     "status": "completed",
-    "planRef": "proposed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
+    "planRef": "completed/2026-06-09-1557-swarm-make-github-credential-policy-runtime-aware-for-local.vbrief.json",
     "narratives": {
       "Description": "Local workers can execute in different runtime envelopes even on the same machine, so parent-shell assumptions are not enough. This story adds a read-only diagnostic probe that classifies local unsandboxed, Cursor native sandbox, and cloud/headless-like execution without treating sandbox-remapped UID 0 as real root.",
       "ImplementationPlan": "1. Add the scripts/platform_capabilities.py file to inspect environment variables, /proc/self/uid_map, user identity, and basic filesystem ownership interpretation without mutating project state.\n2. Add pytest verification evidence in tests/cli/test_platform_capabilities.py for local-unsandboxed, cursor-native-sandbox UID remap, and cloud/headless-like missing-local-context cases.",

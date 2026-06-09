@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Composer specific lessons learned",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "Composer specific lessons learned",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1518",
@@ -38,7 +38,9 @@
       }
     ],
     "metadata": {
-      "kind": "epic"
-    }
+      "kind": "epic",
+      "completedAt": "2026-06-09T18:42:29Z"
+    },
+    "updated": "2026-06-09T18:42:29Z"
   }
 }

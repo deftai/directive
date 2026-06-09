@@ -7,7 +7,7 @@
     "id": "1518a-probe-skill-routing",
     "title": "Add a discoverable Composer-facing probe skill",
     "status": "completed",
-    "planRef": "proposed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
+    "planRef": "completed/2026-06-09-1518-composer-specific-lessons-learned.vbrief.json",
     "narratives": {
       "Description": "Composer agents currently see probe as a strategy document, not as a discoverable multi-turn workflow. This story adds a dedicated probe skill and routing so a request to run probe starts an interrogation loop instead of producing a premature artifact.",
       "ImplementationPlan": "1. Create the new file skills/deft-directive-probe/SKILL.md by lifting the concrete one-question-per-turn contract from strategies/probe.md, including explicit first-turn and no-artifact-before-complete requirements.\n2. Update the AGENTS.md and templates/agents-entry.md routing code paths, then add pytest content tests in tests/content/test_agents_entry_contract.py and tests/content/test_probe_skill.py as verification evidence for trigger propagation.",
