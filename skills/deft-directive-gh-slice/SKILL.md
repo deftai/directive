@@ -95,6 +95,7 @@ Iterate until the user approves the breakdown.
 - ! Create issues in dependency order (blockers first) so you can reference real issue numbers
 - ! Use `gh issue create` for each approved slice with the template below
 - ! Trace each issue back to the relevant SPECIFICATION.md phase/task IDs where applicable
+- ~ Issue-label hygiene: before filing, inspect the target repo's existing labels with `gh label list` or the labels API; choose one or more suitable existing labels when practical, or explicitly note that no label was applied. This is a recommendation, not a gate -- do not block issue creation solely because no label fits, and do not invent ad hoc labels outside the repo's existing label set.
 - ⊗ Modify or close any existing parent issue
 
 **Issue template:**
