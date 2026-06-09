@@ -11,6 +11,7 @@ Author: Scott Adams (msadams) -- 2026-04-12
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -61,6 +62,15 @@ class TestTaskCheckAggregate:
 
     TASKFILE = REPO_ROOT / "Taskfile.yml"
 
+    @staticmethod
+    def _task_block(body: str, task_name: str) -> str:
+        start = re.search(rf"^  {re.escape(task_name)}:\n", body, re.MULTILINE)
+        assert start is not None, f"{task_name} task missing"
+        next_task = re.search(r"^  [^\s#][^:\n]*:\n", body[start.end() :], re.MULTILINE)
+        if next_task is None:
+            return body[start.end() :]
+        return body[start.end() : start.end() + next_task.start()]
+
     def test_check_target_dispatches_through_project_context(self):
         body = self.TASKFILE.read_text(encoding="utf-8")
         assert "check:framework-source:" in body
@@ -69,10 +79,7 @@ class TestTaskCheckAggregate:
 
     def test_consumer_check_does_not_depend_on_framework_self_tests(self):
         body = self.TASKFILE.read_text(encoding="utf-8")
-        consumer_block = body.split("\n  check:consumer:\n", 1)[1].split(
-            "\n  verify-wip-cap-framework-self-check:",
-            1,
-        )[0]
+        consumer_block = self._task_block(body, "check:consumer")
         forbidden_deps = (
             "core:validate",
             "core:lint",
