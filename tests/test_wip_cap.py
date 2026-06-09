@@ -591,12 +591,11 @@ def test_taskfile_check_aggregate_wires_verify_wip_cap() -> None:
     CI re-validation) into the `task check` aggregate").
     """
     taskfile = (_REPO_ROOT / "Taskfile.yml").read_text(encoding="utf-8")
-    # Walk forward from the `check:` task header to the first sibling task
-    # (any line that starts with exactly two spaces, a non-space character,
-    # and ends with a colon). The body in between is the `check:` task
-    # block including its deps list.
-    after = taskfile.split("\n  check:\n", 1)[1]
     import re as _re
+
+    # `task check` dispatches to `check:framework-source` in this repo; inspect
+    # that aggregate so the acceptance test follows the context-aware split.
+    after = taskfile.split("\n  check:framework-source:\n", 1)[1]
     next_sibling = _re.search(r"\n  [^\s][^\n]*:\n", after)
     check_block = after[: next_sibling.start()] if next_sibling else after
     assert (

@@ -11,6 +11,7 @@ Author: Scott Adams (msadams) -- 2026-04-12
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -22,9 +23,7 @@ REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 
 # go-task CLI is not installed in CI (GitHub Actions ubuntu-latest)
 _has_task = shutil.which("task") is not None
-requires_task = pytest.mark.skipif(
-    not _has_task, reason="go-task CLI not available"
-)
+requires_task = pytest.mark.skipif(not _has_task, reason="go-task CLI not available")
 
 _has_all_tools = all(shutil.which(t) for t in ("go", "uv", "task", "git", "gh"))
 requires_all_tools = pytest.mark.skipif(
@@ -35,6 +34,7 @@ requires_all_tools = pytest.mark.skipif(
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
+
 
 def run_script(
     script_name: str, cwd: Path | None = None, env: dict | None = None
@@ -52,10 +52,51 @@ def run_script(
     )
 
 
-
 # ===========================================================================
 # toolchain-check.py
 # ===========================================================================
+
+
+class TestTaskCheckAggregate:
+    """Static contract tests for the context-aware ``task check`` split."""
+
+    TASKFILE = REPO_ROOT / "Taskfile.yml"
+
+    @staticmethod
+    def _task_block(body: str, task_name: str) -> str:
+        start = re.search(rf"^  {re.escape(task_name)}:\n", body, re.MULTILINE)
+        assert start is not None, f"{task_name} task missing"
+        next_task = re.search(r"^  [^\s#][^\n]*:\n", body[start.end() :], re.MULTILINE)
+        if next_task is None:
+            return body[start.end() :]
+        return body[start.end() : start.end() + next_task.start()]
+
+    def test_check_target_dispatches_through_project_context(self):
+        body = self.TASKFILE.read_text(encoding="utf-8")
+        assert "check:framework-source:" in body
+        assert "check:consumer:" in body
+        assert "--dispatch-task-check" in body
+
+    def test_consumer_check_does_not_depend_on_framework_self_tests(self):
+        body = self.TASKFILE.read_text(encoding="utf-8")
+        consumer_block = self._task_block(body, "check:consumer")
+        forbidden_deps = (
+            "core:validate",
+            "core:lint",
+            "core:test",
+            "verify:stubs",
+            "verify:links",
+            "verify:rule-ownership",
+            "verify:encoding",
+            "verify:destructive-gh-verbs",
+            "verify:scm-boundary",
+        )
+        for dep in forbidden_deps:
+            assert dep not in consumer_block
+        assert "doctor" in consumer_block
+        assert "verify:branch" in consumer_block
+        assert "vbrief:validate" in consumer_block
+
 
 class TestToolchainCheck:
     """Tests for scripts/toolchain-check.py."""
@@ -95,6 +136,7 @@ class TestToolchainCheck:
 # ===========================================================================
 # verify-stubs.py
 # ===========================================================================
+
 
 class TestVerifyStubs:
     """Tests for scripts/verify-stubs.py."""
@@ -146,9 +188,7 @@ class TestVerifyStubs:
 
     def test_bare_pass_detected(self, tmp_path):
         """Bare 'pass' after a colon-ending line is flagged as a stub."""
-        (tmp_path / "stub_fn.py").write_text(
-            "def placeholder():\n    pass\n", encoding="utf-8"
-        )
+        (tmp_path / "stub_fn.py").write_text("def placeholder():\n    pass\n", encoding="utf-8")
         result = run_script("verify-stubs.py", cwd=tmp_path)
         assert result.returncode == 1
         assert "bare pass" in result.stdout
@@ -157,6 +197,7 @@ class TestVerifyStubs:
 # ===========================================================================
 # validate-links.py
 # ===========================================================================
+
 
 class TestValidateLinks:
     """Tests for scripts/validate-links.py."""
@@ -176,9 +217,7 @@ class TestValidateLinks:
         (tmp_path / "README.md").write_text(
             "See [missing](nonexistent.md) here.\n", encoding="utf-8"
         )
-        result = run_script(
-            "validate-links.py", cwd=tmp_path, env={"LINK_CHECK_STRICT": "1"}
-        )
+        result = run_script("validate-links.py", cwd=tmp_path, env={"LINK_CHECK_STRICT": "1"})
         assert result.returncode == 1
         assert "broken internal link" in result.stdout.lower()
 
@@ -205,19 +244,13 @@ class TestValidateLinks:
         """Files in history/archive/ are excluded from scanning."""
         archive = tmp_path / "history" / "archive"
         archive.mkdir(parents=True)
-        (archive / "old.md").write_text(
-            "See [gone](deleted.md).\n", encoding="utf-8"
-        )
-        result = run_script(
-            "validate-links.py", cwd=tmp_path, env={"LINK_CHECK_STRICT": "1"}
-        )
+        (archive / "old.md").write_text("See [gone](deleted.md).\n", encoding="utf-8")
+        result = run_script("validate-links.py", cwd=tmp_path, env={"LINK_CHECK_STRICT": "1"})
         assert result.returncode == 0
 
     def test_strict_flag_argv(self, tmp_path):
         """--strict flag via argv triggers non-zero exit on broken links."""
-        (tmp_path / "doc.md").write_text(
-            "See [nope](nope.md).\n", encoding="utf-8"
-        )
+        (tmp_path / "doc.md").write_text("See [nope](nope.md).\n", encoding="utf-8")
         script = REPO_ROOT / "scripts" / "validate-links.py"
         result = subprocess.run(
             [sys.executable, str(script), "--strict"],
@@ -233,6 +266,7 @@ class TestValidateLinks:
 # ===========================================================================
 # change:init via task CLI
 # ===========================================================================
+
 
 @requires_task
 class TestChangeInit:
@@ -343,6 +377,7 @@ class TestChangeInit:
 # commit:lint via task CLI
 # ===========================================================================
 
+
 @requires_task
 class TestCommitLint:
     """Tests for tasks/commit.yml commit:lint task."""
@@ -352,17 +387,23 @@ class TestCommitLint:
         subprocess.run(["git", "init"], cwd=str(tmp_path), capture_output=True, check=True)
         subprocess.run(
             ["git", "config", "user.email", "test@test.com"],
-            cwd=str(tmp_path), capture_output=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            check=True,
         )
         subprocess.run(
             ["git", "config", "user.name", "Test"],
-            cwd=str(tmp_path), capture_output=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            check=True,
         )
         (tmp_path / "f.txt").write_text("x", encoding="utf-8")
         subprocess.run(["git", "add", "."], cwd=str(tmp_path), capture_output=True, check=True)
         subprocess.run(
             ["git", "commit", "-m", message],
-            cwd=str(tmp_path), capture_output=True, check=True,
+            cwd=str(tmp_path),
+            capture_output=True,
+            check=True,
         )
 
     def _run_commit_lint(self, tmp_path: Path) -> subprocess.CompletedProcess:
@@ -403,8 +444,17 @@ class TestCommitLint:
     def test_all_valid_types_accepted(self, tmp_path):
         """All conventional commit types are accepted."""
         valid_types = (
-            "feat", "fix", "docs", "chore", "refactor",
-            "test", "style", "perf", "ci", "build", "revert",
+            "feat",
+            "fix",
+            "docs",
+            "chore",
+            "refactor",
+            "test",
+            "style",
+            "perf",
+            "ci",
+            "build",
+            "revert",
         )
         for ctype in valid_types:
             self._setup_repo(tmp_path, f"{ctype}: valid message")
@@ -417,7 +467,8 @@ class TestCommitLint:
             subprocess.run(["git", "add", "."], cwd=str(tmp_path), capture_output=True)
             subprocess.run(
                 ["git", "commit", "-m", f"{ctype}: valid message"],
-                cwd=str(tmp_path), capture_output=True,
+                cwd=str(tmp_path),
+                capture_output=True,
             )
 
 

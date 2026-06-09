@@ -52,9 +52,7 @@ def consumer_root(tmp_path: Path) -> Iterator[Path]:
     ``tempfile.TemporaryDirectory`` under the same parent gives each
     integration test its own root that is not vulnerable to that race.
     """
-    with tempfile.TemporaryDirectory(
-        prefix="deft-consumer-", dir=str(tmp_path)
-    ) as td:
+    with tempfile.TemporaryDirectory(prefix="deft-consumer-", dir=str(tmp_path)) as td:
         yield Path(td)
 
 
@@ -147,6 +145,115 @@ def _load_module(name: str, path: Path):
 
 
 # ---------------------------------------------------------------------------
+# task check aggregate (#1519)
+# ---------------------------------------------------------------------------
+
+
+def test_task_check_dispatches_consumer_safe_gate_for_vendored_install(
+    consumer_project: Path,
+) -> None:
+    """Vendored ``.deft/core`` installs route ``task check`` to consumer gates.
+
+    This simulates the installed shape without running the full nested task
+    graph: the regression was the dispatcher choosing framework self-tests from
+    ``.deft/core`` when the actual project root was the consumer repository.
+    """
+    context = _load_module("project_context_dispatch", SCRIPTS_DIR / "_project_context.py")
+    framework_root = consumer_project / ".deft" / "core"
+    framework_root.mkdir(parents=True)
+    (framework_root / "Taskfile.yml").write_text("version: '3'\n", encoding="utf-8")
+    calls: list[dict[str, object]] = []
+
+    def fake_runner(args, cwd=None):
+        calls.append({"args": args, "cwd": cwd})
+        return subprocess.CompletedProcess(args, 0)
+
+    rc = context.dispatch_task_check(
+        framework_root,
+        consumer_project,
+        runner=fake_runner,
+    )
+
+    assert rc == 0
+    assert calls == [
+        {
+            "args": [
+                "task",
+                "-t",
+                str(framework_root / "Taskfile.yml"),
+                "check:consumer",
+            ],
+            "cwd": str(consumer_project),
+        }
+    ]
+
+
+def test_task_check_dispatches_consumer_safe_gate_for_symlinked_core(
+    consumer_project: Path,
+) -> None:
+    """Symlinked ``.deft/core`` installs remain logical consumer installs."""
+    context = _load_module(
+        "project_context_dispatch_symlink",
+        SCRIPTS_DIR / "_project_context.py",
+    )
+    framework_root = consumer_project / ".deft" / "core"
+    framework_root.parent.mkdir(parents=True)
+    try:
+        framework_root.symlink_to(consumer_project, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"directory symlinks unavailable on this platform: {exc}")
+    calls: list[dict[str, object]] = []
+
+    def fake_runner(args, cwd=None):
+        calls.append({"args": args, "cwd": cwd})
+        return subprocess.CompletedProcess(args, 0)
+
+    rc = context.dispatch_task_check(
+        framework_root,
+        consumer_project,
+        runner=fake_runner,
+    )
+
+    assert rc == 0
+    assert calls == [
+        {
+            "args": [
+                "task",
+                "-t",
+                str(framework_root / "Taskfile.yml"),
+                "check:consumer",
+            ],
+            "cwd": str(consumer_project),
+        }
+    ]
+
+
+def test_task_check_dispatches_framework_self_check_in_framework_repo() -> None:
+    """The source checkout still runs the full framework self-check by default."""
+    context = _load_module("project_context_dispatch_source", SCRIPTS_DIR / "_project_context.py")
+    calls: list[dict[str, object]] = []
+
+    def fake_runner(args, cwd=None):
+        calls.append({"args": args, "cwd": cwd})
+        return subprocess.CompletedProcess(args, 0)
+
+    rc = context.dispatch_task_check(REPO_ROOT, REPO_ROOT, runner=fake_runner)
+
+    assert rc == 0
+    assert calls == [
+        {
+            "args": [
+                "task",
+                "-t",
+                str(REPO_ROOT / "Taskfile.yml"),
+                "check:framework-source",
+            ],
+            "cwd": str(REPO_ROOT),
+        }
+    ]
+
+
+# ---------------------------------------------------------------------------
 # scope:promote (#535)
 # ---------------------------------------------------------------------------
 
@@ -161,9 +268,7 @@ def test_scope_promote_resolves_against_consumer_root(
     ``vbrief/proposed/X.vbrief.json`` resolved to ``deft/vbrief/...``
     and exit 1 with File-not-found (#535).
     """
-    _write_scope_vbrief(
-        consumer_project, "proposed", "2026-04-22-fixture.vbrief.json"
-    )
+    _write_scope_vbrief(consumer_project, "proposed", "2026-04-22-fixture.vbrief.json")
     # Invoke from a completely unrelated CWD so the only way the script
     # can find the file is via --project-root.
     unrelated_cwd = tmp_path / "elsewhere"
@@ -226,9 +331,7 @@ def test_scope_promote_fails_loudly_when_no_project_root(tmp_path: Path) -> None
 # ---------------------------------------------------------------------------
 
 
-def test_issue_ingest_writes_to_consumer_vbrief(
-    consumer_project: Path, monkeypatch
-) -> None:
+def test_issue_ingest_writes_to_consumer_vbrief(consumer_project: Path, monkeypatch) -> None:
     """issue_ingest.main writes into the consumer's vbrief/ tree.
 
     We monkey-patch the gh / git helpers so no live network call happens.
@@ -237,9 +340,7 @@ def test_issue_ingest_writes_to_consumer_vbrief(
     """
     ingest = _load_module("issue_ingest", SCRIPTS_DIR / "issue_ingest.py")
 
-    monkeypatch.setattr(
-        ingest, "resolve_project_repo", lambda *_a, **_k: "owner/consumer"
-    )
+    monkeypatch.setattr(ingest, "resolve_project_repo", lambda *_a, **_k: "owner/consumer")
     monkeypatch.setattr(
         ingest,
         "_fetch_single_issue",
@@ -286,9 +387,7 @@ def test_issue_ingest_fails_loudly_without_repo(
     through to deft's own origin.
     """
     ingest = _load_module("issue_ingest", SCRIPTS_DIR / "issue_ingest.py")
-    monkeypatch.setattr(
-        ingest, "resolve_project_repo", lambda *_a, **_k: None
-    )
+    monkeypatch.setattr(ingest, "resolve_project_repo", lambda *_a, **_k: None)
     monkeypatch.setattr(ingest, "detect_repo", lambda: None)
     rc = ingest.main(
         [
@@ -318,9 +417,7 @@ def test_reconcile_issues_uses_consumer_repo(consumer_project: Path, monkeypatch
     under test (#538) is unchanged: reconcile_issues MUST resolve to the
     consumer repo, not deft's own origin.
     """
-    reconcile = _load_module(
-        "reconcile_issues_smoke", SCRIPTS_DIR / "reconcile_issues.py"
-    )
+    reconcile = _load_module("reconcile_issues_smoke", SCRIPTS_DIR / "reconcile_issues.py")
     seen: dict[str, object] = {}
 
     def fake_fetch(repo, ids, cwd=None):
@@ -344,9 +441,7 @@ def test_reconcile_issues_uses_consumer_repo(consumer_project: Path, monkeypatch
     )
     rc = reconcile.main()
     assert rc == 0
-    assert seen["repo"] == "owner/consumer", (
-        "reconcile_issues must query the CONSUMER repo (#538)"
-    )
+    assert seen["repo"] == "owner/consumer", "reconcile_issues must query the CONSUMER repo (#538)"
     # cwd kwarg must be the consumer project root, not None / deft/ root.
     assert str(seen["cwd"]).endswith("consumer")
 

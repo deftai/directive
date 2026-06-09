@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -1133,6 +1134,15 @@ class TestTaskCheckWiring:
     Taskfile YAML/text to assert the wiring is in place.
     """
 
+    @staticmethod
+    def _task_block(text: str, task_name: str) -> str:
+        start = re.search(rf"^  {re.escape(task_name)}:\n", text, re.MULTILINE)
+        assert start is not None, f"{task_name} task missing"
+        next_task = re.search(r"^  [^\s#][^\n]*:\n", text[start.end() :], re.MULTILINE)
+        if next_task is None:
+            return text[start.end() :]
+        return text[start.end() : start.end() + next_task.start()]
+
     def test_taskfile_lists_verify_cache_fresh_in_check_deps(self):
         # Normalize CRLF -> LF so the test is platform-agnostic.
         text = (
@@ -1142,12 +1152,9 @@ class TestTaskCheckWiring:
             "verify:cache-fresh missing from Taskfile.yml -- the gate is not "
             "wired into `task check`"
         )
-        # Pin the sibling ordering so the gate runs alongside the existing
-        # verify:* aggregate, not as a standalone target the operator must
-        # opt into.
-        check_block_idx = text.index("check:\n")
-        cmds_idx = text.index("cmds:", check_block_idx)
-        block = text[check_block_idx:cmds_idx]
+        # `task check` dispatches to the framework-source aggregate in this repo;
+        # pin the gate there so it remains part of the pre-commit path.
+        block = self._task_block(text, "check:framework-source")
         assert "verify:branch" in block
         assert "verify:encoding" in block
         assert "verify:cache-fresh" in block

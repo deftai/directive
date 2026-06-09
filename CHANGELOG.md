@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Consumer `task deft:check` no longer runs framework source self-tests by default (#1519)** -- vendored `.deft/core` installs now route the aggregate check to consumer-safe install and lifecycle gates, while framework source-repo checks remain available behind an explicit self-check target. Closes #1519.
 - **Completed scopes no longer leave PROJECT-DEFINITION registry rows looking proposed (#1527)** -- `task scope:complete` now keeps the matching local project reference and registry item aligned when it moves a scope into `completed/`, and validation catches stale registry status if a referenced scope and its registry row drift apart. Closes #1527.
 - **Deterministic menus now stay portable across host UIs (#1563)** -- numbered decision flows now require visible numeric labels and strict fallback mapping to the displayed number or exact option text, so agents do not reinterpret alphabetic host affordances like `d` or `b` unless those letters were actually shown. Refs #1563.
 

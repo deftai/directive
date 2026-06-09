@@ -30,6 +30,7 @@ Precedence for ``resolve_project_repo``:
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import subprocess
@@ -41,9 +42,7 @@ _PROJECT_ROOT_SENTINELS = ("vbrief", ".git")
 
 def _is_project_root(candidate: Path) -> bool:
     """Return True if *candidate* contains any deft project-root sentinel."""
-    return any(
-        (candidate / sentinel).exists() for sentinel in _PROJECT_ROOT_SENTINELS
-    )
+    return any((candidate / sentinel).exists() for sentinel in _PROJECT_ROOT_SENTINELS)
 
 
 def resolve_project_root(
@@ -150,3 +149,62 @@ def _detect_repo_from_git(project_root: Path | None) -> str | None:
     if result.returncode != 0:
         return None
     return _normalise_repo_slug(result.stdout.strip())
+
+
+def is_framework_source_context(framework_root: Path, project_root: Path) -> bool:
+    """Return True when a task is running from the framework checkout itself.
+
+    Vendored consumer installs execute framework tasks from ``.deft/core`` while
+    the user working directory remains the consumer repo.  Equality of the two
+    lexical absolute roots is the stable distinction: only the source checkout
+    should run source-repo self-tests by default.  Do not resolve symlinks here:
+    a consumer project may symlink ``.deft/core`` to a local framework checkout
+    and should still run the consumer-safe gate.
+    """
+    return Path(os.path.abspath(framework_root)) == Path(os.path.abspath(project_root))
+
+
+def dispatch_task_check(
+    framework_root: Path,
+    project_root: Path,
+    *,
+    runner=subprocess.run,
+) -> int:
+    """Dispatch ``task check`` to the context-appropriate aggregate target."""
+    target = (
+        "check:framework-source"
+        if is_framework_source_context(framework_root, project_root)
+        else "check:consumer"
+    )
+    result = runner(
+        ["task", "-t", str(framework_root / "Taskfile.yml"), target],
+        cwd=str(project_root),
+    )
+    return int(result.returncode)
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--dispatch-task-check",
+        action="store_true",
+        help="Dispatch the task check aggregate for the current install context.",
+    )
+    parser.add_argument("--framework-root", type=Path)
+    parser.add_argument("--project-root", type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    if args.dispatch_task_check:
+        if args.framework_root is None or args.project_root is None:
+            raise SystemExit("--framework-root and --project-root are required")
+        return dispatch_task_check(args.framework_root, args.project_root)
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
