@@ -324,15 +324,17 @@ def test_main_md_migration_section_covers_required_content() -> None:
     assert "pre-cutover" in section.lower(), (
         "main.md migration section must describe what pre-cutover looks like"
     )
-    # Canonical command
-    assert "task migrate:vbrief" in section, (
-        "main.md migration section must cite the canonical `task migrate:vbrief` command"
+    # Canonical command under the namespaced consumer include (#1523)
+    assert "task deft:migrate:vbrief" in section, (
+        "main.md migration section must cite the canonical "
+        "`task deft:migrate:vbrief` command"
     )
-    # Fallback command
-    assert _FALLBACK_CMD in section, (
+    # Fallback command for projects without the namespaced include
+    main_fallback_cmd = "task -t ./.deft/core/Taskfile.yml migrate:vbrief"
+    assert main_fallback_cmd in section, (
         f"main.md migration section must document the fallback invocation "
-        f"'{_FALLBACK_CMD}' for projects that don't have migrate:vbrief in "
-        f"their root Taskfile"
+        f"'{main_fallback_cmd}' for projects that don't have deft:migrate:vbrief "
+        f"in their root Taskfile"
     )
     # RECONCILIATION.md + LEGACY-REPORT.md (produced by Agent A/B per #496/#495/#505)
     assert "RECONCILIATION.md" in section, (

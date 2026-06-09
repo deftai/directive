@@ -238,25 +238,54 @@ def test_managed_section_implementation_intent_gate_uses_required_tokens() -> No
 # `## Template propagation discipline (#1309)` block for the rule body.
 # ---------------------------------------------------------------------------
 
-_PROPAGATION_COMMAND_MARKERS: tuple[str, ...] = (
-    # ``task triage:welcome --onboard`` is explicit on both sides (it's also a
-    # substring containing ``task triage:welcome``, so the bare-form marker
-    # would silently pass a divergence -- per Greptile P1 on the #1309 PR).
-    "task triage:welcome --onboard",
-    "task triage:queue",
-    "triage <N>",
-    "task verify:cache-fresh",
-    "task verify:branch",
+_PROPAGATION_COMMAND_MARKERS: tuple[tuple[str, str], ...] = (
+    # Consumer AGENTS.md is generated for the canonical namespaced include,
+    # while the maintainer-side AGENTS.md is read inside this repo where bare
+    # task names resolve. Each pair is (consumer template, maintainer AGENTS).
+    ("task deft:triage:welcome --onboard", "task triage:welcome --onboard"),
+    ("task deft:triage:queue", "task triage:queue"),
+    ("triage <N>", "triage <N>"),
+    ("task deft:verify:cache-fresh", "task verify:cache-fresh"),
+    ("task deft:verify:branch", "task verify:branch"),
     # #1378 Story C: deterministic story-start Gate 0 surfaced in both files.
-    "task verify:story-ready",
+    ("task deft:verify:story-ready", "task verify:story-ready"),
+    ("task deft:doctor", "task doctor"),
+    ("task deft:agents:refresh", "task agents:refresh"),
+    # #1409: canonical headless upgrade command surfaced in both files.
+    (
+        "deft-install --yes --upgrade --repo-root . --json",
+        "deft-install --yes --upgrade --repo-root . --json",
+    ),
+    ("git status --short --branch", "git status --short --branch"),
+    ("task deft:scope:promote -- <path>", "task scope:promote -- <path>"),
+    ("task deft:scope:activate -- <path>", "task scope:activate -- <path>"),
+    (
+        "task deft:scope:complete -- <active-story-path>",
+        "task scope:complete -- <active-story-path>",
+    ),
+)
+
+_CONSUMER_FORBIDDEN_BARE_TASK_MARKERS: tuple[str, ...] = (
     "task doctor",
     "task agents:refresh",
-    # #1409: canonical headless upgrade command surfaced in both files.
-    "deft-install --yes --upgrade --repo-root . --json",
-    "git status --short --branch",
-    "task scope:promote -- <path>",
-    "task scope:activate -- <path>",
-    "task scope:complete -- <active-story-path>",
+    "task triage:welcome",
+    "task triage:queue",
+    "task verify:cache-fresh",
+    "task verify:branch",
+    "task verify:story-ready",
+    "task policy:show",
+    "task policy:enforce-branches",
+    "task policy:allow-direct-commits",
+    "task scope:promote",
+    "task scope:activate",
+    "task scope:complete",
+    "task scope:demote",
+    "task vbrief:preflight",
+    "task vbrief:activate",
+    "task framework:doctor",
+    "task check",
+    "task setup",
+    "task verify:hooks-installed",
 )
 
 _PROPAGATION_POLICY_KEY_MARKERS: tuple[str, ...] = (
@@ -319,11 +348,13 @@ def _missing_markers(haystack_text: str, markers: tuple[str, ...]) -> list[str]:
 
 
 def test_propagation_command_markers_present_in_both_files() -> None:
-    """#1309: every curated command MUST appear in AGENTS.md AND the template."""
+    """#1309/#1523: commands appear in their resolvable consumer/maintainer form."""
     template = _read_template()
     agents = _read_agents_md()
-    template_missing = _missing_markers(template, _PROPAGATION_COMMAND_MARKERS)
-    agents_missing = _missing_markers(agents, _PROPAGATION_COMMAND_MARKERS)
+    template_markers = tuple(marker[0] for marker in _PROPAGATION_COMMAND_MARKERS)
+    agents_markers = tuple(marker[1] for marker in _PROPAGATION_COMMAND_MARKERS)
+    template_missing = _missing_markers(template, template_markers)
+    agents_missing = _missing_markers(agents, agents_markers)
     assert not template_missing, (
         "templates/agents-entry.md missing command marker(s) from the #1309 "
         f"propagation gate: {template_missing}. Extend the template or the "
@@ -333,6 +364,16 @@ def test_propagation_command_markers_present_in_both_files() -> None:
         "AGENTS.md missing command marker(s) from the #1309 propagation "
         f"gate: {agents_missing}. Add the rule on the maintainer side or "
         "trim the marker list -- the two files MUST stay in lockstep."
+    )
+
+
+def test_consumer_template_does_not_use_unresolved_bare_task_names() -> None:
+    """#1523: consumer AGENTS.md commands must resolve under the deft: include."""
+    template = _read_template()
+    leaked = [marker for marker in _CONSUMER_FORBIDDEN_BARE_TASK_MARKERS if marker in template]
+    assert not leaked, (
+        "templates/agents-entry.md must use `task deft:<name>` for consumer "
+        f"Directive tasks under the canonical include; found bare marker(s): {leaked}"
     )
 
 

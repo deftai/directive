@@ -63,9 +63,9 @@ See #634, #642.
 - ! Explain tradeoffs when multiple approaches exist
 - ~ Suggest improvements even when not asked
 - ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and present the change name for explicit confirmation (e.g. "Confirm? yes/no") — the user must reply with an affirmative (`yes`, `confirmed`, `approve`) to satisfy this gate; a broad 'proceed', 'do it', or 'go ahead' does NOT satisfy it
-- ? For solo projects (single contributor): the `/deft:change` proposal is RECOMMENDED but not mandatory for changes fully covered by the quality gate (`task check`); it remains mandatory for cross-cutting, architectural, or high-risk changes regardless of team size
-- ! No implementation is complete until tests are written and `task check` passes — this gate applies unconditionally and a general 'proceed' instruction does not waive it. This gate has two dimensions: (a) **regression coverage** -- existing tests continue to pass, and (b) **forward coverage** -- new source files (`scripts/`, `src/`, `cmd/`, `*.py`, `*.go`) have corresponding new test files that exercise the new code paths. Running existing tests alone satisfies (a) but not (b)
-- ⊗ Commit or push directly to the default branch (master/main) — always create a feature branch and open a PR, even for single-commit changes. The only exception is if the user **explicitly** instructs a direct commit for the current task, or if `PROJECT-DEFINITION.vbrief.json` has `plan.policy.allowDirectCommitsToMaster = true` (typed flag, #746). The legacy `Allow direct commits to master:` narrative key is recognised at read time with a deprecation warning; new writes go through the typed surface only. Three enforcement surfaces back this rule (#747): (1) `.githooks/pre-commit` and `.githooks/pre-push` hooks calling `scripts/preflight_branch.py` (install with `task setup`); (2) `task verify:branch` wired into the `task check` aggregate; (3) the `branch-gate` GH Actions workflow rejecting PRs where `head_ref == base_ref`. Override paths: `task policy:allow-direct-commits -- --confirm` (typed flag, audited to `meta/policy-changes.log`) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` (emergency env-var bypass). See [`contracts/deterministic-questions.md`](./contracts/deterministic-questions.md) for the canonical Discuss/Back rule that governs every numbered-menu prompt across deft skills (#767).
+- ? For solo projects (single contributor): the `/deft:change` proposal is RECOMMENDED but not mandatory for changes fully covered by the quality gate (`task deft:check` in consumer projects using the canonical include; `task check` inside the directive repo); it remains mandatory for cross-cutting, architectural, or high-risk changes regardless of team size
+- ! No implementation is complete until tests are written and the project quality gate passes (`task deft:check` in consumer projects using the canonical include; `task check` inside the directive repo) — this gate applies unconditionally and a general 'proceed' instruction does not waive it. This gate has two dimensions: (a) **regression coverage** -- existing tests continue to pass, and (b) **forward coverage** -- new source files (`scripts/`, `src/`, `cmd/`, `*.py`, `*.go`) have corresponding new test files that exercise the new code paths. Running existing tests alone satisfies (a) but not (b)
+- ⊗ Commit or push directly to the default branch (master/main) — always create a feature branch and open a PR, even for single-commit changes. The only exception is if the user **explicitly** instructs a direct commit for the current task, or if `PROJECT-DEFINITION.vbrief.json` has `plan.policy.allowDirectCommitsToMaster = true` (typed flag, #746). The legacy `Allow direct commits to master:` narrative key is recognised at read time with a deprecation warning; new writes go through the typed surface only. Three enforcement surfaces back this rule (#747): (1) `.githooks/pre-commit` and `.githooks/pre-push` hooks calling `scripts/preflight_branch.py` (install with `task deft:setup` in consumer projects using the canonical include); (2) `task deft:verify:branch` wired into the `task deft:check` aggregate for consumers; (3) the `branch-gate` GH Actions workflow rejecting PRs where `head_ref == base_ref`. Override paths: `task deft:policy:allow-direct-commits -- --confirm` (typed flag, audited to `meta/policy-changes.log`) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` (emergency env-var bypass). In the directive repo itself, the same tasks are valid without the `deft:` prefix. See [`contracts/deterministic-questions.md`](./contracts/deterministic-questions.md) for the canonical Discuss/Back rule that governs every numbered-menu prompt across deft skills (#767).
 - ⊗ Fix a discovered issue in-place mid-task without filing a GitHub issue — always file the issue and continue the current task; do not derail the active workflow to apply an instant fix (#198). **Carve-out**: if the discovered issue is a hard blocker (the current task literally cannot be completed without fixing it), fixing it in-scope is permitted, but a GitHub issue MUST be filed before or alongside the fix; nice-to-fix, quality improvements, and adjacent issues remain prohibited (#241)
 - ⊗ Continue executing a skill past its explicit instruction boundary — when a skill's steps are complete, stop and return to the calling context; do not drift into adjacent work (#198)
 - ! The end of a skill's final step is an exit condition — do not continue into adjacent work, even if it seems related or trivial
@@ -141,7 +141,7 @@ The vendored schema at [`vbrief/schemas/vbrief-core.schema.json`](./vbrief/schem
 
 - ! Every vBRIEF MUST emit `"vBRIEFInfo": { "version": "0.6" }`
 - ! `scripts/vbrief_validate.py` accepts ONLY `"0.6"`; any other version (including `"0.5"`) is a hard validation error
-- ! `scripts/migrate_vbrief.py` emits `"0.6"`. On every forward run the migrator auto-bumps the `vBRIEFInfo.version` header on any pre-existing `vbrief/specification.vbrief.json` and `vbrief/plan.vbrief.json` it reads (#571) -- bumping is part of `task migrate:vbrief` itself, NOT a separate sweep command. Scope vBRIEFs the migrator creates are written at `"0.6"` at construction time.
+- ! `scripts/migrate_vbrief.py` emits `"0.6"`. On every forward run the migrator auto-bumps the `vBRIEFInfo.version` header on any pre-existing `vbrief/specification.vbrief.json` and `vbrief/plan.vbrief.json` it reads (#571) -- bumping is part of `task deft:migrate:vbrief` in consumer projects (or `task migrate:vbrief` inside the directive repo), NOT a separate sweep command. Scope vBRIEFs the migrator creates are written at `"0.6"` at construction time.
 - ~ v0.6 adds `failed` to the Status enum and promotes `PlanItem.items` as the preferred nested field (`subItems` remains a deprecated legacy alias)
 - ~ See [`conventions/references.md`](./conventions/references.md) for the `x-vbrief/*` reference type registry and the canonical `{uri, type, title}` shape that all `references` entries must use
 
@@ -149,7 +149,7 @@ The vendored schema at [`vbrief/schemas/vbrief-core.schema.json`](./vbrief/schem
 
 ## Migrating from pre-v0.20
 
-Projects that pre-date v0.20 (pre-vBRIEF-centric model) can be upgraded with `task migrate:vbrief`. This section tells you how to recognize a pre-cutover project, how to run the migrator from the project root, and what the migrator produces. Cross-linked from [QUICK-START.md](./QUICK-START.md) Case H / Case I and from the consumer `AGENTS.md` pre-cutover branch (see [templates/agents-entry.md](./templates/agents-entry.md)).
+Projects that pre-date v0.20 (pre-vBRIEF-centric model) can be upgraded with `task deft:migrate:vbrief` when using the canonical namespaced include. This section tells you how to recognize a pre-cutover project, how to run the migrator from the project root, and what the migrator produces. Cross-linked from [QUICK-START.md](./QUICK-START.md) Case H / Case I and from the consumer `AGENTS.md` pre-cutover branch (see [templates/agents-entry.md](./templates/agents-entry.md)).
 
 ### What pre-cutover looks like
 
@@ -164,7 +164,7 @@ The executable detection helper is [scripts/_precutover.py](./scripts/_precutove
 
 ### Publishing deft tasks in your project root
 
-! The recommended way to make `task migrate:vbrief` (and every other `task *` deft ships) resolvable from the project root is to add a deft include to your project-root `Taskfile.yml`. With the include in place, `task --list` from the project root shows every deft task, and `task migrate:vbrief` dispatches into `deft/Taskfile.yml` the same way any other included taskfile works:
+! The recommended way to make `task deft:migrate:vbrief` (and every other deft task) resolvable from the project root is to add a namespaced deft include to your project-root `Taskfile.yml`. With the include in place, `task --list` from the project root shows every deft task under the `deft:` namespace, and `task deft:migrate:vbrief` dispatches into `./.deft/core/Taskfile.yml` the same way any other included taskfile works:
 
 ```yaml
 version: '3'
@@ -181,19 +181,19 @@ includes:
 
 ### Canonical migration command
 
-From the project root, once the consumer `Taskfile.yml` includes `deft/Taskfile.yml` as shown above, run:
+From the project root, once the consumer `Taskfile.yml` includes `./.deft/core/Taskfile.yml` as shown above, run:
 
 ```
-task migrate:vbrief
+task deft:migrate:vbrief
 ```
 
-! If the task is not resolvable from the project root (e.g. the consumer `Taskfile.yml` has not yet been wired up to include `deft/Taskfile.yml`), use the explicit-taskfile fallback invocation:
+! If the task is not resolvable from the project root (e.g. the consumer `Taskfile.yml` has not yet been wired up to include `./.deft/core/Taskfile.yml`), use the explicit-taskfile fallback invocation:
 
 ```
-task -t ./deft/Taskfile.yml migrate:vbrief
+task -t ./.deft/core/Taskfile.yml migrate:vbrief
 ```
 
-The fallback reads `migrate:vbrief` directly out of the framework's own Taskfile and works even when the project-root Taskfile has no `includes:` entry for deft. The primary invocation is preferred once the include is in place.
+The fallback reads `migrate:vbrief` directly out of the framework's own Taskfile and works even when the project-root Taskfile has no `includes:` entry for deft. The namespaced `task deft:migrate:vbrief` invocation is preferred once the include is in place.
 
 ### What migration produces
 
@@ -213,7 +213,7 @@ The migrator ships with four flags (see #497):
 
 - `--dry-run` — preview every write without touching the working tree
 - `--rollback` — restore from `.premigrate.*` backups created on the first migration pass
-- `--strict` — refuse to produce output that would not pass `task vbrief:validate`
+- `--strict` — refuse to produce output that would not pass `task deft:vbrief:validate`
 - `--force` — bypass the dirty-working-tree guard (default is to refuse when the tree has uncommitted changes)
 
 ~ Run a `--dry-run` pass first on any project with non-trivial SPEC / ROADMAP content so you can read `RECONCILIATION.md` / `LEGACY-REPORT.md` before committing to the change. Backups (`.premigrate.*`) are always created before any destructive write — `--rollback` restores them.
@@ -231,8 +231,8 @@ Many refinement operations are implemented as both deterministic Taskfile comman
 
 - **Ingest GitHub issues** — run `task deft:issue:ingest -- <N>` (single) or `task deft:issue:ingest -- --all [--label L] [--status S] [--dry-run]` (batch). Do NOT hand-author scope vBRIEFs from the refinement skill; the task is the canonical producer of the `{uri, type, title}` origin shape and the canonical filename slug.
 - **Reconcile against GitHub origins** — run `task deft:reconcile:issues`, then walk the user through flagged items (stale / externally closed / unlinked) for approval. The `deft-directive-refinement` skill is a thin wrapper around this task.
-- **Lifecycle transitions** — always use `task scope:{promote,activate,complete,cancel,restore,block,unblock}` so `plan.status`, `plan.updated` timestamps, and folder moves stay in sync.
-- **Re-render roadmap and project definition** — run `task roadmap:render` and `task project:render` after significant lifecycle changes.
+- **Lifecycle transitions** — always use `task deft:scope:{promote,activate,complete,cancel,restore,block,unblock}` so `plan.status`, `plan.updated` timestamps, and folder moves stay in sync.
+- **Re-render roadmap and project definition** — run `task deft:roadmap:render` and `task deft:project:render` after significant lifecycle changes.
 
 See [`skills/deft-directive-refinement/SKILL.md`](./skills/deft-directive-refinement/SKILL.md) for the full refinement loop that chains these tasks together.
 

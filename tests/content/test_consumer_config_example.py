@@ -27,6 +27,7 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOC_PATH = REPO_ROOT / "docs" / "example-project-definition.md"
+MAIN_PATH = REPO_ROOT / "main.md"
 PROJECT_DEFINITION_PATH = REPO_ROOT / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 
@@ -39,6 +40,11 @@ SCRIPTS_DIR = REPO_ROOT / "scripts"
 @pytest.fixture(scope="module")
 def doc_text() -> str:
     return DOC_PATH.read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def main_text() -> str:
+    return MAIN_PATH.read_text(encoding="utf-8")
 
 
 @pytest.fixture(scope="module")
@@ -367,3 +373,52 @@ def test_framework_defaults_do_not_carry_deft_specific_labels() -> None:
         f"framework D11 default ranking labels leak deft-specific values: {sorted(leaked)} "
         "(violates #1119 section 12 framework-vs-consumer boundary)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 6. Consumer Taskfile include examples stay namespaced (#1523)
+# ---------------------------------------------------------------------------
+
+
+def _section_between(text: str, start: str, end: str) -> str:
+    start_idx = text.index(start)
+    end_idx = text.index(end, start_idx)
+    return text[start_idx:end_idx]
+
+
+def test_main_taskfile_include_uses_resolvable_deft_namespace(main_text: str) -> None:
+    """The canonical consumer include exposes framework tasks as deft:<task>."""
+    section = _section_between(
+        main_text,
+        "### Publishing deft tasks in your project root",
+        "### What migration produces",
+    )
+    assert "task deft:migrate:vbrief" in section
+    assert "task -t ./.deft/core/Taskfile.yml migrate:vbrief" in section
+    assert "task migrate:vbrief\n" not in section
+    assert "`task migrate:vbrief`" not in section
+
+
+def test_main_preferred_workflow_uses_namespaced_consumer_tasks(
+    main_text: str,
+) -> None:
+    """Preferred workflow examples must match the canonical deft: include."""
+    section = _section_between(
+        main_text,
+        "## Preferred Workflow: Tasks + Skills Together",
+        "## Continuous Improvement",
+    )
+    for marker in (
+        "task deft:issue:ingest",
+        "task deft:reconcile:issues",
+        "task deft:scope:{promote,activate,complete,cancel,restore,block,unblock}",
+        "task deft:roadmap:render",
+        "task deft:project:render",
+    ):
+        assert marker in section
+    for bare_marker in (
+        "task scope:",
+        "task roadmap:render",
+        "task project:render",
+    ):
+        assert bare_marker not in section
