@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Deterministic questions break when host UI renders structured prompts alphabetically",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Deterministic question flows can break when host-native structured UI renders choices with alphabetic affordances while Directive expects numbered menus. This story makes deterministic menus host-portable by requiring visible numeric labels and strict answer mapping.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1563",
@@ -96,7 +96,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
-    }
+      },
+      "completedAt": "2026-06-09T19:43:21Z"
+    },
+    "updated": "2026-06-09T19:43:21Z"
   }
 }

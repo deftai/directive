@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "scope:complete updates PROJECT-DEFINITION references but leaves registry item status stale",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Completing a scope updates PROJECT-DEFINITION references but can leave the matching plan.items registry entry proposed. This story makes registry status synchronization deterministic or explicitly validated so project state does not contradict itself.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1527",
@@ -80,7 +80,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
-    }
+      },
+      "completedAt": "2026-06-09T19:43:19Z"
+    },
+    "updated": "2026-06-09T19:43:19Z"
   }
 }

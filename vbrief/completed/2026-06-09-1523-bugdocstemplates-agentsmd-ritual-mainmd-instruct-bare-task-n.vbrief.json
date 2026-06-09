@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1523"
+  },
+  "plan": {
+    "title": "bug(docs/templates): AGENTS.md ritual + main.md instruct bare task names that do not resolve under the canonical deft: namespaced include",
+    "status": "completed",
+    "narratives": {
+      "Description": "Consumer-facing docs and generated AGENTS.md guidance still instruct bare task names even though the canonical include pattern exposes Directive tasks under task deft:<name>. This story makes the documented command surface consistent with the namespaced consumer include.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1523",
+      "Overview": "## Summary\r\n\r\nIn a consumer project that follows the **canonical** root-`Taskfile.yml` include pattern documented in `main.md` (\"Publishing deft tasks in your project root\"), every **bare** `task <name>` command that the generated `AGENTS.md` managed section (and `main.md`) instructs the agent/operator to run fails with:\r\n\r\n```\r\ntask: Task \"<name>\" does not exist\r\n```\r\n\r\nThe canonical include namespaces all deft tasks under `deft:`, so the actually-resolvable names are `task deft:<name>`. But the docs/templates uniformly say `task <name>`. This is an internal inconsistency in directive's own canonical docs, not a consumer misconfiguration.\r\n\r\n## Environment\r\n\r\n- Consumer: `deftai/statusreport`\r\n- Deft CLI: **v0.42.0** (sha `fffdfad`), `install_root: .deft/core`\r\n- OS: Windows 11, pwsh 7.6.2, Task (go-task) v3, uv\r\n- `task deft:doctor -- --session` → all green (install integrity, `skill-paths-resolve`, `manifest-agreement`, `agents-md-managed-section-fresh`). So this is a healthy, up-to-date install.\r\n\r\n## Reproduction\r\n\r\n1. Install directive into a consumer project and wire the root `Taskfile.yml` exactly as `main.md` recommends:\r\n\r\n   ```yaml\r\n   version: '3'\r\n   includes:\r\n     deft:\r\n       taskfile: ./.deft/core/Taskfile.yml\r\n       optional: true\r\n   ```\r\n\r\n2. Start a session and follow the `AGENTS.md` \"Session-start ritual (#1149)\" verbatim:\r\n   - `task doctor` → `task: Task \"doctor\" does not exist`\r\n   - `task triage:welcome` → `does not exist`\r\n   - `task verify:cache-fresh` → `does not exist`\r\n3. Prefix with the namespace and every one resolves: `task deft:doctor`, `task deft:triage:welcome`, `task deft:verify:cache-fresh`.\r\n\r\n(go-task always exposes an included Taskfile's tasks as `<include-key>:<task>`. With the include key `deft:`, the only resolvable form is `task deft:<task>`. There is no bare form.)\r\n\r\n## Root cause — directive's docs are inconsistent with directive's own recommended include\r\n\r\nThe recommended include namespaces under `deft:`, yet the agent-facing docs reference bare task names throughout:\r\n\r\n- **`templates/agents-entry.md`** (source of the consumer `AGENTS.md` managed section) uses bare names everywhere:\r\n  - Session-start ritual (#1149): `task doctor`, `task triage:welcome`, `task verify:cache-fresh`\r\n  - Branch policy: `task verify:branch`, `task policy:show`, `task check`\r\n  - Implementation Intent Gate (#810): `task vbrief:preflight`, `task vbrief:activate`\r\n  - Story Start Gate: `task scope:promote/activate/complete`, `task verify:story-ready`\r\n- **`main.md`** is internally self-contradictory: the \"Preferred Workflow: Tasks + Skills Together\" section mixes **namespaced** `task deft:issue:ingest` / `task deft:reconcile:issues` (correct) with **bare** `task scope:{...}` / `task roadmap:render` / `task project:render` (broken). The \"Migrating from pre-v0.20\" section says `task migrate:vbrief` (bare).\r\n- Even the **consumer `Taskfile.yml` comment** that the canonical pattern ships claims the include \"surfaces `task spec:render`, `task vbrief:preflight`, `task check`, `task scope:*`, etc. at the project root\" — but under the `deft:` namespace those are surfaced as `task deft:spec:render`, `task deft:check`, etc.\r\n\r\n## Impact\r\n\r\n- Every command in the **mandatory** session-start ritual fails on a by-the-book consumer install until the agent/operator guesses the `deft:` prefix.\r\n- The #810 Implementation Intent Gate and Story Start Gate commands (`task vbrief:preflight`, `task scope:*`, `task verify:story-ready`) all fail as written, so an agent can wrongly conclude the gate is misconfigured / the install is broken.\r\n- Degrades first-session and agent UX and erodes trust in the docs. Related to the consumer-side discoverability concern in #967.\r\n\r\n## Suggested fix (apply one direction consistently)\r\n\r\n**Option A — make the docs follow the namespace (recommended).** Update `templates/agents-entry.md` and `main.md` to use `task deft:<name>` everywhere, matching the canonical namespaced include (this is already what works for `deft:issue:ingest`). Smallest, lowest-risk change. Also fix the mixed bare/namespaced usage in `main.md`'s Preferred Workflow section and the misleading consumer-`Taskfile.yml` comment.\r\n\r\n**Option B — recommend a flatten-able include.** go-task `includes:` always namespaces by key; there is no first-class flatten. Achieving bare names would require top-level alias tasks or a different documented invocation. Heavier and risks name collisions.\r\n\r\n**Option C — keep the namespaced include but ship top-level alias tasks** (`doctor`, `check`, `scope:*`, …) in the consumer scaffold that delegate to `deft:*`. Higher maintenance surface.\r\n\r\nRecommendation: **Option A**, plus consider a `doctor` check (or a `verify:*` gate) that flags bare `task <name>` references in the managed section so the two surfaces can't silently drift again.\r\n\r\n## Related\r\n\r\n- #967 — consumer-side `task check` discoverability gap (wire `deft:check` into install-generated scaffolding)\r\n- Prior namespace work (completed): \"5 of 11 task namespaces broken for consumer use\", \"fix triage task aliases\", \"all task scope commands fail with file not found\"\r\n",
+      "Labels": "bug, documentation, agent-experience",
+      "ImplementationPlan": "1. Update templates/agents-entry.md and main.md to use task deft:<name> for consumer-installed Directive task invocations while preserving own-repo/developer context where bare task names are valid.\n2. Add content tests in tests/content/test_agents_entry_contract.py and tests/content/test_consumer_config_example.py so the session-start ritual and preferred workflow no longer drift back to unresolved bare task names for consumer installs.",
+      "UserStory": "As a Deft consumer, I want generated guidance to use resolvable task names, so that the session-start ritual and implementation gates work in a canonical namespaced install.",
+      "Traces": "Issue #1523; templates/agents-entry.md session-start ritual; main.md canonical Taskfile include guidance; related #967."
+    },
+    "items": [
+      {
+        "id": "1523-a1",
+        "title": "Managed AGENTS.md uses resolvable consumer task names",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a consumer install follows the canonical deft: Taskfile include, when the generated AGENTS.md managed section names ritual and gate commands, then those commands use task deft:<name> or clearly distinguish own-repo bare commands.",
+          "Traces": "Issue #1523; templates/agents-entry.md session-start ritual; main.md canonical Taskfile include guidance; related #967."
+        }
+      },
+      {
+        "id": "1523-a2",
+        "title": "main.md no longer mixes bare and namespaced examples",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a user reads main.md task publishing guidance, then examples consistently match the canonical include namespace and do not claim bare task names are surfaced by that include.",
+          "Traces": "Issue #1523; templates/agents-entry.md session-start ritual; main.md canonical Taskfile include guidance; related #967."
+        }
+      },
+      {
+        "id": "1523-a3",
+        "title": "Content tests prevent namespace drift",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content tests run, then they fail if consumer-facing ritual or workflow examples reintroduce unresolved bare task names.",
+          "Traces": "Issue #1523; templates/agents-entry.md session-start ritual; main.md canonical Taskfile include guidance; related #967."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "documentation",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1523",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1523: bug(docs/templates): AGENTS.md ritual + main.md instruct bare task names that do not resolve under the canonical deft: namespaced include"
+      }
+    ],
+    "id": "1523-consumer-deft-task-namespace-guidance",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "templates/agents-entry.md",
+          "main.md",
+          "tests/content/test_agents_entry_contract.py",
+          "tests/content/test_consumer_config_example.py",
+          "tests/contract/test_no_legacy_deft_paths_in_agents_template.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_agents_entry_contract.py tests/content/test_consumer_config_example.py tests/contract/test_no_legacy_deft_paths_in_agents_template.py"
+        ],
+        "expected_outputs": [
+          "content tests assert consumer-facing task examples use the canonical deft: namespace or an explicit own-repo exception"
+        ],
+        "depends_on": [],
+        "conflict_group": "consumer-task-namespace-guidance",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T19:43:16Z"
+    },
+    "updated": "2026-06-09T19:43:16Z"
+  }
+}

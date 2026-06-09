@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "task check: pyproject version freshness fails on master after v0.43.0",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The pyproject version freshness gate is red on master because local tag discovery expects v0.43.0 while pyproject.toml reports 0.44.0. This story makes the release/version freshness contract deterministic so task check is not red after a successful release sequence.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1564",
@@ -78,7 +78,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
-    }
+      },
+      "completedAt": "2026-06-09T19:43:22Z"
+    },
+    "updated": "2026-06-09T19:43:22Z"
   }
 }
