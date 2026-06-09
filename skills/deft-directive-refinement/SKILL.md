@@ -312,6 +312,8 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 
 ! When the refinement session files a new umbrella issue (or surfaces one whose current-shape comment is missing), file the umbrella then file its `## Current shape (as of pass-N)` comment per `## Umbrella current-shape convention` in `AGENTS.md` (#1152) -- the edit-in-place comment is the canonical surface every subsequent design pass updates.
 
+~ Issue-label hygiene for any umbrella or child issue this skill files: before creating issues, inspect the target repo's existing labels with `gh label list` or the labels API; choose one or more suitable existing labels when practical, or explicitly note that no label was applied. This is a recommendation, not a gate -- do not block issue creation solely because no label fits, and do not invent ad hoc labels outside the repo's existing label set.
+
 ! When a refinement pass produces a slicing event (rare but possible -- e.g. a design pass on an existing umbrella files N additional Wave-N child issues), record the cohort in `vbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:refinement"` immediately after the children are filed (#1132 / D13). Same call shape as `skills/deft-directive-gh-slice/SKILL.md` Step 6. The cohort record is what makes `task triage:audit --orphans` able to detect Wave-2+ children whose umbrella closes prematurely; without it the production-side drift this surface guards against re-fires. Skip when the pass produced no new child cohort (e.g. a pure re-prioritization).
 
 

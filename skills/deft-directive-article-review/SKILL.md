@@ -125,6 +125,7 @@ Allow the user to comment, change framing, merge suggestions, or remove any. Ite
   - Body that describes the suggestion, the source article, and the specific directive files affected
   - A note if the suggestion is speculative/research-grade vs. immediately actionable
   - A reference to any related open issues ("extends #N", "related to #N")
+  - Issue-label hygiene: inspect existing repo labels with `gh label list` or the labels API, choose suitable existing labels when practical, or explicitly note that no label was applied. This is a recommendation, not a gate -- do not block issue creation solely because no label fits, and do not invent ad hoc labels outside the repo's existing label set.
 - ! After creating issues, print the issue URLs
 - ⊗ Create issues without explicit user confirmation
 

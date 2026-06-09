@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Issue-creation workflows now nudge agents toward existing labels (#1510)** -- Directive skills that file or surface GitHub issues now recommend checking the repository's label set, choosing suitable existing labels when practical, and explicitly noting when no label is applied. The guidance stays advisory so issue creation is not blocked when no label fits, while still reducing unlabeled triage drift. Closes #1510.
+
 ### Fixed
 
 - **Consumer `task deft:check` no longer runs framework source self-tests by default (#1519)** -- vendored `.deft/core` installs now route the aggregate check to consumer-safe install and lifecycle gates, while framework source-repo checks remain available behind an explicit self-check target. Closes #1519.
