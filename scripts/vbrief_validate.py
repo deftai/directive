@@ -128,6 +128,107 @@ def _normalize_narrative_key(key: str) -> str:
     return re.sub(r"[\s_\-]+", "", low)
 
 
+def _scope_ids_for_ref_uri(uri: str) -> set[str]:
+    """Return possible PROJECT-DEFINITION registry IDs for a local scope URI."""
+    rel = uri[len("file://") :] if uri.startswith("file://") else uri
+    name = Path(rel).name
+    full_id = name[: -len(".vbrief.json")] if name.endswith(".vbrief.json") else Path(name).stem
+    ids = {full_id}
+    parts = full_id.split("-", 3)
+    if (
+        len(parts) == 4
+        and len(parts[0]) == 4
+        and len(parts[1]) == 2
+        and len(parts[2]) == 2
+        and all(part.isdigit() for part in parts[:3])
+    ):
+        ids.add(parts[3])
+    return ids
+
+
+def _item_local_scope_uris(item: dict, plan: dict) -> list[str]:
+    """Collect local scope URIs that identify a PROJECT-DEFINITION registry item."""
+    uris: list[str] = []
+
+    metadata = item.get("metadata")
+    if isinstance(metadata, dict):
+        source_path = metadata.get("source_path")
+        if isinstance(source_path, str) and source_path:
+            uris.append(source_path)
+        metadata_refs = metadata.get("references")
+        if isinstance(metadata_refs, list):
+            for ref in metadata_refs:
+                if isinstance(ref, dict) and ref.get("type") == "x-vbrief/plan":
+                    uri = ref.get("uri")
+                    if isinstance(uri, str) and uri:
+                        uris.append(uri)
+
+    refs = item.get("references")
+    if isinstance(refs, list):
+        for ref in refs:
+            if isinstance(ref, dict) and ref.get("type") == "x-vbrief/plan":
+                uri = ref.get("uri")
+                if isinstance(uri, str) and uri:
+                    uris.append(uri)
+
+    item_id = item.get("id")
+    item_title = item.get("title")
+    plan_refs = plan.get("references")
+    if isinstance(plan_refs, list):
+        for ref in plan_refs:
+            if not isinstance(ref, dict) or ref.get("type") != "x-vbrief/plan":
+                continue
+            uri = ref.get("uri")
+            if not isinstance(uri, str) or not uri:
+                continue
+            title_matches = isinstance(item_title, str) and ref.get("title") == item_title
+            id_matches = isinstance(item_id, str) and item_id in _scope_ids_for_ref_uri(uri)
+            if title_matches or id_matches:
+                uris.append(uri)
+
+    # Preserve first-seen order while avoiding duplicate diagnostics.
+    return list(dict.fromkeys(uris))
+
+
+def _validate_project_registry_scope_status(
+    item: dict,
+    item_index: int,
+    plan: dict,
+    filepath: Path,
+    vbrief_dir: Path,
+) -> list[str]:
+    """Validate PROJECT-DEFINITION item status against referenced scope status."""
+    errors: list[str] = []
+    item_status = item.get("status")
+    if not isinstance(item_status, str):
+        return errors
+
+    resolved_root = vbrief_dir.resolve()
+    for uri in _item_local_scope_uris(item, plan):
+        if uri.startswith(("http://", "https://", "#")):
+            continue
+        scope_path = _resolve_ref_path(uri, vbrief_dir)
+        if scope_path is None:
+            continue
+        if not scope_path.is_relative_to(resolved_root) or not scope_path.exists():
+            continue
+        try:
+            scope_data = json.loads(scope_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        scope_plan = scope_data.get("plan")
+        if not isinstance(scope_plan, dict):
+            continue
+        scope_status = scope_plan.get("status")
+        if isinstance(scope_status, str) and scope_status != item_status:
+            errors.append(
+                f"{filepath}: items[{item_index}] status is {item_status!r} "
+                f"but referenced scope '{uri}' has plan.status {scope_status!r} "
+                "(D3 registry-status)"
+            )
+    return errors
+
+
 # D11: origin reference type patterns.
 #
 # Default behavior (schema-trusting, Option A from #536): ANY reference whose
@@ -414,6 +515,9 @@ def validate_project_definition(filepath: Path, data: dict, vbrief_dir: Path) ->
         for i, item in enumerate(items):
             if not isinstance(item, dict):
                 continue
+            errors.extend(
+                _validate_project_registry_scope_status(item, i, plan, filepath, vbrief_dir)
+            )
             refs = item.get("references", [])
             if not isinstance(refs, list):
                 refs = []

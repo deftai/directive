@@ -480,9 +480,7 @@ def _rewrite_one_plan_ref(
     resolved = resolve_vbrief_ref(value, vbrief_dir)
     if resolved is None or resolved != old_parent_resolved:
         return value, False
-    new_value = (
-        f"file://{new_parent_rel}" if value.startswith("file://") else new_parent_rel
-    )
+    new_value = f"file://{new_parent_rel}" if value.startswith("file://") else new_parent_rel
     return new_value, new_value != value
 
 
@@ -627,9 +625,7 @@ def _resolve_default_capacity_bucket(project_root: Path) -> str:
     return allocation.default_bucket or ""
 
 
-def _stamp_completion_metadata(
-    plan: dict, project_root: Path, timestamp: str
-) -> None:
+def _stamp_completion_metadata(plan: dict, project_root: Path, timestamp: str) -> None:
     """Stamp ``completedAt`` + ``capacityBucket`` onto a completing vBRIEF.
 
     ``completedAt`` is always set to *timestamp*. ``capacityBucket`` is set
@@ -648,6 +644,206 @@ def _stamp_completion_metadata(
         bucket = _resolve_default_capacity_bucket(project_root)
         if bucket:
             metadata["capacityBucket"] = bucket
+
+
+# ---------------------------------------------------------------------------
+# PROJECT-DEFINITION registry/reference synchronization (#1527)
+# ---------------------------------------------------------------------------
+
+
+def _scope_ids_for_filename(filename: str) -> set[str]:
+    """Return registry IDs that may name *filename*.
+
+    ``task project:render`` uses the full date-prefixed filename stem as the
+    registry ID, while some consumer PROJECT-DEFINITION files carry the human
+    slug without the leading ``YYYY-MM-DD-``. Accept both shapes so lifecycle
+    completion can repair real-world registries without a full re-render.
+    """
+    if filename.endswith(".vbrief.json"):
+        full_id = filename[: -len(".vbrief.json")]
+    else:
+        full_id = Path(filename).stem
+    ids = {full_id}
+    parts = full_id.split("-", 3)
+    if (
+        len(parts) == 4
+        and len(parts[0]) == 4
+        and len(parts[1]) == 2
+        and len(parts[2]) == 2
+        and all(part.isdigit() for part in parts[:3])
+    ):
+        ids.add(parts[3])
+    return ids
+
+
+def _relative_to_vbrief(path: Path, vbrief_root: Path) -> str | None:
+    try:
+        return path.resolve().relative_to(vbrief_root.resolve()).as_posix()
+    except ValueError:
+        return None
+
+
+def _rewrite_project_definition_plan_reference(
+    ref: object,
+    old_resolved: Path,
+    new_rel: str,
+    vbrief_root: Path,
+) -> bool:
+    """Rewrite a PROJECT-DEFINITION x-vbrief/plan URI old path -> new path."""
+    if not isinstance(ref, dict):
+        return False
+    if ref.get("type") != "x-vbrief/plan":
+        return False
+    uri = ref.get("uri")
+    resolved = resolve_vbrief_ref(uri, vbrief_root)
+    if resolved is None or resolved != old_resolved:
+        return False
+    new_uri = f"file://{new_rel}" if isinstance(uri, str) and uri.startswith("file://") else new_rel
+    if new_uri == uri:
+        return False
+    ref["uri"] = new_uri
+    return True
+
+
+def _project_item_references_scope(
+    item: dict,
+    old_resolved: Path,
+    new_resolved: Path,
+    vbrief_root: Path,
+) -> bool:
+    """Return True when a registry item carries a local ref/source to the scope."""
+    metadata = item.get("metadata")
+    if isinstance(metadata, dict):
+        source_path = metadata.get("source_path")
+        if isinstance(source_path, str):
+            resolved = resolve_vbrief_ref(source_path, vbrief_root)
+            if resolved in {old_resolved, new_resolved}:
+                return True
+
+        metadata_refs = metadata.get("references")
+        if isinstance(metadata_refs, list):
+            for ref in metadata_refs:
+                if not isinstance(ref, dict):
+                    continue
+                if ref.get("type") != "x-vbrief/plan":
+                    continue
+                resolved = resolve_vbrief_ref(ref.get("uri"), vbrief_root)
+                if resolved in {old_resolved, new_resolved}:
+                    return True
+
+    refs = item.get("references")
+    if isinstance(refs, list):
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            if ref.get("type") != "x-vbrief/plan":
+                continue
+            resolved = resolve_vbrief_ref(ref.get("uri"), vbrief_root)
+            if resolved in {old_resolved, new_resolved}:
+                return True
+    return False
+
+
+def _project_item_matches_scope(
+    item: dict,
+    scope_data: dict,
+    old_path: Path,
+    new_path: Path,
+    vbrief_root: Path,
+) -> bool:
+    """Match a PROJECT-DEFINITION plan.items[] row to a moved scope."""
+    old_resolved = old_path.resolve()
+    new_resolved = new_path.resolve()
+    if _project_item_references_scope(item, old_resolved, new_resolved, vbrief_root):
+        return True
+
+    item_id = item.get("id")
+    if isinstance(item_id, str) and item_id in _scope_ids_for_filename(new_path.name):
+        return True
+
+    scope_plan = scope_data.get("plan")
+    scope_title = scope_plan.get("title") if isinstance(scope_plan, dict) else None
+    item_title = item.get("title")
+    return (
+        isinstance(scope_title, str) and isinstance(item_title, str) and item_title == scope_title
+    )
+
+
+def _sync_project_definition_after_scope_move(
+    scope_data: dict,
+    old_path: Path,
+    new_path: Path,
+    vbrief_root: Path,
+    target_status: str,
+) -> None:
+    """Best-effort sync of PROJECT-DEFINITION after a lifecycle move.
+
+    The lifecycle transition is filesystem-first: a missing or malformed
+    PROJECT-DEFINITION must not make ``scope:complete`` fail. When the file is
+    present, keep local plan references and the matching registry row aligned
+    with the scope's new lifecycle folder/status.
+    """
+    new_rel = _relative_to_vbrief(new_path, vbrief_root)
+    if new_rel is None:
+        return
+    try:
+        from _project_definition_io import (  # noqa: I001
+            ProjectDefinitionIOError,
+            atomic_write_project_definition,
+            load_project_definition_for_mutation,
+            project_definition_mutation_lock,
+        )
+    except ImportError:
+        return
+
+    project_root = vbrief_root.parent
+    try:
+        with project_definition_mutation_lock(project_root):
+            project_def, project_def_path = load_project_definition_for_mutation(project_root)
+            plan = project_def.get("plan")
+            if not isinstance(plan, dict):
+                return
+
+            changed = False
+            old_resolved = old_path.resolve()
+            refs = plan.get("references")
+            if isinstance(refs, list):
+                for ref in refs:
+                    changed = (
+                        _rewrite_project_definition_plan_reference(
+                            ref, old_resolved, new_rel, vbrief_root
+                        )
+                        or changed
+                    )
+
+            items = plan.get("items")
+            if isinstance(items, list):
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    if not _project_item_matches_scope(
+                        item, scope_data, old_path, new_path, vbrief_root
+                    ):
+                        continue
+                    if item.get("status") != target_status:
+                        item["status"] = target_status
+                        changed = True
+                    metadata = item.get("metadata")
+                    if not isinstance(metadata, dict):
+                        metadata = {}
+                        item["metadata"] = metadata
+                    target_folder = new_path.parent.name
+                    if metadata.get("source_path") != new_rel:
+                        metadata["source_path"] = new_rel
+                        changed = True
+                    if metadata.get("lifecycle_folder") != target_folder:
+                        metadata["lifecycle_folder"] = target_folder
+                        changed = True
+
+            if changed:
+                atomic_write_project_definition(project_def_path, project_def)
+    except (OSError, ProjectDefinitionIOError):
+        return
 
 
 def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
@@ -704,8 +900,7 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
         if current_status == target_status:
             # Idempotent: already in the target state
             return True, (
-                f"No-op: {file_path.name} is already {target_status} "
-                f"in {current_folder}/"
+                f"No-op: {file_path.name} is already {target_status} " f"in {current_folder}/"
             )
         if current_status != required_status:
             return False, (
@@ -754,15 +949,14 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
         # pointing at the child's old path, which fails the D4 bidirectional-
         # linkage check. Rewrite the parent's forward reference to the new
         # path. Best-effort (never raises) -- the move has already succeeded.
-        update_decomposed_parent_back_references(
-            data, file_path, dest_path, vbrief_root
-        )
+        update_decomposed_parent_back_references(data, file_path, dest_path, vbrief_root)
         # Symmetric direction (#1487): a moved decompose-created epic parent
         # leaves each child's planRef back-pointer naming the parent's old
         # path, which fails the D4 backward-linkage check. Rewrite every
         # child's planRef to the parent's new path. Same best-effort contract.
-        update_decomposed_child_back_references(
-            data, file_path, dest_path, vbrief_root
+        update_decomposed_child_back_references(data, file_path, dest_path, vbrief_root)
+        _sync_project_definition_after_scope_move(
+            data, file_path, dest_path, vbrief_root, target_status
         )
         _move_labels = {
             "promote": "Promoted",
@@ -782,8 +976,7 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
     _stay_labels = {"block": "Blocked", "unblock": "Unblocked"}
     action_label = _stay_labels.get(action, action.capitalize())
     return True, (
-        f"{action_label} {file_path.name}: "
-        f"stays in {current_folder}/ (status: {target_status})"
+        f"{action_label} {file_path.name}: " f"stays in {current_folder}/ (status: {target_status})"
     )
 
 
@@ -908,11 +1101,7 @@ def main(argv: list[str] | None = None) -> int:
         # Post-promote: surface the --force override on stderr + audit-log
         # entry. Done after the transition succeeds so the audit entry
         # references the brief in its new home.
-        if (
-            args.action == "promote"
-            and cap_check is not None
-            and cap_check.force_override
-        ):
+        if args.action == "promote" and cap_check is not None and cap_check.force_override:
             project_root_for_audit = resolve_project_root(args.project_root)
             if project_root_for_audit is not None:
                 # File has moved to ``pending/`` -- locate the new path.

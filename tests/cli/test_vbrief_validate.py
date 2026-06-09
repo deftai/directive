@@ -441,6 +441,44 @@ class TestProjectDefinitionValidation:
         result = run_validator(vbrief_dir)
         assert result.returncode == 0
 
+    def test_registry_status_must_match_referenced_completed_scope(self, tmp_path):
+        """A completed reference with a proposed registry row is an error (#1527)."""
+        vbrief_dir = tmp_path / "vbrief"
+        make_lifecycle_dirs(vbrief_dir)
+        write_vbrief(
+            vbrief_dir / "completed" / "2026-04-13-feature-x.vbrief.json",
+            minimal_vbrief(title="Feature X", status="completed"),
+        )
+        doc = minimal_vbrief(
+            title="My Project",
+            status="running",
+            narratives={
+                "Overview": "A project",
+                "Tech Stack": "Python",
+            },
+            references=[
+                {
+                    "uri": "completed/2026-04-13-feature-x.vbrief.json",
+                    "type": "x-vbrief/plan",
+                    "title": "Feature X",
+                }
+            ],
+            items=[
+                {
+                    "id": "feature-x",
+                    "title": "Feature X",
+                    "status": "proposed",
+                }
+            ],
+        )
+        write_vbrief(vbrief_dir / "PROJECT-DEFINITION.vbrief.json", doc)
+
+        result = run_validator(vbrief_dir)
+
+        assert result.returncode == 1
+        assert "registry-status" in result.stdout
+        assert "completed" in result.stdout
+
 
 # ===========================================================================
 # D4: Epic-story bidirectional link validation

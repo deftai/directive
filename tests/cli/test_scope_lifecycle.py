@@ -27,7 +27,6 @@ from scope_lifecycle import (  # noqa: E402, I001
     update_decomposed_parent_back_references,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -68,6 +67,14 @@ def make_vbrief(
 def read_vbrief(path: Path) -> dict:
     """Read and parse a vBRIEF file."""
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_project_definition(vbrief_root: Path, data: dict) -> Path:
+    """Write a PROJECT-DEFINITION fixture under *vbrief_root*."""
+    path = vbrief_root / "PROJECT-DEFINITION.vbrief.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 PARENT_NAME = "2026-06-03-parent-epic.vbrief.json"
@@ -161,6 +168,7 @@ def validate_errors(tmp_path: Path) -> list[str]:
 # detect_lifecycle_folder
 # ---------------------------------------------------------------------------
 
+
 class TestDetectLifecycleFolder:
     def test_recognized_folders(self, tmp_path):
         for folder in LIFECYCLE_FOLDERS:
@@ -177,6 +185,7 @@ class TestDetectLifecycleFolder:
 # ---------------------------------------------------------------------------
 # Promote: proposed/ -> pending/
 # ---------------------------------------------------------------------------
+
 
 class TestPromote:
     def test_promote_success(self, tmp_path):
@@ -203,6 +212,7 @@ class TestPromote:
 # Activate: pending/ -> active/
 # ---------------------------------------------------------------------------
 
+
 class TestActivate:
     def test_activate_success(self, tmp_path):
         f = make_vbrief(tmp_path, "pending", "pending")
@@ -225,6 +235,7 @@ class TestActivate:
 # Complete: active/ -> completed/
 # ---------------------------------------------------------------------------
 
+
 class TestComplete:
     def test_complete_success(self, tmp_path):
         f = make_vbrief(tmp_path, "active", "running")
@@ -242,10 +253,60 @@ class TestComplete:
         assert not ok
         assert "Invalid transition" in msg
 
+    def test_complete_syncs_project_definition_reference_and_registry_status(self, tmp_path):
+        """Consumer-shaped PROJECT-DEFINITION state stays non-contradictory.
+
+        Regression for #1527: completing a scope rewrites the local
+        ``x-vbrief/plan`` URI from active/ to completed/ and synchronizes the
+        matching registry item from proposed -> completed in the same file.
+        """
+        f = make_vbrief(tmp_path, "active", "running")
+        vbrief_root = tmp_path / "vbrief"
+        project_definition_path = write_project_definition(
+            vbrief_root,
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {
+                    "title": "PROJECT-DEFINITION",
+                    "status": "running",
+                    "narratives": {
+                        "Overview": "A test project.",
+                        "TechStack": "Python",
+                    },
+                    "references": [
+                        {
+                            "uri": "active/2026-04-12-add-oauth.vbrief.json",
+                            "type": "x-vbrief/plan",
+                            "title": "Add OAuth support",
+                        }
+                    ],
+                    "items": [
+                        {
+                            "id": "add-oauth",
+                            "title": "Add OAuth support",
+                            "status": "proposed",
+                        }
+                    ],
+                },
+            },
+        )
+
+        ok, _ = run_transition("complete", f)
+
+        assert ok
+        project_definition = read_vbrief(project_definition_path)
+        ref = project_definition["plan"]["references"][0]
+        item = project_definition["plan"]["items"][0]
+        assert ref["uri"] == "completed/2026-04-12-add-oauth.vbrief.json"
+        assert item["status"] == "completed"
+        assert item["metadata"]["source_path"] == ("completed/2026-04-12-add-oauth.vbrief.json")
+        assert item["metadata"]["lifecycle_folder"] == "completed"
+
 
 # ---------------------------------------------------------------------------
 # Fail: active/ -> completed/ (status: failed) -- #614
 # ---------------------------------------------------------------------------
+
 
 class TestFail:
     """Tests for the ``fail`` terminal transition (#614).
@@ -298,12 +359,15 @@ class TestFail:
         assert dest.exists()
         assert read_vbrief(dest)["plan"]["status"] == "failed"
 
-    @pytest.mark.parametrize("folder,status", [
-        ("proposed", "proposed"),
-        ("pending", "pending"),
-        ("completed", "completed"),
-        ("cancelled", "cancelled"),
-    ])
+    @pytest.mark.parametrize(
+        "folder,status",
+        [
+            ("proposed", "proposed"),
+            ("pending", "pending"),
+            ("completed", "completed"),
+            ("cancelled", "cancelled"),
+        ],
+    )
     def test_fail_outside_active_is_rejected(self, tmp_path, folder, status):
         """``scope:fail`` on a vBRIEF outside ``active/`` is rejected --
         same contract as the other transitions (see #614 Fix section).
@@ -369,14 +433,18 @@ class TestFail:
 # Cancel: any folder -> cancelled/
 # ---------------------------------------------------------------------------
 
+
 class TestCancel:
-    @pytest.mark.parametrize("folder,status", [
-        ("proposed", "proposed"),
-        ("pending", "pending"),
-        ("active", "running"),
-        ("completed", "completed"),
-        ("cancelled", "cancelled"),
-    ])
+    @pytest.mark.parametrize(
+        "folder,status",
+        [
+            ("proposed", "proposed"),
+            ("pending", "pending"),
+            ("active", "running"),
+            ("completed", "completed"),
+            ("cancelled", "cancelled"),
+        ],
+    )
     def test_cancel_from_any_folder(self, tmp_path, folder, status):
         f = make_vbrief(tmp_path, folder, status)
         ok, msg = run_transition("cancel", f)
@@ -400,6 +468,7 @@ class TestCancel:
 # Restore: cancelled/ -> proposed/
 # ---------------------------------------------------------------------------
 
+
 class TestRestore:
     def test_restore_success(self, tmp_path):
         f = make_vbrief(tmp_path, "cancelled", "cancelled")
@@ -421,6 +490,7 @@ class TestRestore:
 # ---------------------------------------------------------------------------
 # Block: stays in active/ (running -> blocked)
 # ---------------------------------------------------------------------------
+
 
 class TestBlock:
     def test_block_success(self, tmp_path):
@@ -455,6 +525,7 @@ class TestBlock:
 # Unblock: stays in active/ (blocked -> running)
 # ---------------------------------------------------------------------------
 
+
 class TestUnblock:
     def test_unblock_success(self, tmp_path):
         f = make_vbrief(tmp_path, "active", "blocked")
@@ -487,6 +558,7 @@ class TestUnblock:
 # ---------------------------------------------------------------------------
 # Validation / edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestValidation:
     def test_unknown_action(self, tmp_path):
@@ -560,6 +632,7 @@ class TestValidation:
 # Full lifecycle round-trip
 # ---------------------------------------------------------------------------
 
+
 class TestFullLifecycle:
     def test_proposed_to_completed_round_trip(self, tmp_path):
         """Test the full happy path: proposed -> pending -> active -> completed."""
@@ -625,6 +698,7 @@ class TestFullLifecycle:
 # ---------------------------------------------------------------------------
 # CLI subprocess tests
 # ---------------------------------------------------------------------------
+
 
 class TestCLI:
     def test_usage_error_no_args(self):
@@ -693,6 +767,7 @@ class TestCLI:
 # Decomposed parent back-reference maintenance (#1485)
 # ---------------------------------------------------------------------------
 
+
 class TestDecomposedParentBackReference:
     """Regression coverage for #1485.
 
@@ -739,9 +814,7 @@ class TestDecomposedParentBackReference:
         parent_path, child_path = make_decomposed_pair(tmp_path)
         ok, _ = run_transition("activate", child_path)
         assert ok
-        ok, _ = run_transition(
-            "complete", tmp_path / "vbrief" / "active" / CHILD_NAME
-        )
+        ok, _ = run_transition("complete", tmp_path / "vbrief" / "active" / CHILD_NAME)
         assert ok
         assert parent_child_ref_uri(parent_path) == f"completed/{CHILD_NAME}"
         assert validate_errors(tmp_path) == []
@@ -812,6 +885,7 @@ class TestDecomposedParentBackReference:
 # ---------------------------------------------------------------------------
 # Decomposed child back-reference maintenance (#1487, symmetric to #1485)
 # ---------------------------------------------------------------------------
+
 
 class TestDecomposedChildBackReference:
     """Regression coverage for #1487.
