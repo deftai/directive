@@ -1138,7 +1138,7 @@ class TestTaskCheckWiring:
     def _task_block(text: str, task_name: str) -> str:
         start = re.search(rf"^  {re.escape(task_name)}:\n", text, re.MULTILINE)
         assert start is not None, f"{task_name} task missing"
-        next_task = re.search(r"^  [^\s#][^:\n]*:\n", text[start.end() :], re.MULTILINE)
+        next_task = re.search(r"^  [^\s#][^\n]*:\n", text[start.end() :], re.MULTILINE)
         if next_task is None:
             return text[start.end() :]
         return text[start.end() : start.end() + next_task.start()]

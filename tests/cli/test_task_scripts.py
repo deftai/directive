@@ -66,7 +66,7 @@ class TestTaskCheckAggregate:
     def _task_block(body: str, task_name: str) -> str:
         start = re.search(rf"^  {re.escape(task_name)}:\n", body, re.MULTILINE)
         assert start is not None, f"{task_name} task missing"
-        next_task = re.search(r"^  [^\s#][^:\n]*:\n", body[start.end() :], re.MULTILINE)
+        next_task = re.search(r"^  [^\s#][^\n]*:\n", body[start.end() :], re.MULTILINE)
         if next_task is None:
             return body[start.end() :]
         return body[start.end() : start.end() + next_task.start()]
