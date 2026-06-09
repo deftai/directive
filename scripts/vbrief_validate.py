@@ -40,6 +40,8 @@ from _precutover import (  # noqa: E402
     is_deprecation_redirect,
 )
 
+__all__ = ("DEPRECATED_REDIRECT_SENTINEL",)
+
 
 # #635: Detection-bound emit helper -- lazy-imported so an import-time
 # failure in ``scripts/_event_detect.py`` cannot break the validator's
