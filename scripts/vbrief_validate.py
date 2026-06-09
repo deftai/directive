@@ -34,12 +34,10 @@ from typing import Any
 # run directly. Mirrors the pattern in scripts/migrate_vbrief.py.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _precutover import (  # noqa: E402
-    DEPRECATED_REDIRECT_SENTINEL,  # noqa: F401 -- re-exported for compatibility
-    is_current_generated_specification,
-    is_deprecation_redirect,
-)
+import _precutover as _precutover  # noqa: E402
+from _precutover import is_current_generated_specification, is_deprecation_redirect  # noqa: E402
 
+DEPRECATED_REDIRECT_SENTINEL = _precutover.DEPRECATED_REDIRECT_SENTINEL
 __all__ = ("DEPRECATED_REDIRECT_SENTINEL",)
 
 
