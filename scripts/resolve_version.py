@@ -72,6 +72,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 
 DEV_FALLBACK = "0.0.0-dev"
@@ -210,6 +211,123 @@ def is_publishable(version: str) -> bool:
     except (NonPublishableVersionError, ValueError):
         return False
     return True
+
+
+def _tag_name_from_ref(ref: str) -> str:
+    """Return a tag name from a raw tag, ``refs/tags/*`` ref, or ls-remote line."""
+    candidate = ref.strip()
+    if not candidate:
+        return ""
+    parts = candidate.split()
+    if len(parts) >= 2:
+        candidate = parts[1]
+    if candidate.endswith("^{}"):
+        candidate = candidate[:-3]
+    prefix = "refs/tags/"
+    if candidate.startswith(prefix):
+        candidate = candidate[len(prefix) :]
+    return candidate.strip()
+
+
+def _publishable_tag_sort_key(version: str) -> tuple[int, int, int, int, int]:
+    """Sort key for publishable release tags.
+
+    ``git tag --sort=v:refname`` is not consistently available through
+    ``ls-remote`` output, so remote-aware freshness checks sort tags locally.
+    Stable releases sort after prereleases for the same X.Y.Z.
+    """
+    candidate = version.strip()
+    match = _PEP440_TAG_RE.match(candidate)
+    if match is None:
+        raise ValueError(
+            f"Cannot sort {candidate!r}: expected "
+            f"[v]X.Y.Z or [v]X.Y.Z-(rc|alpha|beta).N"
+        )
+    kind = match.group("kind")
+    if kind in _NON_PUBLISHABLE_KINDS:
+        raise NonPublishableVersionError(
+            f"Version {candidate!r} carries non-publishable pre-release tag {kind!r}."
+        )
+    prerelease_rank = {"alpha": 0, "beta": 1, "rc": 2, None: 3}.get(kind)
+    if prerelease_rank is None:
+        raise ValueError(f"Unmapped pre-release kind {kind!r} for {candidate!r}")
+    prerelease_num = int(match.group("num") or 0)
+    return (
+        int(match["major"]),
+        int(match["minor"]),
+        int(match["patch"]),
+        prerelease_rank,
+        prerelease_num,
+    )
+
+
+def latest_publishable_tag(tags: Iterable[str]) -> str | None:
+    """Return the newest publishable release tag from raw tag/ref strings.
+
+    Malformed and explicitly non-publishable tags are ignored. The returned
+    value preserves the tag spelling after ref cleanup (including a leading
+    ``v`` when present) so callers can report the exact source tag.
+    """
+    best_tag: str | None = None
+    best_key: tuple[int, int, int, int, int] | None = None
+    for raw in tags:
+        tag = _tag_name_from_ref(raw)
+        if not tag or not is_publishable(tag):
+            continue
+        try:
+            key = _publishable_tag_sort_key(tag)
+        except (NonPublishableVersionError, ValueError):
+            continue
+        if best_key is None or key > best_key:
+            best_tag = tag
+            best_key = key
+    return best_tag
+
+
+def latest_local_publishable_tag(repo_root: Path | None = None) -> str | None:
+    """Return the newest local publishable tag, or None when unavailable."""
+    cwd = repo_root if repo_root is not None else _FRAMEWORK_ROOT
+    try:
+        result = subprocess.run(
+            ["git", "tag", "--list"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            cwd=str(cwd),
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return latest_publishable_tag((result.stdout or "").splitlines())
+
+
+def latest_remote_publishable_tag(
+    remote: str = "origin",
+    repo_root: Path | None = None,
+) -> str | None:
+    """Return the newest publishable tag advertised by ``remote``.
+
+    This helper intentionally does not fetch or mutate the local tag store.
+    It is for read-only freshness checks that need to distinguish a stale
+    local checkout from the actual published release tags.
+    """
+    cwd = repo_root if repo_root is not None else _FRAMEWORK_ROOT
+    try:
+        result = subprocess.run(
+            ["git", "ls-remote", "--tags", "--refs", remote],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            cwd=str(cwd),
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    return latest_publishable_tag((result.stdout or "").splitlines())
 
 
 # ---------------------------------------------------------------------------

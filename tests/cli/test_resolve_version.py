@@ -418,6 +418,85 @@ class TestIsPublishable:
         assert resolve_version.is_publishable(raw) is False
 
 
+class TestLatestPublishableTag:
+    """Remote-aware freshness helpers pick the newest publishable release tag."""
+
+    def test_sorts_semver_not_lexically_and_ignores_non_publishable(self):
+        tags = [
+            "refs/tags/v0.9.0",
+            "refs/tags/v0.44.0",
+            "refs/tags/v0.44.1-test.1",
+            "refs/tags/not-a-release",
+            "refs/tags/v0.43.0",
+        ]
+        assert resolve_version.latest_publishable_tag(tags) == "v0.44.0"
+
+    def test_stable_release_wins_over_prerelease_for_same_base(self):
+        tags = ["refs/tags/v1.0.0-rc.2", "refs/tags/v1.0.0"]
+        assert resolve_version.latest_publishable_tag(tags) == "v1.0.0"
+
+    def test_newer_prerelease_wins_when_no_stable_release_exists(self):
+        tags = ["refs/tags/v1.0.0-beta.2", "refs/tags/v1.0.0-rc.1"]
+        assert resolve_version.latest_publishable_tag(tags) == "v1.0.0-rc.1"
+
+    def test_parses_ls_remote_lines(self):
+        tags = [
+            "abc123\trefs/tags/v0.43.0",
+            "def456\trefs/tags/v0.44.0",
+        ]
+        assert resolve_version.latest_publishable_tag(tags) == "v0.44.0"
+
+
+class TestLatestRemotePublishableTag:
+    def test_remote_tag_lookup_uses_ls_remote_without_fetching(self, monkeypatch):
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return SimpleNamespace(
+                stdout=(
+                    "abc123\trefs/tags/v0.43.0\n"
+                    "def456\trefs/tags/v0.44.0\n"
+                    "bad999\trefs/tags/v0.44.1-test.1\n"
+                ),
+                stderr="",
+                returncode=0,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+        assert (
+            resolve_version.latest_remote_publishable_tag("origin", REPO_ROOT)
+            == "v0.44.0"
+        )
+        assert calls == [["git", "ls-remote", "--tags", "--refs", "origin"]]
+
+    def test_remote_tag_lookup_returns_none_when_origin_unavailable(self, monkeypatch):
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(stdout="", stderr="network unavailable", returncode=128)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        assert resolve_version.latest_remote_publishable_tag("origin", REPO_ROOT) is None
+
+
+class TestLatestLocalPublishableTag:
+    def test_local_tag_lookup_uses_git_tag_list(self, monkeypatch):
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return SimpleNamespace(
+                stdout="v0.43.0\nv0.44.0\nv0.44.1-test.1\n",
+                stderr="",
+                returncode=0,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+        assert resolve_version.latest_local_publishable_tag(REPO_ROOT) == "v0.44.0"
+        assert calls == [["git", "tag", "--list"]]
+
+
 class TestPep440PhaseCExtensionHook:
     """Documents the #771 Phase C contract: future pip packaging consumes
     ``to_pep440`` rather than reimplementing the rule. The test below

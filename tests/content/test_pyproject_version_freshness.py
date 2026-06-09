@@ -3,16 +3,19 @@
 Regression counterpart to the release-pipeline ``Step 5`` pyproject sync
 landed in #771. If the root ``pyproject.toml`` ``[project].version``
 diverges from the PEP 440-normalized form of the latest published
-release tag, this test fails.
+release tag, this test fails. The freshness gate checks the read-only
+remote tag advertisement first so stale local tags do not make master red
+after a normal release.
 
 Behaviour matrix:
 
-    Latest tag        | Publishable? | Test outcome
+    Latest tag source | Publishable? | Test outcome
     ------------------|--------------|--------------
-    vX.Y.Z            | yes          | FAIL if pyproject != to_pep440(tag)
-    vX.Y.Z-rc.N       | yes          | FAIL if pyproject != to_pep440(tag)
-    vX.Y.Z-test.N     | NO           | SKIP (non-publishable; sync intentionally skipped)
-    no tag / no git   | n/a          | SKIP (likely shallow clone / fresh repo)
+    origin vX.Y.Z     | yes          | FAIL if pyproject != to_pep440(tag)
+    origin vX.Y.Z-rc.N| yes          | FAIL if pyproject != to_pep440(tag)
+    local-only tag    | yes          | fallback when origin cannot be queried
+    vX.Y.Z-test.N     | NO           | ignored (non-publishable; sync intentionally skipped)
+    no tags / no git  | n/a          | SKIP (likely shallow clone / fresh repo)
 
 The CHANGELOG entry under [Unreleased]/Added in #771 also references
 this regression gate -- the rule body lives in the deterministic test,
@@ -23,7 +26,6 @@ from __future__ import annotations
 
 import importlib.util
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -75,31 +77,41 @@ def _read_project_version(pyproject_path: Path) -> str | None:
     return None
 
 
-def _latest_git_tag() -> str | None:
-    """Return the latest annotated git tag, or None when unavailable.
+def _latest_release_tag() -> tuple[str | None, str]:
+    """Return the latest publishable release tag and its discovery source.
 
-    A None return indicates the repo has no tags (fresh clone, shallow CI
-    checkout, etc.) -- the freshness assertion is skipped in that case.
+    The remote lookup is read-only: it observes ``origin`` tags without
+    fetching or mutating local refs. If the remote is unavailable, local tags
+    are still good enough for offline/shallow-clone checks.
     """
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(REPO_ROOT), "describe", "--tags", "--abbrev=0"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return None
-    if result.returncode != 0:
-        return None
-    tag = (result.stdout or "").strip()
-    return tag or None
+    remote_tag = resolve_version.latest_remote_publishable_tag("origin", REPO_ROOT)
+    if remote_tag is not None:
+        return remote_tag, "origin"
+    local_tag = resolve_version.latest_local_publishable_tag(REPO_ROOT)
+    if local_tag is not None:
+        return local_tag, "local"
+    return None, "none"
 
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+
+def test_latest_release_tag_prefers_origin_over_stale_local(monkeypatch):
+    """A stale local tag must not override the published release tag (#1564)."""
+    monkeypatch.setattr(
+        resolve_version,
+        "latest_remote_publishable_tag",
+        lambda _remote, _repo_root: "v0.44.0",
+    )
+    monkeypatch.setattr(
+        resolve_version,
+        "latest_local_publishable_tag",
+        lambda _repo_root: "v0.43.0",
+    )
+
+    assert _latest_release_tag() == ("v0.44.0", "origin")
 
 
 def test_pyproject_has_project_version():
@@ -114,37 +126,30 @@ def test_pyproject_has_project_version():
 
 
 def test_pyproject_version_matches_latest_tag():
-    """[project].version MUST equal to_pep440(latest tag) (#771).
+    """[project].version MUST equal to_pep440(latest published tag) (#771).
 
-    The release pipeline syncs this on every cut. If the assertion fails
-    locally, run ``task release -- <version>`` (which now syncs
-    pyproject.toml in Step 5) or update the line manually to match
-    ``to_pep440(<latest tag>)``.
+    The release pipeline syncs this on every cut. The test prefers the
+    read-only remote tag advertisement so stale local tag state does not
+    misreport the latest published release after a normal release.
     """
     pyproject = REPO_ROOT / "pyproject.toml"
     project_version = _read_project_version(pyproject)
     assert project_version, "pyproject.toml [project].version missing"
 
-    tag = _latest_git_tag()
+    tag, source = _latest_release_tag()
     if tag is None:
         pytest.skip(
-            "no git tag available (fresh / shallow clone); "
+            "no publishable git tag available (fresh / shallow clone); "
             "freshness gate cannot determine the expected version"
-        )
-
-    if not resolve_version.is_publishable(tag):
-        pytest.skip(
-            f"latest tag {tag!r} is non-publishable "
-            f"(disposable / test tag); pyproject sync is intentionally "
-            f"skipped per #771 Phase B"
         )
 
     expected = resolve_version.to_pep440(tag)
     assert project_version == expected, (
         f"pyproject.toml [project].version drifted: got {project_version!r}, "
-        f"expected {expected!r} (PEP 440 normalization of latest tag {tag!r}). "
+        f"expected {expected!r} (PEP 440 normalization of latest {source} "
+        f"published tag {tag!r}). "
         f"Run `task release -- <version>` (which syncs pyproject.toml in "
-        f"Step 5 per #771) or update the line manually."
+        f"Step 5 per #771) or verify the release tag is published."
     )
 
 
