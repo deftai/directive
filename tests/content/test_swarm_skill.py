@@ -723,6 +723,8 @@ _INTERACTIVE_BACKEND_TOKENS = (
     "Grok Build subagents (`grok-build`)",
     "task policy:subagent-backend -- <id>",
     "per-run launch-context choice",
+    "unavailable or unknown",
+    "rerun the probe in the target environment",
     "Autonomous/headless launch remains fail-closed",
     "scripts/swarm_launch.py",
 )
@@ -751,6 +753,19 @@ def test_swarm_phase0_backend_selection_token_present(token: str) -> None:
         f"{_SWARM_PATH}: Phase 0 backend-selection block missing token "
         f"{token!r} -- see issue #1568 acceptance criteria"
     )
+
+
+def test_swarm_phase0d_routes_through_backend_selection_before_bridge() -> None:
+    """Phase 0d must hand interactive swarms to Phase 0e before Step 0.5."""
+    text = _read_swarm()
+    phase0d = text.find("#### Phase 0d -- Cohort dispatch")
+    phase0e = text.find(_PHASE0_BACKEND_HEADER)
+    assert phase0d != -1 and phase0e != -1 and phase0d < phase0e, (
+        f"{_SWARM_PATH}: Phase 0d must precede the #1568 backend-selection block"
+    )
+    block = text[phase0d:phase0e]
+    assert "Phase 0e below captures the intended sub-agent backend" in block
+    assert "before Step 0.5 hardens lifecycle state" in block
 
 
 def test_swarm_phase0_backend_menu_uses_visible_numbered_options() -> None:

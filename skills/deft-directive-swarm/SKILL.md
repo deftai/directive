@@ -135,7 +135,7 @@ Loop body, per candidate (top-of-queue first):
 
 #### Phase 0d -- Cohort dispatch
 
-- ! After the promote-fill loop exits (cap reached, queue empty, or operator `stop`), `vbrief/pending/` now holds the cohort. The existing Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs, #1025) below moves the cohort `pending/ -> active/`, and Steps 1-5 (readiness report, blockers, allocation, present, approval) proceed against the activated set. Existing swarm Phase 1+ (Select, Setup, Launch, Monitor, Review, Close) proceeds unchanged.
+- ! After the promote-fill loop exits (cap reached, queue empty, or operator `stop`), `vbrief/pending/` now holds the cohort. On the interactive path, Phase 0e below captures the intended sub-agent backend before Step 0.5 hardens lifecycle state. Then the existing Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs, #1025) moves the cohort `pending/ -> active/`, and Steps 1-5 (readiness report, blockers, allocation, present, approval) proceed against the activated set. Existing swarm Phase 1+ (Select, Setup, Launch, Monitor, Review, Close) proceeds unchanged.
 
 #### Phase 0e -- Interactive sub-agent backend selection (#1568)
 
@@ -158,7 +158,7 @@ Render the backend-selection prompt as a deterministic numbered menu in chat (or
 3. Discuss
 4. Back
 
-! If the operator chooses a backend whose probe status is unavailable, surface the remediation needed for that backend (for example, switch runtime, enable `spawn_subagent`, or inject cloud credentials) and stop before launch planning unless the operator explicitly records a per-run launch-context choice for a later environment where that backend will be available.
+! If the operator chooses a backend whose probe status is unavailable or unknown, surface the remediation or uncertainty for that backend (for example, switch runtime, enable `spawn_subagent`, inject cloud credentials, or rerun the probe in the target environment) and stop before launch planning unless the operator explicitly records a per-run launch-context choice for a later environment where that backend will be available or verifiable.
 
 ⊗ Treat probe availability as operator intent. A single probe-available backend is not a recommendation, default, or consent token; the operator must choose the intended backend in the interactive path when policy is unset.
 
