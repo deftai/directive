@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Issue-creation workflows now nudge agents toward existing labels (#1510)** -- Directive skills that file or surface GitHub issues now recommend checking the repository's label set, choosing suitable existing labels when practical, and explicitly noting when no label is applied. The guidance stays advisory so issue creation is not blocked when no label fits, while still reducing unlabeled triage drift. Closes #1510.
+
 ### Fixed
 
 - **Completed scopes no longer leave PROJECT-DEFINITION registry rows looking proposed (#1527)** -- `task scope:complete` now keeps the matching local project reference and registry item aligned when it moves a scope into `completed/`, and validation catches stale registry status if a referenced scope and its registry row drift apart. Closes #1527.
