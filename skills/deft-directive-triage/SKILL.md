@@ -50,7 +50,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 1. ! Run `task triage:classify --list` (D10 / #1129) to render the effective universal + consumer auto-classification rules and the active hold-marker list.
 2. ! Walk recent entries in `vbrief/.eval/candidates.jsonl` for anomalies: classifier disagreements against the operator's prior decisions, repeated `defer` cycles on the same issue, or `needs-ac` records older than the freshness window. Surface anomalies to the operator before Phase 2; do NOT auto-fix.
 3. ~ When the operator wants to widen / narrow the corpus, consult `task triage:scope --list` (D12 / #1131) to see the active `plan.policy.triageScope[]` subscription. Subscription edits belong in PROJECT-DEFINITION.vbrief.json, not in this skill.
-4. ⊗ Re-classify items already terminally decided (accept / reject / mark-duplicate) without explicit operator approval -- the audit log is append-only and supersession runs through Layer 5 (`task triage:reset <N>`), not through silent re-walks.
+4. ~ Issue-label hygiene: labels feed triage queue ranking, issue gauges, hygiene sweeps, and lifecycle reconciliation. When this skill exposes an unlabeled issue or a downstream issue-creation step, recommend choosing one or more suitable labels from the repository's existing label set via `gh label list` or the labels API, or explicitly note that no label was applied. This is a recommendation, not a gate.
+5. ⊗ Re-classify items already terminally decided (accept / reject / mark-duplicate) without explicit operator approval -- the audit log is append-only and supersession runs through Layer 5 (`task triage:reset <N>`), not through silent re-walks.
+6. ⊗ Block issue creation solely because no label was selected, or invent ad hoc labels outside the repository's existing label set.
 
 ## Phase 2 -- Present
 
