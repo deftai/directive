@@ -79,6 +79,10 @@ _sleep: Callable[[float], None] = time.sleep
 #: Progress writer; tests rebind to capture lines without stderr I/O.
 _progress_writer: Callable[[str], None] = sys.stderr.write
 
+#: Progress flusher; tests may rebind alongside ``_progress_writer`` when the
+#: writer is not stderr-backed.
+_progress_flusher: Callable[[], None] = sys.stderr.flush
+
 #: Legacy subprocess seam preserved for back-compat with tests that
 #: pinned the pre-#1239 GraphQL flow. Unused on the REST path.
 _run_subprocess: Callable[..., Any] = subprocess.run
@@ -347,6 +351,7 @@ def run_fetch_all(
         )
 
     for i, issue in enumerate(issues):
+        processed = i + 1
         raw = _normalise_rest_issue(issue)
         number = raw.get("number")
         if not isinstance(number, int) or number <= 0:
@@ -354,22 +359,19 @@ def run_fetch_all(
             report.failures.append(
                 {"key": f"{repo}/?", "reason": f"invalid 'number' field: {number!r}"}
             )
-            continue
+        else:
+            key = f"{repo}/{number}"
+            edir = entry_dir_for(key)
+            if is_fresh(edir / "meta.json"):
+                report.already_fresh += 1
+            else:
+                try:
+                    do_put(key, raw)
+                    report.issues_written += 1
+                except Exception as exc:  # noqa: BLE001 -- caller's CacheError variants
+                    report.issues_failed += 1
+                    report.failures.append({"key": key, "reason": str(exc)})
 
-        key = f"{repo}/{number}"
-        edir = entry_dir_for(key)
-        if is_fresh(edir / "meta.json"):
-            report.already_fresh += 1
-            continue
-
-        try:
-            do_put(key, raw)
-            report.issues_written += 1
-        except Exception as exc:  # noqa: BLE001 -- caller's CacheError variants
-            report.issues_failed += 1
-            report.failures.append({"key": key, "reason": str(exc)})
-
-        processed = i + 1
         if total >= PROGRESS_EVERY_N and (
             processed % PROGRESS_EVERY_N == 0 or processed == total
         ):
@@ -451,11 +453,11 @@ def _emit_fetch_progress(
         )
     try:
         _progress_writer(line)
-        flush = getattr(sys.stderr, "flush", None)
-        if callable(flush):
-            flush()
+        _progress_flusher()
     except (OSError, ValueError):
-        pass
+        # Progress emission is best-effort; cache writes must continue if the
+        # operator's stderr/log sink is closed or unavailable.
+        return
 
 
 # ---------------------------------------------------------------------------

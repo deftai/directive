@@ -193,6 +193,7 @@ def _parse_login(stdout: str) -> str | None:
 def validate_injected_token_mode(
     environ: Mapping[str, str],
     *,
+    repo: str = DEFAULT_VALIDATION_REPO,
     runtime_mode: str | None = None,
     run_gh: GhRunner | None = None,
 ) -> GitHubAuthValidationResult:
@@ -233,13 +234,27 @@ def validate_injected_token_mode(
             remediation=_merge_remediation(runtime_mode, FAILURE_API_UNREACHABLE),
         )
 
+    login = _parse_login(user_api.stdout)
+    owner, name = _split_repo(repo)
+    repo_api = runner(["api", f"repos/{owner}/{name}"], environ)
+    if repo_api.returncode != 0:
+        return GitHubAuthValidationResult(
+            ok=False,
+            github_auth_mode=GITHUB_AUTH_MODE_INJECTED_TOKEN,
+            runtime_mode=runtime_mode,
+            failure_kind=FAILURE_REPO_ACCESS,
+            detail=f"injected token can reach GitHub API but cannot access {repo}",
+            remediation=_merge_remediation(runtime_mode, FAILURE_REPO_ACCESS),
+            login=login,
+        )
+
     return GitHubAuthValidationResult(
         ok=True,
         github_auth_mode=GITHUB_AUTH_MODE_INJECTED_TOKEN,
         runtime_mode=runtime_mode,
         failure_kind=None,
         detail="injected-token mode validated in worker environment",
-        login=_parse_login(user_api.stdout),
+        login=login,
     )
 
 
@@ -325,6 +340,7 @@ def validate_github_auth(
     if github_auth_mode == GITHUB_AUTH_MODE_INJECTED_TOKEN:
         return validate_injected_token_mode(
             env,
+            repo=repo,
             runtime_mode=runtime_mode,
             run_gh=run_gh,
         )

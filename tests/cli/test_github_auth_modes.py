@@ -102,6 +102,9 @@ class TestInjectedTokenMode:
             {
                 ("auth", "status"): _completed(returncode=0),
                 ("api", "user", "--jq", ".login"): _completed(stdout='"worker-bot"'),
+                ("api", "repos/deftai/directive"): _completed(
+                    stdout='{"full_name":"deftai/directive"}'
+                ),
             }
         )
         result = gam.validate_injected_token_mode(
@@ -112,6 +115,11 @@ class TestInjectedTokenMode:
         assert result.ok
         assert result.login == "worker-bot"
         assert runner.calls[0][1]["GITHUB_TOKEN"] == "secret-token"  # type: ignore[attr-defined]
+        assert [call[0] for call in runner.calls] == [  # type: ignore[attr-defined]
+            ("auth", "status"),
+            ("api", "user", "--jq", ".login"),
+            ("api", "repos/deftai/directive"),
+        ]
 
     def test_injected_token_auth_failure_in_worker(self, gam, pc):
         runner = _recording_runner(
@@ -124,6 +132,29 @@ class TestInjectedTokenMode:
         )
         assert not result.ok
         assert result.failure_kind == gam.FAILURE_GH_AUTH
+
+    def test_injected_token_fails_when_repo_access_denied(self, gam, pc):
+        runner = _recording_runner(
+            {
+                ("auth", "status"): _completed(returncode=0),
+                ("api", "user", "--jq", ".login"): _completed(stdout='"worker-bot"'),
+                ("api", "repos/deftai/directive"): _completed(
+                    returncode=404,
+                    stderr="not found",
+                ),
+            }
+        )
+        result = gam.validate_injected_token_mode(
+            {"GH_TOKEN": "narrow-token"},
+            repo="deftai/directive",
+            runtime_mode=pc.RUNTIME_MODE_CLOUD_HEADLESS,
+            run_gh=runner,
+        )
+        assert not result.ok
+        assert result.failure_kind == gam.FAILURE_REPO_ACCESS
+        assert result.login == "worker-bot"
+        assert result.remediation is not None
+        assert "repository" in result.remediation.lower()
 
 
 class TestHostGhMode:

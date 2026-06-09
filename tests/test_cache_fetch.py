@@ -185,6 +185,78 @@ def test_run_fetch_all_emits_progress_for_large_cohort(
     assert "issues_failed=" in joined
 
 
+def test_run_fetch_all_progress_counts_already_fresh_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Progress tracks loop position even when many entries are already fresh."""
+    total = PROGRESS_EVERY_N * 2
+    progress_lines: list[str] = []
+    writes: list[str] = []
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_rest_issue(n) for n in range(1, total + 1)]
+
+    def is_fresh(path: Path) -> bool:
+        number = int(path.parent.name.rsplit("-", 1)[-1])
+        return number <= PROGRESS_EVERY_N
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+    monkeypatch.setattr(
+        _cache_fetch,
+        "_progress_writer",
+        lambda line: progress_lines.append(line),
+    )
+
+    report = run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=is_fresh,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda key, _r: writes.append(key),
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+    )
+
+    assert report.already_fresh == PROGRESS_EVERY_N
+    assert report.issues_written == PROGRESS_EVERY_N
+    assert len(writes) == PROGRESS_EVERY_N
+    joined = "".join(progress_lines)
+    assert f"processed={PROGRESS_EVERY_N}/{total}" in joined
+    assert f"processed={total}/{total}" in joined
+    assert f"already_fresh={PROGRESS_EVERY_N}" in joined
+
+
+def test_emit_fetch_progress_uses_rebindable_flusher(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Tests and log adapters can replace both progress writer and flusher."""
+    progress_lines: list[str] = []
+    flushes: list[str] = []
+
+    monkeypatch.setattr(
+        _cache_fetch,
+        "_progress_writer",
+        lambda line: progress_lines.append(line),
+    )
+    monkeypatch.setattr(_cache_fetch, "_progress_flusher", lambda: flushes.append("flush"))
+
+    _cache_fetch._emit_fetch_progress(
+        repo="deftai/directive",
+        phase="writing",
+        processed=1,
+        total=1,
+        report=FetchAllReport(issues_written=1),
+    )
+
+    assert progress_lines == [
+        "cache:fetch-all progress repo=deftai/directive "
+        "processed=1/1 issues_written=1 already_fresh=0 issues_failed=0\n"
+    ]
+    assert flushes == ["flush"]
+
+
 def test_run_fetch_all_skips_progress_for_small_cohort(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
