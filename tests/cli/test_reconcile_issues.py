@@ -20,6 +20,7 @@ from reconcile_issues import (  # noqa: E402, I001
     extract_references_from_vbrief,
     format_json,
     format_markdown,
+    is_terminal_lifecycle_path,
     parse_issue_number,
     reconcile_with_unlinked as reconcile,  # legacy three-section shape (#754)
     scan_vbrief_dir,
@@ -63,6 +64,23 @@ def make_vbrief_with_refs(
     file_path = folder_path / filename
     file_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     return file_path
+
+
+# ---------------------------------------------------------------------------
+# terminal lifecycle predicate
+# ---------------------------------------------------------------------------
+
+
+class TestTerminalLifecyclePredicate:
+    def test_completed_and_cancelled_are_terminal(self):
+        assert is_terminal_lifecycle_path("completed/done.vbrief.json")
+        assert is_terminal_lifecycle_path("cancelled/duplicate.vbrief.json")
+
+    def test_in_progress_folders_are_not_terminal(self):
+        assert not is_terminal_lifecycle_path("proposed/scope.vbrief.json")
+        assert not is_terminal_lifecycle_path("pending/scope.vbrief.json")
+        assert not is_terminal_lifecycle_path("active/scope.vbrief.json")
+        assert not is_terminal_lifecycle_path("malformed")
 
 
 # ---------------------------------------------------------------------------

@@ -219,6 +219,33 @@ class TestCheckVbriefLifecycleSyncHelper:
         )
         assert count == 0
 
+    def test_cancelled_folder_mismatch_excluded(
+        self, temp_project_with_vbrief, monkeypatch
+    ):
+        """A closed-issue vBRIEF in cancelled/ is terminal, not drift."""
+        _write_vbrief(
+            temp_project_with_vbrief / "vbrief",
+            "cancelled",
+            "2026-04-29-103-duplicate.vbrief.json",
+            issue_number=103,
+        )
+        import reconcile_issues  # type: ignore
+
+        monkeypatch.setattr(
+            reconcile_issues,
+            "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {103: "CLOSED"},
+        )
+        ok, count, reason = release.check_vbrief_lifecycle_sync(
+            temp_project_with_vbrief, "deftai/directive"
+        )
+        assert ok is True, (
+            "cancelled/ vBRIEFs for closed issues MUST NOT be flagged "
+            "as release drift"
+        )
+        assert count == 0
+        assert "no mismatches" in reason
+
     def test_vbrief_dir_missing_returns_config_error(self, tmp_path):
         """No vbrief/ folder -> (False, -1, 'vbrief directory not found')."""
         empty = tmp_path / "empty"

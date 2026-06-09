@@ -9,8 +9,8 @@ Options:
     --vbrief-dir DIR             Path to vbrief/ directory
     --repo OWNER/REPO            GitHub repo
     --format json|markdown       Output format
-    --apply-lifecycle-fixes      Move closed-issue vBRIEFs to completed/
-                                 (idempotent; #734)
+    --apply-lifecycle-fixes      Move non-terminal closed-issue vBRIEFs
+                                 to completed/ (idempotent; #734)
     --report-unlinked            Emit the legacy three-section report
                                  including issues with no vBRIEF (#754)
     --max-open-issues N          Safety cap for --report-unlinked path
@@ -39,12 +39,13 @@ section report is available via ``--report-unlinked`` with a
 ``--max-open-issues`` safety cap.
 
 When ``--apply-lifecycle-fixes`` (#734) is passed, Section (c) entries that
-are not already in ``completed/`` are auto-resolved: the vBRIEF JSON gains
+are not already in a terminal lifecycle folder (``completed/`` or
+``cancelled/``) are auto-resolved: the vBRIEF JSON gains
 ``plan.status = "completed"``, ``vBRIEFInfo.updated`` is stamped with the
 current UTC ISO timestamp, and the file is ``git mv``\'d (or filesystem-
 moved) into ``completed/``. The flag is idempotent: a second run is a
-no-op once every closed-issue vBRIEF lives in ``completed/``. Reverse
-mismatches (vBRIEF in ``completed/`` whose issue was reopened) are
+no-op once every closed-issue vBRIEF lives in a terminal lifecycle folder.
+Reverse mismatches (terminal vBRIEF whose issue was reopened) are
 report-only -- never auto-reverse-moved.
 
 Exit codes:
@@ -78,6 +79,9 @@ reconfigure_stdio()
 # ---------------------------------------------------------------------------
 
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
+TERMINAL_LIFECYCLE_FOLDERS: frozenset[str] = frozenset(
+    {"completed", "cancelled"}
+)
 
 ISSUE_URL_PATTERN = re.compile(
     r"https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)/issues/(?P<number>\d+)"
@@ -92,6 +96,12 @@ ISSUE_ID_PATTERN = re.compile(r"^#(?P<number>\d+)$")
 GITHUB_ISSUE_REF_TYPES: frozenset[str] = frozenset(
     {"github-issue", "x-vbrief/github-issue"}
 )
+
+
+def is_terminal_lifecycle_path(rel_path: str) -> bool:
+    """Return True when a vBRIEF relative path is already terminal."""
+    folder, sep, _filename = rel_path.partition("/")
+    return sep == "/" and folder in TERMINAL_LIFECYCLE_FOLDERS
 
 
 # ---------------------------------------------------------------------------
@@ -721,10 +731,10 @@ def apply_lifecycle_fixes(
     *,
     project_root: Path | None = None,
 ) -> tuple[int, int, list[str]]:
-    """Move Section (c) entries to ``completed/`` and stamp status / updated.
+    """Move non-terminal Section (c) entries to ``completed/``.
 
     Iterates ``report['no_open_issue']`` and for each vBRIEF file path
-    that is NOT already in ``completed/``:
+    that is NOT already in a terminal lifecycle folder:
 
     1. Read the JSON.
     2. Set ``plan.status = "completed"``.
@@ -733,9 +743,9 @@ def apply_lifecycle_fixes(
     5. ``git mv`` (or filesystem-move) the file into ``completed/``.
 
     The function is intentionally idempotent: a second call with a
-    fresh report (where every entry already lives in ``completed/``)
-    is a no-op. Reverse mismatches (vBRIEFs already in ``completed/``
-    whose issue was reopened) are skipped silently here -- they are
+    fresh report (where every entry already lives in ``completed/`` or
+    ``cancelled/``) is a no-op. Reverse mismatches (vBRIEFs already in a
+    terminal folder whose issue was reopened) are skipped silently here -- they are
     surfaced in the report's Section (a) / (c) split, but auto-reverse
     is intentionally NOT performed (operator decision per #734).
 
@@ -780,7 +790,7 @@ def apply_lifecycle_fixes(
                 f"unexpected vBRIEF path shape (no folder): {rel_path!r}"
             )
             continue
-        if folder == "completed":
+        if is_terminal_lifecycle_path(rel_path):
             # Already terminal; no-op.
             skipped += 1
             continue
@@ -890,10 +900,10 @@ def main() -> int:
         action="store_true",
         default=False,
         help=(
-            "Apply Section (c) fixes: move closed-issue vBRIEFs to "
-            "completed/, stamp plan.status=completed and "
+            "Apply Section (c) fixes: move non-terminal closed-issue "
+            "vBRIEFs to completed/, stamp plan.status=completed and "
             "vBRIEFInfo.updated. Idempotent on re-run. Reverse "
-            "mismatches (completed/ vBRIEF + reopened issue) are "
+            "mismatches (terminal vBRIEF + reopened issue) are "
             "report-only -- never auto-reverse-moved. (#734)"
         ),
     )
@@ -990,7 +1000,7 @@ def main() -> int:
     else:
         print(format_markdown(report))
 
-    # #734: apply mode -- move Section (c) vBRIEFs to completed/.
+    # #734: apply mode -- move non-terminal Section (c) vBRIEFs to completed/.
     if args.apply_lifecycle_fixes:
         # #756: dedupe by rel_path before counting candidates so the
         # ``[N/M]`` summary line is consistent with apply_lifecycle_fixes,
@@ -1002,7 +1012,7 @@ def main() -> int:
                 for entry in report.get("no_open_issue", [])
                 for rel in entry.get("vbrief_files", [])
             )
-            if not rel.startswith("completed/")
+            if not is_terminal_lifecycle_path(rel)
         )
         moved, skipped, failures = apply_lifecycle_fixes(
             vbrief_dir, report, project_root=project_root
@@ -1010,7 +1020,7 @@ def main() -> int:
         total = moved + skipped + len(failures)
         print(
             f"[{moved}/{candidates}] vBRIEFs reconciled "
-            f"(moved={moved}, already-completed={skipped}, "
+            f"(moved={moved}, already-terminal={skipped}, "
             f"failures={len(failures)})",
             file=sys.stderr,
         )

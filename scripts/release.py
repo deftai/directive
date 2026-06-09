@@ -222,7 +222,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Bypass the vBRIEF-lifecycle sync pre-flight gate (#734). "
             "Use only when the operator has reviewed the drift and "
             "explicitly accepts that closed-issue vBRIEFs may still "
-            "live in non-completed/ folders. The clean path is to "
+            "live in non-terminal folders. The clean path is to "
             "run `task reconcile:issues -- --apply-lifecycle-fixes` "
             "first."
         ),
@@ -472,7 +472,7 @@ def check_vbrief_lifecycle_sync(
 
     Wraps ``scripts/reconcile_issues.py`` so the release pipeline can
     refuse to cut a release while there are closed-issue vBRIEFs still
-    living in non-``completed/`` lifecycle folders -- the v0.21.0 cut
+    living in non-terminal lifecycle folders -- the v0.21.0 cut
     surfaced 13 stranded vBRIEFs (8 cycle-relevant + 5 historical
     residue) post-publish, the recurrence record this gate prevents.
 
@@ -488,7 +488,7 @@ def check_vbrief_lifecycle_sync(
     Returns ``(ok, mismatch_count, reason)``:
       - ``ok=True, mismatch_count=0`` -- clean (Section (c) is empty).
       - ``ok=False, mismatch_count=N`` -- N closed-issue vBRIEFs are NOT
-        in ``completed/``; operator must run
+        in ``completed/`` or ``cancelled/``; operator must run
         ``task reconcile:issues -- --apply-lifecycle-fixes`` (or pass
         ``--allow-vbrief-drift`` to override).
       - ``ok=False, mismatch_count=-1`` -- configuration error (vbrief
@@ -525,21 +525,21 @@ def check_vbrief_lifecycle_sync(
         return False, -1, "failed to fetch issue states from gh"
 
     report = reconcile_issues.reconcile(issue_to_vbriefs, issue_state_map)
-    # Section (c) entries that are NOT already in completed/ -- the
+    # Section (c) entries that are NOT already terminal -- the
     # apply-mode candidates. Reverse mismatches (issues that reopened
-    # after a vBRIEF landed in completed/) are intentionally NOT
+    # after a vBRIEF landed in completed/ or cancelled/) are intentionally NOT
     # counted here per #734 (operator decision; report-only).
     mismatches = [
         rel
         for entry in report.get("no_open_issue", [])
         for rel in entry.get("vbrief_files", [])
-        if not rel.startswith("completed/")
+        if not reconcile_issues.is_terminal_lifecycle_path(rel)
     ]
     count = len(mismatches)
     if count == 0:
         return True, 0, "no mismatches"
     return False, count, (
-        f"{count} closed-issue vBRIEF(s) not in completed/: "
+        f"{count} closed-issue vBRIEF(s) not in completed/ or cancelled/: "
         f"{', '.join(mismatches[:5])}"
         + (" ..." if count > 5 else "")
     )

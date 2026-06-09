@@ -180,6 +180,32 @@ class TestApplyLifecycleFixesHappy:
         assert skipped2 >= 1
         assert failures2 == []
 
+    def test_cancelled_closed_issue_is_terminal_noop(self, vbrief_dir):
+        """Apply-mode MUST NOT move cancelled duplicate/not-planned work."""
+        cancelled = _write_vbrief(
+            vbrief_dir,
+            "cancelled",
+            "2026-04-29-201-duplicate.vbrief.json",
+            issue_number=201,
+            status="cancelled",
+        )
+        issue_to_vbriefs = reconcile_issues.scan_vbrief_dir(vbrief_dir)
+        report = reconcile_issues.reconcile(issue_to_vbriefs, {201: "CLOSED"})
+        assert report["summary"]["vbriefs_no_open_issue_count"] == 1
+
+        moved, skipped, failures = reconcile_issues.apply_lifecycle_fixes(
+            vbrief_dir, report
+        )
+
+        assert moved == 0
+        assert skipped == 1
+        assert failures == []
+        assert cancelled.is_file(), "cancelled/ vBRIEF MUST stay in cancelled/"
+        assert not (vbrief_dir / "completed" / cancelled.name).exists()
+        data = json.loads(cancelled.read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "cancelled"
+        assert "updated" not in data["vBRIEFInfo"]
+
 
 # ---------------------------------------------------------------------------
 # Mixed reference shapes
