@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **Interactive swarm setup asks for the intended sub-agent backend before launch (#1568)** -- swarm operators now see a numbered Composer/local, Cursor cloud, or Grok Build choice before headless launch planning when no backend policy is set. The prompt separates operator preference from probe availability, so a probe-available cloud backend is not treated as the default. Closes #1568.
 
 ### Fixed
 
