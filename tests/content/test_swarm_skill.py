@@ -774,6 +774,26 @@ def test_swarm_phase0_backend_menu_uses_visible_numbered_options() -> None:
     )
 
 
+def test_swarm_phase0_backend_followup_menu_uses_visible_numbered_options() -> None:
+    """Persistence follow-up menu must also render explicit numbered choices."""
+    block = _phase0_backend_block(_read_swarm())
+    options = (
+        "1. Persist backend to project policy with `task policy:subagent-backend -- <id>`",
+        "2. Record backend as a per-run launch-context choice for this swarm only",
+        "3. Discuss",
+        "4. Back",
+    )
+    positions = [block.find(option) for option in options]
+    assert all(position != -1 for position in positions), (
+        f"{_SWARM_PATH}: backend follow-up menu missing one or more visible "
+        f"numbered options; positions={dict(zip(options, positions, strict=True))}"
+    )
+    assert positions == sorted(positions), (
+        f"{_SWARM_PATH}: backend follow-up menu options must appear in "
+        f"canonical order; positions={dict(zip(options, positions, strict=True))}"
+    )
+
+
 def test_swarm_phase0_backend_menu_keeps_discuss_back_final() -> None:
     """Discuss and Back must be the final two backend prompt choices."""
     block = _phase0_backend_block(_read_swarm())
@@ -782,6 +802,6 @@ def test_swarm_phase0_backend_menu_keeps_discuss_back_final() -> None:
     assert discuss != -1 and back != -1 and discuss < back, (
         f"{_SWARM_PATH}: backend-selection menu must end with Discuss then Back"
     )
-    assert "6." not in block[back:], (
+    assert "6. " not in block[back:], (
         f"{_SWARM_PATH}: backend-selection menu must not add options after Back"
     )

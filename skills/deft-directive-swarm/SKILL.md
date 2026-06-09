@@ -151,7 +151,12 @@ Render the backend-selection prompt as a deterministic numbered menu in chat (or
 4. Discuss
 5. Back
 
-! After the operator selects a backend, ask whether to persist it to project policy with `task policy:subagent-backend -- <id>` or record it as a per-run launch-context choice for this swarm only. The persistence/per-run follow-up is also a deterministic numbered menu with `Discuss` and `Back` as the final two options.
+! After the operator selects a backend, ask whether to persist it to project policy with `task policy:subagent-backend -- <id>` or record it as a per-run launch-context choice for this swarm only. Render the persistence/per-run follow-up as a deterministic numbered menu with `Discuss` and `Back` as the final two options:
+
+1. Persist backend to project policy with `task policy:subagent-backend -- <id>` -- use this backend for future swarms.
+2. Record backend as a per-run launch-context choice for this swarm only -- do not change project policy.
+3. Discuss
+4. Back
 
 ! If the operator chooses a backend whose probe status is unavailable, surface the remediation needed for that backend (for example, switch runtime, enable `spawn_subagent`, or inject cloud credentials) and stop before launch planning unless the operator explicitly records a per-run launch-context choice for a later environment where that backend will be available.
 
