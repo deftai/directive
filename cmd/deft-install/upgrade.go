@@ -56,6 +56,15 @@ var tarballExcludedTopLevel = map[string]bool{
 	"node_modules": true,
 }
 
+// tarballExcludedRepoPrefixes are repo-relative content prefixes that should
+// not be deposited into consumer .deft/core payloads. These are source-repo
+// forensic/project-management artifacts, not runtime framework files.
+var tarballExcludedRepoPrefixes = []string{
+	"history/archive",
+	"vbrief/completed",
+	"vbrief/cancelled",
+}
+
 // UpdateOutcome reports what the update path did so main.go can populate the
 // --json diagnostics (payload_layout / strategy) and re-stamp the VERSION
 // manifest with the framework source SHA resolved from the tarball rather than
@@ -505,6 +514,14 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 func tarPathExcluded(parts []string) bool {
 	if len(parts) > 1 && tarballExcludedTopLevel[parts[1]] {
 		return true
+	}
+	if len(parts) > 1 {
+		repoRel := strings.Join(parts[1:], "/")
+		for _, prefix := range tarballExcludedRepoPrefixes {
+			if repoRel == prefix || strings.HasPrefix(repoRel, prefix+"/") {
+				return true
+			}
+		}
 	}
 	for _, seg := range parts[1:] {
 		if seg == ".git" {

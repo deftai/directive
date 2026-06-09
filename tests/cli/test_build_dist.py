@@ -87,6 +87,9 @@ def fake_project(tmp_path: Path) -> Path:
             scripts/build_dist.py
             skills/foo/SKILL.md
             tasks/core.yml
+            vbrief/schemas/vbrief-core.schema.json
+            vbrief/completed/old.vbrief.json       <- excluded
+            history/archive/old/tasks.vbrief.json  <- excluded
             .git/HEAD                    <- excluded
             backup/old.md                <- excluded
             node_modules/lib/index.js    <- excluded
@@ -101,11 +104,24 @@ def fake_project(tmp_path: Path) -> Path:
     (root / "scripts").mkdir()
     (root / "scripts" / "build_dist.py").write_text("# stub\n", encoding="utf-8")
     (root / "skills" / "foo").mkdir(parents=True)
-    (root / "skills" / "foo" / "SKILL.md").write_text(
-        "# Test skill\n", encoding="utf-8"
-    )
+    (root / "skills" / "foo" / "SKILL.md").write_text("# Test skill\n", encoding="utf-8")
     (root / "tasks").mkdir()
     (root / "tasks" / "core.yml").write_text("version: '3'\n", encoding="utf-8")
+    (root / "vbrief" / "schemas").mkdir(parents=True)
+    (root / "vbrief" / "schemas" / "vbrief-core.schema.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+    (root / "vbrief" / "completed").mkdir(parents=True)
+    (root / "vbrief" / "completed" / "old.vbrief.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+    (root / "history" / "archive" / "old").mkdir(parents=True)
+    (root / "history" / "archive" / "old" / "tasks.vbrief.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
     # Excluded directories with marker files
     (root / ".git").mkdir()
     (root / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
@@ -212,9 +228,7 @@ class TestOutputPath:
     ids=["linux-tar", "windows-zip", "macos-tar"],
 )
 class TestBuildParity:
-    def test_excluded_paths_absent(
-        self, fake_project: Path, platform_label: str, fmt: str
-    ):
+    def test_excluded_paths_absent(self, fake_project: Path, platform_label: str, fmt: str):
         """The 4 canonical excludes (.git, dist, backup, node_modules) MUST
         be absent from the produced artifact regardless of format."""
         artifact = build_dist.build(fake_project, "0.22.0", fmt)
@@ -226,9 +240,7 @@ class TestBuildParity:
                 f"{[m for m in members if excluded in m.split('/')][:5]}"
             )
 
-    def test_expected_core_paths_present(
-        self, fake_project: Path, platform_label: str, fmt: str
-    ):
+    def test_expected_core_paths_present(self, fake_project: Path, platform_label: str, fmt: str):
         """Expected top-level project content lives under the deft/ prefix."""
         artifact = build_dist.build(fake_project, "0.22.0", fmt)
         members = _list_archive_paths(artifact, fmt)
@@ -237,15 +249,31 @@ class TestBuildParity:
             "deft/scripts/build_dist.py",
             "deft/skills/foo/SKILL.md",
             "deft/tasks/core.yml",
+            "deft/vbrief/schemas/vbrief-core.schema.json",
         ):
             assert expected in members, (
                 f"[{platform_label}-{fmt}] expected member {expected!r} "
                 f"not present. Archive contains: {sorted(members)[:10]} ..."
             )
 
-    def test_artifact_size_below_ceiling(
+    def test_consumer_payload_history_paths_absent(
         self, fake_project: Path, platform_label: str, fmt: str
     ):
+        """Consumer archives omit source-repo history while keeping runtime schema files."""
+        artifact = build_dist.build(fake_project, "0.45.1", fmt)
+        members = _list_archive_paths(artifact, fmt)
+
+        excluded_members = [
+            "deft/history/archive/old/tasks.vbrief.json",
+            "deft/vbrief/completed/old.vbrief.json",
+        ]
+        for excluded in excluded_members:
+            assert excluded not in members, (
+                f"[{platform_label}-{fmt}] non-runtime history leaked into archive: {excluded}"
+            )
+        assert "deft/vbrief/schemas/vbrief-core.schema.json" in members
+
+    def test_artifact_size_below_ceiling(self, fake_project: Path, platform_label: str, fmt: str):
         """Sanity ceiling: artifact MUST stay below 50 MB.
 
         On the synthetic fixture this is overwhelmingly true (a few KB).
@@ -264,9 +292,7 @@ class TestBuildParity:
             f"archive."
         )
 
-    def test_idempotent_rerun(
-        self, fake_project: Path, platform_label: str, fmt: str
-    ):
+    def test_idempotent_rerun(self, fake_project: Path, platform_label: str, fmt: str):
         """Re-running build twice MUST NOT ingest the prior dist/ artifact.
 
         The first run produces an artifact in dist/. The second run, given
@@ -520,9 +546,7 @@ def test_task_build_smoke(tmp_path: Path):
             env=env,
         )
         assert result.returncode == 0, (
-            f"task build exited non-zero:\n"
-            f"stdout=\n{result.stdout}\n"
-            f"stderr=\n{result.stderr}\n"
+            f"task build exited non-zero:\nstdout=\n{result.stdout}\nstderr=\n{result.stderr}\n"
         )
         # On Windows the helper writes a zip; everywhere else a tar.gz. The
         # smoke test accepts whichever is produced for the host so the same
@@ -537,8 +561,7 @@ def test_task_build_smoke(tmp_path: Path):
         # stdout, proving the Python helper actually ran (rather than some
         # legacy tar/Compress-Archive command).
         assert "Created" in result.stdout, (
-            f"task build stdout did not contain Python helper banner; "
-            f"output:\n{result.stdout}"
+            f"task build stdout did not contain Python helper banner; output:\n{result.stdout}"
         )
     finally:
         for stale in (artifact, artifact_zip):

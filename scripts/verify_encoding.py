@@ -113,10 +113,20 @@ NO_BOM_EXTENSIONS = frozenset({".md", ".json", ".yml", ".yaml", ".txt"})
 
 #: File extensions to scan by default. Conservative -- excludes binary formats
 #: and source files where the cost/benefit of mojibake detection is lower.
-SCANNABLE_EXTENSIONS = frozenset({
-    ".md", ".json", ".yml", ".yaml", ".txt",
-    ".py", ".sh", ".ps1", ".toml", ".cfg",
-})
+SCANNABLE_EXTENSIONS = frozenset(
+    {
+        ".md",
+        ".json",
+        ".yml",
+        ".yaml",
+        ".txt",
+        ".py",
+        ".sh",
+        ".ps1",
+        ".toml",
+        ".cfg",
+    }
+)
 
 #: Path-glob patterns auto-skipped because the file legitimately contains
 #: mojibake byte sequences as part of its purpose. Each entry is matched
@@ -131,11 +141,25 @@ BUILTIN_ALLOW_LIST: tuple[str, ...] = (
     "vbrief/cancelled/*-798-*.vbrief.json",
     "vbrief/pending/*-798-*.vbrief.json",
     "vbrief/proposed/*-798-*.vbrief.json",
+    ".deft/core/vbrief/active/*-798-*.vbrief.json",
+    ".deft/core/vbrief/completed/*-798-*.vbrief.json",
+    ".deft/core/vbrief/cancelled/*-798-*.vbrief.json",
+    ".deft/core/vbrief/pending/*-798-*.vbrief.json",
+    ".deft/core/vbrief/proposed/*-798-*.vbrief.json",
+    "deft/vbrief/active/*-798-*.vbrief.json",
+    "deft/vbrief/completed/*-798-*.vbrief.json",
+    "deft/vbrief/cancelled/*-798-*.vbrief.json",
+    "deft/vbrief/pending/*-798-*.vbrief.json",
+    "deft/vbrief/proposed/*-798-*.vbrief.json",
     # history/archive/ preserves historical task / vbrief state byte-for-byte.
     # Pre-existing mojibake in archived artifacts (e.g. v0.20 migration residue)
     # is intentionally retained as a forensic record and MUST NOT be rewritten.
     "history/archive/**",
     "history/archive/**/*",
+    ".deft/core/history/archive/**",
+    ".deft/core/history/archive/**/*",
+    "deft/history/archive/**",
+    "deft/history/archive/**/*",
     # Self-skip: this script and its test file are the canonical catalog of
     # the bigrams being detected. Scanning them would flag every entry in
     # MOJIBAKE_PATTERNS as a hit against the file that defines it. The
@@ -143,6 +167,10 @@ BUILTIN_ALLOW_LIST: tuple[str, ...] = (
     # (parametrized over MOJIBAKE_PATTERNS), not by the gate scanning itself.
     "scripts/verify_encoding.py",
     "tests/cli/test_verify_encoding.py",
+    ".deft/core/scripts/verify_encoding.py",
+    ".deft/core/tests/cli/test_verify_encoding.py",
+    "deft/scripts/verify_encoding.py",
+    "deft/tests/cli/test_verify_encoding.py",
 )
 
 #: Markdown inline-code span: single backtick to single backtick on one line,
@@ -157,9 +185,7 @@ _MD_INLINE_CODE = re.compile(r"`[^`\r\n]*`")
 #: ``$`` matches *before* ``\n``, which on CRLF lines leaves the prior ``\r``
 #: needing to be absorbed by the trailing whitespace class). The opening
 #: fence allows a language tag (e.g. ``` ```python ```) before the newline.
-_MD_FENCED_BLOCK = re.compile(
-    r"(?ms)^[ \t]*(```|~~~)[^\n]*\n.*?^[ \t]*\1[ \t\r]*$"
-)
+_MD_FENCED_BLOCK = re.compile(r"(?ms)^[ \t]*(```|~~~)[^\n]*\n.*?^[ \t]*\1[ \t\r]*$")
 
 
 class Finding:
@@ -250,9 +276,7 @@ def _git_tracked_files(project_root: Path) -> list[str]:
         check=False,
     )
     if proc.returncode != 0:
-        raise RuntimeError(
-            f"git ls-files failed (rc={proc.returncode}): {proc.stderr.strip()}"
-        )
+        raise RuntimeError(f"git ls-files failed (rc={proc.returncode}): {proc.stderr.strip()}")
     return [line for line in proc.stdout.splitlines() if line.strip()]
 
 
@@ -289,12 +313,14 @@ def scan_file(rel_path: str, full_path: Path) -> list[Finding]:
         return findings
 
     if suffix in NO_BOM_EXTENSIONS and raw.startswith(UTF8_BOM):
-        findings.append(Finding(
-            rel_path,
-            1,
-            "unexpected UTF-8 BOM",
-            "leading bytes EF BB BF on a format where BOM is non-canonical",
-        ))
+        findings.append(
+            Finding(
+                rel_path,
+                1,
+                "unexpected UTF-8 BOM",
+                "leading bytes EF BB BF on a format where BOM is non-canonical",
+            )
+        )
 
     try:
         text = raw.decode("utf-8", errors="replace")
@@ -328,9 +354,7 @@ def scan_file(rel_path: str, full_path: Path) -> list[Finding]:
         # Pad stripped to original length defensively so a regex edge-case
         # (e.g. trailing newline mismatch) doesn't drop late findings.
         if len(stripped_lines) < len(original_lines):
-            stripped_lines = stripped_lines + [""] * (
-                len(original_lines) - len(stripped_lines)
-            )
+            stripped_lines = stripped_lines + [""] * (len(original_lines) - len(stripped_lines))
         for lineno, (orig, stripped) in enumerate(
             zip(original_lines, stripped_lines, strict=False), 1
         ):
@@ -350,12 +374,14 @@ def _scan_line(
     findings: list[Finding] = []
     ctx = context if context is not None else line
     if REPLACEMENT_CHAR in line:
-        findings.append(Finding(
-            rel_path,
-            lineno,
-            "U+FFFD replacement char",
-            ctx,
-        ))
+        findings.append(
+            Finding(
+                rel_path,
+                lineno,
+                "U+FFFD replacement char",
+                ctx,
+            )
+        )
     for pattern, label in MOJIBAKE_PATTERNS.items():
         if pattern in line:
             findings.append(Finding(rel_path, lineno, label, ctx))
@@ -412,22 +438,31 @@ def evaluate(
     ``capsys`` plumbing or env-var leak.
     """
     if mode not in {"all", "staged"}:
-        return 2, [], (
-            f"❌ verify_encoding: unrecognised mode '{mode}' "
-            "(expected 'all' or 'staged')."
+        return (
+            2,
+            [],
+            (f"❌ verify_encoding: unrecognised mode '{mode}' (expected 'all' or 'staged')."),
         )
 
     try:
         custom_globs = _load_allow_list(allow_list_path)
     except FileNotFoundError as exc:
-        return 2, [], (
-            f"❌ verify_encoding: --allow-list file not found: {exc}\n"
-            "  Recovery: pass an existing path or omit the flag."
+        return (
+            2,
+            [],
+            (
+                f"❌ verify_encoding: --allow-list file not found: {exc}\n"
+                "  Recovery: pass an existing path or omit the flag."
+            ),
         )
     except OSError as exc:
-        return 2, [], (
-            f"❌ verify_encoding: --allow-list unreadable: {exc}\n"
-            "  Recovery: check file permissions."
+        return (
+            2,
+            [],
+            (
+                f"❌ verify_encoding: --allow-list unreadable: {exc}\n"
+                "  Recovery: check file permissions."
+            ),
         )
 
     allow_globs = list(BUILTIN_ALLOW_LIST) + custom_globs
@@ -438,15 +473,23 @@ def evaluate(
         else:
             rel_paths = _git_tracked_files(project_root)
     except FileNotFoundError:
-        return 2, [], (
-            "❌ verify_encoding: 'git' executable not found on PATH.\n"
-            "  Recovery: install git or set DEFT_PYTHON to a python that "
-            "can spawn git."
+        return (
+            2,
+            [],
+            (
+                "❌ verify_encoding: 'git' executable not found on PATH.\n"
+                "  Recovery: install git or set DEFT_PYTHON to a python that "
+                "can spawn git."
+            ),
         )
     except RuntimeError as exc:
-        return 2, [], (
-            f"❌ verify_encoding: git failed -- {exc}\n"
-            "  Recovery: ensure --project-root points at a git working tree."
+        return (
+            2,
+            [],
+            (
+                f"❌ verify_encoding: git failed -- {exc}\n"
+                "  Recovery: ensure --project-root points at a git working tree."
+            ),
         )
 
     candidates = _filter_scannable(rel_paths, project_root, allow_globs)

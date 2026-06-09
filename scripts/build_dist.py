@@ -96,6 +96,16 @@ DEFAULT_EXCLUDES: tuple[str, ...] = (
     ".coverage",
 )
 
+# Repo-relative prefixes that should not be shipped in consumer framework
+# payloads. These are project-management / forensic artifacts for this source
+# repository, not runtime framework files. Keep vbrief/schemas/** and other
+# runtime surfaces by pruning only the historical lifecycle folders.
+DEFAULT_EXCLUDED_PATH_PREFIXES: tuple[str, ...] = (
+    "history/archive",
+    "vbrief/completed",
+    "vbrief/cancelled",
+)
+
 EXIT_OK = 0
 EXIT_RUNTIME_ERROR = 1
 EXIT_CONFIG_ERROR = 2
@@ -112,7 +122,9 @@ ARCHIVE_ROOT = "deft"
 
 
 def _iter_source_files(
-    root: Path, excludes: frozenset[str]
+    root: Path,
+    excludes: frozenset[str],
+    excluded_prefixes: tuple[str, ...] = DEFAULT_EXCLUDED_PATH_PREFIXES,
 ) -> list[tuple[Path, str]]:
     """Return a sorted list of ``(absolute_path, archive_relative_posix)``.
 
@@ -153,16 +165,22 @@ def _iter_source_files(
                 # Defensive: os.walk should never yield a path outside
                 # root, but symlinked traversals can in theory.
                 continue
-            entries.append((abs_path, rel.as_posix()))
+            rel_posix = rel.as_posix()
+            if _matches_excluded_prefix(rel_posix, excluded_prefixes):
+                continue
+            entries.append((abs_path, rel_posix))
     return entries
+
+
+def _matches_excluded_prefix(rel_posix: str, prefixes: tuple[str, ...]) -> bool:
+    """Return True when ``rel_posix`` is at or below an excluded path prefix."""
+    return any(rel_posix == prefix or rel_posix.startswith(f"{prefix}/") for prefix in prefixes)
 
 
 # ---- Archive writers --------------------------------------------------------
 
 
-def _write_tar_gz(
-    root: Path, output: Path, entries: list[tuple[Path, str]]
-) -> int:
+def _write_tar_gz(root: Path, output: Path, entries: list[tuple[Path, str]]) -> int:
     """Write a gzipped tar archive of ``entries`` to ``output``.
 
     Each entry is added under the ``ARCHIVE_ROOT`` prefix so extraction
@@ -177,9 +195,7 @@ def _write_tar_gz(
     return count
 
 
-def _write_zip(
-    root: Path, output: Path, entries: list[tuple[Path, str]]
-) -> int:
+def _write_zip(root: Path, output: Path, entries: list[tuple[Path, str]]) -> int:
     """Write a deflate-compressed zip archive of ``entries`` to ``output``."""
     output.parent.mkdir(parents=True, exist_ok=True)
     count = 0
@@ -277,10 +293,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--root",
         type=Path,
         default=None,
-        help=(
-            "Repository root to package (default: parent of the scripts/ "
-            "directory)."
-        ),
+        help=("Repository root to package (default: parent of the scripts/ directory)."),
     )
     parser.add_argument(
         "--exclude-extra",

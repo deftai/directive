@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Vendored encoding checks no longer fail on framework-owned history after upgrade (#1382)** -- consumer installs now omit non-runtime framework history from the packaged payload, and the encoding verifier recognizes its own documented exception files when they live under `.deft/core/`. Consumer-owned mojibake still fails the gate, but packaged Deft artifacts no longer block `task deft:verify:encoding` immediately after upgrade. Closes #1382.
 
 ### Removed
 

@@ -167,9 +167,7 @@ def test_bom_flagged_on_no_bom_extensions(ext: str, tmp_path: Path) -> None:
 def test_bom_not_flagged_on_ps1_extension(tmp_path: Path) -> None:
     """PS1 / CSV / BAT files tolerate a BOM; the gate MUST NOT flag those."""
     _init_git_repo(tmp_path)
-    (tmp_path / "script.ps1").write_bytes(
-        b"\xef\xbb\xbfWrite-Host 'hello'\n"
-    )
+    (tmp_path / "script.ps1").write_bytes(b"\xef\xbb\xbfWrite-Host 'hello'\n")
     _git_add(tmp_path, "script.ps1")
     _git_commit(tmp_path)
 
@@ -254,15 +252,15 @@ def test_markdown_mojibake_after_fenced_block_reports_correct_line(
     """
     _init_git_repo(tmp_path)
     (tmp_path / "after_fence.md").write_text(
-        "# Title\n"            # line 1
-        "\n"                   # line 2
-        "```\n"                # line 3 (fence open)
+        "# Title\n"  # line 1
+        "\n"  # line 2
+        "```\n"  # line 3 (fence open)
         "safe content here\n"  # line 4 (inside fence; not scanned)
-        "```\n"                # line 5 (fence close)
-        "\n"                   # line 6
+        "```\n"  # line 5 (fence close)
+        "\n"  # line 6
         "Real corruption \u0393\u00e8\u00f9 here.\n"  # line 7
-        "\n"                   # line 8
-        "Tail.\n",             # line 9
+        "\n"  # line 8
+        "Tail.\n",  # line 9
         encoding="utf-8",
     )
     _git_add(tmp_path, "after_fence.md")
@@ -274,8 +272,7 @@ def test_markdown_mojibake_after_fenced_block_reports_correct_line(
     assert u2297_findings, f"expected U+2297 finding; got {[f.label for f in findings]}"
     hit = u2297_findings[0]
     assert hit.line == 7, (
-        f"fenced-block alignment bug: expected line 7, got {hit.line}. "
-        f"context={hit.context!r}"
+        f"fenced-block alignment bug: expected line 7, got {hit.line}. context={hit.context!r}"
     )
     assert "\u0393\u00e8\u00f9" in hit.context, (
         f"context should be the original bare-mojibake line, not a "
@@ -337,12 +334,71 @@ def test_builtin_allow_list_globs_match_798_brief_pattern() -> None:
     }
     builtin = set(verify_encoding.BUILTIN_ALLOW_LIST)
     missing = expected_brief_globs - builtin
-    assert not missing, (
-        f"BUILTIN_ALLOW_LIST is missing #798 brief globs: {missing}"
+    assert not missing, f"BUILTIN_ALLOW_LIST is missing #798 brief globs: {missing}"
+    assert any(glob.startswith("history/archive/") for glob in builtin), (
+        "BUILTIN_ALLOW_LIST must skip history/archive/** for preserved historical state"
     )
-    assert any(
-        glob.startswith("history/archive/") for glob in builtin
-    ), "BUILTIN_ALLOW_LIST must skip history/archive/** for preserved historical state"
+
+
+def test_builtin_allow_list_covers_vendored_framework_exception_paths(
+    tmp_path: Path,
+) -> None:
+    """Vendored consumer installs track framework files under `.deft/core/**`.
+
+    The same documented exception files that are skipped in the source repo
+    must be skipped under the consumer install prefix too.
+    """
+    _init_git_repo(tmp_path)
+    fixtures = {
+        ".deft/core/scripts/verify_encoding.py": 'MOJIBAKE_PATTERNS = {"Â§": "fixture"}\n',
+        ".deft/core/history/archive/old/tasks.vbrief.json": '{"x": "â€”"}\n',
+        ".deft/core/vbrief/completed/2026-05-01-798-detect-ps-51.vbrief.json": '{"x": "â†’"}\n',
+    }
+    for rel, text in fixtures.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    _git_add(tmp_path, *fixtures)
+    _git_commit(tmp_path)
+
+    code, findings, msg = verify_encoding.evaluate(tmp_path, mode="all")
+    assert code == 0, msg
+    assert findings == []
+
+
+def test_builtin_allow_list_covers_legacy_vendored_framework_exception_paths(
+    tmp_path: Path,
+) -> None:
+    """Legacy `deft/` installs get the same narrow framework exception treatment."""
+    _init_git_repo(tmp_path)
+    rel = "deft/scripts/verify_encoding.py"
+    path = tmp_path / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('MOJIBAKE_PATTERNS = {"Â§": "fixture"}\n', encoding="utf-8")
+    _git_add(tmp_path, rel)
+    _git_commit(tmp_path)
+
+    code, findings, msg = verify_encoding.evaluate(tmp_path, mode="all")
+    assert code == 0, msg
+    assert findings == []
+
+
+def test_vendored_allow_list_does_not_hide_consumer_owned_corruption(
+    tmp_path: Path,
+) -> None:
+    """Only documented framework exceptions are skipped; app files still fail."""
+    _init_git_repo(tmp_path)
+    vendored = tmp_path / ".deft/core/scripts/verify_encoding.py"
+    vendored.parent.mkdir(parents=True, exist_ok=True)
+    vendored.write_text('MOJIBAKE_PATTERNS = {"Â§": "fixture"}\n', encoding="utf-8")
+    bad = tmp_path / "app.json"
+    bad.write_text('{"x": "Â§"}\n', encoding="utf-8")
+    _git_add(tmp_path, ".deft/core/scripts/verify_encoding.py", "app.json")
+    _git_commit(tmp_path)
+
+    code, findings, msg = verify_encoding.evaluate(tmp_path, mode="all")
+    assert code == 1, msg
+    assert {f.path for f in findings} == {"app.json"}
 
 
 # ---------------------------------------------------------------------------
@@ -389,9 +445,7 @@ def test_staged_mode_clean_when_nothing_staged(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_main_exit_0_on_clean_repo(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_main_exit_0_on_clean_repo(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     _init_git_repo(tmp_path)
     (tmp_path / "ok.txt").write_text("hello\n", encoding="utf-8")
     _git_add(tmp_path, "ok.txt")
@@ -401,15 +455,11 @@ def test_main_exit_0_on_clean_repo(
     assert rc == 0
     captured = capsys.readouterr()
     assert (
-        "clean" in captured.out.lower()
-        or captured.out == ""
-        or "verify_encoding" in captured.out
+        "clean" in captured.out.lower() or captured.out == "" or "verify_encoding" in captured.out
     )
 
 
-def test_main_exit_1_on_corruption(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_main_exit_1_on_corruption(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     _init_git_repo(tmp_path)
     (tmp_path / "bad.json").write_text(
         '{"x": "\u00c2\u00a7"}\n',
@@ -434,11 +484,15 @@ def test_main_exit_2_on_unreadable_allow_list(
     _git_add(tmp_path, "ok.txt")
     _git_commit(tmp_path)
 
-    rc = verify_encoding.main([
-        "--all",
-        "--project-root", str(tmp_path),
-        "--allow-list", str(tmp_path / "no-such.txt"),
-    ])
+    rc = verify_encoding.main(
+        [
+            "--all",
+            "--project-root",
+            str(tmp_path),
+            "--allow-list",
+            str(tmp_path / "no-such.txt"),
+        ]
+    )
     assert rc == 2
     captured = capsys.readouterr()
     assert "allow-list" in captured.err.lower()
@@ -482,10 +536,16 @@ def test_main_self_reconfigures_stdout_to_utf8_under_cp1252(
     fake_out_buf = io.BytesIO()
     fake_err_buf = io.BytesIO()
     fake_stdout = io.TextIOWrapper(
-        fake_out_buf, encoding="cp1252", errors="strict", write_through=True,
+        fake_out_buf,
+        encoding="cp1252",
+        errors="strict",
+        write_through=True,
     )
     fake_stderr = io.TextIOWrapper(
-        fake_err_buf, encoding="cp1252", errors="strict", write_through=True,
+        fake_err_buf,
+        encoding="cp1252",
+        errors="strict",
+        write_through=True,
     )
     monkeypatch.setattr(sys, "stdout", fake_stdout)
     monkeypatch.setattr(sys, "stderr", fake_stderr)

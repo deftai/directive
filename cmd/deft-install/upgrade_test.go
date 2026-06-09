@@ -105,10 +105,15 @@ func TestClassifyPayloadLayout(t *testing.T) {
 
 func TestExtractCoreTarball_ExcludesGitAndExtractsTree(t *testing.T) {
 	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{
-		"SKILL.md":          "skill body",
-		"scripts/doctor.py": "print('hi')",
-		".git/config":       "[core]",   // must be excluded
-		".github/ci.yml":    "on: push", // must be excluded
+		"SKILL.md":                                              "skill body",
+		"scripts/doctor.py":                                     "print('hi')",
+		"scripts/verify_encoding.py":                            "MOJIBAKE_PATTERNS = {}",
+		"vbrief/schemas/vbrief-core.schema.json":                "{}",
+		"history/archive/2026-03-20/tasks.vbrief.json":          "{}",
+		"vbrief/completed/2026-05-01-798-detect.vbrief.json":    "{}",
+		"vbrief/cancelled/2026-05-01-old-cancelled.vbrief.json": "{}",
+		".git/config":                                           "[core]",   // must be excluded
+		".github/ci.yml":                                        "on: push", // must be excluded
 	})
 	dest := t.TempDir()
 	root, err := extractCoreTarball(tarball, dest)
@@ -124,11 +129,27 @@ func TestExtractCoreTarball_ExcludesGitAndExtractsTree(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "scripts", "doctor.py")); err != nil {
 		t.Errorf("nested scripts/doctor.py not extracted: %v", err)
 	}
+	if _, err := os.Stat(filepath.Join(root, "scripts", "verify_encoding.py")); err != nil {
+		t.Errorf("runtime verifier script not extracted: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "vbrief", "schemas", "vbrief-core.schema.json")); err != nil {
+		t.Errorf("runtime vBRIEF schema not extracted: %v", err)
+	}
 	if _, err := os.Stat(filepath.Join(root, ".git")); !os.IsNotExist(err) {
 		t.Errorf(".git was extracted but MUST be excluded (err=%v)", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".github")); !os.IsNotExist(err) {
 		t.Errorf(".github was extracted but MUST be excluded (err=%v)", err)
+	}
+	excludedPaths := []string{
+		filepath.Join(root, "history", "archive", "2026-03-20", "tasks.vbrief.json"),
+		filepath.Join(root, "vbrief", "completed", "2026-05-01-798-detect.vbrief.json"),
+		filepath.Join(root, "vbrief", "cancelled", "2026-05-01-old-cancelled.vbrief.json"),
+	}
+	for _, path := range excludedPaths {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("%s was extracted but MUST be excluded (err=%v)", path, err)
+		}
 	}
 }
 
