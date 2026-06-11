@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Implementation iteration vBRIEF for #1348 after the original story artifact was found in completed/ while the GitHub issue remained open.",
     "created": "2026-06-09T00:56:40Z",
-    "updated": "2026-06-11T16:20:00Z"
+    "updated": "2026-06-11T18:08:00Z"
   },
   "plan": {
     "id": "1348-session-ritual-verifier-implementation",
@@ -109,11 +109,11 @@
         "title": "Issue #1348: feat(ritual): two-tier ritual sentinel + fail-closed verifier for the pre-start_agent gate stack"
       },
       {
-        "uri": "file://completed/2026-05-25-1348-ritual-state-sentinel-fail-closed-verifier.vbrief.json",
+        "uri": "file://cancelled/2026-05-25-1348-ritual-state-sentinel-fail-closed-verifier.vbrief.json",
         "type": "x-vbrief/refs",
-        "title": "Prior #1348 completed artifact with pending implementation items"
+        "title": "Prior #1348 artifact cancelled after this implementation became canonical"
       }
     ],
-    "updated": "2026-06-11T16:20:00Z"
+    "updated": "2026-06-11T18:08:00Z"
   }
 }

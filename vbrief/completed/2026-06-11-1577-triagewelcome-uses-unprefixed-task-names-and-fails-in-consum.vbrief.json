@@ -1,7 +1,8 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1577"
+    "description": "Scope vBRIEF ingested from GitHub issue #1577",
+    "updated": "2026-06-11T18:08:00Z"
   },
   "plan": {
     "title": "triage:welcome uses unprefixed task names and fails in consumer Taskfile namespace",
@@ -15,19 +16,19 @@
     "items": [
       {
         "title": "In a consumer project where  is included under ,  completes all six phases without .",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "In the Directive maintainer repo, the existing unprefixed  behavior continues to work.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Tests cover both direct/framework and consumer-namespaced Taskfile layouts.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "The welcome flow does not partially mutate policy state and then fail solely because a sibling task was addressed through the wrong namespace.",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -42,7 +43,7 @@
         "title": "Issue #1577: triage:welcome uses unprefixed task names and fails in consumer Taskfile namespace"
       }
     ],
-    "updated": "2026-06-11T14:24:25Z",
+    "updated": "2026-06-11T18:08:00Z",
     "metadata": {
       "completedAt": "2026-06-11T14:24:25Z"
     }

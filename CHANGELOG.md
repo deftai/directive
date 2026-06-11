@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Namespaced consumer triage onboarding now calls the right sibling tasks (#1577)** -- `task deft:triage:welcome -- --onboard` now carries the current Taskfile namespace into the welcome script, so bootstrap, WIP relief, and final summary calls resolve as `deft:*` in consumer includes while the maintainer `task triage:welcome -- --onboard` path remains unchanged. Closes #1577.
+- **The directive work queue no longer shows already-finished lifecycle cleanup as active work** -- completed branch-policy and triage/session-ritual scopes now have aligned terminal vBRIEF records, the superseded #1348 planning artifact is cancelled, and the project registry points at the canonical completed records. Refs #1348, #1577.
 
 ### Removed
 

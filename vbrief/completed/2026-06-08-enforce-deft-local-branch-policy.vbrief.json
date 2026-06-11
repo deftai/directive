@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Story vBRIEF for re-enabling Deft local branch-protection policy in the directive framework repo.",
     "created": "2026-06-08T19:23:00Z",
-    "updated": "2026-06-08T19:23:00Z"
+    "updated": "2026-06-11T18:08:00Z"
   },
   "plan": {
     "id": "enforce-deft-local-branch-policy",
     "title": "Enforce Deft local branch policy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Re-enable the Deft local branch-policy gate for the directive framework repository so local hooks and checks no longer permit default-branch commits by project policy. This is a narrow governance change that should be handled independently from the installer and GitHub-body tooling stories.",
       "ImplementationPlan": "Update `vbrief/PROJECT-DEFINITION.vbrief.json` so `plan.policy.allowDirectCommitsToMaster` resolves to `false`. Verify the policy rendering and branch gate behavior through the existing task surfaces without changing unrelated project configuration.",
@@ -17,14 +17,14 @@
     "items": [
       {
         "title": "Disable direct default-branch commits in project policy",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the directive project policy, when `task policy:show -- --field=plan.policy.allowDirectCommitsToMaster` runs, then it reports `current: false`."
         }
       },
       {
         "title": "Verify branch policy gates still run",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the updated policy, when `task verify:branch` runs from a feature branch, then it passes while still resolving the typed policy field from `PROJECT-DEFINITION.vbrief.json`."
         }
@@ -52,7 +52,8 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "User requested re-enabling Deft branch policy during the WSL swarm-readiness session."
-      }
+      },
+      "completedAt": "2026-06-11T18:04:30Z"
     },
     "references": [
       {
@@ -62,6 +63,6 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-06-08T19:22:19Z"
+    "updated": "2026-06-11T18:08:00Z"
   }
 }

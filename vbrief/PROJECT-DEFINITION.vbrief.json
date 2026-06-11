@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-06-04T00:03:01Z"
+    "updated": "2026-06-11T18:08:00Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -9134,10 +9134,10 @@
       {
         "id": "2026-05-25-1348-ritual-state-sentinel-fail-closed-verifier",
         "title": "Two-tier ritual sentinel + fail-closed verifier for the pre-start_agent gate stack",
-        "status": "completed",
+        "status": "cancelled",
         "metadata": {
-          "source_path": "completed/2026-05-25-1348-ritual-state-sentinel-fail-closed-verifier.vbrief.json",
-          "lifecycle_folder": "completed",
+          "source_path": "cancelled/2026-05-25-1348-ritual-state-sentinel-fail-closed-verifier.vbrief.json",
+          "lifecycle_folder": "cancelled",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/1348",
@@ -9183,6 +9183,11 @@
               "uri": "https://github.com/deftai/directive/issues/1242",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1242: CHANGELOG entry style (governs CHANGELOG entry)"
+            },
+            {
+              "uri": "file://completed/2026-06-09-1348-session-ritual-verifier-implementation.vbrief.json",
+              "type": "x-vbrief/refs",
+              "title": "Canonical completed #1348 implementation vBRIEF"
             }
           ]
         }
@@ -10517,6 +10522,60 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-06-08-enforce-deft-local-branch-policy",
+        "title": "Enforce Deft local branch policy",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-08-enforce-deft-local-branch-policy.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "urn:deft:user-request:2026-06-08-enforce-local-branch-policy",
+              "type": "x-vbrief/user-request",
+              "title": "User request: flip local Deft branch policy back on during branch work",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-09-1348-session-ritual-verifier-implementation",
+        "title": "Implement fail-closed session ritual verifier",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-09-1348-session-ritual-verifier-implementation.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1348",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1348: feat(ritual): two-tier ritual sentinel + fail-closed verifier for the pre-start_agent gate stack"
+            },
+            {
+              "uri": "file://cancelled/2026-05-25-1348-ritual-state-sentinel-fail-closed-verifier.vbrief.json",
+              "type": "x-vbrief/refs",
+              "title": "Prior #1348 artifact cancelled after this implementation became canonical"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-11-1577-triagewelcome-uses-unprefixed-task-names-and-fails-in-consum",
+        "title": "triage:welcome uses unprefixed task names and fails in consumer Taskfile namespace",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-11-1577-triagewelcome-uses-unprefixed-task-names-and-fails-in-consum.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1577",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1577: triage:welcome uses unprefixed task names and fails in consumer Taskfile namespace"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -10689,6 +10748,7 @@
         }
       ],
       "allowDirectCommitsToMaster": false
-    }
+    },
+    "updated": "2026-06-11T18:08:00Z"
   }
 }

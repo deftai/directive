@@ -3,78 +3,79 @@
     "version": "0.6",
     "description": "Story vBRIEF for #1348 (feat(ritual): two-tier ritual sentinel + fail-closed verifier for the pre-start_agent gate stack).",
     "created": "2026-05-25T18:05:00Z",
-    "updated": "2026-05-25T22:35:08Z"
+    "updated": "2026-06-11T18:08:00Z"
   },
   "plan": {
     "id": "1348-ritual-state-sentinel-fail-closed-verifier",
     "title": "Two-tier ritual sentinel + fail-closed verifier for the pre-start_agent gate stack",
-    "status": "completed",
+    "status": "cancelled",
     "planRef": "#1348",
     "narratives": {
       "Description": "Elevate the session-start ritual (#1149) from prose-tier discipline to deterministic-tier enforcement via a per-clone fail-closed sentinel at .deft/ritual-state.json and a three-state verifier wired as step 0 of the pre-start_agent gate stack. Mirrors the #798 PowerShell encoding rule's prose-to-deterministic elevation template (verify_encoding.py). Co-locates with #1269's fail-open .deft/last-session.json under inverted failure semantics. Splits the ritual into a quick tier (alignment + branch-policy disclosure + triage one-liner) that runs eagerly at session start and a gated tier (task doctor + task verify:cache-fresh) that runs lazily on first code-writing call so read-only sessions pay zero ritual cost.",
       "ImplementationPlan": "1. Extend scripts/ritual_sentinel.py with RITUAL_STATE_RELPATH constant + record_step() writer + per-tier read helpers; preserve existing #1269 write/read surface unchanged. 2. Create scripts/verify_session_ritual.py with verify(project_root, *, tier) signature, three-state exit, --json + --tier CLI flags, and the bypass-warning stderr behavior. 3. Add task session:start + task verify:session-ritual targets in tasks/framework.yml (or wherever the session-start orchestrator lives post-#1308). 4. Wire verifier into task vbrief:preflight and the pre-start_agent gate stack as step 0. 5. Add DEFT_SESSION_RITUAL_SKIP=1 to templates/agent-prompt-preamble.md and to .github/workflows/*.yml that traverse the gate stack. 6. Update directive/AGENTS.md ## Session-start ritual block to cross-reference the verifier; mirror to templates/agents-entry.md; extend tests/content/test_agents_entry_contract.py marker list with 'task verify:session-ritual'. 7. Add typed plan.policy.sessionRitualStalenessHours field (default 4) following the #746 pattern. 8. Add CHANGELOG entry under [Unreleased] per #1242 style.",
-      "UserStory": "As a maintainer or contributor, when I begin an implementation session, I want the session-start ritual to be enforced deterministically so silent skips are caught at the gate rather than discovered by the user asking 'did you do startup rituals?', and so downstream gates (#810, #747) can compose against a verified ritual-completion state instead of trusting agent self-reports."
+      "UserStory": "As a maintainer or contributor, when I begin an implementation session, I want the session-start ritual to be enforced deterministically so silent skips are caught at the gate rather than discovered by the user asking 'did you do startup rituals?', and so downstream gates (#810, #747) can compose against a verified ritual-completion state instead of trusting agent self-reports.",
+      "Disposition": "Cancelled as a superseded planning artifact. The canonical completed #1348 implementation record is vbrief/completed/2026-06-09-1348-session-ritual-verifier-implementation.vbrief.json."
     },
     "items": [
       {
         "title": "Add RITUAL_STATE_RELPATH + record_step() writer to scripts/ritual_sentinel.py",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Constant present; writer atomically writes via temp + os.replace; existing #1269 write/read surface unchanged; contract test pins both relpaths under the same .deft/ umbrella tuple."
         }
       },
       {
         "title": "Create scripts/verify_session_ritual.py with three-state verify(project_root, *, tier) surface",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Exits 0 (fresh / deferred), 1 (stale / missing / failed), 2 (config error); --json mode; --tier=quick|gated flag; remediation hints in stderr output mirror verify_encoding.py's convention."
         }
       },
       {
         "title": "Add task session:start running the three quick steps",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Runs alignment + branch-policy disclosure + triage one-liner in canonical order; supports --defer <step>=<reason> and --json; sub-second total wall time on a warm cache."
         }
       },
       {
         "title": "Wire verifier into task vbrief:preflight and the pre-start_agent gate stack",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Verifier invoked with tier=gated as step 0 of the pre-start_agent gate stack (before #810 Implementation Intent); task vbrief:preflight fails closed on missing/stale sentinel or failed gated step; gated-tier lazy invocation of task doctor + task verify:cache-fresh works on first call within a session."
         }
       },
       {
         "title": "Document DEFT_SESSION_RITUAL_SKIP=1 bypass in swarm preamble + CI workflows",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "templates/agent-prompt-preamble.md sets the env-var for dispatched workers (paragraph adjacent to DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1); all .github/workflows/*.yml that traverse the gate stack set the env-var at workflow level; verifier emits one-line stderr warning when bypass would have hidden a failure."
         }
       },
       {
         "title": "Add typed plan.policy.sessionRitualStalenessHours field (default 4)",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Typed-field surface following the #746 pattern; configurable via task policy:show / task policy:set; default 4h matches D2's existing suppression window; documented in PROJECT-DEFINITION schema."
         }
       },
       {
         "title": "Update AGENTS.md + propagate to consumer template",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "directive/AGENTS.md ## Session-start ritual (#1149) block elevated to cross-reference the verifier (per main.md Rule Authority [AXIOM] pattern); templates/agents-entry.md mirrors the same change; tests/content/test_agents_entry_contract.py marker list extended with 'task verify:session-ritual' so divergence fails CI."
         }
       },
       {
         "title": "Add unit + integration tests covering documented edge cases",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "Tests cover: fresh-clone (exits 1), happy-path quick/gated (exits 0), explicit deferral on both tiers, stale by HEAD diff, stale by time, failed step without deferral (exits 1), corrupt JSON (exits 2), bypass env-var honored on both tiers, bypass warning fired on stderr, detached HEAD via git rev-parse HEAD, missing PROJECT-DEFINITION hand-off to setup, worktree isolation via worktree_path field, .deft/ umbrella missing on first run, network down during triage step."
         }
       },
       {
         "title": "Add CHANGELOG [Unreleased] entry per #1242 style",
-        "status": "pending",
+        "status": "cancelled",
         "narrative": {
           "Acceptance": "2-4 sentences, ~300-800 chars, leads with user-visible benefit, references #1348; passes the eventual #1242 deterministic gate if it lands first."
         }
@@ -89,7 +90,10 @@
       },
       "swarm": {
         "readiness": "not-ready"
-      }
+      },
+      "cancelledAt": "2026-06-11T18:08:00Z",
+      "cancellationReason": "Superseded by the June 2026 implementation vBRIEF after the original artifact was found completed while issue #1348 remained open.",
+      "supersededBy": "file://completed/2026-06-09-1348-session-ritual-verifier-implementation.vbrief.json"
     },
     "references": [
       {
@@ -136,8 +140,13 @@
         "uri": "https://github.com/deftai/directive/issues/1242",
         "type": "x-vbrief/github-issue",
         "title": "Issue #1242: CHANGELOG entry style (governs CHANGELOG entry)"
+      },
+      {
+        "uri": "file://completed/2026-06-09-1348-session-ritual-verifier-implementation.vbrief.json",
+        "type": "x-vbrief/refs",
+        "title": "Canonical completed #1348 implementation vBRIEF"
       }
     ],
-    "updated": "2026-05-25T22:35:08Z"
+    "updated": "2026-06-11T18:08:00Z"
   }
 }
