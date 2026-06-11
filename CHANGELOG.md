@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Triage WIP counts no longer include the completed branch-policy story (#1559)** -- the stale active vBRIEF for the local branch-protection cleanup has been moved to the completed lifecycle, so session-start triage now reports the framework repo with zero in-scope WIP after the policy work has already landed. Refs #1559.
 
 ### Removed
 

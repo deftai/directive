@@ -8,7 +8,7 @@
   "plan": {
     "id": "enforce-deft-local-branch-policy",
     "title": "Enforce Deft local branch policy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Re-enable the Deft local branch-policy gate for the directive framework repository so local hooks and checks no longer permit default-branch commits by project policy. This is a narrow governance change that should be handled independently from the installer and GitHub-body tooling stories.",
       "ImplementationPlan": "Update `vbrief/PROJECT-DEFINITION.vbrief.json` so `plan.policy.allowDirectCommitsToMaster` resolves to `false`. Verify the policy rendering and branch gate behavior through the existing task surfaces without changing unrelated project configuration.",
@@ -52,7 +52,8 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "User requested re-enabling Deft branch policy during the WSL swarm-readiness session."
-      }
+      },
+      "completedAt": "2026-06-11T21:13:49Z"
     },
     "references": [
       {
@@ -62,6 +63,6 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-06-08T19:22:19Z"
+    "updated": "2026-06-11T21:13:49Z"
   }
 }
