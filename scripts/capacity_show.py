@@ -145,6 +145,7 @@ class CapacityReport:
     window_days: int
     min_sample_size: int
     classified_completions: int
+    unclassified_completions: int
     advisory_mode: bool
     advisory_reasons: list[str] = field(default_factory=list)
     buckets: list[BucketTally] = field(default_factory=list)
@@ -331,6 +332,14 @@ def compute_report(
             tallies[record.bucket] = BucketTally(bucket_id=record.bucket, target=0.0)
 
     classified_completions = 0
+    # Completed vBRIEFs (any age) that carry no explicit capacityBucket -- the
+    # backfill-able set (#1606). A positive count while sample-short means
+    # `task capacity:backfill` can classify history and cross minSampleSize.
+    unclassified_completions = sum(
+        1
+        for record in records
+        if record.folder == BACKWARD_FOLDER and not record.classified
+    )
     cost_eligible = 0  # classified completions in window
     cost_with_actual = 0
     for record in records:
@@ -377,6 +386,15 @@ def compute_report(
             f"only {classified_completions} classified completion(s) in window "
             f"(< minSampleSize={allocation.min_sample_size}) -- deferring to ordering"
         )
+        # Actionable discoverability hint (#1606): when buckets ARE configured
+        # but completed history is unclassified, point the operator at the
+        # one-time backfill that crosses minSampleSize.
+        if allocation.configured and unclassified_completions > 0:
+            advisory_reasons.append(
+                f"{unclassified_completions} completed vBRIEF(s) are unclassified "
+                "-- run `task capacity:backfill --apply` (one-time) to classify "
+                "history and activate capacity accounting"
+            )
     if cost_fallback and cost_reason:
         advisory_reasons.append(cost_reason)
 
@@ -417,6 +435,7 @@ def compute_report(
         window_days=allocation.window_days,
         min_sample_size=allocation.min_sample_size,
         classified_completions=classified_completions,
+        unclassified_completions=unclassified_completions,
         advisory_mode=sample_short or not allocation.configured,
         advisory_reasons=advisory_reasons,
         buckets=ordered,

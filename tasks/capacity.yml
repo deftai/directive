@@ -29,3 +29,11 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/capacity_show.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
+  backfill:
+    desc: "One-time capacity-bucket backfill for completed vBRIEFs (#1606): infer capacityBucket from origin-issue labels + stamp completedAt from git. Dry-run by default; idempotent; never touches cost. -- task capacity:backfill [-- --apply] [--window-only] [--cache-dir <path>] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/capacity_backfill.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

@@ -86,6 +86,12 @@ TECH_DEBT_LEDGER_RELPATH: tuple[str, ...] = (
 #: Session-start nudge tiers (rate-of-harm ranking, #1419 Nudge Budgeting).
 TIER_STRANDED: int = 1
 TIER_STALE_EPIC: int = 2
+#: Capacity classification cold-start (#1606) -- lowest rate-of-harm: the data
+#: exists, accounting is just dormant until a one-time backfill runs.
+TIER_CAPACITY_COLDSTART: int = 3
+
+#: Stable nudge id for the singleton capacity cold-start nudge.
+CAPACITY_COLDSTART_NUDGE_ID: str = "capacity-coldstart"
 
 #: Default actor recorded in the tech-debt ledger.
 DEFAULT_ACTOR: str = "lifecycle-hygiene"
@@ -376,6 +382,15 @@ def _render_stale_epic(*, title: str, dormant: int, threshold: int) -> str:
     )
 
 
+def _render_capacity_coldstart(*, unclassified: int, classified: int, minimum: int) -> str:
+    return (
+        f"[TIER-3] capacity cold-start: {unclassified} completed vBRIEF(s) "
+        f"unclassified (classified {classified}/{minimum} in window) -- run "
+        "`task capacity:backfill --apply` to classify history and activate "
+        "capacity accounting (#1606)"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Detector
 # ---------------------------------------------------------------------------
@@ -420,8 +435,60 @@ def detect_lifecycle_nudges(
         if nudge is not None:
             nudges.append(nudge)
 
+    capacity_nudge = detect_capacity_coldstart_nudge(project_root, now=now_dt)
+    if capacity_nudge is not None:
+        nudges.append(capacity_nudge)
+
     nudges.sort(key=lambda n: (n.tier, -n.magnitude, n.nudge_id))
     return nudges
+
+
+def detect_capacity_coldstart_nudge(
+    project_root: Path, *, now: datetime | None = None
+) -> LifecycleNudge | None:
+    """Capacity classification cold-start (Tier 3) nudge (#1606).
+
+    Fires only when capacity buckets ARE configured yet the completed history
+    is classification-cold: ``classified_completions`` is below
+    ``minSampleSize`` AND at least one completed vBRIEF carries no explicit
+    ``capacityBucket``. In that state ``task capacity:backfill`` is the one-time
+    action that crosses ``minSampleSize`` and lifts the engine out of advisory
+    mode. Suppressed when capacity is unconfigured (nothing to classify
+    against) or already classified past the sample floor (no cold-start).
+
+    ``capacity_show`` is imported lazily so the common nudge path (epic
+    hygiene only) does not pay the import cost, and so this module stays
+    import-cycle-free for callers that only need the epic detectors.
+    """
+    allocation = policy.resolve_capacity_allocation(project_root)
+    if not allocation.configured:
+        return None
+
+    import capacity_show  # noqa: PLC0415 -- lazy; avoids import cost / cycle
+
+    report = capacity_show.compute_report(project_root, now=now, allocation=allocation)
+    if report.classified_completions >= report.min_sample_size:
+        return None
+    if report.unclassified_completions <= 0:
+        return None
+
+    message = _render_capacity_coldstart(
+        unclassified=report.unclassified_completions,
+        classified=report.classified_completions,
+        minimum=report.min_sample_size,
+    )
+    return LifecycleNudge(
+        nudge_id=CAPACITY_COLDSTART_NUDGE_ID,
+        kind="capacity-coldstart",
+        tier=TIER_CAPACITY_COLDSTART,
+        title="capacity cold-start",
+        epic_rel_path="",
+        dormant_days=0,
+        completed_children=0,
+        total_children=0,
+        magnitude=report.unclassified_completions,
+        message=message,
+    )
 
 
 def _stranded_nudge(

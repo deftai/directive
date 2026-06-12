@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **A one-time `task capacity:backfill` now activates capacity accounting from your completed history, and `capacity:show` / session start tell you when to run it (#1606)** -- a new offline-first command classifies past completed work into capacity buckets (inferred from each item's origin-issue labels) and stamps the completion date from git, so the engine crosses its minimum-sample threshold and leaves advisory-only mode. It is dry-run by default, idempotent, and never touches cost. When buckets are configured but history is unclassified, `task capacity:show` and the session-start nudge now point you at the backfill. Closes #1606.
 - **A single decision record now explains why the vBRIEF is canonical, so the question stops getting re-litigated (#1291)** -- directive now has an accepted ADR for treating vBRIEF as the source of truth for agent-consumed framework content, with rendered docs and code-adjacent orientation treated as projections. The record leads with the user-visible end state, preserves the token-economics rationale from the earlier alignment work, and names the trigger-based path from clarity to future enforcement. Closes #1291.
 
 ### Changed
