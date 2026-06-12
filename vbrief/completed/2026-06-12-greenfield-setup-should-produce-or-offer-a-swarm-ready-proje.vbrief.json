@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json"
+  },
+  "plan": {
+    "id": "1053-greenfield-swarm-ready-bootstrap",
+    "title": "Greenfield setup should produce or offer a swarm-ready project bootstrap",
+    "status": "completed",
+    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "narratives": {
+      "Description": "A project can finish setup with valid Deft configuration while still lacking the project infrastructure needed for a swarm run. This story adds an explicit greenfield readiness bridge for repository initialization, GitHub remote visibility, Taskfile wiring, install-layout consistency, and swarm scratch/worktree preparation without duplicating #1187's machine-tool installation checks.",
+      "ImplementationPlan": "Extend the setup-to-swarm guidance in `skills/deft-directive-setup/SKILL.md` and `skills/deft-directive-swarm/SKILL.md` so greenfield projects surface missing project infrastructure before swarm allocation. Add or extend content tests that assert the guidance names repo/remote/Taskfile/install-layout/worktree readiness, references #1187 only for missing executable tools, and presents fresh setup-created candidates as a single explicit batch confirmation.",
+      "UserStory": "As a greenfield project operator, I want setup or swarm preflight to offer a swarm-ready bootstrap, so that the first swarm does not fail on missing repository and Taskfile infrastructure.",
+      "Traces": "Issue #1053 Failure 2; #1187 covers machine-tool availability and should be a dependency, not a duplicate."
+    },
+    "items": [
+      {
+        "id": "1053-greenfield-swarm-ready-bootstrap-a1",
+        "title": "Greenfield readiness separates project infrastructure from machine tools",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a greenfield project has `task`, `uv`, `python`, `gh`, and `git` available, when swarm preflight runs, then it still checks project infrastructure such as git repo, remote, Taskfile wiring, install layout, and scratch/worktree readiness.",
+          "Traces": "Issue #1053 Failure 2; #1187"
+        }
+      },
+      {
+        "id": "1053-greenfield-swarm-ready-bootstrap-a2",
+        "title": "Missing project infrastructure gets actionable remediation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given required greenfield project infrastructure is missing, when the readiness bridge reports it, then it shows the exact remediation path or asks for explicit approval before creating or changing repo, remote, Taskfile, install-layout, or gitignore state.",
+          "Traces": "Issue #1053 Failure 2"
+        }
+      },
+      {
+        "id": "1053-greenfield-swarm-ready-bootstrap-a3",
+        "title": "Setup handoff points at swarm-ready bootstrap",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given setup creates scope vBRIEFs in a new project, when setup completes, then the handoff tells the operator how swarm will verify or create the remaining project infrastructure before allocation.",
+          "Traces": "Issue #1053 Failure 2"
+        }
+      },
+      {
+        "id": "1053-greenfield-swarm-ready-bootstrap-a4",
+        "title": "Fresh setup-created candidates use one explicit batch confirmation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given all in-scope vBRIEFs were freshly created by setup in the same session, when the swarm lifecycle bridge presents them, then it asks for one explicit batch confirmation before promoting and activating the full set.",
+          "Traces": "Issue #1053 Failure 6 residual UX polish; supersedes misplaced #1025 comment"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-setup/SKILL.md",
+          "skills/deft-directive-swarm/SKILL.md",
+          "tests/content/test_setup_swarm_bridge.py",
+          "tests/content/test_swarm_skill.py"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/content/test_setup_swarm_bridge.py tests/content/test_swarm_skill.py -q"
+        ],
+        "expected_outputs": [
+          "setup and swarm content tests pass and pin greenfield swarm-ready bootstrap guidance."
+        ],
+        "depends_on": [],
+        "conflict_group": "swarm-skill-launch",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-12T14:43:26Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1053",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1053: Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-12T14:43:26Z"
+  }
+}

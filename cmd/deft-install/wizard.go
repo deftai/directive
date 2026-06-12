@@ -33,10 +33,10 @@ const LegacyFrameworkSubdir = "deft"
 
 // Wizard guides the user through choosing an install location.
 type Wizard struct {
-	scanner       *bufio.Scanner
-	out           io.Writer
-	debug         bool
-	legacyLayout  bool
+	scanner      *bufio.Scanner
+	out          io.Writer
+	debug        bool
+	legacyLayout bool
 }
 
 // WizardResult holds the chosen paths after the wizard completes.
@@ -76,7 +76,10 @@ func NewWizardWithLayout(in io.Reader, out io.Writer, debug, legacyLayout bool) 
 // Run executes the full install wizard and returns the chosen paths.
 func (w *Wizard) Run() (*WizardResult, error) {
 	w.printBanner()
+	return w.runAfterBanner()
+}
 
+func (w *Wizard) runAfterBanner() (*WizardResult, error) {
 	projectName, err := w.askProjectName()
 	if err != nil {
 		return nil, err

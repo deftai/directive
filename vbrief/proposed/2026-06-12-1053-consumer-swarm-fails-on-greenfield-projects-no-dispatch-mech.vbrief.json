@@ -1,0 +1,54 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1053"
+  },
+  "plan": {
+    "title": "Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1053",
+      "Overview": "## Context\n\nFirst-time consumer attempted to run deft-directive-swarm on a brand new Windows project (AnyoneCanMakeMusic). The swarm skill was triggered after deft-directive-setup completed Phases 1-3 (USER.md existed, PROJECT-DEFINITION.vbrief.json and scope vBRIEFs created in the same session).\n\nEnvironment: Windows 11, PowerShell 5.1, Warp terminal, \\task 3.48.0, uv 0.11.8, gh authenticated.\n\n## Failures\n\n### 1. No agent dispatch mechanism (critical)\n\nstart_agent was not available in the Warp tool set. The skill's fallback (Phase 3 Step 2b) asks the user to manually open N Warp tabs and paste prompts. This is not orchestration — it's a manual worksheet. The user asked 'why can't you just do it yourself?' and the agent had to abandon the swarm model and work serially.\n\n**Impact**: The entire value proposition of the swarm skill (parallel execution) is lost without start_agent. The worktrees, branch naming conventions, and generated prompt files become dead artifacts.\n\n**Suggestion**: Add a Phase 3 Step 2d fallback for single-agent serial execution when no dispatch mechanism is available. The agent should be able to execute worktree prompts sequentially itself rather than generating files nobody will consume.\n\n### 2. Greenfield project bootstrap gap (high)\n\nThe swarm skill assumes git repo, GitHub remote, Taskfile integration, and deft task commands are all functional. A greenfield project created moments earlier by deft-directive-setup had none of this. The agent had to improvise:\n- git init\n- gh repo create\n- Author a wrapper Taskfile.yml with includes: deft: ...\n- Rename directive/ to deft/ (clone naming mismatch)\n- Remove embedded .git from the cloned deft directory\n- Add .worktrees/ and .venv/ to .gitignore\n\nNone of this is documented in the swarm skill or the setup skill. There's a gap between 'setup complete' and 'swarm-ready'.\n\n**Suggestion**: Either (a) add a Phase 0 Step -1 bootstrap check to the swarm skill that detects and offers to fix missing infrastructure, or (b) extend deft-directive-setup Phase 2 to handle git/GitHub/Taskfile scaffolding as part of project configuration.\n\n### 3. deft consumer installation friction (medium)\n\nNo automated install step for consumer projects. The agent had to:\n- Clone deftai/directive manually\n- Rename directive/ to deft/ (AGENTS.md says 'Install-generated AGENTS.md uses deft/-prefixed paths' but there's no install that does this)\n- Remove .git from the clone (nested git repo warning)\n- Create a wrapper Taskfile.yml with the include pattern\n- Use \\task -t ./deft/Taskfile.yml <command> fallback for every deft task\n\nThe \\task install target exists but is described as 'dev convenience — end users should use the compiled binary from GitHub Releases'. No compiled binary or consumer install flow was found.\n\n**Suggestion**: Ship a consumer install command (deft init or \\task install:consumer) that handles clone → rename → .git removal → Taskfile include generation → AGENTS.md creation in one step.\n\n### 4. PowerShell 5.1 exit code masking (medium)\n\nEvery \\task scope:promote, scope:activate, and \\vbrief:preflight call returned exit code 1 in PowerShell 5.1 despite succeeding. PS 5.1 treats any stderr output as a native command error, and the \\task runner writes progress/info messages to stderr. This makes it impossible to programmatically distinguish success from failure.\n\nThe existing #798 rule covers UTF-8 encoding but not exit code masking.\n\n**Suggestion**: Either (a) suppress stderr info messages in the Python lifecycle scripts when stdout is not a TTY, or (b) document the PS 5.1 exit code masking behavior and provide a workaround pattern (e.g., check for specific success strings in stdout rather than relying on exit codes).\n\n### 5. Worktree placement guidance missing (low)\n\nThe skill's Phase 2 Step 1 example uses E:\\Repos\\deft-agent1 but provides no guidance on where worktrees should live relative to the project. The agent placed them as siblings (AnyoneCanMakeMusic-agent1/) which cluttered the user's Projects directory. Had to redo inside .worktrees/ with a .gitignore entry.\n\n**Suggestion**: Recommend .worktrees/ inside the project root as the default pattern and add it to the generated .gitignore.\n\n### 6. Lifecycle bridge overhead on fresh projects (low)\n\nRunning scope:promote then scope:activate on 4 vBRIEFs the agent created 5 minutes earlier — with explicit approval gates — was pure ceremony. The setup skill deposits in proposed/ and the swarm requires ^Gctive/; for greenfield projects in the same session, this round-trip adds friction with no safety value.\n\n**Suggestion**: When the swarm is invoked in the same session that created the scope vBRIEFs (detectable via session continuity or vBRIEF creation timestamp), offer a fast-path that promotes+activates all in-scope candidates in one batch with a single confirmation.\n\n## Environment\n\n- Windows 11, PowerShell 5.1.26100.7705\n- Warp terminal (no start_agent in tool set)\n- deft cloned from deftai/directive (vendored, not submodule)\n- task 3.48.0, uv 0.11.8, gh CLI authenticated\n- Consumer project: https://github.com/Shinran7/AnyoneCanMakeMusic",
+      "Labels": "adoption blocker"
+    },
+    "items": [],
+    "tags": [
+      "adoption blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1053",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1053: Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes"
+      },
+      {
+        "uri": "completed/2026-06-12-generic-terminal-swarm-fallback-should-offer-serial-self-exe.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Generic-terminal swarm fallback should offer serial self-execution instead of only manual prompt paste",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-12-greenfield-setup-should-produce-or-offer-a-swarm-ready-proje.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Greenfield setup should produce or offer a swarm-ready project bootstrap",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "active/2026-06-12-lifecycle-taskfile-commands-should-preserve-reliable-success.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-12-interactive-swarm-worktrees-should-default-to-deterministic.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Interactive swarm worktrees should default to deterministic non-cluttering scratch paths",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

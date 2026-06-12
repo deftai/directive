@@ -1,0 +1,79 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json"
+  },
+  "plan": {
+    "id": "1053-generic-terminal-serial-fallback",
+    "title": "Generic-terminal swarm fallback should offer serial self-execution instead of only manual prompt paste",
+    "status": "completed",
+    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "narratives": {
+      "Description": "When no native agent dispatch primitive is available, the swarm workflow still falls back to asking the operator to paste worker prompts into terminals. This story adds a clear degraded path where the monitor can offer to execute the prepared worker prompts serially in the isolated worktrees, preserving forward progress without pretending it is parallel orchestration.",
+      "ImplementationPlan": "Update the swarm launch guidance around the generic-terminal descriptor in `skills/deft-directive-swarm/SKILL.md` so it distinguishes manual prompt paste from an explicit serial self-execution downgrade. Add content tests in `tests/content/test_swarm_skill.py` that pin the no-orchestration behavior, the operator consent language, and the prohibition against calling the serial downgrade a true swarm.",
+      "UserStory": "As a first-time operator without an available agent dispatch primitive, I want the swarm monitor to offer serial self-execution, so that I can continue without manually pasting prompts into multiple terminals.",
+      "Traces": "Issue #1053 Failure 1; current swarm Phase 3 runtime descriptor still routes `generic-terminal` to manual terminal launch."
+    },
+    "items": [
+      {
+        "id": "1053-generic-terminal-serial-fallback-a1",
+        "title": "Generic terminal descriptor exposes serial downgrade",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given runtime detection returns the `generic-terminal` descriptor, when the swarm skill presents launch routing, then it shows a serial self-execution downgrade option with explicit operator consent.",
+          "Traces": "Issue #1053 Failure 1"
+        }
+      },
+      {
+        "id": "1053-generic-terminal-serial-fallback-a2",
+        "title": "Manual paste remains available but not defaulted silently",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given no orchestration primitive is available, when the operator declines serial self-execution, then the skill keeps the manual terminal prompt-paste fallback available with clear tradeoffs.",
+          "Traces": "Issue #1053 Failure 1"
+        }
+      },
+      {
+        "id": "1053-generic-terminal-serial-fallback-a3",
+        "title": "Serial downgrade is labeled as non-parallel",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the serial downgrade is selected, when the skill describes execution mode, then it states that work will run one story at a time and is not true concurrent swarm execution.",
+          "Traces": "Issue #1053 Failure 1"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-swarm/SKILL.md",
+          "tests/content/test_swarm_skill.py"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/content/test_swarm_skill.py -q"
+        ],
+        "expected_outputs": [
+          "tests/content/test_swarm_skill.py passes and pins the generic-terminal serial downgrade wording."
+        ],
+        "depends_on": [],
+        "conflict_group": "swarm-skill-launch",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-12T14:43:26Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1053",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1053: Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-12T14:43:26Z"
+  }
+}

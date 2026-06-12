@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 issue_ingest.py -- Ingest GitHub issues into vBRIEF lifecycle folders.
 
 Every post-GA issue would otherwise live only on GitHub and reappear in the
@@ -22,6 +22,11 @@ Exit codes:
     2 -- external error (missing gh, API failure, usage error)
 
 Story: #454 (task issue:ingest).
+
+Issue bodies are opaque upstream Markdown text. Never decode them through
+Python or JSON string-escape semantics after the GitHub JSON payload has been
+parsed; literal substrings such as ``\vbrief``, ``\task``, ``\n``, and
+``\u0041`` must remain literal text in ``plan.narratives.Overview``.
 """
 
 from __future__ import annotations
@@ -171,6 +176,13 @@ _CROSS_REF_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 _CODE_FENCE_RE = re.compile(r"(```|~~~).*?\1", re.DOTALL)
 _INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 
+_CONTROL_CHAR_LABELS: dict[str, str] = {
+    "\b": "U+0008 backspace",
+    "\t": "U+0009 tab",
+    "\v": "U+000B vertical tab",
+    "\f": "U+000C form feed",
+}
+
 
 # --- Helpers ----------------------------------------------------------------
 
@@ -188,6 +200,41 @@ def _strip_code_blocks(body: str) -> str:
     if not body:
         return ""
     return _INLINE_CODE_RE.sub("", _CODE_FENCE_RE.sub("", body))
+
+
+def _has_non_indentation_prefix(text: str, index: int) -> bool:
+    """Return True when a tab at ``index`` follows non-whitespace on its line."""
+    line_start = text.rfind("\n", 0, index) + 1
+    return any(ch not in " \t" for ch in text[line_start:index])
+
+
+def _body_control_character_labels(body: str) -> list[str]:
+    """Return visible labels for unexpected control characters in issue body text."""
+    labels: list[str] = []
+    seen: set[str] = set()
+    for index, char in enumerate(body):
+        if char == "\t" and not _has_non_indentation_prefix(body, index):
+            continue
+        label = _CONTROL_CHAR_LABELS.get(char)
+        if label is None and ord(char) < 32 and char not in {"\n", "\r"}:
+            label = f"U+{ord(char):04X} control character"
+        if label and label not in seen:
+            seen.add(label)
+            labels.append(label)
+    return labels
+
+
+def _warn_body_control_characters(number: int, body: str) -> None:
+    """Surface decoded upstream control characters before writing a vBRIEF."""
+    labels = _body_control_character_labels(body)
+    if not labels:
+        return
+    print(
+        f"Warning: issue #{number} body contains unexpected control characters "
+        f"({', '.join(labels)}); preserving Overview verbatim, but "
+        "verify_encoding will flag the generated vBRIEF narrative.",
+        file=sys.stderr,
+    )
 
 
 def _extract_plan_items(body: str) -> list[dict]:
@@ -521,6 +568,7 @@ def _build_issue_vbrief(
         # structured ``plan.items[]`` + ``plan.references[]`` cross-refs
         # derived from the body, so refinement / triage:queue have more
         # than just an opaque blob to work with.
+        _warn_body_control_characters(number, body_str)
         narratives["Overview"] = body_str
     if label_names:
         narratives["Labels"] = ", ".join(label_names)

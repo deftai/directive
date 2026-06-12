@@ -78,6 +78,7 @@ Options:
                             installs when combined with --yes)
   --json                    Emit structured JSON result to stdout (success, paths,
                             actions taken, warnings); suppresses some prose
+  --no-update-check         Skip the startup version-currency check (offline/CI)
   --debug                   Print build target and diagnostic info
   --version                 Print version and exit
   --help                    Show this help message
@@ -92,6 +93,7 @@ Windows-style aliases:
   /maintainer               Same as --maintainer
   /repo-root <path>         Same as --repo-root
   /json                     Same as --json
+  /no-update-check          Same as --no-update-check
   /debug                    Same as --debug
   /v, /version              Same as --version
   /?, /h, /help             Same as --help
@@ -133,6 +135,7 @@ func normalizeArgs(args []string) []string {
 		"/maintainer":      "--maintainer",
 		"/repo-root":       "--repo-root",
 		"/json":            "--json",
+		"/no-update-check": "--no-update-check",
 	}
 	out := make([]string, 0, len(args))
 	for _, a := range args {
@@ -162,6 +165,7 @@ func main() {
 	maintainer := flag.Bool("maintainer", false, "maintainer checkout mode: bootstrap/report tools without consumer file projections")
 	repoRoot := flag.String("repo-root", "", "target project dir for non-interactive installs")
 	jsonOut := flag.Bool("json", false, "emit JSON result instead of (or with) prose for agents")
+	noUpdateCheck := flag.Bool("no-update-check", false, "skip startup version-currency check")
 	flag.Usage = printUsage
 	flag.Parse()
 
@@ -178,7 +182,7 @@ func main() {
 	// --force and --allow-dirty are synonyms: either bypasses the #1458
 	// default dirty-tree refusal of a dirty working tree on --upgrade.
 	forceDirty := *force || *allowDirty
-	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut, *requireClean, forceDirty, *maintainer)
+	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut, *requireClean, forceDirty, *maintainer, *noUpdateCheck)
 	if runtime.GOOS == "windows" && !nonInt {
 		pressEnterToExit()
 	}
@@ -195,7 +199,7 @@ func main() {
 // --repo-root points at this repository's source tree, reports maintainer tools,
 // and skips every consumer projection so AGENTS.md / .gitignore / workflows stay
 // maintainer-owned.
-func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut, requireClean, force, maintainer bool) int {
+func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut, requireClean, force, maintainer, noUpdateCheck bool) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("[debug] defaultBranch=%s branch=%s legacyLayout=%v nonInteractive=%v upgrade=%v repoRoot=%s json=%v maintainer=%v\n", defaultBranch, branch, legacyLayout, nonInteractive, upgrade, repoRoot, jsonOut, maintainer)
@@ -204,6 +208,12 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	var result *WizardResult
 	var err error
 	if nonInteractive && repoRoot != "" {
+		if !updateCheckBypassed(noUpdateCheck) {
+			w := NewWizardWithLayout(strings.NewReader(""), os.Stdout, debug, legacyLayout)
+			if code := runInstallerUpdateCheck(w, false); code != 0 {
+				return code
+			}
+		}
 		// Fast path for agents/CI: construct result directly from --repo-root
 		// without any interactive prompts. Derive project name from basename.
 		absRoot, absErr := filepath.Abs(repoRoot)
@@ -216,6 +226,12 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 			fmt.Printf("[debug] non-interactive fast-path: project=%s deft=%s update=%v\n", result.ProjectDir, result.DeftDir, result.Update)
 		}
 	} else if nonInteractive {
+		if !updateCheckBypassed(noUpdateCheck) {
+			w := NewWizardWithLayout(strings.NewReader(""), os.Stdout, debug, legacyLayout)
+			if code := runInstallerUpdateCheck(w, false); code != 0 {
+				return code
+			}
+		}
 		// --yes without --repo-root: fall back to CWD as repo root (common for
 		// agents running inside an existing project dir).
 		cwd, getErr := os.Getwd()
@@ -234,7 +250,13 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		}
 	} else {
 		w := NewWizardWithLayout(os.Stdin, os.Stdout, debug, legacyLayout)
-		result, err = w.Run()
+		w.printBanner()
+		if !updateCheckBypassed(noUpdateCheck) {
+			if code := runInstallerUpdateCheck(w, stdinAllowsUpdateCheckPrompt()); code != 0 {
+				return code
+			}
+		}
+		result, err = w.runAfterBanner()
 		if err != nil {
 			if err == errUserExit {
 				fmt.Println("\nGoodbye!")

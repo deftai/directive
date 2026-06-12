@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import json
 import re
 import subprocess
 import sys
@@ -110,6 +111,16 @@ UTF8_BOM = b"\xef\xbb\xbf"
 #: File extensions where a leading UTF-8 BOM is non-canonical and should be
 #: flagged. Other extensions (.csv, .ps1, .bat) tolerate or expect a BOM.
 NO_BOM_EXTENSIONS = frozenset({".md", ".json", ".yml", ".yaml", ".txt"})
+
+#: Control characters that must not hide inside decoded vBRIEF narratives.
+#: JSON serializes these as escapes (for example ``\u000b``), so the raw
+#: text scanner below cannot see them until the vBRIEF is parsed.
+VBRIEF_CONTROL_CHAR_LABELS: dict[str, str] = {
+    "\b": "U+0008 backspace in vBRIEF narrative",
+    "\t": "U+0009 tab in vBRIEF narrative",
+    "\v": "U+000B vertical tab in vBRIEF narrative",
+    "\f": "U+000C form feed in vBRIEF narrative",
+}
 
 #: File extensions to scan by default. Conservative -- excludes binary formats
 #: and source files where the cost/benefit of mojibake detection is lower.
@@ -360,6 +371,9 @@ def scan_file(rel_path: str, full_path: Path) -> list[Finding]:
         ):
             findings.extend(_scan_line(rel_path, lineno, stripped, context=orig))
 
+    if _is_vbrief_narrative_control_scope(rel_path):
+        findings.extend(_scan_vbrief_narrative_controls(rel_path, text))
+
     return findings
 
 
@@ -386,6 +400,83 @@ def _scan_line(
         if pattern in line:
             findings.append(Finding(rel_path, lineno, label, ctx))
     return findings
+
+
+def _is_vbrief_narrative_control_scope(rel_path: str) -> bool:
+    """Return True for in-flight vBRIEF files that may receive issue ingest."""
+    if not rel_path.endswith(".vbrief.json"):
+        return False
+    normalized_path = rel_path.replace("\\", "/")
+    normalized = f"/{normalized_path}"
+    return "/vbrief/proposed/" in normalized or "/vbrief/active/" in normalized
+
+
+def _scan_vbrief_narrative_controls(rel_path: str, text: str) -> list[Finding]:
+    """Scan decoded ``plan.narratives`` strings for hidden control chars.
+
+    The general scanner works on raw file text. That catches mojibake and
+    BOMs, but not JSON-escaped controls such as ``"\u000b"`` because the
+    raw bytes are printable. vBRIEF narratives are user-facing Markdown, so
+    decode just that structured surface and flag controls after JSON parsing.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    plan = data.get("plan")
+    if not isinstance(plan, dict):
+        return []
+    narratives = plan.get("narratives")
+    if not isinstance(narratives, dict):
+        return []
+
+    findings: list[Finding] = []
+    for key, value in narratives.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            continue
+        key_line = _json_key_line(text, key)
+        for label in _decoded_control_labels(value):
+            findings.append(
+                Finding(
+                    rel_path,
+                    key_line,
+                    label,
+                    f"plan.narratives.{key} contains {label}",
+                )
+            )
+    return findings
+
+
+def _decoded_control_labels(value: str) -> list[str]:
+    """Return unique finding labels for disallowed decoded controls."""
+    labels: list[str] = []
+    seen: set[str] = set()
+    for index, char in enumerate(value):
+        if char == "\t" and not _tab_is_non_indentation(value, index):
+            continue
+        label = VBRIEF_CONTROL_CHAR_LABELS.get(char)
+        if label is None and ord(char) < 32 and char not in {"\n", "\r"}:
+            label = f"U+{ord(char):04X} control character in vBRIEF narrative"
+        if label and label not in seen:
+            seen.add(label)
+            labels.append(label)
+    return labels
+
+
+def _tab_is_non_indentation(value: str, index: int) -> bool:
+    """Treat tabs after prose as suspicious, but allow leading indentation."""
+    line_start = value.rfind("\n", 0, index) + 1
+    return any(ch not in " \t" for ch in value[line_start:index])
+
+
+def _json_key_line(text: str, key: str) -> int:
+    """Best-effort line number for a JSON object key."""
+    match = re.search(rf'"{re.escape(key)}"\s*:', text)
+    if match is None:
+        return 1
+    return text.count("\n", 0, match.start()) + 1
 
 
 def _filter_scannable(

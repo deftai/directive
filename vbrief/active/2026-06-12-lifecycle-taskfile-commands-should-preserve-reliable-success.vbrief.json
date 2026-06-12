@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json"
+  },
+  "plan": {
+    "id": "1053-powershell-lifecycle-exit-semantics",
+    "title": "Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1",
+    "status": "running",
+    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "narratives": {
+      "Description": "The original recurrence reported successful lifecycle commands being observed as failures under Windows PowerShell 5.1 because progress or stderr handling confused the harness. Current scripts mostly route success to stdout, but there is no direct regression proof for the lifecycle command trio under the affected shell and capture path.",
+      "ImplementationPlan": "Add a Windows-oriented regression test or smoke surface that runs `task scope:promote`, `task scope:activate`, and `task vbrief:preflight` on a fixture vBRIEF and asserts success exit semantics. If the smoke exposes stderr/progress leakage, adjust the Taskfile wrappers or scripts so success output remains parseable and false failure signals are not emitted.",
+      "UserStory": "As a Windows PowerShell 5.1 operator, I want lifecycle commands to report successful lifecycle transitions as successful, so that agents can trust exit codes during swarm preparation.",
+      "Traces": "Issue #1053 Failure 4; related but distinct from #798 encoding and #1353 Grok Build capture guidance."
+    },
+    "items": [
+      {
+        "id": "1053-powershell-lifecycle-exit-semantics-a1",
+        "title": "Lifecycle smoke asserts success exit codes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a valid fixture vBRIEF, when `task scope:promote`, `task scope:activate`, and `task vbrief:preflight` run under the Windows PowerShell smoke path, then each successful command returns exit code 0.",
+          "Traces": "Issue #1053 Failure 4"
+        }
+      },
+      {
+        "id": "1053-powershell-lifecycle-exit-semantics-a2",
+        "title": "Success output avoids false failure signals",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the lifecycle commands succeed, when an agent captures stdout and stderr, then the capture report records success output on stdout or structured JSON and records zero harness-level false failures.",
+          "Traces": "Issue #1053 Failure 4"
+        }
+      },
+      {
+        "id": "1053-powershell-lifecycle-exit-semantics-a3",
+        "title": "Known PowerShell limitations are documented if unreproducible",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the original failure cannot be reproduced on the current code, when the smoke path runs, then a checked-in note records the tested PowerShell version, command trio, and expected success semantics.",
+          "Traces": "Issue #1053 Failure 4"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/scope_lifecycle.py",
+          "scripts/preflight_implementation.py",
+          "tasks/scope.yml",
+          "tasks/vbrief.yml",
+          "tests/cli/test_scope_lifecycle.py",
+          "tests/cli/test_preflight_implementation.py",
+          ".github/workflows/ci.yml"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/cli/test_scope_lifecycle.py tests/cli/test_preflight_implementation.py -q"
+        ],
+        "expected_outputs": [
+          "lifecycle command tests pass and any Windows smoke addition asserts successful commands return exit code 0."
+        ],
+        "depends_on": [],
+        "conflict_group": "windows-lifecycle-exit-semantics",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1053",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1053: Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-12T13:51:11Z"
+  }
+}

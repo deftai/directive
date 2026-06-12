@@ -1515,7 +1515,7 @@ func TestInstall_DirtyTreeUpgradeFailsLoudNonInteractive(t *testing.T) {
 	}
 	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
 
-	code := install(false, "", false, true, true, proj, false, false, false, false)
+	code := install(false, "", false, true, true, proj, false, false, false, false, true)
 	if code == 0 {
 		t.Error("dirty-tree --upgrade --yes must exit non-zero (fail loud), got 0")
 	}
@@ -1552,7 +1552,7 @@ func TestInstall_DirtyTreeUpgradeJSONStructuredObject(t *testing.T) {
 		t.Fatalf("os.Pipe: %v", perr)
 	}
 	os.Stdout = wPipe
-	code := install(false, "", false, true, true, proj, true, false, false, false)
+	code := install(false, "", false, true, true, proj, true, false, false, false, true)
 	_ = wPipe.Close()
 	os.Stdout = oldStdout
 	stdout, _ := io.ReadAll(r)
@@ -1611,7 +1611,7 @@ func TestInstall_ForceUpgradesDirtyTree(t *testing.T) {
 	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
 	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
 
-	code := install(false, "", false, true, true, proj, false, false, true, false)
+	code := install(false, "", false, true, true, proj, false, false, true, false, true)
 	if code != 0 {
 		t.Fatalf("--force upgrade of a dirty tree must succeed (exit 0), got %d", code)
 	}
