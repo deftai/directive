@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(capacity): ship the deferred capacity:backfill tool (#1419 history classifier)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(capacity): ship the deferred capacity:backfill tool (#1419 history classifier)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1606",
@@ -62,6 +62,10 @@
         "title": "Issue #1606: feat(capacity): ship the deferred capacity:backfill tool (#1419 history classifier)"
       }
     ],
-    "updated": "2026-06-12T20:47:54Z"
+    "updated": "2026-06-12T21:05:56Z",
+    "metadata": {
+      "completedAt": "2026-06-12T21:05:56Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
