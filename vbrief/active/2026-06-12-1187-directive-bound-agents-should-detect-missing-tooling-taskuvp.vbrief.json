@@ -1,0 +1,108 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1187"
+  },
+  "plan": {
+    "id": "1187-missing-tooling-bootstrap",
+    "title": "Directive-bound agents should detect missing tooling (task/uv/python/gh) and offer to install on first encounter",
+    "status": "running",
+    "narratives": {
+      "Description": "Directive-bound sessions should detect missing required tools before the first command failure and give the operator a clear next step. The first version should cover task, uv, Python, gh, and git with safe install offers or manual fallback instructions.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1187",
+      "ImplementationPlan": "Implement a new `scripts/verify_tools.py` helper and `task verify:tools` target, then call it from `scripts/session_start.py` before the first task-dependent session work when the toolchain can be probed. Update `templates/agents-entry.md` and `AGENTS.md` with the missing-tool routing rule, and verify the behavior with `tests/cli/test_verify_tools.py` plus session-start coverage in `tests/cli/test_session_start.py` for installed, missing-installable, missing-manual, foundational git failure, and session output cases.",
+      "UserStory": "As a first-time Deft operator, I want missing required tools detected with install guidance before a command fails, so that onboarding does not stall on avoidable setup errors.",
+      "Traces": "Issue #1187; adoption-blocker first-session tooling failure mode.",
+      "Overview": "# Directive-bound agents should detect missing tooling (task/uv/python/gh) and offer to install on first encounter\r\n\r\n## Problem\r\n\r\nWhen a new contributor or consumer clones a directive-using repo and starts a directive-bound agent session, the agent often hits a missing tool (`task`, `uv`, `python`, `gh`, etc.) by attempting to run a command and getting \"not recognized as a command\" / \"command not found.\" Today the agent typically reports the failure back to the operator and the operator has to:\r\n\r\n1. Figure out which tool is missing from the error noise\r\n2. Find install instructions for their OS\r\n3. Install it manually\r\n4. Restart the session or retry the failed command\r\n\r\nThis is friction at the worst possible moment — the operator's first few minutes with directive — and operates as a silent adoption-blocker.\r\n\r\n## Proposed behavior\r\n\r\nDirective-bound agents should:\r\n\r\n1. **Detect missing required tooling early** — ideally at session start (as part of the existing alignment + branch-policy preamble) or at the first invocation that needs the tool, whichever comes first.\r\n\r\n2. **Offer to install proactively** — when the agent sees a missing required tool, it should immediately surface a one-line prompt:\r\n\r\n   > `task` is not installed on this machine. Install it now? (Y/n)\r\n\r\n   On approval, run the platform-appropriate installer (`winget`/`scoop`/`choco` on Windows, `brew` on macOS, native pkg manager on Linux) without further prompting beyond OS-level UAC / sudo.\r\n\r\n3. **Suggest install commands as a fallback** — if the agent isn't authorized for install (permissions, sandboxed env, operator declined), it should print the exact platform-specific command the operator can run themselves, plus the URL of the canonical install page for the tool.\r\n\r\n4. **Re-check after install** — after a successful install the agent should verify the tool is now on PATH (a fresh shell may be needed on some platforms), then continue the operation it was about to run.\r\n\r\n## Tooling that should be covered\r\n\r\nInitial required set:\r\n\r\n- `task` (go-task; the canonical Taskfile runner)\r\n- `uv` (Python package manager used by deft scripts)\r\n- `python` / `python3` (some scripts)\r\n- `gh` (GitHub CLI; required for triage / PR work and the `gh-arch` / `gh-slice` / `gh-triage` skills)\r\n- `git` (assumed; if absent, hard-block the session with a clear error rather than offering install — git is foundational enough that any session running without it is in trouble)\r\n\r\nPer-skill optional tooling (e.g., `jq`, language-specific toolchains) can flag when missing but doesn't need install offers by default; document them as recommended-not-required in their respective skills.\r\n\r\n## Where the logic lives — open design questions\r\n\r\nWorth discussing before implementation:\r\n\r\n- A new skill `deft-directive-bootstrap-tools` (or similar) that other skills delegate to when they hit a missing-tool error?\r\n- An AGENTS.md directive rule that any tool-not-found error triggers an install-offer routine?\r\n- A cross-cutting concern handled by the existing Go installer (`cmd/deft-install`, `installer` label) extended to runtime dep checks at session start?\r\n- A `task verify:tools` pre-flight (analogous to `task verify:cache-fresh` from #1127) that runs as part of session start and surfaces the install offer there?\r\n\r\nThe cleanest landing point is probably AGENTS.md routing + a small skill that owns the per-platform install logic, but design should consider whether the existing installer already covers part of the use case.\r\n\r\n## Acceptance criteria\r\n\r\n- A fresh-clone session on a machine missing `task` produces a one-line agent prompt offering install BEFORE the agent fails on the first task command\r\n- Operator can approve (`Y`) and the agent runs the platform-appropriate installer without further interaction (beyond OS-level UAC / sudo when required)\r\n- Operator can decline (`n`) and the agent surfaces the exact manual install command + the canonical install URL + a session-end note summarizing what's still missing\r\n- Tools that aren't installable via standard package managers print a clear \"install manually from `<URL>`\" message instead of a Y/n prompt\r\n- Cross-platform: Windows (winget/scoop/choco), macOS (brew), Linux (apt/dnf/pacman where detectable); fallback to manual-install instructions on unrecognized platforms\r\n\r\n## Out of scope\r\n\r\n- Auto-installing language toolchains (Go, Rust, Node.js, etc.) — too broad; out of scope for v1\r\n- Auto-installing Python packages or `uv`-managed environments inside a project — that's project-level setup, not directive-level bootstrap\r\n- Auto-configuring `gh` auth — installation only; auth is a separate operator-driven flow\r\n- Sandboxed / no-network environments where install isn't possible — fall back to manual-instruction mode silently\r\n\r\n## Refs\r\n\r\n- Existing installer: `cmd/deft-install` (Go installer; carries the `installer` label on this repo)\r\n- Related onboarding work: N3 (#1143 — `task triage:welcome`) — same first-session-UX concern, different surface\r\n- Skills that depend on tooling: `deft-directive-build`, `deft-directive-setup`, `deft-directive-swarm`, `deft-directive-gh-arch`, `deft-directive-gh-slice`, `deft-directive-gh-triage`, `deft-directive-triage` (planned via #1130)\r\n",
+      "Labels": "enhancement, skills, adoption-blocker"
+    },
+    "items": [
+      {
+        "id": "1187-tooling-a1",
+        "title": "Detect missing required tools (`task`, `uv`, `python`/`python3`, `gh`, and `git`) before the first command failure whenever the session can probe them early.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a directive-bound session starts on a machine missing a required tool, when the verification surface runs, then it reports the missing tool before the first dependent command fails.",
+          "Traces": "Issue #1187 acceptance criterion 1"
+        }
+      },
+      {
+        "id": "1187-tooling-a2",
+        "title": "When an installable required tool is missing, show a one-line install prompt and run the platform-appropriate installer after operator approval.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an installable required tool is missing, when the operator approves installation, then the command chooses the platform-appropriate installer and re-checks the tool after installation.",
+          "Traces": "Issue #1187 acceptance criteria 2 and 4"
+        }
+      },
+      {
+        "id": "1187-tooling-a3",
+        "title": "When the operator declines or automation cannot install, print the exact manual install command, canonical install URL, and a session-end note naming unresolved tools.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a tool cannot be installed automatically or the operator declines, when verification completes, then the output includes the manual install command, canonical URL, and unresolved-tool summary.",
+          "Traces": "Issue #1187 acceptance criteria 3 and 4"
+        }
+      },
+      {
+        "id": "1187-tooling-a4",
+        "title": "For tools without a safe package-manager install path, skip the approval prompt and print clear manual-install guidance instead.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a missing tool has no safe automated install route on the detected platform, when verification reports it, then the output skips the install prompt and provides manual guidance.",
+          "Traces": "Issue #1187 acceptance criterion 4"
+        }
+      },
+      {
+        "id": "1187-tooling-a5",
+        "title": "Support Windows (`winget`/`scoop`/`choco`), macOS (`brew`), and detectable Linux package managers, with manual-install fallback on unrecognized platforms.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given verification runs on Windows, macOS, Linux, or an unrecognized platform, when a required tool is missing, then guidance matches the platform or falls back to manual install instructions.",
+          "Traces": "Issue #1187 acceptance criterion 5"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "skills",
+      "adoption-blocker"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/verify_tools.py",
+          "scripts/session_start.py",
+          "tasks/verify.yml",
+          "Taskfile.yml",
+          "templates/agents-entry.md",
+          "AGENTS.md",
+          "tests/cli/test_verify_tools.py",
+          "tests/cli/test_session_start.py"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/cli/test_verify_tools.py tests/cli/test_session_start.py -q"
+        ],
+        "expected_outputs": [
+          "Required-tool verification reports missing tools with install or manual guidance before dependent commands fail."
+        ],
+        "depends_on": [],
+        "conflict_group": "tooling-bootstrap",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1187",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1187: Directive-bound agents should detect missing tooling (task/uv/python/gh) and offer to install on first encounter"
+      }
+    ],
+    "updated": "2026-06-12T13:22:02Z"
+  }
+}

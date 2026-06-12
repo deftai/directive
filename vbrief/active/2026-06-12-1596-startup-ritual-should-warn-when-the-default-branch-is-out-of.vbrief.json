@@ -1,0 +1,100 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1596"
+  },
+  "plan": {
+    "id": "1596-default-branch-sync-warning",
+    "title": "Startup ritual should warn when the default branch is out of sync with remote",
+    "status": "running",
+    "narratives": {
+      "Description": "The startup ritual should surface stale local default-branch state so operators notice before building from an old base. The warning must be concise, non-blocking, and quiet when the default branch and upstream are already in sync.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1596",
+      "ImplementationPlan": "Extend the session-start branch-state surface to resolve the repository default branch, compare it to its upstream tracking branch, and print a concise non-blocking warning for behind, ahead, diverged, missing-upstream, and remote-check failure states. Add focused tests around the branch-state helper and session-start output ordering.",
+      "UserStory": "As a Deft operator starting a session from a feature branch, I want the ritual to warn when my local default branch is stale, so that I can refresh before basing release work on old state.",
+      "Traces": "Issue #1596; statusreport session observed local master behind origin/master without startup visibility.",
+      "Overview": "## Summary\n\nThe Deft startup ritual should tell the user when the local default branch (`master` or `main`) is not in sync with its remote tracking branch.\n\nToday the ritual confirms Deft alignment, runs doctor, branch policy, triage welcome, and cache freshness, but it does not surface that the default branch is behind or ahead of origin. That can leave a session starting from stale local state unless the operator manually checks.\n\n## Desired behavior\n\nDuring startup, after the existing branch-policy disclosure step or as part of the same branch-state surface, inspect the repository default branch and its upstream remote.\n\nIf the default branch is not in sync, print a concise warning such as:\n\n`[deft branch] Local master is behind origin/master by 1 commit.`\n\nIf it is ahead, diverged, missing an upstream, or the remote cannot be checked, surface that state clearly without blocking unrelated read-only work.\n\n## Acceptance criteria\n\n- Detect whether the repository default branch is `master` or `main`.\n- Compare the local default branch against its remote tracking branch after fetching or otherwise refreshing remote refs.\n- Print nothing when the local default branch and remote are in sync.\n- Print a startup warning when the local branch is behind, ahead, diverged, lacks an upstream, or remote state cannot be determined.\n- Preserve the existing startup ritual order and avoid turning this into a hard failure unless another existing gate already requires it.\n\n## Motivation\n\nThis came up in `deftai/statusreport`: the current working branch was separate, while local `master` was one commit behind `origin/master`. The session ritual gave no visibility into that stale default-branch state.\n"
+    },
+    "items": [
+      {
+        "id": "1596-branch-sync-a1",
+        "title": "Detect the repository default branch (`master` or `main`) without assuming the current checkout is on that branch.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a session starts from any branch, when the startup branch-state helper runs, then it resolves the repository default branch without assuming the current checkout is the default branch.",
+          "Traces": "Issue #1596 acceptance criterion 1"
+        }
+      },
+      {
+        "id": "1596-branch-sync-a2",
+        "title": "Resolve the default branch upstream (for example, `origin/master`) and refresh remote refs before comparing ahead/behind counts.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the default branch has an upstream, when the helper compares branch state, then it refreshes or otherwise uses current remote refs and computes ahead/behind/diverged counts against the upstream.",
+          "Traces": "Issue #1596 acceptance criterion 2"
+        }
+      },
+      {
+        "id": "1596-branch-sync-a3",
+        "title": "Print no branch-sync line when the local default branch and upstream point to the same commit.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the local default branch and upstream point to the same commit, when the startup ritual runs, then no default-branch sync warning is printed.",
+          "Traces": "Issue #1596 acceptance criterion 3"
+        }
+      },
+      {
+        "id": "1596-branch-sync-a4",
+        "title": "Print concise startup warnings for behind, ahead, diverged, missing-upstream, and remote-check failure states.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the local default branch is behind, ahead, diverged, missing an upstream, or cannot be checked remotely, when the startup ritual runs, then it prints a concise non-blocking warning naming that state.",
+          "Traces": "Issue #1596 acceptance criterion 4"
+        }
+      },
+      {
+        "id": "1596-branch-sync-a5",
+        "title": "Keep the warning non-blocking and preserve the existing startup ritual order around alignment, branch-policy disclosure, triage welcome, doctor, and cache freshness.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given branch sync state cannot be determined or is out of sync, when session start continues, then the warning does not hard-fail unrelated read-only work and existing ritual output order remains stable.",
+          "Traces": "Issue #1596 acceptance criterion 5"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/session_start.py",
+          "scripts/policy.py",
+          "tests/cli/test_session_start.py",
+          "tests/cli/test_policy.py",
+          "AGENTS.md",
+          "templates/agents-entry.md"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/cli/test_session_start.py tests/cli/test_policy.py -q"
+        ],
+        "expected_outputs": [
+          "Session start prints concise non-blocking default-branch sync warnings only when the default branch is not in sync with its upstream."
+        ],
+        "depends_on": [],
+        "conflict_group": "session-start-branch-state",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1596",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1596: Startup ritual should warn when the default branch is out of sync with remote"
+      }
+    ],
+    "updated": "2026-06-12T13:04:35Z"
+  }
+}

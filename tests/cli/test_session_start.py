@@ -142,9 +142,7 @@ def test_run_session_start_records_triage_failure_and_can_defer(
     state = json.loads(state_path.read_text(encoding="utf-8"))
     assert code == 0
     assert payload["ready"] is True
-    assert state["quick_steps"]["triage_welcome"]["deferred_reason"] == (
-        "network unavailable"
-    )
+    assert state["quick_steps"]["triage_welcome"]["deferred_reason"] == ("network unavailable")
 
 
 def test_run_session_start_threads_task_prefix_to_triage_welcome(
@@ -207,6 +205,150 @@ def test_run_git_captures_text_as_utf8(tmp_path: Path, monkeypatch) -> None:
     assert stderr == ""
     assert kwargs["encoding"] == "utf-8"
     assert kwargs["errors"] == "replace"
+
+
+def test_default_branch_sync_is_quiet_when_default_branch_is_current(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    session_start = _load_module("session_start", SCRIPTS_DIR / "session_start.py")
+
+    def fake_run_git(_root: Path, args: list[str]) -> tuple[int, str, str]:
+        if args[:2] == ["symbolic-ref", "refs/remotes/origin/HEAD"]:
+            return 0, "origin/master", ""
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 0, "origin/master", ""
+        if args[:2] == ["fetch", "--quiet"]:
+            return 0, "", ""
+        if args[:3] == ["rev-list", "--left-right", "--count"]:
+            return 0, "0 0", ""
+        raise AssertionError(args)
+
+    monkeypatch.setattr(session_start, "_run_git", fake_run_git)
+
+    result = session_start.default_branch_sync(tmp_path)
+
+    assert result.branch == "master"
+    assert result.upstream == "origin/master"
+    assert result.warning is None
+
+
+def test_default_branch_sync_warns_for_behind_ahead_and_diverged(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    session_start = _load_module("session_start", SCRIPTS_DIR / "session_start.py")
+
+    def fake_run_git(counts: str):
+        def inner(_root: Path, args: list[str]) -> tuple[int, str, str]:
+            if args[:2] == ["symbolic-ref", "refs/remotes/origin/HEAD"]:
+                return 0, "origin/main", ""
+            if args[:2] == ["rev-parse", "--abbrev-ref"]:
+                return 0, "origin/main", ""
+            if args[:2] == ["fetch", "--quiet"]:
+                return 0, "", ""
+            if args[:3] == ["rev-list", "--left-right", "--count"]:
+                return 0, counts, ""
+            raise AssertionError(args)
+
+        return inner
+
+    monkeypatch.setattr(session_start, "_run_git", fake_run_git("0 1"))
+    assert session_start.default_branch_sync(tmp_path).warning == (
+        "[deft branch] Local main is behind origin/main by 1 commit."
+    )
+
+    monkeypatch.setattr(session_start, "_run_git", fake_run_git("2 0"))
+    assert session_start.default_branch_sync(tmp_path).warning == (
+        "[deft branch] Local main is ahead of origin/main by 2 commits."
+    )
+
+    monkeypatch.setattr(session_start, "_run_git", fake_run_git("2 3"))
+    assert session_start.default_branch_sync(tmp_path).warning == (
+        "[deft branch] Local main has diverged from origin/main (2 ahead, 3 behind)."
+    )
+
+
+def test_default_branch_sync_warns_for_missing_upstream_and_fetch_failure(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    session_start = _load_module("session_start", SCRIPTS_DIR / "session_start.py")
+
+    def missing_upstream(_root: Path, args: list[str]) -> tuple[int, str, str]:
+        if args[:2] == ["symbolic-ref", "refs/remotes/origin/HEAD"]:
+            return 0, "origin/master", ""
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 128, "", "no upstream"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(session_start, "_run_git", missing_upstream)
+    assert session_start.default_branch_sync(tmp_path).warning == (
+        "[deft branch] Local master has no upstream tracking branch."
+    )
+
+    def fetch_failure(_root: Path, args: list[str]) -> tuple[int, str, str]:
+        if args[:2] == ["symbolic-ref", "refs/remotes/origin/HEAD"]:
+            return 0, "origin/master", ""
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return 0, "origin/master", ""
+        if args[:2] == ["fetch", "--quiet"]:
+            return 128, "", "network unavailable"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(session_start, "_run_git", fetch_failure)
+    assert session_start.default_branch_sync(tmp_path).warning == (
+        "[deft branch] Could not refresh origin/master for local master: network unavailable"
+    )
+
+
+def test_run_session_start_orders_branch_and_tool_warnings_before_triage(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    session_start = _load_module("session_start", SCRIPTS_DIR / "session_start.py")
+    _init_git(tmp_path)
+
+    monkeypatch.setattr(
+        session_start,
+        "default_branch_sync",
+        lambda _root: session_start.DefaultBranchSync(
+            branch="master",
+            upstream="origin/master",
+            ahead=0,
+            behind=1,
+            warning="[deft branch] Local master is behind origin/master by 1 commit.",
+        ),
+    )
+
+    def fake_verify_tools(*_args, **kwargs):
+        kwargs["output_fn"]("[deft tools] Required tools are available.")
+        return SimpleNamespace(exit_code=0)
+
+    monkeypatch.setattr(session_start.verify_tools, "verify_required_tools", fake_verify_tools)
+    monkeypatch.setitem(
+        sys.modules,
+        "triage_welcome",
+        SimpleNamespace(
+            run_default_mode=lambda *_args, **kwargs: (
+                kwargs["output_fn"]("[triage] welcome"),
+                SimpleNamespace(exit_code=0),
+            )[1],
+            task_command_args=lambda args, *, task_prefix=None: args,
+        ),
+    )
+
+    code, _payload, lines = session_start.run_session_start(
+        tmp_path,
+        write_history=False,
+    )
+
+    assert code == 0
+    policy_idx = next(i for i, line in enumerate(lines) if line.startswith("[deft policy]"))
+    branch_idx = lines.index("[deft branch] Local master is behind origin/master by 1 commit.")
+    tools_idx = lines.index("[deft tools] Required tools are available.")
+    triage_idx = lines.index("[triage] welcome")
+    assert policy_idx < branch_idx < tools_idx < triage_idx
 
 
 def test_parse_deferrals_rejects_unknown_step() -> None:

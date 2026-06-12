@@ -33,7 +33,7 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 
 ## Session-start ritual (#1149)
 
-! On every interactive session start, run `task session:start` after loading AGENTS.md. This records the quick-tier ritual in `.deft/ritual-state.json`: Deft alignment confirmation, branch-policy disclosure, and `task triage:welcome` one-line state/nudge. The state is worktree- and HEAD-bound, and becomes stale after `plan.policy.sessionRitualStalenessHours` hours (default: 4).
+! On every interactive session start, run `task session:start` after loading AGENTS.md. This records the quick-tier ritual in `.deft/ritual-state.json`: Deft alignment confirmation, branch-policy disclosure, required-tool guidance from `task verify:tools`, default-branch sync warnings, and `task triage:welcome` one-line state/nudge. The state is worktree- and HEAD-bound, and becomes stale after `plan.policy.sessionRitualStalenessHours` hours (default: 4).
 
 ! Before any code-writing tool call or `start_agent` implementation dispatch, run `task verify:session-ritual -- --tier=gated`. The gated tier fails closed unless the quick-tier state is fresh, then lazily records `task doctor` and `task verify:cache-fresh` in the same ritual state. The verifier is now step 0 of the pre-`start_agent` gate stack; any non-zero exit aborts dispatch.
 
@@ -339,7 +339,7 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 
 ## Session-start ritual (#1149)
 
-! On every interactive session start, run `task deft:session:start` after loading AGENTS.md. This records the quick-tier ritual in `.deft/ritual-state.json`: Deft alignment confirmation, branch-policy disclosure, and `task deft:triage:welcome` one-line state/nudge. The state is worktree- and HEAD-bound, and becomes stale after `plan.policy.sessionRitualStalenessHours` hours (default: 4).
+! On every interactive session start, run `task deft:session:start` after loading AGENTS.md. This records the quick-tier ritual in `.deft/ritual-state.json`: Deft alignment confirmation, branch-policy disclosure, required-tool guidance from `task deft:verify:tools`, default-branch sync warnings, and `task deft:triage:welcome` one-line state/nudge. The state is worktree- and HEAD-bound, and becomes stale after `plan.policy.sessionRitualStalenessHours` hours (default: 4).
 
 ! Before any code-writing tool call or `start_agent` implementation dispatch, run `task deft:verify:session-ritual -- --tier=gated`. The gated tier fails closed unless the quick-tier state is fresh, then lazily records `task deft:doctor` and `task deft:verify:cache-fresh` in the same ritual state. The verifier is now step 0 of the pre-`start_agent` gate stack; any non-zero exit aborts dispatch.
 

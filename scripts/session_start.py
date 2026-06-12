@@ -11,12 +11,14 @@ import os
 import subprocess
 import sys
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import verify_tools  # noqa: E402
 from policy import disclosure_line, resolve_policy  # noqa: E402
 from ritual_sentinel import (  # noqa: E402
     new_ritual_state_payload,
@@ -58,6 +60,15 @@ def _run_git(project_root: Path, args: list[str]) -> tuple[int, str, str]:
     return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
 
 
+@dataclass(frozen=True)
+class DefaultBranchSync:
+    branch: str | None
+    upstream: str | None
+    ahead: int | None
+    behind: int | None
+    warning: str | None = None
+
+
 def _git_head(project_root: Path) -> tuple[str | None, str | None]:
     code, out, err = _run_git(project_root, ["rev-parse", "--verify", "HEAD"])
     if code != 0 or not out:
@@ -70,6 +81,113 @@ def _worktree_path(project_root: Path) -> str:
     if code == 0 and out:
         return str(Path(out).resolve())
     return str(project_root.resolve())
+
+
+def _default_branch_candidates(project_root: Path) -> list[str]:
+    code, out, _err = _run_git(
+        project_root,
+        ["symbolic-ref", "refs/remotes/origin/HEAD", "--short"],
+    )
+    if code == 0 and out:
+        return [out.split("/", 1)[-1]]
+    candidates: list[str] = []
+    for branch in ("main", "master"):
+        check_code, _out, _err = _run_git(
+            project_root,
+            ["show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
+        )
+        if check_code == 0:
+            candidates.append(branch)
+    return candidates
+
+
+def default_branch_sync(project_root: Path) -> DefaultBranchSync:
+    candidates = _default_branch_candidates(project_root)
+    if not candidates:
+        return DefaultBranchSync(
+            branch=None,
+            upstream=None,
+            ahead=None,
+            behind=None,
+            warning="[deft branch] Could not resolve a local default branch (`main` or `master`).",
+        )
+    branch = candidates[0]
+    code, upstream, err = _run_git(
+        project_root,
+        ["rev-parse", "--abbrev-ref", f"{branch}@{{upstream}}"],
+    )
+    if code != 0 or not upstream:
+        return DefaultBranchSync(
+            branch=branch,
+            upstream=None,
+            ahead=None,
+            behind=None,
+            warning=f"[deft branch] Local {branch} has no upstream tracking branch.",
+        )
+
+    remote, remote_branch = upstream.split("/", 1) if "/" in upstream else ("origin", upstream)
+    fetch_code, _out, fetch_err = _run_git(
+        project_root,
+        ["fetch", "--quiet", remote, remote_branch],
+    )
+    if fetch_code != 0:
+        detail = fetch_err or "remote refresh failed"
+        return DefaultBranchSync(
+            branch=branch,
+            upstream=upstream,
+            ahead=None,
+            behind=None,
+            warning=f"[deft branch] Could not refresh {upstream} for local {branch}: {detail}",
+        )
+
+    count_code, counts, count_err = _run_git(
+        project_root,
+        ["rev-list", "--left-right", "--count", f"{branch}...{upstream}"],
+    )
+    if count_code != 0 or not counts:
+        detail = count_err or "ahead/behind count failed"
+        return DefaultBranchSync(
+            branch=branch,
+            upstream=upstream,
+            ahead=None,
+            behind=None,
+            warning=f"[deft branch] Could not compare local {branch} with {upstream}: {detail}",
+        )
+    try:
+        ahead_raw, behind_raw = counts.split()
+        ahead = int(ahead_raw)
+        behind = int(behind_raw)
+    except ValueError:
+        return DefaultBranchSync(
+            branch=branch,
+            upstream=upstream,
+            ahead=None,
+            behind=None,
+            warning=(
+                f"[deft branch] Could not parse branch sync counts for {branch} "
+                f"and {upstream}: {counts}"
+            ),
+        )
+    if ahead == 0 and behind == 0:
+        return DefaultBranchSync(branch=branch, upstream=upstream, ahead=ahead, behind=behind)
+    if ahead and behind:
+        warning = (
+            f"[deft branch] Local {branch} has diverged from {upstream} "
+            f"({ahead} ahead, {behind} behind)."
+        )
+    elif behind:
+        plural = "commit" if behind == 1 else "commits"
+        warning = f"[deft branch] Local {branch} is behind {upstream} by {behind} {plural}."
+    else:
+        plural = "commit" if ahead == 1 else "commits"
+        warning = f"[deft branch] Local {branch} is ahead of {upstream} by {ahead} {plural}."
+    return DefaultBranchSync(
+        branch=branch,
+        upstream=upstream,
+        ahead=ahead,
+        behind=behind,
+        warning=warning,
+    )
 
 
 def _normalise_step_name(name: str) -> str:
@@ -156,6 +274,14 @@ def run_session_start(
             exit_code=0 if ok else 2,
         )
         lines.append(message)
+
+        branch_sync = default_branch_sync(project_root)
+        if branch_sync.warning:
+            lines.append(branch_sync.warning)
+
+    tool_lines: list[str] = []
+    verify_tools.verify_required_tools(output_fn=tool_lines.append)
+    lines.extend(tool_lines)
 
     if "triage_welcome" not in quick_steps:
         captured: list[str] = []

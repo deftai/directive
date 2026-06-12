@@ -240,6 +240,7 @@ _PROPAGATION_COMMAND_MARKERS: tuple[tuple[str, str], ...] = (
     # task names resolve. Each pair is (consumer template, maintainer AGENTS).
     ("task deft:session:start", "task session:start"),
     ("task deft:verify:session-ritual", "task verify:session-ritual"),
+    ("task deft:verify:tools", "task verify:tools"),
     ("task deft:triage:welcome --onboard", "task triage:welcome --onboard"),
     ("task deft:triage:queue", "task triage:queue"),
     ("triage <N>", "triage <N>"),
@@ -266,6 +267,7 @@ _PROPAGATION_COMMAND_MARKERS: tuple[tuple[str, str], ...] = (
 _CONSUMER_FORBIDDEN_BARE_TASK_MARKERS: tuple[str, ...] = (
     "task session:start",
     "task verify:session-ritual",
+    "task verify:tools",
     "task doctor",
     "task agents:refresh",
     "task triage:welcome",

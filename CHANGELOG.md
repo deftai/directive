@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Session-start ritual completion is now machine-verifiable before implementation dispatch (#1348)** -- `task session:start` records quick-tier ritual state in `.deft/ritual-state.json`, while `task verify:session-ritual -- --tier=gated` fails closed when that state is missing, stale, from another worktree, or tied to an older HEAD. The gated verifier lazily records `task doctor` and `task verify:cache-fresh`, honors explicit deferrals, and supports `DEFT_SESSION_RITUAL_SKIP=1` for CI and dispatched headless workers with an audit warning when the bypass hides a failure. Closes #1348.
+- **Startup now explains missing required tools before operators hit command-not-found failures (#1187)** -- `task verify:tools` checks for Git, Task, uv, Python, and the GitHub CLI, then prints install prompts or manual setup commands with canonical links. The session-start ritual surfaces the same guidance before the first task-backed welcome step, keeping fresh-clone onboarding actionable instead of failing on the first missing executable. Closes #1187.
+- **Session startup now warns when the local default branch is stale (#1596)** -- the ritual compares the repository default branch with its upstream and prints a concise non-blocking warning for behind, ahead, diverged, missing-upstream, or remote-refresh failure states. Cleanly synced branches stay quiet, so operators get stale-base visibility without extra noise. Closes #1596.
 
 ### Changed
 
