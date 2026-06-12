@@ -244,6 +244,25 @@ class TestCachePut:
         meta = json.loads((edir / "meta.json").read_text(encoding="utf-8"))
         cache.validate_meta(meta)
 
+    def test_raw_json_preserves_literal_escape_looking_body(self, tmp_path: Path) -> None:
+        """#1036: cache serialization must not string-unescape issue body text."""
+        body = (
+            "Literal text: \\vbrief \\task \\n \\r \\b \\f \\\\ \\\" \\u0041."
+        )
+        result = cache.cache_put(
+            "github-issue",
+            "deftai/directive/1036",
+            _good_raw(number=1036, body=body),
+            cache_root=tmp_path,
+        )
+
+        raw_on_disk = json.loads(
+            (result.entry_dir / "raw.json").read_text(encoding="utf-8")
+        )
+        assert raw_on_disk["body"] == body
+        assert "\v" not in raw_on_disk["body"]
+        assert "\t" not in raw_on_disk["body"]
+
     def test_hard_fail_skips_content_md(self, tmp_path: Path) -> None:
         body_with_secret = f"oops: AKIA{'A' * 16}"
         result = cache.cache_put(
