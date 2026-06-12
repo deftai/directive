@@ -10665,7 +10665,12 @@
             "blocks-merge",
             "blocks-release-tag",
             "bug",
-            "update-blocker"
+            "update-blocker",
+            "source-of-truth",
+            "rfc",
+            "patterns",
+            "context-engineering",
+            "determinism"
           ]
         },
         {
@@ -10747,6 +10752,77 @@
           "label": "duplicate"
         }
       ],
+      "capacityAllocation": {
+        "unit": "vbrief-count",
+        "window": 30,
+        "enforcement": "advise",
+        "minSampleSize": 20,
+        "defaultBucket": "new-capability",
+        "defaultEpicEstimate": 3,
+        "buckets": [
+          {
+            "id": "new-capability",
+            "target": 0.45,
+            "match": {
+              "labels": {
+                "any-of": [
+                  "enhancement",
+                  "beta",
+                  "skills"
+                ]
+              }
+            }
+          },
+          {
+            "id": "technical-debt",
+            "target": 0.2,
+            "match": {
+              "labels": {
+                "any-of": [
+                  "refactor",
+                  "test-debt",
+                  "bug",
+                  "tooling",
+                  "ci-cd"
+                ]
+              }
+            }
+          },
+          {
+            "id": "agentic-debt",
+            "target": 0.2,
+            "match": {
+              "labels": {
+                "any-of": [
+                  "harness",
+                  "context-engineering",
+                  "determinism",
+                  "patterns",
+                  "agent-experience",
+                  "agent-safety",
+                  "swarm"
+                ]
+              }
+            }
+          },
+          {
+            "id": "cognitive-debt",
+            "target": 0.15,
+            "match": {
+              "labels": {
+                "any-of": [
+                  "docs",
+                  "documentation",
+                  "source-of-truth",
+                  "design",
+                  "process",
+                  "coding-standards"
+                ]
+              }
+            }
+          }
+        ]
+      },
       "allowDirectCommitsToMaster": false
     },
     "updated": "2026-06-11T18:08:00Z"
