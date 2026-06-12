@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,7 +13,7 @@ import (
 // newGithooksWizard returns a Wizard whose output is discarded -- the hook
 // tests assert on filesystem + git state, not on printed prose.
 func newGithooksWizard() *Wizard {
-	return NewWizard(strings.NewReader(""), os.NewFile(0, os.DevNull), false)
+	return NewWizard(strings.NewReader(""), io.Discard, false)
 }
 
 // seedPayloadHooks writes minimal stand-in hook scripts into

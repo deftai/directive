@@ -1,0 +1,105 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #689"
+  },
+  "plan": {
+    "id": "689-installer-version-currency",
+    "title": "feat(installer): version-currency self-check at startup",
+    "status": "completed",
+    "narratives": {
+      "Description": "The standalone installer should warn users when they are running an old downloaded binary before it starts changing a project. The check should be fast, skippable for CI/offline use, and silent for help/version introspection.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/689",
+      "ImplementationPlan": "Add a version-currency check to `cmd/deft-install` that calls the GitHub latest-release API after the banner, compares SemVer versions, and prompts on stale or unverifiable versions. Document the installer directive and offline bypasses, update release smoke tests to opt out in non-TTY mode, and add Go tests for match, mismatch, timeout, non-TTY, bypass, and help/version paths.",
+      "UserStory": "As a Deft user re-running a downloaded installer, I want to know when the binary is stale before setup proceeds, so that I do not bootstrap a project with an outdated installer.",
+      "Traces": "Issue #689; stale rc installer binary rerun after newer GA release.",
+      "Overview": "## Motivation\r\n\r\nA user re-ran a previously-downloaded `deft-install` binary. The binary printed `deft-install v0.20.0-rc.1` while the latest published release was `v0.20.2`. Nothing in the installer signalled the staleness; the user noticed only because the wizard banner version looked off.\r\n\r\nInvestigation confirmed:\r\n\r\n- `releases/latest/download/install-macos-universal` and `install-linux-amd64` both correctly redirect to and serve v0.20.2 (verified: embedded version string `v0.20.2`, sha matches the v0.20.2 release asset).\r\n- The release pipeline (`.github/workflows/release.yml`) correctly stamps `-X main.version=${{ github.ref_name }}`.\r\n- README links exclusively use `releases/latest/download/...` — no stale direct links to old tags anywhere in the codebase.\r\n\r\nThe root cause was the user's local copy of the installer being a previously-downloaded rc.1 binary. There is currently no mechanism for `deft-install` to detect and surface this drift to the user.\r\n\r\n## Proposed change\r\n\r\nAdd a version-currency self-check to `deft-install`. On startup, after the welcome banner and before the project-name prompt, query the GitHub Releases API for the latest tag and compare it to the embedded `version`. Surface drift to the user with a prompt to confirm before proceeding.\r\n\r\n## Directive (new file: `tools/installer.md`)\r\n\r\n```\r\n## Version currency\r\n\r\n! deft-install MUST query the GitHub Releases API\r\n  (GET /repos/deftai/directive/releases/latest) after the welcome banner\r\n  and before the project-name prompt, with a 1.5s combined connect+read\r\n  timeout. The User-Agent header MUST be `deft-install/<version>`.\r\n\r\n! On version match, deft-install MUST print a one-line confirmation\r\n  (`Running latest (<version>)`) and proceed without prompting.\r\n\r\n! On version mismatch, deft-install MUST print embedded version, latest\r\n  version, publish date, and download URL, then prompt `[y/N]`\r\n  (default abort).\r\n\r\n! On network error or timeout, deft-install MUST print a \"could not\r\n  verify\" message and prompt `[y/N]` (default abort).\r\n\r\n! On non-TTY stdin, deft-install MUST exit 1 for any non-match outcome\r\n  unless `DEFT_NO_UPDATE_CHECK=1` is set or `--no-update-check` is passed.\r\n\r\n⊗ Run the version check for `--version` or `--help` invocations.\r\n\r\n⊗ Suppress the prompt for any class of drift (rc-vs-GA, patch, minor —\r\n  all equal under this rule).\r\n\r\n⊗ Warn when embedded version is *ahead* of latest (locally built dev\r\n  binaries must not generate noise).\r\n\r\nComparison rule: warn iff `embedded < latest` under SemVer ordering.\r\nPre-release identifiers sort below their corresponding GA per SemVer\r\n(e.g. `v0.20.0-rc.1 < v0.20.0`), so this single rule covers all cases\r\nwithout special-casing pre-releases.\r\n```\r\n\r\n## UX strawman\r\n\r\nMatch:\r\n\r\n```\r\n[banner]\r\n\r\nChecking for updates...\r\n[ok] Running latest (v0.20.2)\r\n\r\nWhat is the name of your project?\r\n```\r\n\r\nMismatch:\r\n\r\n```\r\n[banner]\r\n\r\nChecking for updates...\r\n[!] You are running deft-install v0.20.0-rc.1\r\n    Latest release is v0.20.2 (published 2026-04-24)\r\n    Download: https://github.com/deftai/directive/releases/latest\r\n\r\nContinue with v0.20.0-rc.1 anyway? [y/N]:\r\n```\r\n\r\nTimeout / network error:\r\n\r\n```\r\n[banner]\r\n\r\nChecking for updates...\r\n[?] Could not verify version (network error / timeout after 1.5s)\r\n    You are running v0.20.x. Latest version unknown.\r\n\r\nContinue without verification? [y/N]:\r\n```\r\n\r\n## Decisions baked in\r\n\r\nThese are pre-decided in the design discussion to keep the eventual scope-vBRIEF interview from re-litigating them:\r\n\r\n- **Source of truth:** GitHub Releases API only. No deft-owned static manifest in v1. Revisit only if rate-limiting becomes a real problem in practice.\r\n- **Time budget:** 1.5s combined connect+read timeout. Synchronous, executed after the banner is printed.\r\n- **Output policy:** always print the check result. Match prints a confirmation; mismatch and timeout print details and prompt.\r\n- **Default polarity:** `[y/N]` (default abort) for both mismatch and timeout. Prevents accidental click-through.\r\n- **Non-TTY behavior:** strict. Exit 1 on any non-match outcome unless `--no-update-check` flag or `DEFT_NO_UPDATE_CHECK=1` env var is set.\r\n- **Bypass for introspection:** `--version` and `--help` MUST NOT trigger the check.\r\n- **Comparison:** SemVer-aware `embedded < latest`. One rule covers rc/patch/minor drift uniformly.\r\n- **No \"ahead-of-latest\" warning:** locally built dev binaries with `embedded > latest` proceed silently.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] `tools/installer.md` directive added with the language above.\r\n- [ ] `cmd/deft-install/` implements the check, both prompts, both escape hatches, the non-TTY exit-1 path, and the `--version` / `--help` bypass.\r\n- [ ] Unit tests cover: match path, mismatch + abort, mismatch + continue, timeout path, non-TTY path with and without env var, `--version` / `--help` bypass.\r\n- [ ] Smoke-test workflow (`.github/workflows/release.yml`) updated to set `DEFT_NO_UPDATE_CHECK=1` so post-build smoke tests don't fail on non-TTY without bypass.\r\n- [ ] CHANGELOG.md `[Unreleased]` entry added.\r\n- [ ] README.md updated with a short note about `--no-update-check` / `DEFT_NO_UPDATE_CHECK` for offline / CI contexts.\r\n\r\n## Known cost worth naming\r\n\r\nUsers on hotel wifi, captive portals, or slow-but-working connections will occasionally hit the 1.5s timeout and see the timeout prompt. This is acceptable cost for the staleness guarantee. Users who know they're offline have `--no-update-check` and `DEFT_NO_UPDATE_CHECK=1` as documented escape hatches.\r\n\r\n## Out of scope (explicit non-goals)\r\n\r\n- `deft/run` and `task` commands. Cloned-repo drift detection is `skills/deft-directive-sync/SKILL.md`'s responsibility; this rule is installer-only because the installer is the only deft surface that runs as a frozen binary disconnected from the cloned repo.\r\n- Code signing (tracked elsewhere on the roadmap).\r\n- Auto-update / self-replace behavior. v1 only warns + prompts; the user redownloads manually.\r\n\r\n## Related\r\n\r\n- Reproducer: rc.1 binary on disk re-run after v0.20.2 GA, no signal of staleness.\r\n- Sister issue (deferred until decisions resolve): introducing `area/*` label convention.\r\n",
+      "Labels": "enhancement, adoption-blocker"
+    },
+    "items": [
+      {
+        "id": "689-installer-currency-a1",
+        "title": "Add the installer version-currency directive.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given maintainers inspect installer rules, when they read `tools/installer.md`, then it states the latest-release API check, timeout, prompt behavior, bypasses, non-TTY behavior, and SemVer comparison rule.",
+          "Traces": "Issue #689 acceptance criterion 1"
+        }
+      },
+      {
+        "id": "689-installer-currency-a2",
+        "title": "Implement the installer update check and prompt behavior.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `deft-install` starts normally, when the embedded version is older than the latest release or the check cannot verify currency, then it prints the required details and defaults to abort unless the operator explicitly continues or uses a documented bypass.",
+          "Traces": "Issue #689 acceptance criterion 2"
+        }
+      },
+      {
+        "id": "689-installer-currency-a3",
+        "title": "Cover match, mismatch, timeout, non-TTY, bypass, help, and version paths with tests.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the installer test suite runs, when version-currency cases are exercised, then match, mismatch-abort, mismatch-continue, timeout, non-TTY with and without bypass, `--version`, and `--help` behavior are covered.",
+          "Traces": "Issue #689 acceptance criterion 3"
+        }
+      },
+      {
+        "id": "689-installer-currency-a4",
+        "title": "Update release smoke tests to opt out of the update check in non-TTY mode.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the release workflow smoke-tests a freshly built installer non-interactively, when it runs, then `DEFT_NO_UPDATE_CHECK=1` or an equivalent bypass prevents update-check prompts from failing the smoke test.",
+          "Traces": "Issue #689 acceptance criterion 4"
+        }
+      },
+      {
+        "id": "689-installer-currency-a5",
+        "title": "Document the installer currency warning, bypasses, and release note.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given this story lands, when users read `README.md` and `CHANGELOG.md`, then the docs explain `--no-update-check` / `DEFT_NO_UPDATE_CHECK=1` for offline or CI use and the `[Unreleased]` entry describes the stale-binary warning in user-facing language.",
+          "Traces": "Issue #689 acceptance criteria 5 and 6"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install",
+          "tools/installer.md",
+          ".github/workflows/release.yml",
+          "README.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/..."
+        ],
+        "expected_outputs": [
+          "Installer tests cover stale, current, unavailable, non-TTY, bypass, help, and version-check behavior."
+        ],
+        "depends_on": [],
+        "conflict_group": "installer-version-currency",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-12T14:50:28Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/689",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #689: feat(installer): version-currency self-check at startup"
+      }
+    ],
+    "updated": "2026-06-12T14:50:28Z"
+  }
+}

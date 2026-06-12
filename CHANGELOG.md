@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Session-start ritual completion is now machine-verifiable before implementation dispatch (#1348)** -- `task session:start` records quick-tier ritual state in `.deft/ritual-state.json`, while `task verify:session-ritual -- --tier=gated` fails closed when that state is missing, stale, from another worktree, or tied to an older HEAD. The gated verifier lazily records `task doctor` and `task verify:cache-fresh`, honors explicit deferrals, and supports `DEFT_SESSION_RITUAL_SKIP=1` for CI and dispatched headless workers with an audit warning when the bypass hides a failure. Closes #1348.
+- **Downloaded installer binaries now warn before using stale releases (#689)** -- `deft-install` checks the latest published release before changing a project, confirms when it is current, and defaults to abort when the local binary is older or cannot verify currency. Offline and CI runs can opt out with `--no-update-check` or `DEFT_NO_UPDATE_CHECK=1`. Closes #689.
 
 ### Changed
 
