@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **A single decision record now explains why the vBRIEF is canonical, so the question stops getting re-litigated (#1291)** -- `docs/decisions/ADR-001.md` documents the accepted direction (vBRIEF is the source of truth for the agentic-consumed surface; rendered `.md` and code headers are projections), leading with a plain-English summary of the end state, and inheriting the token-economics rationale, peripheral-content qualifier, and defense-in-depth adoption ladder from the #742 alignment vehicle. The ADR records the decision while explicitly deferring enforcement behind named triggers, and `main.md`'s AXIOM section now links to it. Closes #1291.
+- **A single decision record now explains why the vBRIEF is canonical, so the question stops getting re-litigated (#1291)** -- directive now has an accepted ADR for treating vBRIEF as the source of truth for agent-consumed framework content, with rendered docs and code-adjacent orientation treated as projections. The record leads with the user-visible end state, preserves the token-economics rationale from the earlier alignment work, and names the trigger-based path from clarity to future enforcement. Closes #1291.
 
 ### Changed
 
