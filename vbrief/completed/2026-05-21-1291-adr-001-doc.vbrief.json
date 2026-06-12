@@ -18,21 +18,21 @@
     "items": [
       {
         "title": "Draft docs/decisions/ADR-001.md per #665 template",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "File exists; template structure followed."
         }
       },
       {
         "title": "Inherit approved sections from #742 verbatim",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Token-economics, qualifier, two-axis, defense-in-depth, counter-args, operational-state, strategic positioning all present."
         }
       },
       {
         "title": "Cross-link from main.md AXIOM section",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "main.md gets a 'See ADR-001' line; encoding gate passes."
         }
@@ -46,7 +46,8 @@
       },
       "swarm": {
         "readiness": "not-ready"
-      }
+      },
+      "completedAt": "2026-06-12T16:08:11Z"
     },
     "references": [
       {
@@ -75,6 +76,6 @@
         "title": "Issue #401: AXIOM ship-PR"
       }
     ],
-    "updated": "2026-05-25T22:35:08Z"
+    "updated": "2026-06-12T16:08:11Z"
   }
 }

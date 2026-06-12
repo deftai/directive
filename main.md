@@ -55,7 +55,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ⊗ Encode a rule in a weaker layer when a stronger applies.
 
-See #634, #642.
+See #634, #642. See [ADR-001](./docs/decisions/ADR-001.md) for the token-economics rationale behind this ordering (vBRIEF-as-canonical for the agentic-consumed surface).
 
 **Decision Making:**
 - ! Follow established patterns in current context
