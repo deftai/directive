@@ -6,7 +6,7 @@
   "plan": {
     "id": "1187-missing-tooling-bootstrap",
     "title": "Directive-bound agents should detect missing tooling (task/uv/python/gh) and offer to install on first encounter",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Directive-bound sessions should detect missing required tools before the first command failure and give the operator a clear next step. The first version should cover task, uv, Python, gh, and git with safe install offers or manual fallback instructions.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1187",
@@ -94,7 +94,8 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-12T15:33:18Z"
     },
     "references": [
       {
@@ -103,6 +104,6 @@
         "title": "Issue #1187: Directive-bound agents should detect missing tooling (task/uv/python/gh) and offer to install on first encounter"
       }
     ],
-    "updated": "2026-06-12T13:22:02Z"
+    "updated": "2026-06-12T15:33:18Z"
   }
 }

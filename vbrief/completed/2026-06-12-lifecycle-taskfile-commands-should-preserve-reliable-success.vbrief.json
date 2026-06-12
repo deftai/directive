@@ -6,7 +6,7 @@
   "plan": {
     "id": "1053-powershell-lifecycle-exit-semantics",
     "title": "Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
     "narratives": {
       "Description": "The original recurrence reported successful lifecycle commands being observed as failures under Windows PowerShell 5.1 because progress or stderr handling confused the harness. Current scripts mostly route success to stdout, but there is no direct regression proof for the lifecycle command trio under the affected shell and capture path.",
@@ -68,7 +68,8 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-12T15:33:26Z"
     },
     "references": [
       {
@@ -78,6 +79,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-12T13:51:11Z"
+    "updated": "2026-06-12T15:33:26Z"
   }
 }

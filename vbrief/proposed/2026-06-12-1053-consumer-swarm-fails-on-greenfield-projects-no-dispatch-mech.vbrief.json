@@ -35,7 +35,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-12-lifecycle-taskfile-commands-should-preserve-reliable-success.vbrief.json",
+        "uri": "completed/2026-06-12-lifecycle-taskfile-commands-should-preserve-reliable-success.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1",
         "TrustLevel": "internal"
