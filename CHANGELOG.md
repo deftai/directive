@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Lifecycle task commands now have a regression smoke for reliable success reporting (#1053)** -- the promote, activate, and implementation-preflight command trio is exercised through the actual Taskfile wrappers against an isolated fixture project, with captured output checked for zero-exit success and false failure markers. This gives Windows PowerShell 5.1 operators a portable guard against the harness treating successful lifecycle transitions as failed work. Refs #1053.
 - **Namespaced consumer triage onboarding now calls the right sibling tasks (#1577)** -- `task deft:triage:welcome -- --onboard` now carries the current Taskfile namespace into the welcome script, so bootstrap, WIP relief, and final summary calls resolve as `deft:*` in consumer includes while the maintainer `task triage:welcome -- --onboard` path remains unchanged. Closes #1577.
 - **The directive work queue no longer shows already-finished lifecycle cleanup as active work** -- completed branch-policy and triage/session-ritual scopes now have aligned terminal vBRIEF records, the superseded #1348 planning artifact is cancelled, and the project registry points at the canonical completed records. Refs #1348, #1577.
 
