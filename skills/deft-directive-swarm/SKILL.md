@@ -164,6 +164,20 @@ Render the backend-selection prompt as a deterministic numbered menu in chat (or
 
 ⊗ Add an interactive prompt to the headless / autonomous `task swarm:launch` path. Autonomous/headless launch remains fail-closed when neither `plan.policy.swarmSubagentBackend` nor an explicit launch-context backend choice is present; `scripts/swarm_launch.py` is the guardrail, not a prompt surface.
 
+#### Phase 0f -- Greenfield swarm-ready bootstrap (#1053)
+
+! Before allocation on a greenfield or just-setup project, run a **greenfield swarm-ready bootstrap** check that states project infrastructure is separate from machine-tool availability. A host may have `task`, `uv`, `python`, `gh`, and `git` installed (the #1187 machine-tool lane) while the project is still not swarm-ready.
+
+! Check the project infrastructure needed by swarm launch: a git repository, GitHub remote visibility for later PR handoff, Taskfile wiring for `task swarm:*` / lifecycle gates, install layout consistency between source and consumer projections, `.gitignore` coverage for `.deft-scratch/`, and scratch/worktree readiness under `.deft-scratch/worktrees/`.
+
+! When any required project infrastructure is missing, surface the exact remediation path and ask for explicit approval before creating or changing repo, remote, Taskfile, install layout, or gitignore state. Do not silently initialize a repository, add a remote, rewrite task includes, or create ignored scratch paths on the operator's behalf.
+
+! When all in-scope candidates are freshly setup-created candidates from the same setup session, present one explicit batch confirmation before promoting and activating the full set through Step 0.5. The confirmation must name the candidate list and the lifecycle transition (`proposed/` or `pending/` -> `active/`) so the setup handoff is swarm-ready without asking once per file.
+
+~ Setup-side handoff language SHOULD point here: after setup creates initial scope vBRIEFs, tell the operator that the swarm skill will verify or offer to create the remaining project infrastructure before allocation. #1187 remains the dependency for missing executable tools; #1053 owns the greenfield project-infrastructure bridge.
+
+⊗ Treat #1187 machine-tool success as proof that a greenfield project is swarm-ready -- repo, remote, Taskfile wiring, install layout, gitignore, and scratch/worktree readiness are separate checks (#1053).
+
 #### Manual / GitHub-issue escape hatch
 
 ? When the operator explicitly opts out of the queue (e.g. a one-off ad-hoc cohort that has not been ingested into the triage cache yet, or a swarm batch driven from a hand-supplied list of issue numbers), the monitor MAY fall back to the legacy GitHub-issue path:
@@ -304,7 +318,9 @@ For each agent, create an isolated git worktree:
 git worktree add <path> -b <branch-name> <configured-base-branch>
 ```
 
-- ! One worktree per agent (e.g. `E:\Repos\deft-agent1`, `E:\Repos\deft-agent2`)
+- ! One worktree per agent under deterministic ignored scratch paths by default: `.deft-scratch/worktrees/<story-id>`. This matches the headless `task swarm:launch` default and keeps interactive swarms from cluttering sibling checkout directories in the user's projects folder.
+- ! If the C2 launch manifest is present, use the launch manifest's resolved `worktree_path` for that story instead of inventing a new path.
+- ? `%TEMP%` or another OS temp location is an explicit override only for throwaway CI or rehearsal runs. When using OS temp, say that the worktree may disappear with temp cleanup and is not the durable default.
 - ! Branch naming: `agent<N>/<type>/<issue-numbers>-<short-description>` (e.g. `agent1/cleanup/31-50-23-strategy-consolidation`) — the agent number prefix aids traceability since GitHub PR numbers won't match agent numbers
 - ! All worktrees branch from the same base (the configured base branch from Phase 0)
 
@@ -344,9 +360,13 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
    - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
    - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
    - **`grok-build` (`spawn_subagent` available, no `start_agent`, no `WARP_*`)** → Grok Build launch (Step 2d) — first-class non-Warp path
-   - **No orchestration primitive detected** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
+   - **No orchestration primitive detected** → `generic-terminal` degraded launch. Offer a **Serial self-execution downgrade** first: with explicit operator consent, the monitor may execute the prepared worker prompts itself one story at a time from the isolated worktrees. This preserves forward progress but is not true concurrent swarm execution.
 5. ! **Return a stable platform descriptor** for downstream phases — one of `warp-orchestrated` (start_agent available), `warp-manual` (Warp without start_agent), `grok-build` (spawn_subagent available, non-Warp), or `generic-terminal` (no orchestration primitives). The detection matrix MUST include explicit absence checks for `start_agent` and `WARP_*` so the four descriptors are unambiguous. Phase 4 monitoring and Phase 6 sub-agent dispatch read this stable platform descriptor as a single source of truth instead of re-running detection per call.
 6. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
+
+! In `generic-terminal` mode, if the operator declines serial self-execution, the manual terminal prompt-paste fallback remains available: the user can paste each generated prompt into any terminal or agent interface with access to the matching worktree. Surface the tradeoff clearly: manual paste preserves user control but requires tab/process management and is still not automated orchestration.
+
+⊗ Do not describe this downgrade as a swarm, parallel execution, or concurrent orchestration. It is serial fallback execution: one story at a time, same gates, same isolated worktrees, lower coordination value (#1053).
 
 ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime.
 ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence.

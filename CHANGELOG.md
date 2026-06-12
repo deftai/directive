@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Greenfield swarm launches now explain how to proceed when full orchestration is unavailable (#1053)** -- the swarm skill now separates project-infrastructure readiness from machine-tool checks, defaults interactive worktrees to ignored `.deft-scratch/worktrees/` paths, and offers an explicitly labeled serial self-execution downgrade when only a generic terminal is available. Manual prompt paste remains available as an opt-in fallback, but the guidance no longer presents serial execution as true parallel swarm orchestration. Refs #1053.
 - **Namespaced consumer triage onboarding now calls the right sibling tasks (#1577)** -- `task deft:triage:welcome -- --onboard` now carries the current Taskfile namespace into the welcome script, so bootstrap, WIP relief, and final summary calls resolve as `deft:*` in consumer includes while the maintainer `task triage:welcome -- --onboard` path remains unchanged. Closes #1577.
 - **The directive work queue no longer shows already-finished lifecycle cleanup as active work** -- completed branch-policy and triage/session-ritual scopes now have aligned terminal vBRIEF records, the superseded #1348 planning artifact is cancelled, and the project registry points at the canonical completed records. Refs #1348, #1577.
 

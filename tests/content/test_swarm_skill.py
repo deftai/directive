@@ -820,3 +820,127 @@ def test_swarm_phase0_backend_menu_keeps_discuss_back_final() -> None:
     assert "6. " not in block[back:], (
         f"{_SWARM_PATH}: backend-selection menu must not add options after Back"
     )
+
+
+# ---------------------------------------------------------------------------
+# 9. #1053 -- greenfield and no-orchestration swarm launch surfaces
+# ---------------------------------------------------------------------------
+
+_GREENFIELD_BOOTSTRAP_HEADER = "#### Phase 0f -- Greenfield swarm-ready bootstrap (#1053)"
+_GREENFIELD_BOOTSTRAP_END = "#### Manual / GitHub-issue escape hatch"
+
+_GREENFIELD_BOOTSTRAP_TOKENS = (
+    "greenfield swarm-ready bootstrap",
+    "project infrastructure is separate from machine-tool availability",
+    "git repository",
+    "GitHub remote visibility",
+    "Taskfile wiring",
+    "install layout consistency",
+    "scratch/worktree readiness",
+    "task`, `uv`, `python`, `gh`, and `git`",
+    "#1187",
+    "exact remediation path",
+    "explicit approval before creating or changing",
+    "repo, remote, Taskfile, install layout, or gitignore state",
+    "freshly setup-created candidates",
+    "one explicit batch confirmation",
+)
+
+_INTERACTIVE_WORKTREE_TOKENS = (
+    ".deft-scratch/worktrees/<story-id>",
+    "launch manifest's resolved `worktree_path`",
+    "deterministic ignored scratch paths",
+    "sibling checkout directories",
+    "%TEMP%",
+    "OS temp",
+    "explicit override",
+    "throwaway CI or rehearsal runs",
+)
+
+_GENERIC_TERMINAL_TOKENS = (
+    "generic-terminal",
+    "Serial self-execution downgrade",
+    "explicit operator consent",
+    "one story at a time",
+    "not true concurrent swarm execution",
+    "manual terminal prompt-paste fallback remains available",
+    "Do not describe this downgrade as a swarm",
+)
+
+
+def _greenfield_bootstrap_block(text: str) -> str:
+    """Return the #1053 greenfield bootstrap block."""
+    start = text.find(_GREENFIELD_BOOTSTRAP_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_GREENFIELD_BOOTSTRAP_HEADER}' heading -- "
+        "greenfield swarms must surface project-infrastructure readiness"
+    )
+    end = text.find(_GREENFIELD_BOOTSTRAP_END, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_GREENFIELD_BOOTSTRAP_END}' heading not found after "
+        "the greenfield bootstrap block"
+    )
+    return text[start:end]
+
+
+def _phase2_mode_b_block(text: str) -> str:
+    """Return Phase 2 Mode B monitor-created worktree guidance."""
+    start = text.find("#### Mode B -- Monitor-created worktrees (interactive path)")
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing Phase 2 Mode B monitor-created worktree heading"
+    )
+    end = text.find("### Step 2: Generate Prompt Files", start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: prompt-file step not found after Phase 2 Mode B"
+    )
+    return text[start:end]
+
+
+def _runtime_detection_block(text: str) -> str:
+    """Return Phase 3 runtime detection guidance through Step 1a."""
+    start = text.find("### Step 1: Runtime Capability Detection")
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing Phase 3 runtime capability detection heading"
+    )
+    end = text.find("### Step 1a: Worker Runtime and GitHub Auth Preflight", start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: Step 1a heading not found after runtime detection"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("token", _GREENFIELD_BOOTSTRAP_TOKENS)
+def test_swarm_phase0_greenfield_bootstrap_token_present(token: str) -> None:
+    """Phase 0 must distinguish greenfield project infrastructure from #1187 tools."""
+    block = _greenfield_bootstrap_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 0 greenfield bootstrap block missing token "
+        f"{token!r} -- see issue #1053 greenfield acceptance criteria"
+    )
+
+
+@pytest.mark.parametrize("token", _INTERACTIVE_WORKTREE_TOKENS)
+def test_swarm_phase2_interactive_worktree_default_token_present(token: str) -> None:
+    """Interactive worktrees must default to deterministic ignored scratch paths."""
+    block = _phase2_mode_b_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 2 Mode B missing worktree-placement token "
+        f"{token!r} -- see issue #1053 worktree placement criteria"
+    )
+
+
+def test_swarm_phase2_no_longer_defaults_to_sibling_example_paths() -> None:
+    """Interactive worktree examples must not default to sibling checkout clutter."""
+    block = _phase2_mode_b_block(_read_swarm())
+    assert "E:\\Repos\\deft-agent1" not in block
+    assert "E:\\Repos\\deft-agent2" not in block
+
+
+@pytest.mark.parametrize("token", _GENERIC_TERMINAL_TOKENS)
+def test_swarm_runtime_generic_terminal_serial_downgrade_token_present(token: str) -> None:
+    """Generic-terminal mode must offer explicit serial self-execution fallback."""
+    block = _runtime_detection_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: runtime detection missing generic-terminal token "
+        f"{token!r} -- see issue #1053 generic-terminal fallback criteria"
+    )

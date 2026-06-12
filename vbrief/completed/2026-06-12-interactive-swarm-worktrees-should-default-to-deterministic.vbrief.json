@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json"
+  },
+  "plan": {
+    "id": "1053-swarm-worktree-placement",
+    "title": "Interactive swarm worktrees should default to deterministic non-cluttering scratch paths",
+    "status": "completed",
+    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "narratives": {
+      "Description": "The headless launch path already defaults worktrees to `.deft-scratch/worktrees`, but the interactive swarm skill still shows sibling-directory examples that clutter the user's projects folder. This story aligns the interactive guidance with the existing scratch convention and keeps OS temp locations as an explicit override for disposable runs.",
+      "ImplementationPlan": "Update `skills/deft-directive-swarm/SKILL.md` so monitor-created worktrees default to `.deft-scratch/worktrees/<story-id>` or the launch manifest's resolved worktree path. Extend `tests/content/test_swarm_skill.py` and, if needed, `tests/cli/test_swarm_launch.py` so both interactive guidance and headless defaults stay aligned.",
+      "UserStory": "As a swarm operator, I want worker worktrees to live in deterministic ignored scratch paths, so that parallel agent runs do not clutter my project or disappear unexpectedly.",
+      "Traces": "Issue #1053 Failure 5; current `scripts/swarm_launch.py` default already uses `.deft-scratch/worktrees`."
+    },
+    "items": [
+      {
+        "id": "1053-swarm-worktree-placement-a1",
+        "title": "Interactive guidance names scratch worktree default",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the interactive swarm path creates worktrees, when the skill shows the default placement guidance, then it names `.deft-scratch/worktrees/<story-id>` instead of sibling directories such as `E:\\Repos\\deft-agent1`.",
+          "Traces": "Issue #1053 Failure 5"
+        }
+      },
+      {
+        "id": "1053-swarm-worktree-placement-a2",
+        "title": "OS temp is explicit override only",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a user wants throwaway CI or rehearsal worktrees, when the skill discusses OS temp locations, then it presents `%TEMP%` or OS temp as an explicit override rather than the default.",
+          "Traces": "Issue #1053 Failure 5"
+        }
+      },
+      {
+        "id": "1053-swarm-worktree-placement-a3",
+        "title": "Headless and interactive defaults stay aligned",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task swarm:launch` builds a manifest without a worktree map, when tests inspect the generated `worktree_path`, then the path remains under `.deft-scratch/worktrees` and the skill guidance matches that behavior.",
+          "Traces": "Issue #1053 Failure 5"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-swarm/SKILL.md",
+          "scripts/swarm_launch.py",
+          "tests/content/test_swarm_skill.py",
+          "tests/cli/test_swarm_launch.py"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/content/test_swarm_skill.py tests/cli/test_swarm_launch.py -q"
+        ],
+        "expected_outputs": [
+          "swarm skill and launch-manifest tests pass with `.deft-scratch/worktrees` as the pinned default."
+        ],
+        "depends_on": [],
+        "conflict_group": "swarm-skill-launch",
+        "size": "S",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-12T14:43:26Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1053",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1053: Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-12T14:43:26Z"
+  }
+}
