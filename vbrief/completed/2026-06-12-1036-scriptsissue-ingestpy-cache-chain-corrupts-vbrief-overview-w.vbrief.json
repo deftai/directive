@@ -1,0 +1,87 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1036"
+  },
+  "plan": {
+    "id": "1036-issue-ingest-escape-preservation",
+    "title": "Guard issue ingest/cache against escape-sequence and control-character corruption",
+    "status": "completed",
+    "narratives": {
+      "Description": "Issue ingest should preserve clean upstream issue bodies that contain literal JSON-escape-looking substrings such as `\\vbrief`, `\\task`, `\\n`, and `\\u0041`. It should also make unexpected control characters in upstream bodies visible before they silently become corrupted vBRIEF narratives.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1036",
+      "ImplementationPlan": "Add focused regression coverage around `scripts/cache.py::cache_put`, `scripts/issue_ingest.py::_fetch_issue`, and `scripts/issue_ingest.py::_build_issue_vbrief` using synthetic issue bodies with literal backslash escape sequences. Add verification evidence for upstream bodies that already contain control characters, either by extending narrative/control-character scanning or by documenting and testing the warning path that prevents silent corruption.",
+      "UserStory": "As a Deft operator ingesting GitHub issues, I want issue bodies to preserve literal escape-looking text and flag real control characters, so that generated vBRIEFs remain readable and trustworthy.",
+      "Traces": "Issue #1036; live probe showed clean synthetic cache/ingest input is preserved today, while historical issue #1025 now contains control characters in the live GitHub API body.",
+      "Overview": "## Symptom\r\n\r\n`task issue:ingest` (and the downstream `task triage:accept` path that delegates to `scripts/issue_ingest.py::ingest_single_for_accept`) produces scope vBRIEFs whose `plan.narratives.Overview` contains corrupted bytes when the upstream GitHub issue body carries literal backslash-letter substrings that happen to be valid JSON escape sequences.\r\n\r\nThe two confirmed corruption patterns observed in the wild:\r\n\r\n- `\\vbrief/` → `<U+000B>brief/` (the `\\v` becomes a vertical-tab control char)\r\n- `\\task` → `<U+0009>ask` (the `\\t` becomes a tab control char)\r\n\r\nOther JSON escapes in the same class (`\\b`, `\\f`, `\\n`, `\\r`, `\\\\`, `\\\"`, `\\uXXXX`) are likely affected the same way. `\\u` in particular would silently drop the leading backslash plus four hex chars and substitute the codepoint.\r\n\r\n## Reproduction\r\n\r\nLive evidence (2026-05-11, deftai/directive):\r\n\r\n1. **Upstream issue #1025** body contains paragraphs like:\r\n   ```\r\n   The deft setup skill (deft-directive-setup) deposits scope vBRIEFs in\r\n   \\vbrief/proposed/ after Phase 3. The swarm skill (deft-directive-swarm)\r\n   Phase 0 Step 1 expects vBRIEFs in `\\vbrief/active/`.\r\n   ```\r\n   (the literal `\\vbrief/` and `\\task` substrings come from the issue author's habit of escaping backticks for the dollar-sign-and-other-special-chars markdown shell rendering).\r\n\r\n2. **Accept the issue via the canonical path:**\r\n   ```pwsh\r\n   uv run python scripts/triage_actions.py accept --issue 1025 --repo deftai/directive\r\n   ```\r\n\r\n3. **Read the produced vBRIEF Overview:**\r\n   ```pwsh\r\n   $j = Get-Content vbrief/proposed/2026-05-11-1025-*.vbrief.json -Raw -Encoding UTF8 | ConvertFrom-Json\r\n   $j.plan.narratives.Overview\r\n   ```\r\n\r\n   Result: `\\vbrief/` appears as `<VT>brief/` (U+000B), `\\task` appears as `<TAB>ask` — the body is corrupted at write time, not at read time. The raw JSON file on disk literally contains the control characters.\r\n\r\n4. **Greptile flagged this on PR #1034** (the surfacing event) with confidence 3/5 and a P1-class finding. The corrupted vBRIEF is unreadable as a downstream artifact -- the swarm-dispatch contract documented at `skills/deft-directive-swarm/SKILL.md` Phase 0 Step 0B requires `plan.narratives.Overview` to be the verbatim issue body; corruption silently breaks that contract.\r\n\r\n## Root cause hypothesis\r\n\r\nSomewhere along the `gh api repos/.../issues/<N>` → `scripts/cache.py::cache_put` → raw.json → `scripts/issue_ingest.py::_fetch_from_cache` → `plan.narratives.Overview` chain, the issue body is being parsed as a JSON string (which interprets `\\v` / `\\t` / `\\u....` escape sequences) instead of being kept opaque.\r\n\r\nMost likely candidate: `_fetch_from_cache` reads `raw.json` via `json.loads` (correct -- this decodes the JSON-string escapes back to their character values), but then the value is treated as already-decoded markdown when it should be treated as opaque source-text-that-happens-to-contain-backslashes.\r\n\r\nThe `gh api` output is itself JSON, and the GitHub REST `body` field SHOULD escape `\\v` to `\\\\v` in the JSON serialization. If GitHub is emitting `body: \"...\\\\vbrief/...\"` (correctly escaped), and `cache_put` writes raw.json by re-serializing the parsed dict via `json.dumps(..., ensure_ascii=False)`, then the round-trip should preserve `\\\\vbrief/` in raw.json as `\"\\\\vbrief/\"`. When `issue_ingest` re-reads via `json.loads`, the unescape produces `\\vbrief/` (a literal backslash followed by `vbrief/`) which is correct.\r\n\r\nIf the chain instead writes raw.json by passing the gh stdout bytes through some intermediate path that double-decodes -- e.g. `json.loads(gh_stdout)[\"body\"]` then re-encoding without `ensure_ascii=False`, or any path that interprets the body string as a Python format string -- the second decode flips `\\\\v` → `\\v` (a vertical tab in Python string semantics, which is U+000B). That's the observed corruption shape.\r\n\r\nCross-references: the recurrence pattern matches the same \"double-encoding/decoding\" class as the #798 PS 5.1 chain (different surface: that one was OS-codepage-driven, this one is Python-string-escape-driven).\r\n\r\n## Recommended remediation paths\r\n\r\n1. **Audit the body-extraction path** end-to-end: `gh api` → `cache.cache_put` (raw.json write) → `cache.cache_get` (raw.json read) → `issue_ingest._fetch_from_cache` (Overview extraction). Add a regression test that round-trips a synthetic issue body containing `\\v`, `\\t`, `\\n`, `\\r`, `\\b`, `\\f`, `\\\\`, `\\\"`, `\\uXXXX` through the full chain and asserts the resulting `plan.narratives.Overview` contains the literal bytes verbatim (no control-char substitution).\r\n\r\n2. **Add a `verify_encoding` gate hook** for ingested vBRIEFs: extend `scripts/verify_encoding.py` (#798) to scan `vbrief/proposed/` and `vbrief/active/` files for U+000B / U+0008 / U+000C / U+0009 (when not in indentation context) / other non-printable control chars in narrative fields. Wire into `task check`. Three-state exit consistent with the existing scanner.\r\n\r\n3. **Document the contract** in `scripts/issue_ingest.py` module docstring: \"Issue body MUST be treated as opaque text. Never `format()`, never `eval()`, never re-decode through `json.loads(json.dumps(body))` -- pass the body bytes through unmodified.\"\r\n\r\n## Tests required\r\n\r\n- New `tests/cli/test_issue_ingest_escape_corruption.py` with synthetic gh fixture carrying every JSON-escape class in the issue body. Asserts round-trip preserves all bytes; asserts narrative key Overview contains no control chars.\r\n- Extend `tests/test_cache.py` with a raw.json round-trip test asserting `json.dumps(body, ensure_ascii=False)` survives a `json.loads` decode without flipping `\\\\v` to U+000B.\r\n\r\n## Cross-references\r\n\r\n- PR #1034 (the surfacing event; Greptile P1 finding on the corrupted vBRIEF #1025)\r\n- #798 (PS 5.1 non-ASCII round-trip corruption -- same general class, different surface; the deterministic `verify_encoding.py` gate this issue extends)\r\n- `scripts/issue_ingest.py::_fetch_from_cache` and `scripts/issue_ingest.py::_build_issue_vbrief` (likely root-cause sites)\r\n- `scripts/cache.py::cache_put` (raw.json write site; the round-trip starts here)\r\n- `skills/deft-directive-swarm/SKILL.md` Phase 0 Step 0B (the downstream contract this corruption silently breaks)\r\n",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "id": "1036-escape-preservation-a1",
+        "title": "Synthetic clean issue bodies preserve literal escape-looking text",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a synthetic issue body contains literal `\\vbrief`, `\\task`, `\\n`, `\\r`, `\\b`, `\\f`, `\\\\`, `\\\"`, and `\\u0041` substrings, when it round-trips through cache put/get and issue ingest, then the generated Overview contains the same literal substrings and records no substituted control characters.",
+          "Traces": "Issue #1036 remediation path 1"
+        }
+      },
+      {
+        "id": "1036-escape-preservation-a2",
+        "title": "Upstream control characters are made visible",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a GitHub issue body already contains U+000B, U+0008, U+000C, or non-indentation U+0009, when issue ingest or validation processes it, then the command emits a visible warning or verification finding instead of silently treating the narrative as clean text.",
+          "Traces": "Issue #1036; live #1025 API body already contains control characters"
+        }
+      },
+      {
+        "id": "1036-escape-preservation-a3",
+        "title": "Opaque-body contract is documented and tested",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given future maintainers inspect the ingest path, when they read `scripts/issue_ingest.py` tests or module documentation, then they see that GitHub issue bodies are opaque text and must not be re-decoded through JSON/string-escape semantics.",
+          "Traces": "Issue #1036 remediation path 3"
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/issue_ingest.py",
+          "scripts/cache.py",
+          "scripts/verify_encoding.py",
+          "tests/cli/test_issue_ingest_escape_corruption.py",
+          "tests/test_cache.py",
+          "tests/cli/test_verify_encoding.py"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/cli/test_issue_ingest_escape_corruption.py tests/test_cache.py tests/cli/test_verify_encoding.py -q"
+        ],
+        "expected_outputs": [
+          "Escape-preservation and control-character regression tests pass, proving clean backslash substrings are preserved and upstream control chars are surfaced."
+        ],
+        "depends_on": [],
+        "conflict_group": "issue-ingest-cache-encoding",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-12T14:45:52Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1036",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1036: scripts/issue_ingest.py + cache chain corrupts vBRIEF Overview when issue body contains literal JSON-escape substrings (\\v -> U+000B, \\t -> U+0009)"
+      }
+    ],
+    "updated": "2026-06-12T14:45:52Z"
+  }
+}

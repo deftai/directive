@@ -94,6 +94,8 @@ jobs:
   # -----------------------------------------------------------------------
   smoke-test:
     needs: [build, universal-macos]
+    env:
+      DEFT_NO_UPDATE_CHECK: "1"
     strategy:
       matrix:
         include:

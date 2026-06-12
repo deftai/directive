@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -140,6 +141,44 @@ def test_replacement_char_u_fffd_is_detected(tmp_path: Path) -> None:
     code, findings, msg = verify_encoding.evaluate(tmp_path, mode="all")
     assert code == 1
     assert any(f.label == "U+FFFD replacement char" for f in findings)
+
+
+def test_vbrief_narrative_control_characters_are_detected_after_json_decode(
+    tmp_path: Path,
+) -> None:
+    """#1036: JSON-escaped controls in vBRIEF narratives must not hide."""
+    _init_git_repo(tmp_path)
+    target = tmp_path / "vbrief" / "proposed" / "2026-06-12-1036-corrupt.vbrief.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps(
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {
+                    "title": "Corrupt overview",
+                    "status": "proposed",
+                    "narratives": {
+                        "Overview": "Bad decoded controls: \vbrief and \task.",
+                    },
+                    "items": [],
+                },
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    _git_add(tmp_path, "vbrief/proposed/2026-06-12-1036-corrupt.vbrief.json")
+    _git_commit(tmp_path)
+
+    code, findings, msg = verify_encoding.evaluate(tmp_path, mode="all")
+
+    assert code == 1, msg
+    labels = {f.label for f in findings}
+    assert "U+000B vertical tab in vBRIEF narrative" in labels
+    assert "U+0009 tab in vBRIEF narrative" in labels
+    assert {f.path for f in findings} == {
+        "vbrief/proposed/2026-06-12-1036-corrupt.vbrief.json"
+    }
 
 
 # ---------------------------------------------------------------------------
