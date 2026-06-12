@@ -57,7 +57,10 @@
       "swarm": {
         "readiness": "ready",
         "agent": "agent-installer"
-      }
+      },
+      "completedAt": "2026-06-02T22:57:47Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

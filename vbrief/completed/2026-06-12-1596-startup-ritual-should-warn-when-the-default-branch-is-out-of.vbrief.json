@@ -87,7 +87,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard"
       },
-      "completedAt": "2026-06-12T15:33:26Z"
+      "completedAt": "2026-06-12T15:33:26Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

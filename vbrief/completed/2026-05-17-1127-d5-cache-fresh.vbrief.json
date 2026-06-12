@@ -31,6 +31,11 @@
         "title": "D12 #1131: subscription surface (scripts/triage_scope.py)"
       }
     ],
-    "updated": "2026-05-19T21:22:20Z"
+    "updated": "2026-05-19T21:22:20Z",
+    "metadata": {
+      "completedAt": "2026-05-19T21:23:39Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

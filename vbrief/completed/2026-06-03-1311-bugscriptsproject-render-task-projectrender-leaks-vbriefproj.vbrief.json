@@ -40,6 +40,11 @@
         "title": "Issue #1311: bug(scripts/project_render): task project:render leaks vbrief/PROJECT-DEFINITION.vbrief.json.lock; trapped by git add -A on every chore commit"
       }
     ],
-    "updated": "2026-06-03T02:43:23Z"
+    "updated": "2026-06-03T02:43:23Z",
+    "metadata": {
+      "completedAt": "2026-06-03T02:43:35Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

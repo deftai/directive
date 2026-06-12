@@ -53,7 +53,9 @@
         "model_tier": "medium",
         "missing_traces_justification": "User requested re-enabling Deft branch policy during the WSL swarm-readiness session."
       },
-      "completedAt": "2026-06-11T18:04:30Z"
+      "completedAt": "2026-06-11T18:04:30Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
     },
     "references": [
       {

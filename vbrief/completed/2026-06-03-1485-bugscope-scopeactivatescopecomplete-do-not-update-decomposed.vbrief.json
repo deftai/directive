@@ -58,7 +58,10 @@
         "conflict_group": "scope-lifecycle",
         "size": "medium",
         "file_scope_confidence": "high"
-      }
+      },
+      "completedAt": "2026-06-03T23:01:11Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
     }
   }
 }

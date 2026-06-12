@@ -53,6 +53,11 @@
         "title": "Issue #1331: deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)"
       }
     ],
-    "updated": "2026-05-26T14:01:30Z"
+    "updated": "2026-05-26T14:01:30Z",
+    "metadata": {
+      "completedAt": "2026-05-26T14:13:16Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

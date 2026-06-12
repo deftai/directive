@@ -42,6 +42,11 @@
         "title": "Issue #1338: Epic-4: Installer – Automatic Taskfile wiring + tool installation"
       }
     ],
-    "updated": "2026-05-31T02:24:35Z"
+    "updated": "2026-05-31T02:24:35Z",
+    "metadata": {
+      "completedAt": "2026-05-31T02:24:59Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

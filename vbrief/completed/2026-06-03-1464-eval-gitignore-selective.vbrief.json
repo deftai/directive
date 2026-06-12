@@ -47,6 +47,11 @@
         "title": "Issue #1452: superseded by #1464"
       }
     ],
-    "updated": "2026-06-03T16:54:32Z"
+    "updated": "2026-06-03T16:54:32Z",
+    "metadata": {
+      "completedAt": "2026-06-03T17:38:39Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

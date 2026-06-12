@@ -42,6 +42,11 @@
         "title": "Issue #1424: verify:cache-fresh is O(N) gh calls: scope filter runs evaluate_rules per-issue, refetching open milestones (~92s on 500 entries)"
       }
     ],
-    "updated": "2026-06-03T16:07:46Z"
+    "updated": "2026-06-03T16:07:46Z",
+    "metadata": {
+      "completedAt": "2026-06-03T16:29:24Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

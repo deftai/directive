@@ -25,6 +25,11 @@
         "title": "Issue #1250: bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1"
       }
     ],
-    "updated": "2026-05-20T19:24:34Z"
+    "updated": "2026-05-20T19:24:34Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

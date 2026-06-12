@@ -23,6 +23,11 @@
         "title": "Issue #1246: enhancement(triage): triage:queue should auto-detect --repo from origin remote"
       }
     ],
-    "updated": "2026-05-20T19:24:33Z"
+    "updated": "2026-05-20T19:24:33Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

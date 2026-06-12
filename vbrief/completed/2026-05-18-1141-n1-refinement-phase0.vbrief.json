@@ -25,6 +25,11 @@
         "title": "Umbrella #1119: triage-eval governance swarm"
       }
     ],
-    "updated": "2026-05-19T21:22:21Z"
+    "updated": "2026-05-19T21:22:21Z",
+    "metadata": {
+      "completedAt": "2026-05-19T21:23:39Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

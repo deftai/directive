@@ -81,7 +81,10 @@
         "file_scope_confidence": "medium",
         "model_tier": "high",
         "missing_traces_justification": "User-provided change request in this conversation is the source scope; no external issue was supplied."
-      }
+      },
+      "completedAt": "2026-05-17T17:06:42Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
     },
     "references": [
       {

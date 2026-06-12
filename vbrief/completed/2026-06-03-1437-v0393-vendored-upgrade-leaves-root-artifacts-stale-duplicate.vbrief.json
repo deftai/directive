@@ -7,7 +7,10 @@
     "title": "v0.39.3 vendored upgrade leaves root artifacts stale: duplicate AGENTS.md managed-section (attributed v3 marker not matched) + bare .deft-version not regenerated",
     "status": "completed",
     "metadata": {
-      "kind": "story"
+      "kind": "story",
+      "completedAt": "2026-06-03T00:14:24Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "narratives": {
       "Description": "v0.39.3 vendored upgrade leaves root artifacts stale: duplicate AGENTS.md managed-section (attributed v3 marker not matched) + bare .deft-version not regenerated",

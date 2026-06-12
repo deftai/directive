@@ -64,7 +64,10 @@
         "conflict_group": "swarm",
         "size": "medium",
         "file_scope_confidence": "medium"
-      }
+      },
+      "completedAt": "2026-06-04T00:03:01Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
     }
   }
 }

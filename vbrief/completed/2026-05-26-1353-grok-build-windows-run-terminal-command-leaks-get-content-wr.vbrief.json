@@ -58,6 +58,11 @@
         "title": "Issue #1353: grok-build (Windows): run_terminal_command leaks Get-Content / wrapper noise on any pipeline or redirection (pwsh 7+)"
       }
     ],
-    "updated": "2026-05-26T14:01:29Z"
+    "updated": "2026-05-26T14:01:29Z",
+    "metadata": {
+      "completedAt": "2026-05-26T14:13:16Z",
+      "capacityBucket": "agentic-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

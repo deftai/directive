@@ -76,7 +76,9 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-06-08T01:11:03Z"
+      "completedAt": "2026-06-08T01:11:03Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "updated": "2026-06-08T01:11:03Z",
     "id": "1538-linux-installer-core-tool-bootstrap"

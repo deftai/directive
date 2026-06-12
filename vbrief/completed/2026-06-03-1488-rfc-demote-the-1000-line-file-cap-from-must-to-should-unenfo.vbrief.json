@@ -38,6 +38,11 @@
         "title": "Issue #1488: RFC: demote the 1000-line file cap from MUST to SHOULD (unenforced, self-violated, anti-deep-modules)"
       }
     ],
-    "updated": "2026-06-03T21:46:02Z"
+    "updated": "2026-06-03T21:46:02Z",
+    "metadata": {
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "agentic-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

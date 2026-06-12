@@ -54,7 +54,10 @@
     ],
     "updated": "2026-06-03T21:38:03Z",
     "metadata": {
-      "kind": "epic"
+      "kind": "epic",
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
     }
   }
 }

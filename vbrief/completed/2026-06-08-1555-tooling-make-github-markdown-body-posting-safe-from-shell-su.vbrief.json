@@ -79,7 +79,9 @@
         "model_tier": "medium",
         "missing_traces_justification": "Issue #1555 was created from the observed WSL GitHub comment mutation failure and references #1554 as the triggering incident."
       },
-      "completedAt": "2026-06-08T19:53:17Z"
+      "completedAt": "2026-06-08T19:53:17Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

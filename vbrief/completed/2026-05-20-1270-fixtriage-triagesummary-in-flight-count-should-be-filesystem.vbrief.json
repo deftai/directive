@@ -61,6 +61,11 @@
         "title": "Issue #1270: fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line"
       }
     ],
-    "updated": "2026-05-21T16:33:43Z"
+    "updated": "2026-05-21T16:33:43Z",
+    "metadata": {
+      "completedAt": "2026-05-21T17:15:08Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
+    }
   }
 }

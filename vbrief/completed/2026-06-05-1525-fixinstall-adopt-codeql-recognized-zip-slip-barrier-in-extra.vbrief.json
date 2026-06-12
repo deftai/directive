@@ -38,7 +38,9 @@
     ],
     "updated": "2026-06-05T21:26:44Z",
     "metadata": {
-      "completedAt": "2026-06-05T21:26:44Z"
+      "completedAt": "2026-06-05T21:26:44Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
     }
   }
 }

@@ -43,6 +43,11 @@
         "title": "Issue #1339: Epic-5: Installer → Doctor handoff + payload staleness detection"
       }
     ],
-    "updated": "2026-05-31T02:24:35Z"
+    "updated": "2026-05-31T02:24:35Z",
+    "metadata": {
+      "completedAt": "2026-05-31T02:24:59Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

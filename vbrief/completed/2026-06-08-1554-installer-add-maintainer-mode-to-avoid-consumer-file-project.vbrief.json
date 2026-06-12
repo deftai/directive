@@ -81,7 +81,9 @@
         "model_tier": "high",
         "missing_traces_justification": "Issue #1554 and its follow-up comments define the maintainer-mode installer scope and acceptance refinements."
       },
-      "completedAt": "2026-06-08T19:58:11Z"
+      "completedAt": "2026-06-08T19:58:11Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

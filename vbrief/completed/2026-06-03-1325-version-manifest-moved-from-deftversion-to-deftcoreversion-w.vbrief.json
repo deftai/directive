@@ -23,6 +23,11 @@
         "title": "Issue #1325: VERSION manifest moved from .deft/VERSION to .deft/core/VERSION without migration; legacy file persists as stale source-of-truth"
       }
     ],
-    "updated": "2026-06-03T02:43:24Z"
+    "updated": "2026-06-03T02:43:24Z",
+    "metadata": {
+      "completedAt": "2026-06-03T02:43:35Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

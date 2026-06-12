@@ -20,6 +20,11 @@
         "title": "Issue #1237: bug(triage:bootstrap): backfill_audit_log skips with 'no --repo provided' while step 1 inferred the repo"
       }
     ],
-    "updated": "2026-05-19T21:22:21Z"
+    "updated": "2026-05-19T21:22:21Z",
+    "metadata": {
+      "completedAt": "2026-05-19T21:23:39Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
+    }
   }
 }

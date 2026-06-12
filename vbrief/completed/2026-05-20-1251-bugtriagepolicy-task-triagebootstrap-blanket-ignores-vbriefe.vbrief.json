@@ -82,6 +82,11 @@
         "title": "Issue #1251: bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy"
       }
     ],
-    "updated": "2026-05-20T19:24:34Z"
+    "updated": "2026-05-20T19:24:34Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

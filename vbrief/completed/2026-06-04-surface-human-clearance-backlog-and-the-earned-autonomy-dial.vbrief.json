@@ -80,7 +80,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "high"
       },
-      "completedAt": "2026-06-05T01:04:07Z"
+      "completedAt": "2026-06-05T01:04:07Z",
+      "capacityBucket": "cognitive-debt",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

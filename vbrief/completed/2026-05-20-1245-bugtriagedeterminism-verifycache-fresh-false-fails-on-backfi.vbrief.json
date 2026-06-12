@@ -25,6 +25,11 @@
         "title": "Issue #1245: bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state"
       }
     ],
-    "updated": "2026-05-20T19:24:32Z"
+    "updated": "2026-05-20T19:24:32Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

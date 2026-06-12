@@ -87,7 +87,10 @@
       "swarm": {
         "readiness": "ready",
         "rationale": "Single PR, isolated scope (one skill directory + one routing block + catalog sweep + tests). No depends_on. Good candidate for a focused worker."
-      }
+      },
+      "completedAt": "2026-05-25T22:36:03Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

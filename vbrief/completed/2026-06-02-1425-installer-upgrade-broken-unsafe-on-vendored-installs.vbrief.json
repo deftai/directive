@@ -39,6 +39,11 @@
         "title": "Issue #1425: P0/Upgrade Blocker: deft-install --upgrade is broken and unsafe on webinstaller (vendored, no-.git) installs"
       }
     ],
-    "updated": "2026-06-02T18:44:08Z"
+    "updated": "2026-06-02T18:44:08Z",
+    "metadata": {
+      "completedAt": "2026-06-02T19:11:23Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

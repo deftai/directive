@@ -7,7 +7,10 @@
     "title": "Windows installer binary auto-triggers UAC elevation (install-* filename heuristic + no asInvoker manifest); breaks headless --yes installs/upgrades",
     "status": "completed",
     "metadata": {
-      "kind": "story"
+      "kind": "story",
+      "completedAt": "2026-06-03T01:11:52Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "narratives": {
       "Description": "Windows installer binary auto-triggers UAC elevation (install-* filename heuristic + no asInvoker manifest); breaks headless --yes installs/upgrades",

@@ -50,6 +50,11 @@
         "title": "Issue #1453: Installer commit-hygiene: warn + prevent mixing the framework deposit with consumer files (scoped staging + dirty-tree advisory + optional local guard hook)"
       }
     ],
-    "updated": "2026-06-03T14:37:53Z"
+    "updated": "2026-06-03T14:37:53Z",
+    "metadata": {
+      "completedAt": "2026-06-03T14:38:10Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

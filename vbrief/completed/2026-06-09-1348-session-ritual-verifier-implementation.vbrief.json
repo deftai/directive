@@ -100,7 +100,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "high",
         "missing_traces_justification": "Issue #1348 already carries the detailed trace set; this active iteration exists to satisfy the current implementation gate after stale completed lifecycle metadata was discovered."
-      }
+      },
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

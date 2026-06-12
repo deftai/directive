@@ -11,7 +11,10 @@
     "status": "completed",
     "metadata": {
       "kind": "story",
-      "swarm": true
+      "swarm": true,
+      "completedAt": "2026-06-02T22:57:47Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "narratives": {
       "Problem": "The install provenance manifest is written to two different paths by two install rails. The Go installer writes the canonical <install>/VERSION (.deft/core/VERSION, #1062); the webinstaller writes .deft/VERSION (omitting install_root). scripts/doctor.py only reads .deft/core/VERSION and legacy deft/VERSION, so a webinstaller-vendored install is invisible to manifest-agreement, install-path-consistency, and the #1339 payload-staleness handoff.",

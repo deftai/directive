@@ -36,7 +36,10 @@
         "parent_issue": "#1283",
         "decomposition_origin": "#742",
         "lifecycle_footgun_ref": "#1273"
-      }
+      },
+      "completedAt": "2026-05-25T22:36:03Z",
+      "capacityBucket": "cognitive-debt",
+      "capacityBucketSource": "match"
     },
     "references": [
       {

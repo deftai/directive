@@ -7,7 +7,10 @@
     "title": "v0.39.2 vendored refresh aborts: extractor treats GitHub tarball pax_global_header as content root; README still says installer clones",
     "status": "completed",
     "metadata": {
-      "kind": "story"
+      "kind": "story",
+      "completedAt": "2026-06-02T23:30:27Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "narratives": {
       "Description": "v0.39.2 vendored refresh aborts: extractor treats GitHub tarball pax_global_header as content root; README still says installer clones",

@@ -45,7 +45,9 @@
     ],
     "updated": "2026-06-11T18:08:00Z",
     "metadata": {
-      "completedAt": "2026-06-11T14:24:25Z"
+      "completedAt": "2026-06-11T14:24:25Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     }
   }
 }

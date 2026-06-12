@@ -105,7 +105,10 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-05-28T20:57:23Z",
+      "capacityBucket": "agentic-debt",
+      "capacityBucketSource": "match"
     }
   }
 }

@@ -25,6 +25,11 @@
         "title": "Issue #1242: docs(changelog): entries MUST be brief release-notes, not implementation detail (v0.32.0 release-blocker)"
       }
     ],
-    "updated": "2026-05-19T21:56:30Z"
+    "updated": "2026-05-19T21:56:30Z",
+    "metadata": {
+      "completedAt": "2026-05-19T21:57:12Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
+    }
   }
 }

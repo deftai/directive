@@ -38,6 +38,11 @@
         "title": "Issue #1468: triage audit log can desync from proposed/ vBRIEFs with no self-heal"
       }
     ],
-    "updated": "2026-06-03T17:23:47Z"
+    "updated": "2026-06-03T17:23:47Z",
+    "metadata": {
+      "completedAt": "2026-06-03T18:11:25Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

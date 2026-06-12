@@ -23,6 +23,11 @@
         "title": "Issue #1323: Version resolver returns 0.0.0-dev on vendored installs (.deft/core/ without .git): every framework surface reports wrong version"
       }
     ],
-    "updated": "2026-06-03T02:43:24Z"
+    "updated": "2026-06-03T02:43:24Z",
+    "metadata": {
+      "completedAt": "2026-06-03T02:43:35Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

@@ -24,6 +24,11 @@
         "title": "Issue #1147: task slice:record-existing — backfill slice records for hand-filed cohorts (N7 of #1119)"
       }
     ],
-    "updated": "2026-05-19T21:22:21Z"
+    "updated": "2026-05-19T21:22:21Z",
+    "metadata": {
+      "completedAt": "2026-05-19T21:23:39Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

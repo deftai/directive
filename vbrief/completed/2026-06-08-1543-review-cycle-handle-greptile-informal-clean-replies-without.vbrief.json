@@ -94,7 +94,9 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-06-08T14:25:10Z"
+      "completedAt": "2026-06-08T14:25:10Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
     },
     "updated": "2026-06-08T14:25:10Z"
   }

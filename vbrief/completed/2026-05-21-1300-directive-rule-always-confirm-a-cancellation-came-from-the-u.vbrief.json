@@ -80,7 +80,10 @@
         "file_scope_confidence": "medium",
         "model_tier": "standard",
         "depends_on": []
-      }
+      },
+      "completedAt": "2026-05-22T16:03:38Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
     }
   }
 }

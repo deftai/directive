@@ -19,6 +19,11 @@
         "title": "Issue #1332: v0.33.0 canonical plain-file installs resolve consumer repo version and false-positive skill redirect stubs"
       }
     ],
-    "updated": "2026-06-03T02:43:24Z"
+    "updated": "2026-06-03T02:43:24Z",
+    "metadata": {
+      "completedAt": "2026-06-03T02:43:35Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

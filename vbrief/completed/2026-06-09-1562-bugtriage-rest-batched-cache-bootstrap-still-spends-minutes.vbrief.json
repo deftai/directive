@@ -77,7 +77,9 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "completedAt": "2026-06-09T15:22:59Z"
+      "completedAt": "2026-06-09T15:22:59Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "tags": [
       "bug",

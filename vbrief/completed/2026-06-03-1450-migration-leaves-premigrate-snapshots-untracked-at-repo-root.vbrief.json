@@ -33,6 +33,11 @@
         "title": "Issue #1450: Migration leaves *.premigrate.* snapshots untracked at repo root (not gitignored, not allowlisted) -- git add -A + deft-core-guard footgun"
       }
     ],
-    "updated": "2026-06-03T13:21:37Z"
+    "updated": "2026-06-03T13:21:37Z",
+    "metadata": {
+      "completedAt": "2026-06-03T13:21:46Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

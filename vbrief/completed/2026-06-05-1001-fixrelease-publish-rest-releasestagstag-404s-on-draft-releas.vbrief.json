@@ -78,7 +78,10 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-08T17:41:02Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
     }
   }
 }

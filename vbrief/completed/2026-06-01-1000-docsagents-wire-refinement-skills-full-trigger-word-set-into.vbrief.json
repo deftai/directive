@@ -53,7 +53,10 @@
         "conflict_group": "agents-md",
         "size": "small",
         "file_scope_confidence": "high"
-      }
+      },
+      "completedAt": "2026-06-03T23:23:54Z",
+      "capacityBucket": "cognitive-debt",
+      "capacityBucketSource": "match"
     }
   }
 }

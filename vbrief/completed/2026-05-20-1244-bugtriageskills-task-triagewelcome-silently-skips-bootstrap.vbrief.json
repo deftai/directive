@@ -58,6 +58,11 @@
         "title": "Issue #1244: bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent"
       }
     ],
-    "updated": "2026-05-20T19:24:32Z"
+    "updated": "2026-05-20T19:24:32Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

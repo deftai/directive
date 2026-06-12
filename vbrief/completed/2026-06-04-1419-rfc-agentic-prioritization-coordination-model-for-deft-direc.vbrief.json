@@ -76,7 +76,9 @@
     ],
     "metadata": {
       "kind": "epic",
-      "completedAt": "2026-06-05T01:04:27Z"
+      "completedAt": "2026-06-05T01:04:27Z",
+      "capacityBucket": "cognitive-debt",
+      "capacityBucketSource": "match"
     },
     "updated": "2026-06-05T01:04:27Z"
   }

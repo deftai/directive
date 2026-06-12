@@ -43,6 +43,11 @@
         "title": "Issue #1463: Installer: git hooks never active in vendored consumer projects (branch/encoding/gh gates silently inert)"
       }
     ],
-    "updated": "2026-06-03T16:48:21Z"
+    "updated": "2026-06-03T16:48:21Z",
+    "metadata": {
+      "completedAt": "2026-06-03T17:52:12Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

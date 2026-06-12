@@ -35,6 +35,11 @@
         "title": "Sibling D11 (consumer of [RESUME] surface): task triage:queue + audit"
       }
     ],
-    "updated": "2026-05-19T21:22:20Z"
+    "updated": "2026-05-19T21:22:20Z",
+    "metadata": {
+      "completedAt": "2026-05-19T21:23:39Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
   }
 }

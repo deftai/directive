@@ -7,7 +7,10 @@
     "title": "doctor: _agents_refresh_plan interim stub emits spurious 'unreadable' AGENTS.md-freshness warning on every consumer task doctor run",
     "status": "completed",
     "metadata": {
-      "kind": "story"
+      "kind": "story",
+      "completedAt": "2026-06-03T01:11:52Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
     },
     "narratives": {
       "Description": "doctor: _agents_refresh_plan interim stub emits spurious 'unreadable' AGENTS.md-freshness warning on every consumer task doctor run",

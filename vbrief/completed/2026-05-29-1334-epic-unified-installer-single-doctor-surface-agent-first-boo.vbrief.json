@@ -54,6 +54,11 @@
         "title": "Issue #1334: Epic: Unified Installer + Single Doctor Surface (Agent-First Bootstrap & Upgrade)"
       }
     ],
-    "updated": "2026-06-01T05:00:00Z"
+    "updated": "2026-06-01T05:00:00Z",
+    "metadata": {
+      "completedAt": "2026-06-01T05:00:49Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

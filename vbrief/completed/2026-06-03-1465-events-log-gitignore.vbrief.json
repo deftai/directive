@@ -41,6 +41,11 @@
         "title": "Issue #1465: events: .deft/events.jsonl leaks untracked in consumers (stale .deft/-gitignored assumption in _events.py)"
       }
     ],
-    "updated": "2026-06-03T16:55:17Z"
+    "updated": "2026-06-03T16:55:17Z",
+    "metadata": {
+      "completedAt": "2026-06-03T17:08:13Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

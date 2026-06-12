@@ -46,6 +46,11 @@
         "title": "Issue #1335: Epic-1: Extract scripts/doctor.py as the single doctor implementation"
       }
     ],
-    "updated": "2026-05-31T02:24:34Z"
+    "updated": "2026-05-31T02:24:34Z",
+    "metadata": {
+      "completedAt": "2026-05-31T02:24:59Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

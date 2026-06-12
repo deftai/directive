@@ -7,7 +7,10 @@
     "title": "Always include upgrade guidance section at the top of directive release notes",
     "status": "completed",
     "metadata": {
-      "kind": "story"
+      "kind": "story",
+      "completedAt": "2026-06-02T23:30:27Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
     },
     "narratives": {
       "Description": "Always include upgrade guidance section at the top of directive release notes",

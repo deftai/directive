@@ -23,6 +23,11 @@
         "title": "Issue #1320: framework:check-updates probes consumer origin (statusreport.git) on vendored installs; never detects framework drift"
       }
     ],
-    "updated": "2026-06-03T02:43:24Z"
+    "updated": "2026-06-03T02:43:24Z",
+    "metadata": {
+      "completedAt": "2026-06-03T02:43:35Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

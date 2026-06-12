@@ -46,6 +46,11 @@
         "title": "Issue #1323"
       }
     ],
-    "updated": "2026-06-03T14:37:53Z"
+    "updated": "2026-06-03T14:37:53Z",
+    "metadata": {
+      "completedAt": "2026-06-03T14:38:10Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }

@@ -45,6 +45,11 @@
         "title": "Issue #1458: deft-install: fail loudly on a dirty working tree by default for --upgrade (--force to bypass) + structured signals in --json"
       }
     ],
-    "updated": "2026-06-03T16:13:47Z"
+    "updated": "2026-06-03T16:13:47Z",
+    "metadata": {
+      "completedAt": "2026-06-03T16:42:46Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
+    }
   }
 }

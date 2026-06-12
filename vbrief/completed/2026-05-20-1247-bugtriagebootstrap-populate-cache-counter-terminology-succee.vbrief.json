@@ -23,6 +23,11 @@
         "title": "Issue #1247: bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators"
       }
     ],
-    "updated": "2026-05-20T19:24:33Z"
+    "updated": "2026-05-20T19:24:33Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
   }
 }
