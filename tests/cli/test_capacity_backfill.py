@@ -342,3 +342,92 @@ def test_coldstart_nudge_suppressed_when_already_classified(tmp_path):
         )
     # 3 classified >= minSampleSize=2 and nothing unclassified -> no cold-start.
     assert _detect_nudge(root) is None
+
+
+def test_coldstart_nudge_suppressed_when_unclassified_out_of_window(tmp_path):
+    # Unclassified completions whose explicit completedAt predates the window
+    # are NOT backfill-actionable: stamping a bucket leaves completedAt out of
+    # window, so classified_completions never rises. The hint/nudge must not
+    # promise a no-op migration (#1606 Greptile review).
+    root = _make_project(tmp_path, _capacity(window=30, minSampleSize=5))
+    for i in range(3):
+        _write_completed(
+            tmp_path, f"old{i}", issue=10 + i, metadata={"completedAt": _completed_at(100)}
+        )
+    assert _detect_nudge(root) is None
+
+
+def test_coldstart_nudge_fires_for_undated_unclassified(tmp_path):
+    # A completion with NO completedAt IS backfill-actionable: the tool stamps
+    # the git landing time, which may land in window -- so the nudge fires.
+    root = _make_project(tmp_path, _capacity(window=30, minSampleSize=5))
+    for i in range(3):
+        _write_completed(tmp_path, f"u{i}", issue=10 + i)
+    nudge = _detect_nudge(root)
+    assert nudge is not None
+    assert nudge.tier == 3
+
+
+def test_unclassified_completions_excludes_out_of_window(tmp_path):
+    # Direct compute_report coverage of the window-aware backfill-actionable
+    # count: in-window + undated unclassified count; out-of-window does not.
+    import capacity_show
+
+    root = _make_project(tmp_path, _capacity(window=30, minSampleSize=5))
+    _write_completed(tmp_path, "in", issue=10, metadata={"completedAt": _completed_at(3)})
+    _write_completed(tmp_path, "undated", issue=11)
+    _write_completed(tmp_path, "old", issue=12, metadata={"completedAt": _completed_at(100)})
+    report = capacity_show.compute_report(root, now=NOW)
+    assert report.unclassified_completions == 2
+
+
+# ---------------------------------------------------------------------------
+# Write-failure accounting + unreadable-file accounting (#1606 review)
+# ---------------------------------------------------------------------------
+
+
+def test_write_failure_does_not_overstate_stamped_count(tmp_path, monkeypatch):
+    # On an OSError mid-run the summary must count only items that actually
+    # reached disk, not the failing one (#1606 Greptile review, issue 2).
+    root = _make_project(tmp_path, _capacity())
+    _write_completed(tmp_path, "a", issue=10)
+    _write_completed(tmp_path, "b", issue=11)
+    _write_cache_labels(tmp_path, "deftai/directive", 10, ["bug"])
+    _write_cache_labels(tmp_path, "deftai/directive", 11, ["bug"])
+    monkeypatch.setattr(capacity_backfill, "git_landing_time", _fixed_landing)
+
+    calls = {"n": 0}
+    real_write = capacity_backfill._write_metadata
+
+    def _flaky_write(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:  # second item (sorted: a then b) fails to write
+            raise OSError("disk full")
+        return real_write(*args, **kwargs)
+
+    monkeypatch.setattr(capacity_backfill, "_write_metadata", _flaky_write)
+
+    result = backfill(root, dry_run=False, now=NOW)
+
+    assert result.exit_code == 1
+    assert result.error is not None
+    # Only the first item was written, so the summary must report 1, not 2.
+    assert result.stamped_bucket == 1
+    assert result.stamped_completed_at == 1
+
+
+def test_unreadable_completed_file_is_counted(tmp_path, monkeypatch):
+    # A corrupted / non-parseable completed vBRIEF is skipped but counted so
+    # the summary's scanned figure is not silently short (#1606 review, issue 3).
+    root = _make_project(tmp_path, _capacity())
+    _write_completed(tmp_path, "good", issue=10, metadata={"completedAt": _completed_at(3)})
+    _write_cache_labels(tmp_path, "deftai/directive", 10, ["bug"])
+    bad = tmp_path / "vbrief" / "completed" / "bad.vbrief.json"
+    bad.write_text("{ this is not valid json", encoding="utf-8")
+    monkeypatch.setattr(capacity_backfill, "git_landing_time", _fixed_landing)
+
+    result = backfill(root, dry_run=True, now=NOW)
+
+    assert result.skipped_unreadable == 1
+    assert result.scanned == 1
+    assert "unreadable/malformed" in result.summary()

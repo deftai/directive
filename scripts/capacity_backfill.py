@@ -121,6 +121,7 @@ class BackfillResult:
     defaulted: int = 0
     fetched: int = 0
     skipped_out_of_window: int = 0
+    skipped_unreadable: int = 0
     window_only: bool = False
     window_days: int = 0
     items: list[BackfillItem] = field(default_factory=list)
@@ -148,6 +149,11 @@ class BackfillResult:
             lines.append(
                 f"      window-only: skipped {self.skipped_out_of_window} "
                 f"completion(s) outside the trailing {self.window_days}d window"
+            )
+        if self.skipped_unreadable:
+            lines.append(
+                f"      skipped {self.skipped_unreadable} unreadable/malformed "
+                "completed vBRIEF file(s) (not counted in scanned)"
             )
         if self.error:
             lines.append(f"      error: {self.error}")
@@ -416,6 +422,10 @@ def backfill(
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
+            # Corrupted / non-UTF-8 / malformed-JSON files are skipped, but the
+            # skip is now counted so the summary's ``scanned`` figure is not
+            # silently lower than the actual file count (#1606 review).
+            result.skipped_unreadable += 1
             continue
         plan = data.get("plan") if isinstance(data, dict) else None
         if not isinstance(plan, dict):
@@ -477,16 +487,10 @@ def backfill(
         )
         result.items.append(item)
 
-        if set_bucket:
-            result.stamped_bucket += 1
-            if source == SOURCE_MATCH:
-                result.matched += 1
-            else:
-                result.defaulted += 1
-                result.low_confidence.append(item)
-        if set_completed_at:
-            result.stamped_completed_at += 1
-
+        # Write FIRST (apply mode), then tally -- so an OSError mid-run leaves
+        # the summary counting only what actually reached disk, not the failed
+        # item (#1606 review). Dry-run performs no write and falls straight to
+        # the tally so it reports what it WOULD stamp.
         if not dry_run and (set_bucket or set_completed_at):
             try:
                 _write_metadata(
@@ -502,6 +506,16 @@ def backfill(
                 result.error = f"{type(exc).__name__}: {exc} ({rel_path})"
                 result.exit_code = 1
                 return result
+
+        if set_bucket:
+            result.stamped_bucket += 1
+            if source == SOURCE_MATCH:
+                result.matched += 1
+            else:
+                result.defaulted += 1
+                result.low_confidence.append(item)
+        if set_completed_at:
+            result.stamped_completed_at += 1
 
     return result
 
@@ -561,6 +575,7 @@ def _emit_json(result: BackfillResult) -> str:
         "defaulted": result.defaulted,
         "fetched": result.fetched,
         "skipped_out_of_window": result.skipped_out_of_window,
+        "skipped_unreadable": result.skipped_unreadable,
         "window_only": result.window_only,
         "window_days": result.window_days,
         "exit_code": result.exit_code,

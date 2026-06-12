@@ -116,6 +116,7 @@ class VbriefRecord:
     folder: str
     classified: bool  # carried an explicit capacityBucket
     in_window: bool  # completed within the trailing window (backward only)
+    completed_at_present: bool  # a non-empty completedAt string is on disk
     is_rework: bool
     cost: float | None
 
@@ -232,8 +233,15 @@ def classify_record(
     weight = _record_weight(kind, plan, metadata, allocation)
 
     in_window = False
+    # Mirror capacity_backfill's ``has_completed_at`` semantics: a non-empty
+    # string counts as present even if it does not parse (backfill preserves it
+    # and never re-stamps, so such an item can never enter the window).
+    raw_completed_at = metadata.get("completedAt")
+    completed_at_present = isinstance(raw_completed_at, str) and bool(
+        raw_completed_at.strip()
+    )
     if folder == BACKWARD_FOLDER:
-        completed_at = _parse_iso(metadata.get("completedAt"))
+        completed_at = _parse_iso(raw_completed_at)
         if completed_at is not None:
             age_days = (now - completed_at).total_seconds() / 86400.0
             in_window = 0 <= age_days <= allocation.window_days
@@ -250,6 +258,7 @@ def classify_record(
         folder=folder,
         classified=classified,
         in_window=in_window,
+        completed_at_present=completed_at_present,
         is_rework=is_rework,
         cost=_coerce_cost(metadata.get("cost")),
     )
@@ -332,13 +341,21 @@ def compute_report(
             tallies[record.bucket] = BucketTally(bucket_id=record.bucket, target=0.0)
 
     classified_completions = 0
-    # Completed vBRIEFs (any age) that carry no explicit capacityBucket -- the
-    # backfill-able set (#1606). A positive count while sample-short means
+    # Completed vBRIEFs that carry no explicit capacityBucket AND that a backfill
+    # could actually pull into the window-scoped classified set (#1606). An
+    # unclassified completion with an explicit completedAt OUTSIDE the trailing
+    # window is EXCLUDED: backfill would stamp its bucket but leave completedAt
+    # out of window, so classified_completions never rises and advisory mode
+    # would persist silently -- promising such a migration is misleading. An
+    # absent completedAt is included: backfill stamps the git landing time,
+    # which may land in window. A positive count while sample-short means
     # `task capacity:backfill` can classify history and cross minSampleSize.
     unclassified_completions = sum(
         1
         for record in records
-        if record.folder == BACKWARD_FOLDER and not record.classified
+        if record.folder == BACKWARD_FOLDER
+        and not record.classified
+        and (record.in_window or not record.completed_at_present)
     )
     cost_eligible = 0  # classified completions in window
     cost_with_actual = 0
