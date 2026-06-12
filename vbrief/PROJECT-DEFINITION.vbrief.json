@@ -10814,6 +10814,7 @@
                   "docs",
                   "documentation",
                   "source-of-truth",
+                  "rfc",
                   "design",
                   "process",
                   "coding-standards"
@@ -10825,6 +10826,6 @@
       },
       "allowDirectCommitsToMaster": false
     },
-    "updated": "2026-06-11T18:08:00Z"
+    "updated": "2026-06-12T20:26:00Z"
   }
 }
