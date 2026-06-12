@@ -62,6 +62,36 @@ def test_missing_installable_tool_reports_prompt_manual_url_and_summary() -> Non
     assert lines[-1] == "[deft tools] Unresolved required tools: task."
 
 
+def test_non_interactive_guidance_omits_yes_no_prompt() -> None:
+    verify_tools = _load_module()
+    lines: list[str] = []
+
+    verify_tools.verify_required_tools(
+        platform_id="linux",
+        probe=_probe_with("git", "uv", "python3", "gh", "apt-get"),
+        output_fn=lines.append,
+    )
+
+    assert not any("(Y/n)" in line for line in lines)
+    assert any("re-run with `--install`" in line for line in lines)
+
+
+def test_interactive_guidance_includes_yes_no_prompt() -> None:
+    verify_tools = _load_module()
+    lines: list[str] = []
+
+    verify_tools.verify_required_tools(
+        install=True,
+        assume_yes=False,
+        platform_id="linux",
+        probe=_probe_with("git", "uv", "python3", "gh", "apt-get"),
+        input_fn=lambda _prompt: "n",
+        output_fn=lines.append,
+    )
+
+    assert any("Install it now? (Y/n)" in line for line in lines)
+
+
 def test_approved_install_runs_command_and_rechecks_tool() -> None:
     verify_tools = _load_module()
     available = {"git", "uv", "python3", "gh", "apt-get"}

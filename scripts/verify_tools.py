@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 ProbeFn = Callable[[str], str | None]
 InputFn = Callable[[str], str]
@@ -300,7 +300,8 @@ def verify_required_tools(
             url=spec.url,
             foundational=spec.foundational,
         )
-        lines.extend(_guidance_lines(base))
+        will_prompt = install and not assume_yes
+        lines.extend(_guidance_lines(base, will_prompt=will_prompt))
         if not install or spec.foundational or install_command is None:
             statuses.append(base)
             continue
@@ -311,24 +312,16 @@ def verify_required_tools(
             answer = input_fn(prompt)
             approved = answer.strip().lower() in {"", "y", "yes"}
         if not approved:
-            statuses.append(ToolStatus(**{**base.__dict__, "declined": True}))
+            statuses.append(replace(base, declined=True))
             continue
 
         proc = run_fn(install_command)
         rechecked = _installed_command(spec, probe)
         if proc.returncode == 0 and rechecked:
-            statuses.append(
-                ToolStatus(
-                    **{
-                        **base.__dict__,
-                        "installed_after_offer": True,
-                        "command": rechecked,
-                    }
-                )
-            )
+            statuses.append(replace(base, installed_after_offer=True, command=rechecked))
         else:
             error = (proc.stderr or proc.stdout or "installer did not put tool on PATH").strip()
-            statuses.append(ToolStatus(**{**base.__dict__, "install_error": error}))
+            statuses.append(replace(base, install_error=error))
 
     result = VerificationResult(
         statuses=tuple(statuses),
@@ -349,7 +342,7 @@ def verify_required_tools(
     return result
 
 
-def _guidance_lines(status: ToolStatus) -> list[str]:
+def _guidance_lines(status: ToolStatus, *, will_prompt: bool = False) -> list[str]:
     if status.foundational:
         return [
             (
@@ -360,8 +353,18 @@ def _guidance_lines(status: ToolStatus) -> list[str]:
             f"[deft tools] Canonical install URL: {status.url}",
         ]
     if status.install_command:
+        if will_prompt:
+            headline = (
+                f"[deft tools] `{status.name}` is not installed on this machine. "
+                "Install it now? (Y/n)"
+            )
+        else:
+            headline = (
+                f"[deft tools] `{status.name}` is not installed on this machine; "
+                "re-run with `--install` to set it up."
+            )
         return [
-            f"[deft tools] `{status.name}` is not installed on this machine. Install it now? (Y/n)",
+            headline,
             f"[deft tools] Auto-install command: {' '.join(status.install_command)}",
             f"[deft tools] Manual install: {status.manual_command}",
             f"[deft tools] Canonical install URL: {status.url}",

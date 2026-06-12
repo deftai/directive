@@ -94,7 +94,7 @@ def _default_branch_candidates(project_root: Path) -> list[str]:
     for branch in ("main", "master"):
         check_code, _out, _err = _run_git(
             project_root,
-            ["show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
+            ["show-ref", "--verify", "--quiet", f"refs/remotes/origin/{branch}"],
         )
         if check_code == 0:
             candidates.append(branch)

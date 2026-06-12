@@ -302,6 +302,33 @@ def test_default_branch_sync_warns_for_missing_upstream_and_fetch_failure(
     )
 
 
+def test_default_branch_candidates_fallback_uses_remote_tracking_refs(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    session_start = _load_module("session_start", SCRIPTS_DIR / "session_start.py")
+
+    probed: list[list[str]] = []
+
+    def fake_run_git(_root: Path, args: list[str]) -> tuple[int, str, str]:
+        if args[:2] == ["symbolic-ref", "refs/remotes/origin/HEAD"]:
+            return 128, "", "origin/HEAD not set"
+        if args[:1] == ["show-ref"]:
+            probed.append(args)
+            ref = args[-1]
+            return (0, "", "") if ref == "refs/remotes/origin/master" else (1, "", "")
+        raise AssertionError(args)
+
+    monkeypatch.setattr(session_start, "_run_git", fake_run_git)
+
+    candidates = session_start._default_branch_candidates(tmp_path)
+
+    assert candidates == ["master"]
+    probed_refs = [args[-1] for args in probed]
+    assert "refs/remotes/origin/master" in probed_refs
+    assert all(ref.startswith("refs/remotes/origin/") for ref in probed_refs)
+
+
 def test_run_session_start_orders_branch_and_tool_warnings_before_triage(
     tmp_path: Path,
     monkeypatch,
