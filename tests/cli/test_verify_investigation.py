@@ -128,6 +128,17 @@ class TestHardFailures:
         result = vi.validate_ledger(data)
         assert any(f.code == "HF-DANGLING-EV" for f in result.hard_failures)
 
+    def test_title_only_citation_does_not_satisfy_evidence(self) -> None:
+        """A claim citing a reference's human-readable title (not its EV-* id)
+        must NOT pass -- only structured ids count (Greptile P1)."""
+        data = _close_ready_ledger()
+        data["plan"]["references"][0]["title"] = "query latency spike"
+        data["plan"]["items"][0]["items"][0]["metadata"]["x-claim"][
+            "evidenceRefs"
+        ] = ["query latency spike"]
+        result = vi.validate_ledger(data)
+        assert any(f.code == "HF-DANGLING-EV" for f in result.hard_failures)
+
     def test_failed_branch_without_invalidates_edge_fails(self) -> None:
         data = _close_ready_ledger()
         data["plan"]["edges"] = []

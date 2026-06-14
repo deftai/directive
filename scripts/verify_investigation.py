@@ -175,14 +175,15 @@ def validate_ledger(data: dict[str, Any]) -> ValidationResult:
             )
         )
 
-    # Build the reference id set for dangling-EV detection.
+    # Build the reference id set for dangling-EV detection. Only the
+    # structured `id` counts -- admitting `title` would let a claim cite a
+    # reference's human-readable label and bypass HF-DANGLING-EV (Greptile P1).
     ref_ids: set[str] = set()
     for ref in plan.get("references", []) or []:
         if isinstance(ref, dict):
-            for key in ("id", "title"):
-                val = ref.get(key)
-                if isinstance(val, str):
-                    ref_ids.add(val)
+            val = ref.get("id")
+            if isinstance(val, str):
+                ref_ids.add(val)
 
     claims = _iter_claims(items)
     for claim, _branch in claims:
