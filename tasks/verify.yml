@@ -144,6 +144,18 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_story_start.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  investigation:
+    desc: "Validate a forensic investigation ledger (#1621). Promotes the forensic-research validator into a deterministic gate: the close check before Wave 5 / any causal chat. Three-state exit (0 close-ready / 1 hard failures / 2 config error). Intentionally NOT in the `task check` aggregate -- it requires a concrete --ledger path. -- task verify:investigation -- --ledger .tmp/investigations/<id>/investigation.vbrief.json [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+    # because the gate forwards user-facing flags via {{.CLI_ARGS}}
+    # (--ledger / --json) that go-task's incremental-build cache would
+    # silently swallow.
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_investigation.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   architecture-sor:
     desc: "Diff-time system-of-record architecture gate. Scans stateful persistence signals and requires a matching architecture.systemOfRecord record. Example: task verify:architecture-sor -- --base-ref origin/main [--story-path <path>]"
     dir: '{{.USER_WORKING_DIR}}'

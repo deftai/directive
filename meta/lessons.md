@@ -579,3 +579,13 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Why this is a prose-tier lesson, not a deterministic gate:** the rule landed v1 as prose (CONTRIBUTING.md + AGENTS.md + this lessons entry) because a robust char-count + per-entry gate needs a stable definition of "entry boundary" in markdown and an `--allow-list` for legitimate multi-paragraph cases (release-note migration guides, breaking-change blocks). A deterministic-tier lint gate that scans `CHANGELOG.md [Unreleased]` for over-length entries is tracked as a separate follow-up (#1239 / N5 pattern) so the rule and the gate evolve independently.
 
 **Cross-references:** `CONTRIBUTING.md` `## CHANGELOG entry style (#1242)` (primary reference for human contributors); `AGENTS.md` `## CHANGELOG entry style (#1242)` (agent-load surface); issue #1242 (RFC2119 rule body + acceptance criteria); release skill `skills/deft-directive-release/SKILL.md`; personal rule `Pfb0EDkthFmfzp2kLhs0Lc` (ship-report convention).
+
+## Debugging and root-cause investigation (2026-06)
+
+**Source:** Issue #1621 (consolidates the stale #659 + #1173). Directive had no debugging capability; agents defaulted to guess-and-fix, thrashing on retries and treating the first plausible hypothesis as correct. The design is grounded in the obra/superpowers `systematic-debugging` pattern and the vendored `forensic-research` reference bundle (mandatory falsification, claim ledger, validator).
+
+**Canonical encoding (strongest-applicable layer):** the rule body lives in `coding/debugging.md` (Iron Law, four phases, the 3-fix architecture gate, evidence discipline, Fact vs Hypothesis labeling, observability-gap loop); the sustained multi-agent investigation posture lives in the `deft-directive-debug` skill; the investigation-ledger validator is the deterministic `task verify:investigation` gate (`scripts/verify_investigation.py`). `coding/coding.md` carries the short-form cross-reference + the #1621 anti-pattern entry. The vendored reference design sits under `docs/reference/forensic-research/`.
+
+**Why this lessons entry is a short cross-reference:** per the Rule Authority [AXIOM] in `main.md`, the rule body lives at the strongest layer (coding standard + skill + deterministic gate); this entry exists for discoverability + recurrence-record citation.
+
+**Cross-references:** `coding/debugging.md` (rule body); `skills/deft-directive-debug/SKILL.md` (workflow); `scripts/verify_investigation.py` + `tasks/verify.yml::investigation` (validator gate); `docs/reference/forensic-research/` (vendored design); #1580 (Fact vs Judgment labeling -- shared vocabulary); superseded #659 + #1173.

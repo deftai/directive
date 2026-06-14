@@ -1,0 +1,104 @@
+# Debugging and Root-Cause Investigation (#1621)
+
+Systematic root-cause process for AI agents. The failure mode this file prevents
+is **thrashing**: retrying random fixes, fixing before understanding, and
+treating the first plausible hypothesis as correct. Debugging is an
+evidence-discipline, not a guess-and-check loop.
+
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+For a sustained, multi-agent investigation posture (claim ledger, falsification
+waves, validator gate), see the `deft-directive-debug` skill and the vendored
+reference design under `docs/reference/forensic-research/`.
+
+## The Iron Law
+
+```
+NO FIXES WITHOUT ROOT-CAUSE INVESTIGATION FIRST
+```
+
+- ! Before proposing or writing any fix, the root cause MUST be identified with evidence.
+- ⊗ MUST NOT propose a fix while the investigation phase is incomplete — violating the letter of this process is violating the spirit of debugging.
+
+## The Four Phases
+
+Each phase MUST complete before the next begins.
+
+### Phase 1 — Root-Cause Investigation
+- ! Read the error message completely before doing anything else.
+- ! Reproduce the failure consistently — a non-reproducible bug is not yet understood.
+- ! Check recent changes (what changed when the symptom appeared?).
+- ! Gather evidence at component boundaries — add diagnostic instrumentation before proposing fixes.
+- ! Trace data flow backward from the symptom toward the cause.
+
+### Phase 2 — Pattern Analysis
+- ! Find a working example of similar functionality in the codebase.
+- ! Compare the failing path against the working reference and identify what is structurally different.
+- ~ Look for the pattern, not just the instance.
+
+### Phase 3 — Hypothesis Testing
+- ! Form one hypothesis and test it minimally.
+- ! Change one variable at a time.
+- ! Confirm the fix addresses the root cause, not just the symptom.
+
+### Phase 4 — Implementation
+- ! Write a failing test that demonstrates the bug.
+- ! Implement the single fix.
+- ! Verify the test passes and that no regressions were introduced.
+
+## The 3-Fix Architecture Gate
+
+- ! If 3 or more distinct fixes have failed, STOP. MUST NOT attempt a fourth fix.
+- ! Escalate with: "N fixes attempted, root cause not found — architectural review needed." The architecture may be the problem.
+
+## Multi-Component Systems
+
+- ! Before proposing fixes in a multi-component system, add diagnostic instrumentation at every boundary to observe the actual data flow.
+- ⊗ MUST NOT guess which component is at fault without boundary evidence.
+
+## Evidence Discipline (forensic rigor)
+
+These rules raise the four-phase loop from "structured guessing" to
+evidence-based investigation. They are adapted from the vendored
+`forensic-research` reference design.
+
+- ! **Evidence before narrative** — every factual claim MUST cite specific evidence (a log line, a metric, a file:line, a reproduction). An uncited claim is a `[HYPOTHESIS]`, not a finding.
+- ! **Config is not code** — a production/runtime flag value MUST be proven from the runtime (env dump, secrets manager, a log line showing the actual value). ⊗ MUST NOT infer a runtime value from source code or docs alone.
+- ! **Proof-required disproval** — "no evidence found" resolves a theory to `unknown`, never to `failed`. Marking a theory `failed` (ruled out) MUST cite specific counter-evidence.
+- ! **Falsification before fixation** — before committing to a leading theory, MUST attempt the cheapest test that would disprove it. A theory that survives a real disproof attempt is stronger than one merely asserted.
+- ⊗ **No tautologies** — "it failed because it timed out" and "it was slow because phase X took N minutes" MUST NOT be presented as root causes. Name a **mechanism**, or state "mechanism not verified" after exhausting the cheap checks. A duration is evidence for the mechanism search, not the mechanism.
+
+## Fact vs Hypothesis Labeling
+
+- ! Every finding MUST be labeled **Fact** (an observable claim grounded in file:line / log / metric evidence) or **Hypothesis** (an interpretation that could be wrong and still needs verification).
+- ! A finding labeled Fact MUST carry its evidence citation.
+
+This is the debugging-side adoption of the review/triage labeling vocabulary
+owned by #1580 — that issue remains the owner of the review-cycle and triage
+findings-format surface; this file is a consumer of the shared vocabulary.
+
+## Observability Gaps (close the loop)
+
+- ! When the root cause was reached by **inference** (indirect evidence, missing telemetry), the investigation MUST emit an "observability gaps" note: what could not be measured, what to log/measure next time, and why it would make the next investigation definitive.
+- ~ Treat each investigation as an opportunity to improve the system's telemetry, not just to land a fix.
+
+## Rationalization Table
+
+| Excuse | Reality |
+|---|---|
+| "This seems obvious" | Obvious bugs have root causes too |
+| "I'll investigate if this fix doesn't work" | The first fix sets the pattern — investigate first |
+| "We're under time pressure" | Rushing guarantees rework; systematic is faster than thrashing |
+| "One more fix attempt" | 3+ failures = architectural problem; question the pattern |
+| "No evidence, so it's not that" | No evidence means `unknown`, not ruled out |
+
+## Anti-Patterns
+
+- ⊗ Fixing before reproducing the failure
+- ⊗ Cargo-cult debugging: changing things until it works, with no understanding of why
+- ⊗ Treating the first plausible hypothesis as confirmed without testing it
+- ⊗ Skipping Phase 2 because a fix seems obvious
+- ⊗ Presenting a duration or an exit status as a root cause (tautology)
+- ⊗ Inferring a runtime config value from source code instead of proving it at runtime
+- ⊗ Marking a theory "ruled out" without counter-evidence
+- ⊗ A fourth fix attempt after three have failed without an architectural review

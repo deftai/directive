@@ -135,6 +135,19 @@ When the project calls LLM APIs (OpenAI, Anthropic, Cohere, local models, etc.) 
 
 See [../patterns/llm-app.md](../patterns/llm-app.md) for the full standards: prompt construction, trust tiers, tool/function-call validation, RAG hygiene, output handling, multi-agent orchestration, and LLM-specific observability. See [../tools/telemetry.md](../tools/telemetry.md) `## LLM-specific observability (#481)` for the matching observability surface.
 
+## Debugging and Root-Cause Investigation (#1621)
+
+When a bug, failure, or unexpected behaviour needs diagnosis, the root-cause standards in `debugging.md` apply. The short form:
+
+- ! No fixes without root-cause investigation first (the Iron Law)
+- ! Reproduce the failure consistently before proposing a fix — a non-reproducible bug is not yet understood
+- ! Every factual claim cites evidence; an uncited claim is a `[HYPOTHESIS]`, not a finding (evidence before narrative)
+- ! Runtime/config values are proven from the runtime, never inferred from source code (config is not code)
+- ⊗ MUST NOT present a duration or an exit status ("slow because phase X took N minutes", "failed because it timed out") as a root cause — name a mechanism (no tautologies)
+- ! After 3 failed distinct fixes, STOP and escalate for architectural review (the 3-fix gate)
+
+See [debugging.md](debugging.md) for the full four-phase process, evidence discipline, Fact vs Hypothesis labeling (#1580), the observability-gap loop, and the rationalization table. For a sustained multi-agent investigation posture, see the `deft-directive-debug` skill.
+
 ## Build Automation
 
 **Taskfile:**
@@ -213,3 +226,4 @@ See [../patterns/llm-app.md](../patterns/llm-app.md) for the full standards: pro
 - ⊗ Duplicate logic across 2+ call sites without shared abstraction
 - ⊗ Outcome-blind completion claims: "tests pass" with skipped tests, "migration completed" without per-record counts, "feature works" without naming the verified edge case (#1006 -- see `## Fail Loud` above)
 - ⊗ Averaging contradicting codebase patterns: writing new code that satisfies both of two conflicting patterns simultaneously (#1005 -- see `hygiene.md` `## Surface Conflicts`)
+- ⊗ Debugging by guess-and-check: fixing before reproducing, treating the first plausible hypothesis as confirmed, or presenting a duration/exit-status as a root cause (#1621 -- see `debugging.md`)
