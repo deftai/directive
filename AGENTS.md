@@ -98,6 +98,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "release" / "cut release" / "v0.X.Y" / "publish release" → `skills/deft-directive-release/SKILL.md` — operationalizes the `task release` / `task release:publish` / `task release:rollback` / `task release:e2e` surface (#74 + #716 safety hardening); re-uses the `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 5 Slack announcement template
 - "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" → `skills/deft-directive-glossary/SKILL.md` — extracts a DDD-style ubiquitous language from the current conversation, flags ambiguities and synonyms, proposes a canonical glossary, and writes `UBIQUITOUS_LANGUAGE.md`; integrates with `core/glossary.md` as a baseline when present (#441)
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" → `skills/deft-directive-gh-arch/SKILL.md` — explores codebase for shallow modules, designs competing interfaces in parallel via sub-agents, files a refactor RFC as a GitHub Issue (#442 re-land)
+- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" → `skills/deft-directive-debug/SKILL.md` — evidence-based root-cause investigation MODE: claim ledger, falsification + red-team waves, chat answer-embargo until evidence closes, and the `task verify:investigation` close gate; operationalizes `coding/debugging.md` (#1621)
 - "triage hygiene" / "work the cache" → `skills/deft-directive-triage/SKILL.md`
 - "what's next" / "queue" / "build a cohort" → `skills/deft-directive-triage/SKILL.md`
 - "welcome" / "onboard triage" → invokes `task triage:welcome --onboard` (N3 / #1143)
@@ -300,7 +301,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=5143c83948b0 refreshed=2026-06-09T19:51:23Z session=813ab79252bd -->
+<!-- deft:managed-section v3 sha=ac2cb119938e refreshed=2026-06-14T22:34:22Z session=eb242ab5feb4 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -386,6 +387,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "run probe" / "/deft:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md`
 - "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/skills/deft-directive-glossary/SKILL.md`
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/skills/deft-directive-gh-arch/SKILL.md`
+- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/skills/deft-directive-debug/SKILL.md`
 - "triage hygiene" / "work the cache" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
 - "what's next" / "queue" / "build a cohort" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
 - "welcome" / "onboard triage" -> invokes `task deft:triage:welcome --onboard` (N3 / #1143)

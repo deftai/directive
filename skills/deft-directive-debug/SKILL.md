@@ -1,0 +1,134 @@
+---
+name: deft-directive-debug
+description: >-
+  Systematic, evidence-based root-cause investigation. Use when the user asks
+  "why did X break / slow down / regress?", wants to debug a failure, run a
+  forensic investigation, or find the root cause of a bug -- to enter a
+  sustained investigation MODE with a claim ledger, mandatory falsification
+  before any conclusion, a chat answer-embargo until evidence closes, and a
+  deterministic validator gate. Triggers: "debug", "root cause", "investigate",
+  "why did X break", "why is X slow", "systematic debugging", "forensic".
+---
+
+# Deft Directive Debug
+
+Turns "why did X break / slow down?" into a disciplined investigation rather
+than a guess-and-check loop. The coding standard this skill operationalizes is
+`coding/debugging.md` (the Iron Law, four phases, evidence discipline). This
+skill adds the sustained MODE, the claim ledger, falsification waves, and the
+deterministic close gate.
+
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+The concrete reference design is vendored read-only under
+`docs/reference/forensic-research/` -- read it for extended detail (orchestrator
+protocol, sub-agent prompts, question framing, domain packs). This skill is the
+directive-native, freshly-authored workflow; do not repurpose the vendored copy
+as the live skill.
+
+## When to Use
+
+- The user asks "why did X break / regress / slow down?" and the cause is not
+  yet known with evidence.
+- A bug needs root-cause analysis before a fix is written.
+- An incident or production anomaly needs a disciplined, auditable investigation.
+- ⊗ Do NOT use for known, trivially-fixed issues where the cause is already
+  proven -- the four-phase loop in `coding/debugging.md` suffices.
+
+## The Iron Law
+
+```
+NO CONCLUSIONS WITHOUT EVIDENCE THAT CLOSES
+```
+
+- ! MUST NOT state a root cause in chat until the evidence supporting it closes
+  and the cheapest disproof has been attempted (the chat answer-embargo).
+- ! Every factual claim cites evidence (file:line / log / metric / reproduction).
+  An uncited claim is a `[HYPOTHESIS]`, not a finding. See `coding/debugging.md`
+  `## Evidence Discipline`.
+
+## Forensic MODE Contract
+
+The investigation is a sustained posture across turns, not a one-shot answer.
+
+- ! On entry, create an investigation directory `.tmp/investigations/<id>/`
+  (gitignored, ephemeral) and write the ledger `investigation.vbrief.json` from
+  `docs/reference/forensic-research/templates/investigation.vbrief.json`. Stamp
+  `plan.status = "running"`.
+- ! While MODE is active, every turn appends evidence to the ledger before any
+  narrative. The ledger is the source of truth; chat is a view of it.
+- ! On exit, the ledger MUST pass `task verify:investigation -- --ledger <path>`
+  (the close gate) BEFORE any root-cause conclusion is delivered. Set
+  `plan.status` to `completed` / `failed` and record the Outcome.
+- ⊗ MUST NOT deliver a conclusion while `plan.status == "running"` or while the
+  validator reports hard failures.
+
+## The Claim Ledger
+
+The ledger is a thin vBRIEF 0.6 profile (`forensic-research-v1`):
+
+- ! Top-level `plan.items[]` are **branches** (competing theories). Each branch's
+  child `items[]` are **claims** (testable assertions).
+- ! Each claim carries `metadata.x-claim` with `evidenceRefs[]` (ids into
+  `plan.references[]`) and, when ruled out, a `ruledOutReason`.
+- ! `plan.edges[]` of type `invalidates` link a falsified claim to the branch it
+  rules out -- a branch is ruled out ONLY by a falsified child claim, never by
+  "no evidence found".
+- ! `metadata.x-investigation.wavesCompleted` records which waves ran.
+
+## Investigation Waves
+
+Run the waves in order. Each works solo (one agent) or parallel (sub-agents per
+`docs/reference/forensic-research/references/orchestrator-protocol.md`).
+
+1. ! **Frame** -- parse the operator question; split dual questions ("why slow AND
+   why errored") into separate branches. Reproduce the failure. Seed branches.
+2. ! **Investigate branches** -- gather evidence at component boundaries; trace
+   data flow backward from the symptom. Promote claims with `evidenceRefs`.
+3. ! **Falsify** -- for the leading theory, attempt the cheapest test that would
+   disprove it. A theory that survives a real disproof attempt is stronger than
+   one merely asserted. Record `wavesCompleted["3"] = true`.
+4. ! **Red-team** -- adversarially review the surviving theory: config-is-not-code
+   checks, tautology checks, alternative mechanisms. Record
+   `wavesCompleted["4"] = true`.
+5. ! **Synthesize** -- only after the close gate passes, write the Outcome.
+
+- ⊗ MUST NOT skip waves 3 + 4. Skipping falsification + red-team is the #1
+  forensic-discipline failure; the close gate fails closed when either is missing.
+
+## Fact vs Hypothesis Labeling
+
+- ! Every finding is labeled **Fact** (observable, evidence-cited) or
+  **Hypothesis** (an interpretation that could be wrong). This is the
+  debugging-side adoption of the shared findings vocabulary owned by #1580.
+
+## Outcome
+
+When the close gate passes, write the Outcome from
+`docs/reference/forensic-research/references/outcome-template.md`. It MUST include:
+
+- ! The root-cause **mechanism** (not a tautology -- "slow because phase X took N
+  minutes" is not a mechanism; name *why* phase X took N minutes).
+- ! For "why slow?" investigations, a "Why it was slow" section naming the
+  mechanism.
+- ! An **Observability gaps** section: when the cause was reached by inference,
+  state what could not be measured and what to log/measure next time.
+
+## Skill Completion Gate
+
+! When the Outcome is delivered and the ledger has passed the close gate, confirm
+exit unambiguously: "deft-directive-debug complete -- exiting skill." Then state
+the next step (e.g. open a fix vBRIEF for the proven cause, or chain into
+`skills/deft-directive-build/SKILL.md` to implement the fix).
+
+⊗ Exit silently without confirming completion.
+
+## Anti-Patterns
+
+- ⊗ Delivering a conclusion before the close gate passes (breaks the answer-embargo)
+- ⊗ Fixing before reproducing the failure
+- ⊗ Marking a branch "ruled out" without an `invalidates` edge from a falsified claim
+- ⊗ Presenting a duration or exit status as a root cause (tautology)
+- ⊗ Inferring a runtime/config value from source code instead of proving it at runtime
+- ⊗ Skipping the Falsify or Red-team wave under time pressure
+- ⊗ Treating "no evidence found" as "ruled out" -- it resolves to `unknown`

@@ -157,3 +157,109 @@ class TestLessonsCrossReference1621:
             "meta/lessons.md: missing the #1621 discoverability cross-"
             "reference for the debugging standard"
         )
+
+
+DEBUG_SKILL = _REPO_ROOT / "skills" / "deft-directive-debug" / "SKILL.md"
+DEBUG_SKILL_POINTER = (
+    _REPO_ROOT / ".agents" / "skills" / "deft-directive-debug" / "SKILL.md"
+)
+AGENTS_MD = _REPO_ROOT / "AGENTS.md"
+AGENTS_ENTRY = _REPO_ROOT / "templates" / "agents-entry.md"
+
+
+class TestDebugSkill1621:
+    """The deft-directive-debug skill (D2) must exist with the canonical
+    structure and operationalize the debugging standard + close gate."""
+
+    def test_skill_exists(self) -> None:
+        assert DEBUG_SKILL.is_file(), (
+            "skills/deft-directive-debug/SKILL.md is missing (#1621 D2)"
+        )
+
+    def test_skill_frontmatter_name(self) -> None:
+        text = _read(DEBUG_SKILL)
+        assert text.startswith("---"), (
+            "deft-directive-debug SKILL.md must start with YAML frontmatter"
+        )
+        assert "name: deft-directive-debug" in text, (
+            "deft-directive-debug SKILL.md frontmatter must declare "
+            "'name: deft-directive-debug'"
+        )
+
+    def test_skill_rfc2119_legend(self) -> None:
+        text = _read(DEBUG_SKILL)
+        assert "!=MUST, ~=SHOULD" in text, (
+            "deft-directive-debug SKILL.md missing the RFC2119 legend"
+        )
+
+    def test_skill_iron_law(self) -> None:
+        text = _read(DEBUG_SKILL).lower()
+        assert "iron law" in text and "embargo" in text, (
+            "deft-directive-debug SKILL.md must carry the Iron Law + the "
+            "chat answer-embargo"
+        )
+
+    def test_skill_references_close_gate(self) -> None:
+        text = _read(DEBUG_SKILL)
+        assert "task verify:investigation" in text, (
+            "deft-directive-debug SKILL.md must reference the "
+            "`task verify:investigation` close gate (D3)"
+        )
+
+    def test_skill_references_coding_standard(self) -> None:
+        text = _read(DEBUG_SKILL)
+        assert "coding/debugging.md" in text, (
+            "deft-directive-debug SKILL.md must reference coding/debugging.md "
+            "(the standard it operationalizes)"
+        )
+
+    def test_skill_references_vendored_design(self) -> None:
+        text = _read(DEBUG_SKILL)
+        assert "docs/reference/forensic-research/" in text, (
+            "deft-directive-debug SKILL.md must cite the vendored reference "
+            "design under docs/reference/forensic-research/"
+        )
+
+    def test_skill_falsification_waves(self) -> None:
+        text = _read(DEBUG_SKILL).lower()
+        assert "falsif" in text and "red-team" in text, (
+            "deft-directive-debug SKILL.md must require the Falsify + "
+            "Red-team waves"
+        )
+
+    def test_skill_completion_gate(self) -> None:
+        text = _read(DEBUG_SKILL)
+        assert "Skill Completion Gate" in text and "exiting skill" in text, (
+            "deft-directive-debug SKILL.md must carry a Skill Completion Gate "
+            "with an unambiguous exit confirmation"
+        )
+
+    def test_thin_pointer_exists(self) -> None:
+        assert DEBUG_SKILL_POINTER.is_file(), (
+            ".agents/skills/deft-directive-debug/SKILL.md thin pointer missing"
+        )
+        text = _read(DEBUG_SKILL_POINTER)
+        assert "skills/deft-directive-debug/SKILL.md" in text, (
+            "the thin pointer must redirect to skills/deft-directive-debug/SKILL.md"
+        )
+
+
+class TestDebugSkillRouting1621:
+    """The skill must be discoverable via routing in both the maintainer
+    AGENTS.md and the consumer template (#1309 propagation)."""
+
+    def test_agents_md_routing(self) -> None:
+        text = _read(AGENTS_MD)
+        assert "skills/deft-directive-debug/SKILL.md" in text, (
+            "AGENTS.md Skill Routing must route to deft-directive-debug"
+        )
+        assert "debug" in text and "root cause" in text, (
+            "AGENTS.md routing must list debug trigger keywords"
+        )
+
+    def test_template_routing(self) -> None:
+        text = _read(AGENTS_ENTRY)
+        assert ".deft/core/skills/deft-directive-debug/SKILL.md" in text, (
+            "templates/agents-entry.md Skill Routing must route to "
+            "deft-directive-debug (#1309 propagation)"
+        )

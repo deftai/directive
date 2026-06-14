@@ -84,6 +84,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "run probe" / "/deft:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md`
 - "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/skills/deft-directive-glossary/SKILL.md`
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/skills/deft-directive-gh-arch/SKILL.md`
+- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/skills/deft-directive-debug/SKILL.md`
 - "triage hygiene" / "work the cache" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
 - "what's next" / "queue" / "build a cohort" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
 - "welcome" / "onboard triage" -> invokes `task deft:triage:welcome --onboard` (N3 / #1143)
