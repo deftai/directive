@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(skills,coding): deft-directive-debug — systematic root-cause investigation skill + coding/debugging.md (supersedes #659, #1173)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(skills,coding): deft-directive-debug — systematic root-cause investigation skill + coding/debugging.md (supersedes #659, #1173)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1621",
@@ -26,6 +26,10 @@
         "title": "Issue #1621: feat(skills,coding): deft-directive-debug — systematic root-cause investigation skill + coding/debugging.md (supersedes #659, #1173)"
       }
     ],
-    "updated": "2026-06-14T20:56:47Z"
+    "updated": "2026-06-14T22:54:34Z",
+    "metadata": {
+      "completedAt": "2026-06-14T22:54:34Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
