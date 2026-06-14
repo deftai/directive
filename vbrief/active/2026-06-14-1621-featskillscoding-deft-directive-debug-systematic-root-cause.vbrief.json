@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1621"
+  },
+  "plan": {
+    "title": "feat(skills,coding): deft-directive-debug — systematic root-cause investigation skill + coding/debugging.md (supersedes #659, #1173)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(skills,coding): deft-directive-debug — systematic root-cause investigation skill + coding/debugging.md (supersedes #659, #1173)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1621",
+      "Overview": "## Summary\n\nDirective has no debugging/root-cause capability. When agents get stuck they thrash, retry randomly, fix-before-understanding, or treat the first plausible hypothesis as correct. This issue **consolidates** the two previously-fragmented halves of that gap into one tracked feature:\n\n- **#659** — `feat(skills): add deft-debug skill` (the *workflow* surface)\n- **#1173** — `feat(coding): add coding/debugging.md` (the *coding-standard* surface)\n\nBoth descend from the same obra/superpowers `systematic-debugging` pattern and were never picked up. This issue supersedes both and **enriches** the design with a concrete, battle-tested reference implementation: the `forensic-research` skill bundle (origin: SLizard), which adds mandatory falsification, popularity traps, a deterministic validator, a vBRIEF investigation ledger, and observability-gap output on top of the basic phase/gate loop.\n\n`#659` and `#1173` will be closed as `not planned` (superseded) when this is filed.\n\n## Why one issue (not two)\n\nA skill and its backing coding-standard are a **pair** — directive already ships them coupled (cf. #1471: review-cycle skill ↔ `coding/review.md`). As two issues they fragmented the work and created \"which one do I implement?\" ambiguity. One issue, multiple deliverables, decomposes cleanly into stories at build time.\n\n## Deliverables\n\n### D0 — Vendor the reference bundle (prereq)\nVendor the `forensic-research` bundle verbatim (SLizard quarantine intact) into `docs/reference/forensic-research/` as read-only source material, with a `VENDORED.md` provenance header. All in-repo links below resolve against this.\n\n### D1 — `coding/debugging.md` (the rules)\nThe canonical root-cause coding standard, RFC2119-tiered:\n- **Iron Law**: no fixes without root-cause investigation first.\n- **Four phases** with hard gates: Reproduce → Isolate/Pattern-analyze → Hypothesize → Verify (implement only after the cause is confirmed with evidence).\n- **3-fix architecture gate**: after 3 failed distinct fixes, STOP and escalate to architectural review.\n- **Multi-component rule**: add diagnostic instrumentation at every boundary before proposing fixes.\n- **Forensic-rigor rules** (from the reference bundle): falsification-before-fixation, `config-is-not-code` (runtime proof required), proof-required-disproval (\"no evidence\" → unknown, never failed), the tautology trap (\"slow because it timed out\" is not an answer).\n- **Fact vs Hypothesis labeling** aligned with #1580 (shared vocabulary; #1580 stays open and owns the review-cycle/triage findings-format surface).\n- Rationalization table.\n\n### D2 — `skills/deft-directive-debug/` (the workflow)\nA skill that operationalizes D1, authored fresh (genericized from the vendored reference — do not repurpose the vendored copy as the live skill):\n- Trigger keywords: \"debug\", \"I'm stuck\", \"root cause\", \"investigate why\", \"systematic debugging\".\n- Wave workflow: traps → branch investigators → mechanism drill-down → **falsifier** → **red-team** → synthesizer.\n- Sub-agent dispatch prompts with strict per-role **write boundaries** (orchestrator prefetches evidence; sub-agents interpret + cite).\n- **vBRIEF investigation ledger** (`x-investigation` / `x-claim` / `EV-*` references) — must conform to the #1620 x-namespacing rule.\n- Pluggable **domain packs** (generic core + per-project pack).\n- **§2b observability-gap output**: every investigation emits \"what to log next time\" so the next one is definitive.\n\n### D3 — `task verify:investigation` gate (in scope)\nPromote the reference bundle's prose validator into a deterministic gate (hard-failures vs soft-warnings; three-state exit), wired into `task check`. Backs the determinism-tier ladder (#634).\n\n## Files affected\n\n- `docs/reference/forensic-research/**` (vendored, D0)\n- `coding/debugging.md` (new, D1) + `coding/coding.md` cross-reference\n- `skills/deft-directive-debug/**` (new, D2) + AGENTS.md/template skill-routing entry\n- `scripts/` + `tasks/` + tests for the validator gate (D3)\n- `tests/content/` coverage for the new coding rule\n\n## Related / not folded in\n\n- **#1580** (Fact vs Judgment labeling) — **stays open**; D1/D2 adopt its vocabulary, but its review-cycle + triage findings-format surface is independent.\n- #634 (determinism-tier ladder) — D3 backs this.\n- #1620 (vBRIEF x-namespacing) — the investigation ledger must conform.\n- #1396 (structured agent decision log) — shares the ledger DNA.\n- Carries forward #1173's prior \"related\": #1171 (errors as instructions), #1164 (test integrity).\n\n## Source\n\nobra/superpowers `systematic-debugging` (166K stars) + the `forensic-research` skill bundle (origin: SLizard, bundled 2026-06-13), vendored under `docs/reference/forensic-research/` by D0.\n",
+      "Labels": "enhancement, skills, coding-standards, determinism"
+    },
+    "items": [],
+    "tags": [
+      "enhancement",
+      "skills",
+      "coding-standards",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1621",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1621: feat(skills,coding): deft-directive-debug — systematic root-cause investigation skill + coding/debugging.md (supersedes #659, #1173)"
+      }
+    ],
+    "updated": "2026-06-14T20:56:47Z"
+  }
+}

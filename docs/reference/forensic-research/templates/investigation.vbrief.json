@@ -1,0 +1,76 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Forensic investigation ledger (forensic-research-v1)",
+    "created": "",
+    "updated": ""
+  },
+  "plan": {
+    "id": "",
+    "title": "",
+    "status": "running",
+    "narratives": {
+      "Problem": "",
+      "Hypothesis": "",
+      "Observation": "",
+      "Outcome": ""
+    },
+    "items": [
+      {
+        "id": "branch.traps",
+        "title": "Popularity traps (Wave 1)",
+        "status": "pending",
+        "items": [
+          {
+            "id": "claim.trap.concurrency.B1",
+            "title": "Resource saturation during anchor window",
+            "status": "pending",
+            "metadata": {
+              "x-claim": {
+                "requiredEvidence": "Metrics or logs per domain pack trap.concurrency",
+                "prediction": "If concurrency caused delay, saturation evidence exists"
+              }
+            }
+          },
+          {
+            "id": "claim.trap.config.B1",
+            "title": "Suspect config flag verified in runtime",
+            "status": "pending",
+            "metadata": {
+              "x-claim": {
+                "requiredEvidence": "Runtime config snapshot — not source code",
+                "prediction": "If config story is true, runtime value matches"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "branch.slowness",
+        "title": "Why wall clock was high",
+        "status": "pending",
+        "items": []
+      },
+      {
+        "id": "branch.terminal",
+        "title": "How the session ended",
+        "status": "pending",
+        "items": []
+      }
+    ],
+    "edges": [],
+    "references": [],
+    "metadata": {
+      "x-investigation": {
+        "profile": "forensic-research-v1",
+        "domain": "",
+        "wave": 0,
+        "anchor": {},
+        "agents": {},
+        "wavesCompleted": {},
+        "chatEmbargo": true,
+        "validatorPassedAt": null
+      }
+    }
+  }
+}
