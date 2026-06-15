@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Blocked vBRIEFs now auto-promote once their dependencies finish, so cascades advance without manual bookkeeping (#1287)** -- a new `task vbrief:reconcile:graph` walks `vbrief/proposed/` and promotes any candidate whose `swarm.depends_on[]` entries have all resolved to completed or cancelled work. It is forge-agnostic, respects the WIP cap (with a `--force` override), detects dependency cycles, and is idempotent so a second run is a no-op. Supports `--dry-run` and `--json`. Part of the #1284 vBRIEF-as-canonical epic. Closes #1287.
 
 ### Changed
 

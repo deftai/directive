@@ -74,6 +74,33 @@ tasks:
         resolved=$(uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/_resolve_preflight_path.py" --project-root "{{.USER_WORKING_DIR}}") || exit $?
         uv --project "{{.DEFT_ROOT}}" run python "$resolved" --project-root "{{.USER_WORKING_DIR}}" --vbrief-path {{.CLI_ARGS}}
 
+  reconcile:graph:
+    # Cascade-unblock walker (#1287). Walks vbrief/proposed/, resolves each
+    # candidate's plan.metadata.swarm.depends_on[] against current lifecycle
+    # state, and promotes (proposed/ -> pending/ via scope_lifecycle) every
+    # candidate whose dependencies ALL resolve to a brief in completed/ or
+    # cancelled/. Pure-vBRIEF / forge-agnostic: reuses the swarm_readiness.py
+    # dep-graph + cycle machinery and the scope_lifecycle promote surface.
+    # WIP-cap aware, cycle-safe (exit 1 on a detected cycle), and idempotent
+    # (a second run is a no-op). Pass-through flags: --force (override the WIP
+    # cap, audited), --dry-run (report without moving), --json (machine
+    # summary).
+    #
+    # CLI_ARGS forwarding (#577): bare ``{{.CLI_ARGS}}`` -- DO NOT wrap in
+    # Taskfile-level double quotes. go-task already shell-escapes CLI_ARGS
+    # with single quotes; double-wrapping breaks Windows argv. See the
+    # preflight task below for the full rationale.
+    #
+    # NOTE: NO ``sources:`` / ``generates:`` per ``conventions/task-caching.md``
+    # because the walk reads/writes lifecycle folders that go-task does not
+    # track, so a cached skip would silently swallow real promotions.
+    desc: "Reconcile dep graph: promote proposed/ vBRIEFs whose swarm.depends_on[] all resolve to completed/ or cancelled/ (#1287). Flags: --force --dry-run --json."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_graph.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   activate:
     # Implementation-intent activation gate companion (#810). Idempotent:
     # already-active vBRIEFs print a no-op message and exit 0; pending/
