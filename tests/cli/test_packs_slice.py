@@ -209,6 +209,139 @@ def test_list_slices_payload(fixture_pack: tuple[Path, Path]) -> None:
     assert "[filters: tag]" in text and "[filters: since]" in text
 
 
+# --- --list-packs (pack-level discovery, #1637) -----------------------------
+
+
+def _write_fixture_registry(tmp_path: Path) -> tuple[Path, Path]:
+    """Build a synthetic on-disk pack registry with TWO packs + schemas.
+
+    Returns (packs_dir, schemas_dir). Proves discovery is registry-driven:
+    both packs appear with no code change to packs_slice.discover_packs.
+    """
+    packs_dir = tmp_path / "packs"
+    schemas_dir = tmp_path / "schemas"
+    packs_dir.mkdir()
+    schemas_dir.mkdir()
+
+    # Pack 1: lessons
+    (packs_dir / "lessons").mkdir()
+    (packs_dir / "lessons" / "lessons-pack-0.1.json").write_text(
+        json.dumps({"pack": "lessons-pack-0.1", "version": "0.1", "lessons": []}),
+        encoding="utf-8",
+    )
+    (schemas_dir / "lessons-pack.schema.json").write_text(
+        json.dumps({"title": "Lessons Pack", "description": "Captured lessons. More prose."}),
+        encoding="utf-8",
+    )
+
+    # Pack 2: a synthetic second pack added with NO code change.
+    (packs_dir / "skills").mkdir()
+    (packs_dir / "skills" / "skills-pack-0.2.json").write_text(
+        json.dumps({"pack": "skills-pack-0.2", "version": "0.2", "skills": []}),
+        encoding="utf-8",
+    )
+    (schemas_dir / "skills-pack.schema.json").write_text(
+        json.dumps({"title": "Skills Pack", "description": "Reusable skills. Extra detail."}),
+        encoding="utf-8",
+    )
+    return packs_dir, schemas_dir
+
+
+def test_discover_packs_finds_real_lessons_pack() -> None:
+    """The real on-disk registry yields the committed lessons pack."""
+    packs = packs_slice.discover_packs()
+    names = [p["name"] for p in packs]
+    assert "lessons" in names
+    lessons = next(p for p in packs if p["name"] == "lessons")
+    assert lessons["version"] == "0.1"
+    assert lessons["pack"] == "lessons-pack-0.1"
+    assert lessons["description"]  # one-liner read from the schema
+    assert lessons["source"].endswith(".json")
+
+
+def test_discover_packs_is_registry_driven(tmp_path: Path) -> None:
+    """A second pack dropped into the registry appears with NO code change."""
+    packs_dir, schemas_dir = _write_fixture_registry(tmp_path)
+    packs = packs_slice.discover_packs(packs_dir, schemas_dir)
+    names = [p["name"] for p in packs]
+    assert names == ["lessons", "skills"]  # sorted, both auto-discovered
+    skills = next(p for p in packs if p["name"] == "skills")
+    assert skills["version"] == "0.2"
+    assert skills["pack"] == "skills-pack-0.2"
+    assert skills["description"] == "Reusable skills"  # first sentence only
+
+
+def test_discover_packs_missing_dir_returns_empty(tmp_path: Path) -> None:
+    packs = packs_slice.discover_packs(tmp_path / "nope", tmp_path / "also-nope")
+    assert packs == []
+
+
+def test_discover_packs_skips_dir_without_source(tmp_path: Path) -> None:
+    packs_dir = tmp_path / "packs"
+    (packs_dir / "empty").mkdir(parents=True)
+    packs = packs_slice.discover_packs(packs_dir, tmp_path / "schemas")
+    assert packs == []
+
+
+def test_discover_packs_missing_schema_yields_blank_description(tmp_path: Path) -> None:
+    packs_dir = tmp_path / "packs"
+    (packs_dir / "rules").mkdir(parents=True)
+    (packs_dir / "rules" / "rules-pack-0.1.json").write_text(
+        json.dumps({"pack": "rules-pack-0.1", "version": "0.1"}), encoding="utf-8"
+    )
+    packs = packs_slice.discover_packs(packs_dir, tmp_path / "no-schemas")
+    assert packs[0]["name"] == "rules"
+    assert packs[0]["description"] == ""
+
+
+def test_list_packs_text_format(tmp_path: Path) -> None:
+    packs_dir, schemas_dir = _write_fixture_registry(tmp_path)
+    payload = packs_slice.list_packs(packs_dir, schemas_dir)
+    text = packs_slice.format_list_packs_text(payload)
+    assert "Available content packs:" in text
+    assert "lessons" in text and "skills" in text
+    assert "0.1" in text and "0.2" in text
+
+
+def test_list_packs_text_empty() -> None:
+    text = packs_slice.format_list_packs_text({"packs": []})
+    assert "No content packs found." in text
+
+
+def test_one_line_takes_first_sentence() -> None:
+    assert packs_slice._one_line("First sentence. Second sentence.") == "First sentence"
+    assert packs_slice._one_line("  collapse   whitespace  ") == "collapse whitespace"
+    assert packs_slice._one_line("") == ""
+
+
+def test_main_list_packs_text_exit0(capsys: pytest.CaptureFixture) -> None:
+    rc = packs_slice.main(["--list-packs"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Available content packs:" in out
+    assert "lessons" in out
+
+
+def test_main_list_packs_json_exit0(capsys: pytest.CaptureFixture) -> None:
+    rc = packs_slice.main(["--list-packs", "--json"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    payload = json.loads(out)
+    names = [p["name"] for p in payload["packs"]]
+    assert "lessons" in names
+    lessons = next(p for p in payload["packs"] if p["name"] == "lessons")
+    assert lessons["version"] == "0.1"
+    assert "source" in lessons  # provenance
+
+
+def test_main_missing_pack_without_list_packs_exit2(capsys: pytest.CaptureFixture) -> None:
+    rc = packs_slice.main([])
+    err = capsys.readouterr().err
+    assert rc == 2
+    assert "pack name is required" in err
+    assert "--list-packs" in err
+
+
 # --- errors -----------------------------------------------------------------
 
 

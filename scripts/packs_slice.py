@@ -17,6 +17,10 @@ Design contract (#1283):
   ``source_sha`` (sha256 of the source file).
 - ``--list`` discovers slice names + one-liners; an unknown slice exits 2 with
   a did-you-mean suggestion. Three-state exit: 0 ok / 2 usage error.
+- ``--list-packs`` discovers the available packs (short-name + version +
+  one-liner) by scanning the on-disk pack registry (``packs/*/`` sources +
+  ``vbrief/schemas/*-pack.schema.json``). It is registry-driven / self-
+  extending: a new pack appears with no code change here (#1637).
 
 Exit codes:
     0 -- ok
@@ -46,6 +50,14 @@ PACK_REGISTRY: dict[str, dict[str, Path]] = {
         "schema": REPO_ROOT / "vbrief" / "schemas" / "lessons-pack.schema.json",
     },
 }
+
+# Pack-LEVEL discovery (``--list-packs``, #1637) scans the on-disk pack
+# registry rather than the hardcoded ``PACK_REGISTRY`` above so a new pack
+# (e.g. a future skills-pack / rules-pack) appears WITHOUT any code change
+# here: drop ``packs/<name>/<name>-pack-*.json`` + its
+# ``vbrief/schemas/<name>-pack.schema.json`` and ``--list-packs`` lists it.
+PACKS_DIR = REPO_ROOT / "packs"
+SCHEMAS_DIR = REPO_ROOT / "vbrief" / "schemas"
 
 _SINCE_RE = re.compile(r"^\d{4}-\d{2}(-\d{2})?$")
 
@@ -227,6 +239,95 @@ def list_slices(
     }
 
 
+def _one_line(text: str) -> str:
+    """Collapse whitespace and return the first sentence of ``text``.
+
+    Pack descriptions in the schemas are multi-paragraph; ``--list-packs``
+    wants a single token-cheap one-liner, so take the leading sentence (up to
+    the first period-space) of the whitespace-folded text.
+    """
+    folded = " ".join(text.split())
+    head = folded.split(". ", 1)[0]
+    return head.rstrip(".") if head else ""
+
+
+def discover_packs(
+    packs_dir: Path = PACKS_DIR,
+    schemas_dir: Path = SCHEMAS_DIR,
+) -> list[dict[str, Any]]:
+    """Scan the on-disk pack registry and return sorted pack descriptors.
+
+    Registry-driven / self-extending (#1637): each ``packs/<name>/`` directory
+    holding a canonical ``*.json`` source is a pack. The short-name is the
+    directory name, the version comes from the source's ``version`` field, and
+    the one-line description is read from the companion
+    ``vbrief/schemas/<name>-pack.schema.json`` (its ``description`` / ``title``).
+    A pack added later appears here with NO code change.
+    """
+    packs: list[dict[str, Any]] = []
+    if not packs_dir.is_dir():
+        return packs
+    for pack_dir in sorted(packs_dir.iterdir()):
+        if not pack_dir.is_dir():
+            continue
+        short_name = pack_dir.name
+        sources = sorted(pack_dir.glob("*.json"))
+        if not sources:
+            continue
+        source_path = sources[0]
+        try:
+            source_data = json.loads(source_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        pack_id = source_data.get("pack", short_name)
+        version = str(source_data.get("version", ""))
+
+        description = ""
+        schema_path = schemas_dir / f"{short_name}-pack.schema.json"
+        if schema_path.is_file():
+            try:
+                schema = json.loads(schema_path.read_text(encoding="utf-8"))
+                description = _one_line(
+                    schema.get("description") or schema.get("title") or ""
+                )
+            except (OSError, ValueError):
+                description = ""
+
+        packs.append(
+            {
+                "name": short_name,
+                "pack": pack_id,
+                "version": version,
+                "description": description,
+                "source": _rel_to_repo(source_path),
+            }
+        )
+    return packs
+
+
+def list_packs(
+    packs_dir: Path = PACKS_DIR,
+    schemas_dir: Path = SCHEMAS_DIR,
+) -> dict[str, Any]:
+    """Build the ``--list-packs`` discovery payload (registry-driven)."""
+    return {"packs": discover_packs(packs_dir, schemas_dir)}
+
+
+def format_list_packs_text(payload: dict[str, Any]) -> str:
+    """Render the ``--list-packs`` discovery payload as text."""
+    packs = payload["packs"]
+    if not packs:
+        return "No content packs found.\n"
+    lines = ["Available content packs:"]
+    name_w = max(len(p["name"]) for p in packs)
+    ver_w = max(len(p["version"]) for p in packs)
+    for p in packs:
+        lines.append(
+            f"  {p['name']:<{name_w}}  {p['version']:<{ver_w}}  {p['description']}"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def format_slice_text(result: dict[str, Any]) -> str:
     """Render a slice result as token-efficient text with a provenance header."""
     header = (
@@ -257,7 +358,11 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="packs_slice.py",
         description="Named, structured slice access to a content pack (#1283).",
     )
-    parser.add_argument("pack", help="Pack short-name (e.g. 'lessons').")
+    parser.add_argument(
+        "pack",
+        nargs="?",
+        help="Pack short-name (e.g. 'lessons'). Omit with --list-packs.",
+    )
     parser.add_argument(
         "name",
         nargs="?",
@@ -287,6 +392,12 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="list_slices",
         help="List the pack's slice names + descriptions, then exit.",
     )
+    parser.add_argument(
+        "--list-packs",
+        action="store_true",
+        dest="list_packs",
+        help="List the available packs (name + version + one-liner), then exit.",
+    )
     return parser
 
 
@@ -306,6 +417,17 @@ def main(argv: list[str] | None = None) -> int:
     tags = _collect_tags(args.tag)
 
     try:
+        if args.list_packs:
+            payload = list_packs()
+            if fmt == "json":
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(format_list_packs_text(payload), end="")
+            return 0
+
+        if not args.pack:
+            raise UsageError("a pack name is required (or pass --list-packs)")
+
         source_path, schema_path = resolve_pack(args.pack)
         registry = load_registry(schema_path)
         source_data = load_source(source_path)

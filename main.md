@@ -240,6 +240,7 @@ See [`skills/deft-directive-refinement/SKILL.md`](./skills/deft-directive-refine
 
 **Learning:**
 - ~ Continuously improve agent workflows
+- ~ Before implementing, LOAD relevant prior lessons via the content-pack slice surface: discover packs with `task deft:packs:slice --list-packs`, discover a pack's slices with `task deft:packs:slice <pack> --list`, then read the slice you need (read the slice, not the whole file)
 - ~ When repeated correction or better approach found, codify in `./lessons.md`
 - ? Modify `./lessons.md` without prior approval
 - ~ When using codified instruction, inform user which rule was applied

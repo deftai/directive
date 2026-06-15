@@ -250,6 +250,14 @@ _PROPAGATION_COMMAND_MARKERS: tuple[tuple[str, str], ...] = (
     ("task deft:verify:story-ready", "task verify:story-ready"),
     ("task deft:doctor", "task doctor"),
     ("task deft:agents:refresh", "task agents:refresh"),
+    # #1643/#1637: content-pack discovery command. The command is namespaced
+    # the same way on both surfaces (it lands only in the consumer managed
+    # section via the refresh), so both halves of the pair are identical --
+    # like the git-status / deft-install markers above.
+    (
+        "task deft:packs:slice --list-packs",
+        "task deft:packs:slice --list-packs",
+    ),
     # #1409: canonical headless upgrade command surfaced in both files.
     (
         "deft-install --yes --upgrade --repo-root . --json",
@@ -304,6 +312,8 @@ _PROPAGATION_HEADER_MARKERS: tuple[str, ...] = (
     "### Story Start Gate",
     # #1353: new ## PowerShell section in agents-entry.md (per #1309)
     "## PowerShell",
+    # #1643: content-pack discoverability note (per #1309).
+    "## Content packs",
 )
 
 #: The action-verb directive list (#810) is a SINGLE assertion -- the list
@@ -447,4 +457,58 @@ def test_propagation_probe_routing_markers_present_in_both_files() -> None:
     assert not agents_missing, (
         "AGENTS.md missing probe routing marker(s) from the #1518 propagation "
         f"gate: {agents_missing}."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Content-pack discoverability: wire against discovery, never enumerate (#1643)
+#
+# Hard constraint from the #1643 / #1637 amendment: the consumer wiring MUST
+# point agents at the DISCOVERY commands (`--list-packs` / `<pack> --list`) and
+# MUST NOT hardcode individual slice names (`recent`, `by-tag`, ...) or pack
+# names beyond the generic `<pack>` placeholder. If the wiring enumerated
+# names, every v2 slice/pack addition (#1637) would churn this section; keying
+# off `--list` keeps the wiring stable as packs/slices grow.
+# ---------------------------------------------------------------------------
+
+# Individual slice names that the lessons-loading wiring MUST NOT hardcode.
+_FORBIDDEN_HARDCODED_SLICE_NAMES: tuple[str, ...] = ("recent", "by-tag")
+
+
+def _content_packs_region() -> str:
+    """Slice the `## Content packs` block out of the managed section."""
+    section = _managed_section_text()
+    anchor = "## Content packs"
+    start = section.index(anchor)
+    rest = section[start + len(anchor):]
+    next_heading = re.search(r"\n#{2,6} ", rest)
+    return rest[: next_heading.start()] if next_heading else rest
+
+
+def test_content_packs_note_references_discovery_commands() -> None:
+    """#1643: the managed section names the pack/slice discovery commands."""
+    section = _managed_section_text()
+    assert "--list-packs" in section, (
+        "managed section MUST reference `task deft:packs:slice --list-packs` "
+        "as the pack-discovery command (#1643/#1637)."
+    )
+    assert "<pack> --list" in section, (
+        "managed section MUST reference `task deft:packs:slice <pack> --list` "
+        "as the slice-discovery command (#1643/#1637)."
+    )
+
+
+def test_content_packs_note_does_not_hardcode_slice_names() -> None:
+    """#1643 HARD CONSTRAINT: the lessons-loading wiring enumerates no names.
+
+    The Content packs region (the lessons-loading instruction) MUST NOT name
+    individual slices like `recent` / `by-tag`; it points at the discovery
+    commands so v2 pack/slice additions (#1637) require no edit here.
+    """
+    region = _content_packs_region()
+    leaked = [name for name in _FORBIDDEN_HARDCODED_SLICE_NAMES if name in region]
+    assert not leaked, (
+        "templates/agents-entry.md `## Content packs` section hardcodes slice "
+        f"name(s) {leaked} -- reference the discovery commands "
+        "(`--list-packs` / `<pack> --list`) instead (#1643/#1637)."
     )

@@ -301,7 +301,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=ac2cb119938e refreshed=2026-06-14T22:34:22Z session=eb242ab5feb4 -->
+<!-- deft:managed-section v3 sha=c996c94197ba refreshed=2026-06-15T15:01:25Z session=4b3282680590 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -369,6 +369,16 @@ The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbri
 
 ⊗ Recommend a specific issue or vBRIEF without consulting `task deft:triage:queue` (or showing the operator the result of the consultation).
 
+## Content packs
+
+Deft ships versioned content packs (e.g. lessons learned from prior work) under `.deft/core/packs/`. Discover and LOAD pack content via the slice surface instead of reading whole pack files into context:
+
+- `task deft:packs:slice --list-packs` -- discover which packs exist (short-name + version + one-line description). Registry-driven, so new packs appear automatically with no edit here.
+- `task deft:packs:slice <pack> --list` -- discover the named slices a pack exposes.
+- `task deft:packs:slice <pack> <slice> [-- <filters>]` -- load just the slice you need; read the slice, not the whole file.
+
+! Before improvising on a problem, discover packs with `task deft:packs:slice --list-packs`, then load the relevant slice. This wiring references the discovery commands on purpose -- it never enumerates pack or slice names, so new packs/slices need no change here.
+
 ## Skill Routing
 
 When user input matches a trigger keyword, read the corresponding skill (paths are relative to the consumer's project root and resolve under `.deft/core/skills/`):
@@ -391,6 +401,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "triage hygiene" / "work the cache" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
 - "what's next" / "queue" / "build a cohort" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
 - "welcome" / "onboard triage" -> invokes `task deft:triage:welcome --onboard` (N3 / #1143)
+- "lessons" / "prior art" / "what have we learned about X" -> discover packs with `task deft:packs:slice --list-packs`, then `task deft:packs:slice <pack> --list` and load the relevant slice before improvising (see Content packs above)
 
 The `deft-directive-release` skill is intentionally excluded -- it cuts deft framework releases against a temp clone of `deftai/directive` and is not a consumer-facing surface.
 
