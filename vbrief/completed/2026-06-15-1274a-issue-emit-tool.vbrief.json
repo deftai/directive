@@ -8,7 +8,7 @@
   "plan": {
     "id": "1274a-issue-emit-tool",
     "title": "task issue:emit -- vBRIEF -> GitHub issue write path",
-    "status": "running",
+    "status": "completed",
     "planRef": "#1274",
     "narratives": {
       "Description": "Ship task issue:emit, the write-direction counterpart to task issue:ingest, so a scope vBRIEF can be filed as a GitHub issue with one command. The verb renders the issue body from the vBRIEF title, Description, Acceptance, and Traces narratives, files the issue through the scripts/scm.py shim, and writes the resulting issue URL back into the source vBRIEF's references[] as an x-vbrief/github-issue entry.",
@@ -66,7 +66,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T12:44:22Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -80,6 +82,6 @@
         "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
       }
     ],
-    "updated": "2026-06-15T12:26:44Z"
+    "updated": "2026-06-15T12:44:22Z"
   }
 }

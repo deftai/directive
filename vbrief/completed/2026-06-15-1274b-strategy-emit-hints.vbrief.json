@@ -8,7 +8,7 @@
   "plan": {
     "id": "1274b-strategy-emit-hints",
     "title": "Strategy emit-hints: discoverable issue:emit across vBRIEF-producing strategies",
-    "status": "running",
+    "status": "completed",
     "planRef": "#1274",
     "narratives": {
       "Description": "Make GitHub-issue back-references discoverable at the moment every strategy finishes emitting scope vBRIEFs. Add one shared strategies/emit-hints.md helper that prints the none/umbrella/per-vBRIEF choice plus the canonical task issue:emit invocations, and link it from each vBRIEF-producing strategy's emission step the same way those strategies already reference artifact-guards.md. The framework default (vBRIEF-only, no issue) is unchanged; only the silence around it is removed.",
@@ -75,7 +75,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T12:44:23Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -89,6 +91,6 @@
         "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
       }
     ],
-    "updated": "2026-06-15T12:26:52Z"
+    "updated": "2026-06-15T12:44:23Z"
   }
 }
