@@ -9,7 +9,6 @@
     "id": "635-rule-ownership-map",
     "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
     "status": "proposed",
-    "planRef": "#635",
     "narratives": {
       "Problem": "PR #401 originally proposed a Rule Ownership Map as a descriptive prose section inside REFERENCES.md, mapping each framework rule (in main.md, AGENTS.md, SKILL.md prose) to its owning file and authority. Per canonical #642 workflow comment locked decisions, that prose section is being removed by Unit B during the trim because descriptive prose mapping decays under agent pressure -- agents move rules without updating the map, and there's no enforcement mechanism. The replacement: a structural data file consumed by a lint check that fails CI when a rule moves without a corresponding map update.",
       "Overview": "Land a rule-ownership-map data file (e.g. conventions/rule-ownership.yaml or rule-ownership.json) listing each framework rule with `id`, `text`, `owner_file`, `owner_section`, `authority` (RFC2119 marker), and `last_verified`. Land a lint check (e.g. scripts/rule_ownership_lint.py) that wires into `task check` via tasks/verify.yml or a new tasks/rule-ownership.yml -- it scans owner files for rule presence and fails when a rule listed in the map has been moved or deleted without a map update. Migration: capture the descriptive section being removed by Unit B and translate each entry into the data file before lint goes mandatory.",

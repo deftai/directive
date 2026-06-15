@@ -9,7 +9,6 @@
     "id": "845-story-6-triage-bootstrap-and-docs",
     "title": "feat(scripts,tasks,docs): triage bootstrap + UPGRADING.md + parent Taskfile wiring + quarantine spec + privacy NFR",
     "status": "completed",
-    "planRef": "#845",
     "narratives": {
       "Problem": "Consumer projects need a single command to opt into triage v1, with documented migration impact + privacy considerations. Standalone fragments from Stories 1-4 are not yet reachable via the parent Taskfile; this story wires them.",
       "Overview": "Implement `scripts/triage_bootstrap.py` exposing `task triage:bootstrap`: (1) populate cache for all open upstream issues; (2) backfill `candidates.jsonl` with `accepted` entries for items already in `proposed/`/`pending/`/`active/` (preserves audit trail; skips `cancelled/`); (3) add `.deft-cache/` to `.gitignore` if absent; (4) install gitcrawl if missing; (5) idempotent + reversible. Wire parent `tasks/Taskfile.yml` to include the four fragment files (triage-cache, triage-actions, triage-bulk, triage-bootstrap). Author UPGRADING.md \"Migration to triage v1\" section. Author docs/quarantine-spec.md and docs/privacy-nfr.md.",

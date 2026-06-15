@@ -9,7 +9,6 @@
     "id": "883-story-1-scm-stub",
     "title": "feat(scm): minimal stub (4 commands) for #883 v1 cache layer",
     "status": "completed",
-    "planRef": "#883",
     "narratives": {
       "Problem": "The #883 v1 cache layer needs a fetching layer underneath it; visionik's design doc explicitly puts scm:* tasks between external content and cache:put. Building cache:* against raw `gh` calls inline violates the layering and makes #881 (full scm:* namespace) harder to land later. v1 needs a minimal stub that captures the 4 commands the cache layer actually uses, no more.",
       "Overview": "Ship `tasks/scm.yml` exposing 4 scm:* commands as thin ghx-or-gh fallback wrappers: scm:issue:list, scm:issue:view, scm:issue:close, scm:issue:edit. Strong forward-compat marker at file top points at #881 for the full namespace. Each command emits JSON via --json. PR commands (scm:pr:list/view/merge/close) deferred to v2.",

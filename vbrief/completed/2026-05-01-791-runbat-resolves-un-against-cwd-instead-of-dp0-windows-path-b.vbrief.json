@@ -9,7 +9,6 @@
     "id": "791-runbat-cwd-resolution-bug",
     "title": "run.bat: resolve `run` against %~dp0 instead of CWD (Windows)",
     "status": "completed",
-    "planRef": "#791",
     "narratives": {
       "Problem": "run.bat:25 reads `python.exe run %*`. The `run` token is an unqualified relative path; Windows resolves it against the current working directory of the caller, not the directory of run.bat. Consumers who install deft as `./deft/` and follow the documented `..\\deft\\run upgrade` invocation from their project root therefore see python.exe fail to find a script named `run`. Workaround in field use: `python.exe \"<full path>\\deft\\run\" upgrade`.",
       "Overview": "Single-line fix in run.bat: replace `python.exe run %*` with `python.exe \"%~dp0run\" %*`. %~dp0 expands to the drive+path of the executing batch file with a trailing backslash and is the canonical Windows idiom for self-relative path resolution.",

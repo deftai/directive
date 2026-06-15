@@ -9,7 +9,6 @@
     "id": "1296-rules-and-strategies-pack",
     "title": "rules-pack-0.1 + strategies-pack-0.1",
     "status": "proposed",
-    "planRef": "#1296",
     "narratives": {
       "Description": "Blocked placeholder. Phase 3 of the vBRIEF-as-canonical rollout. Covers main.md, AGENTS.md, coding/*. The classification vocabulary from #748 is the natural schema-design input.",
       "ImplementationPlan": "Defer detailed implementation plan until Phase 2 (skills-pack-0.1) closes. Expected items: define schemas, ship renderers + slice APIs, migrate main.md / AGENTS.md / coding/* content.",

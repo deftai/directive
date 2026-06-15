@@ -9,7 +9,6 @@
     "id": "845-story-3-triage-actions",
     "title": "feat(scripts,tasks): triage action commands (accept/reject/defer/needs-ac/mark-duplicate/status/reset/history)",
     "status": "completed",
-    "planRef": "#845",
     "narratives": {
       "Problem": "Triage decisions need a clear command surface. The reject path must close the upstream GitHub issue with a reason + label and record the decision reversibly.",
       "Overview": "Implement `scripts/triage_actions.py` consuming Story 1 (cache) for issue context and Story 2 (audit log) for decision recording. Exposes Taskfile targets: `triage:accept <N>`, `triage:reject <N> --reason <r>`, `triage:defer <N>`, `triage:needs-ac <N>`, `triage:mark-duplicate <N> --of <M>`, `triage:status <N>` (current decision), `triage:reset <N>` (revert to prior), `triage:history <N>` (decision timeline).",

@@ -9,7 +9,6 @@
     "id": "883-deft-cache-quarantine-v1",
     "title": "feat(cache,quarantine): unified content cache + quarantine layer (v1 / triage migration)",
     "status": "completed",
-    "planRef": "#883",
     "narratives": {
       "Problem": "Triage v1 (#845) shipped with a P0 cache-bypass + audit-log-poisoning bug (#915, fixed in v0.25.2) plus three companion bugs (#913, #914, #916). The root cause was a triage-specific cache implementation that drifted from its stated contract. Building on top of that ad-hoc design produces more drift; #883 establishes a single, content-agnostic cache and quarantine layer that triage v1 (and later #610 wiki-llm, URL ingestion, etc.) consume rather than reimplement.",
       "Background": "Visionik authored the design doc landed via #925 at `docs/design-deft-cache-quarantine.md`. The doc captures the END-STATE architecture: 6 source types, ETag-based refresh, per-project YAML scanner extensions, mutation-triggered auto-invalidation, full task surface (cache:put/get/check/invalidate/refresh/prune/stats/doctor + standalone quarantine:scan). #883 v1 is a deliberately TRIMMED implementation focused exclusively on the immediate v1 consumer (triage v1 migration). 14+ design-doc capabilities are explicitly deferred to v2; see metadata.x-tracking.deferred_to_v2.",

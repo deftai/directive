@@ -7,7 +7,6 @@
     "title": "installer: add maintainer mode to avoid consumer file projections in framework repo",
     "status": "completed",
     "id": "1554-installer-maintainer-mode-tooling",
-    "planRef": "#1554",
     "narratives": {
       "Description": "Add a maintainer-specific installer path for directive framework checkouts so maintainers can bootstrap tools without projecting consumer files into the repository. The story covers Linux/WSL maintainer setup, consumer behavior preservation, and documentation that clearly separates maintainer and consumer installer flows.",
       "ImplementationPlan": "Update the Go installer maintainer-mode flow to bootstrap or fail loud for maintainer-required tools while skipping consumer file projections in framework checkouts. Extend setup tests and installer/docs coverage for maintainer-mode JSON, consumer-mode compatibility, and the optional `ghx` caching-tool distinction.",

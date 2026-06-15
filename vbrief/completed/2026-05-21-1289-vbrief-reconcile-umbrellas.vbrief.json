@@ -9,7 +9,6 @@
     "id": "1289-vbrief-reconcile-umbrellas",
     "title": "task vbrief:reconcile:umbrellas -- umbrella current-shape auto-update",
     "status": "completed",
-    "planRef": "#1289",
     "narratives": {
       "Description": "Auto-update each kind=epic vBRIEF's linked SCM umbrella current-shape comment per AGENTS.md section 1152. The verb edits the comment in place to preserve the permalink and leaves the amendment trail untouched, so a fresh contributor reads one accurate surface instead of reconstructing state from N comments.",
       "ImplementationPlan": "Add a new scripts/vbrief_reconcile_umbrellas.py module and a tasks/vbrief.yml entry. The script reads each kind=epic vBRIEF, walks its children, computes the wave structure, builds the canonical AGENTS.md section-1152 body, and calls the scripts/scm.py shim to edit the current-shape comment in place so the permalink is preserved. Add tests in tests/cli/test_vbrief_reconcile_umbrellas.py for pass-N bump and child-added/closed cases to verify the rendered body.",

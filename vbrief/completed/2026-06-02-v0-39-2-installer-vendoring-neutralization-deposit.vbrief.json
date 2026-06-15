@@ -9,7 +9,6 @@
     "id": "v0-39-2-installer-vendoring-neutralization-deposit",
     "title": "v0.39.2 Go-installer vendoring + neutralization deposit",
     "status": "completed",
-    "planRef": "#1429",
     "narratives": {
       "Overview": "Make the Go installer (cmd/deft-install) vendor the framework as a git-free tarball payload on fresh install and migrate existing git-clone payloads to vendored on --upgrade, then deposit the neutralization (.gitattributes linguist markers + Greptile/CodeQL bot-ignore + CI guard) so consumers treat .deft/core/** as packaged framework assets.",
       "Problem": "Fresh installs git-clone the framework, leaving a nested .deft/core/.git that (a) re-introduces the #1425 detached-HEAD `git pull` failure on tag clones and (b) makes the vendored payload mis-classify. The vendored framework payload is also surfaced to linguist language stats and bot reviewers (Greptile/CodeQL) as if it were consumer code.",

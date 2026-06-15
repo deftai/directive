@@ -9,7 +9,6 @@
     "id": "883-story-2-cache-infrastructure",
     "title": "feat(cache,quarantine): unified cache + scanner v2 baseline (#883 Story 2)",
     "status": "completed",
-    "planRef": "#883",
     "narratives": {
       "Problem": "Triage v1 (#845) shipped a triage-specific cache that drifted from its stated contract (#915 P0). #883 v1 replaces it with a content-agnostic cache and quarantine layer that future consumers (wiki-llm #610, URL/email/file ingestion) can reuse without reimplementing. The v1 trim limits scope to one source type (github-issue) and three scanner categories so the foundation ships fast and clean.",
       "Overview": "Ship `scripts/cache.py` (5 cache commands), `scripts/cache_scanner.py` (3 baseline categories), `tasks/cache.yml` (Taskfile fragment), and `vbrief/schemas/cache-meta.schema.json` (frozen meta.json contract validated on read AND write). Storage layout: `.deft-cache/<source>/<key>/{raw.json, content.md, meta.json}` plus `.deft-cache/quarantine-audit.jsonl` global audit log. Hard-coded TTL: github-issue=7d. Scanner severity is per-category (NOT uniform hard-fail per epic design_doc_departures): injection-heading=fence-and-pass, credentials=hard-fail, invisible-unicode=strip-and-pass.",

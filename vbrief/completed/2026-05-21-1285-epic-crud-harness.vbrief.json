@@ -9,7 +9,6 @@
     "id": "1285-epic-crud-harness",
     "title": "Epic 2 umbrella: deterministic CRUD harness for vBRIEF JSON (approved, non-gating)",
     "status": "completed",
-    "planRef": "#1285",
     "narratives": {
       "Description": "Approved, non-gating. The CRUD tool is required infrastructure (per #1167's code-abstraction-over-flat-tools) independent of Gate-2 evidence. Gate 2 (synthetic 3-arm evaluation) is dropped as part of the #742 decomposition.",
       "Overview": "Umbrella tracking the CRUD-harness work. 4 children across 2 waves. Wave-1: #1293 (core tool). Wave-2: #1297, #1298, #1299. Cascade-unblock for Wave-2 depends on Epic 1 Child #1287 (`task vbrief:reconcile:graph`)."

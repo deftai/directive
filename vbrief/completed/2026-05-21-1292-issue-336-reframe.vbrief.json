@@ -9,7 +9,6 @@
     "id": "1292-issue-336-reframe",
     "title": "Reframe #336: documentation-tier AXIOM application (drop 5 new core content types)",
     "status": "completed",
-    "planRef": "#1292",
     "narratives": {
       "Description": "Edit #336's body to drop the obsolete '5 new core content types' mechanism and reframe as documentation-tier AXIOM application with implementation via #714 tier-3 packs. Apply labels: determinism, rfc, design.",
       "ImplementationPlan": "Edit #336 body via gh issue edit --body-file; verify labels; add cross-references to this umbrella + Child 1.4 (rules-pack-0.1 / Phase 3).",

@@ -138,7 +138,6 @@
       }
     },
     "updated": "2026-05-03T04:38:18Z",
-    "id": "784-release-preflight-tag-availability",
-    "planRef": "#784"
+    "id": "784-release-preflight-tag-availability"
   }
 }

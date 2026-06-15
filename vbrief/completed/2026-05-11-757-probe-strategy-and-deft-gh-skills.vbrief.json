@@ -9,7 +9,6 @@
     "id": "757-probe-strategy-and-deft-gh-skills",
     "title": "Add probe strategy + deft-gh-slice/triage skills (re-author of #440)",
     "status": "completed",
-    "planRef": "#757",
     "narratives": {
       "Problem": "PR #440 introduced three valuable adaptations of mattpocock/skills (a `probe` adversarial-stress-test strategy and two gh-CLI-backed skills for converting SPECIFICATION.md into tracer-bullet issues and for triaging bug reports). The PR went stale (authored 2026-04-18), drifted ~3 weeks behind master, accumulated conflicts across SKILL.md, REFERENCES.md, ROADMAP.md, AGENTS.md, branch-gate workflow, and pre-commit hooks, and -- separately -- was authored without a scope vBRIEF, without a CHANGELOG entry, and without `.agents/skills/` stubs (so the new skills would not be discoverable by the agent runtime). PR #440 has been closed; this vBRIEF re-authors the three artifacts cleanly on top of current master with full gate compliance.",
       "Overview": "Three new artifacts plus minor cross-references and a CHANGELOG entry, on a fresh branch `feat/probe-and-gh-skills` off current master. Each new skill ships in two locations: canonical body at `skills/<name>/SKILL.md` and a discoverable stub at `.agents/skills/<name>/SKILL.md` per the established directory pattern (canonical body + agent-index stub). Probe is added to the strategies catalog and chaining gate. No production code paths change; this is a content-only feature for the directive framework's strategy/skill catalog.",

@@ -17,7 +17,7 @@
         "id": "1251-ac-1-selective-gitignore",
         "title": "Replace blanket vbrief/.eval/ append with three selective entries",
         "status": "completed",
-        "narratives": {
+        "narrative": {
           "Action": "scripts/_triage_bootstrap_gitignore.py exposes GITIGNORE_EVAL_ENTRIES tuple (candidates.jsonl, summary-history.jsonl, scope-lifecycle.jsonl) and _ensure_gitignore_selective_entries() appends only the missing entries with a #1144 rationale comment block. The blanket vbrief/.eval/ line is never appended; if an operator left one behind manually the step reports details.blanket_present=True without auto-rewriting (concurrency safety)."
         }
       },
@@ -25,7 +25,7 @@
         "id": "1251-ac-2-rename-step",
         "title": "Rename step_ensure_gitignore_eval_dir -> step_ensure_gitignore_eval_entries",
         "status": "completed",
-        "narratives": {
+        "narrative": {
           "Action": "Renamed the step function, removed the legacy GITIGNORE_EVAL_LINE blanket constant, updated all consumers (triage_bootstrap.py module docstring, run_bootstrap dispatcher, progress-emit step labels) and tests (tests/test_triage_bootstrap.py + tests/integration/test_triage_bootstrap_at_scale.py)."
         }
       },
@@ -33,7 +33,7 @@
         "id": "1251-ac-3-gitattributes-merge-union",
         "title": "Add .gitattributes vbrief/.eval/*.jsonl merge=union rule when missing",
         "status": "completed",
-        "narratives": {
+        "narrative": {
           "Action": "_ensure_gitattributes_merge_union() creates .gitattributes on a fresh clone with the canonical rule + rationale comment block, OR appends the rule to a pre-existing file that lacks it. Idempotent: a file with the rule already present (any whitespace between glob and attribute, plus trailing comments) is a no-op via _gitattributes_has_eval_merge_union() tokenizer."
         }
       },
@@ -41,7 +41,7 @@
         "id": "1251-ac-4-readme-write",
         "title": "Write canonical vbrief/.eval/README.md on fresh clone",
         "status": "completed",
-        "narratives": {
+        "narrative": {
           "Action": "_ensure_eval_readme() writes the canonical #1144 hybrid-policy README when absent. Body matches the on-disk vbrief/.eval/README.md byte-for-byte and satisfies the deterministic gates in tests/test_eval_governance.py::test_eval_readme_documents_policy (the three filenames, task triage:bootstrap regen command, merge=union policy, no-dedupe qualifier). Existing READMEs are left untouched."
         }
       },
@@ -49,7 +49,7 @@
         "id": "1251-ac-5-idempotent-no-op",
         "title": "Re-run against already-configured repo is a true no-op",
         "status": "completed",
-        "narratives": {
+        "narrative": {
           "Action": "All three sub-operations short-circuit when their target state is satisfied. test_ensure_gitignore_eval_entries_idempotent_when_selective_present pins byte-identity on .gitignore + .gitattributes + README after a no-op re-run. The framework's own task check stays green when the bootstrap runs against its own repo."
         }
       },
@@ -57,7 +57,7 @@
         "id": "1251-ac-6-unit-tests",
         "title": "Unit tests cover fresh-clone, idempotent, and never-blanket paths",
         "status": "completed",
-        "narratives": {
+        "narrative": {
           "Action": "tests/test_triage_bootstrap.py grows nine new tests under TestEnsureGitignoreEvalEntries: writes_selective_lines, idempotent_when_selective_present, never_appends_blanket, adds_gitattributes_when_missing, appends_gitattributes_rule_when_absent, writes_readme_when_missing, fails_without_existing_gitignore, flags_pre_existing_blanket. tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory + test_gitignore_has_selective_eval_entries both pass."
         }
       },
@@ -65,7 +65,7 @@
         "id": "1251-ac-7-summary-line-shim",
         "title": "Addendum: FetchAllReport.summary_line() compatibility shim",
         "status": "completed",
-        "narratives": {
+        "narrative": {
           "Action": "scripts/triage_bootstrap.py step_populate_cache recap line now delegates to report.summary_line(source=..., repo=...) when available (PR #1254 counter rename) and falls back to the legacy succeeded/failed/skipped hand-formatted string otherwise. Single-line getattr/hasattr check; lands safely regardless of #1254 merge order."
         }
       }

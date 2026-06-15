@@ -9,7 +9,6 @@
     "id": "1299-crud-contributor-doc",
     "title": "When to use CRUD tool vs direct vBRIEF authoring (contributor doc)",
     "status": "proposed",
-    "planRef": "#1299",
     "narratives": {
       "Description": "Blocked placeholder. Document the boundary: fresh vBRIEF authoring is fine; mutating an existing vBRIEF must go through CRUD. Cross-reference the AGENTS.md Rule Authority section.",
       "ImplementationPlan": "Defer detailed plan until 2.1 lands. Expected: add a section to CONTRIBUTING.md (or coding/coding.md) with the rule + worked examples; cross-reference from AGENTS.md.",

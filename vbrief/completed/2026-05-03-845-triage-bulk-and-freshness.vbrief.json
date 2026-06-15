@@ -9,7 +9,6 @@
     "id": "845-story-4-triage-bulk-and-freshness",
     "title": "feat(scripts,tasks): triage bulk ops + pre-swarm freshness gate",
     "status": "completed",
-    "planRef": "#845",
     "narratives": {
       "Problem": "Per-issue triage is too slow for ~200-issue corpora. Need bulk ops with filter flags. Separately, swarm Phase 0 currently reads `vbrief/active/` without reconciling against upstream — drift can sneak in. Need a pre-swarm freshness gate.",
       "Overview": "Implement `scripts/triage_bulk.py` exposing `triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac` with --label, --author, --age-days, --cluster filter flags. Implement `scripts/triage_refresh.py` exposing `triage:refresh-active`: refreshes cache for all issues referenced by `vbrief/active/*.vbrief.json` and surfaces drifted items with a three-way prompt (proceed-with-stale / refresh-and-update-local / defer-from-this-batch).",

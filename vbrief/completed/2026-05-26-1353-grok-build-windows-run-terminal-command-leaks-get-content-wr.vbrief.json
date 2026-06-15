@@ -18,31 +18,41 @@
       {
         "id": "item-1",
         "title": "Add section 3.5 to templates/agent-prompt-preamble.md",
-        "description": "Add new section 3.5 immediately after the existing section 3 PowerShell #798 rule. Title: 'Windows Grok Build harness capture limitations (observed 2026-05, #1353)'. Content: describes the pipe/redirection trigger condition and lists the three escape hatches: Python pathlib/subprocess.run(capture_output=True), user terminal handoff, worktree isolation with user-shell-required marker.",
+        "narrative": {
+          "Description": "Add new section 3.5 immediately after the existing section 3 PowerShell #798 rule. Title: 'Windows Grok Build harness capture limitations (observed 2026-05, #1353)'. Content: describes the pipe/redirection trigger condition and lists the three escape hatches: Python pathlib/subprocess.run(capture_output=True), user terminal handoff, worktree isolation with user-shell-required marker."
+        },
         "status": "proposed"
       },
       {
         "id": "item-2",
         "title": "Add Grok Build Windows capture limitations subsection to AGENTS.md under ## PowerShell",
-        "description": "Consumer-side mirror of the preamble rule. Same rule body with #1353 cross-reference. Add cross-link to docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md. Place immediately after the existing #798 recurrence record block.",
+        "narrative": {
+          "Description": "Consumer-side mirror of the preamble rule. Same rule body with #1353 cross-reference. Add cross-link to docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md. Place immediately after the existing #798 recurrence record block."
+        },
         "status": "proposed"
       },
       {
         "id": "item-3",
         "title": "Mirror to templates/agents-entry.md and run task agents:refresh",
-        "description": "Per #1309 template propagation discipline: the new AGENTS.md consumer-relevant rule MUST be mirrored into templates/agents-entry.md. Run task agents:refresh to regenerate consumer-side AGENTS.md. Verify tests/content/test_agents_entry_contract.py passes.",
+        "narrative": {
+          "Description": "Per #1309 template propagation discipline: the new AGENTS.md consumer-relevant rule MUST be mirrored into templates/agents-entry.md. Run task agents:refresh to regenerate consumer-side AGENTS.md. Verify tests/content/test_agents_entry_contract.py passes."
+        },
         "status": "proposed"
       },
       {
         "id": "item-4",
         "title": "Add one-liner Grok Windows callout to swarm, review-cycle, and pre-pr skills",
-        "description": "In skills/deft-directive-swarm/SKILL.md (at worktree creation and git polling steps), skills/deft-directive-review-cycle/SKILL.md, and skills/deft-directive-pre-pr/SKILL.md: add a short note flagging that on Windows + Grok Build, pipes and redirections in run_terminal_command trigger wrapper leakage; use Python pathlib form or plain git commands. One-liner per skill at the point where complex shell commands are described.",
+        "narrative": {
+          "Description": "In skills/deft-directive-swarm/SKILL.md (at worktree creation and git polling steps), skills/deft-directive-review-cycle/SKILL.md, and skills/deft-directive-pre-pr/SKILL.md: add a short note flagging that on Windows + Grok Build, pipes and redirections in run_terminal_command trigger wrapper leakage; use Python pathlib form or plain git commands. One-liner per skill at the point where complex shell commands are described."
+        },
         "status": "proposed"
       },
       {
         "id": "item-5",
         "title": "Run task check and add CHANGELOG entry",
-        "description": "Run task check (validate + lint + test including verify:encoding and test_agents_entry_contract). All must pass clean before committing. Add CHANGELOG.md [Unreleased] entry summarising the four rule/template/skill changes per #1242 style (2-4 sentences, user-visible benefit, refs #1353).",
+        "narrative": {
+          "Description": "Run task check (validate + lint + test including verify:encoding and test_agents_entry_contract). All must pass clean before committing. Add CHANGELOG.md [Unreleased] entry summarising the four rule/template/skill changes per #1242 style (2-4 sentences, user-visible benefit, refs #1353)."
+        },
         "status": "proposed"
       }
     ],

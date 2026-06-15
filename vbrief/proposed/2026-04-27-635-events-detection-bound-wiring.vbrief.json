@@ -9,7 +9,6 @@
     "id": "635-events-detection-bound",
     "title": "Events: detection-bound wiring (5 events with existing detectors)",
     "status": "proposed",
-    "planRef": "#635",
     "narratives": {
       "Problem": "PR #401's original DDD section introduced a domain-event vocabulary in core/events.md, but the prose-only encoding decays under agent pressure (the canonical #642 workflow comment's `Decisions locked` section calls this out as the root reason for splitting events into structural artifacts). Five of the proposed events are already detectable by existing scripts -- pre-cutover state, vBRIEF schema invalidity, AGENTS.md staleness, version drift, and dirty-tree -- but each detector emits in its own ad-hoc shape (warning lines, exit codes, in-script prints) rather than a uniform event record consumed by skills.",
       "Overview": "Define a minimal detection-bound event surface for the 5 events whose detectors already exist. Land the event names + payload contracts as a structural artifact (not prose in core/events.md, which is being deleted by the trim). Detectors emit a uniform record (`event`, `detected_at`, `payload`) consumable by skills via a single helper. Phase 0: list the 5 events + their existing detectors; Phase 1: define payload contracts; Phase 2: refactor each detector to emit the uniform record; Phase 3: update consuming skills.",

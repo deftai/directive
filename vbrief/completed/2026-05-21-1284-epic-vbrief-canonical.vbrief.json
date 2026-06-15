@@ -9,7 +9,6 @@
     "id": "1284-epic-vbrief-canonical",
     "title": "Epic 1 umbrella: vBRIEF-as-canonical for the agentic-consumed surface (approved direction)",
     "status": "completed",
-    "planRef": "#1284",
     "narratives": {
       "Description": "Approved direction (token-economics rationale; peripheral-content qualifier; defense-in-depth layers A-D). Carved out from #742 (decomposed). The pack rollout proceeds through Phase 1 (lessons-pack-0.1), Phase 2 (skills-pack-0.1), Phase 3 (rules-pack + strategies-pack). Wave-1 children build the supporting mechanisms (queue blocked-awareness, three reconcile verbs, stateReason routing, ADR doc, #336 reframe).",
       "Overview": "Umbrella tracking the vBRIEF-as-canonical migration. 11 children across 4 waves. Wave-1: #1286, #1274, #1287, #1288, #1289, #1290, #1291, #1292. Wave-2: #1294. Wave-3: #1295. Wave-4: #1296. The §1152 current-shape comment on the SCM issue carries the canonical state."

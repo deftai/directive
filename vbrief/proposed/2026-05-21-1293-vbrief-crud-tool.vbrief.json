@@ -9,7 +9,6 @@
     "id": "1293-vbrief-crud-tool",
     "title": "scripts/vbrief_crud.py -- typed CRUD tool for vBRIEF JSON",
     "status": "proposed",
-    "planRef": "#1293",
     "narratives": {
       "Description": "Build the deterministic CRUD tool. Round-trip-preserving writes, schema-validation-on-the-spot, byte-stable output. Foundation of Epic 2; the rest of Epic 2's children depend on it.",
       "ImplementationPlan": "Typed entry points (create, read, update, delete). Schema-validate via existing vbrief_validate.py. Deterministic JSON encoder configuration. Path-based addressing for nested fields. Architecture per #1167.",

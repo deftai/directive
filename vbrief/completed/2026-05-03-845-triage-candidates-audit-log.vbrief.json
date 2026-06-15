@@ -9,7 +9,6 @@
     "id": "845-story-2-triage-candidates-audit-log",
     "title": "feat(scripts,vbrief/schemas): triage candidates.jsonl audit log + JSON schema",
     "status": "completed",
-    "planRef": "#845",
     "narratives": {
       "Problem": "Triage decisions need a reversible audit trail. Without it, `task triage:reset <N>` and `task triage:history <N>` (Story 3) cannot be implemented. Sidecar JSONL chosen over vBRIEF schema extension to decouple from ADR-001 outcome.",
       "Overview": "Implement `scripts/candidates_log.py` providing append/read/scan operations on `vbrief/.eval/candidates.jsonl`. Each line is a JSON object validated against `vbrief/schemas/candidates.schema.json`. Schema fields (frozen interface for downstream agents): `decision_id` (uuid), `timestamp` (ISO-8601 UTC), `repo` (owner/name), `issue_number` (int), `decision` (enum: accept|reject|defer|needs-ac|mark-duplicate|reset), `actor` (string: user identity or `agent:<name>`), `reason` (string, optional), `linked_to` (int, only for mark-duplicate), `prior_decision_id` (uuid, only for reset).",

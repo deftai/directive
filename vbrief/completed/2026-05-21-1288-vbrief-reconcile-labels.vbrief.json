@@ -9,7 +9,6 @@
     "id": "1288-vbrief-reconcile-labels",
     "title": "task vbrief:reconcile:labels -- SCM label reconciliation",
     "status": "completed",
-    "planRef": "#1288",
     "narratives": {
       "Description": "Apply and remove SCM labels based on canonical vBRIEF state, routing through scripts/scm.py (#1145) to stay forge-agnostic. This closes the missing reverse direction of the existing GitHub-state-to-vBRIEF reconciler so the label surface mirrors lifecycle rather than drifting from it.",
       "ImplementationPlan": "Add a new scripts/vbrief_reconcile_labels.py module and a tasks/vbrief.yml entry, routing every forge call through scripts/scm.py (#1145). Apply the mapping: status=blocked or unresolved depends_on adds the status:blocked label, kind=epic adds epic plus status:tracker, kind=research adds rfc; the verb is idempotent. Add tests in tests/cli/test_vbrief_reconcile_labels.py for each mapping and idempotency to verify the behavior.",

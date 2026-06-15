@@ -9,7 +9,6 @@
     "id": "792-cmd-doctor-uv-and-stale-dirs",
     "title": "cmd_doctor: add uv check; replace pre-v0.20 expected_dirs with v0.20+ layout",
     "status": "completed",
-    "planRef": "#792",
     "narratives": {
       "Problem": "Two defects in run::cmd_doctor (run lines 2563-2612). (1) Missing uv check: every deft task script runs via `uv run python ...` (tasks/migrate.yml:34, tasks/issue.yml:27, etc.), making uv a hard runtime dependency. cmd_doctor checks task / git / python3 / go / node but not uv, so a fresh-machine user gets a green report and then an opaque `uv: command not found` failure as soon as they run task migrate:vbrief. (2) Stale expected_dirs: the list at run line 2596 includes pre-v0.20 directories core/, interfaces/, tools/, swarm/, meta/ that were removed during the vBRIEF cutover. On a clean v0.23 checkout cmd_doctor warns 'Missing directory: <name>/' for each, burying any real signal. The agent-driven setup skill already implements the right uv check (skills/deft-directive-setup/SKILL.md::Environment Preflight); cmd_doctor must mirror it.",
       "Overview": "Three changes in run::cmd_doctor: (1) add `check_command(\"uv\", \"uv (Astral Python runner)\", required=True)` and surface https://docs.astral.sh/uv/ as the install pointer; (2) replace expected_dirs with the v0.20+ canonical layout (languages, strategies, skills, templates, tasks, scripts, vbrief); (3) consolidate the warning summary so missing-uv is not buried under spurious dir warnings. Add tests covering the uv-missing path and the no-spurious-warnings path.",

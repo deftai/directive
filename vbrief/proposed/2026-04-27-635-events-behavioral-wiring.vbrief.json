@@ -9,7 +9,6 @@
     "id": "635-events-behavioral",
     "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
     "status": "proposed",
-    "planRef": "#635",
     "narratives": {
       "Problem": "PR #401's original DDD section also proposed behavioral events that capture agent and user actions in real time -- not just things deft can statically detect. Three of those have no existing detector and require new instrumentation: a paired session-lifecycle event (interrupted/resumed) for context-window shifts, a plan-approval event for the Phase 5->6 merge gate, and a legacy-detected event for legacy artifact captures during migration. Without structural emission these stay prose-only and decay under agent pressure (canonical #642 workflow comment, locked decisions).",
       "Overview": "Define and emit 3 behavioral events as structural artifacts. (1) `session:interrupted` + `session:resumed` (paired -- always emitted together; resumed references the interrupted record's id) for context-window shift detection per AGENTS.md Deft Alignment Confirmation. (2) `plan:approved` emitted when the user types `yes`/`confirmed`/`approve` in a PR thread per the Phase 5->6 gate in the canonical workflow comment + skills/deft-directive-review-cycle. (3) `legacy:detected` emitted by scripts/_vbrief_legacy.py when a non-canonical SPECIFICATION.md/PROJECT.md section is captured to vbrief/legacy/ (currently emits to vbrief/migration/LEGACY-REPORT.md as text only).",

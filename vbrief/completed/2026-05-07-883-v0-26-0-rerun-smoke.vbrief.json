@@ -9,7 +9,6 @@
     "id": "883-v0.26.0-rerun-smoke",
     "title": "v0.26.0 cache-layer scale smoke re-run after #952 bootstrap-hang fix (#883)",
     "status": "completed",
-    "planRef": "#883",
     "narratives": {
       "Problem": "Prior smoke (PR #953, doc: docs/smoke-2026-05-06-v0.26.0-scale.md) captured Phase 1 (N=50 filtered) cleanly but Phase 2 (full backlog) was salvaged read-only after the bootstrap orchestrator hung at 18:00 UTC after cache:fetch-all completed (filed as #952). PR #955 landed a watchdog (default 3600s, configurable) plus per-step structured progress on master @ e51f35d. We need empirical validation that the fix works at real-world scale, plus full Phase 2 metrics and an idempotency confirmation that were not captured the first time.",
       "Overview": "Docs+evidence run only. Wipe .deft-cache for a clean baseline, run task triage:bootstrap at full backlog scale with default watchdog, capture Phase 2 metrics (wall-clock, succeeded/failed/skipped, structured progress timings, audit/cache sizes, scanner flag distribution). Re-run cache:fetch-all immediately to confirm Story 2 idempotency (skip-fresh on every entry). Write docs/smoke-2026-05-07-v0.26.0-rerun.md with metrics + comparison vs prior smoke + evidence findings on #946-#949.",

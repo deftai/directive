@@ -9,7 +9,6 @@
     "id": "1348-session-ritual-verifier-implementation",
     "title": "Implement fail-closed session ritual verifier",
     "status": "completed",
-    "planRef": "#1348",
     "narratives": {
       "Description": "Implement the #1348 two-tier session ritual sentinel and verifier against the current directive master. This iteration exists because the prior #1348 vBRIEF is marked completed even though the GitHub issue remains open and the implementation surfaces are absent.",
       "ImplementationPlan": "Add a separate .deft/ritual-state.json state contract beside the existing fail-open last-session sentinel, implement task session:start and task verify:session-ritual, wire gated verification into vbrief:preflight, add the typed staleness policy field, update AGENTS/template/headless documentation, and cover the new contract with focused CLI/content/policy tests.",

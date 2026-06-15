@@ -9,7 +9,6 @@
     "id": "845-story-1-triage-cache-infra",
     "title": "feat(scripts,tasks): triage cache infra + #583 quarantine on cache path",
     "status": "completed",
-    "planRef": "#845",
     "narratives": {
       "Problem": "Refinement currently calls `gh issue view <N>` per item per evaluation pass. Token cost is O(N) per pass and rate-limited. Need a local cache so subsequent passes are O(1). #583 documents an injection-quarantine requirement that has not been implemented on the cache path.",
       "Overview": "Implement a sidecar issue cache at `.deft-cache/issues/<owner>-<repo>/<N>.json` (raw API response) and `.deft-cache/issues/<owner>-<repo>/<N>.md` (rendered, quarantined body). `task triage:cache` populates from `gh issue list --state open` (or `gitcrawl` if available); `task triage:show <N>` prints the cached body. Quarantine wraps any inline content that could be parsed as agent instructions (per #583).",

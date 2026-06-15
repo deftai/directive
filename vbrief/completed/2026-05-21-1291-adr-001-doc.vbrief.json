@@ -9,7 +9,6 @@
     "id": "1291-adr-001-doc",
     "title": "ADR-001 doc deliverable: vBRIEF-as-canonical (write the doc)",
     "status": "completed",
-    "planRef": "#1291",
     "narratives": {
       "Description": "Write docs/decisions/ADR-001.md per the #665 ADR convention. Inherits the approved sections of #742's rationale prose verbatim (token-economics, qualifier, two-axis context, defense-in-depth layers, counter-arguments, operational-state carve-out, strategic positioning).",
       "ImplementationPlan": "Author the ADR file per the #665 template. Add a cross-reference line to main.md's AXIOM section. Run task check (encoding gate + any doc-link checks).",

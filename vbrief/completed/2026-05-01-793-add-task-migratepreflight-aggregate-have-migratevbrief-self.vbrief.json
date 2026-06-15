@@ -9,7 +9,6 @@
     "id": "793-task-migrate-preflight-aggregate",
     "title": "Add task migrate:preflight; have migrate:vbrief self-invoke it",
     "status": "completed",
-    "planRef": "#793",
     "narratives": {
       "Problem": "The pre-cutover migration preflight (task resolvability, uv on PATH, migrate_vbrief.py present) is currently prescribed only on the agent-driven path (QUICK-START.md Step H.2; skills/deft-directive-setup/SKILL.md Environment Preflight). A user who follows main.md Migrating from pre-v0.20 and runs `task migrate:vbrief` directly gets none of those checks: failures surface as raw subprocess errors (uv not found, FileNotFoundError) with no remediation pointer. This is an adoption blocker for any non-agent entry path (CI runs, scripted upgrades, ops engineers).",
       "Overview": "Two complementary surfaces. (1) Add a new aggregate task `migrate:preflight` to tasks/migrate.yml that runs the three checks via a new scripts/migrate_preflight.py and prints a one-line remediation per failure. (2) Wire `migrate:vbrief` to invoke preflight before doing destructive work (either via deps: or as the first cmd), with a `--skip-preflight` opt-out for advanced users. Closes the parity gap between agent-driven and CLI-driven entry.",

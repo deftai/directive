@@ -9,7 +9,6 @@
     "id": "845-story-5-triage-refinement-phase-0",
     "title": "feat(skills): extend deft-directive-refinement with Phase 0 (cache + triage)",
     "status": "completed",
-    "planRef": "#845",
     "narratives": {
       "Problem": "The current refinement skill ingests every candidate to `proposed/` first, then evaluates. This is the root cause of `proposed/` semantic drift and the wasted-regen problem (#845).",
       "Overview": "Add a new Phase 0 to `skills/deft-directive-refinement/SKILL.md` that operates on the new cache + triage primitives (Stories 1-4). Phase 0 invokes `task triage:cache` to populate, then routes each new candidate through `task triage:accept|reject|defer|needs-ac`. The existing Phase 1 then runs ONLY on accepted items. Phase 0 auto-skips when the cache is empty (graceful degradation; consumers don't need to opt in).",

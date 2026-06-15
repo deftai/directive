@@ -126,7 +126,6 @@
       }
     },
     "updated": "2026-05-03T04:38:15Z",
-    "id": "800-swarm-no-checkout-in-others-worktree",
-    "planRef": "#800"
+    "id": "800-swarm-no-checkout-in-others-worktree"
   }
 }

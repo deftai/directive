@@ -9,7 +9,6 @@
     "id": "1287-vbrief-reconcile-graph",
     "title": "task vbrief:reconcile:graph -- cascade-unblock walker",
     "status": "completed",
-    "planRef": "#1287",
     "narratives": {
       "Description": "Build the cascade-unblock walker: a verb that promotes vBRIEFs whose swarm.depends_on[] all resolve to completed/ or cancelled/. The walker is pure-vBRIEF and forge-agnostic, and composes with the existing scripts/swarm_readiness.py dependency-graph machinery so the decomposition advances without manual promotion.",
       "ImplementationPlan": "Add a new scripts/vbrief_reconcile_graph.py module and a tasks/vbrief.yml entry. The script walks vbrief/proposed/, resolves each candidate's depends_on against current lifecycle state, and runs scope_lifecycle promote on eligible candidates while respecting the WIP cap, idempotently. Add tests in tests/cli/test_vbrief_reconcile_graph.py covering single-dep, multi-dep, cycle, and WIP-cap interaction to verify the behavior.",

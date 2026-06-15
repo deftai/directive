@@ -9,7 +9,6 @@
     "id": "1297-crud-taskfile-wiring",
     "title": "Wire vBRIEF CRUD into task surface",
     "status": "proposed",
-    "planRef": "#1297",
     "narratives": {
       "Description": "Blocked placeholder. Operator-facing wrappers for the CRUD tool. Scope finalizes when Child 2.1 lands.",
       "ImplementationPlan": "Defer detailed plan until 2.1 lands. Expected: task vbrief:create / read / update / delete entries in the Taskfile, with arg passthrough to scripts/vbrief_crud.py.",

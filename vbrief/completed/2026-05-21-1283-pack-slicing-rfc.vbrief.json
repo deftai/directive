@@ -9,7 +9,6 @@
     "id": "1283-pack-slicing-rfc",
     "title": "Pack-aware slice API -- surface, semantics, mechanisms (design RFC)",
     "status": "completed",
-    "planRef": "#1283",
     "narratives": {
       "Description": "Design RFC for the pack-aware slice mechanism that vBRIEF-as-canonical (Epic 1) depends on for selective-loading. Carved out from #742 (decomposed); this RFC starts fresh because the original section in #742 was unclear in what it presented.",
       "Overview": "Question-driven RFC. Defines what a pack is (schema-managed bundle), what a slice is (named structured subset; NOT #929 tracer-bullet), the `task <pack>:slice <name> <path>` surface shape, the slice-name registry mechanism, the vBRIEF-source-vs-rendered-output relationship, and the versioning policy. Out of scope: specific pack schemas (per-pack issues), migration order, peripheral content."

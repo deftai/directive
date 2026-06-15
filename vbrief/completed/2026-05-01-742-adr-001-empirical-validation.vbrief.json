@@ -9,7 +9,6 @@
     "id": "742-adr-001-empirical-validation",
     "title": "ADR-001 empirical validation: comprehension parity + CRUD determinism gates",
     "status": "completed",
-    "planRef": "#742",
     "narratives": {
       "Problem": "ADR-001 (#742) proposes vBRIEF-as-master for the agentic-consumed surface. Visionik's Apr-30 review approved-with-conditions, raising two empirical prerequisites that block final approval: (1) cross-model/harness comprehension validation -- verify that {Opus, ChatGPT, Gemini, etc.} and harnesses {Claude Code, Warp, opencode, pi.dev} consume vBRIEF JSON as well as Markdown; (2) deterministic CRUD tooling as a hard prerequisite -- without typed CRUD operations on vBRIEF JSON, agents 'innovate' within the structure, undermining the reliability claim. Both must be answered empirically before ADR approval and Phase 1 can ship.",
       "Overview": "Two-gate empirical validation. Gate 1 = comprehension parity benchmark (cross-model, cross-harness, paired-form, scored against gold labels). Gate 2 = CRUD-determinism three-arm evaluation (free-form vs schema-aware-prompt vs typed-CRUD-tooling) of agent-driven mutations. Build the deterministic CRUD tooling in deft-directive as both production guardrail and Gate 2's measurement subject. Bench infrastructure (runner, schema, methodology, results) lives in a new internal repo deftai/deft-agent-bench. Pre-registered thresholds locked before any data collection. V1 coverage: 3 models x 3 harnesses x 3 artifacts x N=3 trials; broader coverage as V1.1 follow-on.",

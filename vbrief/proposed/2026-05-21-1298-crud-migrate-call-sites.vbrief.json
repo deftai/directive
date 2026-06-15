@@ -9,7 +9,6 @@
     "id": "1298-crud-migrate-call-sites",
     "title": "Migrate existing free-form vBRIEF edit call sites to CRUD tool",
     "status": "proposed",
-    "planRef": "#1298",
     "narratives": {
       "Description": "Blocked placeholder. Sweep scripts/ for places that read+rewrite vBRIEF JSON inline and replace those call sites with vbrief_crud.py invocations. Removes free-form JSON editing as a maintenance hazard.",
       "ImplementationPlan": "Defer detailed plan until 2.1 lands. Expected: grep for json.load+json.dump patterns on vBRIEF files; replace each with CRUD calls; test that behavior is preserved.",

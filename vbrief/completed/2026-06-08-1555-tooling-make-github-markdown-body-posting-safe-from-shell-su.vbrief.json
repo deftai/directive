@@ -7,7 +7,6 @@
     "title": "tooling: make GitHub Markdown body posting safe from shell substitution",
     "status": "completed",
     "id": "1555-safe-github-markdown-body-posting",
-    "planRef": "#1555",
     "narratives": {
       "Description": "Add a canonical safe path for posting Markdown-rich GitHub issue, comment, and PR bodies so agents do not accidentally let the shell interpret backticks or other metacharacters. The story covers a reusable helper or task surface, documentation, and tests that preserve literal Markdown through GitHub mutations.",
       "ImplementationPlan": "Implement a small GitHub body-posting helper or task wrapper that accepts stdin or a file and invokes `gh api` through safe subprocess handling without shell interpolation. Update SCM guidance and agent prompt guidance with examples for create, edit, and live read-back, then add tests with backticks, dollar signs, quotes, and fenced code blocks.",

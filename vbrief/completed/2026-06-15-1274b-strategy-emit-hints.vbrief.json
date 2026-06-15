@@ -9,7 +9,6 @@
     "id": "1274b-strategy-emit-hints",
     "title": "Strategy emit-hints: discoverable issue:emit across vBRIEF-producing strategies",
     "status": "completed",
-    "planRef": "#1274",
     "narratives": {
       "Description": "Make GitHub-issue back-references discoverable at the moment every strategy finishes emitting scope vBRIEFs. Add one shared strategies/emit-hints.md helper that prints the none/umbrella/per-vBRIEF choice plus the canonical task issue:emit invocations, and link it from each vBRIEF-producing strategy's emission step the same way those strategies already reference artifact-guards.md. The framework default (vBRIEF-only, no issue) is unchanged; only the silence around it is removed.",
       "ImplementationPlan": "1. Add strategies/emit-hints.md containing the shared hint block (names the three patterns and the task issue:emit --umbrella / --per-vbrief / single invocations, plus the no-action default). 2. Add a one-line reference to strategies/emit-hints.md at the emission step of each vBRIEF-producing strategy doc: bdd.md, discuss.md, research.md, map.md, probe.md, interview.md, yolo.md, rapid.md, enterprise.md, and speckit.md (Phase 4 and Phase 4.5). 3. Add tests/strategies/test_emit_hints.py asserting the helper exists, names the three patterns, and that each listed strategy doc references emit-hints.md at its emission step.",
