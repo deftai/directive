@@ -97,6 +97,44 @@ GITHUB_ISSUE_REF_TYPES: frozenset[str] = frozenset(
     {"github-issue", "x-vbrief/github-issue"}
 )
 
+# #1290: GitHub ``stateReason`` values that route a CLOSED issue's vBRIEF
+# to ``cancelled/`` rather than ``completed/``. ``COMPLETED`` (and a null
+# reason / ``NOT_FOUND``) route to ``completed/`` -- the pre-#1290 default.
+CANCELLED_STATE_REASONS: frozenset[str] = frozenset({"NOT_PLANNED", "DUPLICATE"})
+
+
+class IssueState(str):
+    """A ``str`` subclass carrying a GitHub issue's state plus stateReason.
+
+    Phase A of #1290 extends ``fetch_issue_states`` to also fetch each
+    issue's ``stateReason`` so apply-mode can route CLOSED+NOT_PLANNED /
+    CLOSED+DUPLICATE to ``cancelled/`` while CLOSED+COMPLETED stays in
+    ``completed/``. To avoid breaking the many existing callers (and
+    tests) that compare the return value directly to the bare strings
+    ``"OPEN"`` / ``"CLOSED"`` / ``"NOT_FOUND"`` -- including
+    ``scripts/release.py::check_vbrief_lifecycle_sync`` -- the value is a
+    ``str`` subclass: it still ``==`` the bare state string, so legacy
+    code keeps working unchanged, while new code reads ``.state_reason``.
+    """
+
+    state_reason: str | None
+
+    def __new__(cls, state: str, state_reason: str | None = None) -> "IssueState":
+        obj = super().__new__(cls, state)
+        obj.state_reason = state_reason
+        return obj
+
+
+def state_reason_of(value: object) -> str | None:
+    """Return the ``stateReason`` carried by a state-map value, or None.
+
+    Thin accessor so callers that hold a state-map value (which may be a
+    plain ``str`` from a legacy/monkeypatched fetch or an ``IssueState``
+    from the real fetch) can read the reason without an ``isinstance``
+    dance. Returns ``None`` for plain strings / missing values (#1290).
+    """
+    return getattr(value, "state_reason", None)
+
 
 def is_terminal_lifecycle_path(rel_path: str) -> bool:
     """Return True when a vBRIEF relative path is already terminal."""
@@ -338,7 +376,7 @@ def fetch_issue_states(
     cwd: Path | None = None,
     *,
     batch_size: int = GRAPHQL_BATCH_SIZE,
-) -> dict[int, str] | None:
+) -> dict[int, IssueState] | None:
     """Fetch GitHub issue states via batched ``gh api graphql`` (#754).
 
     Inverts the lookup direction relative to ``fetch_open_issues``:
@@ -360,14 +398,19 @@ def fetch_issue_states(
     auth / config from the consumer project's directory (#538
     belt-and-suspenders).
 
-    Returns a dict mapping issue_number -> ``"OPEN"`` / ``"CLOSED"`` /
-    ``"NOT_FOUND"`` when every batch resolved cleanly, ``None`` on
+    Returns a dict mapping issue_number -> ``IssueState`` (a ``str``
+    subclass equal to ``"OPEN"`` / ``"CLOSED"`` / ``"NOT_FOUND"`` that
+    additionally carries the GitHub ``stateReason`` via
+    ``.state_reason``) when every batch resolved cleanly, ``None`` on
     subprocess error, parse error, or non-zero exit (mirrors
     ``fetch_open_issues``). An empty ``issue_numbers`` set returns an
-    empty dict (no subprocess call).
+    empty dict (no subprocess call). #1290 added the ``stateReason``
+    selection so apply-mode can route NOT_PLANNED / DUPLICATE closures
+    to ``cancelled/``; the ``str`` subclass keeps every existing caller
+    (and the bare-string equality tests) working unchanged.
 
-    Refs #754 (inverted-lookup gate fix); see also ``reconcile()`` and
-    ``scripts/release.py::check_vbrief_lifecycle_sync``.
+    Refs #754 (inverted-lookup gate fix), #1290 (stateReason); see also
+    ``reconcile()`` and ``scripts/release.py::check_vbrief_lifecycle_sync``.
     """
     if not issue_numbers:
         return {}
@@ -381,14 +424,16 @@ def fetch_issue_states(
     owner, name = parsed
 
     sorted_numbers = sorted(issue_numbers)
-    states: dict[int, str] = {}
+    states: dict[int, IssueState] = {}
 
     for start in range(0, len(sorted_numbers), batch_size):
         batch = sorted_numbers[start : start + batch_size]
         # Aliased-node block: each issue gets a unique alias (``i<N>``)
         # so the GraphQL response carries every state in a single query.
+        # #1290: also select ``stateReason`` so apply-mode can route
+        # NOT_PLANNED / DUPLICATE closures to ``cancelled/``.
         aliases = "\n    ".join(
-            f"i{n}: issue(number: {n}) {{ state }}" for n in batch
+            f"i{n}: issue(number: {n}) {{ state stateReason }}" for n in batch
         )
         query = (
             "query {\n"
@@ -463,11 +508,15 @@ def fetch_issue_states(
         for n in batch:
             node = repo_data.get(f"i{n}")
             if isinstance(node, dict) and isinstance(node.get("state"), str):
-                states[n] = node["state"]
+                reason = node.get("stateReason")
+                states[n] = IssueState(
+                    node["state"],
+                    reason if isinstance(reason, str) else None,
+                )
             else:
                 # GraphQL returns null for non-existent issues; map to a
                 # sentinel the caller can detect.
-                states[n] = "NOT_FOUND"
+                states[n] = IssueState("NOT_FOUND", None)
 
     return states
 
@@ -517,10 +566,14 @@ def reconcile(
                 if state == "CLOSED"
                 else "Issue is closed or does not exist"
             )
+            # #1290: surface state + stateReason so apply-mode can route
+            # CLOSED+NOT_PLANNED / CLOSED+DUPLICATE to cancelled/.
             no_open_issue.append({
                 "issue_number": num,
                 "vbrief_files": vbrief_files,
                 "note": note,
+                "state": str(state),
+                "state_reason": state_reason_of(state),
             })
 
     return {
@@ -587,6 +640,157 @@ def reconcile_with_unlinked(
             "total_open_issues": len(open_issues),
             "linked_count": len(linked),
             "unlinked_count": len(unlinked),
+            "vbriefs_no_open_issue_count": len(no_open_issue),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle anchor resolution (#1290 Phase B -- Axis B primary-reference filter)
+# ---------------------------------------------------------------------------
+
+
+def parse_plan_ref(data: dict) -> int | None:
+    """Extract the canonical issue number from ``plan.planRef`` (#1290).
+
+    ``planRef`` is the vBRIEF's own primary issue (e.g. ``"#1290"``). It
+    is the canonical lifecycle anchor: a vBRIEF that merely *references*
+    an unrelated closed umbrella in ``plan.references[]`` must NOT be
+    dragged into that umbrella's terminal state. Accepts both the bare
+    ``#N`` shape and a full issue URL. Returns ``None`` when the field is
+    absent or unparseable, so callers can fall back to ``references[]``.
+    """
+    plan = data.get("plan", {})
+    if not isinstance(plan, dict):
+        return None
+    raw = plan.get("planRef")
+    if not isinstance(raw, str):
+        return None
+    candidate = raw.strip()
+    m = ISSUE_ID_PATTERN.match(candidate)
+    if m:
+        return int(m.group("number"))
+    m = ISSUE_URL_PATTERN.search(candidate)
+    if m:
+        return int(m.group("number"))
+    return None
+
+
+def resolve_lifecycle_anchor(data: dict) -> tuple[int | None, str]:
+    """Resolve a vBRIEF's canonical lifecycle anchor (#1290 Phase B).
+
+    Returns ``(issue_number, axis)`` where ``axis`` is one of:
+      - ``"planRef"``     -- ``plan.planRef`` resolved to an issue number.
+      - ``"references"``  -- planRef absent/unresolvable; fell back to the
+                             first github-issue entry in ``references[]``.
+      - ``"none"``        -- neither yielded a github-issue number.
+
+    The Axis B fix: ``plan.planRef`` is consulted FIRST. ``references[]``
+    is read only as a fallback, so an umbrella close no longer false-
+    positives across an entire cohort whose own planRef issues are still
+    open (the #742 / #1283 / #1284 / #1285 / #1291 recurrence).
+    """
+    num = parse_plan_ref(data)
+    if num is not None:
+        return num, "planRef"
+    for ref in extract_references_from_vbrief(data):
+        if ref.get("type") not in GITHUB_ISSUE_REF_TYPES:
+            continue
+        num = parse_issue_number(ref)
+        if num is not None:
+            return num, "references"
+    return None, "none"
+
+
+def scan_lifecycle_anchors(vbrief_dir: Path) -> list[dict]:
+    """Resolve the canonical lifecycle anchor for every vBRIEF (#1290).
+
+    Unlike ``scan_vbrief_dir`` (which maps each issue number to ALL the
+    vBRIEFs that reference it, for the human report), this is vBRIEF-
+    centric: each vBRIEF resolves to exactly one canonical anchor via
+    ``resolve_lifecycle_anchor``. Returns a list of dicts with keys
+    ``rel_path``, ``issue_number`` (``int`` or ``None``), and ``axis``.
+    """
+    anchors: list[dict] = []
+    for folder in LIFECYCLE_FOLDERS:
+        folder_path = vbrief_dir / folder
+        if not folder_path.is_dir():
+            continue
+        for vbrief_file in sorted(folder_path.glob("*.vbrief.json")):
+            try:
+                data = json.loads(vbrief_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            num, axis = resolve_lifecycle_anchor(data)
+            anchors.append({
+                "rel_path": f"{folder}/{vbrief_file.name}",
+                "issue_number": num,
+                "axis": axis,
+            })
+    return anchors
+
+
+def build_lifecycle_report(
+    anchors: list[dict],
+    issue_state_map: dict[int, str],
+    *,
+    log: bool = True,
+) -> dict:
+    """Build the apply-mode report from canonical anchors (#1290 Phase B).
+
+    Each vBRIEF is classified by its OWN canonical anchor's state rather
+    than by every issue it references. Emits a structured per-vBRIEF log
+    line naming the resolved axis so a recovery audit can confirm the
+    reconciler routed off the correct anchor. Returns the same two-section
+    shape as ``reconcile`` (``linked`` / ``no_open_issue`` / ``summary``),
+    with each ``no_open_issue`` entry carrying ``state`` + ``state_reason``
+    for apply-mode routing.
+    """
+    linked: list[dict] = []
+    no_open_issue: list[dict] = []
+
+    for anchor in anchors:
+        rel = anchor["rel_path"]
+        num = anchor["issue_number"]
+        axis = anchor["axis"]
+        if num is None:
+            if log:
+                print(
+                    f"[lifecycle-resolve] vbrief={rel} axis=none "
+                    "anchor=none state=n/a stateReason=n/a",
+                    file=sys.stderr,
+                )
+            continue
+        value = issue_state_map.get(num)
+        state = str(value) if value is not None else "NOT_FOUND"
+        reason = state_reason_of(value)
+        if log:
+            print(
+                f"[lifecycle-resolve] vbrief={rel} axis={axis} "
+                f"anchor=#{num} state={state} stateReason={reason}",
+                file=sys.stderr,
+            )
+        if state == "OPEN":
+            linked.append({"issue_number": num, "vbrief_files": [rel]})
+        else:
+            note = (
+                "Issue is closed"
+                if state == "CLOSED"
+                else "Issue is closed or does not exist"
+            )
+            no_open_issue.append({
+                "issue_number": num,
+                "vbrief_files": [rel],
+                "note": note,
+                "state": state,
+                "state_reason": reason,
+            })
+
+    return {
+        "linked": linked,
+        "no_open_issue": no_open_issue,
+        "summary": {
+            "linked_count": len(linked),
             "vbriefs_no_open_issue_count": len(no_open_issue),
         },
     }
@@ -684,6 +888,18 @@ def _utc_now_iso() -> str:
     return _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _destination_folder(state_reason: str | None) -> str:
+    """Map a CLOSED issue's ``stateReason`` to a terminal folder (#1290).
+
+    ``NOT_PLANNED`` and ``DUPLICATE`` route to ``cancelled/``; everything
+    else (``COMPLETED``, a null reason, or the ``NOT_FOUND`` sentinel)
+    routes to ``completed/`` -- the pre-#1290 default behaviour.
+    """
+    if state_reason in CANCELLED_STATE_REASONS:
+        return "cancelled"
+    return "completed"
+
+
 def _git_mv(src: Path, dst: Path, *, cwd: Path | None = None) -> bool:
     """Move ``src`` -> ``dst`` using ``git mv`` when possible.
 
@@ -731,16 +947,21 @@ def apply_lifecycle_fixes(
     *,
     project_root: Path | None = None,
 ) -> tuple[int, int, list[str]]:
-    """Move non-terminal Section (c) entries to ``completed/``.
+    """Move non-terminal Section (c) entries to a terminal folder.
 
     Iterates ``report['no_open_issue']`` and for each vBRIEF file path
     that is NOT already in a terminal lifecycle folder:
 
     1. Read the JSON.
-    2. Set ``plan.status = "completed"``.
+    2. Route by the entry's ``state_reason`` (#1290): CLOSED+NOT_PLANNED
+       and CLOSED+DUPLICATE go to ``cancelled/`` (``plan.status =
+       "cancelled"``); everything else (COMPLETED / null reason /
+       NOT_FOUND) goes to ``completed/`` (``plan.status = "completed"``).
+       Entries without a ``state_reason`` key (legacy callers / hand-built
+       reports) default to ``completed/`` -- the pre-#1290 behaviour.
     3. Stamp ``vBRIEFInfo.updated`` with the current UTC ISO timestamp.
     4. Write the file back (UTF-8, no BOM, trailing newline).
-    5. ``git mv`` (or filesystem-move) the file into ``completed/``.
+    5. ``git mv`` (or filesystem-move) the file into the routed folder.
 
     The function is intentionally idempotent: a second call with a
     fresh report (where every entry already lives in ``completed/`` or
@@ -770,19 +991,19 @@ def apply_lifecycle_fixes(
     cwd = project_root if project_root is not None else vbrief_dir.parent
 
     # #756: pre-compute the unique candidate set in first-seen order so
-    # a vBRIEF that references multiple closed issues lands in
-    # ``completed/`` exactly once. ``dict.fromkeys`` preserves insertion
-    # order while collapsing duplicates without requiring an auxiliary
-    # set + list pair.
-    unique_rel_paths: list[str] = list(
-        dict.fromkeys(
-            rel_path
-            for entry in report.get("no_open_issue", [])
-            for rel_path in entry.get("vbrief_files", [])
-        )
-    )
+    # a vBRIEF that references multiple closed issues lands in its
+    # terminal folder exactly once. ``dict`` preserves insertion order
+    # while collapsing duplicates; the value records the first-seen
+    # ``state_reason`` so #1290 routing is stable across duplicate
+    # entries for the same path.
+    rel_reasons: dict[str, str | None] = {}
+    for entry in report.get("no_open_issue", []):
+        reason = entry.get("state_reason")
+        for rel_path in entry.get("vbrief_files", []):
+            if rel_path not in rel_reasons:
+                rel_reasons[rel_path] = reason
 
-    for rel_path in unique_rel_paths:
+    for rel_path, state_reason in rel_reasons.items():
         try:
             folder, filename = rel_path.split("/", 1)
         except ValueError:
@@ -795,8 +1016,11 @@ def apply_lifecycle_fixes(
             skipped += 1
             continue
 
+        # #1290: route by stateReason. NOT_PLANNED / DUPLICATE ->
+        # cancelled/; COMPLETED / null / NOT_FOUND -> completed/.
+        dest_folder = _destination_folder(state_reason)
         src = vbrief_dir / folder / filename
-        dst = vbrief_dir / "completed" / filename
+        dst = vbrief_dir / dest_folder / filename
         if not src.is_file():
             failures.append(f"vBRIEF file missing: {rel_path}")
             continue
@@ -811,21 +1035,23 @@ def apply_lifecycle_fixes(
         # mutating the source file on disk. Previously the
         # write-back happened before ``dst.exists()`` so a
         # collision left the source vBRIEF in an inconsistent
-        # half-completed state (``plan.status = "completed"``
-        # stamped on disk but the file still in its original
-        # lifecycle folder). Now the conflict guard fires before
-        # any write, so the source file stays byte-identical when
-        # the move cannot proceed.
-        (vbrief_dir / "completed").mkdir(parents=True, exist_ok=True)
+        # half-completed state (status stamped on disk but the file
+        # still in its original lifecycle folder). Now the conflict
+        # guard fires before any write, so the source file stays
+        # byte-identical when the move cannot proceed.
+        (vbrief_dir / dest_folder).mkdir(parents=True, exist_ok=True)
         if dst.exists():
             failures.append(
-                f"target already exists in completed/: {filename}"
+                f"target already exists in {dest_folder}/: {filename}"
             )
             continue
 
-        # Stamp status + updated.
+        # Stamp status + updated. cancelled/ vBRIEFs get
+        # plan.status="cancelled"; completed/ get "completed".
         plan = data.setdefault("plan", {})
-        plan["status"] = "completed"
+        plan["status"] = (
+            "cancelled" if dest_folder == "cancelled" else "completed"
+        )
         stamp = _utc_now_iso()
         info = data.setdefault("vBRIEFInfo", {})
         info["updated"] = stamp
@@ -846,7 +1072,7 @@ def apply_lifecycle_fixes(
             continue
 
         if not _git_mv(src, dst, cwd=cwd):
-            failures.append(f"failed to move {rel_path} -> completed/")
+            failures.append(f"failed to move {rel_path} -> {dest_folder}/")
             continue
         moved += 1
 
@@ -972,6 +1198,21 @@ def main() -> int:
     # issue and emits the three-section report; capped by
     # ``--max-open-issues`` so a 15k-open-issue repo cannot surprise
     # operators with a 30s+ fetch.
+    # #1290 Phase B: resolve each vBRIEF's canonical lifecycle anchor
+    # (planRef-first) so apply-mode never drags a cohort member into a
+    # closed umbrella's terminal state. Computed only when apply-mode is
+    # requested; the state fetch then covers both the reference-based
+    # scan (human report) and the canonical anchors (apply candidates),
+    # so a planRef issue absent from references[] still gets its state.
+    anchors: list[dict] = []
+    needed = set(issue_to_vbriefs.keys())
+    if args.apply_lifecycle_fixes:
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        needed |= {
+            a["issue_number"] for a in anchors if a["issue_number"] is not None
+        }
+
+    issue_state_map: dict[int, IssueState] | None = None
     if args.report_unlinked:
         open_issues = fetch_all_open_issues(repo, cwd=project_root)
         if open_issues is None:
@@ -985,11 +1226,16 @@ def main() -> int:
             )
             return 1
         report = reconcile_with_unlinked(issue_to_vbriefs, open_issues)
+        # Apply-mode still needs anchor states even on the legacy path.
+        if args.apply_lifecycle_fixes:
+            issue_state_map = fetch_issue_states(
+                repo, needed, cwd=project_root
+            )
+            if issue_state_map is None:
+                return 1
     else:
         # Inverted lookup: query just the vBRIEF-referenced subset.
-        issue_state_map = fetch_issue_states(
-            repo, set(issue_to_vbriefs.keys()), cwd=project_root
-        )
+        issue_state_map = fetch_issue_states(repo, needed, cwd=project_root)
         if issue_state_map is None:
             return 1
         report = reconcile(issue_to_vbriefs, issue_state_map)
@@ -1000,22 +1246,20 @@ def main() -> int:
     else:
         print(format_markdown(report))
 
-    # #734: apply mode -- move non-terminal Section (c) vBRIEFs to completed/.
+    # #734/#1290: apply mode -- move non-terminal closed-issue vBRIEFs to
+    # their terminal folder (completed/ or cancelled/, routed by
+    # stateReason). The apply candidate set is built from the canonical
+    # anchors (Phase B), NOT the reference-based human report.
     if args.apply_lifecycle_fixes:
-        # #756: dedupe by rel_path before counting candidates so the
-        # ``[N/M]`` summary line is consistent with apply_lifecycle_fixes,
-        # which now processes each unique path exactly once.
+        apply_report = build_lifecycle_report(anchors, issue_state_map or {})
         candidates = sum(
             1
-            for rel in dict.fromkeys(
-                rel
-                for entry in report.get("no_open_issue", [])
-                for rel in entry.get("vbrief_files", [])
-            )
+            for entry in apply_report.get("no_open_issue", [])
+            for rel in entry.get("vbrief_files", [])
             if not is_terminal_lifecycle_path(rel)
         )
         moved, skipped, failures = apply_lifecycle_fixes(
-            vbrief_dir, report, project_root=project_root
+            vbrief_dir, apply_report, project_root=project_root
         )
         total = moved + skipped + len(failures)
         print(

@@ -15,11 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Blocked vBRIEFs now auto-promote once their dependencies finish, so cascades advance without manual bookkeeping (#1287)** -- a new `task vbrief:reconcile:graph` walks `vbrief/proposed/` and promotes any candidate whose `swarm.depends_on[]` entries have all resolved to completed or cancelled work. It is forge-agnostic, respects the WIP cap (with a `--force` override), detects dependency cycles, and is idempotent so a second run is a no-op. Supports `--dry-run` and `--json`. Part of the #1284 vBRIEF-as-canonical epic. Closes #1287.
 
 ### Changed
 - **`task triage:queue` now hides blocked work so the queue shows only what you can grab next (#1286)** -- items whose linked vBRIEF is parked (status `blocked`) or still waiting on an unresolved dependency are demoted into a new `[BLOCKED]` group at the bottom of the queue by default. Pass `--include-blocked` to bring them back into their natural place when you want the full picture. Closes #1286. Refs #1284.
+- **The "vBRIEF as source of truth for all docs" issue now matches the current architecture (#1292)** -- issue #336 was reframed from its obsolete "five new core vBRIEF content types" mechanism into a documentation-tier application of the Rule Authority [AXIOM]: framework `.md` files are rendered projections of canonical structured source, implemented via the #714 four-tier model and its tier-3 extension packs (#1294 / #1295 / #1296) under the #1284 epic. Contributors reading #336 after the decomposition no longer chase a dropped mechanism. Closes #1292. Refs #336, #1284.
 
 ### Fixed
+- **An umbrella issue closed as "not planned" now routes its dependent vBRIEFs to `cancelled/` automatically, and closing an umbrella no longer drags an entire cohort into the wrong terminal state (#1290)** -- `task reconcile:issues -- --apply-lifecycle-fixes` now consults each closed issue's GitHub `stateReason`, so `NOT_PLANNED` / `DUPLICATE` closures land in `cancelled/` while `COMPLETED` stays in `completed/` (removing the manual `scope:cancel` pre-step). It also resolves each vBRIEF's lifecycle from its own `plan.planRef` first, falling back to `references[]` only when planRef is absent, so a cohort member that merely references a closed umbrella is left untouched when its own planRef issue is still open. Closes #1290.
 
 ### Removed
 
