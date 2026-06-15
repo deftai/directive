@@ -131,6 +131,40 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_labels.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  reconcile:umbrellas:
+    # Umbrella current-shape auto-update (#1289). Walks every kind=epic
+    # vBRIEF, resolves its children from its x-vbrief/plan references,
+    # computes the wave structure from the children's swarm.depends_on[]
+    # edges, builds the canonical AGENTS.md section-1152 current-shape body
+    # (Last updated / Last pass type / Child count / Child-count history /
+    # Open children / Closed children / Wave order / Open questions /
+    # Reading order), and edits the linked SCM umbrella's current-shape
+    # comment IN PLACE so the permalink is preserved and the amendment
+    # trail is never touched. When no current-shape comment exists yet, one
+    # is created at pass-1. Every forge call routes through scripts/scm.py
+    # (#1145) so task verify:scm-boundary stays green, and the verb is
+    # idempotent (a second run with unchanged epic state mutates nothing --
+    # the pass number is only bumped when the rendered body differs).
+    # Pass-through flags: --repo OWNER/NAME (fallback when a reference URI
+    # lacks owner/repo), --dry-run (report without mutating), --json
+    # (machine summary).
+    #
+    # CLI_ARGS forwarding (#577): bare ``{{.CLI_ARGS}}`` -- DO NOT wrap in
+    # Taskfile-level double quotes. go-task already shell-escapes CLI_ARGS
+    # with single quotes; double-wrapping breaks Windows argv. See the
+    # preflight task below for the full rationale.
+    #
+    # NOTE: NO ``sources:`` / ``generates:`` per ``conventions/task-caching.md``
+    # because the walk reads the lifecycle folders and mutates remote forge
+    # state that go-task does not track, so a cached skip would silently
+    # swallow real comment updates.
+    desc: "Reconcile epic umbrella current-shape comments to vBRIEF state per AGENTS.md #1152: edit in place (preserve permalink). Routes through scripts/scm.py. Flags: --repo --dry-run --json."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_umbrellas.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   activate:
     # Implementation-intent activation gate companion (#810). Idempotent:
     # already-active vBRIEFs print a no-op message and exit 0; pending/

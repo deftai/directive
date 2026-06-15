@@ -897,10 +897,10 @@
       {
         "id": "2026-05-21-1289-vbrief-reconcile-umbrellas",
         "title": "task vbrief:reconcile:umbrellas -- umbrella current-shape auto-update",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-05-21-1289-vbrief-reconcile-umbrellas.vbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-05-21-1289-vbrief-reconcile-umbrellas.vbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/1289",
