@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Blocked vBRIEFs now auto-promote once their dependencies finish, so cascades advance without manual bookkeeping (#1287)** -- a new `task vbrief:reconcile:graph` walks `vbrief/proposed/` and promotes any candidate whose `swarm.depends_on[]` entries have all resolved to completed or cancelled work. It is forge-agnostic, respects the WIP cap (with a `--force` override), detects dependency cycles, and is idempotent so a second run is a no-op. Supports `--dry-run` and `--json`. Part of the #1284 vBRIEF-as-canonical epic. Closes #1287.
+- **Issue labels now mirror vBRIEF state, so reviewers stop seeing drift between an issue's labels and its lifecycle (#1288)** -- a new `task vbrief:reconcile:labels` reads each in-flight vBRIEF's linked GitHub issue and applies or removes a managed label set to match canonical state: `status:blocked` for blocked or dependency-blocked work, `epic` + `status:tracker` for epics, and `rfc` for research. It only touches the labels it owns (other labels are left alone), routes every forge call through the SCM shim, and is idempotent so a second run changes nothing. Supports `--repo`, `--dry-run`, and `--json`. Part of the #1284 vBRIEF-as-canonical epic. Closes #1288.
 
 ### Changed
 

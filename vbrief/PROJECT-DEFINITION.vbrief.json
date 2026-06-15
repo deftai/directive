@@ -876,10 +876,10 @@
       {
         "id": "2026-05-21-1288-vbrief-reconcile-labels",
         "title": "task vbrief:reconcile:labels -- SCM label reconciliation",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-05-21-1288-vbrief-reconcile-labels.vbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-05-21-1288-vbrief-reconcile-labels.vbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/1288",

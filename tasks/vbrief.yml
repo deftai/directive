@@ -101,6 +101,36 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_graph.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  reconcile:labels:
+    # SCM label reconciliation (#1288). Walks vbrief/proposed/ + pending/ +
+    # active/, resolves each brief's linked GitHub issue from its
+    # x-vbrief/github-issue reference, and applies/removes a fixed set of
+    # managed labels so the forge surface mirrors canonical vBRIEF state:
+    # status=blocked or an unresolved swarm.depends_on[] -> status:blocked;
+    # kind=epic -> epic + status:tracker; kind=research -> rfc. Mirror (not
+    # accumulate): managed labels that no longer apply are removed; labels
+    # outside the managed set are never touched. Every forge call routes
+    # through scripts/scm.py (#1145) so task verify:scm-boundary stays green,
+    # and the verb is idempotent (a second run mutates nothing). Pass-through
+    # flags: --repo OWNER/NAME (fallback when a reference URI lacks owner/
+    # repo), --dry-run (report without mutating), --json (machine summary).
+    #
+    # CLI_ARGS forwarding (#577): bare ``{{.CLI_ARGS}}`` -- DO NOT wrap in
+    # Taskfile-level double quotes. go-task already shell-escapes CLI_ARGS
+    # with single quotes; double-wrapping breaks Windows argv. See the
+    # preflight task above for the full rationale.
+    #
+    # NOTE: NO ``sources:`` / ``generates:`` per ``conventions/task-caching.md``
+    # because the walk reads the lifecycle folders and mutates remote forge
+    # state that go-task does not track, so a cached skip would silently
+    # swallow real label changes.
+    desc: "Reconcile SCM labels to mirror vBRIEF state: status:blocked / epic+status:tracker / rfc (#1288). Routes through scripts/scm.py. Flags: --repo --dry-run --json."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_labels.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   activate:
     # Implementation-intent activation gate companion (#810). Idempotent:
     # already-active vBRIEFs print a no-op message and exit 0; pending/
