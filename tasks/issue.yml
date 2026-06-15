@@ -25,3 +25,18 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/issue_ingest.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
+  # issue emit task -- the write-direction counterpart to issue:ingest
+  # (#1274 Change 2). Files GitHub issue(s) from scope vBRIEFs and records
+  # the issue URL back into each vBRIEF's references[]. Runs from the
+  # consumer project root (``dir: '{{.USER_WORKING_DIR}}'``) so ``gh`` /
+  # ``git`` resolve against the CONSUMER's remote, not deftai/directive
+  # (#538); --project-root anchors repo detection and glob expansion.
+  # Honors --dry-run AND DEFT_NO_NETWORK=1 (plan only; no forge write).
+  emit:
+    desc: "File GitHub issue(s) from scope vBRIEF(s) (<path> | --umbrella <glob> | --per-vbrief <glob> [--dry-run])"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/issue_emit.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
