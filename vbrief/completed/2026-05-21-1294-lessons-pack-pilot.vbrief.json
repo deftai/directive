@@ -8,7 +8,7 @@
   "plan": {
     "id": "1294-lessons-pack-pilot",
     "title": "lessons-pack-0.1 pilot -- first tier-3 extension pack",
-    "status": "running",
+    "status": "completed",
     "planRef": "#1294",
     "narratives": {
       "Description": "Stand up the first tier-3 extension pack end-to-end: migrate the framework's hand-authored meta/lessons.md into a structured lessons-pack-0.1 canonical source, regenerate meta/lessons.md from that source as a derivative projection (per ADR-001), and ship the task packs:slice surface so agents load only the lesson slice they query. Encodes the converged #1283 design: a single packs: namespace with the pack as an argument, a schema-declared slice registry using a constrained dotted-path + named-filter dialect (never JSONPath), slices that read the canonical source directly (never the rendered .md), text-default output with --json, --list discovery, three-state exit, and provenance on every result.",
@@ -80,7 +80,9 @@
         "size": "large",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T13:30:55Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -109,6 +111,6 @@
         "title": "Issue #1637: packs:slice v2 follow-up"
       }
     ],
-    "updated": "2026-06-15T12:57:53Z"
+    "updated": "2026-06-15T13:30:55Z"
   }
 }
