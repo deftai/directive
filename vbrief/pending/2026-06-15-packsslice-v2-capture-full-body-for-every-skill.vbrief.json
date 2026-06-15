@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json"
+  },
+  "plan": {
+    "id": "1637-s2-skills-bodies",
+    "title": "packs:slice v2 -- capture full body for every skill",
+    "status": "pending",
+    "planRef": "proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json",
+    "narratives": {
+      "Description": "Populate the `body` field for every skill entry in the skills pack (today only `deft-directive-cost` has a non-null body), so the skills pack carries the full SKILL.md text for all skills and the renderer can project every SKILL.md as a drift-checked artifact. This is sequential rather than concurrent work because turning every skill into a generated projection requires regenerating all `skills/*/SKILL.md` files and bringing them under the drift gate, a broad write surface that must not overlap other pack edits.",
+      "ImplementationPlan": "1. Extend the `scripts/pack_migrate_skills.py` migration script to capture the full body for every skill (not just the proof skill) into `packs/skills/skills-pack-0.1.json`.\n2. Confirm `scripts/pack_render.py` RENDER_REGISTRY renders every skill body back to its `skills/*/SKILL.md` projection and that `task verify:pack-drift` stays green after regeneration.\n3. Broaden the drift and render coverage assertions in `tests/cli/test_pack_render.py` so every skill projection is verified, not just the single proof skill.",
+      "UserStory": "As an agent that loads skill guidance, I want every skill body available from the skills pack, so that I can retrieve any skill's full text from canonical JSON instead of reading the rendered markdown."
+    },
+    "items": [
+      {
+        "id": "1637-s2-a1",
+        "title": "every skill body captured in pack JSON",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The skills pack JSON stores a non-null body for every skill entry, not only the cost proof skill."
+        }
+      },
+      {
+        "id": "1637-s2-a2",
+        "title": "renderer projects all SKILL.md drift-clean",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task verify:pack-drift` validates with no drift after the renderer regenerates every `skills/*/SKILL.md` from the pack."
+        }
+      },
+      {
+        "id": "1637-s2-a3",
+        "title": "slice returns any skill body",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice skills by-trigger` returns full skill bodies for the matched skills rather than null body fields."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/pack_migrate_skills.py",
+          "packs/skills/skills-pack-0.1.json",
+          "scripts/pack_render.py",
+          "tests/cli/test_pack_render.py",
+          "skills/"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_pack_render.py",
+          "task verify:pack-drift"
+        ],
+        "expected_outputs": [
+          "Non-null body for every skill in packs/skills/skills-pack-0.1.json",
+          "Regenerated skills/*/SKILL.md projections under the drift gate"
+        ],
+        "depends_on": [],
+        "conflict_group": "render-projection",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "high",
+        "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1637: feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1283"
+      }
+    ]
+  }
+}

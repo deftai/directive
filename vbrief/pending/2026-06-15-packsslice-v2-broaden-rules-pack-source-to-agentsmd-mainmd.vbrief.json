@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json"
+  },
+  "plan": {
+    "id": "1637-s4-rules-broaden-source",
+    "title": "packs:slice v2 -- broaden rules-pack source to AGENTS.md + main.md",
+    "status": "pending",
+    "planRef": "proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json",
+    "narratives": {
+      "Description": "Broaden the rules pack source coverage beyond `coding/*` to include the directives in AGENTS.md and main.md, and capture full bodies for rule source documents beyond the single `coding/testing.md` proof. This story is marked needs_refinement because migrating the AGENTS.md managed section into a drift-checked pack projection interacts with `task agents:refresh` and the managed-section contract, so the parsing and ownership boundaries must be designed before it is concurrency-safe. The rules-pack native schema enrichment fields are explicitly out of scope here and owned by #748.",
+      "ImplementationPlan": "1. Design and implement new source parsers in `scripts/pack_migrate_rules.py` that extract RFC2119 directives from AGENTS.md and main.md without colliding with the managed-section regeneration in `task agents:refresh`.\n2. Capture full bodies for additional rule source documents into `packs/rules/rules-pack-0.1.json` and update `vbrief/schemas/rules-pack.schema.json` source-domain enum as needed.\n3. Add migration and drift assertions to `tests/cli/test_pack_migrate_rules.py` and confirm `task verify:pack-drift` validates the broadened source set.",
+      "UserStory": "As an agent loading framework rules, I want AGENTS.md and main.md directives represented in the rules pack, so that I can slice the full rule corpus from canonical JSON instead of only the coding directives."
+    },
+    "items": [
+      {
+        "id": "1637-s4-a1",
+        "title": "AGENTS.md + main.md directives ingested",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The rules pack JSON stores directive entries sourced from AGENTS.md and main.md in addition to the coding directives."
+        }
+      },
+      {
+        "id": "1637-s4-a2",
+        "title": "additional rule bodies captured",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The rules pack stores non-null bodies for rule source documents beyond the single coding/testing.md proof entry."
+        }
+      },
+      {
+        "id": "1637-s4-a3",
+        "title": "broadened sources slice and drift-clean",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice rules by-domain` returns the new AGENTS.md/main.md domains and `task verify:pack-drift` validates without drift."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "needs_refinement",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/pack_migrate_rules.py",
+          "packs/rules/rules-pack-0.1.json",
+          "vbrief/schemas/rules-pack.schema.json",
+          "scripts/pack_render.py",
+          "tests/cli/test_pack_migrate_rules.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_pack_migrate_rules.py",
+          "task verify:pack-drift"
+        ],
+        "expected_outputs": [
+          "Rules pack entries sourced from AGENTS.md and main.md",
+          "Design note resolving the agents:refresh managed-section interaction"
+        ],
+        "depends_on": [],
+        "conflict_group": "render-projection",
+        "size": "L",
+        "file_scope_confidence": "low",
+        "model_tier": "high",
+        "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637; schema enrichment portion deferred to #748; no specification.vbrief.json spec-section applies."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1637: feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1283"
+      }
+    ]
+  }
+}
