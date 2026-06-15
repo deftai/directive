@@ -93,6 +93,16 @@ def build_parser(default_limit: int) -> argparse.ArgumentParser:
             f"Cap the number of rows printed (default: {default_limit}). Pass 0 to disable the cap."
         ),
     )
+    p_queue.add_argument(
+        "--include-blocked",
+        action="store_true",
+        dest="include_blocked",
+        help=(
+            "Re-surface items whose linked vBRIEF is blocked (plan.status:blocked"
+            " or an unresolved swarm.depends_on) into their natural group. By"
+            " default such items are demoted into the [BLOCKED] group (#1286)."
+        ),
+    )
 
     p_show = sub.add_parser(
         "show",
@@ -361,6 +371,7 @@ def _cmd_queue(args: argparse.Namespace, tq: Any) -> int:
         ranking_labels=ranking_labels,
         active_referenced=active_refs,
         orphan_issue_numbers=orphan_numbers,
+        include_blocked=getattr(args, "include_blocked", False),
         limit=limit,
     )
     items = tq.build_queue(issues_for_queue, audit_entries, repo=repo, options=options)

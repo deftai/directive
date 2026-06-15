@@ -400,16 +400,17 @@ REGISTRY: dict[str, VerbHelp] = {
         refs="(D11 / #1128)",
         description=(
             "Print the ranked triage queue from the local cache. Groups "
-            "(display order): [RESUME] -> [URGENT] -> untriaged -> "
-            "other. Within-group default = updated_at desc; consumer "
-            "plan.policy.triageRankingLabels[] re-orders within-group "
-            "by matched-label declared order."
+            "(display order): [ORPHAN] -> [RESUME] -> [URGENT] -> untriaged "
+            "-> other -> [BLOCKED]. Within-group default = updated_at desc; "
+            "consumer plan.policy.triageRankingLabels[] re-orders within-group "
+            "by matched-label declared order. Items whose linked vBRIEF is "
+            "blocked (status:blocked / unresolved depends_on) are demoted into "
+            "[BLOCKED] unless --include-blocked is passed (#1286)."
         ),
-        usage="task triage:queue [-- --limit=N] [--state=<filter>] [--format=json] [--repo=owner/name]",
+        usage="task triage:queue [-- --limit=N] [--include-blocked] [--repo=owner/name]",
         flags=(
             ("--limit N", "10", "Max rows to print."),
-            ("--state FILTER", "(untriaged+resume)", "Filter by latest decision (e.g. accept, defer)."),
-            ("--format json", "text", "JSON output for scripting."),
+            ("--include-blocked", "(off)", "Re-surface blocked items into their natural group (#1286)."),
             ("--repo owner/name", "(git remote)", "Explicit repo override."),
         ),
         examples=(

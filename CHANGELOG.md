@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **`task triage:queue` now hides blocked work so the queue shows only what you can grab next (#1286)** -- items whose linked vBRIEF is parked (status `blocked`) or still waiting on an unresolved dependency are demoted into a new `[BLOCKED]` group at the bottom of the queue by default. Pass `--include-blocked` to bring them back into their natural place when you want the full picture. Closes #1286. Refs #1284.
 
 ### Fixed
 

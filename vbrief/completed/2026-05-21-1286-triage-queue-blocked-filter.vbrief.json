@@ -8,7 +8,7 @@
   "plan": {
     "id": "1286-triage-queue-blocked-filter",
     "title": "Demote vBRIEF-status:blocked items in triage:queue",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#1286",
     "narratives": {
       "Description": "The triage queue (scripts/triage_queue.py) groups items by triage-decision history (ORPHAN / RESUME / URGENT / untriaged / other) and does not consult vBRIEF dependency state, so blocked children pollute the queue. This story extends the queue to read each candidate's linked vBRIEF status and demote status:blocked or unresolved-dependency items so the ranked list surfaces only grabbable work.",
@@ -65,7 +65,9 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T00:43:27Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -78,6 +80,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
       }
-    ]
+    ],
+    "updated": "2026-06-15T00:43:27Z"
   }
 }
