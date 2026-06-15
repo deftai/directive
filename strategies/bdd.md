@@ -61,6 +61,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗ Leave ambiguities unresolved -- every question surfaced in Step 3 must have a locked answer
 - ⊗ Write decisions to a hand-authored markdown file -- use vBRIEF narratives for token-efficient agent consumption
 
+! After emitting the scope vBRIEF to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ### Step 5: Generate Spec
 
 ! Derive SPECIFICATION.md tasks from the now-stable test scenarios and locked decisions.

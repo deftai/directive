@@ -22,6 +22,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 Produce `vbrief/proposed/{feature}-research.vbrief.json` with two mandatory narratives:
 
+! After emitting this scope vBRIEF, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ### `DontHandRoll` narrative
 
 Problems that look simple but have existing, battle-tested solutions.

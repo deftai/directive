@@ -106,6 +106,8 @@ throughout the session. Examples: `my-app-probe`, `auth-probe`.
 - ! Persist significant decisions as vBRIEF narratives on the relevant plan items
 - ⊗ Write probe output to a hand-authored markdown file — use vBRIEF narratives for token-efficient, machine-consumable agent consumption (mirrors the [discuss](./discuss.md) and [research](./research.md) output contracts so the chaining-gate flow-through guarantee is mechanical, not aspirational)
 
+! After emitting the probe scope vBRIEF to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ---
 
 ## Then: Chaining Gate

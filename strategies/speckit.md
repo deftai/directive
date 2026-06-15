@@ -159,6 +159,8 @@ Add the following narrative keys to the proposed/ vBRIEF `plan.narratives`:
 
 Phase 4 scopes are planning containers. They MAY keep broad acceptance in `plan.narratives.Acceptance` and MAY have `plan.items: []`. They are not valid concurrent swarm worker inputs unless explicitly marked as a single-story scope. Broad phase/epic scopes MUST pass through Phase 4.5 before swarm allocation.
 
+! After emitting the phase/epic scope vBRIEF(s) to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ### Scope vBRIEF Shape
 
 For each implementation phase IP-N, write a scope vBRIEF with:
@@ -236,6 +238,8 @@ For each implementation phase IP-N, write a scope vBRIEF with:
 **Input:** Phase 4 phase/epic vBRIEFs in `./vbrief/pending/` or `./vbrief/active/`.
 
 **Output:** Story-level child vBRIEFs whose executable acceptance criteria live in `plan.items` and whose `plan.metadata.swarm` contract proves they are safe to allocate.
+
+! After emitting the story vBRIEF(s) to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### Process
 

@@ -110,6 +110,7 @@ This strategy has been migrated to the full v0.20 output shape so yolo-generated
 - ⊗ Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write).
 - ~ `SPECIFICATION.md` at the project root, if produced at all, must be only a read-only derivative (e.g. via `task spec:render` after the vbriefs exist) that includes the v0.20 deprecated-redirect sentinel. The source of truth is the vbrief/ lifecycle stories + PROJECT-DEFINITION.
 - ! Before writing any proposed/ stories or PROJECT-DEFINITION, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for scope items in proposed/; Spec-Generating Guard for PROJECT-DEFINITION).
+- ! After emitting the proposed/ story vBRIEF(s), surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 - ! Final output tree must pass the deterministic v0.20 strategy output validation gate (s2-deterministic-gate) and the build Pre-Cutover Detection Guard with zero warnings/errors. See full acceptance in the yolo migration vBRIEF and the 1166 decomposition.
 - ~ Once available, cite the canonical contract `strategies/v0-20-contract.md` (s1-contract) for the exact shape.
 

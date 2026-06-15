@@ -55,6 +55,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗ Generate a PRD or require approval -- rapid skips both
 - ⊗ Hand-author `SPECIFICATION.md` directly -- it is a rendered derivative only (see v0.20 Output Shape)
 
+! After emitting the proposed/ story vBRIEF(s), surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ### Step 4: Build
 
 ! Implement against the spec. Quality gates are relaxed but not absent.

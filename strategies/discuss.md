@@ -70,6 +70,8 @@ Adapt question focus to what's being built:
 - ! Persist decisions as vBRIEF narratives on the relevant plan items
 - ⊗ Write decisions to a hand-authored markdown context file -- use vBRIEF narratives for token-efficient agent consumption
 
+! After emitting the scope vBRIEF to `vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ## Decision Locking
 
 - ! Decisions in the vBRIEF `LockedDecisions` narrative are **locked** -- downstream tasks inherit them, don't re-debate

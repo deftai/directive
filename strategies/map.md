@@ -46,6 +46,8 @@ Mapping produces artifacts that feed into planning so the agent **follows existi
 
 Produce a single `vbrief/proposed/{project}-codebase-map.vbrief.json` with four narratives:
 
+! After emitting this scope vBRIEF, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ### `Stack` narrative -- Technology inventory
 
 - ! Languages, versions, runtimes

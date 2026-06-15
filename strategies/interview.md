@@ -194,6 +194,8 @@ Interview → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFINITION.vb
 6. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
 7. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
 
+! At the emission step (step 3 above), after writing the scope vBRIEF(s) to `./vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ### SPECIFICATION Structure (Light)
 
 ```markdown
@@ -256,6 +258,8 @@ Interview → PRD → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFIN
 6. Summarize decisions, ask user to review
 7. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
 8. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
+
+! At the emission step (step 4 above), after writing the scope vBRIEF(s) to `./vbrief/proposed/`, surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
 
 ### PRD Structure (Full path only)
 

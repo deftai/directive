@@ -79,6 +79,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Run `task spec:render` (if UX continuity needed) to produce `SPECIFICATION.md` **only as a deprecation-redirect derivative** (see v0.20 Output Shape); the source of truth is the vbrief/ lifecycle + PROJECT-DEFINITION.
 - ! After proposed/ vBRIEFs exist, invoke `task project:render` to produce/refresh `vbrief/PROJECT-DEFINITION.vbrief.json`.
 
+! After emitting the proposed/ vBRIEF(s), surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) — name all three patterns (none / `--umbrella` / `--per-vbrief`).
+
 ### Gate 3: Specification Approval
 
 ! The proposed/ vBRIEF(s) (and derivative `SPECIFICATION.md` if present) require explicit approval before implementation begins.
