@@ -1027,10 +1027,10 @@
       {
         "id": "2026-05-21-1295-skills-pack",
         "title": "skills-pack-0.1 -- second tier-3 pack",
-        "status": "proposed",
+        "status": "running",
         "metadata": {
-          "source_path": "proposed/2026-05-21-1295-skills-pack.vbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "active/2026-05-21-1295-skills-pack.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/1295",
