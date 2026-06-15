@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1274 Change 2 (task issue:emit -- the vBRIEF -> GitHub issue write path); split-A of the #1274 decomposition under epic #1284.",
+    "created": "2026-06-15T12:00:00Z",
+    "updated": "2026-06-15T12:00:00Z"
+  },
+  "plan": {
+    "id": "1274a-issue-emit-tool",
+    "title": "task issue:emit -- vBRIEF -> GitHub issue write path",
+    "status": "proposed",
+    "planRef": "#1274",
+    "narratives": {
+      "Description": "Ship task issue:emit, the write-direction counterpart to task issue:ingest, so a scope vBRIEF can be filed as a GitHub issue with one command. The verb renders the issue body from the vBRIEF title, Description, Acceptance, and Traces narratives, files the issue through the scripts/scm.py shim, and writes the resulting issue URL back into the source vBRIEF's references[] as an x-vbrief/github-issue entry.",
+      "ImplementationPlan": "1. Add scripts/issue_emit.py mirroring scripts/issue_ingest.py in reverse: parse args (single <path>, --umbrella, --per-vbrief, --dry-run, --json), render an issue body from the vBRIEF narratives, and file via scm.call(\"github-issue\", \"issue\", [\"create\", ...]) so the #1145 scm boundary holds. 2. Update each emitted source vBRIEF's references[] with {type: x-vbrief/github-issue, uri, TrustLevel: external} using pathlib UTF-8 writes. 3. Add a reconcile:umbrellas-style task entry to tasks/issue.yml (dir USER_WORKING_DIR, DEFT_ROOT dispatch, bare CLI_ARGS). 4. Add tests/cli/test_issue_emit.py covering single/umbrella/per-vbrief modes, dry-run, DEFT_NO_NETWORK, and references[] write-back with an injected fake scm client (no live gh).",
+      "UserStory": "As a framework maintainer, I want a task issue:emit verb that files GitHub issues from scope vBRIEFs and records the issue URL back into references[], so that vBRIEF-producing strategies have a one-command SCM-tracking path symmetric with task issue:ingest.",
+      "Traces": "planRef #1274; decomposition_origin #742; epic #1284; symmetric counterpart of scripts/issue_ingest.py."
+    },
+    "items": [
+      {
+        "title": "issue:emit single + umbrella + per-vbrief modes via scm shim",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running task issue:emit creates a GitHub issue for a single vBRIEF, while --umbrella creates one checklist issue and --per-vbrief creates one issue per matched vBRIEF, all routed through scripts/scm.py."
+        }
+      },
+      {
+        "title": "references[] write-back with external TrustLevel",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "After a successful emit, each source vBRIEF records an x-vbrief/github-issue reference with the issue URL and TrustLevel external, and a re-run detects the existing reference instead of creating a duplicate."
+        }
+      },
+      {
+        "title": "Dry-run and DEFT_NO_NETWORK print a plan without calling the forge",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When --dry-run or DEFT_NO_NETWORK=1 is set, task issue:emit emits a plan of the issues it would file and persists no change to any source vBRIEF on disk."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1274",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/issue_emit.py",
+          "tasks/issue.yml",
+          "tests/cli/test_issue_emit.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_issue_emit.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "task issue:emit files an issue and writes back an x-vbrief/github-issue reference",
+          "dry-run and DEFT_NO_NETWORK make no forge write"
+        ],
+        "depends_on": [],
+        "conflict_group": "issue-emit-tool",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1274",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1274: discoverable issue emission + task issue:emit"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}

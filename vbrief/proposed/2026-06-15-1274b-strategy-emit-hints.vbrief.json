@@ -1,0 +1,93 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1274 Change 1 (discoverable issue-emit hints across all vBRIEF-producing strategies); split-B of the #1274 decomposition under epic #1284.",
+    "created": "2026-06-15T12:00:00Z",
+    "updated": "2026-06-15T12:00:00Z"
+  },
+  "plan": {
+    "id": "1274b-strategy-emit-hints",
+    "title": "Strategy emit-hints: discoverable issue:emit across vBRIEF-producing strategies",
+    "status": "proposed",
+    "planRef": "#1274",
+    "narratives": {
+      "Description": "Make GitHub-issue back-references discoverable at the moment every strategy finishes emitting scope vBRIEFs. Add one shared strategies/emit-hints.md helper that prints the none/umbrella/per-vBRIEF choice plus the canonical task issue:emit invocations, and link it from each vBRIEF-producing strategy's emission step the same way those strategies already reference artifact-guards.md. The framework default (vBRIEF-only, no issue) is unchanged; only the silence around it is removed.",
+      "ImplementationPlan": "1. Add strategies/emit-hints.md containing the shared hint block (names the three patterns and the task issue:emit --umbrella / --per-vbrief / single invocations, plus the no-action default). 2. Add a one-line reference to strategies/emit-hints.md at the emission step of each vBRIEF-producing strategy doc: bdd.md, discuss.md, research.md, map.md, probe.md, interview.md, yolo.md, rapid.md, enterprise.md, and speckit.md (Phase 4 and Phase 4.5). 3. Add tests/strategies/test_emit_hints.py asserting the helper exists, names the three patterns, and that each listed strategy doc references emit-hints.md at its emission step.",
+      "UserStory": "As a directive user running a vBRIEF-producing strategy, I want a printed hint naming the none/umbrella/per-vBRIEF issue-emit choices at the emission step, so that I discover the task issue:emit escape hatch instead of the default staying silent.",
+      "Traces": "planRef #1274; decomposition_origin #742; epic #1284; shared-reference shape mirrors strategies/artifact-guards.md."
+    },
+    "items": [
+      {
+        "title": "Shared strategies/emit-hints.md helper",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "strategies/emit-hints.md renders all three patterns (none, --umbrella, --per-vbrief) with the canonical task issue:emit invocations and the no-action default."
+        }
+      },
+      {
+        "title": "Every vBRIEF-producing strategy links the hint at its emission step",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Each listed strategy doc (bdd, discuss, research, map, probe, interview, yolo, rapid, enterprise, speckit) displays the emit-hints.md reference at the step where it creates scope vBRIEFs."
+        }
+      },
+      {
+        "title": "Default emission behavior is unchanged",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "No strategy creates a GitHub issue automatically; the hint renders as informational text only and the default vBRIEF-only emission path requires no further user action."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1274",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "strategies/emit-hints.md",
+          "strategies/bdd.md",
+          "strategies/discuss.md",
+          "strategies/research.md",
+          "strategies/map.md",
+          "strategies/probe.md",
+          "strategies/interview.md",
+          "strategies/yolo.md",
+          "strategies/rapid.md",
+          "strategies/enterprise.md",
+          "strategies/speckit.md",
+          "tests/strategies/test_emit_hints.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/strategies/test_emit_hints.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "strategies/emit-hints.md names the three issue-emit patterns",
+          "each vBRIEF-producing strategy references emit-hints.md at its emission step"
+        ],
+        "depends_on": [],
+        "conflict_group": "strategy-emit-hints",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1274",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1274: discoverable issue emission + task issue:emit"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}
