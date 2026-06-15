@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **An umbrella issue closed as "not planned" now routes its dependent vBRIEFs to `cancelled/` automatically, and closing an umbrella no longer drags an entire cohort into the wrong terminal state (#1290)** -- `task reconcile:issues -- --apply-lifecycle-fixes` now consults each closed issue's GitHub `stateReason`, so `NOT_PLANNED` / `DUPLICATE` closures land in `cancelled/` while `COMPLETED` stays in `completed/` (removing the manual `scope:cancel` pre-step). It also resolves each vBRIEF's lifecycle from its own `plan.planRef` first, falling back to `references[]` only when planRef is absent, so a cohort member that merely references a closed umbrella is left untouched when its own planRef issue is still open. Closes #1290.
 
 ### Removed
 

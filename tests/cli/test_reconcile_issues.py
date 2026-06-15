@@ -16,16 +16,24 @@ REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 
 # Import the module under test directly for unit tests
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
+import reconcile_issues as ri_mod  # noqa: E402
 from reconcile_issues import (  # noqa: E402, I001
+    CANCELLED_STATE_REASONS,  # #1290
+    IssueState,  # #1290
+    apply_lifecycle_fixes,  # #1290
+    build_lifecycle_report,  # #1290
     extract_references_from_vbrief,
+    fetch_issue_states,  # #1290
     format_json,
     format_markdown,
     is_terminal_lifecycle_path,
     parse_issue_number,
+    parse_plan_ref,  # #1290
     reconcile_with_unlinked as reconcile,  # legacy three-section shape (#754)
+    resolve_lifecycle_anchor,  # #1290
+    scan_lifecycle_anchors,  # #1290
     scan_vbrief_dir,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -381,3 +389,297 @@ class TestCLI:
         )
         assert result.returncode == 1
         assert "not found" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# #1290 -- stateReason routing + Axis B planRef-first lifecycle resolution
+# ---------------------------------------------------------------------------
+
+
+def _write_vbrief_1290(
+    vbrief_dir: Path,
+    folder: str,
+    filename: str,
+    *,
+    plan_ref: int | None = None,
+    ref_issue: int | None = None,
+    status: str = "running",
+) -> Path:
+    """Write a synthetic vBRIEF with optional ``plan.planRef`` + a
+    github-issue reference, for the #1290 anchor-resolution tests."""
+    folder_path = vbrief_dir / folder
+    folder_path.mkdir(parents=True, exist_ok=True)
+    plan: dict = {
+        "title": filename,
+        "status": status,
+        "items": [],
+        "references": [],
+    }
+    if plan_ref is not None:
+        plan["planRef"] = f"#{plan_ref}"
+    if ref_issue is not None:
+        plan["references"].append(
+            {
+                "uri": (
+                    f"https://github.com/deftai/directive/issues/{ref_issue}"
+                ),
+                "type": "x-vbrief/github-issue",
+                "title": f"Issue #{ref_issue}",
+            }
+        )
+    data = {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
+    p = folder_path / filename
+    p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return p
+
+
+class TestIssueState:
+    def test_is_str_and_carries_reason(self):
+        st = IssueState("CLOSED", "NOT_PLANNED")
+        # Behaves as the bare state string (back-compat with every
+        # existing caller / equality test).
+        assert st == "CLOSED"
+        assert isinstance(st, str)
+        # ...but additionally carries the stateReason.
+        assert st.state_reason == "NOT_PLANNED"
+
+    def test_dict_equality_with_bare_strings(self):
+        # A state map of IssueState values MUST compare equal to a map of
+        # bare strings -- the property that keeps release.py + the #754
+        # tests working unchanged.
+        rich = {1: IssueState("OPEN", None), 2: IssueState("CLOSED", "DUPLICATE")}
+        assert rich == {1: "OPEN", 2: "CLOSED"}
+
+    def test_null_reason_defaults_to_none(self):
+        assert IssueState("OPEN").state_reason is None
+
+
+class TestFetchIssueStatesStateReason:
+    """Phase A: ``fetch_issue_states`` selects + returns ``stateReason``."""
+
+    def test_query_selects_state_reason_and_parses_it(self, monkeypatch):
+        payload = {
+            "data": {
+                "repository": {
+                    "i10": {"state": "CLOSED", "stateReason": "NOT_PLANNED"},
+                    "i20": {"state": "OPEN", "stateReason": None},
+                }
+            }
+        }
+        calls: list[str] = []
+
+        class R:
+            returncode = 0
+            stdout = json.dumps(payload)
+            stderr = ""
+
+        def fake_run(argv, **_kw):
+            calls.append(
+                next(
+                    (a for a in argv if isinstance(a, str) and a.startswith("query=")),
+                    "",
+                )
+            )
+            return R()
+
+        monkeypatch.setattr(ri_mod.subprocess, "run", fake_run)
+        states = fetch_issue_states("deftai/directive", {10, 20})
+        assert states is not None
+        # The GraphQL query MUST request stateReason.
+        assert "stateReason" in calls[0]
+        # Values still equal the bare state string...
+        assert states[10] == "CLOSED"
+        assert states[20] == "OPEN"
+        # ...and carry the parsed stateReason.
+        assert states[10].state_reason == "NOT_PLANNED"
+        assert states[20].state_reason is None
+
+
+class TestParsePlanRefAndAnchor:
+    def test_parse_plan_ref_hash(self):
+        assert parse_plan_ref({"plan": {"planRef": "#1290"}}) == 1290
+
+    def test_parse_plan_ref_url(self):
+        data = {
+            "plan": {
+                "planRef": "https://github.com/deftai/directive/issues/742"
+            }
+        }
+        assert parse_plan_ref(data) == 742
+
+    def test_parse_plan_ref_absent(self):
+        assert parse_plan_ref({"plan": {}}) is None
+        assert parse_plan_ref({"plan": {"planRef": "not-a-ref"}}) is None
+
+    def test_anchor_prefers_plan_ref(self):
+        data = {
+            "plan": {
+                "planRef": "#1290",
+                "references": [
+                    {
+                        "type": "x-vbrief/github-issue",
+                        "uri": "https://github.com/deftai/directive/issues/742",
+                    }
+                ],
+            }
+        }
+        num, axis = resolve_lifecycle_anchor(data)
+        assert num == 1290
+        assert axis == "planRef"
+
+    def test_anchor_falls_back_to_references(self):
+        data = {
+            "plan": {
+                "references": [
+                    {
+                        "type": "x-vbrief/github-issue",
+                        "uri": "https://github.com/deftai/directive/issues/742",
+                    }
+                ]
+            }
+        }
+        num, axis = resolve_lifecycle_anchor(data)
+        assert num == 742
+        assert axis == "references"
+
+    def test_anchor_none_when_no_issue(self):
+        num, axis = resolve_lifecycle_anchor({"plan": {"references": []}})
+        assert num is None
+        assert axis == "none"
+
+
+class TestApplyStateReasonRouting:
+    """Phase A: apply-mode routes by stateReason."""
+
+    def _setup(self, tmp_path, *, reason, state="CLOSED"):
+        vbrief_dir = tmp_path / "vbrief"
+        src = _write_vbrief_1290(
+            vbrief_dir, "active", "a.vbrief.json", ref_issue=10
+        )
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        state_map = {10: IssueState(state, reason)}
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        return vbrief_dir, src, report
+
+    def test_not_planned_routes_to_cancelled(self, tmp_path):
+        vbrief_dir, src, report = self._setup(tmp_path, reason="NOT_PLANNED")
+        moved, skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert failures == []
+        assert not src.is_file()
+        dst = vbrief_dir / "cancelled" / "a.vbrief.json"
+        assert dst.is_file()
+        data = json.loads(dst.read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "cancelled"
+
+    def test_duplicate_routes_to_cancelled(self, tmp_path):
+        vbrief_dir, src, report = self._setup(tmp_path, reason="DUPLICATE")
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert failures == []
+        assert (vbrief_dir / "cancelled" / "a.vbrief.json").is_file()
+
+    def test_completed_routes_to_completed(self, tmp_path):
+        vbrief_dir, src, report = self._setup(tmp_path, reason="COMPLETED")
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert failures == []
+        dst = vbrief_dir / "completed" / "a.vbrief.json"
+        assert dst.is_file()
+        data = json.loads(dst.read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "completed"
+
+    def test_null_reason_defaults_to_completed(self, tmp_path):
+        vbrief_dir, src, report = self._setup(tmp_path, reason=None)
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert (vbrief_dir / "completed" / "a.vbrief.json").is_file()
+
+    def test_reopened_is_report_only(self, tmp_path):
+        # An OPEN issue whose stateReason is REOPENED must NOT be moved --
+        # OPEN anchors are linked, never apply-mode candidates.
+        vbrief_dir = tmp_path / "vbrief"
+        src = _write_vbrief_1290(
+            vbrief_dir, "active", "reopened.vbrief.json", ref_issue=11
+        )
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        state_map = {11: IssueState("OPEN", "REOPENED")}
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        assert report["no_open_issue"] == []
+        assert report["summary"]["linked_count"] == 1
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 0
+        assert failures == []
+        assert src.is_file()
+
+    def test_cancelled_reasons_constant(self):
+        assert sorted(CANCELLED_STATE_REASONS) == ["DUPLICATE", "NOT_PLANNED"]
+
+
+class TestAxisBPrimaryReferenceFilter:
+    """Phase B: planRef is the canonical lifecycle anchor (#742 recurrence)."""
+
+    def test_planref_open_with_closed_umbrella_ref_stays_put(self, tmp_path):
+        # The recurrence record: a cohort member's planRef issue (#1284)
+        # is OPEN, but it merely *references* a closed umbrella (#742).
+        # Pre-#1290 the reconciler dragged it into the umbrella's terminal
+        # state; Axis B keeps it put because planRef is canonical.
+        vbrief_dir = tmp_path / "vbrief"
+        src = _write_vbrief_1290(
+            vbrief_dir,
+            "active",
+            "cohort-member.vbrief.json",
+            plan_ref=1284,
+            ref_issue=742,
+        )
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        assert len(anchors) == 1
+        assert anchors[0]["issue_number"] == 1284
+        assert anchors[0]["axis"] == "planRef"
+
+        state_map = {
+            1284: IssueState("OPEN", None),
+            742: IssueState("CLOSED", "COMPLETED"),
+        }
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        assert report["no_open_issue"] == []
+
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 0
+        assert failures == []
+        assert src.is_file(), (
+            "a vBRIEF whose planRef issue is OPEN MUST stay put even when "
+            "it references a closed umbrella"
+        )
+
+    def test_without_planref_closed_ref_is_dragged(self, tmp_path):
+        # Contrast: with NO planRef, the resolver falls back to
+        # references[] -- the closed umbrella DOES drive the lifecycle.
+        vbrief_dir = tmp_path / "vbrief"
+        src = _write_vbrief_1290(
+            vbrief_dir, "active", "no-planref.vbrief.json", ref_issue=742
+        )
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        assert anchors[0]["issue_number"] == 742
+        assert anchors[0]["axis"] == "references"
+        state_map = {742: IssueState("CLOSED", "COMPLETED")}
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert failures == []
+        assert not src.is_file()
+        assert (vbrief_dir / "completed" / "no-planref.vbrief.json").is_file()
+
+    def test_structured_log_names_axis(self, tmp_path, capsys):
+        vbrief_dir = tmp_path / "vbrief"
+        _write_vbrief_1290(
+            vbrief_dir, "active", "logged.vbrief.json", plan_ref=1284, ref_issue=742
+        )
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        build_lifecycle_report(
+            anchors, {1284: IssueState("OPEN", None)}, log=True
+        )
+        err = capsys.readouterr().err
+        assert "[lifecycle-resolve]" in err
+        assert "axis=planRef" in err
+        assert "anchor=#1284" in err
