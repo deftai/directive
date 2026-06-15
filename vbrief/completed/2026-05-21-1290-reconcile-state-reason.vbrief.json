@@ -8,7 +8,7 @@
   "plan": {
     "id": "1290-reconcile-state-reason",
     "title": "reconcile_issues.py honors stateReason + primary-reference filter (NOT_PLANNED -> cancelled/, Axis B canonical-issue resolution)",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#1290",
     "narratives": {
       "Description": "Two coordinated fixes to scripts/reconcile_issues.py --apply-lifecycle-fixes. (1) stateReason routing: consult GitHub's stateReason field so CLOSED+NOT_PLANNED routes to cancelled/, CLOSED+DUPLICATE routes to cancelled/, and CLOSED+COMPLETED routes to completed/ -- removes the manual scope:cancel pre-step that the #742 close required. (2) Axis B primary-reference filter: today the reconciler treats every plan.references[] entry as a lifecycle anchor, so a vBRIEF that merely refs an umbrella gets dragged through the umbrella's terminal state (the #742 close pulled #1283/#1284/#1285/#1291 into completed/ even though their own planRef issues were still open). The fix prefers plan.planRef as the canonical issue for lifecycle resolution and falls back to references[] only when planRef is absent. Both fixes ship together because the #742-class recurrence requires both: without (1) the operator runs scope:cancel by hand; without (2) the reconciler false-positives across the cohort on every umbrella close.",
@@ -79,7 +79,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T00:41:03Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -92,6 +94,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
       }
-    ]
+    ],
+    "updated": "2026-06-15T00:41:03Z"
   }
 }

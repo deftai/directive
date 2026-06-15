@@ -8,7 +8,7 @@
   "plan": {
     "id": "1292-issue-336-reframe",
     "title": "Reframe #336: documentation-tier AXIOM application (drop 5 new core content types)",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#1292",
     "narratives": {
       "Description": "Edit #336's body to drop the obsolete '5 new core content types' mechanism and reframe as documentation-tier AXIOM application with implementation via #714 tier-3 packs. Apply labels: determinism, rfc, design.",
@@ -39,7 +39,9 @@
       },
       "swarm": {
         "readiness": "not-ready"
-      }
+      },
+      "completedAt": "2026-06-15T00:25:15Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -57,6 +59,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #336: migration umbrella (reframe target)"
       }
-    ]
+    ],
+    "updated": "2026-06-15T00:25:15Z"
   }
 }

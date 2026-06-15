@@ -19,8 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Issue labels now mirror vBRIEF state, so reviewers stop seeing drift between an issue's labels and its lifecycle (#1288)** -- a new `task vbrief:reconcile:labels` reads each in-flight vBRIEF's linked GitHub issue and applies or removes a managed label set to match canonical state: `status:blocked` for blocked or dependency-blocked work, `epic` + `status:tracker` for epics, and `rfc` for research. It only touches the labels it owns (other labels are left alone), routes every forge call through the SCM shim, and is idempotent so a second run changes nothing. Supports `--repo`, `--dry-run`, and `--json`. Part of the #1284 vBRIEF-as-canonical epic. Closes #1288.
 
 ### Changed
+- **The "vBRIEF as source of truth for all docs" issue now matches the current architecture (#1292)** -- issue #336 was reframed from its obsolete "five new core vBRIEF content types" mechanism into a documentation-tier application of the Rule Authority [AXIOM]: framework `.md` files are rendered projections of canonical structured source, implemented via the #714 four-tier model and its tier-3 extension packs (#1294 / #1295 / #1296) under the #1284 epic. Contributors reading #336 after the decomposition no longer chase a dropped mechanism. Closes #1292. Refs #336, #1284.
 
 ### Fixed
+- **An umbrella issue closed as "not planned" now routes its dependent vBRIEFs to `cancelled/` automatically, and closing an umbrella no longer drags an entire cohort into the wrong terminal state (#1290)** -- `task reconcile:issues -- --apply-lifecycle-fixes` now consults each closed issue's GitHub `stateReason`, so `NOT_PLANNED` / `DUPLICATE` closures land in `cancelled/` while `COMPLETED` stays in `completed/` (removing the manual `scope:cancel` pre-step). It also resolves each vBRIEF's lifecycle from its own `plan.planRef` first, falling back to `references[]` only when planRef is absent, so a cohort member that merely references a closed umbrella is left untouched when its own planRef issue is still open. Closes #1290.
 
 ### Removed
 
