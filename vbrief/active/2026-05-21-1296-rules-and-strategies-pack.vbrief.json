@@ -1,0 +1,104 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1296 (feat(packs): rules-pack-0.1 + strategies-pack-0.1); Phase 3 / last open child of epic #1284. Generalizes the #1294 lessons + #1295 skills pack machinery to two further pack types as 0.1 pilots (metadata-complete + one drift-checked projection proof per pack).",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-06-15T17:25:00Z"
+  },
+  "plan": {
+    "id": "1296-rules-and-strategies-pack",
+    "title": "rules-pack-0.1 + strategies-pack-0.1",
+    "status": "running",
+    "narratives": {
+      "Description": "Phase 3 of the vBRIEF-as-canonical rollout (epic #1284, ADR-001 Layer B) and the last open child. The #1294 lessons pilot and #1295 skills pack established a pack-agnostic machinery (schema with x-display + x-sliceRegistry -> canonical JSON source under packs/ -> pack_render.py projection -> packs_slice.py named-slice API -> verify:pack-drift gate). This story adds two MORE pack types by REUSING that machinery (not copy-pasting it): rules-pack-0.1 over the RFC2119-tiered directives in coding/*.md, and strategies-pack-0.1 over strategies/*.md. Each ships as a 0.1 pilot mirroring skills-pack: metadata-complete coverage of its corpus plus exactly one designated full-body, drift-checked projection proof. Full content migration of every coding/AGENTS.md/strategies surface is explicit v0.2 follow-up, not this story. The #748 rules-classification vocabulary is the schema-design input for the rules tier field (it is OPEN and is an input, not a hard blocker).",
+      "ImplementationPlan": "1. vbrief/schemas/rules-pack.schema.json: mirror skills-pack.schema.json (pack const rules-pack-0.1, version 0.1, generated_from, a rules[] array of {id, tier, domain, text, path, body}, plus x-display and x-sliceRegistry). tier uses the coding/* RFC2119 legend (!=MUST, ~=SHOULD, the SHOULD-NOT glyph, the MUST-NOT glyph, ?=MAY) informed by #748 vocabulary; domain = the source doc stem (testing/security/hygiene/...). x-sliceRegistry slices: by-tier (filter tier), by-domain (filter domain), list. 2. scripts/pack_migrate_rules.py: parse the marker-prefixed directive lines out of coding/*.md into packs/rules/rules-pack-0.1.json; designate coding/testing.md as the full-body projection proof (body captured), other docs metadata-only (body null). 3. vbrief/schemas/strategies-pack.schema.json + scripts/pack_migrate_strategies.py + packs/strategies/strategies-pack-0.1.json: one entry per strategies/*.md {id, title, description, triggers/domain, path, body}; designate one strategy (strategies/yolo.md) as the full-body projection proof. x-sliceRegistry: by-trigger (or by-domain), list. 4. Generalize scripts/pack_render.py and scripts/packs_slice.py + tasks/packs.yml to register the two new packs through the same data-driven path used for lessons+skills (extend the pack registry table; do NOT branch per-pack with copy-pasted logic). Extend verify:pack-drift to cover all four packs. 5. Regenerate the two proof projections (coding/testing.md + strategies/yolo.md) as banner-marked, drift-checked projections; confirm meta/lessons.md and the skills proof still render byte-identical (no regression). 6. tests: tests/cli/test_pack_migrate_rules.py + test_pack_migrate_strategies.py (parse -> source round-trip), extend tests/cli/test_packs_slice.py (by-tier/by-domain/by-trigger slices, --list-packs now lists rules+strategies) and tests/cli/test_pack_render.py (new proofs render + drift). 7. CHANGELOG [Unreleased] entry referencing #1296; task check green; task verify:vbrief-conformance + verify:pack-drift green.",
+      "UserStory": "As an agent loading framework rules and strategies, I want named-slice access to the rules (by tier, by domain) and strategies packs through the same packs:slice surface that already serves lessons and skills, so that I can pull only the MUST-tier security rules or a single strategy without loading every doc.",
+      "Traces": "issue #1296; epic #1284 (last open child); generalizes #1294 lessons + #1295 skills machinery; #748 rules-classification vocabulary is schema-design input; ADR-001 Layer B."
+    },
+    "items": [
+      {
+        "title": "rules-pack-0.1 schema + source + by-tier/by-domain slices",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task packs:slice rules by-tier --tier MUST returns the MUST-tier directives parsed from coding/*.md, and by-domain --domain testing returns coding/testing.md's directives; the rules-pack JSON source validates against vbrief/schemas/rules-pack.schema.json and is built by scripts/pack_migrate_rules.py."
+        }
+      },
+      {
+        "title": "strategies-pack-0.1 schema + source + slice",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task packs:slice strategies list returns one entry per strategies/*.md with title/description/path, and task packs:slice --list-packs now lists rules and strategies alongside lessons and skills; the strategies-pack JSON source validates against its schema."
+        }
+      },
+      {
+        "title": "Reused machinery: render proofs + drift gate over all four packs, no regression",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task verify:pack-drift validates the rules proof (coding/testing.md) and strategies proof (strategies/yolo.md) as projections and still passes for meta/lessons.md and the skills proof; pack_render.py and packs_slice.py register the new packs through the shared data-driven registry, and task check passes green."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1296",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "vbrief/schemas/rules-pack.schema.json",
+          "vbrief/schemas/strategies-pack.schema.json",
+          "scripts/pack_migrate_rules.py",
+          "scripts/pack_migrate_strategies.py",
+          "scripts/pack_render.py",
+          "scripts/packs_slice.py",
+          "packs/rules/rules-pack-0.1.json",
+          "packs/strategies/strategies-pack-0.1.json",
+          "tasks/packs.yml",
+          "tests/cli/test_pack_migrate_rules.py",
+          "tests/cli/test_pack_migrate_strategies.py",
+          "tests/cli/test_packs_slice.py",
+          "tests/cli/test_pack_render.py",
+          "coding/testing.md",
+          "strategies/yolo.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_pack_migrate_rules.py tests/cli/test_pack_migrate_strategies.py tests/cli/test_packs_slice.py tests/cli/test_pack_render.py",
+          "task verify:pack-drift",
+          "task check"
+        ],
+        "expected_outputs": [
+          "packs:slice rules by-tier/by-domain and strategies list resolve via the shared slice API",
+          "--list-packs lists lessons, skills, rules, strategies",
+          "verify:pack-drift green over all four packs incl. the two new proofs; lessons+skills unchanged"
+        ],
+        "depends_on": [],
+        "conflict_group": "rules-strategies-pack",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1296",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1296: feat(packs): rules-pack-0.1 + strategies-pack-0.1"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/748",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #748: rules-classification vocabulary"
+      }
+    ],
+    "updated": "2026-06-15T17:18:52Z"
+  }
+}
