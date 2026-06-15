@@ -1,11 +1,15 @@
 version: '3'
 
-# Pack-slicing surface (#1283 design, #1294 pilot, ADR-001 Layer B).
+# Pack-slicing surface (#1283 design, #1294 lessons pilot, #1295 skills pack,
+# ADR-001 Layer B).
 #
-# `packs:slice` is the agent-facing named-slice API; `packs:render`
-# regenerates the rendered projection (meta/lessons.md) from the canonical
-# pack source; `packs:verify-drift` is the drift gate that fails when the
-# committed projection diverges from a freshly rendered buffer.
+# `packs:slice` is the agent-facing named-slice API (pack-agnostic, driven by
+# each pack's schema x-sliceRegistry + x-display); `packs:render` regenerates
+# every pack's projection (meta/lessons.md for lessons, the proof SKILL.md for
+# skills) from its canonical pack source; `packs:verify-drift` is the drift gate
+# that fails when ANY committed projection diverges from a freshly rendered
+# buffer. The pack-agnostic renderer/resolver is the #1294 machinery
+# generalized to a second pack, not copy-pasted.
 #
 # DEFT_ROOT is defined locally via `{{joinPath .TASKFILE_DIR ".."}}` (same
 # idiom as tasks/issue.yml) so the scripts dispatch traversal-free on every
@@ -22,7 +26,7 @@ vars:
 
 tasks:
   slice:
-    desc: "Named, structured slice access to a content pack (#1283). -- task packs:slice <pack> <name> [-- --since YYYY-MM | --tag T] [--list] [--json]"
+    desc: "Named, structured slice access to a content pack (#1283, #1295). -- task packs:slice <pack> <name> [-- --since YYYY-MM | --tag T | --trigger KW] [--list] [--list-packs] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
@@ -30,15 +34,23 @@ tasks:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/packs_slice.py" {{.CLI_ARGS}}
 
   render:
-    desc: "Regenerate meta/lessons.md from the canonical lessons-pack-0.1 source (ADR-001 projection). -- task packs:render [-- --check]"
+    desc: "Regenerate every content-pack projection from its canonical source (ADR-001): meta/lessons.md (lessons) + the proof SKILL.md (skills). -- task packs:render [-- --pack skills] [--check]"
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pack_render.py" {{.CLI_ARGS}}
 
+  render-skills:
+    desc: "One-shot migration: rebuild packs/skills/skills-pack-0.1.json from skills/*/SKILL.md + the AGENTS.md Skill Routing table (#1295)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pack_migrate_skills.py" {{.CLI_ARGS}}
+
   verify-drift:
-    desc: "Drift gate: fail (exit 1) when meta/lessons.md diverges from a freshly rendered buffer of the pack source. Wired into `task check` and surfaced as `task verify:pack-drift`."
+    desc: "Drift gate: fail (exit 1) when ANY pack projection (meta/lessons.md + the skills proof SKILL.md) diverges from a freshly rendered buffer. Wired into `task check` and surfaced as `task verify:pack-drift`."
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"

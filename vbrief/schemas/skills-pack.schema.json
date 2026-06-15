@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deft.dev/schemas/skills-pack-0.1.schema.json",
+  "title": "Skills Pack 0.1",
+  "description": "Canonical source schema for the skills-pack-0.1 tier-3 extension pack (#1295, design #1283, ADR-001, generalizing the #1294 lessons pilot). The structured JSON at packs/skills/skills-pack-0.1.json is the SOURCE OF TRUTH for skill ROUTING METADATA: for every skill under skills/*/SKILL.md it records id (== the frontmatter name), description, the routing triggers resolved from the AGENTS.md Skill Routing table, the path, and the version. Exactly one designated proof skill also carries its full body so its SKILL.md can be regenerated as a banner-marked, drift-checked projection (scripts/pack_render.py); every other entry is metadata-only (body null) and keeps its hand-authored SKILL.md. The `x-sliceRegistry` block is the schema-declared, agent-facing slice API (mirrors the lessons pack): a named-slice registry mapping slice name -> { path (a constrained dotted path into the source -- NOT JSONPath), filters[] (the fixed since/tag/trigger vocabulary), description }. Agents query by slice NAME only. The `x-display` block declares how scripts/packs_slice.py renders an entry as text (heading field, labelled metadata fields, optional body field, and the noun used in the empty-result line) so the slice formatter is pack-agnostic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pack", "version", "skills"],
+  "properties": {
+    "pack": {
+      "const": "skills-pack-0.1",
+      "description": "Versioned pack identifier. The version lives in the name per #1283 Q6 (pack version is part of the pack name)."
+    },
+    "version": {
+      "const": "0.1",
+      "description": "Pack major.minor, mirrored from the pack name suffix."
+    },
+    "generated_from": {
+      "type": "string",
+      "description": "Provenance: the sources the one-shot migration (scripts/pack_migrate_skills.py) parsed to build this pack (skills/*/SKILL.md frontmatter + the AGENTS.md Skill Routing table)."
+    },
+    "skills": {
+      "type": "array",
+      "description": "One entry per discovered skill (skills/*/SKILL.md with YAML frontmatter; deprecated redirect stubs without frontmatter are skipped). Order is the sorted path order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "description", "triggers", "path", "version", "body"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Skill id; equals the YAML frontmatter `name` (e.g. deft-directive-cost)."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The skill's frontmatter `description`, folded to a single normalised string. The renderer re-emits this as a YAML folded scalar for the proof skill."
+          },
+          "triggers": {
+            "type": "array",
+            "description": "Routing keywords mapped to this skill's path in the AGENTS.md Skill Routing table, in table order. Empty when the skill has no routing entry. The `by-trigger` slice filters on this field.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^skills/.+/SKILL\\.md$",
+            "description": "Repo-relative path to the skill's SKILL.md."
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Skill version: read from a frontmatter `version:` key when present, else defaulted to 0.1."
+          },
+          "body": {
+            "type": ["string", "null"],
+            "description": "Full SKILL.md body (everything after the frontmatter, with any prior provenance banner stripped) for the ONE designated proof skill; null for metadata-only entries. The renderer reconstructs the proof skill's SKILL.md = frontmatter + banner + body."
+          }
+        }
+      }
+    }
+  },
+  "x-display": {
+    "heading": "id",
+    "fields": ["description", "triggers", "path"],
+    "body": null,
+    "noun": "skills"
+  },
+  "x-sliceRegistry": {
+    "by-trigger": {
+      "path": "skills",
+      "filters": ["trigger"],
+      "description": "Skills whose routing triggers include any of the requested --trigger keywords (case-insensitive, repeatable or comma-listed)."
+    },
+    "list": {
+      "path": "skills",
+      "filters": [],
+      "description": "Every skill with its description, routing triggers, and path."
+    }
+  }
+}

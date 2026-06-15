@@ -61,6 +61,16 @@ SCHEMAS_DIR = REPO_ROOT / "vbrief" / "schemas"
 
 _SINCE_RE = re.compile(r"^\d{4}-\d{2}(-\d{2})?$")
 
+# Fallback display spec used when a pack schema declares no ``x-display`` block
+# (and when ``format_slice_text`` is called without one). Mirrors the lessons
+# pack's render shape so the legacy single-arg call sites stay byte-stable.
+_DEFAULT_DISPLAY: dict[str, Any] = {
+    "heading": "title",
+    "fields": [],
+    "body": "body",
+    "noun": "lessons",
+}
+
 
 class UsageError(Exception):
     """A recoverable usage error -- mapped to exit code 2 in ``main``."""
@@ -87,16 +97,45 @@ def _rel_to_repo(path: Path) -> str:
 def resolve_pack(pack_name: str) -> tuple[Path, Path]:
     """Resolve a pack short-name to its (source, schema) paths.
 
-    Raises ``UsageError`` (with a did-you-mean suggestion) for an unknown pack.
+    Resolution is self-extending (#1295): the hardcoded ``PACK_REGISTRY`` is an
+    override / fast-path (it is also the monkeypatch seam the tests use), but any
+    pack that ships ``packs/<name>/<name>-pack-*.json`` plus a companion
+    ``vbrief/schemas/<name>-pack.schema.json`` resolves with NO code change here
+    -- the same registry-driven contract ``--list-packs`` already honours. Raises
+    ``UsageError`` (with a did-you-mean suggestion) for an unknown pack.
     """
-    if pack_name not in PACK_REGISTRY:
-        suggestions = difflib.get_close_matches(pack_name, PACK_REGISTRY, n=1)
-        raise UsageError(
-            f"unknown pack '{pack_name}'",
-            suggestion=suggestions[0] if suggestions else None,
-        )
-    entry = PACK_REGISTRY[pack_name]
-    return entry["source"], entry["schema"]
+    if pack_name in PACK_REGISTRY:
+        entry = PACK_REGISTRY[pack_name]
+        return entry["source"], entry["schema"]
+
+    pack_dir = PACKS_DIR / pack_name
+    sources = sorted(pack_dir.glob("*.json")) if pack_dir.is_dir() else []
+    schema_path = SCHEMAS_DIR / f"{pack_name}-pack.schema.json"
+    if sources and schema_path.is_file():
+        return sources[0], schema_path
+
+    known = sorted({*PACK_REGISTRY, *(p["name"] for p in discover_packs())})
+    suggestions = difflib.get_close_matches(pack_name, known, n=1)
+    raise UsageError(
+        f"unknown pack '{pack_name}'",
+        suggestion=suggestions[0] if suggestions else None,
+    )
+
+
+def load_display(schema_path: Path) -> dict[str, Any]:
+    """Load the schema-declared ``x-display`` block (slice text-render hints).
+
+    Falls back to the lessons-shaped ``_DEFAULT_DISPLAY`` when a pack schema
+    omits the block, so the slice formatter is pack-agnostic without requiring
+    every pack to declare it.
+    """
+    if not schema_path.is_file():
+        raise UsageError(f"pack schema not found: {schema_path}")
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    display = schema.get("x-display")
+    if not isinstance(display, dict):
+        return dict(_DEFAULT_DISPLAY)
+    return display
 
 
 def load_registry(schema_path: Path) -> dict[str, dict[str, Any]]:
@@ -149,12 +188,28 @@ def apply_tags(entries: list[dict], tags: list[str]) -> list[dict]:
     return [e for e in entries if wanted & set(e.get("tags", []))]
 
 
+def apply_triggers(entries: list[dict], triggers: list[str]) -> list[dict]:
+    """Filter entries to those whose ``triggers`` include any requested value.
+
+    Matching is case-insensitive exact membership: the agent passes a routing
+    keyword from the AGENTS.md Skill Routing table and gets back the skill(s)
+    that keyword routes to.
+    """
+    wanted = {t.lower() for t in triggers}
+    return [
+        e
+        for e in entries
+        if wanted & {str(t).lower() for t in e.get("triggers", [])}
+    ]
+
+
 def _validate_filters(
     slice_name: str,
     allowed: list[str],
     *,
     since: str | None,
     tags: list[str] | None,
+    triggers: list[str] | None,
 ) -> None:
     """Reject filters not declared for this slice in the registry."""
     provided: list[str] = []
@@ -162,6 +217,8 @@ def _validate_filters(
         provided.append("since")
     if tags:
         provided.append("tag")
+    if triggers:
+        provided.append("trigger")
     for filt in provided:
         if filt not in allowed:
             raise UsageError(
@@ -179,6 +236,7 @@ def slice_pack(
     *,
     since: str | None = None,
     tags: list[str] | None = None,
+    triggers: list[str] | None = None,
 ) -> dict[str, Any]:
     """Resolve and execute a named slice, returning a provenance-tagged result.
 
@@ -194,7 +252,7 @@ def slice_pack(
 
     spec = registry[slice_name]
     allowed = spec.get("filters", [])
-    _validate_filters(slice_name, allowed, since=since, tags=tags)
+    _validate_filters(slice_name, allowed, since=since, tags=tags, triggers=triggers)
 
     if since is not None and not _SINCE_RE.match(since):
         raise UsageError(f"--since must be YYYY-MM or YYYY-MM-DD, got '{since}'")
@@ -206,6 +264,8 @@ def slice_pack(
         entries = apply_since(entries, since)
     if tags:
         entries = apply_tags(entries, tags)
+    if triggers:
+        entries = apply_triggers(entries, triggers)
 
     return {
         "pack": pack_id,
@@ -328,18 +388,49 @@ def format_list_packs_text(payload: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def format_slice_text(result: dict[str, Any]) -> str:
-    """Render a slice result as token-efficient text with a provenance header."""
+def format_slice_text(
+    result: dict[str, Any], display: dict[str, Any] | None = None
+) -> str:
+    """Render a slice result as token-efficient text with a provenance header.
+
+    The entry shape is driven by the pack schema's ``x-display`` block
+    (``heading`` field, optional labelled ``fields``, optional ``body`` field,
+    and the ``noun`` used in the empty-result line) so the formatter is
+    pack-agnostic. When ``display`` is omitted it falls back to the
+    lessons-shaped default, keeping legacy call sites byte-stable.
+    """
+    display = display or _DEFAULT_DISPLAY
     header = (
         f"# pack: {result['pack']} | slice: {result['slice']} | "
         f"source: {result['source']} | source_sha: {result['source_sha']} | "
         f"{result['count']} result(s)"
     )
+    noun = display.get("noun", "entries")
     if not result["results"]:
-        return f"{header}\n\n(no matching lessons)"
+        return f"{header}\n\n(no matching {noun})"
+
+    heading_field = display.get("heading", "title")
+    field_specs: list[str] = display.get("fields", [])
+    body_field = display.get("body")
+
     parts = [header]
     for entry in result["results"]:
-        parts.append(f"\n## {entry['title']}\n\n{entry['body']}\n")
+        block = f"\n## {entry.get(heading_field)}\n"
+        field_lines: list[str] = []
+        for field in field_specs:
+            value = entry.get(field)
+            if value in (None, "", []):
+                continue
+            if isinstance(value, list):
+                value = ", ".join(str(v) for v in value)
+            field_lines.append(f"- {field}: {value}")
+        if field_lines:
+            block += "\n" + "\n".join(field_lines) + "\n"
+        if body_field:
+            body = entry.get(body_field)
+            if body:
+                block += f"\n{body}\n"
+        parts.append(block)
     return "".join(parts)
 
 
@@ -374,6 +465,12 @@ def _build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         help="by-tag filter: tag value (repeatable or comma-listed).",
+    )
+    parser.add_argument(
+        "--trigger",
+        action="append",
+        default=[],
+        help="by-trigger filter: routing keyword (repeatable or comma-listed).",
     )
     parser.add_argument(
         "--format",
@@ -415,6 +512,7 @@ def main(argv: list[str] | None = None) -> int:
 
     fmt = "json" if args.json else args.format
     tags = _collect_tags(args.tag)
+    triggers = _collect_tags(args.trigger)
 
     try:
         if args.list_packs:
@@ -430,6 +528,7 @@ def main(argv: list[str] | None = None) -> int:
 
         source_path, schema_path = resolve_pack(args.pack)
         registry = load_registry(schema_path)
+        display = load_display(schema_path)
         source_data = load_source(source_path)
         pack_id = source_data.get("pack", args.pack)
 
@@ -452,11 +551,12 @@ def main(argv: list[str] | None = None) -> int:
             source_path,
             since=args.since,
             tags=tags,
+            triggers=triggers,
         )
         if fmt == "json":
             print(json.dumps(result, indent=2, ensure_ascii=False))
         else:
-            print(format_slice_text(result))
+            print(format_slice_text(result, display))
         return 0
     except UsageError as exc:
         msg = f"error: {exc.message}"

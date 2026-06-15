@@ -470,3 +470,188 @@ def test_real_pack_recent_reads_source() -> None:
     assert result["pack"] == "lessons-pack-0.1"
     assert result["count"] > 0
     assert result["source"].endswith("lessons-pack-0.1.json")
+
+
+# --- skills pack: trigger filter + schema-driven display (#1295) -------------
+
+
+def _write_skills_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    """Write a minimal skills-pack fixture schema + source (source, schema)."""
+    schema = {
+        "x-display": {
+            "heading": "id",
+            "fields": ["description", "triggers", "path"],
+            "body": None,
+            "noun": "skills",
+        },
+        "x-sliceRegistry": {
+            "by-trigger": {
+                "path": "skills",
+                "filters": ["trigger"],
+                "description": "Skills whose triggers include any requested --trigger.",
+            },
+            "list": {
+                "path": "skills",
+                "filters": [],
+                "description": "Every skill with its description, triggers, and path.",
+            },
+        },
+    }
+    source = {
+        "pack": "skills-pack-0.1",
+        "version": "0.1",
+        "skills": [
+            {
+                "id": "deft-directive-cost",
+                "description": "Pre-build cost phase.",
+                "triggers": ["cost", "budget", "pre-build cost"],
+                "path": "skills/deft-directive-cost/SKILL.md",
+                "version": "0.1",
+                "body": "# Deft Directive Cost\n\nBody.",
+            },
+            {
+                "id": "deft-directive-glossary",
+                "description": "Glossary extraction.",
+                "triggers": ["glossary", "DDD"],
+                "path": "skills/deft-directive-glossary/SKILL.md",
+                "version": "0.1",
+                "body": None,
+            },
+            {
+                "id": "deft-directive-write-skill",
+                "description": "Author a new skill.",
+                "triggers": [],
+                "path": "skills/deft-directive-write-skill/SKILL.md",
+                "version": "0.1",
+                "body": None,
+            },
+        ],
+    }
+    schema_path = tmp_path / "skills-pack.schema.json"
+    source_path = tmp_path / "skills-pack-0.1.json"
+    schema_path.write_text(json.dumps(schema), encoding="utf-8")
+    source_path.write_text(json.dumps(source), encoding="utf-8")
+    return source_path, schema_path
+
+
+def test_by_trigger_returns_matching_skill(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "by-trigger", triggers=["cost"])
+    assert [e["id"] for e in result["results"]] == ["deft-directive-cost"]
+
+
+def test_by_trigger_case_insensitive_and_multiword(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    result = _slice(
+        source_path, schema_path, "by-trigger", triggers=["PRE-BUILD COST"]
+    )
+    assert [e["id"] for e in result["results"]] == ["deft-directive-cost"]
+
+
+def test_by_trigger_union_of_triggers(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    result = _slice(
+        source_path, schema_path, "by-trigger", triggers=["budget", "ddd"]
+    )
+    assert {e["id"] for e in result["results"]} == {
+        "deft-directive-cost",
+        "deft-directive-glossary",
+    }
+
+
+def test_by_trigger_no_match_is_empty(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "by-trigger", triggers=["nope"])
+    assert result["count"] == 0
+
+
+def test_apply_triggers_unit() -> None:
+    entries = [
+        {"id": "a", "triggers": ["Build", "ship"]},
+        {"id": "b", "triggers": []},
+    ]
+    assert [e["id"] for e in packs_slice.apply_triggers(entries, ["build"])] == ["a"]
+    assert packs_slice.apply_triggers(entries, ["missing"]) == []
+
+
+def test_list_slice_returns_all_skills(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "list")
+    assert result["count"] == 3
+    assert {e["id"] for e in result["results"]} == {
+        "deft-directive-cost",
+        "deft-directive-glossary",
+        "deft-directive-write-skill",
+    }
+
+
+def test_skills_text_display_shows_metadata_not_body(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    display = packs_slice.load_display(schema_path)
+    result = _slice(source_path, schema_path, "by-trigger", triggers=["cost"])
+    text = packs_slice.format_slice_text(result, display)
+    assert "## deft-directive-cost" in text
+    assert "- description: Pre-build cost phase." in text
+    assert "- triggers: cost, budget, pre-build cost" in text
+    assert "- path: skills/deft-directive-cost/SKILL.md" in text
+    # body is NOT shown in the slice surface (x-display body is null).
+    assert "Body." not in text
+
+
+def test_skills_text_display_empty_uses_skills_noun(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    display = packs_slice.load_display(schema_path)
+    result = _slice(source_path, schema_path, "by-trigger", triggers=["none"])
+    text = packs_slice.format_slice_text(result, display)
+    assert "(no matching skills)" in text
+
+
+def test_trigger_filter_rejected_on_list_slice(tmp_path: Path) -> None:
+    source_path, schema_path = _write_skills_fixture(tmp_path)
+    with pytest.raises(packs_slice.UsageError, match="does not support"):
+        _slice(source_path, schema_path, "list", triggers=["cost"])
+
+
+def test_load_display_defaults_when_absent(tmp_path: Path) -> None:
+    schema_path = tmp_path / "noop-pack.schema.json"
+    schema_path.write_text(json.dumps({"x-sliceRegistry": {}}), encoding="utf-8")
+    display = packs_slice.load_display(schema_path)
+    assert display == packs_slice._DEFAULT_DISPLAY
+
+
+def test_load_display_missing_schema_raises(tmp_path: Path) -> None:
+    with pytest.raises(packs_slice.UsageError, match="schema not found"):
+        packs_slice.load_display(tmp_path / "absent.json")
+
+
+# --- self-extending resolver: skills resolves with no PACK_REGISTRY entry ----
+
+
+def test_resolve_pack_skills_via_disk_discovery() -> None:
+    """The skills pack resolves through on-disk discovery even though it is NOT
+    in PACK_REGISTRY -- the self-extending contract (#1295)."""
+    assert "skills" not in packs_slice.PACK_REGISTRY
+    source_path, schema_path = packs_slice.resolve_pack("skills")
+    assert source_path.name == "skills-pack-0.1.json"
+    assert schema_path.name == "skills-pack.schema.json"
+    assert source_path.is_file() and schema_path.is_file()
+
+
+def test_real_skills_by_trigger_reads_source() -> None:
+    """The committed skills pack resolves + by-trigger returns the proof skill."""
+    source_path, schema_path = packs_slice.resolve_pack("skills")
+    result = _slice(source_path, schema_path, "by-trigger", triggers=["cost"])
+    assert result["pack"] == "skills-pack-0.1"
+    assert "deft-directive-cost" in [e["id"] for e in result["results"]]
+
+
+def test_list_packs_shows_both_lessons_and_skills() -> None:
+    """--list-packs auto-discovers BOTH committed packs (registry-driven)."""
+    payload = packs_slice.list_packs()
+    names = [p["name"] for p in payload["packs"]]
+    assert "lessons" in names
+    assert "skills" in names
+    skills = next(p for p in payload["packs"] if p["name"] == "skills")
+    assert skills["pack"] == "skills-pack-0.1"
+    assert skills["version"] == "0.1"
+    assert skills["description"]  # one-liner read from the skills schema

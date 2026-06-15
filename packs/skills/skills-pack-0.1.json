@@ -1,0 +1,243 @@
+{
+  "pack": "skills-pack-0.1",
+  "version": "0.1",
+  "generated_from": "skills/*/SKILL.md + AGENTS.md (Skill Routing)",
+  "skills": [
+    {
+      "id": "deft-directive-article-review",
+      "description": "Evaluate an article, paper, or post for lessons that could improve directive. Analyzes two axes: how concepts improve directive's own implementation, and how they improve the projects directive creates. Produces filtered suggestions, iterates with the user, and optionally creates GitHub issues on the directive repo. Use when evaluating an article, paper, post, or URL for directive improvements, or when the user says \"analyze this article\", \"evaluate this article\", or \"what can we learn from this for directive\".",
+      "triggers": [],
+      "path": "skills/deft-directive-article-review/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-build",
+      "description": "Build a project from scope vBRIEFs following Deft Directive framework standards. Use after deft-directive-setup has generated the project definition, or when the user has story vBRIEFs in vbrief/active/ ready to implement. Handles scaffolding, implementation, testing, and quality checks phase by phase.",
+      "triggers": [
+        "build",
+        "implement",
+        "implement spec"
+      ],
+      "path": "skills/deft-directive-build/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-cost",
+      "description": "Pre-build cost & budget transparency phase. Use after the project SPECIFICATION is approved and before the build skill kicks off, to produce a plain-English COST-ESTIMATE.md the user can read, react to, and explicitly accept, rescope, no-build, or skip with a recorded reason. Audience is non-technical users; voice is dollars and whole-number bands, not spreadsheets.",
+      "triggers": [
+        "cost",
+        "budget",
+        "pre-build cost",
+        "how much will this cost"
+      ],
+      "path": "skills/deft-directive-cost/SKILL.md",
+      "version": "0.1",
+      "body": "# Deft Directive Cost\n\nPlain-English cost & budget transparency phase between SPECIFICATION\napproval and build kickoff. Closes the adoption-blocker surfaced by\nissue #739 (and issue #151 umbrella) where users finished the spec\nflow and stopped at build because deft offered no cost signal.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, \u2249=SHOULD NOT, \u2297=MUST NOT, ?=MAY.\n\n## When to Use\n\n- After `skills/deft-directive-setup/SKILL.md` Phase 3 has produced an\n  approved `vbrief/specification.vbrief.json` (status `approved`)\n- Before `skills/deft-directive-build/SKILL.md` kicks off\n- When the user says \"cost\", \"budget\", \"pre-build cost\", \"how much will\n  this cost\", or asks to estimate cost before building\n\n## Audience & Voice\n\n- ! Non-technical users. Voice is plain English, dollars, and whole\n  numbers. No spreadsheets, no scientific notation, no industry jargon.\n- ! Loose ranges, not single point estimates. Express bands as **low /\n  typical / high**.\n- \u2297 Use jargon like \"TCO\", \"burn rate\", \"p50\", \"OPEX vs CAPEX\",\n  \"amortised\", \"blended rate\", \"unit economics\", \"FTE\", or any other\n  term a non-technical user is unlikely to know.\n\nMethodology lives in `references/cost-models.md`. The canonical body of\nthe artifact lives in `templates/COST-ESTIMATE.md`.\n\n## Platform Detection\n\n! Before resolving any config paths, detect the host OS from your\nenvironment context and resolve the `USER.md` path:\n\n| Platform           | USER.md default path                                              |\n|--------------------|-------------------------------------------------------------------|\n| Windows            | `%APPDATA%\\deft\\USER.md` (e.g. `C:\\Users\\{user}\\AppData\\Roaming\\deft\\USER.md`) |\n| Unix (macOS/Linux) | `~/.config/deft/USER.md`                                          |\n\n- ! If `$DEFT_USER_PATH` is set, it takes precedence on any platform.\n\nPath resolution mirrors `skills/deft-directive-build/SKILL.md` so the\ntwo skills agree on the user's preferences file.\n\n## Inputs\n\n- ! `vbrief/specification.vbrief.json` MUST exist with `plan.status =\n  \"approved\"`. If the spec is not yet approved, stop and redirect to\n  `skills/deft-directive-setup/SKILL.md` Phase 3 / the spec approval\n  gate.\n- ~ `vbrief/PROJECT-DEFINITION.vbrief.json` (for tech-stack and\n  architecture narratives). Optional but improves the estimate.\n- ~ `templates/COST-ESTIMATE.md` (canonical artifact body).\n- ~ `references/cost-models.md` (methodology).\n\n## Phases\n\n### Phase 1 -- Read the spec & detect categories\n\n- ! Read the approved spec and the project definition.\n- ! Walk the spec and identify which cost categories apply for this\n  project: hosting / infrastructure, API / third-party fees, pre-flight\n  account sign-ups, build & maintenance time. Drop categories that do\n  not apply.\n- ~ State each category's relevance to the user in one sentence (e.g.\n  \"Because the spec says we will use an LLM, the AI / LLM row applies\n  and is usually the largest swing factor\").\n\n### Phase 2 -- Draft `COST-ESTIMATE.md`\n\n- ! Copy `templates/COST-ESTIMATE.md` into the project root as\n  `COST-ESTIMATE.md`.\n- ! Fill in each category with a **low - typical - high** plain-English\n  band. Use whole numbers where the precision does not matter.\n- ! State the **scale assumption** beside the typical band (e.g. \"About\n  100 active users per day, each doing 5 main actions\"). The same\n  project shape can be \\$10 / month or \\$10,000 / month depending on\n  traffic, so the assumption is required.\n- ! Roll up into a **monthly band** (low / typical / high). Keep the\n  roll-up loose -- adding a range to a range gives a range; do NOT\n  collapse to a single number.\n- ! When the high band is more than ~10x the typical band, surface a\n  **scale considerations** note explaining what would push the project\n  from typical to high (e.g. \"media-heavy traffic blows up egress\").\n- ! USD-only first pass. The artifact MUST say \"USD\" up top so\n  international users know to convert.\n- \u2297 Quote single-point estimates (\"this will cost $47.12 / month\").\n- \u2297 Cite live vendor pricing as if it were a guarantee. The artifact is\n  a snapshot; vendor pricing changes.\n\n### Phase 3 -- Read it back to the user\n\n- ! Show the user the **TL;DR**, the **monthly band** (low / typical /\n  high), and the **scale considerations** note (if present).\n- ~ Offer to read any other section in full on request.\n- ! Surface the explicit **decision point** menu in Phase 4.\n\n### Phase 4 -- Decision point (build kickoff confirmation menu)\n\n! Present the user with this exact, numbered menu. Per the framework\nmenu rule (#767), `Discuss` and `Back` MUST be the final two numbered\noptions. The four substantive choices come first.\n\n```\nThis is your project's cost estimate. Pick one.\n\n1. Build              -- accept the cost and start the build phase\n2. Rescope            -- keep building but reduce cost first\n3. No-build           -- stop here; record the reason\n4. Skip               -- skip the cost phase; record a short reason\n5. Discuss            -- ask follow-up questions before deciding\n6. Back               -- return to the previous step (e.g. spec edits)\n```\n\n- ! `Discuss` MUST be option 5 and `Back` MUST be option 6 (the final\n  two numbered options) per the #767 framework rule.\n- ! The decision MUST be recorded in `COST-ESTIMATE.md` under\n  **Decision recorded** (decision, date, recorded-by, reason). The\n  reason field is REQUIRED for `rescope`, `no-build`, and `skip` (so\n  that the artifact's existence is auditable). The reason field is\n  optional for `build`.\n- ! On `Rescope`, return the user to spec edits (chain back to\n  `skills/deft-directive-refinement/SKILL.md` to pull spec scope back,\n  or the interview), then re-run this skill from Phase 1.\n- ! On `No-build`, write the decision to `COST-ESTIMATE.md`, mark the\n  spec scope vBRIEF accordingly, exit, and do NOT chain into the build\n  skill.\n- ! On `Skip`, write the decision and skip reason to `COST-ESTIMATE.md`\n  and proceed to the build kickoff.\n- ! On `Build`, write the decision to `COST-ESTIMATE.md` and proceed\n  to the build kickoff.\n- ! On `Discuss`, take questions and re-show the same menu. Do NOT\n  proceed without an explicit choice from options 1-4.\n- ! On `Back`, return to the spec / setup phase. Do NOT proceed without\n  re-running this skill.\n- \u2297 Proceed to the build skill silently without surfacing the decision\n  point to the user.\n\n## Output Targets\n\n- ! `COST-ESTIMATE.md` (in the project root). Created by Phase 2 and\n  finalised in Phase 4 with the recorded decision.\n- ~ Reference the artifact from `vbrief/PROJECT-DEFINITION.vbrief.json`\n  via a `references` entry of type `x-vbrief/spec-section` so future\n  agents discover the cost decision when re-reading the project\n  definition.\n\n## Anti-Patterns\n\n- \u2297 Quote single-point cost estimates -- always use loose plain-English\n  bands.\n- \u2297 Use industry jargon (TCO, p50, FTE, OPEX vs CAPEX, etc.) in the\n  artifact or skill prose -- the audience is non-technical.\n- \u2297 Skip the decision point -- the build skill MUST refuse kickoff\n  until the user has explicitly chosen build / rescope / no-build /\n  skip(+reason).\n- \u2297 Hide the `Discuss` and `Back` options or place them at the top of\n  the menu -- they MUST be the final two numbered options per #767.\n- \u2297 Generate `COST-ESTIMATE.md` and chain into build silently without\n  surfacing the decision point.\n- \u2297 Skip the `Skip` reason -- if the user opts to skip the cost phase,\n  the reason MUST be recorded so the artifact's existence is auditable.\n- \u2297 Cite live vendor pricing as a guarantee -- the artifact is a\n  snapshot; pricing changes over time.\n- \u2297 Localise to non-USD currency in the first pass -- USD-only is the\n  contract; international users convert manually.\n- \u2297 Promise a project will \"definitely\" stay within a band -- always\n  say \"expected\", \"typical\", or \"in our estimate\".\n\n## EXIT\n\nWhen the user makes a decision in Phase 4 and the decision is recorded\nin `COST-ESTIMATE.md`:\n\n- ! Confirm exit explicitly: `deft-directive-cost complete -- exiting skill.`\n- ! State the next step based on the decision:\n  - `Build` or `Skip` -> chain into `skills/deft-directive-build/SKILL.md`\n  - `Rescope` -> chain into `skills/deft-directive-refinement/SKILL.md`\n    for targeted spec edits, then re-run this skill\n  - `No-build` -> exit; do NOT chain into build\n  - `Discuss` -> remain in this skill until the user picks 1-4\n  - `Back` -> chain back to the previous skill (spec / setup)\n\n\u2297 Exit this skill silently without confirming completion or providing\nnext-step instructions.\n"
+    },
+    {
+      "id": "deft-directive-debug",
+      "description": "Systematic, evidence-based root-cause investigation. Use when the user asks \"why did X break / slow down / regress?\", wants to debug a failure, run a forensic investigation, or find the root cause of a bug -- to enter a sustained investigation MODE with a claim ledger, mandatory falsification before any conclusion, a chat answer-embargo until evidence closes, and a deterministic validator gate. Triggers: \"debug\", \"root cause\", \"investigate\", \"why did X break\", \"why is X slow\", \"systematic debugging\", \"forensic\".",
+      "triggers": [
+        "debug",
+        "root cause",
+        "investigate",
+        "why did X break",
+        "why is X slow",
+        "systematic debugging",
+        "forensic"
+      ],
+      "path": "skills/deft-directive-debug/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-decompose",
+      "description": "Convert approved specification/phase/epic scope vBRIEFs into swarm-ready story vBRIEFs before concurrent agent allocation.",
+      "triggers": [
+        "decompose",
+        "story decomposition",
+        "swarm readiness"
+      ],
+      "path": "skills/deft-directive-decompose/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-gh-arch",
+      "description": "Explore a codebase for architectural improvement opportunities -- deepen shallow modules, generate competing interface designs in parallel via sub-agents, and file a refactor RFC as a GitHub Issue. Use when improving architecture, finding refactoring opportunities, or making a codebase more testable and AI-navigable. Requires the GitHub CLI (gh).",
+      "triggers": [
+        "improve architecture",
+        "deep modules",
+        "interface design",
+        "refactor RFC"
+      ],
+      "path": "skills/deft-directive-gh-arch/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-gh-slice",
+      "description": "Break a SPECIFICATION.md, PRD, or plan into independently-grabbable GitHub Issues using tracer-bullet vertical slices. Use after spec generation, when the user wants to create implementation tickets, or when breaking work into parallel-assignable issues. Requires the GitHub CLI (gh).",
+      "triggers": [],
+      "path": "skills/deft-directive-gh-slice/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-glossary",
+      "description": "Extract a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canonical terms. Saves to UBIQUITOUS_LANGUAGE.md. Use when defining domain terms, building a glossary, hardening terminology, or when \"domain model\" or \"DDD\" is mentioned.",
+      "triggers": [
+        "glossary",
+        "ubiquitous language",
+        "domain model",
+        "DDD",
+        "define terms"
+      ],
+      "path": "skills/deft-directive-glossary/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-interview",
+      "description": "Deterministic structured Q&A interview loop. Use when any skill needs to gather structured input from the user through a series of focused questions with numbered options, stated defaults, and a confirmation gate before artifact generation. Interview output targets vBRIEF narratives \u2014 not PRD.md.",
+      "triggers": [
+        "interview loop",
+        "q&a loop",
+        "run interview loop"
+      ],
+      "path": "skills/deft-directive-interview/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-pre-pr",
+      "description": "Iterative pre-PR quality improvement loop. Use before pushing a branch for PR creation -- after completing implementation but before task check. Cycles through Read-Write-Lint-Diff until a full pass produces zero changes.",
+      "triggers": [
+        "pre-pr",
+        "quality loop",
+        "rwldl",
+        "self-review"
+      ],
+      "path": "skills/deft-directive-pre-pr/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-probe",
+      "description": "Adversarial plan stress-testing via relentless one-question-per-turn interrogation. Use when the operator asks to run probe, /deft:run:probe, or wants a plan challenged before committing to it.",
+      "triggers": [
+        "run probe",
+        "/deft:run:probe",
+        "probe"
+      ],
+      "path": "skills/deft-directive-probe/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-refinement",
+      "description": "Conversational refinement session. Ingests external work items into vBRIEF proposed/ scope, deduplicates via origin references, evaluates proposals with the user, reconciles stale origins, and promotes/demotes scopes through the lifecycle using deterministic task commands.",
+      "triggers": [
+        "refinement",
+        "reprioritize",
+        "refine",
+        "triage",
+        "pre-ingest",
+        "action menu",
+        "triage <N>",
+        "triage issue",
+        "ingest issue"
+      ],
+      "path": "skills/deft-directive-refinement/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-release",
+      "description": "Cut a v0.X.Y release of the deft framework safely. Use when the user says \"release\", \"cut release\", \"v0.X.Y\", or \"publish release\" -- to walk an 8-phase workflow that pre-flights, runs an end-to-end rehearsal against a temp repo, lands a draft on the real repo, gates on user review, then publishes or rolls back. Re-uses the deft-directive-swarm Phase 6 Step 5 Slack announcement template.",
+      "triggers": [
+        "release",
+        "cut release",
+        "v0.X.Y",
+        "publish release"
+      ],
+      "path": "skills/deft-directive-release/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-review-cycle",
+      "description": "Greptile bot reviewer response workflow. Use when running a review cycle on a PR -- to audit process prerequisites, fetch bot findings, fix all issues in a single batch commit, and exit cleanly when no P0 or P1 issues remain.",
+      "triggers": [
+        "review cycle",
+        "check reviews",
+        "run review cycle"
+      ],
+      "path": "skills/deft-directive-review-cycle/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-setup",
+      "description": "Set up a new project with Deft Directive framework standards. Use when the user wants to bootstrap user preferences, configure a project, or generate a project specification. Walks through setup conversationally \u2014 no separate CLI needed.",
+      "triggers": [
+        "setup",
+        "bootstrap",
+        "onboard"
+      ],
+      "path": "skills/deft-directive-setup/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-swarm",
+      "description": "Parallel local agent orchestration. Use when running multiple agents on story-level vBRIEFs simultaneously \u2014 to scan active/ for allocatable work, set up isolated worktrees, launch agents with proven prompts, monitor progress, handle stalled review cycles, and close out PRs cleanly.",
+      "triggers": [
+        "swarm",
+        "parallel agents",
+        "run agents"
+      ],
+      "path": "skills/deft-directive-swarm/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-sync",
+      "description": "Session-start framework sync skill. Pulls latest deft submodule, validates vBRIEF lifecycle structure, checks folder/status consistency, detects stale origins (RFC D12), and summarizes changes.",
+      "triggers": [
+        "sync",
+        "good morning",
+        "update deft",
+        "update vbrief",
+        "sync frameworks"
+      ],
+      "path": "skills/deft-directive-sync/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-triage",
+      "description": "Triage-cache hygiene and \"what's next?\" queue selection -- the agent-facing playbook for syncing the triage cache, classifying candidates, presenting a ranked queue, walking per-item decisions (accept / reject / defer / needs-ac / mark-duplicate), and auditing the session. Use when the operator asks what to work on next, wants to build a cohort, work the cache, or run a triage hygiene pass.",
+      "triggers": [
+        "triage hygiene",
+        "work the cache",
+        "what's next",
+        "queue",
+        "build a cohort"
+      ],
+      "path": "skills/deft-directive-triage/SKILL.md",
+      "version": "0.1",
+      "body": null
+    },
+    {
+      "id": "deft-directive-write-skill",
+      "description": "Create new deft skills with proper structure, RFC2119 notation, triggers, and progressive disclosure. Use when user wants to create, write, or build a new deft skill.",
+      "triggers": [],
+      "path": "skills/deft-directive-write-skill/SKILL.md",
+      "version": "0.1",
+      "body": null
+    }
+  ]
+}

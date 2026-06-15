@@ -26,11 +26,16 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 import pack_migrate_lessons  # type: ignore[import-not-found]  # noqa: E402
+import pack_migrate_skills  # type: ignore[import-not-found]  # noqa: E402
 import pack_render  # type: ignore[import-not-found]  # noqa: E402
 
 _REAL_SOURCE = _REPO_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json"
 _REAL_OUTPUT = _REPO_ROOT / "meta" / "lessons.md"
 _REAL_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "lessons-pack.schema.json"
+
+_REAL_SKILLS_SOURCE = _REPO_ROOT / "packs" / "skills" / "skills-pack-0.1.json"
+_REAL_SKILLS_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "skills-pack.schema.json"
+_PROOF_SKILL_PATH = "skills/deft-directive-cost/SKILL.md"
 
 
 # --- fixtures ---------------------------------------------------------------
@@ -325,3 +330,344 @@ def test_schema_slice_registry_matches_packs_slice_expectations() -> None:
     assert registry["recent"]["filters"] == ["since"]
     assert registry["by-tag"]["filters"] == ["tag"]
     assert registry["recent"]["path"] == "lessons"
+
+
+# ===========================================================================
+# Skills pack (#1295): generalized machinery -- migration, schema, renderer,
+# round-trip, and multi-pack drift. Lessons coverage above must NOT regress.
+# ===========================================================================
+
+# A small skills fixture: a routed proof skill (folded description + body), a
+# routed metadata-only skill, an unrouted skill, and a deprecated redirect stub
+# without YAML frontmatter (which must be skipped).
+_FIXTURE_AGENTS_MD = """# Heading
+
+## Skill Routing
+
+When user input matches a trigger keyword, read the corresponding skill:
+
+- "alpha" / "do alpha" \u2192 `skills/deft-alpha/SKILL.md` -- a note with `backticks`
+- "beta" / "second beta" \u2192 `skills/deft-beta/SKILL.md`
+- "alpha again" \u2192 `skills/deft-alpha/SKILL.md`
+- "welcome" \u2192 invokes `task triage:welcome --onboard`
+
+## Next Section
+
+Not part of routing.
+"""
+
+_FIXTURE_ALPHA_MD = """---
+name: deft-alpha
+description: >
+  Alpha skill that does alpha things. It spans
+  multiple folded lines for realism.
+---
+
+# Alpha
+
+Alpha body with an em dash \u2014 and content.
+"""
+
+_FIXTURE_BETA_MD = """---
+name: deft-beta
+version: "0.3"
+description: >-
+  Beta skill metadata only.
+triggers:
+  - beta
+  - second beta
+---
+
+# Beta
+
+Beta body that is NOT captured (metadata-only).
+"""
+
+_FIXTURE_STUB_MD = """<!-- deft:deprecated-skill-redirect -->
+
+# Deprecated stub -- no frontmatter, must be skipped.
+"""
+
+
+def _write_skills_tree(tmp_path: Path) -> tuple[Path, Path]:
+    """Write a fixture skills/ tree + AGENTS.md; return (skills_dir, agents_md)."""
+    skills_dir = tmp_path / "skills"
+    for name, text in (
+        ("deft-alpha", _FIXTURE_ALPHA_MD),
+        ("deft-beta", _FIXTURE_BETA_MD),
+        ("deft-stub", _FIXTURE_STUB_MD),
+    ):
+        d = skills_dir / name
+        d.mkdir(parents=True)
+        (d / "SKILL.md").write_text(text, encoding="utf-8")
+    agents_md = tmp_path / "AGENTS.md"
+    agents_md.write_text(_FIXTURE_AGENTS_MD, encoding="utf-8")
+    return skills_dir, agents_md
+
+
+# --- routing-table parsing --------------------------------------------------
+
+
+def test_parse_routing_maps_paths_to_triggers() -> None:
+    routing = pack_migrate_skills.parse_routing(_FIXTURE_AGENTS_MD)
+    # alpha accumulates both bullets; backtick note after the arrow is ignored.
+    assert routing["skills/deft-alpha/SKILL.md"] == ["alpha", "do alpha", "alpha again"]
+    assert routing["skills/deft-beta/SKILL.md"] == ["beta", "second beta"]
+    # The task-only "welcome" bullet (no SKILL.md path) is skipped.
+    assert all("triage:welcome" not in p for p in routing)
+
+
+def test_parse_routing_handles_real_agents_md() -> None:
+    routing = pack_migrate_skills.parse_routing(
+        (_REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    )
+    assert "cost" in routing["skills/deft-directive-cost/SKILL.md"]
+    assert "review cycle" in routing["skills/deft-directive-review-cycle/SKILL.md"]
+
+
+# --- frontmatter parsing ----------------------------------------------------
+
+
+def test_split_frontmatter_returns_none_for_stub() -> None:
+    fm, body = pack_migrate_skills.split_frontmatter(_FIXTURE_STUB_MD)
+    assert fm is None
+    assert body == _FIXTURE_STUB_MD
+
+
+def test_split_frontmatter_splits_body() -> None:
+    fm, body = pack_migrate_skills.split_frontmatter(_FIXTURE_ALPHA_MD)
+    assert fm is not None
+    assert "name: deft-alpha" in fm
+    assert body.lstrip().startswith("# Alpha")
+
+
+def test_parse_frontmatter_folds_description() -> None:
+    fm, _ = pack_migrate_skills.split_frontmatter(_FIXTURE_ALPHA_MD)
+    assert fm is not None
+    fields = pack_migrate_skills.parse_frontmatter_fields(fm)
+    assert fields["name"] == "deft-alpha"
+    assert fields["description"] == (
+        "Alpha skill that does alpha things. It spans multiple folded lines "
+        "for realism."
+    )
+
+
+def test_parse_frontmatter_skips_triggers_list_and_reads_version() -> None:
+    fm, _ = pack_migrate_skills.split_frontmatter(_FIXTURE_BETA_MD)
+    assert fm is not None
+    fields = pack_migrate_skills.parse_frontmatter_fields(fm)
+    assert fields["name"] == "deft-beta"
+    assert fields["version"] == "0.3"
+    assert fields["description"] == "Beta skill metadata only."
+
+
+def test_strip_leading_banner_is_idempotent() -> None:
+    body = "# Alpha\n\nContent.\n"
+    banner = "\n".join(pack_render._SKILLS_BANNER) + "\n"
+    bannered = banner + "\n" + body
+    assert pack_migrate_skills.strip_leading_banner(bannered) == body
+    # Idempotent: stripping a banner-free body is a no-op modulo leading blanks.
+    assert pack_migrate_skills.strip_leading_banner(body) == body
+
+
+def test_strip_leading_banner_preserves_unrelated_comment() -> None:
+    body = "<!-- not our banner -->\n# Alpha\n"
+    assert pack_migrate_skills.strip_leading_banner(body) == body
+
+
+# --- migration end-to-end ---------------------------------------------------
+
+
+def test_migrate_skills_builds_expected_pack(tmp_path: Path) -> None:
+    skills_dir, agents_md = _write_skills_tree(tmp_path)
+    out = tmp_path / "out" / "skills-pack-0.1.json"
+    pack = pack_migrate_skills.migrate(
+        skills_dir, agents_md, out, proof_skill="deft-alpha"
+    )
+    assert pack["pack"] == "skills-pack-0.1"
+    assert pack["version"] == "0.1"
+    # Stub without frontmatter is skipped: only alpha + beta remain.
+    ids = [s["id"] for s in pack["skills"]]
+    assert ids == ["deft-alpha", "deft-beta"]
+
+    alpha = next(s for s in pack["skills"] if s["id"] == "deft-alpha")
+    assert alpha["triggers"] == ["alpha", "do alpha", "alpha again"]
+    assert alpha["path"] == "skills/deft-alpha/SKILL.md"
+    assert alpha["version"] == "0.1"  # default
+    assert alpha["body"] is not None and "Alpha body" in alpha["body"]
+
+    beta = next(s for s in pack["skills"] if s["id"] == "deft-beta")
+    assert beta["version"] == "0.3"
+    assert beta["body"] is None  # metadata-only
+    assert beta["triggers"] == ["beta", "second beta"]
+
+    # Written file round-trips.
+    assert json.loads(out.read_text(encoding="utf-8")) == pack
+
+
+def test_migrate_skills_missing_dir_raises(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        pack_migrate_skills.migrate(
+            tmp_path / "nope", tmp_path / "AGENTS.md", tmp_path / "o.json",
+            proof_skill="x",
+        )
+
+
+def test_migrate_skills_missing_agents_raises(tmp_path: Path) -> None:
+    skills_dir, _ = _write_skills_tree(tmp_path)
+    with pytest.raises(FileNotFoundError):
+        pack_migrate_skills.migrate(
+            skills_dir, tmp_path / "absent.md", tmp_path / "o.json",
+            proof_skill="deft-alpha",
+        )
+
+
+def test_migrate_skills_no_frontmatter_skills_raises(tmp_path: Path) -> None:
+    skills_dir = tmp_path / "skills" / "deft-stub"
+    skills_dir.mkdir(parents=True)
+    (skills_dir / "SKILL.md").write_text(_FIXTURE_STUB_MD, encoding="utf-8")
+    agents_md = tmp_path / "AGENTS.md"
+    agents_md.write_text(_FIXTURE_AGENTS_MD, encoding="utf-8")
+    with pytest.raises(ValueError, match="no skills"):
+        pack_migrate_skills.migrate(
+            tmp_path / "skills", agents_md, tmp_path / "o.json",
+            proof_skill="deft-alpha",
+        )
+
+
+def test_migrate_skills_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    skills_dir, agents_md = _write_skills_tree(tmp_path)
+    out = tmp_path / "pack.json"
+    rc = pack_migrate_skills.main(
+        [
+            "--skills-dir", str(skills_dir),
+            "--agents-md", str(agents_md),
+            "--proof-skill", "deft-alpha",
+            "--out", str(out),
+        ]
+    )
+    assert rc == 0
+    assert "Migrated 2 skills (1 with body)" in capsys.readouterr().out
+    rc_missing = pack_migrate_skills.main(
+        ["--skills-dir", str(tmp_path / "nope"), "--agents-md", str(agents_md)]
+    )
+    assert rc_missing == 1
+
+
+# --- skills renderer + round-trip ------------------------------------------
+
+
+def test_render_skill_document_shape() -> None:
+    cfg = pack_render.RENDER_REGISTRY["skills"]
+    entry = {
+        "id": "deft-alpha",
+        "description": "Alpha does things.",
+        "path": "skills/deft-alpha/SKILL.md",
+        "version": "0.1",
+        "body": "# Alpha\n\nBody.\n",
+    }
+    text = pack_render.render_skill_document(entry, cfg)
+    lines = text.splitlines()
+    assert lines[0] == "---"
+    assert lines[1] == "name: deft-alpha"
+    assert lines[2] == "description: >-"
+    assert "---" in lines  # closing fence
+    assert "<!-- AUTO-GENERATED by task packs:render" in text
+    assert "<!-- Purpose: rendered skill -->" in text
+    assert text.rstrip().endswith("Body.")
+
+
+def test_skills_proof_skill_round_trips() -> None:
+    """Rendering the committed proof skill entry reproduces exactly the committed
+    SKILL.md -- the invariant the drift gate asserts (ADR-001)."""
+    pack = json.loads(_REAL_SKILLS_SOURCE.read_text(encoding="utf-8"))
+    cfg = pack_render.RENDER_REGISTRY["skills"]
+    proof = next(s for s in pack["skills"] if s["path"] == _PROOF_SKILL_PATH)
+    assert proof["body"] is not None
+    rendered = pack_render.render_skill_document(proof, cfg)
+    committed = (_REPO_ROOT / _PROOF_SKILL_PATH).read_text(encoding="utf-8")
+    assert rendered == committed
+
+
+def test_exactly_one_proof_skill_has_body() -> None:
+    pack = json.loads(_REAL_SKILLS_SOURCE.read_text(encoding="utf-8"))
+    bodied = [s for s in pack["skills"] if s["body"] is not None]
+    assert [s["path"] for s in bodied] == [_PROOF_SKILL_PATH]
+
+
+# --- multi-pack drift gate (covers BOTH packs) ------------------------------
+
+
+def test_collect_targets_covers_both_packs() -> None:
+    targets = pack_render.collect_targets()
+    names = {name for name, _path, _text in targets}
+    assert names == {"lessons", "skills"}
+
+
+def test_multipack_check_clean_on_committed(capsys: pytest.CaptureFixture) -> None:
+    rc = pack_render.main(["--check"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "in sync" in out
+
+
+def test_pack_filter_limits_targets() -> None:
+    targets = pack_render.collect_targets("skills")
+    assert {name for name, _p, _t in targets} == {"skills"}
+    assert all(path.name == "SKILL.md" for _n, path, _t in targets)
+
+
+# --- skills schema validation ----------------------------------------------
+
+
+def _validate_skills_source(pack: dict, schema: dict) -> list[str]:
+    """Minimal structural validator for the skills-pack schema (no jsonschema)."""
+    errors: list[str] = []
+    props = schema["properties"]
+    if pack.get("pack") != props["pack"]["const"]:
+        errors.append("pack const mismatch")
+    if pack.get("version") != props["version"]["const"]:
+        errors.append("version const mismatch")
+    if not isinstance(pack.get("skills"), list):
+        errors.append("skills must be a list")
+        return errors
+    item_props = props["skills"]["items"]["properties"]
+    required = props["skills"]["items"]["required"]
+    id_re = re.compile(item_props["id"]["pattern"])
+    path_re = re.compile(item_props["path"]["pattern"])
+    for i, entry in enumerate(pack["skills"]):
+        for key in required:
+            if key not in entry:
+                errors.append(f"entry {i} missing required key {key}")
+        if not id_re.match(entry.get("id", "")):
+            errors.append(f"entry {i} id pattern: {entry.get('id')!r}")
+        if not path_re.match(entry.get("path", "")):
+            errors.append(f"entry {i} path pattern: {entry.get('path')!r}")
+        if not isinstance(entry.get("triggers"), list):
+            errors.append(f"entry {i} triggers must be a list")
+        body = entry.get("body")
+        if body is not None and not isinstance(body, str):
+            errors.append(f"entry {i} body must be str or null")
+    return errors
+
+
+def test_generated_skills_source_validates_against_schema() -> None:
+    pack = json.loads(_REAL_SKILLS_SOURCE.read_text(encoding="utf-8"))
+    schema = json.loads(_REAL_SKILLS_SCHEMA.read_text(encoding="utf-8"))
+    errors = _validate_skills_source(pack, schema)
+    assert errors == [], f"skills schema validation errors: {errors}"
+
+
+def test_skills_schema_display_and_registry() -> None:
+    schema = json.loads(_REAL_SKILLS_SCHEMA.read_text(encoding="utf-8"))
+    assert schema["x-display"]["heading"] == "id"
+    assert schema["x-display"]["body"] is None
+    assert set(schema["x-sliceRegistry"]) == {"by-trigger", "list"}
+    assert schema["x-sliceRegistry"]["by-trigger"]["filters"] == ["trigger"]
+
+
+def test_lessons_render_still_byte_identical() -> None:
+    """Regression guard: generalizing the renderer must keep lessons identical."""
+    rendered = pack_render.render_file(_REAL_SOURCE)
+    committed = _REAL_OUTPUT.read_text(encoding="utf-8")
+    assert rendered == committed
