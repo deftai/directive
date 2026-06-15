@@ -8,7 +8,7 @@
   "plan": {
     "id": "1295-skills-pack",
     "title": "skills-pack-0.1 -- second tier-3 pack (generalizes the #1294 machinery)",
-    "status": "running",
+    "status": "completed",
     "planRef": "#1295",
     "narratives": {
       "Description": "Stand up the second tier-3 extension pack and, in doing so, prove the #1294 pack machinery generalizes beyond lessons. Define a skills-pack-0.1 schema, build a structured source capturing metadata (name, description, triggers, path, version) for every skill, register the pack so it auto-appears in task packs:slice --list-packs, and ship by-trigger / list slices over that metadata so an agent can resolve which skill handles a routing keyword. As the renderer proof, migrate exactly ONE small skill's full SKILL.md into the structured source and regenerate that SKILL.md as a banner-marked projection guarded by the drift gate; the other skills keep their hand-authored SKILL.md for later iteration. The lessons-specific renderer/registry from #1294 is generalized (not copy-pasted) so the rollout pattern is validated on a second domain.",
@@ -78,7 +78,9 @@
         "size": "large",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T15:54:33Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -102,6 +104,6 @@
         "title": "Issue #1637: packs:slice v2 + --list-packs"
       }
     ],
-    "updated": "2026-06-15T15:18:41Z"
+    "updated": "2026-06-15T15:54:33Z"
   }
 }
