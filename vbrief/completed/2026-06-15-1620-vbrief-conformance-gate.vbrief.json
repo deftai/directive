@@ -8,7 +8,7 @@
   "plan": {
     "id": "1620-vbrief-conformance-gate",
     "title": "vBRIEF 0.6 conformance: Category A migrations + verify:vbrief-conformance gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "directive is the vBRIEF reference implementation but emits bare, non-namespaced fields that are neither spec-core nor x-directive/-namespaced. That drift produced the statusreport #34 false-RED. This story ships the no-upstream-dependency half of #1620: (A) migrate misused/misspelled CORE fields to their correct core home across the corpus, and (B) add a verify:vbrief-conformance gate that fails task check + pre-commit when any vBRIEF carries a bare key outside spec-core / x-directive/ / x-vbrief/. Category B (plan.policy -> x-directive/policy, completedNote) is DEFERRED to a follow-up because it depends on upstream vBRIEF #12 (x-<consumer>/ namespace ratification + round-trip preservation); the gate ships with a documented temporary allow-list for plan.policy and plan.completedNote, and a follow-up issue is filed to remove the allow-list once #12 lands.",
       "ImplementationPlan": "1. scripts/vbrief_migrate_conformance.py: idempotent corpus migration over vbrief/**/*.vbrief.json using pathlib UTF-8 read/write. Category A only: plan.planRef -> append a plan.references[] entry of type x-vbrief/github-issue (dedupe against existing refs) then delete planRef (~98 files); item-level description -> narrative (~9); item-level narratives (plural, the copy-paste typo) -> narrative (~7). Preserve key order and trailing newline; report a per-file diff summary; --check mode for dry-run. 2. scripts/verify_vbrief_conformance.py: scan every tracked vbrief/**/*.vbrief.json; at document, plan, and item level flag any key that is not (a) a known 0.6 spec-core field, (b) prefixed x-directive/, or (c) prefixed x-vbrief/. Ship a small ALLOW_LIST = {plan.policy, plan.completedNote} documented as TEMPORARY pending vBRIEF #12 with the follow-up issue number inline. Three-state exit (0 clean / 1 violations / 2 config error). Honor an --allow-list override path mirroring scripts/verify_encoding.py. 3. Wire task verify:vbrief-conformance into tasks/verify.yml + the task check aggregate, and add --staged invocation to .githooks/pre-commit. 4. Run the migration, commit the ~114 file fixes, confirm the gate is green on the migrated corpus. 5. File the Category B follow-up issue (depends-on vBRIEF #12) and reference it in the allow-list comment. 6. tests/cli/test_verify_vbrief_conformance.py + tests/cli/test_vbrief_migrate_conformance.py: cover a clean corpus (exit 0), a planted bare-key violation (exit 1), the allow-list carve-out, --check idempotency, and the planRef->references migration with dedupe.",
@@ -70,7 +70,9 @@
         "size": "large",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T17:14:36Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -79,6 +81,6 @@
         "title": "Issue #1620: vBRIEF 0.6 conformance: rein in bare non-standard fields + verify:vbrief-conformance gate"
       }
     ],
-    "updated": "2026-06-15T16:24:32Z"
+    "updated": "2026-06-15T17:14:36Z"
   }
 }
