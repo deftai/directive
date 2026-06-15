@@ -736,3 +736,228 @@ def test_load_cached_issues_annotates_continuation(tmp_path):
     assert by_number[100]["_continuation"] is False
     items = triage_queue.build_queue(issues, [], repo=REPO)
     assert [i.number for i in items] == [200, 100]
+
+
+# ---------------------------------------------------------------------------
+# #1286 -- demote vBRIEF-status:blocked / unresolved-dependency items
+# ---------------------------------------------------------------------------
+#
+# Acceptance criteria from the story vBRIEF:
+#   * Blocked items (linked vBRIEF plan.status == "blocked" OR an unresolved
+#     plan.metadata.swarm.depends_on) are demoted into the [BLOCKED] group by
+#     default.
+#   * Unblocked items surface in their natural group.
+#   * The --include-blocked opt-in re-surfaces blocked items into their
+#     natural group.
+
+
+def _write_status_scope(
+    folder, filename, *, issue_number, status="running", depends_on=None, plan_id=None
+):
+    """Write an in-flight scope with a given status / depends_on / plan id."""
+    folder.mkdir(parents=True, exist_ok=True)
+    plan = {
+        "title": "Scope",
+        "status": status,
+        "references": [
+            {
+                "uri": f"https://github.com/{REPO}/issues/{issue_number}",
+                "type": "x-vbrief/github-issue",
+                "title": f"Issue #{issue_number}",
+            }
+        ],
+    }
+    if plan_id is not None:
+        plan["id"] = plan_id
+    if depends_on is not None:
+        plan["metadata"] = {"swarm": {"depends_on": depends_on}}
+    payload = {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
+    (folder / filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _write_completed_with_id(folder, filename, *, plan_id):
+    folder.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {"title": "done", "status": "completed", "id": plan_id},
+    }
+    (folder / filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+# --- GROUP_ORDER + scope_is_blocked unit coverage ---------------------------
+
+
+def test_blocked_group_is_last_in_group_order():
+    assert "BLOCKED" in triage_queue.GROUP_ORDER
+    assert triage_queue.GROUP_ORDER[-1] == "BLOCKED"
+    # The display marker is registered so render_queue does not fall back.
+    assert "BLOCKED" in triage_queue.GROUP_DISPLAY
+
+
+def test_scope_is_blocked_status_blocked():
+    assert triage_queue.scope_is_blocked({"status": "blocked"}, completed_ids=set()) is True
+
+
+def test_scope_is_blocked_unresolved_depends_on():
+    plan = {"status": "running", "metadata": {"swarm": {"depends_on": ["dep-a"]}}}
+    assert triage_queue.scope_is_blocked(plan, completed_ids=set()) is True
+
+
+def test_scope_is_blocked_resolved_depends_on_is_not_blocked():
+    plan = {"status": "running", "metadata": {"swarm": {"depends_on": ["dep-a"]}}}
+    assert triage_queue.scope_is_blocked(plan, completed_ids={"dep-a"}) is False
+
+
+def test_scope_is_blocked_partial_unresolved_depends_on():
+    plan = {"status": "running", "metadata": {"swarm": {"depends_on": ["dep-a", "dep-b"]}}}
+    # dep-b still unresolved -> blocked.
+    assert triage_queue.scope_is_blocked(plan, completed_ids={"dep-a"}) is True
+
+
+def test_scope_is_blocked_no_deps_running_is_not_blocked():
+    plan = {"status": "running", "metadata": {"swarm": {"depends_on": []}}}
+    assert triage_queue.scope_is_blocked(plan, completed_ids=set()) is False
+    assert triage_queue.scope_is_blocked({"status": "running"}, completed_ids=set()) is False
+
+
+# --- build_queue: demote by default / surface unblocked / opt-in ------------
+
+
+def test_build_queue_demotes_blocked_into_blocked_group():
+    """Blocked items are demoted into the [BLOCKED] group by default."""
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(blocked_issue_numbers=frozenset({1}))
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    by_number = {i.number: i for i in items}
+    assert by_number[1].group == "BLOCKED"
+    assert by_number[2].group == "untriaged"
+    # BLOCKED sorts last, so the unblocked item leads.
+    assert [i.number for i in items] == [2, 1]
+
+
+def test_build_queue_unblocked_issue_surfaces_in_natural_group():
+    issues = [_issue(1)]
+    options = triage_queue.QueueBuildOptions(blocked_issue_numbers=frozenset())
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert items[0].group == "untriaged"
+
+
+def test_build_queue_include_blocked_resurfaces_into_natural_group():
+    """--include-blocked re-surfaces blocked items into their natural group."""
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(
+        blocked_issue_numbers=frozenset({1}),
+        include_blocked=True,
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    by_number = {i.number: i for i in items}
+    assert by_number[1].group == "untriaged"
+    assert by_number[2].group == "untriaged"
+
+
+def test_build_queue_blocked_resume_demoted_unless_included():
+    """A blocked item that would otherwise RESUME is still demoted by default."""
+    issues = [_issue(1)]
+    options = triage_queue.QueueBuildOptions(
+        active_referenced=frozenset({1}),
+        blocked_issue_numbers=frozenset({1}),
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert items[0].group == "BLOCKED"
+    # With include_blocked the RESUME group is restored.
+    items2 = triage_queue.build_queue(
+        issues,
+        [],
+        repo=REPO,
+        options=triage_queue.QueueBuildOptions(
+            active_referenced=frozenset({1}),
+            blocked_issue_numbers=frozenset({1}),
+            include_blocked=True,
+        ),
+    )
+    assert items2[0].group == "RESUME"
+
+
+# --- blocked_by_issue_number (filesystem-truth) -----------------------------
+
+
+def test_blocked_by_issue_number_detects_status_blocked(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_status_scope(
+        vbrief / "active", "2026-06-04-a.vbrief.json", issue_number=700, status="blocked"
+    )
+    _write_status_scope(
+        vbrief / "active", "2026-06-04-b.vbrief.json", issue_number=701, status="running"
+    )
+    result = triage_queue.blocked_by_issue_number(tmp_path)
+    assert 700 in result
+    assert 701 not in result
+
+
+def test_blocked_by_issue_number_detects_unresolved_depends_on(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_status_scope(
+        vbrief / "pending",
+        "2026-06-04-dep.vbrief.json",
+        issue_number=800,
+        status="pending",
+        depends_on=["story-x"],
+    )
+    result = triage_queue.blocked_by_issue_number(tmp_path)
+    assert 800 in result
+
+
+def test_blocked_by_issue_number_resolved_depends_on_not_blocked(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_completed_with_id(vbrief / "completed", "2026-06-01-x.vbrief.json", plan_id="story-x")
+    _write_status_scope(
+        vbrief / "pending",
+        "2026-06-04-dep.vbrief.json",
+        issue_number=810,
+        status="pending",
+        depends_on=["story-x"],
+    )
+    result = triage_queue.blocked_by_issue_number(tmp_path)
+    assert 810 not in result
+
+
+# --- CLI data path: load_cached_issues stamps _blocked ----------------------
+
+
+def test_load_cached_issues_annotates_blocked(tmp_path):
+    cache_root = tmp_path / ".deft-cache"
+    _write_cached_issue(cache_root, REPO, _issue(700))
+    _write_cached_issue(cache_root, REPO, _issue(701))
+    vbrief = tmp_path / "vbrief"
+    _write_status_scope(
+        vbrief / "active", "2026-06-04-blocked.vbrief.json", issue_number=700, status="blocked"
+    )
+    _write_status_scope(
+        vbrief / "active", "2026-06-04-ok.vbrief.json", issue_number=701, status="running"
+    )
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
+    by_number = {i["number"]: i for i in issues}
+    assert by_number[700]["_blocked"] is True
+    assert by_number[701]["_blocked"] is False
+    # End-to-end: build_queue demotes the blocked issue.
+    items = triage_queue.build_queue(issues, [], repo=REPO)
+    by_num = {i.number: i for i in items}
+    assert by_num[700].group == "BLOCKED"
+    assert by_num[701].group == "untriaged"
+
+
+def test_load_cached_issues_blocked_resurfaces_with_include_blocked(tmp_path):
+    cache_root = tmp_path / ".deft-cache"
+    _write_cached_issue(cache_root, REPO, _issue(700))
+    vbrief = tmp_path / "vbrief"
+    _write_status_scope(
+        vbrief / "active", "2026-06-04-blocked.vbrief.json", issue_number=700, status="blocked"
+    )
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
+    items = triage_queue.build_queue(
+        issues,
+        [],
+        repo=REPO,
+        options=triage_queue.QueueBuildOptions(include_blocked=True),
+    )
+    assert items[0].group != "BLOCKED"

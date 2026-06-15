@@ -834,10 +834,10 @@
       {
         "id": "2026-05-21-1286-triage-queue-blocked-filter",
         "title": "Demote vBRIEF-status:blocked items in triage:queue",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-05-21-1286-triage-queue-blocked-filter.vbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-05-21-1286-triage-queue-blocked-filter.vbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/1286",

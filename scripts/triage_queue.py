@@ -164,12 +164,19 @@ DEFAULT_SLICE_STALLED_DAYS: int = 30
 #: Within-group ranking labels (e.g. ``breaking-change``) still apply, so
 #: a ``breaking-change``-labelled orphan tops the queue while a plain
 #: orphan still sits above a resume-eligible item.
+#:
+#: ``BLOCKED`` sits at the BOTTOM (#1286): an item whose linked vBRIEF has
+#: ``plan.status == "blocked"`` or an unresolved
+#: ``plan.metadata.swarm.depends_on`` is demoted there by default so the
+#: ranked list surfaces only grabbable work. The ``--include-blocked``
+#: opt-in re-surfaces such items into their natural group instead.
 GROUP_ORDER: tuple[str, ...] = (
     "ORPHAN",
     "RESUME",
     "URGENT",
     "untriaged",
     "other",
+    "BLOCKED",
 )
 
 #: Display labels per group (left-of-issue marker).
@@ -179,6 +186,7 @@ GROUP_DISPLAY: dict[str, str] = {
     "URGENT": "[URGENT]    ",
     "untriaged": "[untriaged] ",
     "other": "[other]     ",
+    "BLOCKED": "[BLOCKED]   ",
 }
 
 #: Framework default for ``plan.policy.triageRankingLabels[]``. EMPTY per
@@ -263,6 +271,17 @@ class QueueBuildOptions:
     #: True when the in-flight WIP set is at/over ``plan.policy.wipCap``.
     #: Gates the :attr:`finish_before_start` net-new filter above.
     wip_at_cap: bool = False
+    #: Issue numbers whose linked vBRIEF is blocked (#1286): ``plan.status
+    #: == "blocked"`` OR an unresolved ``plan.metadata.swarm.depends_on``.
+    #: Demoted into the ``BLOCKED`` group by default unless
+    #: :attr:`include_blocked` is True. Empty by default; the CLI path
+    #: instead reads the per-issue ``_blocked`` annotation stamped by
+    #: :func:`load_cached_issues`.
+    blocked_issue_numbers: frozenset[int] = field(default_factory=frozenset)
+    #: When True, blocked items (#1286) are re-surfaced into their natural
+    #: group instead of being demoted into the ``BLOCKED`` group. Wired to
+    #: the ``--include-blocked`` CLI opt-in.
+    include_blocked: bool = False
     limit: int | None = None
 
 
@@ -731,6 +750,98 @@ def wip_at_cap(project_root: Path | None = None) -> bool:
     return count >= cap
 
 
+# ---------------------------------------------------------------------------
+# Blocked / unresolved-dependency demotion (#1286)
+# ---------------------------------------------------------------------------
+
+
+def _depends_on_ids(plan: dict[str, Any]) -> list[str]:
+    """Return the non-empty string ids in ``plan.metadata.swarm.depends_on``.
+
+    Tolerant of the absent / non-list / non-string shapes so a malformed
+    swarm block never raises -- it simply contributes no dependency ids.
+    """
+    metadata = plan.get("metadata") if isinstance(plan, dict) else None
+    swarm = metadata.get("swarm") if isinstance(metadata, dict) else None
+    raw = swarm.get("depends_on") if isinstance(swarm, dict) else None
+    if not isinstance(raw, list):
+        return []
+    return [dep.strip() for dep in raw if isinstance(dep, str) and dep.strip()]
+
+
+def _completed_plan_ids(project_root: Path | None) -> set[str]:
+    """Return the set of ``plan.id`` values from ``vbrief/completed/``.
+
+    Used to decide whether a scope's ``depends_on`` entries are resolved:
+    a dependency id is resolved when a completed scope carries that id.
+    """
+    out: set[str] = set()
+    base = (project_root or Path.cwd()) / "vbrief" / "completed"
+    if not base.is_dir():
+        return out
+    for path in sorted(base.glob("*.vbrief.json")):
+        plan = _load_plan(path)
+        if plan is None:
+            continue
+        pid = plan.get("id")
+        if isinstance(pid, str) and pid.strip():
+            out.add(pid.strip())
+    return out
+
+
+def scope_is_blocked(plan: Any, *, completed_ids: set[str]) -> bool:
+    """Return True when a scope's linked vBRIEF is blocked (#1286).
+
+    A scope is blocked when EITHER:
+
+    * ``plan.status == "blocked"`` -- the operator explicitly parked it, OR
+    * ``plan.metadata.swarm.depends_on`` is non-empty and at least one
+      dependency id is unresolved (no completed scope carries that id).
+
+    ``completed_ids`` is the set of ``plan.id`` values from completed
+    scopes (see :func:`_completed_plan_ids`); an empty set treats every
+    declared dependency as unresolved, which is the safe default when the
+    completed lifecycle folder is unavailable.
+    """
+    if not isinstance(plan, dict):
+        return False
+    if plan.get("status") == "blocked":
+        return True
+    deps = _depends_on_ids(plan)
+    return bool(deps) and any(dep not in completed_ids for dep in deps)
+
+
+def blocked_by_issue_number(
+    project_root: Path | None,
+    *,
+    folders: tuple[str, ...] = ("pending", "active"),
+) -> set[int]:
+    """Map referenced issue numbers -> blocked state (#1286).
+
+    Walks the in-flight ``pending`` + ``active`` scopes (the folders the
+    queue ranks), flags each one via :func:`scope_is_blocked`, and returns
+    the set of GitHub issue numbers a blocked scope references. The
+    ``vbrief/completed/`` plan ids are read once up front so unresolved-
+    dependency detection is consistent across the walk.
+    """
+    out: set[int] = set()
+    root = project_root or Path.cwd()
+    completed_ids = _completed_plan_ids(root)
+    base = root / "vbrief"
+    for folder in folders:
+        folder_dir = base / folder
+        if not folder_dir.is_dir():
+            continue
+        for path in sorted(folder_dir.glob("*.vbrief.json")):
+            plan = _load_plan(path)
+            if plan is None:
+                continue
+            if not scope_is_blocked(plan, completed_ids=completed_ids):
+                continue
+            out |= _issue_numbers_from_plan(plan)
+    return out
+
+
 #: Operator-facing pointer surfaced when a scope is refused as under-specified
 #: (#1419 Slice 1 / #987). Names refinement as the canonical next step.
 SPEC_READINESS_REFINEMENT_HINT = (
@@ -919,6 +1030,9 @@ def load_cached_issues(
     # surface without the cli shim threading extra arguments.
     continuation_map = continuation_by_issue_number(project_root)
     deficit_map = bucket_deficit_by_issue_number(project_root)
+    # #1286: flag issues whose linked vBRIEF is blocked (status:blocked or an
+    # unresolved swarm.depends_on) so build_queue can demote them.
+    blocked_set = blocked_by_issue_number(project_root)
     issues: list[dict[str, Any]] = []
     for entry in base.iterdir():
         if not entry.is_dir() or not entry.name.isdigit():
@@ -981,6 +1095,7 @@ def load_cached_issues(
                 "_continuation": int(n) in continuation_map,
                 "_continuation_order": continuation_map.get(int(n), ""),
                 "_bucket_deficit": deficit_map.get(int(n)),
+                "_blocked": int(n) in blocked_set,
             }
         )
     return issues
@@ -1250,6 +1365,24 @@ def _resolve_deficit(
     return float(candidate)
 
 
+def _resolve_blocked(
+    issue: dict[str, Any],
+    number: int,
+    blocked_numbers: frozenset[int] | set[int],
+) -> bool:
+    """Resolve whether a queue row is blocked (#1286).
+
+    Precedence mirrors :func:`_resolve_continuation`: an explicit
+    :attr:`QueueBuildOptions.blocked_issue_numbers` membership (the
+    programmatic surface) wins; otherwise the ``_blocked`` annotation that
+    :func:`load_cached_issues` stamps from the in-flight scope vBRIEFs (the
+    CLI surface) is used.
+    """
+    if number in blocked_numbers:
+        return True
+    return bool(issue.get("_blocked"))
+
+
 def build_queue(
     issues: Iterable[dict[str, Any]],
     audit_entries: Iterable[dict[str, Any]],
@@ -1284,16 +1417,25 @@ def build_queue(
         # operator must still see.
         if drop_net_new and not is_continuation and not is_orphan:
             continue
+        is_blocked = _resolve_blocked(issue, n, opts.blocked_issue_numbers)
         latest = decisions.get(n)
         latest_decision = latest.get("decision") if isinstance(latest, dict) else None
+        # #1286: a blocked item (status:blocked / unresolved depends_on) is
+        # demoted into the BLOCKED group (bottom of GROUP_ORDER) by default
+        # so the queue surfaces only grabbable work. The --include-blocked
+        # opt-in (opts.include_blocked) re-surfaces it into its natural
+        # group instead, so the demotion check runs FIRST.
+        if is_blocked and not opts.include_blocked:
+            group = "BLOCKED"
         # D13 (#1132): ORPHAN takes precedence over every other group --
         # an orphan is work the framework already committed to and risks
         # losing, so it surfaces above RESUME / URGENT / untriaged.
-        if is_orphan:
+        elif is_orphan:
             group = "ORPHAN"
         else:
             group = derive_group(latest_decision, n in opts.active_referenced)
         issue["_latest_decision"] = latest_decision
+        issue["_blocked"] = is_blocked
         issue["_resolved_rank"] = _resolve_rank(issue, n, rank_by_number)
         issue["_continuation"] = is_continuation
         issue["_continuation_order"] = _resolve_continuation_order(
