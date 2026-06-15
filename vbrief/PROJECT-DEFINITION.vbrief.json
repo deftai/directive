@@ -939,10 +939,10 @@
       {
         "id": "2026-05-21-1292-issue-336-reframe",
         "title": "Reframe #336: documentation-tier AXIOM application (drop 5 new core content types)",
-        "status": "proposed",
+        "status": "completed",
         "metadata": {
-          "source_path": "proposed/2026-05-21-1292-issue-336-reframe.vbrief.json",
-          "lifecycle_folder": "proposed",
+          "source_path": "completed/2026-05-21-1292-issue-336-reframe.vbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/1292",

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **The "vBRIEF as source of truth for all docs" issue now matches the current architecture (#1292)** -- issue #336 was reframed from its obsolete "five new core vBRIEF content types" mechanism into a documentation-tier application of the Rule Authority [AXIOM]: framework `.md` files are rendered projections of canonical structured source, implemented via the #714 four-tier model and its tier-3 extension packs (#1294 / #1295 / #1296) under the #1284 epic. Contributors reading #336 after the decomposition no longer chase a dropped mechanism. Closes #1292. Refs #336, #1284.
 
 ### Fixed
 
