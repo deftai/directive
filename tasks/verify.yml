@@ -71,6 +71,18 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_encoding.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  vbrief-conformance:
+    desc: "Detect bare non-conformant vBRIEF keys (#1620). Scans tracked vbrief/**/*.vbrief.json and flags any document/plan/item key that is not 0.6 spec-core, x-directive/-namespaced, or x-vbrief/-namespaced. plan.policy + plan.completedNote carry a TEMPORARY allow-list pending vBRIEF #12. Defaults to --all; pass --staged for the pre-commit invocation."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
+    # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
+    # silently swallowed by go-task's incremental-build cache (same rationale
+    # as verify:encoding above).
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_vbrief_conformance.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   destructive-gh-verbs:
     desc: "Detection-bound gate for destructive gh verbs (#1019). Runs scripts/preflight_gh.py --self-test so the fixture-vs-classifier contract fails CI on drift. Override via DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 (per-shell emergency bypass)."
     dir: '{{.USER_WORKING_DIR}}'

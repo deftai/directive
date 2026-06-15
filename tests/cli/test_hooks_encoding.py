@@ -88,6 +88,22 @@ HOOK_SCRIPTS: list[tuple[str, str, list[str], dict[str, str]]] = [
         ["--self-test"],
         {},
     ),
+    (
+        # #1620: deterministic vBRIEF 0.6 conformance gate. Invoked from
+        # .githooks/pre-commit AFTER verify_encoding via
+        # ``verify_vbrief_conformance.py --staged``. Pinned to the same UTF-8
+        # self-reconfigure contract; sibling regression coverage in
+        # tests/cli/test_verify_vbrief_conformance.py exercises evaluate() and
+        # the full main() exit-code matrix. ``_init_git_repo`` gives the
+        # --all dispatch a real working tree, and ``_init_vbrief_dir`` creates
+        # an empty vbrief/ so the gate clears its exit-2-on-missing-vbrief/
+        # config-error guard and reaches the U+2713 success print this
+        # contract pins.
+        "verify_vbrief_conformance",
+        "scripts/verify_vbrief_conformance.py",
+        ["--all", "--project-root", "{tmp_path}"],
+        {"_init_git_repo": "1", "_init_vbrief_dir": "1"},
+    ),
 ]
 
 
@@ -226,6 +242,13 @@ def test_hook_script_self_reconfigures_stdout_to_utf8(
             ["git", "-C", str(tmp_path), "config", "user.name", "Test"],
             check=True,
         )
+    # ``_init_vbrief_dir`` creates an empty ``vbrief/`` directory so a gate
+    # that fails-closed on a missing corpus (e.g. #1620's
+    # verify_vbrief_conformance.py) clears its config-error guard and reaches
+    # the success-path print this contract pins.
+    needs_vbrief_dir = env.pop("_init_vbrief_dir", "") == "1"
+    if needs_vbrief_dir:
+        (tmp_path / "vbrief").mkdir(exist_ok=True)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
 

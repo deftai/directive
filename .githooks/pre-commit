@@ -60,4 +60,15 @@ fi
 # files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM.
 # Three-state exit propagates: 0 allowed / 1 corruption blocked with diagnostic
 # / 2 config error. Recurrence chain documented in scripts/verify_encoding.py.
-exec "$PYTHON_BIN" "$SCRIPTS_DIR/verify_encoding.py" --project-root "$REPO_ROOT" --staged
+"$PYTHON_BIN" "$SCRIPTS_DIR/verify_encoding.py" --project-root "$REPO_ROOT" --staged || exit $?
+
+# Step 3: vBRIEF 0.6 conformance gate (#1620). Scans staged vbrief/**/*.vbrief.json
+# for bare keys that are neither 0.6 spec-core nor x-directive/ / x-vbrief/
+# namespaced. Three-state exit propagates: 0 clean / 1 bare key blocked with
+# diagnostic / 2 config error. Rule body lives in scripts/verify_vbrief_conformance.py.
+# Guarded on a present vbrief/ corpus so a fresh consumer repo that has not yet
+# created the vBRIEF lifecycle folders is not blocked by the gate's intentional
+# exit-2-on-missing-vbrief/ config-error contract.
+if [ -d "$REPO_ROOT/vbrief" ]; then
+    exec "$PYTHON_BIN" "$SCRIPTS_DIR/verify_vbrief_conformance.py" --project-root "$REPO_ROOT" --staged
+fi

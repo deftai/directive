@@ -330,6 +330,7 @@ tasks:
       - verify:rule-ownership
       - verify:branch
       - verify:encoding
+      - verify:vbrief-conformance
       - verify:destructive-gh-verbs
       - verify:scm-boundary
       - verify:cache-fresh
