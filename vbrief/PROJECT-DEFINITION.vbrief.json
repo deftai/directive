@@ -1048,10 +1048,10 @@
       {
         "id": "2026-05-21-1296-rules-and-strategies-pack",
         "title": "rules-pack-0.1 + strategies-pack-0.1",
-        "status": "running",
+        "status": "completed",
         "metadata": {
-          "source_path": "active/2026-05-21-1296-rules-and-strategies-pack.vbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "completed/2026-05-21-1296-rules-and-strategies-pack.vbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/1296",

@@ -8,7 +8,7 @@
   "plan": {
     "id": "1296-rules-and-strategies-pack",
     "title": "rules-pack-0.1 + strategies-pack-0.1",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Phase 3 of the vBRIEF-as-canonical rollout (epic #1284, ADR-001 Layer B) and the last open child. The #1294 lessons pilot and #1295 skills pack established a pack-agnostic machinery (schema with x-display + x-sliceRegistry -> canonical JSON source under packs/ -> pack_render.py projection -> packs_slice.py named-slice API -> verify:pack-drift gate). This story adds two MORE pack types by REUSING that machinery (not copy-pasting it): rules-pack-0.1 over the RFC2119-tiered directives in coding/*.md, and strategies-pack-0.1 over strategies/*.md. Each ships as a 0.1 pilot mirroring skills-pack: metadata-complete coverage of its corpus plus exactly one designated full-body, drift-checked projection proof. Full content migration of every coding/AGENTS.md/strategies surface is explicit v0.2 follow-up, not this story. The #748 rules-classification vocabulary is the schema-design input for the rules tier field (it is OPEN and is an input, not a hard blocker).",
       "ImplementationPlan": "1. vbrief/schemas/rules-pack.schema.json: mirror skills-pack.schema.json (pack const rules-pack-0.1, version 0.1, generated_from, a rules[] array of {id, tier, domain, text, path, body}, plus x-display and x-sliceRegistry). tier uses the coding/* RFC2119 legend (!=MUST, ~=SHOULD, the SHOULD-NOT glyph, the MUST-NOT glyph, ?=MAY) informed by #748 vocabulary; domain = the source doc stem (testing/security/hygiene/...). x-sliceRegistry slices: by-tier (filter tier), by-domain (filter domain), list. 2. scripts/pack_migrate_rules.py: parse the marker-prefixed directive lines out of coding/*.md into packs/rules/rules-pack-0.1.json; designate coding/testing.md as the full-body projection proof (body captured), other docs metadata-only (body null). 3. vbrief/schemas/strategies-pack.schema.json + scripts/pack_migrate_strategies.py + packs/strategies/strategies-pack-0.1.json: one entry per strategies/*.md {id, title, description, triggers/domain, path, body}; designate one strategy (strategies/yolo.md) as the full-body projection proof. x-sliceRegistry: by-trigger (or by-domain), list. 4. Generalize scripts/pack_render.py and scripts/packs_slice.py + tasks/packs.yml to register the two new packs through the same data-driven path used for lessons+skills (extend the pack registry table; do NOT branch per-pack with copy-pasted logic). Extend verify:pack-drift to cover all four packs. 5. Regenerate the two proof projections (coding/testing.md + strategies/yolo.md) as banner-marked, drift-checked projections; confirm meta/lessons.md and the skills proof still render byte-identical (no regression). 6. tests: tests/cli/test_pack_migrate_rules.py + test_pack_migrate_strategies.py (parse -> source round-trip), extend tests/cli/test_packs_slice.py (by-tier/by-domain/by-trigger slices, --list-packs now lists rules+strategies) and tests/cli/test_pack_render.py (new proofs render + drift). 7. CHANGELOG [Unreleased] entry referencing #1296; task check green; task verify:vbrief-conformance + verify:pack-drift green.",
@@ -80,7 +80,9 @@
         "size": "large",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-15T17:49:02Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -99,6 +101,6 @@
         "title": "Issue #748: rules-classification vocabulary"
       }
     ],
-    "updated": "2026-06-15T17:18:52Z"
+    "updated": "2026-06-15T17:49:02Z"
   }
 }
