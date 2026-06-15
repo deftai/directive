@@ -655,3 +655,178 @@ def test_list_packs_shows_both_lessons_and_skills() -> None:
     assert skills["pack"] == "skills-pack-0.1"
     assert skills["version"] == "0.1"
     assert skills["description"]  # one-liner read from the skills schema
+
+
+# --- rules pack: tier + domain scalar filters (#1296) -----------------------
+
+
+def _write_rules_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    """Write a minimal rules-pack fixture schema + source (source, schema)."""
+    schema = {
+        "x-display": {
+            "heading": "id",
+            "fields": ["tier", "domain", "text", "path"],
+            "body": None,
+            "noun": "rules",
+        },
+        "x-sliceRegistry": {
+            "by-tier": {
+                "path": "rules",
+                "filters": ["tier"],
+                "description": "Rules whose tier matches any requested --tier.",
+            },
+            "by-domain": {
+                "path": "rules",
+                "filters": ["domain"],
+                "description": "Rules from any requested --domain source doc.",
+            },
+            "list": {
+                "path": "rules",
+                "filters": [],
+                "description": "Every rule with its tier, domain, text, and path.",
+            },
+        },
+    }
+    source = {
+        "pack": "rules-pack-0.1",
+        "version": "0.1",
+        "rules": [
+            {
+                "id": "testing-001",
+                "tier": "MUST",
+                "domain": "testing",
+                "text": "Achieve high coverage",
+                "path": "coding/testing.md",
+                "body": None,
+            },
+            {
+                "id": "testing-002",
+                "tier": "MUST_NOT",
+                "domain": "testing",
+                "text": "Skip tests",
+                "path": "coding/testing.md",
+                "body": None,
+            },
+            {
+                "id": "security-001",
+                "tier": "MUST",
+                "domain": "security",
+                "text": "Validate untrusted input",
+                "path": "coding/security.md",
+                "body": None,
+            },
+        ],
+    }
+    schema_path = tmp_path / "rules-pack.schema.json"
+    source_path = tmp_path / "rules-pack-0.1.json"
+    schema_path.write_text(json.dumps(schema), encoding="utf-8")
+    source_path.write_text(json.dumps(source), encoding="utf-8")
+    return source_path, schema_path
+
+
+def test_by_tier_filters(tmp_path: Path) -> None:
+    source_path, schema_path = _write_rules_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "by-tier", tiers=["MUST"])
+    assert {e["id"] for e in result["results"]} == {"testing-001", "security-001"}
+
+
+def test_by_tier_case_insensitive(tmp_path: Path) -> None:
+    source_path, schema_path = _write_rules_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "by-tier", tiers=["must_not"])
+    assert [e["id"] for e in result["results"]] == ["testing-002"]
+
+
+def test_by_domain_filters(tmp_path: Path) -> None:
+    source_path, schema_path = _write_rules_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "by-domain", domains=["testing"])
+    assert {e["id"] for e in result["results"]} == {"testing-001", "testing-002"}
+
+
+def test_rules_list_returns_all(tmp_path: Path) -> None:
+    source_path, schema_path = _write_rules_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "list")
+    assert result["count"] == 3
+
+
+def test_apply_scalar_unit() -> None:
+    entries = [
+        {"id": "a", "tier": "MUST"},
+        {"id": "b", "tier": "SHOULD"},
+        {"id": "c", "tier": "must"},
+    ]
+    out = packs_slice.apply_scalar(entries, "tier", ["MUST"])
+    assert {e["id"] for e in out} == {"a", "c"}  # case-insensitive
+    assert packs_slice.apply_scalar(entries, "tier", ["MAY"]) == []
+
+
+def test_tier_filter_rejected_on_list_slice(tmp_path: Path) -> None:
+    source_path, schema_path = _write_rules_fixture(tmp_path)
+    with pytest.raises(packs_slice.UsageError, match="does not support"):
+        _slice(source_path, schema_path, "list", tiers=["MUST"])
+
+
+def test_domain_filter_rejected_on_by_tier_slice(tmp_path: Path) -> None:
+    source_path, schema_path = _write_rules_fixture(tmp_path)
+    with pytest.raises(packs_slice.UsageError, match="does not support"):
+        _slice(source_path, schema_path, "by-tier", domains=["testing"])
+
+
+def test_real_rules_by_tier_reads_source() -> None:
+    """The committed rules pack resolves + by-tier MUST returns directives."""
+    source_path, schema_path = packs_slice.resolve_pack("rules")
+    result = _slice(source_path, schema_path, "by-tier", tiers=["MUST"])
+    assert result["pack"] == "rules-pack-0.1"
+    assert result["count"] > 0
+    assert all(e["tier"] == "MUST" for e in result["results"])
+
+
+def test_real_rules_by_domain_testing() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("rules")
+    result = _slice(source_path, schema_path, "by-domain", domains=["testing"])
+    assert result["count"] > 0
+    assert all(e["domain"] == "testing" for e in result["results"])
+
+
+# --- strategies pack: list + by-trigger (#1296) -----------------------------
+
+
+def test_real_strategies_list_reads_source() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("strategies")
+    result = _slice(source_path, schema_path, "list")
+    assert result["pack"] == "strategies-pack-0.1"
+    assert result["count"] > 0
+    assert all(e.get("path", "").startswith("strategies/") for e in result["results"])
+
+
+def test_real_strategies_by_trigger_yolo() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("strategies")
+    result = _slice(source_path, schema_path, "by-trigger", triggers=["yolo"])
+    assert "yolo" in [e["id"] for e in result["results"]]
+
+
+# --- --list-packs now lists all four committed packs (#1296) ----------------
+
+
+def test_list_packs_includes_rules_and_strategies() -> None:
+    """--list-packs auto-discovers all FOUR committed packs (registry-driven)."""
+    payload = packs_slice.list_packs()
+    names = {p["name"] for p in payload["packs"]}
+    assert {"lessons", "skills", "rules", "strategies"} <= names
+    rules = next(p for p in payload["packs"] if p["name"] == "rules")
+    assert rules["pack"] == "rules-pack-0.1"
+    assert rules["version"] == "0.1"
+    strategies = next(p for p in payload["packs"] if p["name"] == "strategies")
+    assert strategies["pack"] == "strategies-pack-0.1"
+
+
+def test_resolve_pack_rules_and_strategies_via_disk_discovery() -> None:
+    """rules + strategies resolve through on-disk discovery (self-extending,
+    NOT hardcoded in PACK_REGISTRY) -- the #1295/#1296 registry contract."""
+    assert "rules" not in packs_slice.PACK_REGISTRY
+    assert "strategies" not in packs_slice.PACK_REGISTRY
+    r_src, r_schema = packs_slice.resolve_pack("rules")
+    s_src, s_schema = packs_slice.resolve_pack("strategies")
+    assert r_src.name == "rules-pack-0.1.json"
+    assert r_schema.name == "rules-pack.schema.json"
+    assert s_src.name == "strategies-pack-0.1.json"
+    assert s_schema.name == "strategies-pack.schema.json"

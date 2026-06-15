@@ -1,0 +1,167 @@
+{
+  "pack": "strategies-pack-0.1",
+  "version": "0.1",
+  "generated_from": "strategies/*.md",
+  "strategies": [
+    {
+      "id": "readme",
+      "title": "Strategies",
+      "description": "Development strategies define the workflow from idea to implementation.",
+      "triggers": [
+        "readme"
+      ],
+      "path": "strategies/README.md",
+      "body": null
+    },
+    {
+      "id": "artifact-guards",
+      "title": "Artifact Idempotency Guards",
+      "description": "Shared guard rules for strategies that write to vBRIEF artifacts. Referenced by individual strategy files to prevent silent overwrites of approved or completed work.",
+      "triggers": [
+        "artifact-guards"
+      ],
+      "path": "strategies/artifact-guards.md",
+      "body": null
+    },
+    {
+      "id": "bdd",
+      "title": "BDD Strategy",
+      "description": "Behaviour-Driven Development -- failing acceptance tests drive requirements.",
+      "triggers": [
+        "bdd"
+      ],
+      "path": "strategies/bdd.md",
+      "body": null
+    },
+    {
+      "id": "brownfield",
+      "title": "Brownfield Strategy (Redirect)",
+      "description": "**This file is a legacy alias.** The brownfield strategy has been renamed to **Map**. See **[strategies/map.md](./map.md)** for the canonical strategy.",
+      "triggers": [
+        "brownfield"
+      ],
+      "path": "strategies/brownfield.md",
+      "body": null
+    },
+    {
+      "id": "discuss",
+      "title": "Discuss Strategy",
+      "description": "Structured alignment before planning \u2014 front-load decisions, prevent drift.",
+      "triggers": [
+        "discuss"
+      ],
+      "path": "strategies/discuss.md",
+      "body": null
+    },
+    {
+      "id": "emit-hints",
+      "title": "Issue-Emit Hints",
+      "description": "Shared hint referenced by strategies at the moment they emit scope vBRIEFs. It names the GitHub-issue tracking choice \u2014 none / umbrella / per-vBRIEF \u2014 so the choice is discoverable instead of the emission step ending silently.",
+      "triggers": [
+        "emit-hints"
+      ],
+      "path": "strategies/emit-hints.md",
+      "body": null
+    },
+    {
+      "id": "enterprise",
+      "title": "Enterprise Strategy",
+      "description": "Compliance-heavy workflow -- v0.20 date-prefixed story/phase vBRIEF + PROJECT-DEFINITION with explicit approval gates at each stage.",
+      "triggers": [
+        "enterprise"
+      ],
+      "path": "strategies/enterprise.md",
+      "body": null
+    },
+    {
+      "id": "interview",
+      "title": "Interview Strategy",
+      "description": "The standard Deft workflow: structured interview \u2192 SPECIFICATION. This is the canonical source of truth for the interview process. All entry points (CLI via `run spec`, agent via `deft-directive-setup` Phase 3, and `templates/make-spec.md`) MUST follow this strategy.",
+      "triggers": [
+        "interview"
+      ],
+      "path": "strategies/interview.md",
+      "body": null
+    },
+    {
+      "id": "map",
+      "title": "Map Strategy",
+      "description": "Structured analysis of an existing codebase before adding features.",
+      "triggers": [
+        "map"
+      ],
+      "path": "strategies/map.md",
+      "body": null
+    },
+    {
+      "id": "probe",
+      "title": "Probe Strategy",
+      "description": "Stress-test a plan before committing to it \u2014 relentless interrogation until every branch of the decision tree is resolved.",
+      "triggers": [
+        "probe"
+      ],
+      "path": "strategies/probe.md",
+      "body": null
+    },
+    {
+      "id": "rapid",
+      "title": "Rapid Strategy",
+      "description": "Quick prototyping workflow -- v0.20 date-prefixed story vBRIEF output with minimal gates and fast iteration.",
+      "triggers": [
+        "rapid"
+      ],
+      "path": "strategies/rapid.md",
+      "body": null
+    },
+    {
+      "id": "research",
+      "title": "Research Strategy",
+      "description": "Look before you leap \u2014 investigate the domain before planning.",
+      "triggers": [
+        "research"
+      ],
+      "path": "strategies/research.md",
+      "body": null
+    },
+    {
+      "id": "roadmap",
+      "title": "Roadmap Maintenance Strategy (Superseded)",
+      "description": "**This strategy is superseded.** Roadmap maintenance is now handled by the refinement skill and deterministic rendering from vBRIEF lifecycle folders. See **[skills/deft-directive-refinement/SKILL.md](../skills/deft-directive-refinement/SKILL.md)** for issue ingest, evaluation, and promotion/demotion workflows. Run `task roadmap:render` to regenerate `ROADMAP.md` from `vbrief/` lifecycle folders.",
+      "triggers": [
+        "roadmap"
+      ],
+      "path": "strategies/roadmap.md",
+      "body": null
+    },
+    {
+      "id": "speckit",
+      "title": "SpecKit Strategy",
+      "description": "A spec-driven development workflow inspired by [GitHub's spec-kit](https://github.com/github/spec-kit), with a Phase 4.5 readiness layer for decomposing broad implementation scopes into swarm-safe stories. Fully migrated to v0.20 (phases + stories emitted as date-prefixed vBRIEFs in proposed/; no legacy specification.vbrief.json).",
+      "triggers": [
+        "speckit"
+      ],
+      "path": "strategies/speckit.md",
+      "body": null
+    },
+    {
+      "id": "v0-20-contract",
+      "title": "v0.20 Strategy Output Contract",
+      "description": "Canonical contract for the artifacts that every spec-generating strategy MUST produce to be v0.20-conformant.",
+      "triggers": [
+        "v0-20-contract"
+      ],
+      "path": "strategies/v0-20-contract.md",
+      "body": null
+    },
+    {
+      "id": "yolo",
+      "title": "Yolo Strategy",
+      "description": "Auto-pilot interview: the agent plays both sides, always picking the recommended option. Same workflow as [interview.md](./interview.md) (including the sizing gate) but the agent answers its own questions via \"Johnbot.\"",
+      "triggers": [
+        "yolo"
+      ],
+      "path": "strategies/yolo.md",
+      "body": "# Yolo Strategy\n\nAuto-pilot interview: the agent plays both sides, always picking the recommended\noption. Same workflow as [interview.md](./interview.md) (including the sizing\ngate) but the agent answers its own questions via \"Johnbot.\"\n\n**v0.20 note (s3-migrate-yolo / #1166):** Yolo now emits only the canonical v0.20 shape (date-prefixed story vBRIEFs in proposed/, full PROJECT-DEFINITION.vbrief.json via task project:render, seeded lifecycle folders, no legacy specification.vbrief.json). See the dedicated ## v0.20 Output Shape section.\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, \u2249=SHOULD NOT, \u2297=MUST NOT, ?=MAY.\n\n**\u26a0\ufe0f See also**: [strategies/interview.md](./interview.md) | [strategies/discuss.md](./discuss.md) | [core/glossary.md](../core/glossary.md) | [vbrief/vbrief.md](../vbrief/vbrief.md) | [artifact-guards.md](./artifact-guards.md)\n\n---\n\n## When to Use\n\n- ~ Quick prototyping where speed matters more than precision\n- ~ When the user trusts the agent's recommended defaults\n- ? When exploring an idea before committing to a full interview\n- \u2297 Production systems or compliance-heavy projects \u2014 use [interview.md](./interview.md) instead\n\n## Chaining Gate\n\nJohnbot auto-selects at the [chaining gate](./interview.md#chaining-gate) too.\n\n- ! Johnbot MUST select **\"Proceed to specification\"** (option 1) \u2014 no preparatory detours\n- ! Johnbot MUST select **\"Accept\"** at the [acceptance gate](./interview.md#acceptance-gate) \u2014 no revisions\n- \u2297 Ask the real user to choose at either gate \u2014 Johnbot handles both automatically\n\n## Sizing Gate\n\nJohnbot picks the size too. The same sizing signals from\n[interview.md](./interview.md#sizing-gate) apply, but Johnbot makes the call\nwithout asking the user.\n\n- ! Check `PROJECT.md` for `**Process**: Light` or `**Process**: Full` \u2014 if declared, use that path\n- ! If not declared, Johnbot picks based on feature count and complexity signals\n- ~ Default to Light for typical yolo projects (speed over ceremony)\n\n## Workflow Overview\n\n```mermaid\nflowchart LR\n    subgraph yolo [\"Yolo Strategy\"]\n        G{\"\u2696\ufe0f Sizing Gate<br/><i>Johnbot picks</i>\"}\n        I_L[\"\ud83d\udcac Auto-Interview<br/><i>Light path</i>\"]\n        I_F[\"\ud83d\udcac Auto-Interview<br/><i>Full path</i>\"]\n        P[\"\ud83d\udcc4 PRD<br/><i>Auto-approved</i>\"]\n        S[\"\ud83d\udcc1 vbrief/proposed/ (YYYY-MM-DD-*.vbrief.json)<br/>\ud83d\udccb PROJECT-DEFINITION.vbrief.json<br/><i>v0.20 shape</i>\"]\n    end\n\n    G -->|\"Light\"| I_L\n    G -->|\"Full\"| I_F\n    I_L -->|\"Johnbot picks defaults\"| S\n    I_F -->|\"Johnbot picks defaults\"| P\n    P -->|\"Auto-approved\"| S\n    S -->|\"Ready\"| IMPL[\"\ud83d\udd28 Implementation\"]\n\n    style G fill:#f0abfc,stroke:#a21caf,color:#000\n    style I_L fill:#c4b5fd,stroke:#7c3aed,color:#000\n    style I_F fill:#c4b5fd,stroke:#7c3aed,color:#000\n    style P fill:#fef08a,stroke:#ca8a04,color:#000\n    style S fill:#6ee7b7,stroke:#059669,color:#000\n    style IMPL fill:#7dd3fc,stroke:#0284c7,color:#000\n```\n\n(See ## v0.20 Output Shape for exact artifact rules and the mandatory `task project:render` call.)\n\n---\n\n## Interview Rules\n\nSame as [interview.md](./interview.md#interview-rules-shared-by-both-paths),\nwith Johnbot additions:\n\n- ~ Use Claude AskInterviewQuestion when available (emulate if not)\n- ! Ask **ONE** focused, non-trivial question per step\n- \u2297 Ask multiple questions at once or sneak in \"also\" questions\n- ~ Provide numbered answer options when appropriate\n- ! Include \"other\" option for custom/unknown responses\n- ! Indicate which option is RECOMMENDED\n- ! Pretend you are the user \"Johnbot\" too\n- ~ Johnbot asks for details/clarifications on the questions when appropriate\n- ! Johnbot ultimately goes with the RECOMMENDED option\n- \u2297 Ask the real user to answer a question \u2014 keep working with Johnbot until you can build the specification\n\n---\n\n## Light Path\n\nSame as [interview.md Light path](./interview.md#light-path-smallmedium-projects)\nbut Johnbot answers all questions and auto-approves.\n\n---\n\n## Full Path\n\nSame as [interview.md Full path](./interview.md#full-path-largecomplex-projects)\nbut Johnbot answers all questions and auto-approves the PRD.\n\n---\n\n## v0.20 Output Shape (s3-migrate-yolo / #1166)\n\nThis strategy has been migrated to the full v0.20 output shape so yolo-generated projects are accepted by the build skill Pre-Cutover Detection Guard with zero errors on first attempt (resolves the yolo row from the #1166 inconsistency table).\n\n- ! Seed the five lifecycle folders under `vbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.\n- ! Emit story scope items exclusively as date-prefixed scope vBRIEFs: `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` (use the run's creation date for the prefix; choose descriptive slugs). Decompose the yolo plan into one or more focused, buildable story vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.\n- ! After the proposed/ stories are written, invoke `task project:render` (run from the repo root) to generate/refresh the complete `vbrief/PROJECT-DEFINITION.vbrief.json` (items registry is derived from the lifecycle folders).\n- \u2297 Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write).\n- ~ `SPECIFICATION.md` at the project root, if produced at all, must be only a read-only derivative (e.g. via `task spec:render` after the vbriefs exist) that includes the v0.20 deprecated-redirect sentinel. The source of truth is the vbrief/ lifecycle stories + PROJECT-DEFINITION.\n- ! Before writing any proposed/ stories or PROJECT-DEFINITION, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for scope items in proposed/; Spec-Generating Guard for PROJECT-DEFINITION).\n- ! After emitting the proposed/ story vBRIEF(s), surface the GitHub-issue tracking hint from [emit-hints.md](./emit-hints.md) \u2014 name all three patterns (none / `--umbrella` / `--per-vbrief`).\n- ! Final output tree must pass the deterministic v0.20 strategy output validation gate (s2-deterministic-gate) and the build Pre-Cutover Detection Guard with zero warnings/errors. See full acceptance in the yolo migration vBRIEF and the 1166 decomposition.\n- ~ Once available, cite the canonical contract `strategies/v0-20-contract.md` (s1-contract) for the exact shape.\n\n---\n\n## SPECIFICATION Guidelines\n\nYolo expresses \"specification\" work via the v0.20 date-prefixed story vBRIEFs emitted to `vbrief/proposed/` (see v0.20 Output Shape section above).\n\nThe detailed guidelines from [interview.md](./interview.md#specification-guidelines-both-paths) for content quality, requirements IDs, phasing, parallelism, test-first, task sizing, and format still apply \u2014 but the *delivery mechanism* is the discrete vBRIEF stories + PROJECT-DEFINITION (never the legacy specification.vbrief.json).\n\n---\n\n## Artifacts Summary (v0.20)\n\n**Light path and Full path (identical under yolo; PRD auto-approved on Full):**\n\n| Artifact | Purpose | Created By |\n|----------|---------|------------|\n| `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) | Focused story scope items (date-prefixed per vbrief convention) | Yolo (Johnbot) |\n| `vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + complete scope items registry | `task project:render` (invoked by Yolo) |\n| `vbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Yolo |\n| (optional derivative) `SPECIFICATION.md` | Human-readable plan (includes deprecated-redirect sentinel) | `task spec:render` (if invoked) |\n\n**Pre-v0.20 / legacy artifacts that MUST NOT be produced by this strategy:**\n\n- `vbrief/specification.vbrief.json`\n- Primary handoff `SPECIFICATION.md` at project root\n\n---\n\n## Invoking This Strategy\n\n```\n/deft:run:yolo [project name]\n```\n\nOr explicitly:\n\n```\nUse the yolo strategy to plan [project].\n```\n\nAfter completion (v0.20 shape):\n\n```\ntask project:render\n# Review date-prefixed stories in vbrief/proposed/ + the generated PROJECT-DEFINITION.vbrief.json\n# Implement per the v0.20 artifacts (build skill accepts cleanly on first try)\n```\n"
+    }
+  ]
+}

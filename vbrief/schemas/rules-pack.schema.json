@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deft.dev/schemas/rules-pack-0.1.schema.json",
+  "title": "Rules Pack 0.1",
+  "description": "Canonical source schema for the rules-pack-0.1 tier-3 extension pack (#1296, design #1283, ADR-001, generalizing the #1294 lessons pilot + #1295 skills pack). The structured JSON at packs/rules/rules-pack-0.1.json is the SOURCE OF TRUTH for the RFC2119-tiered directives parsed from coding/*.md: for every marker-prefixed directive line it records id, tier (normalized from the coding/* RFC2119 legend per #748: !=MUST, ~=SHOULD, the SHOULD-NOT glyph=SHOULD_NOT, the MUST-NOT glyph=MUST_NOT, ?=MAY), domain (the source doc stem -- testing/security/hygiene/coding/toolchain/debugging/...), the directive text, and the path. Exactly one designated proof DOCUMENT (coding/testing.md) also carries its full body on its first rule entry so the doc can be regenerated as a banner-marked, drift-checked projection (scripts/pack_render.py); every other entry is metadata-only (body null) and the other coding docs keep their hand-authored markdown. The `x-sliceRegistry` block is the schema-declared, agent-facing slice API (mirrors lessons + skills): a named-slice registry mapping slice name -> { path (a constrained dotted path into the source -- NOT JSONPath), filters[] (the fixed tier/domain vocabulary), description }. Agents query by slice NAME only. The `x-display` block declares how scripts/packs_slice.py renders an entry as text (heading field, labelled metadata fields, optional body field, and the empty-result noun) so the slice formatter stays pack-agnostic. The `x-tierVocabulary` enumerates the controlled tier set.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pack", "version", "rules"],
+  "properties": {
+    "pack": {
+      "const": "rules-pack-0.1",
+      "description": "Versioned pack identifier. The version lives in the name per #1283 Q6 (pack version is part of the pack name)."
+    },
+    "version": {
+      "const": "0.1",
+      "description": "Pack major.minor, mirrored from the pack name suffix."
+    },
+    "generated_from": {
+      "type": "string",
+      "description": "Provenance: the sources the one-shot migration (scripts/pack_migrate_rules.py) parsed to build this pack (coding/*.md marker-prefixed directives)."
+    },
+    "rules": {
+      "type": "array",
+      "description": "One entry per parsed directive (marker-prefixed `- ! ...` / `- ~ ...` / `- (SHOULD-NOT) ...` / `- (MUST-NOT) ...` / `- ? ...` lines, plus prose RFC2119 MUST/SHOULD bullets). Order is sorted source-doc path then in-document order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "tier", "domain", "text", "path", "body"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Stable, unique, deterministic slug: `{domain}-{NNN}` (in-document order, 1-based, zero-padded)."
+          },
+          "tier": {
+            "type": "string",
+            "enum": ["MUST", "SHOULD", "SHOULD_NOT", "MUST_NOT", "MAY"],
+            "description": "RFC2119 strength normalized from the coding/* legend marker (#748). The `by-tier` slice filters on this field."
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Source doc stem (e.g. testing, security, hygiene, coding, toolchain, debugging, build-output, holzmann). The `by-domain` slice filters on this field."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The directive text (everything after the strength marker), stored verbatim."
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^coding/.+\\.md$",
+            "description": "Repo-relative path to the source coding doc."
+          },
+          "body": {
+            "type": ["string", "null"],
+            "description": "Full source-document body (banner-stripped, verbatim) for the ONE designated proof doc's first rule entry (coding/testing.md); null for every metadata-only entry. The renderer reconstructs the proof doc = banner + body."
+          }
+        }
+      }
+    }
+  },
+  "x-tierVocabulary": ["MUST", "SHOULD", "SHOULD_NOT", "MUST_NOT", "MAY"],
+  "x-display": {
+    "heading": "id",
+    "fields": ["tier", "domain", "text", "path"],
+    "body": null,
+    "noun": "rules"
+  },
+  "x-sliceRegistry": {
+    "by-tier": {
+      "path": "rules",
+      "filters": ["tier"],
+      "description": "Rules whose RFC2119 tier matches any of the requested --tier values (e.g. MUST, MUST_NOT; case-insensitive, repeatable or comma-listed)."
+    },
+    "by-domain": {
+      "path": "rules",
+      "filters": ["domain"],
+      "description": "Rules from any of the requested --domain source docs (e.g. testing, security; case-insensitive, repeatable or comma-listed)."
+    },
+    "list": {
+      "path": "rules",
+      "filters": [],
+      "description": "Every rule with its tier, domain, text, and source path."
+    }
+  }
+}

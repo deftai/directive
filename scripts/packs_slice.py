@@ -203,6 +203,16 @@ def apply_triggers(entries: list[dict], triggers: list[str]) -> list[dict]:
     ]
 
 
+def apply_scalar(entries: list[dict], field: str, values: list[str]) -> list[dict]:
+    """Filter entries whose scalar ``field`` matches any requested value.
+
+    Case-insensitive exact match on a single-valued field (e.g. the rules pack's
+    ``tier`` and ``domain``), as opposed to the list-membership filters above.
+    """
+    wanted = {v.lower() for v in values}
+    return [e for e in entries if str(e.get(field, "")).lower() in wanted]
+
+
 def _validate_filters(
     slice_name: str,
     allowed: list[str],
@@ -210,6 +220,8 @@ def _validate_filters(
     since: str | None,
     tags: list[str] | None,
     triggers: list[str] | None,
+    tiers: list[str] | None,
+    domains: list[str] | None,
 ) -> None:
     """Reject filters not declared for this slice in the registry."""
     provided: list[str] = []
@@ -219,6 +231,10 @@ def _validate_filters(
         provided.append("tag")
     if triggers:
         provided.append("trigger")
+    if tiers:
+        provided.append("tier")
+    if domains:
+        provided.append("domain")
     for filt in provided:
         if filt not in allowed:
             raise UsageError(
@@ -237,6 +253,8 @@ def slice_pack(
     since: str | None = None,
     tags: list[str] | None = None,
     triggers: list[str] | None = None,
+    tiers: list[str] | None = None,
+    domains: list[str] | None = None,
 ) -> dict[str, Any]:
     """Resolve and execute a named slice, returning a provenance-tagged result.
 
@@ -252,7 +270,15 @@ def slice_pack(
 
     spec = registry[slice_name]
     allowed = spec.get("filters", [])
-    _validate_filters(slice_name, allowed, since=since, tags=tags, triggers=triggers)
+    _validate_filters(
+        slice_name,
+        allowed,
+        since=since,
+        tags=tags,
+        triggers=triggers,
+        tiers=tiers,
+        domains=domains,
+    )
 
     if since is not None and not _SINCE_RE.match(since):
         raise UsageError(f"--since must be YYYY-MM or YYYY-MM-DD, got '{since}'")
@@ -266,6 +292,10 @@ def slice_pack(
         entries = apply_tags(entries, tags)
     if triggers:
         entries = apply_triggers(entries, triggers)
+    if tiers:
+        entries = apply_scalar(entries, "tier", tiers)
+    if domains:
+        entries = apply_scalar(entries, "domain", domains)
 
     return {
         "pack": pack_id,
@@ -473,6 +503,18 @@ def _build_parser() -> argparse.ArgumentParser:
         help="by-trigger filter: routing keyword (repeatable or comma-listed).",
     )
     parser.add_argument(
+        "--tier",
+        action="append",
+        default=[],
+        help="by-tier filter: RFC2119 tier (e.g. MUST; repeatable or comma-listed).",
+    )
+    parser.add_argument(
+        "--domain",
+        action="append",
+        default=[],
+        help="by-domain filter: source doc stem (e.g. testing; repeatable or comma-listed).",
+    )
+    parser.add_argument(
         "--format",
         choices=("text", "json"),
         default="text",
@@ -513,6 +555,8 @@ def main(argv: list[str] | None = None) -> int:
     fmt = "json" if args.json else args.format
     tags = _collect_tags(args.tag)
     triggers = _collect_tags(args.trigger)
+    tiers = _collect_tags(args.tier)
+    domains = _collect_tags(args.domain)
 
     try:
         if args.list_packs:
@@ -552,6 +596,8 @@ def main(argv: list[str] | None = None) -> int:
             since=args.since,
             tags=tags,
             triggers=triggers,
+            tiers=tiers,
+            domains=domains,
         )
         if fmt == "json":
             print(json.dumps(result, indent=2, ensure_ascii=False))
