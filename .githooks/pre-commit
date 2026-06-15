@@ -68,7 +68,10 @@ fi
 # diagnostic / 2 config error. Rule body lives in scripts/verify_vbrief_conformance.py.
 # Guarded on a present vbrief/ corpus so a fresh consumer repo that has not yet
 # created the vBRIEF lifecycle folders is not blocked by the gate's intentional
-# exit-2-on-missing-vbrief/ config-error contract.
-if [ -d "$REPO_ROOT/vbrief" ]; then
+# exit-2-on-missing-vbrief/ config-error contract. Also guarded on the gate
+# script being present so a vendored consumer whose .deft/core/scripts/ payload
+# predates this gate (stale-payload upgrade window) is not blocked by a missing
+# script; payload-staleness is surfaced separately by `task doctor`.
+if [ -d "$REPO_ROOT/vbrief" ] && [ -f "$SCRIPTS_DIR/verify_vbrief_conformance.py" ]; then
     exec "$PYTHON_BIN" "$SCRIPTS_DIR/verify_vbrief_conformance.py" --project-root "$REPO_ROOT" --staged
 fi
