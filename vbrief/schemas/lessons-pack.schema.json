@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deft.dev/schemas/lessons-pack-0.1.schema.json",
+  "title": "Lessons Pack 0.1",
+  "description": "Canonical source schema for the lessons-pack-0.1 tier-3 extension pack (#1294, design #1283, ADR-001). The structured JSON at packs/lessons/lessons-pack-0.1.json is the SOURCE OF TRUTH; meta/lessons.md is a regenerated, drift-checked projection (scripts/pack_render.py). The `x-sliceRegistry` block is the schema-declared, agent-facing slice API: a named-slice registry mapping slice name -> { path (a constrained dotted path into the source -- NOT JSONPath), filters[] (a fixed filter vocabulary), description }. Agents query by slice NAME only; the dotted path + filter dialect are pack-author implementation detail (the ADR-001 Example-6 reconciliation). The `x-tagVocabulary` enumerates the controlled tag set that scripts/pack_migrate_lessons.py assigns from.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pack", "version", "lessons"],
+  "properties": {
+    "pack": {
+      "const": "lessons-pack-0.1",
+      "description": "Versioned pack identifier. The version lives in the name per #1283 Q6 (pack version is part of the pack name)."
+    },
+    "version": {
+      "const": "0.1",
+      "description": "Pack major.minor, mirrored from the pack name suffix."
+    },
+    "generated_from": {
+      "type": "string",
+      "description": "Provenance: the source markdown path the one-shot migration (scripts/pack_migrate_lessons.py) parsed to build this pack (e.g. meta/lessons.md)."
+    },
+    "lessons": {
+      "type": "array",
+      "description": "The lesson entries. Order is the source-document order and is the render order; the renderer emits `## {title}\\n\\n{body}` for each entry in this order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "date", "issue_refs", "tags", "source", "body"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Stable, unique, deterministic slug derived from the title."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The full human heading text (everything after the leading `## `), stored verbatim so the projection round-trips exactly. The parenthetical date / issue ref is intentionally retained in the title; `date` and `issue_refs` are convenience-extracted copies."
+          },
+          "date": {
+            "type": ["string", "null"],
+            "pattern": "^\\d{4}-\\d{2}$",
+            "description": "Year-month (YYYY-MM) extracted from the title parenthetical, or null when the heading carries no date (e.g. an issue-ref-only heading). The `since` filter compares against this field; null-dated entries are excluded from `recent`."
+          },
+          "issue_refs": {
+            "type": "array",
+            "description": "All `#NNN` issue references found in the title, in order of appearance.",
+            "items": {
+              "type": "string",
+              "pattern": "^#\\d+$"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "description": "1-3 tags from the controlled x-tagVocabulary, assigned by the migration from title/body keywords. The `by-tag` slice filters on this field.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "windows",
+                "encoding",
+                "review-cycle",
+                "swarm",
+                "release",
+                "github",
+                "context",
+                "debugging",
+                "lifecycle",
+                "powershell",
+                "ci",
+                "agent-orchestration"
+              ]
+            }
+          },
+          "source": {
+            "type": ["string", "null"],
+            "description": "The text of the entry's `**Source:**` line (the provenance line authored in the lesson body), or null when the entry has no Source line. The full Source line is also retained verbatim inside `body`; this is a convenience-extracted copy."
+          },
+          "body": {
+            "type": "string",
+            "description": "The full section body markdown (everything after the heading up to the next `## ` heading), stored verbatim as a lossless blob. Numbered sub-lessons are intentionally NOT decomposed into fields -- body-as-blob keeps the migration lossless."
+          }
+        }
+      }
+    }
+  },
+  "x-tagVocabulary": [
+    "windows",
+    "encoding",
+    "review-cycle",
+    "swarm",
+    "release",
+    "github",
+    "context",
+    "debugging",
+    "lifecycle",
+    "powershell",
+    "ci",
+    "agent-orchestration"
+  ],
+  "x-sliceRegistry": {
+    "recent": {
+      "path": "lessons",
+      "filters": ["since"],
+      "description": "Lessons dated on or after --since (YYYY-MM or YYYY-MM-DD). Null-dated entries are excluded."
+    },
+    "by-tag": {
+      "path": "lessons",
+      "filters": ["tag"],
+      "description": "Lessons carrying any of the requested --tag values (repeatable or comma-listed)."
+    }
+  }
+}

@@ -292,6 +292,15 @@ includes:
   capacity:
     taskfile: ./tasks/capacity.yml
     optional: true
+  # Pack-slicing surface (#1283 design, #1294 pilot, ADR-001 Layer B). Exposes
+  # `task packs:slice` (named-slice API), `task packs:render` (regenerate the
+  # meta/lessons.md projection), and `task packs:verify-drift` (the drift gate,
+  # also surfaced as the user-facing alias `task verify:pack-drift` below and
+  # wired into `check:framework-source`). `optional: true` for rolling-merge
+  # tolerance.
+  packs:
+    taskfile: ./tasks/packs.yml
+    optional: true
 
 tasks:
   default:
@@ -324,6 +333,7 @@ tasks:
       - verify:destructive-gh-verbs
       - verify:scm-boundary
       - verify:cache-fresh
+      - verify:pack-drift
       - verify-wip-cap-framework-self-check
       - vbrief:validate
       - verify-strategy-output
@@ -373,6 +383,20 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/validate_strategy_output.py" --project-root "{{.USER_WORKING_DIR}}"
+
+  # Pack-projection drift gate (#1294 / #1283, ADR-001). User-facing alias for
+  # `packs:verify-drift`, defined at the root Taskfile so it carries the
+  # documented `verify:*` prefix that the gate stack + `task check` reference
+  # while the implementation lives in the `packs:` include namespace (mirrors
+  # the established triage:* / scope:* alias precedent above). Wired into
+  # `check:framework-source` deps. Forwards {{.CLI_ARGS}} so --source / --output
+  # overrides reach the script.
+  verify:pack-drift:
+    desc: "Fail when meta/lessons.md drifts from the canonical lessons-pack source (#1294 / ADR-001). Alias for packs:verify-drift; wired into `task check`."
+    cmds:
+      - task: packs:verify-drift
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
 
   # `task check:slow` runs the @pytest.mark.slow lane that the default
   # `task check` skips (#975). The slow lane is dominated by the

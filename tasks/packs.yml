@@ -1,0 +1,46 @@
+version: '3'
+
+# Pack-slicing surface (#1283 design, #1294 pilot, ADR-001 Layer B).
+#
+# `packs:slice` is the agent-facing named-slice API; `packs:render`
+# regenerates the rendered projection (meta/lessons.md) from the canonical
+# pack source; `packs:verify-drift` is the drift gate that fails when the
+# committed projection diverges from a freshly rendered buffer.
+#
+# DEFT_ROOT is defined locally via `{{joinPath .TASKFILE_DIR ".."}}` (same
+# idiom as tasks/issue.yml) so the scripts dispatch traversal-free on every
+# platform (#566). The slice / render scripts resolve their own pack source /
+# output paths relative to the framework root, so they are CWD-independent;
+# `dir: '{{.USER_WORKING_DIR}}'` keeps parity with the other Taskfile-
+# dispatched scripts. Per `conventions/task-caching.md` (#574) none of these
+# declare `sources:` / `generates:` because they forward user-facing flags via
+# `{{.CLI_ARGS}}` (slice filters, --check) that go-task's incremental-build
+# cache would otherwise silently swallow.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  slice:
+    desc: "Named, structured slice access to a content pack (#1283). -- task packs:slice <pack> <name> [-- --since YYYY-MM | --tag T] [--list] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/packs_slice.py" {{.CLI_ARGS}}
+
+  render:
+    desc: "Regenerate meta/lessons.md from the canonical lessons-pack-0.1 source (ADR-001 projection). -- task packs:render [-- --check]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pack_render.py" {{.CLI_ARGS}}
+
+  verify-drift:
+    desc: "Drift gate: fail (exit 1) when meta/lessons.md diverges from a freshly rendered buffer of the pack source. Wired into `task check` and surfaced as `task verify:pack-drift`."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pack_render.py" --check {{.CLI_ARGS}}

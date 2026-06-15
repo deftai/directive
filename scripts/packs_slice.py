@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+"""packs_slice.py -- named, structured slice access to a content pack (#1283, #1294).
+
+Implements ``task packs:slice <pack> <name> [-- <filters>]``: the agent-facing
+Layer-B slice surface from ADR-001 / the #1283 converged design.
+
+Design contract (#1283):
+- The agent-facing API is the slice NAME only (``recent``, ``by-tag``). The
+  dotted path + filter dialect are pack-author implementation detail declared
+  in the pack's JSON Schema ``x-sliceRegistry`` block -- NOT JSONPath, NOT a
+  query language exposed to consumers.
+- Slices read the CANONICAL pack source (JSON) directly, NEVER the rendered
+  ``.md`` projection. Reading source guarantees byte-stable, drift-free slices.
+- Output is ``text`` by default (cheapest for the read-into-context path the
+  ADR optimises) with ``--json`` / ``--format json`` for harness consumers.
+- Every result carries provenance: ``pack``, ``slice``, ``source`` (path),
+  ``source_sha`` (sha256 of the source file).
+- ``--list`` discovers slice names + one-liners; an unknown slice exits 2 with
+  a did-you-mean suggestion. Three-state exit: 0 ok / 2 usage error.
+
+Exit codes:
+    0 -- ok
+    2 -- usage error (unknown pack/slice, bad filter, malformed --since, ...)
+"""
+
+from __future__ import annotations
+
+import argparse
+import difflib
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+# Repo root resolved from this file's location (scripts/ -> repo root) so pack
+# source / schema paths are CWD-independent.
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Pack short-name -> on-disk source + schema. The slice surface resolves the
+# canonical source (never the rendered .md) and the schema-declared registry.
+PACK_REGISTRY: dict[str, dict[str, Path]] = {
+    "lessons": {
+        "source": REPO_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json",
+        "schema": REPO_ROOT / "vbrief" / "schemas" / "lessons-pack.schema.json",
+    },
+}
+
+_SINCE_RE = re.compile(r"^\d{4}-\d{2}(-\d{2})?$")
+
+
+class UsageError(Exception):
+    """A recoverable usage error -- mapped to exit code 2 in ``main``."""
+
+    def __init__(self, message: str, suggestion: str | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.suggestion = suggestion
+
+
+def sha256_file(path: Path) -> str:
+    """Return the hex sha256 of a file's bytes."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _rel_to_repo(path: Path) -> str:
+    """Return a repo-relative POSIX path string for provenance, or the name."""
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return path.name
+
+
+def resolve_pack(pack_name: str) -> tuple[Path, Path]:
+    """Resolve a pack short-name to its (source, schema) paths.
+
+    Raises ``UsageError`` (with a did-you-mean suggestion) for an unknown pack.
+    """
+    if pack_name not in PACK_REGISTRY:
+        suggestions = difflib.get_close_matches(pack_name, PACK_REGISTRY, n=1)
+        raise UsageError(
+            f"unknown pack '{pack_name}'",
+            suggestion=suggestions[0] if suggestions else None,
+        )
+    entry = PACK_REGISTRY[pack_name]
+    return entry["source"], entry["schema"]
+
+
+def load_registry(schema_path: Path) -> dict[str, dict[str, Any]]:
+    """Load the schema-declared ``x-sliceRegistry`` map from a pack schema."""
+    if not schema_path.is_file():
+        raise UsageError(f"pack schema not found: {schema_path}")
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    registry = schema.get("x-sliceRegistry")
+    if not isinstance(registry, dict):
+        raise UsageError(f"pack schema has no x-sliceRegistry: {schema_path}")
+    return registry
+
+
+def load_source(source_path: Path) -> dict[str, Any]:
+    """Load the canonical pack source JSON (never the rendered .md)."""
+    if not source_path.is_file():
+        raise UsageError(f"pack source not found: {source_path}")
+    data: dict[str, Any] = json.loads(source_path.read_text(encoding="utf-8"))
+    return data
+
+
+def resolve_dotted_path(data: Any, dotted: str) -> Any:
+    """Walk a constrained dotted path into ``data`` with ``.get()`` guards.
+
+    Each segment indexes a mapping; a missing / non-mapping step yields ``None``.
+    This is the constrained dotted-path dialect from #1283 -- NOT JSONPath.
+    """
+    current = data
+    for segment in dotted.split("."):
+        if isinstance(current, dict):
+            current = current.get(segment)
+        else:
+            return None
+    return current
+
+
+def apply_since(entries: list[dict], since: str) -> list[dict]:
+    """Filter entries to those dated on or after ``since`` (year-month grain).
+
+    ``since`` may be ``YYYY-MM`` or ``YYYY-MM-DD``; comparison is at month
+    granularity (the entries' date grain). Null-dated entries are excluded.
+    """
+    since_ym = since[:7]
+    return [e for e in entries if e.get("date") and e["date"] >= since_ym]
+
+
+def apply_tags(entries: list[dict], tags: list[str]) -> list[dict]:
+    """Filter entries to those carrying any of the requested ``tags``."""
+    wanted = set(tags)
+    return [e for e in entries if wanted & set(e.get("tags", []))]
+
+
+def _validate_filters(
+    slice_name: str,
+    allowed: list[str],
+    *,
+    since: str | None,
+    tags: list[str] | None,
+) -> None:
+    """Reject filters not declared for this slice in the registry."""
+    provided: list[str] = []
+    if since is not None:
+        provided.append("since")
+    if tags:
+        provided.append("tag")
+    for filt in provided:
+        if filt not in allowed:
+            raise UsageError(
+                f"slice '{slice_name}' does not support the --{filt} filter "
+                f"(allowed: {', '.join(allowed) or 'none'})"
+            )
+
+
+def slice_pack(
+    pack_id: str,
+    slice_name: str,
+    registry: dict[str, dict[str, Any]],
+    source_data: dict[str, Any],
+    source_path: Path,
+    *,
+    since: str | None = None,
+    tags: list[str] | None = None,
+) -> dict[str, Any]:
+    """Resolve and execute a named slice, returning a provenance-tagged result.
+
+    Raises ``UsageError`` for an unknown slice (with did-you-mean), an
+    unsupported filter, or a malformed ``--since`` value.
+    """
+    if slice_name not in registry:
+        suggestions = difflib.get_close_matches(slice_name, registry, n=1)
+        raise UsageError(
+            f"unknown slice '{slice_name}' for pack {pack_id}",
+            suggestion=suggestions[0] if suggestions else None,
+        )
+
+    spec = registry[slice_name]
+    allowed = spec.get("filters", [])
+    _validate_filters(slice_name, allowed, since=since, tags=tags)
+
+    if since is not None and not _SINCE_RE.match(since):
+        raise UsageError(f"--since must be YYYY-MM or YYYY-MM-DD, got '{since}'")
+
+    resolved = resolve_dotted_path(source_data, spec["path"])
+    entries: list[dict] = list(resolved) if isinstance(resolved, list) else []
+
+    if since is not None:
+        entries = apply_since(entries, since)
+    if tags:
+        entries = apply_tags(entries, tags)
+
+    return {
+        "pack": pack_id,
+        "slice": slice_name,
+        "source": _rel_to_repo(source_path),
+        "source_sha": sha256_file(source_path),
+        "count": len(entries),
+        "results": entries,
+    }
+
+
+def list_slices(
+    pack_id: str,
+    registry: dict[str, dict[str, Any]],
+    source_path: Path,
+) -> dict[str, Any]:
+    """Build the ``--list`` discovery payload for a pack."""
+    slices = [
+        {
+            "name": name,
+            "description": spec.get("description", ""),
+            "filters": spec.get("filters", []),
+        }
+        for name, spec in sorted(registry.items())
+    ]
+    return {
+        "pack": pack_id,
+        "source": _rel_to_repo(source_path),
+        "source_sha": sha256_file(source_path),
+        "slices": slices,
+    }
+
+
+def format_slice_text(result: dict[str, Any]) -> str:
+    """Render a slice result as token-efficient text with a provenance header."""
+    header = (
+        f"# pack: {result['pack']} | slice: {result['slice']} | "
+        f"source: {result['source']} | source_sha: {result['source_sha']} | "
+        f"{result['count']} result(s)"
+    )
+    if not result["results"]:
+        return f"{header}\n\n(no matching lessons)"
+    parts = [header]
+    for entry in result["results"]:
+        parts.append(f"\n## {entry['title']}\n\n{entry['body']}\n")
+    return "".join(parts)
+
+
+def format_list_text(payload: dict[str, Any]) -> str:
+    """Render the ``--list`` discovery payload as text."""
+    lines = [f"Slices for pack {payload['pack']} (source: {payload['source']}):"]
+    width = max((len(s["name"]) for s in payload["slices"]), default=0)
+    for s in payload["slices"]:
+        filters = ", ".join(s["filters"]) or "none"
+        lines.append(f"  {s['name']:<{width}}  {s['description']}  [filters: {filters}]")
+    return "\n".join(lines) + "\n"
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="packs_slice.py",
+        description="Named, structured slice access to a content pack (#1283).",
+    )
+    parser.add_argument("pack", help="Pack short-name (e.g. 'lessons').")
+    parser.add_argument(
+        "name",
+        nargs="?",
+        help="Slice name (e.g. 'recent', 'by-tag'). Omit with --list.",
+    )
+    parser.add_argument("--since", help="recent filter: YYYY-MM or YYYY-MM-DD.")
+    parser.add_argument(
+        "--tag",
+        action="append",
+        default=[],
+        help="by-tag filter: tag value (repeatable or comma-listed).",
+    )
+    parser.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format (default: text).",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Alias for --format json.",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        dest="list_slices",
+        help="List the pack's slice names + descriptions, then exit.",
+    )
+    return parser
+
+
+def _collect_tags(raw: list[str]) -> list[str]:
+    """Flatten repeated / comma-listed --tag values into a normalised list."""
+    out: list[str] = []
+    for item in raw:
+        out.extend(t.strip().lower() for t in item.split(",") if t.strip())
+    return out
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    fmt = "json" if args.json else args.format
+    tags = _collect_tags(args.tag)
+
+    try:
+        source_path, schema_path = resolve_pack(args.pack)
+        registry = load_registry(schema_path)
+        source_data = load_source(source_path)
+        pack_id = source_data.get("pack", args.pack)
+
+        if args.list_slices:
+            payload = list_slices(pack_id, registry, source_path)
+            if fmt == "json":
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(format_list_text(payload), end="")
+            return 0
+
+        if not args.name:
+            raise UsageError("a slice name is required (or pass --list)")
+
+        result = slice_pack(
+            pack_id,
+            args.name,
+            registry,
+            source_data,
+            source_path,
+            since=args.since,
+            tags=tags,
+        )
+        if fmt == "json":
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            print(format_slice_text(result))
+        return 0
+    except UsageError as exc:
+        msg = f"error: {exc.message}"
+        if exc.suggestion:
+            msg += f". Did you mean '{exc.suggestion}'?"
+        print(msg, file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
