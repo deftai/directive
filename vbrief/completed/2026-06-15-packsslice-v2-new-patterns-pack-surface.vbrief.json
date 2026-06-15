@@ -6,7 +6,7 @@
   "plan": {
     "id": "1637-s5-patterns-pack",
     "title": "packs:slice v2 -- new patterns pack surface",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json",
     "narratives": {
       "Description": "Create a new `patterns` pack that ingests the five documents under `patterns/` (which exist today with no pack) following the established 0.1 pilot pattern: a schema with a slice registry, a migration script, the pack JSON, a render registry entry, and tests. This story is independently buildable as greenfield work scoped to net-new files plus a single additive entry in the shared render registry.",
@@ -66,7 +66,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637 and RFC #1283 Q-list; no specification.vbrief.json spec-section applies."
-      }
+      },
+      "completedAt": "2026-06-15T23:54:40Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -80,6 +82,7 @@
         "type": "x-vbrief/refs",
         "title": "Issue #1283"
       }
-    ]
+    ],
+    "updated": "2026-06-15T23:54:40Z"
   }
 }

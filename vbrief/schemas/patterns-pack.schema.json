@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deft.dev/schemas/patterns-pack-0.1.schema.json",
+  "title": "Patterns Pack 0.1",
+  "description": "Canonical source schema for the patterns-pack-0.1 tier-3 extension pack (#1637, design #1283, ADR-001, generalizing the #1294 lessons pilot + #1295 skills pack + #1296 rules/strategies packs). The structured JSON at packs/patterns/patterns-pack-0.1.json is the SOURCE OF TRUTH for architectural-pattern ROUTING METADATA: for every patterns/*.md it records id (the doc stem), title (the leading `# ` heading), description (the leading description paragraph), triggers (the pattern stem as an invocation keyword, used by the `by-trigger` slice), and the path. Exactly one designated proof pattern (patterns/multi-agent.md) also carries its full body so its markdown can be regenerated as a banner-marked, drift-checked projection (scripts/pack_render.py); every other entry is metadata-only (body null) and keeps its hand-authored markdown. The `x-sliceRegistry` block is the schema-declared, agent-facing slice API (mirrors lessons + skills + strategies): a named-slice registry mapping slice name -> { path (a constrained dotted path into the source -- NOT JSONPath), filters[] (the fixed trigger vocabulary), description }. Agents query by slice NAME only. The `x-display` block declares how scripts/packs_slice.py renders an entry as text (heading field, labelled metadata fields, optional body field, and the empty-result noun) so the slice formatter stays pack-agnostic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pack", "version", "patterns"],
+  "properties": {
+    "pack": {
+      "const": "patterns-pack-0.1",
+      "description": "Versioned pack identifier. The version lives in the name per #1283 Q6 (pack version is part of the pack name)."
+    },
+    "version": {
+      "const": "0.1",
+      "description": "Pack major.minor, mirrored from the pack name suffix."
+    },
+    "generated_from": {
+      "type": "string",
+      "description": "Provenance: the sources the one-shot migration (scripts/pack_migrate_patterns.py) parsed to build this pack (patterns/*.md)."
+    },
+    "patterns": {
+      "type": "array",
+      "description": "One entry per discovered pattern doc (patterns/*.md). Order is the sorted path order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "description", "triggers", "path", "body"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "description": "Pattern id: the slugified doc stem (e.g. multi-agent, role-as-overlay, llm-app)."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The pattern's leading `# ` heading text, stored verbatim."
+          },
+          "description": {
+            "type": "string",
+            "description": "The leading description paragraph after the title (Legend / See-also / chrome lines skipped), folded to a single normalised string. Empty when the doc has no leading paragraph."
+          },
+          "triggers": {
+            "type": "array",
+            "description": "Invocation keywords for this pattern (the doc stem). Empty when the pattern has no derivable trigger. The `by-trigger` slice filters on this field.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^patterns/.+\\.md$",
+            "description": "Repo-relative path to the pattern markdown."
+          },
+          "body": {
+            "type": ["string", "null"],
+            "description": "Full pattern body (banner-stripped, verbatim) for the ONE designated proof pattern (patterns/multi-agent.md); null for metadata-only entries. The renderer reconstructs the proof = banner + body."
+          }
+        }
+      }
+    }
+  },
+  "x-display": {
+    "heading": "id",
+    "fields": ["title", "description", "triggers", "path"],
+    "body": null,
+    "noun": "patterns"
+  },
+  "x-sliceRegistry": {
+    "by-trigger": {
+      "path": "patterns",
+      "filters": ["trigger"],
+      "description": "Patterns whose invocation keywords include any of the requested --trigger values (case-insensitive, repeatable or comma-listed)."
+    },
+    "list": {
+      "path": "patterns",
+      "filters": [],
+      "description": "Every pattern with its title, description, triggers, and path."
+    }
+  }
+}

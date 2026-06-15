@@ -67,6 +67,22 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pack_migrate_strategies.py" {{.CLI_ARGS}}
 
+  render-patterns:
+    desc: "One-shot migration: rebuild packs/patterns/patterns-pack-0.1.json from patterns/*.md (#1637)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pack_migrate_patterns.py" {{.CLI_ARGS}}
+
+  render-swarm-spec:
+    desc: "One-shot migration: rebuild packs/swarm-spec/swarm-spec-pack-0.1.json from swarm/*.md (#1637)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pack_migrate_swarm_spec.py" {{.CLI_ARGS}}
+
   verify-drift:
     desc: "Drift gate: fail (exit 1) when ANY pack projection (meta/lessons.md, the skills proof SKILL.md, coding/testing.md, strategies/yolo.md) diverges from a freshly rendered buffer. Wired into `task check` and surfaced as `task verify:pack-drift`."
     dir: '{{.USER_WORKING_DIR}}'
