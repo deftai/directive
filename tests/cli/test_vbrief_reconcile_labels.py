@@ -23,6 +23,9 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "vbrief_reconcile_labels.py"
@@ -342,3 +345,301 @@ def test_cli_missing_vbrief_dir_json_exit2(tmp_path: Path) -> None:
     assert result.returncode == 2, result.stdout + result.stderr
     payload = json.loads(result.stdout)
     assert "error" in payload
+
+
+# ---------------------------------------------------------------------------
+# ScmLabelClient (real forge client, scm.call monkeypatched -- no live gh)
+# ---------------------------------------------------------------------------
+
+
+def test_scm_client_fetch_labels_parses_dict_and_str(monkeypatch) -> None:
+    def fake_call(source, verb, args, **kwargs):
+        assert source == mod.SCM_SOURCE
+        assert args[0] == "view"
+        return SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(
+                {"labels": [{"name": "bug"}, "rfc", {"no_name": 1}, 42]}
+            ),
+            stderr="",
+        )
+
+    monkeypatch.setattr(mod.scm, "call", fake_call)
+    client = mod.ScmLabelClient()
+    assert client.fetch_labels("deftai/directive", 5) == ["bug", "rfc"]
+
+
+def test_scm_client_fetch_labels_nonzero_raises(monkeypatch) -> None:
+    monkeypatch.setattr(
+        mod.scm,
+        "call",
+        lambda *a, **k: SimpleNamespace(returncode=1, stdout="", stderr="boom"),
+    )
+    client = mod.ScmLabelClient()
+    with pytest.raises(mod.ScmLabelError, match="issue view"):
+        client.fetch_labels("deftai/directive", 6)
+
+
+def test_scm_client_fetch_labels_non_json_raises(monkeypatch) -> None:
+    monkeypatch.setattr(
+        mod.scm,
+        "call",
+        lambda *a, **k: SimpleNamespace(returncode=0, stdout="not-json", stderr=""),
+    )
+    client = mod.ScmLabelClient()
+    with pytest.raises(mod.ScmLabelError, match="non-JSON"):
+        client.fetch_labels("deftai/directive", 7)
+
+
+def test_scm_client_fetch_labels_non_list_returns_empty(monkeypatch) -> None:
+    monkeypatch.setattr(
+        mod.scm,
+        "call",
+        lambda *a, **k: SimpleNamespace(
+            returncode=0, stdout=json.dumps({"labels": "nope"}), stderr=""
+        ),
+    )
+    client = mod.ScmLabelClient()
+    assert client.fetch_labels("deftai/directive", 8) == []
+
+
+def test_scm_client_apply_builds_args_and_succeeds(monkeypatch) -> None:
+    captured: list[list[str]] = []
+
+    def fake_call(source, verb, args, **kwargs):
+        captured.append(list(args))
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(mod.scm, "call", fake_call)
+    client = mod.ScmLabelClient()
+    client.apply("deftai/directive", 9, ["epic", "status:tracker"], ["rfc"])
+
+    assert captured == [
+        [
+            "edit",
+            "9",
+            "--repo",
+            "deftai/directive",
+            "--add-label",
+            "epic",
+            "--add-label",
+            "status:tracker",
+            "--remove-label",
+            "rfc",
+        ]
+    ]
+
+
+def test_scm_client_apply_nonzero_raises(monkeypatch) -> None:
+    monkeypatch.setattr(
+        mod.scm,
+        "call",
+        lambda *a, **k: SimpleNamespace(returncode=1, stdout="", stderr="denied"),
+    )
+    client = mod.ScmLabelClient()
+    with pytest.raises(mod.ScmLabelError, match="issue edit"):
+        client.apply("deftai/directive", 10, ["epic"], [])
+
+
+# ---------------------------------------------------------------------------
+# _render_report branch coverage
+# ---------------------------------------------------------------------------
+
+
+def test_render_report_all_sections() -> None:
+    outcome = mod.ReconcileLabelsOutcome(dry_run=True)
+    outcome.changed.append(
+        mod.LabelChange(
+            story_id="blk",
+            repo="deftai/directive",
+            issue_number=10,
+            current=["bug"],
+            desired=["status:blocked"],
+            add=["status:blocked"],
+            remove=["rfc"],
+        )
+    )
+    outcome.unchanged.append(
+        mod.LabelChange(
+            story_id="ok",
+            repo="deftai/directive",
+            issue_number=11,
+            current=["epic"],
+            desired=["epic"],
+            add=[],
+            remove=[],
+        )
+    )
+    outcome.skipped_no_ref.append("noref")
+    outcome.errors.append(("bad", "issue view failed"))
+
+    report = mod._render_report(outcome)
+    assert "Changed (dry-run):" in report
+    assert "+status:blocked" in report
+    assert "-rfc" in report
+    assert "#11 (deftai/directive) [ok]" in report
+    assert "Skipped (no github-issue reference / repo):" in report
+    assert "- noref" in report
+    assert "Errors:" in report
+    assert "- bad: issue view failed" in report
+
+
+def test_render_report_empty_sections() -> None:
+    report = mod._render_report(mod.ReconcileLabelsOutcome())
+    assert "Changed:" in report
+    assert "- none" in report
+    assert "Unchanged:" in report
+
+
+# ---------------------------------------------------------------------------
+# main() in-process (covers parse_args + main + render, no live gh)
+# ---------------------------------------------------------------------------
+
+
+def _fake_scm_for_issue(state: dict[int, list[str]]):
+    def _call(source, verb, args, **kwargs):
+        if args and args[0] == "view":
+            number = int(args[1])
+            names = state.get(number, [])
+            return SimpleNamespace(
+                returncode=0,
+                stdout=json.dumps({"labels": [{"name": n} for n in names]}),
+                stderr="",
+            )
+        # edit
+        number = int(args[1])
+        current = set(state.get(number, []))
+        i = 2
+        while i < len(args):
+            if args[i] == "--add-label":
+                current.add(args[i + 1])
+                i += 2
+            elif args[i] == "--remove-label":
+                current.discard(args[i + 1])
+                i += 2
+            else:
+                i += 1
+        state[number] = sorted(current)
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    return _call
+
+
+def test_main_text_report_inprocess(tmp_path: Path, monkeypatch, capsys) -> None:
+    _write_brief(tmp_path, "blk", folder="active", status="blocked", issue_number=100)
+    state: dict[int, list[str]] = {}
+    monkeypatch.setattr(mod.scm, "call", _fake_scm_for_issue(state))
+
+    rc = mod.main(["--project-root", str(tmp_path)])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "vBRIEF reconcile labels" in out
+    assert "+status:blocked" in out
+    assert state[100] == ["status:blocked"]
+
+
+def test_main_json_inprocess(tmp_path: Path, monkeypatch, capsys) -> None:
+    _write_brief(tmp_path, "epic-x", folder="active", kind="epic", issue_number=101)
+    state: dict[int, list[str]] = {}
+    monkeypatch.setattr(mod.scm, "call", _fake_scm_for_issue(state))
+
+    rc = mod.main(["--project-root", str(tmp_path), "--json"])
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["dry_run"] is False
+    assert any(c["issue_number"] == 101 for c in payload["changed"])
+
+
+def test_main_dry_run_inprocess(tmp_path: Path, monkeypatch, capsys) -> None:
+    _write_brief(tmp_path, "blk", folder="active", status="blocked", issue_number=102)
+    state: dict[int, list[str]] = {}
+    monkeypatch.setattr(mod.scm, "call", _fake_scm_for_issue(state))
+
+    rc = mod.main(["--project-root", str(tmp_path), "--dry-run"])
+
+    assert rc == 0
+    assert "(dry-run)" in capsys.readouterr().out
+    # Dry-run mutates nothing.
+    assert state == {}
+
+
+def test_main_exit2_text_inprocess(tmp_path: Path, capsys) -> None:
+    rc = mod.main(["--project-root", str(tmp_path)])
+    assert rc == 2
+    assert "no vbrief/ directory found" in capsys.readouterr().err
+
+
+def test_main_exit2_json_inprocess(tmp_path: Path, capsys) -> None:
+    rc = mod.main(["--project-root", str(tmp_path), "--json"])
+    assert rc == 2
+    assert "error" in json.loads(capsys.readouterr().out)
+
+
+# ---------------------------------------------------------------------------
+# reconcile_labels error / skip / dedup paths
+# ---------------------------------------------------------------------------
+
+
+class _RaisingClient:
+    """Client whose fetch / apply raise ScmLabelError to drive the error arms."""
+
+    def __init__(self, *, on_fetch: bool) -> None:
+        self.on_fetch = on_fetch
+
+    def fetch_labels(self, repo: str, issue_number: int) -> list[str]:
+        if self.on_fetch:
+            raise mod.ScmLabelError("issue view boom")
+        return []
+
+    def apply(self, repo, issue_number, add, remove) -> None:
+        raise mod.ScmLabelError("issue edit boom")
+
+
+def test_malformed_and_non_dict_briefs_skipped(tmp_path: Path) -> None:
+    # Valid brief alongside a malformed-JSON file and a non-dict JSON file.
+    _write_brief(tmp_path, "ok", folder="active", status="blocked", issue_number=200)
+    active = tmp_path / "vbrief" / "active"
+    (active / "2026-05-21-broken.vbrief.json").write_text("{not json", encoding="utf-8")
+    (active / "2026-05-21-list.vbrief.json").write_text("[1, 2, 3]", encoding="utf-8")
+    client = FakeLabelClient()
+
+    exit_code, outcome = mod.reconcile_labels(tmp_path, client=client)
+
+    assert exit_code == 0
+    assert client.labels[("deftai/directive", 200)] == ["status:blocked"]
+
+
+def test_duplicate_issue_ref_deduped(tmp_path: Path) -> None:
+    _write_brief(tmp_path, "first", folder="active", status="blocked", issue_number=210)
+    _write_brief(tmp_path, "second", folder="pending", status="blocked", issue_number=210)
+    client = FakeLabelClient()
+
+    exit_code, _ = mod.reconcile_labels(tmp_path, client=client)
+
+    assert exit_code == 0
+    # The shared issue is touched exactly once despite two briefs referencing it.
+    assert len(client.apply_calls) == 1
+
+
+def test_fetch_error_records_error_exit1(tmp_path: Path) -> None:
+    _write_brief(tmp_path, "blk", folder="active", status="blocked", issue_number=220)
+
+    exit_code, outcome = mod.reconcile_labels(
+        tmp_path, client=_RaisingClient(on_fetch=True)
+    )
+
+    assert exit_code == 1
+    assert outcome.errors and outcome.errors[0][0] == "blk"
+
+
+def test_apply_error_records_error_exit1(tmp_path: Path) -> None:
+    _write_brief(tmp_path, "blk", folder="active", status="blocked", issue_number=230)
+
+    exit_code, outcome = mod.reconcile_labels(
+        tmp_path, client=_RaisingClient(on_fetch=False)
+    )
+
+    assert exit_code == 1
+    assert outcome.errors and outcome.errors[0][0] == "blk"

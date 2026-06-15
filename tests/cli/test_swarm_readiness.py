@@ -10,6 +10,10 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "swarm_readiness.py"
 
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+
+import swarm_readiness as mod  # noqa: E402
+
 
 def _write_json(path: Path, data: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -356,3 +360,135 @@ def test_readiness_cycle_report_excludes_upstream_non_cycle_node(tmp_path: Path)
     waves_section = result.stdout.split("Dependency waves:", 1)[1].split("\n\n", 1)[0]
     assert "story-upstream" not in ready_section
     assert "story-upstream" not in waves_section
+
+
+# ---------------------------------------------------------------------------
+# In-process coverage: readiness_report / _render_report / main / _expand_paths
+# (the subprocess tests above exercise behaviour but are not attributed to
+# coverage; these call the module directly so the gate sees real coverage.)
+# ---------------------------------------------------------------------------
+
+
+def test_inproc_ready_story_passes(tmp_path: Path) -> None:
+    story = _story(tmp_path, "story-ready")
+
+    code, report = mod.readiness_report(tmp_path, [story])
+
+    assert code == 0
+    assert "Ready stories:" in report
+    assert "story-ready" in report
+    assert "Conflict groups:" in report
+    assert "auth: story-ready" in report
+
+
+def test_inproc_blocked_story_fails(tmp_path: Path) -> None:
+    story = _story(tmp_path, "story-missing", file_scope=[], verify_commands=[], acceptance="")
+
+    code, report = mod.readiness_report(tmp_path, [story])
+
+    assert code == 1
+    assert "Blocked stories:" in report
+    assert "Missing fields:" in report
+    assert "plan.metadata.swarm.file_scope" in report
+
+
+def test_inproc_epic_decomposition_needed(tmp_path: Path) -> None:
+    phase = _write_json(
+        tmp_path / "vbrief" / "active" / "2026-05-12-ip001.vbrief.json",
+        {
+            "vBRIEFInfo": {"version": "0.6"},
+            "plan": {
+                "id": "ip-1",
+                "title": "IP-1: Auth",
+                "status": "running",
+                "narratives": {"Acceptance": "Broad epic acceptance", "Traces": "FR-1"},
+                "items": [],
+                "metadata": {"kind": "phase"},
+            },
+        },
+    )
+
+    code, report = mod.readiness_report(tmp_path, [phase])
+
+    assert code == 1
+    assert "Decomposition-needed epics/phases:" in report
+    assert "kind=phase" in report
+
+
+def test_inproc_file_overlap_detected(tmp_path: Path) -> None:
+    left = _story(tmp_path, "story-left", file_scope=["src/shared.ts"])
+    right = _story(tmp_path, "story-right", file_scope=["src/shared.ts"])
+
+    code, report = mod.readiness_report(tmp_path, [left, right])
+
+    assert code == 1
+    assert "File overlap matrix:" in report
+    assert "src/shared.ts" in report
+
+
+def test_inproc_dependency_waves_ordered(tmp_path: Path) -> None:
+    base = _story(tmp_path, "story-base", file_scope=["src/base.ts"])
+    follow = _story(
+        tmp_path, "story-follow", file_scope=["src/follow.ts"], depends_on=["story-base"]
+    )
+
+    code, report = mod.readiness_report(tmp_path, [base, follow])
+
+    assert code == 0
+    waves = report.split("Dependency waves:", 1)[1]
+    assert "wave 1: story-base" in waves
+    assert "wave 2: story-follow" in waves
+
+
+def test_inproc_no_candidates(tmp_path: Path) -> None:
+    code, report = mod.readiness_report(tmp_path, [])
+    assert code == 1
+    assert "No candidate vBRIEFs found." in report
+
+
+def test_inproc_main_default_glob(tmp_path: Path, capsys) -> None:
+    # A ready story in the default vbrief/active/ glob; main() with no path
+    # args must discover it via _expand_paths' default pattern.
+    _story(tmp_path, "story-default")
+
+    rc = mod.main(["--project-root", str(tmp_path)])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "Ready stories:" in out
+    assert "story-default" in out
+
+
+def test_inproc_main_explicit_path_blocked(tmp_path: Path, capsys) -> None:
+    story = _story(tmp_path, "story-large", size="large")
+
+    rc = mod.main([str(story), "--project-root", str(tmp_path)])
+
+    assert rc == 1
+    assert "size=large cannot be parallel_safe=true" in capsys.readouterr().out
+
+
+def test_inproc_main_no_candidates_exit1(tmp_path: Path, capsys) -> None:
+    (tmp_path / "vbrief" / "active").mkdir(parents=True)
+    rc = mod.main(["--project-root", str(tmp_path)])
+    assert rc == 1
+    assert "No candidate vBRIEFs found." in capsys.readouterr().out
+
+
+def test_inproc_cycle_marks_blocked(tmp_path: Path) -> None:
+    cycle_a = _story(tmp_path, "story-cycle-a", depends_on=["story-cycle-b"])
+    cycle_b = _story(tmp_path, "story-cycle-b", depends_on=["story-cycle-a"])
+
+    code, report = mod.readiness_report(tmp_path, [cycle_a, cycle_b])
+
+    assert code == 1
+    assert "dependency cycle:" in report
+
+
+def test_inproc_unknown_dependency_blocks(tmp_path: Path) -> None:
+    story = _story(tmp_path, "story-dep", depends_on=["does-not-exist"])
+
+    code, report = mod.readiness_report(tmp_path, [story])
+
+    assert code == 1
+    assert "does not resolve" in report
