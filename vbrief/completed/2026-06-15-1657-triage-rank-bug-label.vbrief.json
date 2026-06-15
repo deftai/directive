@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1657: rank bug-labeled issues in the triage queue by adding 'bug' to triageRankingLabels (deft's PROJECT-DEFINITION + the consumer-example default).",
+    "created": "2026-06-15T19:15:00Z",
+    "updated": "2026-06-15T19:15:00Z"
+  },
+  "plan": {
+    "id": "1657-triage-rank-bug-label",
+    "title": "Rank bug-labeled issues above feature/RFC work in the triage queue",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug-labeled issues are not prioritized in the triage queue. 'bug' is in plan.policy.triageScope[] (subscribed) but absent from plan.policy.triageRankingLabels[], so a bug issue gets no within-group rank boost and sorts only by updated_at desc -- identical to an unlabeled feature. Append 'bug' to triageRankingLabels after 'urgent' so the explicit escalation labels still win but bugs rank above the large mass of unlabeled / feature / RFC work. Propagate the same change to the consumer-example default (docs/example-project-definition.md) so consumers inherit bug-prioritization as the recommended baseline, and update the priority-order contract test.",
+      "ImplementationPlan": "1. vbrief/PROJECT-DEFINITION.vbrief.json: append 'bug' after 'urgent' in plan.policy.triageRankingLabels. 2. docs/example-project-definition.md: add 'bug' to the triageRankingLabels JSON example (after 'urgent') and add a 'bug -- common convention' entry to the ### triageRankingLabels[] annotation column. 3. tests/content/test_consumer_config_example.py: update test_triage_ranking_labels_in_declared_priority_order to expect the 6-label list ending in 'bug'. 4. CHANGELOG.md [Unreleased]: add a brief user-facing entry. 5. task check.",
+      "UserStory": "As an operator running 'what's next', I want bug-labeled issues to rank above feature/RFC work in the triage queue, so that open defects surface ahead of nice-to-haves without me re-ranking by hand.",
+      "Traces": "planRef #1657; ranking surface #1128 (D11); consumer-example #1186; triageRankingLabels boundary per umbrella #1119 section 12."
+    },
+    "items": [
+      {
+        "title": "Append 'bug' to deft's triageRankingLabels",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "plan.policy.triageRankingLabels in vbrief/PROJECT-DEFINITION.vbrief.json is [blocks-merge, blocks-release-tag, adoption-blocker, breaking-change, urgent, bug], and task triage:queue ranks a bug-labeled untriaged issue above unlabeled/feature peers and below the four higher escalation labels."
+        }
+      },
+      {
+        "title": "Propagate to the consumer-example default + annotation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "docs/example-project-definition.md JSON example includes 'bug' after 'urgent' in triageRankingLabels, and the ### triageRankingLabels[] annotation column documents 'bug' as a common convention."
+        }
+      },
+      {
+        "title": "Update the priority-order contract test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "test_consumer_config_example.py::test_triage_ranking_labels_in_declared_priority_order expects the 6-label list ending in 'bug', and task check passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1657"
+      },
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "vbrief/PROJECT-DEFINITION.vbrief.json",
+          "docs/example-project-definition.md",
+          "tests/content/test_consumer_config_example.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_consumer_config_example.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "triage:queue ranks bug-labeled issues above feature/RFC peers",
+          "consumer-example documents bug as a ranking label"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-ranking",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-15T19:25:59Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1657",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1657: rank bug-labeled issues in the triage queue"
+      }
+    ],
+    "updated": "2026-06-15T19:25:59Z"
+  }
+}

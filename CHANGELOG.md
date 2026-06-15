@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **Bug-labelled issues now rank ahead of feature and RFC work in the triage queue (#1657)** -- `bug` is now a triage ranking label, appended after the existing escalation labels (`blocks-merge`, `blocks-release-tag`, `adoption-blocker`, `breaking-change`, `urgent`). Explicit release-blockers still win, but an open bug now surfaces above the large mass of unlabelled / feature / RFC items instead of sorting purely by recency. The change is also reflected in the consumer-example default so downstream projects inherit bug-prioritisation as the recommended baseline. Closes #1657. Refs #1128 #1186.
 
 ### Fixed
 

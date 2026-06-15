@@ -48,7 +48,8 @@ The values below are what deft itself ships on `vbrief/PROJECT-DEFINITION.vbrief
         "blocks-release-tag",
         "adoption-blocker",
         "breaking-change",
-        "urgent"
+        "urgent",
+        "bug"
       ],
       "triageAutoClassify": [
         {
@@ -104,6 +105,7 @@ Highest-priority first; matched labels rank within their group ahead of unmatche
 - `adoption-blocker` -- common convention.
 - `breaking-change` -- common convention. Works for most repos that follow Conventional Commits or any semantic-versioning discipline; signal is "a release containing this needs operator attention before it ships".
 - `urgent` -- common convention. Many repos use `urgent` / `priority:high` / `p0`; substitute with whichever label your team uses for "drop everything".
+- `bug` -- common convention. Ranked last among the priority labels so the explicit escalation labels above still win, but a `bug`-labelled issue still ranks ahead of the large mass of unlabelled / feature / RFC work. `bug` is a GitHub default label; substitute with `defect` / `regression` / whichever label your team uses for "something is broken".
 ### triageAutoClassify[]
 First-match-wins after the four framework universal rules.
 - `{labels.any-of [status:superseded-pending], action: defer, reason: awaiting umbrella deliverable}` -- deft-specific. Deft uses `status:superseded-pending` for child issues whose work is folded into a larger umbrella deliverable; deferring keeps them out of the active queue without losing the audit trail. If your repo does not have an umbrella-driven planning model, omit this rule or substitute with your own deferred-by-design label.

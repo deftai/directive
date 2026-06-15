@@ -10683,7 +10683,8 @@
         "blocks-release-tag",
         "adoption-blocker",
         "breaking-change",
-        "urgent"
+        "urgent",
+        "bug"
       ],
       "triageAutoClassify": [
         {

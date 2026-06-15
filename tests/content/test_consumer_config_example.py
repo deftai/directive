@@ -208,9 +208,10 @@ def test_triage_ranking_labels_in_declared_priority_order(policy: dict) -> None:
         "adoption-blocker",
         "breaking-change",
         "urgent",
+        "bug",
     ], (
-        "triageRankingLabels order must match #1186 Deliverable 1: "
-        "[blocks-merge, blocks-release-tag, adoption-blocker, breaking-change, urgent]"
+        "triageRankingLabels order must match #1186 Deliverable 1 + #1657: "
+        "[blocks-merge, blocks-release-tag, adoption-blocker, breaking-change, urgent, bug]"
     )
 
 
