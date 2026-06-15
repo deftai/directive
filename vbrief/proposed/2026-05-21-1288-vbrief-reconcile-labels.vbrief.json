@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Story vBRIEF for #1288 (feat(vbrief,scm): task vbrief:reconcile:labels); part of the #742 decomposition.",
     "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-05-21T16:32:24Z"
+    "updated": "2026-06-14T23:55:00Z"
   },
   "plan": {
     "id": "1288-vbrief-reconcile-labels",
@@ -11,30 +11,31 @@
     "status": "proposed",
     "planRef": "#1288",
     "narratives": {
-      "Description": "Apply/remove SCM labels based on vBRIEF state. Routes through scripts/scm.py (#1145) to stay forge-agnostic. Closes the missing reverse direction of the existing GitHub-state-to-vBRIEF reconciler.",
-      "ImplementationPlan": "New verb + module. Mappings: status=blocked / unresolved depends_on -> status:blocked label; kind=epic -> epic + status:tracker; kind=research -> rfc. Idempotent.",
-      "UserStory": "As the framework, I want the SCM-side label state to mirror canonical vBRIEF state so reviewers don't see drift."
+      "Description": "Apply and remove SCM labels based on canonical vBRIEF state, routing through scripts/scm.py (#1145) to stay forge-agnostic. This closes the missing reverse direction of the existing GitHub-state-to-vBRIEF reconciler so the label surface mirrors lifecycle rather than drifting from it.",
+      "ImplementationPlan": "Add a new scripts/vbrief_reconcile_labels.py module and a tasks/vbrief.yml entry, routing every forge call through scripts/scm.py (#1145). Apply the mapping: status=blocked or unresolved depends_on adds the status:blocked label, kind=epic adds epic plus status:tracker, kind=research adds rfc; the verb is idempotent. Add tests in tests/cli/test_vbrief_reconcile_labels.py for each mapping and idempotency to verify the behavior.",
+      "UserStory": "As a framework maintainer, I want the SCM-side label state to mirror canonical vBRIEF state, so that reviewers do not see drift between labels and lifecycle.",
+      "Traces": "planRef #1288; decomposition_origin #742; epic #1284."
     },
     "items": [
       {
         "title": "Implement label reconciliation per mapping table",
         "status": "pending",
         "narrative": {
-          "Acceptance": "All mappings apply correctly; idempotent."
+          "Acceptance": "When run, task vbrief:reconcile:labels updates SCM labels to match the mapping table and re-running creates no further label changes."
         }
       },
       {
         "title": "Route through scm.call shim (no direct gh calls)",
         "status": "pending",
         "narrative": {
-          "Acceptance": "task verify:scm-boundary passes."
+          "Acceptance": "All forge calls route through scripts/scm.py so that task verify:scm-boundary validates no direct gh invocation remains."
         }
       },
       {
         "title": "Tests for each mapping + idempotency",
         "status": "pending",
         "narrative": {
-          "Acceptance": "task check passes."
+          "Acceptance": "When the suite runs, tests/cli/test_vbrief_reconcile_labels.py validates each label mapping and the idempotent re-run path."
         }
       }
     ],
@@ -45,7 +46,28 @@
         "decomposition_origin": "#742"
       },
       "swarm": {
-        "readiness": "not-ready"
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/vbrief_reconcile_labels.py",
+          "tasks/vbrief.yml",
+          "tests/cli/test_vbrief_reconcile_labels.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_vbrief_reconcile_labels.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "SCM labels mirror vBRIEF status and kind",
+          "re-running reconcile:labels is a no-op"
+        ],
+        "depends_on": [
+          "1287-vbrief-reconcile-graph"
+        ],
+        "conflict_group": "reconcile-suite",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
       }
     },
     "references": [

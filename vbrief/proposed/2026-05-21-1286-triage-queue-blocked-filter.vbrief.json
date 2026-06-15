@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Story vBRIEF for #1286 (feat(triage): demote vBRIEF-status:blocked items in triage:queue); part of the #742 decomposition.",
     "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-05-21T16:32:24Z"
+    "updated": "2026-06-14T23:55:00Z"
   },
   "plan": {
     "id": "1286-triage-queue-blocked-filter",
@@ -11,30 +11,31 @@
     "status": "proposed",
     "planRef": "#1286",
     "narratives": {
-      "Description": "The triage queue (scripts/triage_queue.py) groups items by triage-decision history (ORPHAN / RESUME / URGENT / untriaged / other) and does not consult vBRIEF dependency state, so blocked children pollute the queue. Extend it to consult the linked vBRIEF's status:blocked / unresolved swarm.depends_on and demote those items.",
-      "ImplementationPlan": "Read the linked vBRIEF via existing triage_scope (D12 / #1131). Add a BLOCKED group (or demote into other). Add --include-blocked opt-back-in flag. Cover new behavior with tests.",
-      "UserStory": "As an operator running task triage:queue, I want blocked children to be hidden or demoted so the queue only surfaces grabbable work."
+      "Description": "The triage queue (scripts/triage_queue.py) groups items by triage-decision history (ORPHAN / RESUME / URGENT / untriaged / other) and does not consult vBRIEF dependency state, so blocked children pollute the queue. This story extends the queue to read each candidate's linked vBRIEF status and demote status:blocked or unresolved-dependency items so the ranked list surfaces only grabbable work.",
+      "ImplementationPlan": "Extend scripts/triage_queue.py to resolve each candidate's linked vBRIEF status via scripts/triage_scope.py (D12 / #1131). Add a demote path that moves status:blocked or unresolved swarm.depends_on items into a BLOCKED group, plus an --include-blocked opt-in flag on the CLI. Add tests in tests/cli/test_triage_queue.py covering the blocked-demoted, unblocked-surfaced, and opt-in paths.",
+      "UserStory": "As an operator running task triage:queue, I want blocked children to be hidden or demoted, so that the queue only surfaces grabbable work.",
+      "Traces": "planRef #1286; decomposition_origin #742; epic #1284."
     },
     "items": [
       {
         "title": "Extend triage_queue.py to consult vBRIEF state via triage_scope",
         "status": "pending",
         "narrative": {
-          "Acceptance": "Function exists; returns demote-recommendation per item."
+          "Acceptance": "scripts/triage_queue.py reads each candidate's linked vBRIEF status and returns a demote recommendation per queue item."
         }
       },
       {
         "title": "Add BLOCKED group (or demote into other) + --include-blocked opt-in",
         "status": "pending",
         "narrative": {
-          "Acceptance": "Queue render shows blocked items demoted by default; --include-blocked surfaces them."
+          "Acceptance": "The queue render demotes status:blocked items into a BLOCKED group by default and surfaces them only when --include-blocked is passed."
         }
       },
       {
         "title": "Tests: blocked demoted; unblocked surfaces; opt-in flag",
         "status": "pending",
         "narrative": {
-          "Acceptance": "task check passes; new tests cover all three paths."
+          "Acceptance": "When the suite runs, tests/cli/test_triage_queue.py validates the blocked-demoted, unblocked-surfaced, and --include-blocked opt-in paths."
         }
       }
     ],
@@ -45,7 +46,25 @@
         "decomposition_origin": "#742"
       },
       "swarm": {
-        "readiness": "not-ready"
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/triage_queue.py",
+          "tests/cli/test_triage_queue.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_triage_queue.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "triage_queue.py demotes status:blocked items by default",
+          "--include-blocked flag re-surfaces blocked items"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-queue",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
       }
     },
     "references": [

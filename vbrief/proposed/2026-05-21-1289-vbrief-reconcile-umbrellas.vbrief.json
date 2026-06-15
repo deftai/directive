@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Story vBRIEF for #1289 (feat(vbrief,scm): task vbrief:reconcile:umbrellas); part of the #742 decomposition.",
     "created": "2026-05-21T16:32:24Z",
-    "updated": "2026-05-21T16:32:24Z"
+    "updated": "2026-06-14T23:55:00Z"
   },
   "plan": {
     "id": "1289-vbrief-reconcile-umbrellas",
@@ -11,30 +11,31 @@
     "status": "proposed",
     "planRef": "#1289",
     "narratives": {
-      "Description": "Auto-update each kind=epic vBRIEF's linked SCM umbrella's current-shape comment per AGENTS.md sec.1152. Edits in place to preserve permalink; amendment trail untouched.",
-      "ImplementationPlan": "New verb + module. Reads each kind=epic vBRIEF, walks children, computes wave structure, builds the canonical body, calls scm shim to edit the current-shape comment in place.",
-      "UserStory": "As a fresh contributor reading an umbrella, I want the current-shape comment to be accurate so I can find the queue without reading the audit trail."
+      "Description": "Auto-update each kind=epic vBRIEF's linked SCM umbrella current-shape comment per AGENTS.md section 1152. The verb edits the comment in place to preserve the permalink and leaves the amendment trail untouched, so a fresh contributor reads one accurate surface instead of reconstructing state from N comments.",
+      "ImplementationPlan": "Add a new scripts/vbrief_reconcile_umbrellas.py module and a tasks/vbrief.yml entry. The script reads each kind=epic vBRIEF, walks its children, computes the wave structure, builds the canonical AGENTS.md section-1152 body, and calls the scripts/scm.py shim to edit the current-shape comment in place so the permalink is preserved. Add tests in tests/cli/test_vbrief_reconcile_umbrellas.py for pass-N bump and child-added/closed cases to verify the rendered body.",
+      "UserStory": "As a fresh contributor reading an umbrella, I want the current-shape comment to be accurate, so that I can find the queue without reading the entire amendment trail.",
+      "Traces": "planRef #1289; decomposition_origin #742; epic #1284."
     },
     "items": [
       {
         "title": "Implement current-shape body generator from epic vBRIEF state",
         "status": "pending",
         "narrative": {
-          "Acceptance": "Output matches sec.1152 canonical body structure."
+          "Acceptance": "The current-shape body generator emits the AGENTS.md section-1152 canonical structure computed from epic vBRIEF state."
         }
       },
       {
         "title": "Edit-in-place via scm shim (preserve permalink)",
         "status": "pending",
         "narrative": {
-          "Acceptance": "Idempotent; second run is a no-op when state unchanged."
+          "Acceptance": "When run, task vbrief:reconcile:umbrellas updates the current-shape comment in place and re-running creates no change when state is unchanged."
         }
       },
       {
         "title": "Tests for pass-N bump + child added/closed cases",
         "status": "pending",
         "narrative": {
-          "Acceptance": "task check passes."
+          "Acceptance": "When the suite runs, tests/cli/test_vbrief_reconcile_umbrellas.py validates the pass-N bump and child-added/closed rendering cases."
         }
       }
     ],
@@ -45,7 +46,28 @@
         "decomposition_origin": "#742"
       },
       "swarm": {
-        "readiness": "not-ready"
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/vbrief_reconcile_umbrellas.py",
+          "tasks/vbrief.yml",
+          "tests/cli/test_vbrief_reconcile_umbrellas.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_vbrief_reconcile_umbrellas.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "umbrella current-shape comment matches epic vBRIEF state",
+          "re-running reconcile:umbrellas is a no-op"
+        ],
+        "depends_on": [
+          "1288-vbrief-reconcile-labels"
+        ],
+        "conflict_group": "reconcile-suite",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
       }
     },
     "references": [
