@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Agents can now pull any skill's full text from the skills pack, not just the cost proof skill (#1637)** -- `task packs:slice skills` now carries the complete body of every skill, so an agent can retrieve any skill's guidance straight from canonical JSON instead of opening the rendered markdown. Every `skills/*/SKILL.md` is now a banner-marked, drift-checked projection regenerated from the pack source, and the renderer round-trips hand-authored frontmatter (`triggers:`, `metadata:`) losslessly so nothing is dropped when files are regenerated. Refs #1637 #1283.
 - **Two new content packs plus deeper slices across the existing four (#1637)** -- `task packs:slice` now ships a `patterns` pack (architectural patterns from `patterns/`) and a `swarm-spec` pack (the swarm specification), each self-describing via `task packs:slice --list-packs`. The four pilot packs gain deeper named slices: lessons add `by-issue` and an argument-less `anti-patterns`; rules add argument-less `must` and `prohibitions`; skills and strategies add `by-id`. Agents can now pull a precise subset (e.g. only prohibition rules, or lessons for one issue) without reading a whole pack into context. Refs #1637 #1283.
 
 ### Changed

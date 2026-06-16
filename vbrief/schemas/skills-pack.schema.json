@@ -25,7 +25,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "description", "triggers", "path", "version", "body"],
+        "required": ["id", "description", "triggers", "path", "version", "body", "frontmatter_extra"],
         "properties": {
           "id": {
             "type": "string",
@@ -58,7 +58,11 @@
           },
           "body": {
             "type": ["string", "null"],
-            "description": "Full SKILL.md body (everything after the frontmatter, with any prior provenance banner stripped) for the ONE designated proof skill; null for metadata-only entries. The renderer reconstructs the proof skill's SKILL.md = frontmatter + banner + body."
+            "description": "Full SKILL.md body (everything after the frontmatter, with any prior provenance banner stripped). Captured for EVERY skill by default (packs:slice v2, #1637) so every skills/*/SKILL.md is a banner-marked, drift-checked projection; null only when the back-compat --proof-skill flag restricted capture to one skill. The renderer reconstructs each skill's SKILL.md = frontmatter + banner + body."
+          },
+          "frontmatter_extra": {
+            "type": ["string", "null"],
+            "description": "Verbatim frontmatter lines that are NOT name/description (e.g. triggers:, metadata:, os:). The renderer reconstructs name + a folded description and re-emits this block verbatim so regenerating a projection is LOSSLESS -- no hand-authored frontmatter key is dropped (#1637). Null when a skill carries only name + description."
           }
         }
       }

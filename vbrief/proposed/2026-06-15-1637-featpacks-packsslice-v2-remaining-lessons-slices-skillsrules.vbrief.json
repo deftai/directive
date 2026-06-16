@@ -79,7 +79,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-15-packsslice-v2-capture-full-body-for-every-skill.vbrief.json",
+        "uri": "completed/2026-06-15-packsslice-v2-capture-full-body-for-every-skill.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "packs:slice v2 -- capture full body for every skill",
         "TrustLevel": "internal"

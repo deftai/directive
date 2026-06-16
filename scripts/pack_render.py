@@ -217,14 +217,19 @@ def _emit_description(description: str) -> str:
 def render_skill_document(entry: dict, cfg: dict[str, Any]) -> str:
     """Render one skill entry into its SKILL.md projection.
 
-    Output = reconstructed YAML frontmatter (name + folded description) + the
-    provenance banner + the captured body (verbatim). A single blank line
-    always separates the banner from the body so re-migration is idempotent.
+    Output = reconstructed YAML frontmatter (name + folded description + any
+    verbatim ``frontmatter_extra`` block) + the provenance banner + the captured
+    body (verbatim). The ``frontmatter_extra`` round-trip keeps every
+    hand-authored frontmatter key (``triggers:``, ``metadata:``, ...) so the
+    projection is LOSSLESS (#1637). A single blank line always separates the
+    banner from the body so re-migration is idempotent.
     """
     name = entry[cfg["name_field"]]
     description = entry[cfg["description_field"]]
     body = entry[cfg["body_field"]] or ""
-    frontmatter = f"---\nname: {name}\n{_emit_description(description)}\n---\n"
+    extra = entry.get("frontmatter_extra")
+    extra_block = f"{extra}\n" if extra else ""
+    frontmatter = f"---\nname: {name}\n{_emit_description(description)}\n{extra_block}---\n"
     return frontmatter + _banner_text(cfg["banner"]) + "\n" + body
 
 

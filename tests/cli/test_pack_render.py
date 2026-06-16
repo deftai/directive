@@ -595,10 +595,30 @@ def test_skills_proof_skill_round_trips() -> None:
     assert rendered == committed
 
 
-def test_exactly_one_proof_skill_has_body() -> None:
+def test_every_skill_has_body() -> None:
+    """packs:slice v2 (#1637): EVERY skill entry carries a non-null body so every
+    skills/*/SKILL.md is a banner-marked, drift-checked projection (not just the
+    cost proof skill)."""
     pack = json.loads(_REAL_SKILLS_SOURCE.read_text(encoding="utf-8"))
-    bodied = [s for s in pack["skills"] if s["body"] is not None]
-    assert [s["path"] for s in bodied] == [_PROOF_SKILL_PATH]
+    assert pack["skills"], "skills pack must not be empty"
+    bodyless = [s["path"] for s in pack["skills"] if s["body"] is None]
+    assert bodyless == [], f"skills missing a captured body: {bodyless}"
+    # The cost proof skill remains present and bodied (regression guard).
+    assert any(s["path"] == _PROOF_SKILL_PATH for s in pack["skills"])
+
+
+def test_lossless_frontmatter_extra_preserves_triggers_and_metadata() -> None:
+    """packs:slice v2 (#1637): regenerating every SKILL.md must be LOSSLESS --
+    hand-authored frontmatter keys beyond name/description (triggers:, the
+    clawdbot metadata block) survive the round-trip via frontmatter_extra."""
+    pack = json.loads(_REAL_SKILLS_SOURCE.read_text(encoding="utf-8"))
+    by_path = {s["path"]: s for s in pack["skills"]}
+    article = by_path["skills/deft-directive-article-review/SKILL.md"]
+    assert article["frontmatter_extra"] is not None
+    assert "triggers:" in article["frontmatter_extra"]
+    assert "clawdbot" in article["frontmatter_extra"]
+    # The cost proof skill carries only name + description (no extra block).
+    assert by_path[_PROOF_SKILL_PATH]["frontmatter_extra"] is None
 
 
 # --- multi-pack drift gate (covers BOTH packs) ------------------------------
@@ -771,7 +791,10 @@ def test_multipack_check_clean_covers_six_packs(capsys: pytest.CaptureFixture) -
     rc = pack_render.main(["--check"])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "6 projection(s) in sync" in out
+    # packs:slice v2 (#1637) captured a body for every skill, so the skills pack
+    # now renders one projection per SKILL.md: 19 skills + lessons + rules +
+    # strategies + patterns + swarm-spec = 24 projections across six packs.
+    assert "24 projection(s) in sync" in out
 
 
 def test_pack_filter_limits_to_rules() -> None:

@@ -18,8 +18,15 @@ What is captured per skill
 - ``path``        the repo-relative ``skills/<name>/SKILL.md``.
 - ``version``     a frontmatter ``version:`` when present, else ``0.1``.
 - ``body``        the full SKILL.md body (frontmatter stripped, any prior
-  provenance banner stripped) for the ONE designated proof skill; ``null`` for
-  every other skill (metadata-only, per the "migrate ONE skill as proof" scope).
+  provenance banner stripped). Captured for EVERY skill by default (packs:slice
+  v2, #1637) so every ``skills/*/SKILL.md`` is a drift-checked projection; the
+  back-compat ``--proof-skill`` flag still restricts capture to one skill.
+- ``frontmatter_extra``  the verbatim frontmatter lines that are NOT ``name`` or
+  ``description`` (e.g. ``triggers:``, ``metadata:``, ``os:``). The renderer
+  reconstructs ``name`` + a folded ``description`` itself and re-emits this block
+  verbatim, so regenerating a projection is LOSSLESS -- no hand-authored
+  frontmatter key is dropped. ``null`` when a skill carries only name +
+  description (the proof-skill shape).
 
 SKILL.md files without YAML frontmatter (deprecated redirect stubs) are skipped.
 
@@ -55,11 +62,6 @@ DEFAULT_OUT = REPO_ROOT / "packs" / "skills" / "skills-pack-0.1.json"
 PACK_ID = "skills-pack-0.1"
 PACK_VERSION = "0.1"
 DEFAULT_SKILL_VERSION = "0.1"
-
-# The single proof skill whose full body is captured + regenerated as a
-# banner-marked, drift-checked projection. Small, single-file, low-traffic,
-# frontmatter is name + description only (no triggers block to lose).
-DEFAULT_PROOF_SKILL = "deft-directive-cost"
 
 _ROUTING_HEADING = "## Skill Routing"
 _QUOTED_RE = re.compile(r'"([^"]+)"')
@@ -191,6 +193,51 @@ def parse_frontmatter_fields(frontmatter: str) -> dict[str, str]:
     return fields
 
 
+def extract_extra_frontmatter(frontmatter: str) -> str | None:
+    """Return the verbatim frontmatter lines that are NOT ``name``/``description``.
+
+    The renderer reconstructs ``name`` + a folded ``description`` from the
+    structured fields, but every OTHER top-level key a skill declares
+    (``triggers:``, ``metadata:``, ``os:``, ``version:``, ...) must survive the
+    round-trip so regenerating a projection is LOSSLESS -- the migration would
+    otherwise silently drop e.g. ``metadata.clawdbot.requires.bins`` (#1637).
+
+    Each top-level key (and its block-scalar / block-sequence / nested
+    continuation lines) is preserved verbatim. Returns ``None`` when only
+    ``name`` + ``description`` are present (the proof-skill shape), so the
+    renderer emits exactly the name + description frontmatter.
+    """
+    lines = frontmatter.split("\n")
+    extra: list[str] = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        line = lines[i]
+        match = _KEY_RE.match(line)
+        if not match or line.startswith((" ", "\t")):
+            i += 1
+            continue
+        key = match.group(1)
+        value = match.group(2).strip()
+        block = [line]
+        i += 1
+        if value in _BLOCK_INDICATORS:
+            while i < n and (lines[i].strip() == "" or lines[i].startswith((" ", "\t"))):
+                block.append(lines[i])
+                i += 1
+        elif value == "" or value.startswith("- "):
+            while i < n and (
+                lines[i].lstrip().startswith("- ") or lines[i].startswith((" ", "\t"))
+            ):
+                block.append(lines[i])
+                i += 1
+        if key not in ("name", "description"):
+            extra.extend(block)
+    while extra and extra[-1].strip() == "":
+        extra.pop()
+    return "\n".join(extra) if extra else None
+
+
 def strip_leading_banner(body: str) -> str:
     """Strip a leading provenance banner + blank lines from a captured body.
 
@@ -240,6 +287,7 @@ def build_skill_entry(
         "path": rel_path,
         "version": version,
         "body": captured,
+        "frontmatter_extra": extract_extra_frontmatter(frontmatter),
     }
 
 
@@ -247,11 +295,17 @@ def build_pack(
     skills_dir: Path,
     agents_md: Path,
     *,
-    proof_skill: str,
+    proof_skill: str | None,
 ) -> dict:
-    """Scan the skills dir + routing table and assemble the full pack object."""
+    """Scan the skills dir + routing table and assemble the full pack object.
+
+    ``proof_skill`` is the back-compat single-skill restrictor: when ``None``
+    (the default, packs:slice v2 / #1637) the body is captured for EVERY skill;
+    when set, only that one skill's body is captured (the #1295 proof shape).
+    """
     routing = parse_routing(agents_md.read_text(encoding="utf-8"))
-    proof_path = f"skills/{proof_skill}/SKILL.md"
+    capture_all = proof_skill is None
+    proof_path = f"skills/{proof_skill}/SKILL.md" if proof_skill else None
 
     skills: list[dict] = []
     for skill_md in sorted(skills_dir.glob("*/SKILL.md")):
@@ -260,7 +314,7 @@ def build_pack(
             skill_md,
             skills_dir,
             routing,
-            capture_body=(rel_path == proof_path),
+            capture_body=(capture_all or rel_path == proof_path),
         )
         if entry is not None:
             skills.append(entry)
@@ -278,7 +332,7 @@ def migrate(
     agents_md: Path,
     out: Path,
     *,
-    proof_skill: str,
+    proof_skill: str | None,
 ) -> dict:
     """Build the pack from ``skills_dir`` + ``agents_md`` and write it to ``out``.
 
@@ -322,8 +376,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--proof-skill",
-        default=DEFAULT_PROOF_SKILL,
-        help="Directory name of the one skill whose full body is captured.",
+        default=None,
+        help="Back-compat: restrict body capture to ONE skill's directory name "
+        "(e.g. deft-directive-cost). Default: capture every skill's body (#1637).",
     )
     parser.add_argument(
         "--out",
