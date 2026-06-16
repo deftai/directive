@@ -775,6 +775,86 @@ class TestApplyItemStatusPropagation:
         assert sub["status"] == "completed"
         assert _ISO_UTC_RE.match(sub["completed"]), sub["completed"]
 
+    def test_null_items_does_not_raise(self, tmp_path):
+        # An explicit ``"items": null`` on disk returns None from
+        # ``.get("items", [])`` (the default only applies to ABSENT keys),
+        # which would crash the recursion with TypeError and abort the
+        # whole batch. The ``.get("items") or []`` guard handles it. (#924)
+        vbrief_dir = tmp_path / "vbrief"
+        folder_path = vbrief_dir / "active"
+        folder_path.mkdir(parents=True, exist_ok=True)
+        data = {
+            "vBRIEFInfo": {"version": "0.6"},
+            "plan": {
+                "title": "null-items",
+                "status": "running",
+                "items": None,
+                "references": [
+                    {
+                        "uri": "https://github.com/deftai/directive/issues/12",
+                        "type": "x-vbrief/github-issue",
+                        "title": "Issue #12",
+                    }
+                ],
+            },
+        }
+        src = folder_path / "null-items.vbrief.json"
+        src.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        state_map = {12: IssueState("CLOSED", "COMPLETED")}
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        # Must not raise TypeError and must still move the vBRIEF.
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert failures == []
+        dst = vbrief_dir / "completed" / "null-items.vbrief.json"
+        assert dst.is_file()
+        moved_data = json.loads(dst.read_text(encoding="utf-8"))
+        assert moved_data["plan"]["status"] == "completed"
+
+    def test_null_nested_subitems_and_items_does_not_raise(self, tmp_path):
+        # A nested item whose ``subItems`` / ``items`` keys are explicit
+        # JSON null must not crash the recursion either. (#924)
+        vbrief_dir = tmp_path / "vbrief"
+        folder_path = vbrief_dir / "active"
+        folder_path.mkdir(parents=True, exist_ok=True)
+        data = {
+            "vBRIEFInfo": {"version": "0.6"},
+            "plan": {
+                "title": "null-nested",
+                "status": "running",
+                "items": [
+                    {
+                        "title": "Item 0",
+                        "status": "pending",
+                        "completed": None,
+                        "subItems": None,
+                        "items": None,
+                    }
+                ],
+                "references": [
+                    {
+                        "uri": "https://github.com/deftai/directive/issues/13",
+                        "type": "x-vbrief/github-issue",
+                        "title": "Issue #13",
+                    }
+                ],
+            },
+        }
+        src = folder_path / "null-nested.vbrief.json"
+        src.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        state_map = {13: IssueState("CLOSED", "NOT_PLANNED")}
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert failures == []
+        dst = vbrief_dir / "cancelled" / "null-nested.vbrief.json"
+        assert dst.is_file()
+        moved_data = json.loads(dst.read_text(encoding="utf-8"))
+        assert moved_data["plan"]["items"][0]["status"] == "cancelled"
+        assert _ISO_UTC_RE.match(moved_data["plan"]["items"][0]["completed"])
+
     def test_cancelled_destination_propagates_items(self, tmp_path):
         vbrief_dir = tmp_path / "vbrief"
         _write_vbrief_with_items_924(

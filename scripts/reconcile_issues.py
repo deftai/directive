@@ -160,18 +160,22 @@ def extract_references_from_vbrief(data: dict) -> list[dict]:
         if isinstance(ref, dict):
             refs.append(ref)
 
-    # Item-level references (and nested subItems)
-    def _walk_items(items: list) -> None:
-        for item in items:
+    # Item-level references (and nested subItems). Every container access
+    # uses ``... or []`` rather than ``.get(key, [])``: a key present with an
+    # explicit JSON ``null`` value returns ``None`` from ``.get(key, [])``
+    # (the default only fires for ABSENT keys), and ``for x in None`` raises
+    # ``TypeError`` (#924).
+    def _walk_items(items: list | None) -> None:
+        for item in items or []:
             if not isinstance(item, dict):
                 continue
-            for ref in item.get("references", []):
+            for ref in item.get("references") or []:
                 if isinstance(ref, dict):
                     refs.append(ref)
-            _walk_items(item.get("subItems", []))
-            _walk_items(item.get("items", []))
+            _walk_items(item.get("subItems") or [])
+            _walk_items(item.get("items") or [])
 
-    _walk_items(plan.get("items", []))
+    _walk_items(plan.get("items") or [])
     return refs
 
 
@@ -907,11 +911,17 @@ def _propagate_item_status(items: list, item_status: str, stamp: str) -> int:
         item["status"] = item_status
         item["completed"] = stamp
         touched += 1
+        # ``.get(key) or []`` (not ``.get(key, [])``): a present key with an
+        # explicit JSON ``null`` value returns ``None`` from ``.get(key, [])``
+        # because the default only applies to ABSENT keys. Passing ``None``
+        # into the recursion would raise ``TypeError: 'NoneType' object is
+        # not iterable`` and abort the whole lifecycle-fix batch mid-loop
+        # (#924 defensive hardening).
         touched += _propagate_item_status(
-            item.get("subItems", []), item_status, stamp
+            item.get("subItems") or [], item_status, stamp
         )
         touched += _propagate_item_status(
-            item.get("items", []), item_status, stamp
+            item.get("items") or [], item_status, stamp
         )
     return touched
 
@@ -1094,7 +1104,11 @@ def apply_lifecycle_fixes(
         # the on-disk record is internally inconsistent (plan.status
         # flipped, items still "proposed"/"pending") and the next
         # reconcile/refinement pass re-flags the file as drifted.
-        _propagate_item_status(plan.get("items", []), terminal_status, stamp)
+        # ``.get("items") or []`` guards against an explicit ``"items": null``
+        # in the on-disk JSON (the ``.get(key, [])`` default only applies to
+        # ABSENT keys, so a present null would otherwise reach the recursion
+        # as ``None`` and abort the batch).
+        _propagate_item_status(plan.get("items") or [], terminal_status, stamp)
 
         # Write back (UTF-8, no BOM, trailing newline; matches the
         # canonical writer style elsewhere in the script).
