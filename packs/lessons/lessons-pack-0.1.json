@@ -504,6 +504,20 @@
       ],
       "source": "Issue #1621 (consolidates the stale #659 + #1173). Directive had no debugging capability; agents defaulted to guess-and-fix, thrashing on retries and treating the first plausible hypothesis as correct. The design is grounded in the obra/superpowers `systematic-debugging` pattern and the vendored `forensic-research` reference bundle (mandatory falsification, claim ledger, validator).",
       "body": "**Source:** Issue #1621 (consolidates the stale #659 + #1173). Directive had no debugging capability; agents defaulted to guess-and-fix, thrashing on retries and treating the first plausible hypothesis as correct. The design is grounded in the obra/superpowers `systematic-debugging` pattern and the vendored `forensic-research` reference bundle (mandatory falsification, claim ledger, validator).\n\n**Canonical encoding (strongest-applicable layer):** the rule body lives in `coding/debugging.md` (Iron Law, four phases, the 3-fix architecture gate, evidence discipline, Fact vs Hypothesis labeling, observability-gap loop); the sustained multi-agent investigation posture lives in the `deft-directive-debug` skill; the investigation-ledger validator is the deterministic `task verify:investigation` gate (`scripts/verify_investigation.py`). `coding/coding.md` carries the short-form cross-reference + the #1621 anti-pattern entry. The vendored reference design sits under `docs/reference/forensic-research/`.\n\n**Why this lessons entry is a short cross-reference:** per the Rule Authority [AXIOM] in `main.md`, the rule body lives at the strongest layer (coding standard + skill + deterministic gate); this entry exists for discoverability + recurrence-record citation.\n\n**Cross-references:** `coding/debugging.md` (rule body); `skills/deft-directive-debug/SKILL.md` (workflow); `scripts/verify_investigation.py` + `tasks/verify.yml::investigation` (validator gate); `docs/reference/forensic-research/` (vendored design); #1580 (Fact vs Judgment labeling -- shared vocabulary); superseded #659 + #1173."
+    },
+    {
+      "id": "agentic-disposability-decisions-not-deadends-2026-06",
+      "title": "Disposable code & decaying negatives: record decisions, not dead-ends (2026-06)",
+      "date": "2026-06",
+      "issue_refs": [
+        "#584"
+      ],
+      "tags": [
+        "lifecycle",
+        "context"
+      ],
+      "source": "Issue #584 -- consumer request to keep intentionally-disabled / sub-optimal code in place so agents neither remove nor re-enable it. Closed won't-fix.",
+      "body": "**Source:** #584 -- consumer request to leave intentionally-disabled / sub-optimal code in place so agents don't delete it or \"helpfully\" re-enable it. Closed won't-fix after a design discussion.\n\n**Decision:** deft will NOT add an in-tree \"parked code\" mechanism or a project-local negative-results store. The delete-dead-code rule in `coding/hygiene.md` stands; no relaxation.\n\n**Principle (the reusable part):** In an agentic codebase, both *code* and *experiment-level negative results* are cheap to regenerate and decay quickly, so preserving them has low -- often negative -- ROI. A stale \"don't try X\" note actively misleads future agents away from approaches that later become viable (Chesterton's Fence in reverse). Record *stable design decisions* (ADR-grade), not disposable dead-ends. Genuinely-deferred work belongs in the tracker (a vBRIEF), optionally with a one-line `TODO(#ref)` pointer at the site -- never as commented-out or flag-disabled code.\n\n**Exception (already covered, needs no new machinery):** stable, expensive-to-rediscover, high-stakes negatives (licensing / legal constraints, hard API limits, incident post-mortems) DO warrant durable records -- but ADRs / post-mortems / the issue tracker already serve them.\n\n**Why prose-tier:** a governance / won't-build decision with no code rule to enforce; this entry exists for discoverability so the #584 discussion does not recur. Future duplicates close as duplicate-of-#584."
     }
   ]
 }

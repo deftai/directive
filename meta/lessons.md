@@ -594,3 +594,15 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Why this lessons entry is a short cross-reference:** per the Rule Authority [AXIOM] in `main.md`, the rule body lives at the strongest layer (coding standard + skill + deterministic gate); this entry exists for discoverability + recurrence-record citation.
 
 **Cross-references:** `coding/debugging.md` (rule body); `skills/deft-directive-debug/SKILL.md` (workflow); `scripts/verify_investigation.py` + `tasks/verify.yml::investigation` (validator gate); `docs/reference/forensic-research/` (vendored design); #1580 (Fact vs Judgment labeling -- shared vocabulary); superseded #659 + #1173.
+
+## Disposable code & decaying negatives: record decisions, not dead-ends (2026-06)
+
+**Source:** #584 -- consumer request to leave intentionally-disabled / sub-optimal code in place so agents don't delete it or "helpfully" re-enable it. Closed won't-fix after a design discussion.
+
+**Decision:** deft will NOT add an in-tree "parked code" mechanism or a project-local negative-results store. The delete-dead-code rule in `coding/hygiene.md` stands; no relaxation.
+
+**Principle (the reusable part):** In an agentic codebase, both *code* and *experiment-level negative results* are cheap to regenerate and decay quickly, so preserving them has low -- often negative -- ROI. A stale "don't try X" note actively misleads future agents away from approaches that later become viable (Chesterton's Fence in reverse). Record *stable design decisions* (ADR-grade), not disposable dead-ends. Genuinely-deferred work belongs in the tracker (a vBRIEF), optionally with a one-line `TODO(#ref)` pointer at the site -- never as commented-out or flag-disabled code.
+
+**Exception (already covered, needs no new machinery):** stable, expensive-to-rediscover, high-stakes negatives (licensing / legal constraints, hard API limits, incident post-mortems) DO warrant durable records -- but ADRs / post-mortems / the issue tracker already serve them.
+
+**Why prose-tier:** a governance / won't-build decision with no code rule to enforce; this entry exists for discoverability so the #584 discussion does not recur. Future duplicates close as duplicate-of-#584.

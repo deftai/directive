@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #584"
+  },
+  "plan": {
+    "title": "Agents potentially not \"respecting\" commented out code",
+    "id": "584-respect-disabled-code",
+    "status": "cancelled",
+    "narratives": {
+      "Description": "Operators intentionally leave non-functional or deliberately-disabled modules in place to return to later, but fresh agents repeatedly re-activate that code to fix a thematically-related problem even when comments say not to. This story defines a sanctioned disabled-code marker convention and a respect-disabled rule so a fresh agent treats marked code as off-limits without explicit operator approval.",
+      "ImplementationPlan": "- Add the respect-disabled rule and a canonical marker convention (e.g. `deft:disabled -- do not re-enable; see #N`) to the coding/hygiene.md guideline file, reconciling it with the existing delete-dead-code guidance so the two do not conflict.\n- Mirror the consumer-relevant rule into AGENTS.md and templates/agents-entry.md and run `task agents:refresh` so the consumer managed-section inherits it.\n- Add a content test under tests/content/ that asserts the marker convention and respect-disabled rule text is present in the canonical surface and fails when it is absent.",
+      "UserStory": "As an operator maintaining intentionally-disabled code, I want agents to respect a sanctioned disabled-code marker, so that future agents do not re-activate modules I deliberately turned off.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/584",
+      "Overview": "A behavior I have had surface several times now is I will have a module or variable whose intended purpose doesn't fully pan out (e.g., a re-rank module for my legal query app, designed to more accurately rank case law lists from an external database).  I leave the non-functioning or sub-optimal module in place to potentially return to later, or disable the code via a variable.\n\nThen I switch to a new agent, run tests, and often have to explain the module/variable in question doesn't work.  Even when I have agents put explicit comments in the code to this effect, future agents still want to activate that module/code to fix a thematically-related problem.\n\nMaybe I am missing a best practices way to handle this, but it has happened to me multiple times this week already.",
+      "Labels": "bug, agent-experience"
+    },
+    "items": [
+      {
+        "title": "Respect the sanctioned disabled-code marker",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given source code carrying the sanctioned disabled marker, when a fresh agent works a thematically-related problem, then it leaves the marked code disabled and asks for operator approval before re-enabling."
+        }
+      },
+      {
+        "title": "Reconcile with delete-dead-code guidance",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the new respect-disabled rule and the existing delete-dead-code guidance, when both are read together, then the marker convention is documented as the explicit carve-out so the two rules do not conflict."
+        }
+      },
+      {
+        "title": "Content test guards the documented rule",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the canonical AGENTS.md surface, when the content test runs, then it asserts the marker convention text is present and fails when the rule is missing."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "coding/hygiene.md",
+          "AGENTS.md",
+          "templates/agents-entry.md",
+          "tests/content/test_agents_entry_contract.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_agents_entry_contract.py",
+          "task agents:refresh"
+        ],
+        "expected_outputs": [
+          "coding/hygiene.md documents the disabled-code marker convention and respect-disabled rule",
+          "AGENTS.md and templates/agents-entry.md carry the mirrored rule",
+          "passing content test asserting the rule text is present"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-harness",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bug fix ingested from GitHub issue #584; no spec-section requirement trace applies."
+      }
+    },
+    "tags": [
+      "bug",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/584",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #584: Agents potentially not \"respecting\" commented out code"
+      }
+    ],
+    "updated": "2026-06-16T18:54:31Z"
+  }
+}
