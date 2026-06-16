@@ -590,7 +590,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--issue",
         action="append",
         default=[],
-        help="by-issue filter: issue number, bare or hashed (e.g. 754; repeatable or comma-listed).",
+        help="by-issue filter: issue number, bare or hashed (e.g. 754; repeatable/comma).",
     )
     parser.add_argument(
         "--id",

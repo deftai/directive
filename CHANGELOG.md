@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Two new content packs plus deeper slices across the existing four (#1637)** -- `task packs:slice` now ships a `patterns` pack (architectural patterns from `patterns/`) and a `swarm-spec` pack (the swarm specification), each self-describing via `task packs:slice --list-packs`. The four pilot packs gain deeper named slices: lessons add `by-issue` and an argument-less `anti-patterns`; rules add argument-less `must` and `prohibitions`; skills and strategies add `by-id`. Agents can now pull a precise subset (e.g. only prohibition rules, or lessons for one issue) without reading a whole pack into context. Refs #1637 #1283.
 
 ### Changed
 - **Bug-labelled issues now rank ahead of feature and RFC work in the triage queue (#1657)** -- `bug` is now a triage ranking label, appended after the existing escalation labels (`blocks-merge`, `blocks-release-tag`, `adoption-blocker`, `breaking-change`, `urgent`). Explicit release-blockers still win, but an open bug now surfaces above the large mass of unlabelled / feature / RFC items instead of sorting purely by recency. The change is also reflected in the consumer-example default so downstream projects inherit bug-prioritisation as the recommended baseline. Closes #1657. Refs #1128 #1186.
