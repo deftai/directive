@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **A copy-pasteable install one-liner for "download from GitHub and install here" (#1661)** -- the README install section and QUICK-START now carry a canonical per-platform fetch-and-run one-liner that downloads the correct release binary from `releases/latest/download`, makes it executable, and runs it headless (`--yes --repo-root . --json`). This gives agents asked to install Deft from GitHub a deterministic path so they stop fabricating a non-existent source-checkout `go build` and failing. A content test guards the guidance against regression. Closes #1661.
 
 ### Changed
 

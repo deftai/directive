@@ -72,6 +72,28 @@ The installer guides you through choosing a project directory, installs git if n
 
 On startup, `deft-install` checks the latest GitHub release and warns if the downloaded binary on disk is stale before it changes your project. Offline and CI runs can skip that check with `--no-update-check` or `DEFT_NO_UPDATE_CHECK=1`.
 
+#### Agent / headless one-liner (fetch the release binary and run)
+
+Asked to **"download and install Deft from GitHub into this directory"** — for example by an AI agent or a CI job? Use the canonical per-platform fetch-and-run one-liner below. It downloads the correct release binary from `https://github.com/deftai/directive/releases/latest/download/<asset>`, makes it executable, then runs it headless against the current directory (`--yes --repo-root . --json`). ⊗ Do NOT `go build` from a source checkout or guess a developer-specific path (e.g. a hardcoded `/Users/<name>/...` clone) — the canonical fetch path never assumes a local clone.
+
+**macOS (Intel + Apple Silicon):**
+
+```bash
+curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-macos-universal && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
+```
+
+**Linux** (amd64; use `install-linux-arm64` on Raspberry Pi / ARM):
+
+```bash
+curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-linux-amd64 && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
+```
+
+**Windows** (PowerShell; use `install-windows-arm64.exe` on Surface / Copilot+ PCs):
+
+```powershell
+Invoke-WebRequest -Uri https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe -OutFile $env:TEMP\deft-install.exe; & $env:TEMP\deft-install.exe --yes --repo-root . --json
+```
+
 **Building from source (developers only):** requires Go 1.22+
 
 ```bash
