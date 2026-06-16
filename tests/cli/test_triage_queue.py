@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -961,3 +962,127 @@ def test_load_cached_issues_blocked_resurfaces_with_include_blocked(tmp_path):
         options=triage_queue.QueueBuildOptions(include_blocked=True),
     )
     assert items[0].group != "BLOCKED"
+
+
+# ---------------------------------------------------------------------------
+# #1238 -- canonical repo resolution helper in scripts/triage_queue.py
+# ---------------------------------------------------------------------------
+#
+# Acceptance criteria from the story vBRIEF (issue #1238):
+#   1. ``_resolve_repo`` helper mirroring preflight_cache: explicit --repo >
+#      DEFT_TRIAGE_REPO env > git remote get-url origin.
+#   2. Explicit --repo wins over env + git; DEFT_TRIAGE_REPO wins over git.
+#   3. None (-> exit 2) only when none of the three sources resolve.
+#   4. Regression test: fake project root + monkeypatched git origin covering
+#      inference, --repo precedence, env precedence, and the no-source path.
+#
+# The helper-level tests below fail before the fix (the module exposed no
+# ``_resolve_repo`` / ``_infer_repo_from_git`` symbol -- it lived only in the
+# CLI shim), satisfying the "should fail before your fix" requirement.
+
+
+def _init_fake_git_origin(repo_root: Path, url: str) -> None:
+    """Initialise a bare-bones git tree in ``repo_root`` with ``origin=url``.
+
+    Exercises the ``git remote get-url origin`` path without depending on
+    the host working copy's remote configuration.
+    """
+    subprocess.run(
+        ["git", "init", "--quiet", str(repo_root)],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    subprocess.run(
+        ["git", "-C", str(repo_root), "remote", "add", "origin", url],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+# --- _infer_repo_from_git parsing -------------------------------------------
+
+
+def test_infer_repo_from_git_https(tmp_path):
+    _init_fake_git_origin(tmp_path, "https://github.com/deftai/directive.git")
+    assert triage_queue._infer_repo_from_git(tmp_path) == "deftai/directive"
+
+
+def test_infer_repo_from_git_ssh_preserves_dots(tmp_path):
+    _init_fake_git_origin(tmp_path, "git@github.com:owner/with.dots.git")
+    assert triage_queue._infer_repo_from_git(tmp_path) == "owner/with.dots"
+
+
+def test_infer_repo_from_git_none_outside_git_tree(tmp_path):
+    # No .git / no origin remote -> detection fails so the caller can
+    # surface the canonical --repo error.
+    assert triage_queue._infer_repo_from_git(tmp_path) is None
+
+
+def test_infer_repo_from_git_none_for_non_github_remote(tmp_path):
+    _init_fake_git_origin(tmp_path, "https://gitlab.com/owner/name.git")
+    assert triage_queue._infer_repo_from_git(tmp_path) is None
+
+
+# --- _resolve_repo precedence (flag > env > git origin > None) ----------------
+
+
+def test_resolve_repo_explicit_flag_wins(monkeypatch, tmp_path):
+    """AC2: explicit --repo wins over env var and git origin."""
+    monkeypatch.setenv("DEFT_TRIAGE_REPO", "env/repo")
+    monkeypatch.setattr(triage_queue, "_infer_repo_from_git", lambda _root: "git/origin")
+    assert triage_queue._resolve_repo("explicit/win", project_root=tmp_path) == "explicit/win"
+
+
+def test_resolve_repo_env_var_beats_git_origin(monkeypatch, tmp_path):
+    """AC2: DEFT_TRIAGE_REPO wins over git origin when no --repo flag."""
+    monkeypatch.setenv("DEFT_TRIAGE_REPO", "env/wins")
+    monkeypatch.setattr(triage_queue, "_infer_repo_from_git", lambda _root: "git/origin")
+    assert triage_queue._resolve_repo(None, project_root=tmp_path) == "env/wins"
+
+
+def test_resolve_repo_infers_from_git_origin(monkeypatch, tmp_path):
+    """AC1: no flag + no env -> inferred from git remote get-url origin."""
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    _init_fake_git_origin(tmp_path, "https://github.com/deftai/directive.git")
+    assert triage_queue._resolve_repo(None, project_root=tmp_path) == "deftai/directive"
+
+
+def test_resolve_repo_returns_none_when_no_source(monkeypatch, tmp_path):
+    """AC3: None (-> caller exit 2) only when none of the three sources resolve."""
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    # tmp_path has no .git and no origin remote.
+    assert triage_queue._resolve_repo(None, project_root=tmp_path) is None
+
+
+def test_resolve_repo_blank_env_var_is_ignored(monkeypatch, tmp_path):
+    """A whitespace-only DEFT_TRIAGE_REPO falls through to git inference."""
+    monkeypatch.setenv("DEFT_TRIAGE_REPO", "   ")
+    monkeypatch.setattr(triage_queue, "_infer_repo_from_git", lambda _root: "git/origin")
+    assert triage_queue._resolve_repo(None, project_root=tmp_path) == "git/origin"
+
+
+# --- CLI end-to-end: inference clears the papercut / no source still errors ---
+
+
+def test_cli_queue_infers_repo_from_origin(monkeypatch, capsys, tmp_path):
+    """AC1/AC3: `task triage:queue` with no --repo/env succeeds when origin resolves."""
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    _init_fake_git_origin(tmp_path, "https://github.com/deftai/directive.git")
+    rc = triage_queue.main(["queue", "--project-root", str(tmp_path)])
+    out = capsys.readouterr()
+    assert rc == 0, f"stdout={out.out!r} stderr={out.err!r}"
+    assert "deftai/directive" in out.out
+
+
+def test_cli_queue_exit_2_when_no_source_resolves(monkeypatch, capsys, tmp_path):
+    """AC3: no --repo + no env + outside git tree -> exit 2 with the --repo error."""
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    rc = triage_queue.main(["queue", "--project-root", str(tmp_path)])
+    assert rc == 2
+    assert "--repo" in capsys.readouterr().err

@@ -301,27 +301,33 @@ def _detect_origin_repo_inline(project_root: Path | None) -> str | None:
 def _resolve_repo(args: argparse.Namespace) -> str | None:
     """Resolve the effective ``--repo`` slug for triage_queue CLI verbs.
 
-    Precedence (#1246):
+    Delegates to the canonical :func:`triage_queue._resolve_repo` (#1238)
+    so the resolution chain lives in the documented module and stays in
+    lockstep with ``preflight_cache`` / ``triage_bootstrap``. Precedence,
+    highest first:
 
     1. ``args.repo`` -- the explicit ``--repo`` flag, which also picks up
        ``$DEFT_TRIAGE_REPO`` because the argparse default reads the env
        var. Highest precedence; preserved for cross-repo invocations.
-    2. ``git remote get-url origin`` parsed from inside
+    2. ``$DEFT_TRIAGE_REPO`` -- the canonical helper re-checks the env var
+       so the precedence is honoured even when a caller constructs the
+       namespace without the argparse env default.
+    3. ``git remote get-url origin`` parsed from inside
        ``--project-root`` (or the current working directory). Removes
        the papercut where an operator inside an unambiguous clone had
        to repeat the repo slug on every ``task triage:queue`` call.
-    3. ``None`` -- the caller emits the canonical
+    4. ``None`` -- the caller emits the canonical
        ``triage:<verb>: --repo OWNER/NAME (or $DEFT_TRIAGE_REPO) is
        required.`` error so the operator sees an actionable next step
        rather than a silent empty-cache walk.
     """
-    if args.repo:
-        return args.repo
+    import triage_queue
+
     project_root: Path | None = None
     if getattr(args, "project_root", None):
         with contextlib.suppress(OSError):
             project_root = Path(args.project_root).resolve()
-    return _detect_origin_repo(project_root)
+    return triage_queue._resolve_repo(args.repo, project_root=project_root)
 
 
 def _override_cache_root(project_root: Path, cache_root: Path) -> None:
