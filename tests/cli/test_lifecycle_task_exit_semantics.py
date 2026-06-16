@@ -64,14 +64,16 @@ def _write_fixture_project(project_root: Path) -> None:
     )
 
 
-def _run_task(project_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+def _run_task(*args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONUTF8"] = "1"
     # Headless worker/fixture projects do not have a session-start ritual.
     env["DEFT_SESSION_RITUAL_SKIP"] = "1"
+    # cwd is inherited from the (monkeypatch-chdir'd) process working directory
+    # so the test exercises the auto-restoring chdir contract (#1681) rather than
+    # passing an explicit subprocess cwd that would mask a stray chdir leak.
     return subprocess.run(
         ["task", "-t", str(TASKFILE), *args],
-        cwd=str(project_root),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -92,12 +94,22 @@ def _assert_success_capture(result: subprocess.CompletedProcess[str], expected_s
 
 
 @pytest.mark.skipif(shutil.which("task") is None, reason="go-task binary is not installed")
-def test_lifecycle_taskfile_commands_preserve_success_exit_semantics(tmp_path: Path) -> None:
-    """Promote -> activate -> preflight succeeds through the Taskfile wrappers."""
+def test_lifecycle_taskfile_commands_preserve_success_exit_semantics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Promote -> activate -> preflight succeeds through the Taskfile wrappers.
+
+    Uses pytest's auto-restoring ``monkeypatch.chdir`` instead of a bare
+    ``os.chdir`` (#1681): with ``tmp_path_retention_count=0`` pytest deletes the
+    fixture directory at teardown, so an unrestored chdir would strand every
+    later test in a missing working directory and cascade ``FileNotFoundError``.
+    """
+    original_cwd = os.getcwd()
     _write_fixture_project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    assert Path(os.getcwd()) == tmp_path
 
     promote = _run_task(
-        tmp_path,
         "scope:promote",
         "--",
         f"vbrief/proposed/{VBRIEF_NAME}",
@@ -106,7 +118,6 @@ def test_lifecycle_taskfile_commands_preserve_success_exit_semantics(tmp_path: P
     assert (tmp_path / "vbrief" / "pending" / VBRIEF_NAME).exists()
 
     activate = _run_task(
-        tmp_path,
         "scope:activate",
         "--",
         f"vbrief/pending/{VBRIEF_NAME}",
@@ -115,9 +126,13 @@ def test_lifecycle_taskfile_commands_preserve_success_exit_semantics(tmp_path: P
     assert (tmp_path / "vbrief" / "active" / VBRIEF_NAME).exists()
 
     preflight = _run_task(
-        tmp_path,
         "vbrief:preflight",
         "--",
         f"vbrief/active/{VBRIEF_NAME}",
     )
     _assert_success_capture(preflight, "ready for implementation")
+
+    # monkeypatch.chdir restores os.getcwd() to original_cwd at teardown; the
+    # autouse cwd guard in tests/conftest.py asserts that restoration holds so a
+    # future stray chdir cannot cascade across the session (#1681).
+    assert Path(original_cwd).exists()

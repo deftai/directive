@@ -3,6 +3,8 @@ package main
 import (
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -294,28 +296,132 @@ func stageFrameworkPaths(projectDir string, paths []string) (bool, error) {
 	return true, nil
 }
 
+// commitHygieneBranchName is the suggested branch name the full-lifecycle
+// guidance uses for the framework-only deposit PR (#1671). It is a single
+// constant so the printed `git switch`, `git push`, and `gh pr` commands stay
+// consistent with each other (and so the tests can pin the exact lifecycle).
+const commitHygieneBranchName = "chore/deft-framework-upgrade"
+
 // printCommitGuidance prints the scoped next-steps commit guidance after a
 // deposit (#1453 Layer 2a): the exact scoped command naming only the framework
 // + installer-managed paths, and an explicit warning against `git add -A`
 // (which would sweep consumer app files into the framework commit and trip the
 // deft-core-guard). staged reports whether the installer already staged those
 // paths so the guidance reads correctly either way.
+//
+// #1671: the guidance now walks the FULL PR lifecycle (branch -> commit -> push
+// -> `gh pr create` -> merge) instead of stopping at `git commit`. The
+// deft-core-guard CI check only runs on a PR, so a user (or agent) told only to
+// `git commit` had no signal that a standalone branch + push + PR is what the
+// guard actually requires. Spelling out every step keeps the framework deposit
+// on the clean, standalone-PR path the guard intends.
 func printCommitGuidance(w *Wizard, paths []string, staged bool) {
 	if len(paths) == 0 {
 		return
 	}
 	addCmd := "git add " + strings.Join(paths, " ")
-	w.printf("\nCommit hygiene (#1453): keep the framework deposit in its OWN commit/PR.\n")
+	w.printf("\nCommit hygiene (#1453, #1671): keep the framework deposit in its OWN branch/PR.\n")
 	w.printf("Do NOT use `git add -A` -- mixing the payload with your own files trips the\n")
 	w.printf("deft-core-guard CI check.\n")
 	if staged {
 		w.printf("The installer already staged ONLY these framework + installer-managed paths:\n")
 		w.printf("  %s\n", addCmd)
-		w.printf("Review them, then commit on a framework-only branch:\n")
-		w.printf("  git commit -m \"chore(deft): update framework payload\"\n")
 	} else {
-		w.printf("Stage ONLY these framework + installer-managed paths, then commit:\n")
+		w.printf("Stage ONLY these framework + installer-managed paths:\n")
 		w.printf("  %s\n", addCmd)
-		w.printf("  git commit -m \"chore(deft): update framework payload\"\n")
+	}
+	w.printf("Then take the framework deposit through the full PR lifecycle so deft-core-guard\n")
+	w.printf("evaluates a clean, standalone PR:\n")
+	w.printf("  1. Branch: git switch -c %s\n", commitHygieneBranchName)
+	w.printf("  2. Commit: git commit -m \"chore(deft): update framework payload\"\n")
+	w.printf("  3. Push:   git push -u origin %s\n", commitHygieneBranchName)
+	w.printf("  4. PR:     gh pr create --fill --title \"chore(deft): update framework payload\"\n")
+	w.printf("  5. Merge:  gh pr merge --squash --delete-branch   # after deft-core-guard passes\n")
+}
+
+// porcelainStatusPaths extracts the repo-relative (POSIX) paths from the
+// `git status --porcelain` v1 lines returned by gitPorcelainStatusFunc (which
+// preserve the leading two-column XY status prefix). For a rename/copy entry
+// (`XY ORIG -> NEW`) the NEW path is returned. Git-quoted paths (core.quotePath
+// default-on, used for paths with special bytes) are unquoted. Blank / malformed
+// lines are skipped. Used by frameworkRefreshSideEffects to map the working-tree
+// status onto the framework-managed classification.
+func porcelainStatusPaths(lines []string) []string {
+	var paths []string
+	for _, ln := range lines {
+		// Porcelain v1 entry: X at [0], Y at [1], a space at [2], path at [3:].
+		if len(ln) < 4 {
+			continue
+		}
+		rest := ln[3:]
+		if idx := strings.Index(rest, " -> "); idx != -1 {
+			rest = rest[idx+len(" -> "):]
+		}
+		p := unquoteGitPath(strings.TrimSpace(rest))
+		if p == "" {
+			continue
+		}
+		paths = append(paths, filepath.ToSlash(p))
+	}
+	return paths
+}
+
+// unquoteGitPath strips git's C-style double-quoting from a porcelain path. Git
+// quotes paths containing special bytes when core.quotePath is on (the default);
+// an unquoted path is returned verbatim. A best-effort strconv.Unquote handles
+// the C escapes; on failure the surrounding quotes are trimmed so the caller
+// still gets a usable path.
+func unquoteGitPath(s string) string {
+	if len(s) >= 2 && strings.HasPrefix(s, "\"") && strings.HasSuffix(s, "\"") {
+		if uq, err := strconv.Unquote(s); err == nil {
+			return uq
+		}
+		return s[1 : len(s)-1]
+	}
+	return s
+}
+
+// frameworkRefreshSideEffects returns the sorted, repo-relative (POSIX) set of
+// framework-managed files (the vendored payload under .deft/core/** plus the
+// installer-managed deposit surface) that currently have UNCOMMITTED changes in
+// projectDir (#1671). It is the data behind the self-aware refresh disclosure:
+// after the AGENTS.md refresh rewrites the managed section -- and after the
+// upgrade payload swap has touched .deft/core files such as uv.lock -- these are
+// the files that must land in the framework deposit commit. Consumer app files
+// are excluded (classifyChangedPaths' "app" bucket) so the disclosure never
+// nudges the user to commit their own work into the framework PR.
+//
+// Best-effort by contract: a non-git project (or a missing git binary) yields
+// nil so callers simply skip the disclosure, mirroring the dirty-tree advisory.
+func frameworkRefreshSideEffects(projectDir string) []string {
+	lines, isRepo, err := gitPorcelainStatusFunc(projectDir)
+	if err != nil || !isRepo {
+		return nil
+	}
+	core, installerManaged, _ := classifyChangedPaths(porcelainStatusPaths(lines))
+	files := append(append([]string{}, core...), installerManaged...)
+	if len(files) == 0 {
+		return nil
+	}
+	sort.Strings(files)
+	return files
+}
+
+// printRefreshSideEffects discloses the framework files the AGENTS.md refresh /
+// upgrade payload swap left with uncommitted changes (#1671). It replaces the
+// old single, silent success line ("Refreshed AGENTS.md managed section ...")
+// that left an operator -- who may have already committed an earlier snapshot --
+// unaware that new stragglers (e.g. AGENTS.md, .deft/core/uv.lock) exist and
+// belong in the framework deposit commit. No-op when files is empty.
+func printRefreshSideEffects(w *Wizard, files []string) {
+	if len(files) == 0 {
+		return
+	}
+	w.printf("\nAGENTS.md refresh side effects (#1671): the refresh and framework payload swap\n")
+	w.printf("left these framework files with uncommitted changes -- they belong in the\n")
+	w.printf("framework deposit commit (the installer stages them before printing the\n")
+	w.printf("`git add` list below, so there are no post-stage stragglers):\n")
+	for _, f := range files {
+		w.printf("  %s\n", f)
 	}
 }

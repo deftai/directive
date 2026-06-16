@@ -643,6 +643,13 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 			scope = "file (legacy pre-v0.27 layout had no closing fence)"
 		}
 		w.printf("[deft-install] rewriting AGENTS.md %s from layout %s -> %s\n", scope, oldLabel, installRoot)
+		// #1671: a re-run that rewrites the managed section is the upgrade /
+		// refresh path. Disclose the framework files this refresh (plus the
+		// upgrade payload swap) left uncommitted instead of a single silent
+		// success line, so the operator sees the AGENTS.md / .deft/core
+		// stragglers that belong in the framework deposit commit. Best-effort:
+		// a no-op outside a git work tree.
+		printRefreshSideEffects(w, frameworkRefreshSideEffects(projectDir))
 		return nil
 	}
 
@@ -656,6 +663,11 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 		return fmt.Errorf("could not update AGENTS.md: %w", err)
 	}
 	w.printf("AGENTS.md updated with deft entries.\n")
+	// #1671: appending the managed section into an existing operator AGENTS.md
+	// also dirties the file (and, on an upgrade, the .deft/core payload swap).
+	// Disclose the framework stragglers so they are not silently left out of
+	// the framework deposit commit. Best-effort: a no-op outside a git work tree.
+	printRefreshSideEffects(w, frameworkRefreshSideEffects(projectDir))
 	return nil
 }
 

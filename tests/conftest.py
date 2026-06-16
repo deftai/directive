@@ -9,6 +9,7 @@ Author: Scott Adams (msadams) — 2026-03-09
 
 import contextlib
 import io
+import os
 import sys
 from collections import deque
 from pathlib import Path
@@ -46,6 +47,44 @@ if sys.platform == "win32":
             _orig = getattr(_mod, _fn_name, None)
             if _orig is not None:
                 setattr(_mod, _fn_name, _make_safe(_orig))
+
+
+@pytest.fixture(autouse=True)
+def _restore_cwd():
+    """Snapshot the working directory and restore it after every test (#1681).
+
+    Defense-in-depth against a stray ``os.chdir`` leaking out of a test. Combined
+    with ``tmp_path_retention_count = 0`` (pyproject.toml, #281), an unrestored
+    chdir into a ``tmp_path`` leaves later tests stranded in a directory pytest
+    deleted at teardown, cascading thousands of ``FileNotFoundError``s across the
+    session (the #1681 ``task check`` cascade). Tests SHOULD use
+    ``monkeypatch.chdir`` (auto-restoring); this fixture heals any that do not so
+    the leak cannot cascade, then fails the offending test loudly so the stray
+    chdir is fixed at its source.
+
+    monkeypatch is function-scoped and torn down before this autouse fixture, so
+    a properly ``monkeypatch.chdir``'d test has already been restored by the time
+    this guard runs -- the failure only fires on a bare, unrestored ``os.chdir``.
+    """
+    try:
+        original = os.getcwd()
+    except FileNotFoundError:
+        original = None
+    yield
+    if original is None:
+        return
+    try:
+        current = os.getcwd()
+    except FileNotFoundError:
+        current = None
+    if current != original:
+        # Heal first so the leak cannot cascade into later tests, then fail loud.
+        os.chdir(original)
+        pytest.fail(
+            f"Test left the working directory at {current!r}; expected "
+            f"{original!r}. Use monkeypatch.chdir(...) instead of a bare "
+            "os.chdir to avoid the #1681 FileNotFoundError cascade."
+        )
 
 
 @pytest.fixture(scope="session")
