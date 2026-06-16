@@ -43,6 +43,24 @@ TEMPLATE_PATH = REPO_ROOT / "templates" / "swarm-greptile-poller-prompt.md"
 # regex strings and sentinels are present in the template verbatim.
 # ---------------------------------------------------------------------------
 
+# Code-fence strip (#1004) -- detector self-reference false-positive fix.
+# Greptile quotes the detector's own tokens (`<img alt="P0"`, `Not safe to
+# merge`, ...) verbatim inside code fences on PRs that touch the detector.
+# Strip triple-backtick fenced blocks AND <code> / <pre> HTML regions BEFORE
+# Tier 1/2/3 detection so those quoted tokens do not count as findings. The
+# `{3}` quantifier is written via `` `{3} `` (not a literal triple backtick)
+# so this module file does not contain an accidental markdown fence; the
+# template mirrors this with the doubled-brace `` `{{3}} `` format-escape.
+_CODE_FENCE_RE = re.compile(r"`{3}.*?`{3}", re.DOTALL)
+_HTML_CODE_RE = re.compile(r"<(code|pre)\b[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE)
+
+
+def strip_code_fences(text: str) -> str:
+    """Reference code-fence stripper mirroring the template body (#1004)."""
+    fenced_stripped = _CODE_FENCE_RE.sub(" ", text)
+    return _HTML_CODE_RE.sub(" ", fenced_stripped)
+
+
 _TIER2_RE = re.compile(r"^[\s\-\*]*\*\*P([01])\b[^*]*\*\*", re.MULTILINE)
 _TIER2_NEGATIONS = ("No ", "Zero ", "0 ", "no ")
 
@@ -100,7 +118,12 @@ def detect(body: str) -> dict:
     ``tier25_p0`` / ``tier25_p1`` / ``tier3_sentinel`` / ``p0_count`` /
     ``p1_count`` / ``has_blocking`` so individual tier contributions are
     inspectable in test failure messages.
+
+    The body is fence-stripped (#1004) before any tier scan so detector
+    tokens Greptile quotes verbatim inside code fences on detector-touching
+    PRs do not count as findings.
     """
+    body = strip_code_fences(body)
     tier1_p0 = body.count('<img alt="P0"')
     tier1_p1 = body.count('<img alt="P1"')
 
@@ -363,6 +386,130 @@ def test_tier1_pure_badge_body_still_triggers() -> None:
 
 
 # ---------------------------------------------------------------------------
+# #1004 -- detector self-reference false-positive. On PRs that touch the
+# detector itself, Greptile quotes the detector's own tokens verbatim inside
+# code fences while describing the diff. The fence strip (option 1) removes
+# triple-backtick fenced blocks and <code> / <pre> HTML regions before
+# detection so those quoted tokens no longer count. Each fixture isolates one
+# acceptance case from the issue body (AC-2 a / b / c) plus the <code> HTML
+# variant of the strip.
+# ---------------------------------------------------------------------------
+
+# AC-2 (a): a Greptile body that quotes `<img alt="P0"` INSIDE a triple-
+# backtick code fence. The token is the detector's own Tier 1 badge string
+# quoted verbatim; after the fence strip it MUST NOT trip Tier 1.
+BODY_FENCED_IMG_P0 = (
+    "Greptile review of head 6666666\n"
+    "\n"
+    "Confidence Score: 5/5\n"
+    "\n"
+    "The PR updates the Tier 1 badge counter. The detector counts badges via:\n"
+    "\n"
+    "```python\n"
+    "tier1_p0 = body.count('<img alt=\"P0\"')\n"
+    "tier1_p1 = body.count('<img alt=\"P1\"')\n"
+    "```\n"
+    "\n"
+    "No P0 or P1 issues found. The change looks clean and well-tested.\n"
+    "\n"
+    "Last reviewed commit: [fix: detector](https://github.com/deftai/directive/commit/6666666abcdef12)\n"
+)
+
+# AC-2 (b): a Greptile body that quotes `Not safe to merge` INSIDE a triple-
+# backtick code fence (describing the Tier 3 sentinel). After the fence strip
+# it MUST NOT trip the Tier 3 sentinel.
+BODY_FENCED_NOT_SAFE = (
+    "Greptile review of head 7777777\n"
+    "\n"
+    "Confidence Score: 5/5\n"
+    "\n"
+    "The PR documents the Tier 3 hard-block sentinel. The relevant snippet:\n"
+    "\n"
+    "```python\n"
+    'if "Not safe to merge" in body:\n'
+    "    tier3_sentinel = True\n"
+    "```\n"
+    "\n"
+    "No P0 or P1 issues found. The change looks clean.\n"
+    "\n"
+    "Last reviewed commit: [docs: detector](https://github.com/deftai/directive/commit/7777777abcdef12)\n"
+)
+
+# AC-2 (c): a REAL `<img alt="P0"` badge in UNFENCED prose. The fence strip
+# MUST leave it intact so a genuine Tier 1 finding STILL triggers.
+BODY_UNFENCED_IMG_P0 = (
+    "Greptile review of head 8888888\n"
+    "\n"
+    "Confidence Score: 2/5\n"
+    "\n"
+    '<img alt="P0" src="https://example.com/p0.png"> data-loss risk in cache eviction\n'
+    "\n"
+    "Last reviewed commit: [fix: bug](https://github.com/deftai/directive/commit/8888888abcdef12)\n"
+)
+
+# <code> / <pre> HTML variant of the strip (#1004) -- Greptile sometimes
+# renders quoted source inside <code> blocks rather than triple-backtick
+# fences. The quoted `<img alt="P0"` inside <code> MUST NOT trip Tier 1.
+BODY_HTML_CODE_IMG_P0 = (
+    "Greptile review of head 9999999\n"
+    "\n"
+    "Confidence Score: 5/5\n"
+    "\n"
+    "The detector counts badges via <code>body.count('&lt;img alt=\"P0\"')</code>\n"
+    "and <pre><img alt=\"P1\" src=\"x\"></pre> in the prompt fixtures.\n"
+    "\n"
+    "No P0 or P1 issues found. The change looks clean.\n"
+    "\n"
+    "Last reviewed commit: [chore: x](https://github.com/deftai/directive/commit/9999999abcdef12)\n"
+)
+
+
+def test_fenced_img_p0_does_not_trigger_tier1() -> None:
+    """AC-2 (a): a fenced `<img alt="P0"` MUST NOT trigger Tier 1 (#1004)."""
+    result = detect(BODY_FENCED_IMG_P0)
+    assert result["tier1_p0"] == 0, (
+        f"fenced `<img alt=\"P0\"` must be stripped before Tier 1, got {result!r}"
+    )
+    assert result["tier1_p1"] == 0
+    assert result["has_blocking"] is False, (
+        f"detector self-reference inside a fence must NOT block, got {result!r}"
+    )
+
+
+def test_fenced_not_safe_to_merge_does_not_trigger_tier3() -> None:
+    """AC-2 (b): a fenced `Not safe to merge` MUST NOT trigger Tier 3 (#1004)."""
+    result = detect(BODY_FENCED_NOT_SAFE)
+    assert result["tier3_sentinel"] is False, (
+        f"fenced `Not safe to merge` must be stripped before Tier 3, got {result!r}"
+    )
+    assert result["has_blocking"] is False, (
+        f"detector self-reference inside a fence must NOT block, got {result!r}"
+    )
+
+
+def test_unfenced_img_p0_still_triggers_tier1() -> None:
+    """AC-2 (c): a REAL unfenced `<img alt="P0"` MUST still trigger Tier 1 (#1004)."""
+    result = detect(BODY_UNFENCED_IMG_P0)
+    assert result["tier1_p0"] == 1, (
+        f"unfenced `<img alt=\"P0\"` must survive the strip and fire Tier 1, "
+        f"got {result!r}"
+    )
+    assert result["has_blocking"] is True, (
+        f"a genuine unfenced P0 badge must still block, got {result!r}"
+    )
+
+
+def test_html_code_block_img_p0_does_not_trigger_tier1() -> None:
+    """`<img alt="P0"` quoted inside <code> / <pre> MUST NOT trigger Tier 1 (#1004)."""
+    result = detect(BODY_HTML_CODE_IMG_P0)
+    assert result["tier1_p0"] == 0, (
+        f"<code>/<pre>-quoted `<img alt=\"P0\"` must be stripped, got {result!r}"
+    )
+    assert result["tier1_p1"] == 0
+    assert result["has_blocking"] is False
+
+
+# ---------------------------------------------------------------------------
 # Regression tests -- #1035 acceptance criteria (Tier 2.5 SLizard heading
 # form + confidence-heading parser fallback). Each test pins one of the
 # acceptance criteria AC-1 / AC-2 / AC-2-negation-guard so a future edit
@@ -492,6 +639,51 @@ def test_confidence_parses_inline_form_unchanged() -> None:
 @pytest.fixture(scope="module")
 def template_text() -> str:
     return TEMPLATE_PATH.read_text(encoding="utf-8")
+
+
+def test_template_contains_code_fence_strip(template_text: str) -> None:
+    """Template MUST encode the #1004 code-fence strip before detection.
+
+    Pins the doubled-brace fence regex (`` `{{3}} ``), the <code>/<pre> HTML
+    regex, the `strip_code_fences` definition, and the `body =
+    strip_code_fences(body)` reassignment so a future edit that drops the
+    strip falls back to the self-reference false-positive and fails CI. Also
+    asserts the rendered (str.format) form carries the single-brace regex so
+    a downstream poller compiles the canonical pattern.
+    """
+    assert r"`{{3}}.*?`{{3}}" in template_text, (
+        "template missing #1004 triple-backtick fence regex (doubled-brace form)"
+    )
+    assert r"<(code|pre)\b[^>]*>.*?</\1>" in template_text, (
+        "template missing #1004 <code>/<pre> HTML strip regex"
+    )
+    assert "def strip_code_fences(" in template_text, (
+        "template missing strip_code_fences function (#1004)"
+    )
+    assert "body = strip_code_fences(body)" in template_text, (
+        "template missing `body = strip_code_fences(body)` reassignment (#1004)"
+    )
+    assert "#1004" in template_text, (
+        "template must cite the detector self-reference issue (#1004)"
+    )
+    rendered = template_text.format(
+        pr_number=1004,
+        repo="deftai/directive",
+        poll_interval_seconds=90,
+        poll_cap_minutes=30,
+        parent_agent_id="parent-id",
+    )
+    assert r"`{3}.*?`{3}" in rendered, (
+        "rendered template missing single-brace fence regex (#1004)"
+    )
+
+
+def test_template_documents_residual_self_reference(template_text: str) -> None:
+    """Template Implementation Notes MUST document the residual #1004 case."""
+    assert "residual self-reference false-positive remains (#1004)" in template_text, (
+        "Implementation Notes must document the residual detector "
+        "self-reference false-positive for future maintainers (#1004 AC-3)"
+    )
 
 
 def test_template_contains_tier2_regex(template_text: str) -> None:

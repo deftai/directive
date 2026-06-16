@@ -2116,3 +2116,219 @@ func TestReportPythonPreflight_ActionableOnFailure(t *testing.T) {
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// #1671: upgrade refresh side-effect disclosure + full-lifecycle commit guidance
+// ---------------------------------------------------------------------------
+
+// TestPorcelainStatusPaths_ParsesEntriesAndRenames pins the porcelain v1 path
+// extraction the refresh disclosure depends on: ordinary entries drop the XY
+// status prefix, untracked (`??`) entries are parsed, and a rename/copy entry
+// (`R  ORIG -> NEW`) yields the NEW path.
+func TestPorcelainStatusPaths_ParsesEntriesAndRenames(t *testing.T) {
+	lines := []string{
+		" M AGENTS.md",
+		"?? .deft/core/uv.lock",
+		"R  vbrief/old.md -> vbrief/vbrief.md",
+		"A  .deft/core/new.txt",
+		"x", // malformed / too short -- skipped
+	}
+	got := porcelainStatusPaths(lines)
+	want := []string{"AGENTS.md", ".deft/core/uv.lock", "vbrief/vbrief.md", ".deft/core/new.txt"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("porcelainStatusPaths = %v, want %v", got, want)
+	}
+}
+
+// TestFrameworkRefreshSideEffects_FiltersToFrameworkManaged asserts the refresh
+// side-effect set keeps ONLY framework-managed changes (the .deft/core payload
+// plus the installer-managed deposit surface) and excludes consumer app files
+// AND consumer vBRIEF data (PROJECT-DEFINITION). The result is sorted. (#1671)
+func TestFrameworkRefreshSideEffects_FiltersToFrameworkManaged(t *testing.T) {
+	orig := gitPorcelainStatusFunc
+	defer func() { gitPorcelainStatusFunc = orig }()
+	gitPorcelainStatusFunc = func(string) ([]string, bool, error) {
+		return []string{
+			" M AGENTS.md",
+			"?? .deft/core/uv.lock",
+			"R  vbrief/old.md -> vbrief/vbrief.md",
+			" M myapp/main.go",                         // consumer app -- excluded
+			" M vbrief/PROJECT-DEFINITION.vbrief.json", // consumer vBRIEF data -- excluded
+		}, true, nil
+	}
+	got := frameworkRefreshSideEffects("/proj")
+	want := []string{".deft/core/uv.lock", "AGENTS.md", "vbrief/vbrief.md"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("frameworkRefreshSideEffects = %v, want %v", got, want)
+	}
+}
+
+// TestFrameworkRefreshSideEffects_NonGitIsNoop confirms the disclosure is
+// best-effort: a non-git project yields nil so WriteAgentsMD stays silent about
+// side effects (mirrors the dirty-tree advisory contract). (#1671)
+func TestFrameworkRefreshSideEffects_NonGitIsNoop(t *testing.T) {
+	orig := gitPorcelainStatusFunc
+	defer func() { gitPorcelainStatusFunc = orig }()
+	gitPorcelainStatusFunc = func(string) ([]string, bool, error) { return nil, false, nil }
+	if got := frameworkRefreshSideEffects("/proj"); got != nil {
+		t.Errorf("non-git project must yield nil, got %v", got)
+	}
+}
+
+// TestPrintCommitGuidance_WalksFullPRLifecycle pins AC-3 + AC-4: the hygiene
+// block no longer stops at `git commit` -- it walks branch -> commit -> push ->
+// `gh pr create` -> merge so the operator follows the framework deposit through
+// the standalone PR deft-core-guard actually requires. The scoped `git add`
+// path list is still enumerated. (#1671)
+func TestPrintCommitGuidance_WalksFullPRLifecycle(t *testing.T) {
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
+	paths := []string{".deft/core", "AGENTS.md"}
+	printCommitGuidance(w, paths, true)
+	s := out.String()
+	for _, want := range []string{
+		"git switch -c",
+		"git commit -m",
+		"git push -u origin",
+		"gh pr create",
+		"gh pr merge",
+		".deft/core",
+		"AGENTS.md",
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("commit guidance missing lifecycle step / path %q; got:\n%s", want, s)
+		}
+	}
+}
+
+// TestWriteAgentsMD_RefreshDisclosesSideEffectFiles pins AC-2: when the refresh
+// rewrites the managed section during an upgrade, it reports the SPECIFIC
+// framework files it/the payload swap changed (AGENTS.md, .deft/core/uv.lock)
+// instead of a single silent success line, and never nudges a consumer app file
+// into the framework deposit commit. (#1671)
+func TestWriteAgentsMD_RefreshDisclosesSideEffectFiles(t *testing.T) {
+	orig := gitPorcelainStatusFunc
+	defer func() { gitPorcelainStatusFunc = orig }()
+	gitPorcelainStatusFunc = func(string) ([]string, bool, error) {
+		return []string{
+			" M AGENTS.md",
+			" M .deft/core/uv.lock",
+			" M myapp/main.go",
+		}, true, nil
+	}
+
+	tmp := t.TempDir()
+	// A stale legacy-sentinel AGENTS.md forces the rewrite (refresh) path.
+	legacyBody := "# Project AGENTS\n" +
+		"Deft is installed in deft/. Full guidelines: deft/main.md\n"
+	if err := os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(legacyBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD: %v", err)
+	}
+	s := out.String()
+	if !strings.Contains(s, "refresh side effects") {
+		t.Errorf("refresh did not disclose side effects (single silent line regression #1671); got:\n%s", s)
+	}
+	// The disclosure enumerates each framework straggler as its own bullet.
+	for _, want := range []string{"  AGENTS.md\n", "  .deft/core/uv.lock\n"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("disclosure missing framework straggler bullet %q; got:\n%s", want, s)
+		}
+	}
+	if strings.Contains(s, "myapp/main.go") {
+		t.Errorf("disclosure leaked a consumer app file into the framework set; got:\n%s", s)
+	}
+}
+
+// TestUpgradeRefreshBeforeStage_NoStragglers_RealGit drives the main.go upgrade
+// ordering against a REAL git repo and asserts AC-1 + AC-4: the AGENTS.md
+// refresh runs BEFORE staging (disclosing the side-effect files), and after the
+// scoped staging there are NO post-stage stragglers -- every framework-managed
+// change the refresh / payload swap produced is already staged.
+func TestUpgradeRefreshBeforeStage_NoStragglers_RealGit(t *testing.T) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git not available; skipping refresh-before-stage real-git test")
+	}
+	proj := t.TempDir()
+	deftDir := filepath.Join(proj, ".deft", "core")
+	if err := os.MkdirAll(deftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Baseline payload file + a STALE committed AGENTS.md (an old managed
+	// section). Committing the stale body means the refresh below genuinely
+	// dirties AGENTS.md relative to HEAD (as a real upgrade does).
+	if err := os.WriteFile(filepath.Join(deftDir, "uv.lock"), []byte("version = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	staleBody := "<!-- deft:managed-section v3 sha=deadbeef01 refreshed=2026-01-01T00:00:00Z session=abc123 -->\n" +
+		"# Deft\n\nDeft is installed in .deft/core/. Full guidelines: .deft/core/main.md\n\n" +
+		"(stale managed body from an older framework version)\n" + agentsMDFenceClose + "\n"
+	if err := os.WriteFile(filepath.Join(proj, "AGENTS.md"), []byte(staleBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runGitIn(t, gitPath, proj, "init", "-b", "master")
+	runGitIn(t, gitPath, proj, "config", "user.email", "test@example.com")
+	runGitIn(t, gitPath, proj, "config", "user.name", "Test")
+	runGitIn(t, gitPath, proj, "config", "commit.gpgsign", "false")
+	runGitIn(t, gitPath, proj, "add", "AGENTS.md", ".deft/core/uv.lock")
+	runGitIn(t, gitPath, proj, "commit", "-m", "baseline install")
+
+	// Simulate the upgrade payload swap: the vendored uv.lock is regenerated.
+	if err := os.WriteFile(filepath.Join(deftDir, "uv.lock"), []byte("version = 2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// --- main.go ordering: REFRESH (WriteAgentsMD) BEFORE STAGE. ---
+	var refreshOut bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &refreshOut, false)
+	if err := WriteAgentsMD(w, proj); err != nil {
+		t.Fatalf("WriteAgentsMD (refresh): %v", err)
+	}
+	rs := refreshOut.String()
+	for _, want := range []string{"  AGENTS.md\n", "  .deft/core/uv.lock\n"} {
+		if !strings.Contains(rs, want) {
+			t.Errorf("refresh did not disclose side-effect file %q BEFORE staging; got:\n%s", want, rs)
+		}
+	}
+
+	// Stage exactly as main.go does, AFTER the refresh.
+	stagePaths := frameworkStagePaths(proj, deftDir)
+	staged, serr := stageFrameworkPaths(proj, stagePaths)
+	if serr != nil {
+		t.Fatalf("stageFrameworkPaths: %v", serr)
+	}
+	if !staged {
+		t.Fatalf("expected scoped staging to occur")
+	}
+
+	// AC-1: no post-stage stragglers. Every framework-managed change is staged;
+	// nothing framework-managed remains unstaged ('?' untracked or ' ' worktree-
+	// modified with an empty index column).
+	lines, isRepo, perr := defaultGitPorcelainStatus(proj)
+	if perr != nil || !isRepo {
+		t.Fatalf("porcelain status: isRepo=%v err=%v", isRepo, perr)
+	}
+	for _, ln := range lines {
+		if len(ln) < 4 {
+			continue
+		}
+		paths := porcelainStatusPaths([]string{ln})
+		if len(paths) == 0 {
+			continue
+		}
+		core, managed, _ := classifyChangedPaths(paths)
+		if len(core)+len(managed) == 0 {
+			continue // consumer app file -- not a framework straggler
+		}
+		if x := ln[0]; x == '?' || x == ' ' {
+			t.Errorf("post-stage straggler: framework file %q is unstaged (status %q) -- refresh-before-stage invariant violated (#1671)", paths[0], ln[:2])
+		}
+	}
+}
