@@ -115,3 +115,65 @@ def test_agents_md_skill_completion_gate_chaining() -> None:
     assert "chains to" in text.lower(), (
         "AGENTS.md: Skill Routing table must include chaining annotations (#243, t1.11.5)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 5. Returning Sessions USER.md content-read enforcement (#696)
+# ---------------------------------------------------------------------------
+
+def _returning_sessions_section() -> str:
+    """Slice the first 'Returning Sessions' section body out of AGENTS.md.
+
+    Returns the text from the '## Returning Sessions' heading up to the next
+    top-level (## ) heading, so the section-scoped assertions below do not
+    accidentally match markers elsewhere in the file.
+    """
+    text = _read_agents_md()
+    start = text.find("## Returning Sessions")
+    assert start != -1, "AGENTS.md: missing '## Returning Sessions' section (#696)"
+    rest = text[start + len("## Returning Sessions"):]
+    next_heading = rest.find("\n## ")
+    return rest if next_heading == -1 else rest[:next_heading]
+
+
+def test_agents_md_returning_sessions_has_must_marker() -> None:
+    """Returning Sessions must be an enforced rule carrying a ! MUST marker (#696)."""
+    section = _returning_sessions_section()
+    assert "! When all config exists" in section, (
+        "AGENTS.md: 'Returning Sessions' must carry a ! (MUST) marker with an "
+        "ordered read list (main.md -> USER.md -> PROJECT-DEFINITION) (#696)"
+    )
+
+
+def test_agents_md_returning_sessions_anti_pattern_present() -> None:
+    """Returning Sessions must forbid Test-Path substitution for a content read (#696)."""
+    section = _returning_sessions_section()
+    assert "\u2297" in section and "test-path" in section.lower(), (
+        "AGENTS.md: 'Returning Sessions' must contain a \u2297 anti-pattern forbidding "
+        "a Test-Path / existence check in place of an actual USER.md content read (#696)"
+    )
+
+
+def test_agents_md_alignment_requires_name_echo() -> None:
+    """Alignment confirmation must echo the addressing-name drawn from USER.md (#696)."""
+    text = _read_agents_md()
+    lowered = text.lower()
+    assert "addressing-name" in lowered and "addressing you as" in lowered, (
+        "AGENTS.md: Deft Alignment Confirmation must require the addressing-name "
+        "drawn from USER.md content (e.g. 'Addressing you as: {Name}.') (#696)"
+    )
+    assert "\u2297" in text and "presence" in lowered, (
+        "AGENTS.md: must contain a \u2297 anti-pattern stating a presence / Test-Path "
+        "check is insufficient for the alignment confirmation (#696)"
+    )
+
+
+def test_agents_md_external_context_precedence_documented() -> None:
+    """USER.md must be documented as overriding external context (#696)."""
+    section = _returning_sessions_section()
+    lowered = section.lower()
+    assert "personal (always wins)" in lowered and "external context" in lowered, (
+        "AGENTS.md: 'Returning Sessions' must document that USER.md "
+        "'Personal (always wins)' entries override external context "
+        "(Warp Drive / MCP / prompt-injected preferences) (#696)"
+    )
