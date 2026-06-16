@@ -116,6 +116,19 @@
       "path": "lessons",
       "filters": ["tag"],
       "description": "Lessons carrying any of the requested --tag values (repeatable or comma-listed)."
+    },
+    "by-issue": {
+      "path": "lessons",
+      "filters": ["issue"],
+      "description": "Lessons whose issue_refs include any of the requested --issue values (bare or hashed, e.g. 754 or #754; repeatable or comma-listed)."
+    },
+    "anti-patterns": {
+      "path": "lessons",
+      "filters": [],
+      "select": {
+        "body_contains_any": ["anti-pattern", "anti pattern", "must not", "\u2297"]
+      },
+      "description": "Lessons whose body calls out an anti-pattern (RFC2119 prohibition markers / 'anti-pattern' guidance). Argument-less."
     }
   }
 }

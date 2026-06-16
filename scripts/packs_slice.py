@@ -213,6 +213,57 @@ def apply_scalar(entries: list[dict], field: str, values: list[str]) -> list[dic
     return [e for e in entries if str(e.get(field, "")).lower() in wanted]
 
 
+def _normalize_issue(value: str) -> str:
+    """Normalise an issue reference for comparison (strip leading '#', lower)."""
+    return str(value).lstrip("#").strip().lower()
+
+
+def apply_issue_refs(entries: list[dict], issues: list[str]) -> list[dict]:
+    """Filter entries whose ``issue_refs`` include any requested issue number.
+
+    The lessons pack stores issue refs as ``"#754"`` strings; the agent passes a
+    bare or hashed number (``754`` / ``#754``) and both sides are normalised so
+    ``--issue 754`` matches ``"#754"``. List-membership semantics (#1637).
+    """
+    wanted = {_normalize_issue(i) for i in issues}
+    return [
+        e
+        for e in entries
+        if wanted & {_normalize_issue(r) for r in e.get("issue_refs", [])}
+    ]
+
+
+def apply_select(entries: list[dict], select: dict[str, Any]) -> list[dict]:
+    """Apply a slice's fixed (argument-less) predicate from its registry spec.
+
+    Some deeper slices (#1637) subset WITHOUT an agent-supplied filter -- the
+    predicate is baked into the slice name. ``select`` declares it in the pack
+    schema's ``x-sliceRegistry`` entry. Supported keys:
+
+    - ``tier_in``: keep entries whose ``tier`` is in the listed values
+      (case-insensitive). Powers the rules pack ``must`` / ``prohibitions``.
+    - ``body_contains_any``: keep entries whose ``body`` (case-insensitive)
+      contains any listed substring. Powers the lessons pack ``anti-patterns``.
+
+    The agent-facing contract stays the slice NAME only -- ``select`` is a
+    pack-author authoring detail, never exposed as a query language (ADR-001).
+    """
+    result = entries
+    tier_in = select.get("tier_in")
+    if isinstance(tier_in, list) and tier_in:
+        wanted = {str(t).lower() for t in tier_in}
+        result = [e for e in result if str(e.get("tier", "")).lower() in wanted]
+    needles = select.get("body_contains_any")
+    if isinstance(needles, list) and needles:
+        lowered = [str(n).lower() for n in needles]
+        result = [
+            e
+            for e in result
+            if any(n in str(e.get("body") or "").lower() for n in lowered)
+        ]
+    return result
+
+
 def _validate_filters(
     slice_name: str,
     allowed: list[str],
@@ -222,6 +273,8 @@ def _validate_filters(
     triggers: list[str] | None,
     tiers: list[str] | None,
     domains: list[str] | None,
+    issues: list[str] | None,
+    ids: list[str] | None,
 ) -> None:
     """Reject filters not declared for this slice in the registry."""
     provided: list[str] = []
@@ -235,6 +288,10 @@ def _validate_filters(
         provided.append("tier")
     if domains:
         provided.append("domain")
+    if issues:
+        provided.append("issue")
+    if ids:
+        provided.append("id")
     for filt in provided:
         if filt not in allowed:
             raise UsageError(
@@ -255,6 +312,8 @@ def slice_pack(
     triggers: list[str] | None = None,
     tiers: list[str] | None = None,
     domains: list[str] | None = None,
+    issues: list[str] | None = None,
+    ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """Resolve and execute a named slice, returning a provenance-tagged result.
 
@@ -278,6 +337,8 @@ def slice_pack(
         triggers=triggers,
         tiers=tiers,
         domains=domains,
+        issues=issues,
+        ids=ids,
     )
 
     if since is not None and not _SINCE_RE.match(since):
@@ -285,6 +346,13 @@ def slice_pack(
 
     resolved = resolve_dotted_path(source_data, spec["path"])
     entries: list[dict] = list(resolved) if isinstance(resolved, list) else []
+
+    # Fixed (argument-less) predicate baked into the slice name (#1637): applied
+    # before the agent-supplied filters so a `must` / `anti-patterns` slice
+    # subsets with no flags.
+    select = spec.get("select")
+    if isinstance(select, dict):
+        entries = apply_select(entries, select)
 
     if since is not None:
         entries = apply_since(entries, since)
@@ -296,6 +364,10 @@ def slice_pack(
         entries = apply_scalar(entries, "tier", tiers)
     if domains:
         entries = apply_scalar(entries, "domain", domains)
+    if issues:
+        entries = apply_issue_refs(entries, issues)
+    if ids:
+        entries = apply_scalar(entries, "id", ids)
 
     return {
         "pack": pack_id,
@@ -515,6 +587,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="by-domain filter: source doc stem (e.g. testing; repeatable or comma-listed).",
     )
     parser.add_argument(
+        "--issue",
+        action="append",
+        default=[],
+        help="by-issue filter: issue number, bare or hashed (e.g. 754; repeatable or comma-listed).",
+    )
+    parser.add_argument(
+        "--id",
+        action="append",
+        default=[],
+        dest="ids",
+        help="by-id filter: entry id (e.g. deft-directive-cost; repeatable or comma-listed).",
+    )
+    parser.add_argument(
         "--format",
         choices=("text", "json"),
         default="text",
@@ -557,6 +642,8 @@ def main(argv: list[str] | None = None) -> int:
     triggers = _collect_tags(args.trigger)
     tiers = _collect_tags(args.tier)
     domains = _collect_tags(args.domain)
+    issues = _collect_tags(args.issue)
+    ids = _collect_tags(args.ids)
 
     try:
         if args.list_packs:
@@ -598,6 +685,8 @@ def main(argv: list[str] | None = None) -> int:
             triggers=triggers,
             tiers=tiers,
             domains=domains,
+            issues=issues,
+            ids=ids,
         )
         if fmt == "json":
             print(json.dumps(result, indent=2, ensure_ascii=False))

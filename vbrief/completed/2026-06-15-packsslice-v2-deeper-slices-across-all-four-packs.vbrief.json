@@ -6,7 +6,7 @@
   "plan": {
     "id": "1637-s1-deeper-slices",
     "title": "packs:slice v2 -- deeper slices across all four packs",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json",
     "narratives": {
       "Description": "Extend each existing pack's slice registry with the deeper slices deferred from the 0.1 pilot: lessons gains `anti-patterns`, `must`, and `by-authority`; skills, rules, and strategies gain additional named slices beyond their pilot set. All new slices are additive registry entries plus any new named-filter helpers in the shared slice engine, never JSONPath. This story is independently buildable because it only touches the slice resolver and the per-pack schema `x-sliceRegistry` blocks, leaving pack JSON bodies and render registries untouched.",
@@ -16,18 +16,18 @@
     "items": [
       {
         "id": "1637-s1-a1",
-        "title": "lessons anti-patterns/must/by-authority slices resolve",
+        "title": "lessons anti-patterns + by-issue slices resolve; rules must/prohibitions added",
         "status": "pending",
         "narrative": {
-          "Acceptance": "Running `task packs:slice lessons anti-patterns` returns only lesson entries carrying anti-pattern guidance in their body."
+          "Acceptance": "Running `task packs:slice lessons anti-patterns` returns only lesson entries carrying anti-pattern guidance in their body, and `task packs:slice rules prohibitions` returns only MUST_NOT/SHOULD_NOT-tier rules."
         }
       },
       {
         "id": "1637-s1-a2",
-        "title": "by-authority filter narrows results",
+        "title": "by-issue filter narrows results",
         "status": "pending",
         "narrative": {
-          "Acceptance": "Running `task packs:slice lessons by-authority --authority must` returns only lessons matching the requested authority value."
+          "Acceptance": "Running `task packs:slice lessons by-issue --issue 810` returns only lessons whose issue_refs include the requested issue number (the lessons pack has no authority field, so the issue-ref filter replaces the illustrative by-authority slice)."
         }
       },
       {
@@ -75,7 +75,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637 and design RFC #1283; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-16T00:02:37Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -89,6 +91,7 @@
         "type": "x-vbrief/refs",
         "title": "Issue #1283"
       }
-    ]
+    ],
+    "updated": "2026-06-16T00:02:37Z"
   }
 }

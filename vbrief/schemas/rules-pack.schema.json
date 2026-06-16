@@ -84,6 +84,22 @@
       "path": "rules",
       "filters": [],
       "description": "Every rule with its tier, domain, text, and source path."
+    },
+    "must": {
+      "path": "rules",
+      "filters": [],
+      "select": {
+        "tier_in": ["MUST"]
+      },
+      "description": "Rules at the MUST tier only. Argument-less convenience over by-tier --tier MUST."
+    },
+    "prohibitions": {
+      "path": "rules",
+      "filters": [],
+      "select": {
+        "tier_in": ["MUST_NOT", "SHOULD_NOT"]
+      },
+      "description": "Prohibition rules (MUST_NOT / SHOULD_NOT tiers) -- the anti-pattern surface for rules. Argument-less."
     }
   }
 }

@@ -79,6 +79,11 @@
       "path": "strategies",
       "filters": [],
       "description": "Every strategy with its title, description, triggers, and path."
+    },
+    "by-id": {
+      "path": "strategies",
+      "filters": ["id"],
+      "description": "Strategies whose id matches any of the requested --id values (e.g. yolo, bdd; case-insensitive, repeatable or comma-listed)."
     }
   }
 }

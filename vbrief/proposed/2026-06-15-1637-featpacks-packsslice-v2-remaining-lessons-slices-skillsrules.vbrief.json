@@ -73,7 +73,7 @@
         "title": "Issue #1283"
       },
       {
-        "uri": "pending/2026-06-15-packsslice-v2-deeper-slices-across-all-four-packs.vbrief.json",
+        "uri": "completed/2026-06-15-packsslice-v2-deeper-slices-across-all-four-packs.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "packs:slice v2 -- deeper slices across all four packs",
         "TrustLevel": "internal"

@@ -80,6 +80,11 @@
       "path": "skills",
       "filters": [],
       "description": "Every skill with its description, routing triggers, and path."
+    },
+    "by-id": {
+      "path": "skills",
+      "filters": ["id"],
+      "description": "Skills whose id matches any of the requested --id values (e.g. deft-directive-cost; case-insensitive, repeatable or comma-listed)."
     }
   }
 }

@@ -326,10 +326,16 @@ def test_schema_enum_matches_migration_vocabulary() -> None:
 def test_schema_slice_registry_matches_packs_slice_expectations() -> None:
     schema = json.loads(_REAL_SCHEMA.read_text(encoding="utf-8"))
     registry = schema["x-sliceRegistry"]
-    assert set(registry) == {"recent", "by-tag"}
+    # #1637 added the by-issue + anti-patterns deeper slices; the #1294 pilot
+    # slices remain (superset check, not equality).
+    assert {"recent", "by-tag", "by-issue", "anti-patterns"} <= set(registry)
     assert registry["recent"]["filters"] == ["since"]
     assert registry["by-tag"]["filters"] == ["tag"]
     assert registry["recent"]["path"] == "lessons"
+    assert registry["by-issue"]["filters"] == ["issue"]
+    # anti-patterns is argument-less: a fixed select predicate, no user filters.
+    assert registry["anti-patterns"]["filters"] == []
+    assert "select" in registry["anti-patterns"]
 
 
 # ===========================================================================
@@ -664,8 +670,10 @@ def test_skills_schema_display_and_registry() -> None:
     schema = json.loads(_REAL_SKILLS_SCHEMA.read_text(encoding="utf-8"))
     assert schema["x-display"]["heading"] == "id"
     assert schema["x-display"]["body"] is None
-    assert set(schema["x-sliceRegistry"]) == {"by-trigger", "list"}
+    # #1637 added the by-id deeper slice; by-trigger + list remain.
+    assert {"by-trigger", "list", "by-id"} <= set(schema["x-sliceRegistry"])
     assert schema["x-sliceRegistry"]["by-trigger"]["filters"] == ["trigger"]
+    assert schema["x-sliceRegistry"]["by-id"]["filters"] == ["id"]
 
 
 def test_lessons_render_still_byte_identical() -> None:
@@ -745,17 +753,25 @@ def test_strategies_exactly_one_proof_has_body() -> None:
     assert [s["path"] for s in bodied] == [_STRATEGIES_PROOF_PATH]
 
 
-def test_collect_targets_covers_all_four_packs() -> None:
+def test_collect_targets_covers_all_six_packs() -> None:
     targets = pack_render.collect_targets()
     names = {name for name, _path, _text in targets}
-    assert names == {"lessons", "skills", "rules", "strategies"}
+    # #1637 added the patterns + swarm-spec packs to the #1296 four.
+    assert names == {
+        "lessons",
+        "skills",
+        "rules",
+        "strategies",
+        "patterns",
+        "swarm-spec",
+    }
 
 
-def test_multipack_check_clean_covers_four_packs(capsys: pytest.CaptureFixture) -> None:
+def test_multipack_check_clean_covers_six_packs(capsys: pytest.CaptureFixture) -> None:
     rc = pack_render.main(["--check"])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "4 projection(s) in sync" in out
+    assert "6 projection(s) in sync" in out
 
 
 def test_pack_filter_limits_to_rules() -> None:

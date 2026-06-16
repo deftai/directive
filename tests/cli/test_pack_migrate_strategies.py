@@ -229,5 +229,6 @@ def test_schema_display_and_registry() -> None:
     schema = json.loads(_REAL_SCHEMA.read_text(encoding="utf-8"))
     assert schema["x-display"]["heading"] == "id"
     assert schema["x-display"]["body"] is None
-    assert set(schema["x-sliceRegistry"]) == {"by-trigger", "list"}
+    # #1637 added the by-id deeper slice; by-trigger + list remain.
+    assert {"by-trigger", "list", "by-id"} <= set(schema["x-sliceRegistry"])
     assert schema["x-sliceRegistry"]["by-trigger"]["filters"] == ["trigger"]

@@ -830,3 +830,166 @@ def test_resolve_pack_rules_and_strategies_via_disk_discovery() -> None:
     assert r_schema.name == "rules-pack.schema.json"
     assert s_src.name == "strategies-pack-0.1.json"
     assert s_schema.name == "strategies-pack.schema.json"
+
+
+# --- deeper slices (#1637): issue/id filters + select predicates ------------
+
+
+def test_apply_issue_refs_unit() -> None:
+    entries = [
+        {"id": "a", "issue_refs": ["#754"]},
+        {"id": "b", "issue_refs": ["#810", "#42"]},
+        {"id": "c", "issue_refs": []},
+    ]
+    # Bare and hashed forms both match; comparison normalises the leading '#'.
+    assert [e["id"] for e in packs_slice.apply_issue_refs(entries, ["754"])] == ["a"]
+    assert [e["id"] for e in packs_slice.apply_issue_refs(entries, ["#42"])] == ["b"]
+    assert packs_slice.apply_issue_refs(entries, ["999"]) == []
+
+
+def test_apply_select_tier_in() -> None:
+    entries = [
+        {"id": "a", "tier": "MUST"},
+        {"id": "b", "tier": "MUST_NOT"},
+        {"id": "c", "tier": "SHOULD_NOT"},
+    ]
+    out = packs_slice.apply_select(entries, {"tier_in": ["MUST_NOT", "SHOULD_NOT"]})
+    assert {e["id"] for e in out} == {"b", "c"}
+
+
+def test_apply_select_body_contains_any() -> None:
+    entries = [
+        {"id": "a", "body": "This is an Anti-Pattern to avoid."},
+        {"id": "b", "body": "Nothing notable here."},
+        {"id": "c", "body": None},
+    ]
+    out = packs_slice.apply_select(entries, {"body_contains_any": ["anti-pattern"]})
+    assert [e["id"] for e in out] == ["a"]
+
+
+def test_apply_select_empty_is_identity() -> None:
+    entries = [{"id": "a", "tier": "MUST"}]
+    assert packs_slice.apply_select(entries, {}) == entries
+
+
+def _write_deeper_lessons_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    schema = {
+        "x-sliceRegistry": {
+            "by-issue": {
+                "path": "lessons",
+                "filters": ["issue"],
+                "description": "Lessons whose issue_refs include any requested --issue.",
+            },
+            "anti-patterns": {
+                "path": "lessons",
+                "filters": [],
+                "select": {"body_contains_any": ["anti-pattern", "must not"]},
+                "description": "Lessons calling out an anti-pattern. Argument-less.",
+            },
+        }
+    }
+    source = {
+        "pack": "lessons-pack-0.1",
+        "version": "0.1",
+        "lessons": [
+            {"id": "l1", "issue_refs": ["#810"], "tags": [], "body": "A documented anti-pattern."},
+            {"id": "l2", "issue_refs": ["#42"], "tags": [], "body": "You MUST NOT do this."},
+            {"id": "l3", "issue_refs": [], "tags": [], "body": "Just a normal lesson."},
+        ],
+    }
+    schema_path = tmp_path / "lessons-pack.schema.json"
+    source_path = tmp_path / "lessons-pack-0.1.json"
+    schema_path.write_text(json.dumps(schema), encoding="utf-8")
+    source_path.write_text(json.dumps(source), encoding="utf-8")
+    return source_path, schema_path
+
+
+def test_by_issue_slice_filters(tmp_path: Path) -> None:
+    source_path, schema_path = _write_deeper_lessons_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "by-issue", issues=["810"])
+    assert [e["id"] for e in result["results"]] == ["l1"]
+
+
+def test_anti_patterns_slice_is_argument_less(tmp_path: Path) -> None:
+    source_path, schema_path = _write_deeper_lessons_fixture(tmp_path)
+    result = _slice(source_path, schema_path, "anti-patterns")
+    assert {e["id"] for e in result["results"]} == {"l1", "l2"}
+
+
+def test_issue_filter_rejected_on_anti_patterns_slice(tmp_path: Path) -> None:
+    source_path, schema_path = _write_deeper_lessons_fixture(tmp_path)
+    with pytest.raises(packs_slice.UsageError, match="does not support"):
+        _slice(source_path, schema_path, "anti-patterns", issues=["810"])
+
+
+# --- deeper slices: real committed packs ------------------------------------
+
+
+def test_real_lessons_by_issue_reads_source() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("lessons")
+    result = _slice(source_path, schema_path, "by-issue", issues=["810"])
+    assert result["count"] >= 1
+    assert all("#810" in e.get("issue_refs", []) for e in result["results"])
+
+
+def test_real_lessons_anti_patterns_subset() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("lessons")
+    total = len(packs_slice.load_source(source_path)["lessons"])
+    anti = _slice(source_path, schema_path, "anti-patterns")
+    assert 0 < anti["count"] <= total
+
+
+def test_real_rules_must_and_prohibitions() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("rules")
+    must = _slice(source_path, schema_path, "must")
+    assert must["count"] > 0
+    assert all(e["tier"] == "MUST" for e in must["results"])
+    proh = _slice(source_path, schema_path, "prohibitions")
+    assert proh["count"] > 0
+    assert all(e["tier"] in {"MUST_NOT", "SHOULD_NOT"} for e in proh["results"])
+
+
+def test_real_skills_by_id() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("skills")
+    result = _slice(source_path, schema_path, "by-id", ids=["deft-directive-cost"])
+    assert [e["id"] for e in result["results"]] == ["deft-directive-cost"]
+
+
+def test_real_strategies_by_id() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("strategies")
+    result = _slice(source_path, schema_path, "by-id", ids=["yolo"])
+    assert [e["id"] for e in result["results"]] == ["yolo"]
+
+
+# --- new packs (#1637): patterns + swarm-spec -------------------------------
+
+
+def test_resolve_patterns_and_swarm_spec_via_disk_discovery() -> None:
+    p_src, p_schema = packs_slice.resolve_pack("patterns")
+    sw_src, sw_schema = packs_slice.resolve_pack("swarm-spec")
+    assert p_src.name == "patterns-pack-0.1.json"
+    assert p_schema.name == "patterns-pack.schema.json"
+    assert sw_src.name == "swarm-spec-pack-0.1.json"
+    assert sw_schema.name == "swarm-spec-pack.schema.json"
+
+
+def test_list_packs_includes_patterns_and_swarm_spec() -> None:
+    payload = packs_slice.list_packs()
+    names = {p["name"] for p in payload["packs"]}
+    assert {"patterns", "swarm-spec"} <= names
+
+
+def test_real_patterns_list_reads_source() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("patterns")
+    result = _slice(source_path, schema_path, "list")
+    assert result["pack"] == "patterns-pack-0.1"
+    assert result["count"] > 0
+    assert all(e.get("path", "").startswith("patterns/") for e in result["results"])
+
+
+def test_real_swarm_spec_list_reads_source() -> None:
+    source_path, schema_path = packs_slice.resolve_pack("swarm-spec")
+    result = _slice(source_path, schema_path, "list")
+    assert result["pack"] == "swarm-spec-pack-0.1"
+    assert result["count"] > 0
+    assert all(e.get("path", "").startswith("swarm/") for e in result["results"])
