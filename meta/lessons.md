@@ -606,3 +606,15 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Exception (already covered, needs no new machinery):** stable, expensive-to-rediscover, high-stakes negatives (licensing / legal constraints, hard API limits, incident post-mortems) DO warrant durable records -- but ADRs / post-mortems / the issue tracker already serve them.
 
 **Why prose-tier:** a governance / won't-build decision with no code rule to enforce; this entry exists for discoverability so the #584 discussion does not recur. Future duplicates close as duplicate-of-#584.
+
+## USER.md content-read enforcement -- existence checks are insufficient (2026-06)
+
+**Source:** Issue #696. Observed 2026-04-27: a returning session emitted the alignment confirmation, ran `Test-Path` on USER.md (-> True), declared all config present, and addressed the user by a name injected via a Warp Drive notebook instead of the name in USER.md. USER.md was never read; its `Personal (always wins)` precedence rule was never applied because that rule lives inside the file the agent skipped.
+
+**Key insight:** A presence / existence check on USER.md is NOT a content read. An alignment confirmation that can be emitted without reading USER.md leaves a substitution gap: when external context (Warp Drive notebooks, MCP server outputs, prompt-injected preferences) defines the same fields as USER.md, the agent silently adopts the external value. External context sits OUTSIDE deft's precedence hierarchy -- USER.md `Personal (always wins)` must win, but only a real content read can apply that rule.
+
+**Rule:** The alignment confirmation MUST include data drawn from USER.md content -- specifically the addressing-name -- so the read is unfakeable (`Deft Directive active -- AGENTS.md loaded. Addressing you as: {Name}.`). Returning Sessions is promoted from unmarked prose to an enforced `!`/`⊗` rule with an ordered read list (main.md -> USER.md -> PROJECT-DEFINITION) and an inline external-context precedence rule. A `Test-Path` substitution for a content read is an explicit anti-pattern.
+
+**Canonical encoding (strongest-applicable layer):** the rule body lives in `AGENTS.md` + `templates/agents-entry.md` (`## Returning Sessions` + `### Deft Alignment Confirmation`), propagated to the consumer managed-section via `task agents:refresh` (#1309). Deterministic shape-coverage: `tests/content/test_agents_md.py` (must-marker, Test-Path anti-pattern, name-echo, external-context precedence wording). The behavioral eval that actually catches the substitution failure class (conflicting USER.md vs external-context names) is deferred to its own issue (Fix D); the greet-skill structural cleanup is Fix E.
+
+**Cross-references:** `AGENTS.md` / `templates/agents-entry.md` `## Returning Sessions` + `### Deft Alignment Confirmation` (rule body); `tests/content/test_agents_md.py` (shape coverage); #163 (CLI gate parity, complementary); #258 (Warp Drive inventory, documentation half of the same root cause); #78 (adjacent bootstrap-update offer).

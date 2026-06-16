@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Returning Sessions now forces an actual read of your saved preferences (#696)** -- the harness used to let an agent merely check that USER.md exists, then greet you and silently adopt a name or preference injected by external context (Warp Drive notebooks, MCP outputs). The alignment confirmation now must echo your addressing-name read from inside USER.md, Returning Sessions is promoted to an enforced rule with an ordered read list, and USER.md "Personal (always wins)" entries are documented as overriding external context. Closes #696.
 
 ### Removed
 
