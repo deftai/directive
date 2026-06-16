@@ -1742,3 +1742,277 @@ func TestInsertDeftIncludeAfterIncludesLine_TolerateInlineComment(t *testing.T) 
 		t.Errorf("expected ordering includes: < deft: < tasks:; got:\n%s", out)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Python interpreter preflight (#1668)
+// ---------------------------------------------------------------------------
+
+// withPythonSeams swaps the lookPathFunc + pythonVersionProbeFunc seams so the
+// interpreter preflight can be exercised deterministically without a real
+// interpreter on PATH. It also neutralizes any ambient DEFT_PYTHON so the
+// no-override candidate order is the default unless a test sets it explicitly.
+func withPythonSeams(t *testing.T, look func(string) (string, error), probe func(string, ...string) (string, error)) {
+	t.Helper()
+	t.Setenv("DEFT_PYTHON", "")
+	origLook := lookPathFunc
+	origProbe := pythonVersionProbeFunc
+	lookPathFunc = look
+	pythonVersionProbeFunc = probe
+	t.Cleanup(func() {
+		lookPathFunc = origLook
+		pythonVersionProbeFunc = origProbe
+	})
+}
+
+// lookOnly builds a lookPathFunc stub where only the named bins resolve.
+func lookOnly(present ...string) func(string) (string, error) {
+	set := map[string]bool{}
+	for _, p := range present {
+		set[p] = true
+	}
+	return func(name string) (string, error) {
+		if set[name] {
+			return "/usr/bin/" + name, nil
+		}
+		return "", exec.ErrNotFound
+	}
+}
+
+func TestParsePythonVersion(t *testing.T) {
+	cases := []struct {
+		in                  string
+		ok                  bool
+		major, minor, patch int
+	}{
+		{"Python 3.13.1", true, 3, 13, 1},
+		{"Python 3.11", true, 3, 11, 0},
+		{"Python 3.10.6", true, 3, 10, 6},
+		{"Python 2.7.18", true, 2, 7, 18},
+		{"not a version", false, 0, 0, 0},
+	}
+	for _, c := range cases {
+		v, ok := parsePythonVersion(c.in)
+		if ok != c.ok {
+			t.Errorf("parsePythonVersion(%q) ok=%v, want %v", c.in, ok, c.ok)
+			continue
+		}
+		if !ok {
+			continue
+		}
+		if v.major != c.major || v.minor != c.minor || v.patch != c.patch {
+			t.Errorf("parsePythonVersion(%q) = %d.%d.%d, want %d.%d.%d", c.in, v.major, v.minor, v.patch, c.major, c.minor, c.patch)
+		}
+	}
+}
+
+func TestPythonVersionMeetsMinimum(t *testing.T) {
+	cases := []struct {
+		v    pythonVersion
+		want bool
+	}{
+		{pythonVersion{major: 3, minor: 11}, true},
+		{pythonVersion{major: 3, minor: 13, patch: 2}, true},
+		{pythonVersion{major: 4, minor: 0}, true},
+		{pythonVersion{major: 3, minor: 10, patch: 99}, false},
+		{pythonVersion{major: 2, minor: 7}, false},
+	}
+	for _, c := range cases {
+		if got := c.v.meetsMinimum(); got != c.want {
+			t.Errorf("%s meetsMinimum() = %v, want %v", c.v.String(), got, c.want)
+		}
+	}
+}
+
+func TestIsAppExecutionAliasStub(t *testing.T) {
+	stub := "Python was not found; run without arguments to install from the " +
+		"Microsoft Store, or disable this shortcut from Settings > Apps > " +
+		"Advanced app settings > App execution aliases."
+	if !isAppExecutionAliasStub(stub) {
+		t.Error("expected the Windows App-Execution-Alias stub text to be detected")
+	}
+	if isAppExecutionAliasStub("Python 3.13.1") {
+		t.Error("a real version banner must not be treated as the alias stub")
+	}
+}
+
+// TestRunPythonPreflight_TooOldRejected: an interpreter older than 3.11 is
+// recorded as bestFound but never resolved (AC: version-too-old rejection).
+func TestRunPythonPreflight_TooOldRejected(t *testing.T) {
+	withPythonSeams(t, lookOnly("python"), func(bin string, _ ...string) (string, error) {
+		if bin == "python" {
+			return "Python 3.10.6", nil
+		}
+		return "", exec.ErrNotFound
+	})
+	pf := runPythonPreflight()
+	if pf.ok {
+		t.Fatalf("expected preflight to reject Python 3.10, got ok=true (%+v)", pf)
+	}
+	if !pf.foundAny {
+		t.Fatal("expected foundAny=true for a present-but-too-old interpreter")
+	}
+	if pf.bestFound.source != "python" || pf.bestVersion.minor != 10 {
+		t.Errorf("bestFound=%q version=%s, want python 3.10.x", pf.bestFound.source, pf.bestVersion.String())
+	}
+}
+
+// TestRunPythonPreflight_PyLauncherResolves models a Windows host where the
+// `python3` on PATH is the App-Execution-Alias stub, `python` is absent, and
+// the `py -3` launcher resolves a real 3.13 interpreter (AC: resolution order
+// incl. the py launcher, skipping the alias stub).
+func TestRunPythonPreflight_PyLauncherResolves(t *testing.T) {
+	stub := "Python was not found; run without arguments to install from the Microsoft Store ... App execution aliases."
+	withPythonSeams(t, lookOnly("python3", "py"), func(bin string, prefix ...string) (string, error) {
+		switch bin {
+		case "python3":
+			return stub, nil
+		case "py":
+			if len(prefix) == 1 && prefix[0] == "-3" {
+				return "Python 3.13.1", nil
+			}
+		}
+		return "", exec.ErrNotFound
+	})
+	pf := runPythonPreflight()
+	if !pf.ok {
+		t.Fatalf("expected the py launcher to resolve a 3.13 interpreter, got ok=false (%+v)", pf)
+	}
+	if pf.resolved.source != "py launcher" {
+		t.Errorf("resolved.source = %q, want %q", pf.resolved.source, "py launcher")
+	}
+	if len(pf.resolved.prefixArgs) != 1 || pf.resolved.prefixArgs[0] != "-3" {
+		t.Errorf("resolved.prefixArgs = %v, want [-3]", pf.resolved.prefixArgs)
+	}
+	if pf.version.major != 3 || pf.version.minor != 13 {
+		t.Errorf("resolved version = %s, want 3.13.x", pf.version.String())
+	}
+}
+
+// TestRunPythonPreflight_DeftPythonOverride: an explicit DEFT_PYTHON path is
+// probed first and directly (no PATH gate), even when nothing else resolves
+// (AC: resolution probes DEFT_PYTHON).
+func TestRunPythonPreflight_DeftPythonOverride(t *testing.T) {
+	withPythonSeams(t, lookOnly(), func(bin string, _ ...string) (string, error) {
+		if bin == "/opt/py311/bin/python" {
+			return "Python 3.11.7", nil
+		}
+		return "", exec.ErrNotFound
+	})
+	t.Setenv("DEFT_PYTHON", "/opt/py311/bin/python")
+
+	pf := runPythonPreflight()
+	if !pf.ok {
+		t.Fatalf("expected DEFT_PYTHON override to resolve, got ok=false (%+v)", pf)
+	}
+	if pf.resolved.source != "DEFT_PYTHON" || pf.resolved.bin != "/opt/py311/bin/python" {
+		t.Errorf("resolved = %q/%q, want DEFT_PYTHON//opt/py311/bin/python", pf.resolved.source, pf.resolved.bin)
+	}
+}
+
+// TestRunPythonPreflight_NoneFound: nothing on PATH and no override -> ok=false
+// and foundAny=false (AC: graceful handling of a missing interpreter).
+func TestRunPythonPreflight_NoneFound(t *testing.T) {
+	withPythonSeams(t, lookOnly(), func(string, ...string) (string, error) {
+		return "", exec.ErrNotFound
+	})
+	pf := runPythonPreflight()
+	if pf.ok || pf.foundAny {
+		t.Fatalf("expected ok=false, foundAny=false when no interpreter resolves, got %+v", pf)
+	}
+}
+
+func TestPythonPreflightMessage_IsActionable(t *testing.T) {
+	tooOld := pythonPreflight{foundAny: true, bestFound: pythonInterpreterCandidate{source: "python"}, bestVersion: pythonVersion{major: 3, minor: 10, patch: 6}}
+	msg := pythonPreflightMessage(tooOld)
+	for _, want := range []string{"3.11", "DEFT_PYTHON", "3.10.6", "python"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("too-old message missing %q; got:\n%s", want, msg)
+		}
+	}
+	none := pythonPreflight{}
+	msg = pythonPreflightMessage(none)
+	for _, want := range []string{"3.11", "DEFT_PYTHON", "py` launcher"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("not-found message missing %q; got:\n%s", want, msg)
+		}
+	}
+}
+
+// TestDoctorHandoffCommand_PyLauncherAndJSON pins the doctor handoff argv
+// wiring: the resolved interpreter's prefix args lead, --session --full always
+// present, --json gated on jsonOut, and the project root forwarded (AC:
+// graceful doctor-handoff path uses the resolved interpreter).
+func TestDoctorHandoffCommand_PyLauncherAndJSON(t *testing.T) {
+	pf := pythonPreflight{
+		ok:       true,
+		resolved: pythonInterpreterCandidate{source: "py launcher", bin: "py", prefixArgs: []string{"-3"}},
+		version:  pythonVersion{major: 3, minor: 13, patch: 1},
+	}
+	bin, args := doctorHandoffCommand(pf, "/proj/.deft/core/scripts/doctor.py", "/proj", true)
+	if bin != "py" {
+		t.Errorf("bin = %q, want py", bin)
+	}
+	want := []string{"-3", "/proj/.deft/core/scripts/doctor.py", "--session", "--full", "--json", "--project-root", "/proj"}
+	if strings.Join(args, " ") != strings.Join(want, " ") {
+		t.Errorf("args = %v, want %v", args, want)
+	}
+
+	// Non-JSON, plain interpreter (no prefix) drops --json and the prefix.
+	pf2 := pythonPreflight{ok: true, resolved: pythonInterpreterCandidate{source: "python3", bin: "python3"}}
+	bin2, args2 := doctorHandoffCommand(pf2, "/proj/.deft/core/scripts/doctor.py", "/proj", false)
+	if bin2 != "python3" {
+		t.Errorf("bin = %q, want python3", bin2)
+	}
+	if containsString(args2, "--json") {
+		t.Errorf("non-JSON handoff must not carry --json; got %v", args2)
+	}
+	if args2[0] != "/proj/.deft/core/scripts/doctor.py" {
+		t.Errorf("plain interpreter must not prepend a prefix arg; got %v", args2)
+	}
+}
+
+// TestReportPythonPreflight_DocumentsDeftPythonOnSuccess: AC #4 -- the success
+// path documents the DEFT_PYTHON override in installer output.
+func TestReportPythonPreflight_DocumentsDeftPythonOnSuccess(t *testing.T) {
+	withPythonSeams(t, lookOnly("python3"), func(bin string, _ ...string) (string, error) {
+		if bin == "python3" {
+			return "Python 3.13.1", nil
+		}
+		return "", exec.ErrNotFound
+	})
+	var out bytes.Buffer
+	w := NewWizardWithLayout(strings.NewReader(""), &out, false, false)
+	pf := reportPythonPreflight(w)
+	if !pf.ok {
+		t.Fatalf("expected ok preflight, got %+v", pf)
+	}
+	if !strings.Contains(out.String(), "DEFT_PYTHON") {
+		t.Errorf("success output must document DEFT_PYTHON; got:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "3.13.1") {
+		t.Errorf("success output should report the resolved version; got:\n%s", out.String())
+	}
+}
+
+// TestReportPythonPreflight_ActionableOnFailure: AC #1 -- a too-old interpreter
+// produces a loud, actionable message naming 3.11+ and DEFT_PYTHON.
+func TestReportPythonPreflight_ActionableOnFailure(t *testing.T) {
+	withPythonSeams(t, lookOnly("python"), func(bin string, _ ...string) (string, error) {
+		if bin == "python" {
+			return "Python 3.10.6", nil
+		}
+		return "", exec.ErrNotFound
+	})
+	var out bytes.Buffer
+	w := NewWizardWithLayout(strings.NewReader(""), &out, false, false)
+	pf := reportPythonPreflight(w)
+	if pf.ok {
+		t.Fatal("expected failed preflight for Python 3.10")
+	}
+	s := out.String()
+	for _, want := range []string{"FAILED", "3.11", "DEFT_PYTHON"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("failure output missing %q; got:\n%s", want, s)
+		}
+	}
+}

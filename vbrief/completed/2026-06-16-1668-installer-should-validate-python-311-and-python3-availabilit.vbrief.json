@@ -1,0 +1,101 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1668"
+  },
+  "plan": {
+    "title": "Installer should validate Python 3.11+ and python3 availability before install (Windows)",
+    "id": "1668-installer-python-preflight",
+    "status": "completed",
+    "narratives": {
+      "Description": "On Windows the Go installer reports success but leaves a broken environment because it never validates the Python interpreter the framework depends on. Two gaps: (1) it does not verify Python >= 3.11 (framework scripts use `from datetime import UTC`, which is 3.11+), so an older interpreter crashes the post-install doctor handoff and the pre-commit hooks; (2) interpreter resolution assumes `python3`, which is usually absent on Windows (only `python.exe` / the `py` launcher exist). This story adds an install-time Python preflight (version + interpreter resolution) and makes the doctor handoff degrade gracefully, so the failure is surfaced up front with an actionable message instead of as a raw traceback on the user's first commit.",
+      "ImplementationPlan": "- Add a Python preflight to the installer CLI (cmd/deft-install): probe for a usable interpreter across `DEFT_PYTHON`, `python`, `python3`, and the Windows `py` launcher; run `<interp> --version`; require >= 3.11. On failure, abort (or, under --yes, fail loud) with an actionable message naming the 3.11+ requirement and the `DEFT_PYTHON` override.\n- Surface the resolved interpreter: document `DEFT_PYTHON` prominently in installer output and prefer the resolved interpreter where the hooks are wired. The .githooks/pre-commit and pre-push hook scripts already fall back DEFT_PYTHON -> python3 -> python; extend the probe order to include the `py` launcher and guard against the Windows App-Execution-Alias stub for `python3`.\n- Make the post-install doctor handoff in cmd/deft-install/setup.go detect an incompatible/missing interpreter and emit a concise actionable message instead of streaming a raw ImportError traceback to stdout.\n- Add Go tests in cmd/deft-install covering version-too-old rejection, interpreter resolution order (incl. py launcher / DEFT_PYTHON), and the graceful doctor-handoff path.",
+      "UserStory": "As a Windows user installing deft, I want the installer to verify a compatible Python (3.11+) and resolve the interpreter up front, so that I get a clear actionable error at install time instead of a broken commit workflow and a raw traceback later.",
+      "Approach": "2026-06-16 codebase verification (cmd/deft-install/setup.go + .githooks/): Problem 1 (no >=3.11 validation) is UNADDRESSED -- probeCoreToolsMissing/EnsureCoreTools only check interpreter PRESENCE via LookPath (coreToolCandidates maps python -> [python, python3]); there is no `--version` / >=3.11 gate, and although pyproject declares requires-python>=3.11 the Go installer does not enforce it. Problem 2 is PARTIALLY mitigated: the git hooks now resolve DEFT_PYTHON -> python3 -> python, but they do NOT probe the `py` launcher and remain exposed to the Windows App-Execution-Alias `python3` stub. doHandoffToDoctor hardcodes python/python3 and pipes stderr to stdout, so an incompatible interpreter still dumps a raw traceback. Net: issue is still valid; scope = installer-side preflight + interpreter resolution + graceful handoff.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1668",
+      "Overview": "Here's a GitHub issue draft focused on the Python environment checks:\n\n---\n\n**Title:** Installer should validate Python 3.11+ and `python3` availability before install (Windows)\n\n## Summary\nOn Windows, the Deft/Directive installer completes \"successfully\" but leaves the environment in a broken state because it never verifies the Python interpreter it depends on. Two distinct problems surface:\n\n1. **Python version is too old** — framework scripts require Python **3.11+** but the installer runs against whatever Python is found, producing a hard crash.\n2. **`python3` is not on PATH** — standard on Windows (only `python.exe` exists), which breaks the git hooks the installer wires up.\n\nBoth are detectable up front and should fail (or warn) at install time rather than during the post-install doctor handoff or on the user's first commit.\n\n## Environment\n- OS: Windows\n- Installed Python at time of failure: 3.10 (`...\\Python\\Python310\\`), later 3.13\n- Deft/Directive: v0.48.0\n\n## Problem 1 — Python version not checked (requires 3.11+)\nSeveral framework scripts use `from datetime import UTC, datetime`, which only exists in Python 3.11+. With Python 3.10 the post-install doctor handoff crashes:\n\n```\n--- Doctor handoff (post-install state via --session --full prose) ---\nTraceback (most recent call last):\n  File \"...\\.deft\\core\\scripts\\doctor.py\", line 31, in <module>\n    from datetime import UTC, datetime\nImportError: cannot import name 'UTC' from 'datetime' (...\\Python310\\lib\\datetime.py)\n```\nThe same failure later occurs in `policy.py` / `preflight_branch.py` during the pre-commit hook:\n\n```\nFile \"...\\.deft\\core\\scripts\\preflight_branch.py\", line 38, in <module>\n    from policy import (...)\nFile \"...\\.deft\\core\\scripts\\policy.py\", line 29, in <module>\n    from datetime import UTC, datetime\nImportError: cannot import name 'UTC' from 'datetime' (...\\Python310\\lib\\datetime.py)\n```\nUpgrading to Python 3.11+ (user ended on 3.13) resolves it.\n\n## Problem 2 — `python3` not available on PATH (Windows)\nAfter install, the first commit fails because the git hooks invoke `python3`, which doesn't exist on a standard Windows Python install (only `python` / `python.exe`):\n\n```\n$ git commit -m \"deft/directive installed\"\nPython was not found; run without arguments to install from the Microsoft Store,\nor disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\n```\nThe installed hooks (`.githooks/pre-commit`) run:\n- `preflight_branch.py` (branch protection)\n- `verify_encoding.py` (encoding verification)\n- `verify_vbrief_conformance.py` (vBRIEF conformance)\n\nThe `DEFT_PYTHON` env var works as a workaround:\n```\nDEFT_PYTHON = C:\\Users\\<user>\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\n```\nBut many Windows users will hit this, since `python3` on PATH is the exception, not the norm.\n\n## Suggested fixes\n- **Preflight check in the installer**: detect a usable Python interpreter and verify version is **>= 3.11** before proceeding; abort with a clear, actionable message (and link/instructions) if not.\n- **Resolve the interpreter explicitly**: don't assume `python3` exists. Probe `python`, `python3`, the `py` launcher, and `DEFT_PYTHON`, then bake the resolved path into the hooks (or surface `DEFT_PYTHON` setup as a documented, prompted step rather than something users must discover).\n- **Document `DEFT_PYTHON`** prominently in installer output and docs as the supported Windows override.\n- **Make the doctor handoff degrade gracefully** instead of dumping a raw traceback when the interpreter is incompatible.\n\n## Impact\nA successful-looking install leaves a broken commit workflow until the user independently diagnoses (a) the 3.11+ requirement and (b) the missing `python3`/`DEFT_PYTHON` situation. Both are cheap to detect at install time.",
+      "Labels": "enhancement, adoption-blocker, installer"
+    },
+    "items": [
+      {
+        "title": "Installer validates Python >= 3.11 before completing",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a resolved Python interpreter older than 3.11, when deft-install runs, then it aborts (or, under --yes, fails loud) with an actionable message naming the 3.11+ requirement and the DEFT_PYTHON override, rather than reporting success."
+        }
+      },
+      {
+        "title": "Interpreter resolution probes python/python3/py/DEFT_PYTHON",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a Windows host where only python.exe (or the py launcher) exists, when the installer and the installed git hooks resolve Python, then they find a working interpreter (probing DEFT_PYTHON, python, python3, and the py launcher) without depending on python3 being on PATH."
+        }
+      },
+      {
+        "title": "Doctor handoff degrades gracefully on an incompatible interpreter",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an incompatible or missing interpreter, when the post-install doctor handoff runs, then it emits a concise actionable message instead of a raw ImportError traceback."
+        }
+      },
+      {
+        "title": "DEFT_PYTHON documented in installer output",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the installer runs, when it reports Python status, then DEFT_PYTHON is documented as the supported Windows override in the output."
+        }
+      },
+      {
+        "title": "Go tests cover preflight + resolution + handoff",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the test suite, when `go test ./cmd/deft-install/...` runs, then it covers version-too-old rejection, interpreter resolution order, and the graceful doctor-handoff path."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/setup_test.go",
+          ".githooks/pre-commit",
+          ".githooks/pre-push"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/...",
+          "go build ./cmd/deft-install/"
+        ],
+        "expected_outputs": [
+          "installer rejects Python < 3.11 with an actionable message naming the DEFT_PYTHON override",
+          "interpreter resolution probes DEFT_PYTHON/python/python3/py launcher in installer and git hooks",
+          "doctor handoff degrades gracefully without a raw traceback on an incompatible interpreter",
+          "passing Go tests covering version rejection, resolution order, and the handoff path"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Enhancement ingested from GitHub issue #1668; no spec-section requirement trace applies."
+      },
+      "completedAt": "2026-06-16T20:19:16Z",
+      "capacityBucket": "new-capability"
+    },
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1668",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1668: Installer should validate Python 3.11+ and python3 availability before install (Windows)"
+      }
+    ],
+    "updated": "2026-06-16T20:19:16Z"
+  }
+}

@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/deftai/directive/templates"
@@ -1118,6 +1119,12 @@ func printCoreToolsFallbacks(w *Wizard, missing []string) {
 // missing tools (for JSON result) as a non-nil slice (empty when none
 // missing) for stable JSON emission.
 func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
+	// #1668: validate the Python interpreter (version + resolution) up front so
+	// a too-old / Windows-`python3`-missing environment is surfaced loudly at
+	// install time instead of as a raw traceback on the first commit. This is
+	// reporting only -- it never changes the missing-tool list or aborts.
+	reportPythonPreflight(w)
+
 	missing := probeCoreToolsMissing()
 	if len(missing) == 0 {
 		w.printf("Core tools present: task, uv, python, gh.\n")
@@ -1804,6 +1811,231 @@ func PrintMaintainerNextSteps(w *Wizard, result *WizardResult, configDir string)
 	w.printf("  2. Run `task check` before committing framework changes.\n\n")
 }
 
+// ---------------------------------------------------------------------------
+// 4.5b Python interpreter preflight (#1668)
+// ---------------------------------------------------------------------------
+//
+// The framework scripts (doctor.py, policy.py, preflight_branch.py, ...) use
+// `from datetime import UTC`, which only exists on Python 3.11+. On Windows
+// `python3` is usually absent (only `python.exe` / the `py` launcher exist),
+// so a successful-looking install can leave a broken commit workflow and the
+// post-install doctor handoff dumps a raw ImportError traceback. The preflight
+// below resolves a usable interpreter across DEFT_PYTHON / python / python3 /
+// the `py` launcher, verifies it is >= 3.11, and lets the doctor handoff
+// degrade gracefully with an actionable message instead of a raw traceback.
+
+const (
+	// minPythonMajor / minPythonMinor are the minimum interpreter version the
+	// framework scripts require (the `from datetime import UTC` floor).
+	minPythonMajor = 3
+	minPythonMinor = 11
+)
+
+// pythonVersion is a parsed `Python X.Y[.Z]` interpreter version.
+type pythonVersion struct {
+	major int
+	minor int
+	patch int
+	raw   string
+}
+
+// meetsMinimum reports whether the version satisfies the 3.11+ requirement.
+func (v pythonVersion) meetsMinimum() bool {
+	if v.major != minPythonMajor {
+		return v.major > minPythonMajor
+	}
+	return v.minor >= minPythonMinor
+}
+
+// String renders a human-friendly `X.Y.Z` version.
+func (v pythonVersion) String() string {
+	return fmt.Sprintf("%d.%d.%d", v.major, v.minor, v.patch)
+}
+
+// pythonInterpreterCandidate is one interpreter the preflight probes. bin is the
+// executable; prefixArgs are inserted before any forwarded args (the Windows
+// `py` launcher needs `-3` to select Python 3). source is a short label used in
+// operator-facing messages. probeDirect skips the PATH LookPath gate -- used
+// for DEFT_PYTHON, which is an explicit (possibly absolute) operator override.
+type pythonInterpreterCandidate struct {
+	source      string
+	bin         string
+	prefixArgs  []string
+	probeDirect bool
+}
+
+// pythonInterpreterCandidates returns the ordered interpreter candidates the
+// preflight probes: DEFT_PYTHON (when set) -> python -> python3 -> the Windows
+// `py -3` launcher. The order matches the installed git hooks so the installer
+// validates the same interpreter the hooks will later use.
+func pythonInterpreterCandidates() []pythonInterpreterCandidate {
+	var cands []pythonInterpreterCandidate
+	if override := strings.TrimSpace(os.Getenv("DEFT_PYTHON")); override != "" {
+		cands = append(cands, pythonInterpreterCandidate{source: "DEFT_PYTHON", bin: override, probeDirect: true})
+	}
+	cands = append(cands,
+		pythonInterpreterCandidate{source: "python", bin: "python"},
+		pythonInterpreterCandidate{source: "python3", bin: "python3"},
+		pythonInterpreterCandidate{source: "py launcher", bin: "py", prefixArgs: []string{"-3"}},
+	)
+	return cands
+}
+
+// pythonVersionProbeFunc runs the candidate interpreter's `--version` and
+// returns the trimmed combined stdout+stderr. Replaceable in tests so the
+// preflight logic can be exercised without a real interpreter. CPython prints
+// the version to stdout on 3.4+, but older builds used stderr -- combining both
+// keeps the parse robust.
+var pythonVersionProbeFunc = defaultPythonVersionProbe
+
+func defaultPythonVersionProbe(bin string, prefixArgs ...string) (string, error) {
+	args := append(append([]string{}, prefixArgs...), "--version")
+	out, err := exec.Command(bin, args...).CombinedOutput()
+	return strings.TrimSpace(string(out)), err
+}
+
+// pythonVersionPattern extracts the first `X.Y[.Z]` triple from `--version`
+// output such as `Python 3.13.1`.
+var pythonVersionPattern = regexp.MustCompile(`(\d+)\.(\d+)(?:\.(\d+))?`)
+
+// parsePythonVersion parses interpreter `--version` output into a pythonVersion.
+// Returns ok=false when no version triple is present.
+func parsePythonVersion(output string) (pythonVersion, bool) {
+	m := pythonVersionPattern.FindStringSubmatch(output)
+	if m == nil {
+		return pythonVersion{}, false
+	}
+	major, _ := strconv.Atoi(m[1])
+	minor, _ := strconv.Atoi(m[2])
+	patch := 0
+	if m[3] != "" {
+		patch, _ = strconv.Atoi(m[3])
+	}
+	return pythonVersion{major: major, minor: minor, patch: patch, raw: strings.TrimSpace(output)}, true
+}
+
+// isAppExecutionAliasStub reports whether `--version` output is the Windows
+// App-Execution-Alias `python3` stub rather than a real interpreter. The stub
+// prints "Python was not found; run without arguments to install from the
+// Microsoft Store, or disable this shortcut from Settings > ... > App execution
+// aliases." and must never be treated as a usable interpreter (#1668).
+func isAppExecutionAliasStub(output string) bool {
+	lo := strings.ToLower(output)
+	return strings.Contains(lo, "microsoft store") ||
+		strings.Contains(lo, "execution alias") ||
+		strings.Contains(lo, "was not found")
+}
+
+// pythonPreflight is the resolved outcome of probing the interpreter candidates.
+type pythonPreflight struct {
+	// resolved + version describe the candidate that satisfied the 3.11+
+	// requirement (the interpreter the installer/hooks should use). Valid only
+	// when ok is true.
+	resolved pythonInterpreterCandidate
+	version  pythonVersion
+	ok       bool
+
+	// bestFound + bestVersion describe the first interpreter that reported ANY
+	// version, used to craft the "too old" message. foundAny reports whether a
+	// real interpreter was found at all (vs none/only the alias stub).
+	bestFound   pythonInterpreterCandidate
+	bestVersion pythonVersion
+	foundAny    bool
+}
+
+// runPythonPreflight probes the interpreter candidates in order and returns the
+// first one that reports a version >= 3.11. When none satisfies the floor it
+// records the first interpreter that reported any version (for the "too old"
+// message) and returns ok=false.
+func runPythonPreflight() pythonPreflight {
+	var pf pythonPreflight
+	for _, c := range pythonInterpreterCandidates() {
+		if !c.probeDirect && !filepath.IsAbs(c.bin) {
+			if _, err := lookPathFunc(c.bin); err != nil {
+				continue
+			}
+		}
+		out, err := pythonVersionProbeFunc(c.bin, c.prefixArgs...)
+		if isAppExecutionAliasStub(out) {
+			continue
+		}
+		if err != nil && out == "" {
+			continue
+		}
+		v, ok := parsePythonVersion(out)
+		if !ok {
+			continue
+		}
+		if !pf.foundAny {
+			pf.foundAny = true
+			pf.bestFound = c
+			pf.bestVersion = v
+		}
+		if v.meetsMinimum() {
+			pf.resolved = c
+			pf.version = v
+			pf.ok = true
+			return pf
+		}
+	}
+	return pf
+}
+
+// pythonPreflightMessage renders the actionable, operator-facing message for a
+// failed preflight. It names the 3.11+ requirement and documents the
+// DEFT_PYTHON override (the supported Windows escape hatch).
+func pythonPreflightMessage(pf pythonPreflight) string {
+	var b strings.Builder
+	b.WriteString("Deft requires Python 3.11+ (framework scripts import `from datetime import UTC`, added in 3.11).\n")
+	if pf.foundAny {
+		fmt.Fprintf(&b, "  Found Python %s via %s, which is too old.\n", pf.bestVersion.String(), pf.bestFound.source)
+	} else {
+		b.WriteString("  No usable Python interpreter was found (probed DEFT_PYTHON, python, python3, and the `py` launcher).\n")
+	}
+	b.WriteString("  Install Python 3.11 or newer, then put it on PATH or set DEFT_PYTHON to its full path:\n")
+	b.WriteString("    Windows:     set DEFT_PYTHON=C:\\Users\\<you>\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\n")
+	b.WriteString("    macOS/Linux: export DEFT_PYTHON=/usr/local/bin/python3.11\n")
+	b.WriteString("  The installed git hooks and the post-install doctor handoff use this interpreter.\n")
+	return b.String()
+}
+
+// reportPythonPreflight runs the interpreter preflight and prints either a
+// concise confirmation (documenting the DEFT_PYTHON override) or a loud,
+// actionable error block when no compatible 3.11+ interpreter resolves. The
+// returned outcome lets callers (the doctor handoff) reuse the resolution. It
+// never returns an error / aborts on its own -- aborting the whole install
+// requires the caller's flow control -- but the prominent message is the
+// install-time "fail loud" the #1668 issue asks for.
+func reportPythonPreflight(w *Wizard) pythonPreflight {
+	pf := runPythonPreflight()
+	if pf.ok {
+		w.printf("Python preflight: %s satisfies the 3.11+ requirement (resolved via %s).\n", pf.version.String(), pf.resolved.source)
+		w.printf("  Override the interpreter with DEFT_PYTHON=<full path> if needed.\n")
+		return pf
+	}
+	w.printf("\n[deft-install] Python preflight FAILED -- the install will not be usable until this is fixed:\n")
+	w.printf("%s", pythonPreflightMessage(pf))
+	return pf
+}
+
+// doctorHandoffCommand builds the interpreter binary and argv for the
+// post-install doctor handoff from a successful preflight. Extracted as a pure
+// helper so the interpreter-resolution wiring (incl. the `py -3` prefix) is
+// testable without shelling out.
+func doctorHandoffCommand(pf pythonPreflight, scriptsDoctor, projectDir string, jsonOut bool) (string, []string) {
+	args := append([]string{}, pf.resolved.prefixArgs...)
+	// --full bypasses the 24h/4h throttle gate in scripts/doctor.py so the
+	// installer-doctor handoff always runs the staleness check (Greptile P1
+	// on #1384: throttle could otherwise short-circuit the post-install
+	// report whenever doctor was recently run from another entry point).
+	args = append(args, scriptsDoctor, "--session", "--full")
+	if jsonOut {
+		args = append(args, "--json")
+	}
+	args = append(args, "--project-root", projectDir)
+	return pf.resolved.bin, args
+}
+
 // doHandoffToDoctor implements the #1339 (Epic-5) deterministic installer-to-doctor
 // handoff. It is invoked unconditionally at the end of every successful
 // install/update so that both human operators and agents receive the
@@ -1812,6 +2044,12 @@ func PrintMaintainerNextSteps(w *Wizard, result *WizardResult, configDir string)
 // itself is in --json mode so interactive humans see prose output rather
 // than a raw JSON blob (Greptile P1 on #1384). The call is best-effort and
 // never fails the overall install.
+//
+// #1668: the interpreter is resolved via the preflight (DEFT_PYTHON / python /
+// python3 / the `py` launcher) rather than hardcoded to python/python3, which
+// is usually absent on Windows. When no compatible 3.11+ interpreter resolves
+// the handoff degrades to a concise actionable message instead of streaming a
+// raw ImportError traceback from doctor.py to the operator.
 func doHandoffToDoctor(w *Wizard, result *WizardResult, jsonOut bool) {
 	scriptsDoctor := filepath.Join(result.DeftDir, "scripts", "doctor.py")
 	if _, err := os.Stat(scriptsDoctor); err != nil {
@@ -1819,21 +2057,16 @@ func doHandoffToDoctor(w *Wizard, result *WizardResult, jsonOut bool) {
 		return
 	}
 
-	python := "python3"
-	if runtime.GOOS == "windows" {
-		python = "python"
+	pf := runPythonPreflight()
+	if !pf.ok {
+		w.printf("\n--- Doctor handoff skipped: no compatible Python interpreter (3.11+) ---\n")
+		w.printf("%s", pythonPreflightMessage(pf))
+		w.printf("(Re-run the doctor with `task doctor` once a 3.11+ interpreter is available.)\n")
+		return
 	}
 
-	// --full bypasses the 24h/4h throttle gate in scripts/doctor.py so the
-	// installer-doctor handoff always runs the staleness check (Greptile P1
-	// on #1384: throttle could otherwise short-circuit the post-install
-	// report whenever doctor was recently run from another entry point).
-	doctorArgs := []string{scriptsDoctor, "--session", "--full"}
-	if jsonOut {
-		doctorArgs = append(doctorArgs, "--json")
-	}
-	doctorArgs = append(doctorArgs, "--project-root", result.ProjectDir)
-	cmd := exec.Command(python, doctorArgs...)
+	bin, doctorArgs := doctorHandoffCommand(pf, scriptsDoctor, result.ProjectDir, jsonOut)
+	cmd := exec.Command(bin, doctorArgs...)
 	cmd.Stdout = w.out
 	cmd.Stderr = w.out
 
@@ -1841,7 +2074,7 @@ func doHandoffToDoctor(w *Wizard, result *WizardResult, jsonOut bool) {
 	if jsonOut {
 		modeLabel = "JSON"
 	}
-	w.printf("\n--- Doctor handoff (post-install state via --session --full %s) ---\n", modeLabel)
+	w.printf("\n--- Doctor handoff (post-install state via --session --full %s; interpreter resolved via %s) ---\n", modeLabel, pf.resolved.source)
 	if err := cmd.Run(); err != nil {
 		// Non-fatal: the report (or any error detail) has already been
 		// emitted above; we simply note that the doctor surfaced issues.

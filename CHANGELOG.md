@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Installer now checks for a compatible Python up front (#1668)** -- `deft-install` validates that a Python 3.11+ interpreter is available before finishing, resolving it across `DEFT_PYTHON`, `python`, `python3`, and the Windows `py` launcher instead of assuming `python3` is on PATH. If only an older or missing interpreter is found, you get a clear, actionable message naming the 3.11+ requirement and the `DEFT_PYTHON` override, and the post-install doctor step now degrades gracefully instead of dumping a raw Python traceback. The installed git hooks use the same resolution order and skip the Windows App-Execution-Alias `python3` stub. Closes #1668.
 
 ### Changed
 

@@ -40,27 +40,67 @@ if [ -z "$SCRIPTS_DIR" ]; then
     exit 1
 fi
 
-PYTHON_BIN="${DEFT_PYTHON:-}"
-if [ -z "$PYTHON_BIN" ]; then
-    if command -v python3 >/dev/null 2>&1; then
-        PYTHON_BIN=python3
-    elif command -v python >/dev/null 2>&1; then
-        PYTHON_BIN=python
+# Resolve a usable Python interpreter (#1668). On Windows `python3` is usually
+# absent (only `python.exe` / the `py` launcher exist), and a bare `python3` on
+# PATH is often the Microsoft Store App-Execution-Alias stub that prints
+# "Python was not found" and exits non-zero. Probe DEFT_PYTHON (trusted
+# verbatim) -> python3 -> python -> the `py -3` launcher, validating each
+# non-override candidate by actually running `--version` and rejecting the
+# alias stub. PY_PREFIX carries the launcher selector (`-3`) when needed.
+PYTHON_BIN=""
+PY_PREFIX=""
+
+# _deft_try BIN [PREFIX] -- probe a candidate; on success set PYTHON_BIN/PY_PREFIX.
+_deft_try() {
+    _bin="$1"
+    _pre="${2:-}"
+    command -v "$_bin" >/dev/null 2>&1 || return 1
+    if [ -n "$_pre" ]; then
+        _out=$("$_bin" "$_pre" --version 2>&1) || return 1
     else
-        echo "deft pre-commit: no python interpreter found on PATH." >&2
-        echo "  Set DEFT_PYTHON=<absolute python path> or install python3." >&2
-        exit 1
+        _out=$("$_bin" --version 2>&1) || return 1
     fi
+    case "$_out" in
+        *"Microsoft Store"*|*"was not found"*|*"execution alias"*) return 1 ;;
+    esac
+    case "$_out" in
+        *Python\ [0-9]*) PYTHON_BIN="$_bin"; PY_PREFIX="$_pre"; return 0 ;;
+    esac
+    return 1
+}
+
+if [ -n "${DEFT_PYTHON:-}" ]; then
+    PYTHON_BIN="$DEFT_PYTHON"
+else
+    _deft_try python3 || _deft_try python || _deft_try py "-3" || true
 fi
 
+if [ -z "$PYTHON_BIN" ]; then
+    echo "deft pre-commit: no usable python interpreter found." >&2
+    echo "  Probed python3, python, and the 'py' launcher (rejecting the Windows" >&2
+    echo "  App-Execution-Alias stub)." >&2
+    echo "  Set DEFT_PYTHON=<absolute python 3.11+ path> or install Python 3.11+." >&2
+    exit 1
+fi
+
+# deft_py forwards args to the resolved interpreter, preserving quoting for
+# paths that may contain spaces (common on Windows).
+deft_py() {
+    if [ -n "$PY_PREFIX" ]; then
+        "$PYTHON_BIN" "$PY_PREFIX" "$@"
+    else
+        "$PYTHON_BIN" "$@"
+    fi
+}
+
 # Step 1: branch-protection gate (#747).
-"$PYTHON_BIN" "$SCRIPTS_DIR/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
+deft_py "$SCRIPTS_DIR/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
 
 # Step 2: PS 5.1 non-ASCII round-trip corruption gate (#798). Scans staged
 # files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM.
 # Three-state exit propagates: 0 allowed / 1 corruption blocked with diagnostic
 # / 2 config error. Recurrence chain documented in scripts/verify_encoding.py.
-"$PYTHON_BIN" "$SCRIPTS_DIR/verify_encoding.py" --project-root "$REPO_ROOT" --staged || exit $?
+deft_py "$SCRIPTS_DIR/verify_encoding.py" --project-root "$REPO_ROOT" --staged || exit $?
 
 # Step 3: vBRIEF 0.6 conformance gate (#1620). Scans staged vbrief/**/*.vbrief.json
 # for bare keys that are neither 0.6 spec-core nor x-directive/ / x-vbrief/
@@ -73,5 +113,6 @@ fi
 # predates this gate (stale-payload upgrade window) is not blocked by a missing
 # script; payload-staleness is surfaced separately by `task doctor`.
 if [ -d "$REPO_ROOT/vbrief" ] && [ -f "$SCRIPTS_DIR/verify_vbrief_conformance.py" ]; then
-    exec "$PYTHON_BIN" "$SCRIPTS_DIR/verify_vbrief_conformance.py" --project-root "$REPO_ROOT" --staged
+    deft_py "$SCRIPTS_DIR/verify_vbrief_conformance.py" --project-root "$REPO_ROOT" --staged
+    exit $?
 fi
