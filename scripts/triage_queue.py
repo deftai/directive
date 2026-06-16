@@ -48,6 +48,8 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
+import subprocess
 import sys
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -143,6 +145,12 @@ CACHE_DIR_NAME = ".deft-cache"
 
 #: Cache source layer for upstream GitHub issues. v1 ships github-issue only.
 CACHE_SOURCE_GITHUB_ISSUE = "github-issue"
+
+#: Env var honoured for repo inference when ``--repo`` is absent (#1238).
+#: Mirrors ``scripts/preflight_cache.py::ENV_TRIAGE_REPO`` and
+#: ``scripts/triage_bootstrap.py`` so every triage verb shares one
+#: resolution chain (flag > env > git origin).
+ENV_TRIAGE_REPO = "DEFT_TRIAGE_REPO"
 
 #: PROJECT-DEFINITION vBRIEF location for typed-policy lookup.
 PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json"
@@ -296,6 +304,88 @@ def _utc_now() -> datetime:
 
 def _utc_iso(dt: datetime | None = None) -> str:
     return (dt or _utc_now()).astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# ---------------------------------------------------------------------------
+# Repo resolution (#1238)
+# ---------------------------------------------------------------------------
+#
+# ``task triage:queue`` used to exit 2 demanding ``--repo`` even from inside
+# a clone whose ``git origin`` would resolve the repo, while sibling tools
+# (``triage:bootstrap``, ``preflight_cache``) already inferred it. These
+# helpers give ``triage_queue`` the same resolution chain so ``--repo``
+# becomes optional when origin is set. The chain mirrors
+# ``scripts/preflight_cache.py::_infer_repo_from_git`` /
+# ``_resolve_repo`` so the framework keeps one grammar.
+
+
+def _infer_repo_from_git(project_root: Path | None) -> str | None:
+    """Best-effort: read ``git remote get-url origin`` inside ``project_root``.
+
+    Returns ``"owner/name"`` on success, ``None`` otherwise. Mirrors
+    :func:`scripts.preflight_cache._infer_repo_from_git`: a stuck git proxy
+    (corporate VPN re-auth) is bounded by a 10s timeout so the resolver
+    never hangs the CLI, and ``git`` missing from PATH degrades to ``None``
+    rather than raising. The capture forces ``encoding="utf-8",
+    errors="replace"`` per the #1366 safe-subprocess rule so a non-UTF-8
+    locale codepage cannot crash the read.
+    """
+    cwd = str(project_root) if project_root is not None else None
+    try:
+        proc = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=10,
+        )
+    except (FileNotFoundError, OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    url = (proc.stdout or "").strip()
+    if not url:
+        return None
+    # github.com/owner/name(.git) -- accepts ssh / https / git protocol.
+    cleaned = url.rstrip("/")
+    if cleaned.endswith(".git"):
+        cleaned = cleaned[: -len(".git")]
+    if "github.com" not in cleaned:
+        return None
+    tail = cleaned.split("github.com", 1)[1].lstrip(":/")
+    parts = tail.split("/")
+    if len(parts) >= 2 and parts[0] and parts[1]:
+        return f"{parts[0]}/{parts[1]}"
+    return None
+
+
+def _resolve_repo(explicit: str | None, project_root: Path | None = None) -> str | None:
+    """Resolve the effective ``owner/name`` repo slug for triage verbs (#1238).
+
+    Resolution order, highest precedence first:
+
+    1. ``explicit`` -- the ``--repo`` flag value. A cross-repo invocation
+       always wins.
+    2. ``$DEFT_TRIAGE_REPO`` -- the environment override, mirroring
+       ``preflight_cache`` / ``triage_bootstrap``.
+    3. ``git remote get-url origin`` parsed from inside ``project_root``
+       (or the current working directory) -- the common-case dev
+       experience that removes the papercut where an operator inside an
+       unambiguous clone had to repeat the slug on every call.
+
+    Returns ``None`` when none of the three sources resolve so the caller
+    can emit the canonical ``--repo OWNER/NAME (or $DEFT_TRIAGE_REPO) is
+    required.`` error (exit 2) with an actionable next step.
+    """
+    if explicit:
+        return explicit
+    env_repo = os.environ.get(ENV_TRIAGE_REPO, "").strip()
+    if env_repo:
+        return env_repo
+    return _infer_repo_from_git(project_root)
 
 
 # ---------------------------------------------------------------------------
