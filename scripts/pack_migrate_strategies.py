@@ -18,9 +18,14 @@ What is captured per strategy
   is the doc stem itself; the list is otherwise empty (per the #1296 scope:
   "if no trigger metadata exists, use an empty list and rely on list").
 - ``path``        the repo-relative ``strategies/<name>.md``.
-- ``body``        the full strategy body (banner-stripped) for the ONE
-  designated proof strategy (``strategies/yolo.md``); ``null`` for every other
-  strategy (metadata-only, per the "migrate ONE strategy as proof" scope).
+- ``body``        the full strategy body (banner-stripped). Captured for EVERY
+  non-redirect strategy by default (packs:slice v2, #1637) so every
+  ``strategies/*.md`` is a drift-checked projection; the back-compat
+  ``--proof-strategy`` flag still restricts capture to one strategy.
+
+Pure redirect / deprecation stubs (e.g. ``strategies/brownfield.md`` -> map,
+the superseded ``strategies/roadmap.md``) keep a metadata-only entry with
+``body`` null and are NOT rendered as projections.
 
 Usage::
 
@@ -52,10 +57,6 @@ DEFAULT_OUT = REPO_ROOT / "packs" / "strategies" / "strategies-pack-0.1.json"
 PACK_ID = "strategies-pack-0.1"
 PACK_VERSION = "0.1"
 
-# The single proof STRATEGY whose full body is captured + regenerated as a
-# banner-marked, drift-checked projection.
-DEFAULT_PROOF_STRATEGY = "strategies/yolo.md"
-
 _H1_RE = re.compile(r"^#\s+(.+?)\s*$")
 _SLUG_STRIP_RE = re.compile(r"[^a-z0-9]+")
 
@@ -63,6 +64,19 @@ _SLUG_STRIP_RE = re.compile(r"[^a-z0-9]+")
 # description: the RFC2119 legend, "See also" pointers, HTML comments, and
 # horizontal rules.
 _CHROME_PREFIXES = ("legend ", "legend(", "**legend", "**⚠️", "**see also", "<!--")
+
+# Deprecation / redirect marker phrases that flag a pure pointer stub. A doc
+# whose leading content (after the title) is a blockquote carrying one of these
+# markers (e.g. strategies/brownfield.md "legacy alias", strategies/roadmap.md
+# "superseded") is NOT given a captured body and is NOT rendered as a
+# projection -- only non-redirect strategies become drift-checked projections.
+_REDIRECT_MARKERS = (
+    "legacy alias",
+    "superseded",
+    "has been renamed",
+    "has moved",
+    "deprecated",
+)
 
 
 def _is_chrome(line: str) -> bool:
@@ -118,6 +132,38 @@ def extract_description(md_text: str) -> str:
     return " ".join(block)
 
 
+def is_redirect_stub(md_text: str) -> bool:
+    """Return True when a strategy doc is a pure redirect/deprecation pointer.
+
+    A stub opens (after its ``# `` title, past blank/chrome lines) with a
+    blockquote admonition that carries a deprecation marker (``legacy alias``,
+    ``superseded``, ``has been renamed``, ...). The strategies dir carries no
+    YAML frontmatter, so unlike the skills pack (which keys off missing
+    frontmatter) the structural redirect signal is this leading-blockquote +
+    marker pair. Such files (e.g. brownfield -> map, the superseded roadmap
+    strategy) keep a metadata-only pack entry (``body`` null) and are NOT
+    rendered as projections.
+    """
+    lines = md_text.splitlines()
+    i = 0
+    n = len(lines)
+    while i < n and not _H1_RE.match(lines[i]):
+        i += 1
+    if i < n:
+        i += 1  # skip the title line itself
+    while i < n and (lines[i].strip() == "" or _is_chrome(lines[i])):
+        i += 1
+    # The leading content after the title must be a blockquote pointer.
+    if i >= n or not lines[i].lstrip().startswith(">"):
+        return False
+    block: list[str] = []
+    while i < n and lines[i].lstrip().startswith(">"):
+        block.append(lines[i].lstrip().lstrip(">").strip())
+        i += 1
+    quote = " ".join(block).lower()
+    return any(marker in quote for marker in _REDIRECT_MARKERS)
+
+
 def strip_leading_banner(body: str) -> str:
     """Strip a leading provenance banner + blank lines from a captured body.
 
@@ -157,15 +203,25 @@ def build_strategy_entry(
     }
 
 
-def build_pack(strategies_dir: Path, *, proof_strategy: str) -> dict:
-    """Scan the strategies dir and assemble the full pack object."""
+def build_pack(strategies_dir: Path, *, proof_strategy: str | None) -> dict:
+    """Scan the strategies dir and assemble the full pack object.
+
+    ``proof_strategy`` is the back-compat single-strategy restrictor: when
+    ``None`` (the default, packs:slice v2 / #1637) the body is captured for
+    EVERY non-redirect strategy; when set, only that one strategy's body is
+    captured (the #1296 proof shape). Pure redirect/deprecation stubs never
+    carry a captured body regardless.
+    """
+    capture_all = proof_strategy is None
     strategies: list[dict] = []
     for md in sorted(strategies_dir.glob("*.md")):
         rel_path = md.resolve().relative_to(strategies_dir.resolve().parent).as_posix()
+        if capture_all:
+            capture_body = not is_redirect_stub(md.read_text(encoding="utf-8"))
+        else:
+            capture_body = rel_path == proof_strategy
         strategies.append(
-            build_strategy_entry(
-                md, strategies_dir, capture_body=(rel_path == proof_strategy)
-            )
+            build_strategy_entry(md, strategies_dir, capture_body=capture_body)
         )
 
     return {
@@ -176,7 +232,7 @@ def build_pack(strategies_dir: Path, *, proof_strategy: str) -> dict:
     }
 
 
-def migrate(strategies_dir: Path, out: Path, *, proof_strategy: str) -> dict:
+def migrate(strategies_dir: Path, out: Path, *, proof_strategy: str | None) -> dict:
     """Build the pack from ``strategies_dir`` and write it to ``out``.
 
     Raises ``FileNotFoundError`` when the dir is missing and ``ValueError`` when
@@ -213,8 +269,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--proof-strategy",
-        default=DEFAULT_PROOF_STRATEGY,
-        help="Repo-relative path of the one strategy whose full body is captured.",
+        default=None,
+        help="Back-compat: restrict body capture to ONE strategy's repo-relative "
+        "path (e.g. strategies/yolo.md). Default: capture every non-redirect "
+        "strategy's body (#1637).",
     )
     parser.add_argument(
         "--out",

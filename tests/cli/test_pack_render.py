@@ -754,8 +754,12 @@ def test_rules_proof_doc_round_trips() -> None:
 def test_strategies_proof_doc_round_trips() -> None:
     pack = json.loads(_REAL_STRATEGIES_SOURCE.read_text(encoding="utf-8"))
     cfg = pack_render.RENDER_REGISTRY["strategies"]
-    proof = next(s for s in pack["strategies"] if s["body"] is not None)
-    assert proof["path"] == _STRATEGIES_PROOF_PATH
+    # packs:slice v2 (#1637) bodies every non-redirect strategy, so select the
+    # yolo proof by path rather than "the first bodied entry".
+    proof = next(
+        s for s in pack["strategies"] if s["path"] == _STRATEGIES_PROOF_PATH
+    )
+    assert proof["body"] is not None
     rendered = pack_render.render_markdown_document(proof, cfg)
     committed = (_REPO_ROOT / _STRATEGIES_PROOF_PATH).read_text(encoding="utf-8")
     assert rendered == committed
@@ -767,10 +771,19 @@ def test_rules_exactly_one_proof_has_body() -> None:
     assert [r["path"] for r in bodied] == [_RULES_PROOF_PATH]
 
 
-def test_strategies_exactly_one_proof_has_body() -> None:
+def test_strategies_every_non_redirect_has_body() -> None:
+    """packs:slice v2 (#1637): every non-redirect strategy carries a body so
+    every strategies/*.md is a drift-checked projection; only the pure
+    redirect/superseded pointers stay metadata-only (body null)."""
     pack = json.loads(_REAL_STRATEGIES_SOURCE.read_text(encoding="utf-8"))
-    bodied = [s for s in pack["strategies"] if s["body"] is not None]
-    assert [s["path"] for s in bodied] == [_STRATEGIES_PROOF_PATH]
+    assert pack["strategies"], "strategies pack must not be empty"
+    bodyless = {s["path"] for s in pack["strategies"] if s["body"] is None}
+    assert bodyless == {"strategies/brownfield.md", "strategies/roadmap.md"}
+    # The yolo proof strategy remains present and bodied (regression guard).
+    assert any(
+        s["path"] == _STRATEGIES_PROOF_PATH and s["body"] is not None
+        for s in pack["strategies"]
+    )
 
 
 def test_collect_targets_covers_all_six_packs() -> None:
@@ -791,10 +804,11 @@ def test_multipack_check_clean_covers_six_packs(capsys: pytest.CaptureFixture) -
     rc = pack_render.main(["--check"])
     out = capsys.readouterr().out
     assert rc == 0
-    # packs:slice v2 (#1637) captured a body for every skill, so the skills pack
-    # now renders one projection per SKILL.md: 19 skills + lessons + rules +
-    # strategies + patterns + swarm-spec = 24 projections across six packs.
-    assert "24 projection(s) in sync" in out
+    # packs:slice v2 (#1637) captured a body for every skill AND every
+    # non-redirect strategy, so each renders one projection per source doc:
+    # 19 skills + 14 strategies + lessons + rules + patterns + swarm-spec = 37
+    # projections across six packs.
+    assert "37 projection(s) in sync" in out
 
 
 def test_pack_filter_limits_to_rules() -> None:
@@ -806,7 +820,18 @@ def test_pack_filter_limits_to_rules() -> None:
 def test_pack_filter_limits_to_strategies() -> None:
     targets = pack_render.collect_targets("strategies")
     assert {name for name, _p, _t in targets} == {"strategies"}
-    assert [path.name for _n, path, _t in targets] == ["yolo.md"]
+    # packs:slice v2 (#1637): the renderer now projects every non-redirect
+    # strategy, not just the yolo proof. The projected set must equal exactly
+    # the bodied entries in the source pack (redirect stubs excluded).
+    pack = json.loads(_REAL_STRATEGIES_SOURCE.read_text(encoding="utf-8"))
+    expected = {
+        Path(s["path"]).name for s in pack["strategies"] if s["body"] is not None
+    }
+    assert expected, "expected at least one bodied strategy"
+    assert {path.name for _n, path, _t in targets} == expected
+    assert "yolo.md" in expected
+    assert "brownfield.md" not in expected
+    assert "roadmap.md" not in expected
 
 
 def test_lessons_and_skills_proofs_still_byte_identical() -> None:
