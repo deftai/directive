@@ -95,6 +95,32 @@ Greptile renders findings in at least THREE distinct surface forms across review
 ```python
 import re
 
+# --- Code-fence strip BEFORE detection (detector self-reference, #1004) ----
+# On PRs that touch the detector ITSELF (this template or its test file),
+# Greptile quotes the detector's own tokens (`<img alt="P0"`, `Not safe to
+# merge`, `Three P1 findings`, ...) verbatim inside code-fence regions when
+# it describes the diff. Those quoted tokens are NOT real findings, but a
+# raw scan over the full body counts them and trips a FALSE POSITIVE
+# (recurrence record: PR #996 first review, 2026-05-08 -- detector reported
+# P0=3/P1=3/tier3=True against an actual 1 P1 + 2 P2 because Greptile quoted
+# agent2's own fixtures). Strip triple-backtick fenced blocks AND <code> /
+# <pre> HTML regions FIRST so the Tier 1/2/3 scans below only see prose.
+# Residual case (documented in `## Implementation Notes`): a REAL finding
+# Greptile happens to render inside a fence is dropped -- rare and far less
+# costly than the recurring self-reference false-positive.
+_CODE_FENCE_RE = re.compile(r"`{{3}}.*?`{{3}}", re.DOTALL)
+_HTML_CODE_RE = re.compile(r"<(code|pre)\b[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE)
+
+
+def strip_code_fences(text):
+    text = _CODE_FENCE_RE.sub(" ", text)
+    text = _HTML_CODE_RE.sub(" ", text)
+    return text
+
+
+# All Tier 1/2/3 detection below runs against the fence-stripped body.
+body = strip_code_fences(body)
+
 # --- Tier 1: HTML badge count ---------------------------------------------
 # Greptile renders per-finding severity badges as `<img alt="P0" ...>` /
 # `<img alt="P1" ...>`. These markers appear ONLY on actual findings, never
@@ -483,6 +509,7 @@ Dogfood lessons captured during the #727 self-review cycle. The template body ab
 - **Do NOT window-slice the Greptile body before searching for `Confidence Score:` or `Last reviewed commit:`.** Greptile places the confidence header near the TOP of its summary, while the `Last reviewed commit:` anchor is near the BOTTOM (typically ~5KB lower in real PRs). A naive optimization like `body[idx-200:idx+4000]` around the SHA anchor will silently miss the confidence score. Always run `re.search(...)` against the FULL `gh pr view --comments` output. (Captured during the #727 dogfood self-review where this exact micro-optimization caused the prior agent's poll script to miss the confidence parse; the template's prescribed full-body search is correct.)
 - **`Last reviewed commit:` regex is markdown-link aware.** The recommended pattern is `r"Last reviewed commit:\s*\[[^\]]*\]\(https?://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{{7,40}})"`. The naive inline-SHA form (`r"Last reviewed commit:\s*([0-9a-f]{{7,40}})"`) does NOT match Greptile's actual output -- Greptile emits `Last reviewed commit: [<subject>](<url>/commit/<sha>)` -- and is the bug Agent D's poll script hit (see #727 followup comments).
 - **P0/P1 detection uses the triple-tier detector at `### P0/P1 findings detection` above (#910), extended with Tier 2.5 SLizard heading form (#1035).** The detector body in this template is the authoritative implementation -- combine Tier 1 (HTML badge count via `body.count('<img alt="P0"')` / `body.count('<img alt="P1"')`), Tier 2 (markdown-bullet bold scan with line-scoped negation guards), Tier 2.5 (SLizard `### P[01]` heading-form regex `^#{{1,6}}\s+P([01])\s*[\u00b7\u2027\u2022\-]\s` with the SAME line-scoped negation-context guard as Tier 2), and Tier 3 (inline-prose sentinels: `Not safe to merge` substring + count-prose regex + line-anchored `^P[01] -- ` regex) via `has_blocking = (max(tier1_p0, tier2_p0, tier25_p0) + max(tier1_p1, tier2_p1, tier25_p1)) > 0 or tier3_sentinel`. Tier 2.5 is numbered 2.5 (not renumbered as a new Tier 4) so existing detector citations in `meta/lessons.md` and the swarm-skill anti-patterns -- which key on the 1/2/3 names -- stay stable. The single-tier badge-only approach is INSUFFICIENT and was the recurrence cause of three false-negatives in the v0.25.1 swarm session (#907 first review, #908 first review, #908 retrigger); the triple-tier-without-Tier-2.5 detector missed SLizard's `### P1 · ...` heading form on PR #1034 (2026-05-11, #1035). A `\b(P0|P1)\b` raw substring scan false-positives on the clean-summary phrase `No P0 or P1 issues found` and is forbidden -- the Tier 2 / Tier 2.5 / Tier 3 implementations above embed the negation-context guards (`No `, `Zero `, `0 `, lowercase `no `) and MUST be used verbatim.
+- **The detector strips code-fence regions before counting, but a residual self-reference false-positive remains (#1004).** On PRs that modify the detector itself (`templates/swarm-greptile-poller-prompt.md` or `tests/content/test_swarm_poller_template.py`), Greptile quotes the detector's own tokens (`<img alt="P0"`, `Not safe to merge`, `Three P1 findings`, ...) verbatim when describing the diff. The `strip_code_fences(body)` pre-process at the top of the `### P0/P1 findings detection` block removes triple-backtick fenced blocks and `<code>` / `<pre>` HTML regions before Tier 1/2/3 detection, so tokens Greptile quotes inside fences no longer count (option 1 from #1004). The RESIDUAL case: if Greptile quotes a detector token in UNFENCED prose (e.g. an inline summary sentence that names `Not safe to merge` while describing the change), or conversely renders a REAL finding inside a fence, the strip cannot disambiguate. When you are reviewing a PR that touches the detector and the poller reports `has_blocking=True`, manually confirm the flagged tokens are genuine findings and not Greptile quoting the detector's own source before escalating. Recurrence record: PR #996 first review (2026-05-08) reported `P0=3/P1=3/tier3=True` against an actual `1 P1 + 2 P2`; a careful poller logged the discrepancy and continued, but a less-careful poller would have looped on findings that do not exist (#1004, #910 follow-up).
 - **CLEAN-gate detector failures fail LOUD via (5) STALL, not silent via 30-min TIMEOUT (#1039).** The pre-#1039 poller could not distinguish a parse-gap (regex doesn't match Greptile's actual rendering -> `last_reviewed_sha = None` -> condition (1) False) from "Greptile is still working" (no review posted yet -> same outcome), so the wedged signature kept both `has_blocking = False` AND `is_clean = False` and the poller burned its `{poll_cap_minutes}`-minute cap. The (5) STALL terminal exit above bounds the wedged-signature exit at ~4.5 min (N=3 consecutive polls at the recommended 90s interval) and the `clean_gate_holdout` field in BOTH (4) TIMEOUT and (5) STALL exit messages names the FIRST of the five conditions that blocked the gate -- the operator MUST NEVER have to ask "which condition failed?" Recurrence record: PR #1038 (2026-05-11) poller agent `5794b0e7-...` wedged 30 min on a textbook clean review; maintainer intervened out-of-band; #1039.
 
 ## Cross-references
