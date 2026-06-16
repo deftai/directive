@@ -1166,6 +1166,76 @@ def _track_managed_subdir(
         created_dirs.append(rel)
 
 
+# --- prettier remediation breadcrumb (#670) ---
+# The migrator's generated artifacts (Markdown stubs + JSON vBRIEFs) are not
+# guaranteed to be byte-identical to what ``prettier --write`` would produce
+# (Python ``json.dumps`` always expands single-element arrays prettier would
+# collapse; trivial Markdown spacing around HTML-comment blocks). Migration is
+# a rare one-shot pre-v0.20 legacy path, so byte-matching prettier in the
+# generator (#670 option 1) or auto-running it (option 2) is intentionally out
+# of scope. Instead we emit a remediation breadcrumb so a consumer whose
+# ``task check`` runs ``prettier --check`` (or ``task fmt:check``) turns a
+# surprise baseline failure into a known one-command fix.
+_PRETTIER_BREADCRUMB_MARKER = "Prettier remediation (#670)"
+
+# Canonical generated paths the breadcrumb enumerates. These are the migration
+# outputs most likely to trip ``prettier --check``.
+_PRETTIER_BREADCRUMB_PATHS: tuple[str, ...] = (
+    "SPECIFICATION.md",
+    "PROJECT.md",
+    "ROADMAP.md",
+    "vbrief/specification.vbrief.json",
+    "vbrief/PROJECT-DEFINITION.vbrief.json",
+    "vbrief/migration/LEGACY-REPORT.md",
+)
+
+
+def _prettier_breadcrumb_body() -> list[str]:
+    """Return the remediation note body as plain-text lines (no Markdown heading).
+
+    Shared verbatim between the stdout action log and the
+    ``vbrief/migration/LEGACY-REPORT.md`` section (the latter under a ``##``
+    heading) so the two surfaces never drift.
+    """
+    lines = [
+        f"{_PRETTIER_BREADCRUMB_MARKER}: migration output is NOT guaranteed to "
+        "be prettier-clean. If your `task check` runs `prettier --check` (or "
+        "`task fmt:check`), these generated files may fail the gate on a fresh "
+        "post-migration checkout:",
+    ]
+    for path in _PRETTIER_BREADCRUMB_PATHS:
+        lines.append(f"  - {path}")
+    lines.append(
+        "Fix before `task check`: run `prettier --write` on the files above, "
+        "or add them to `.prettierignore`."
+    )
+    return lines
+
+
+def _append_prettier_breadcrumb(report_path: Path) -> bool:
+    """Append the prettier remediation section to an existing LEGACY-REPORT.md.
+
+    Idempotent: returns ``False`` without writing when the breadcrumb marker
+    is already present (a migrator re-run), and ``True`` after appending
+    otherwise. The caller only invokes this when ``report_path`` exists --
+    i.e. ``scripts/_vbrief_legacy.emit_legacy_report`` captured legacy
+    sections (the typical pre-v0.20 migration) -- so the breadcrumb augments
+    the legacy report rather than creating a misleadingly-titled report with
+    no legacy content captured.
+    """
+    existing = report_path.read_text(encoding="utf-8")
+    if _PRETTIER_BREADCRUMB_MARKER in existing:
+        return False
+    section = "\n".join(
+        [f"## {_PRETTIER_BREADCRUMB_MARKER}", ""] + _prettier_breadcrumb_body()
+    )
+    report_path.write_text(
+        existing.rstrip("\n") + "\n\n" + section + "\n", encoding="utf-8"
+    )
+    return True
+# --- end prettier remediation breadcrumb ---
+
+
 def migrate(
     project_root: Path,
     *,
@@ -2100,6 +2170,24 @@ def migrate(
             rel = str(traces_report_path)
         if rel not in created_files:
             created_files.append(rel)
+
+    # --- prettier remediation breadcrumb (#670) ---
+    # Emit the prettier remediation note on stdout (via the action log) on
+    # every successful migration, and append it to vbrief/migration/
+    # LEGACY-REPORT.md when that report was generated (legacy sections were
+    # captured -- the typical pre-v0.20 migration; the report is already in
+    # created_files for --rollback). The note turns a surprise baseline
+    # ``task check`` prettier failure into a known one-command fix. Skipped
+    # under --dry-run (no files are written).
+    if not dry_run:
+        report_path = (
+            project_root / "vbrief" / "migration" / "LEGACY-REPORT.md"
+        )
+        if report_path.exists():
+            _append_prettier_breadcrumb(report_path)
+        for line in _prettier_breadcrumb_body():
+            actions.append(line)
+    # --- end prettier remediation breadcrumb ---
 
     # #527 / #528: record any migrator-managed subdirs we created (legacy,
     # migration) in the safety manifest's created_dirs so --rollback RMDIRs

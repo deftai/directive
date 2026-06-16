@@ -265,7 +265,9 @@ class TestPipelineBannerWiring:
         _stub_pipeline(monkeypatch)
         captured: dict = {}
 
-        def fake_create(project_root, version, repo, notes, *, draft=True):
+        def fake_create(
+            project_root, version, repo, notes, *, draft=True, prerelease=False
+        ):
             captured["notes"] = notes
             return True, "created GitHub release v0.21.0 (draft)"
 
@@ -289,7 +291,9 @@ class TestPipelineBannerWiring:
         _stub_pipeline(monkeypatch)
         captured: dict = {}
 
-        def fake_create(project_root, version, repo, notes, *, draft=True):
+        def fake_create(
+            project_root, version, repo, notes, *, draft=True, prerelease=False
+        ):
             captured["notes"] = notes
             return True, "created GitHub release v0.21.0 (draft)"
 

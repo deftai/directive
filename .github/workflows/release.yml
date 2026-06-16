@@ -244,6 +244,13 @@ jobs:
           # or set it to false; `task release:publish` is the only path
           # authorised to flip draft -> public.
           draft: true
+          # #425: flag SemVer pre-release tags (-rc.N / -beta.N / -alpha.N)
+          # as GitHub pre-releases automatically. The hyphen is SemVer's
+          # canonical pre-release marker, so `contains(github.ref_name, '-')`
+          # catches every qualifier without a maintained suffix list. Mirrors
+          # the tag-derived `--prerelease` flag in scripts/release.py so both
+          # release-creation paths agree.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           files: |
             artifacts/install-windows-amd64.exe
