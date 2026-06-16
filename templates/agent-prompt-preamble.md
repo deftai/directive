@@ -165,6 +165,22 @@ This rule applies on every platform but BITES on Windows + Grok Build / cmd / Po
 
 Reference: AGENTS.md `## Safe subprocess capture (#1366)`. Recurrence record: the #1166 swarm session repeatedly observed `Thread-3 (_readerthread) UnicodeDecodeError` across multiple gh-shelling tools; #1366 is the structural fix.
 
+## 3.7 Per-run unique pytest basetemp under concurrent swarm dispatch (#1681)
+
+Parallel swarm workers run as the same OS user and, by default, share pytest's `/tmp/pytest-of-<user>/` basetemp root. With `tmp_path_retention_count = 0` (pyproject.toml, #281), one worker's session-startup temp cleanup deletes another worker's in-use `tmp_path`, and `tmp_path_factory.mktemp` then fails with `FileNotFoundError` -- the #1681 cascade observed across three concurrent `task check` runs (~3.3k errors). This is a concurrency-only amplifier: a single run on a clean checkout passes.
+
+**Directive rule:** When you run `task check` (or any pytest invocation) inside a swarm cohort -- i.e. concurrently with sibling workers under the same user -- you MUST give pytest a per-run unique basetemp so no two runs share a root. Either prefix a unique `TMPDIR` or set `PYTEST_ADDOPTS=--basetemp=<unique>`:
+
+```bash path=null start=null
+# Preferred: a fresh private temp root per run (also isolates non-pytest tmp use)
+TMPDIR=$(mktemp -d) task check
+
+# Equivalent: pin pytest's basetemp explicitly to a unique per-run path
+PYTEST_ADDOPTS="--basetemp=$(mktemp -d)/pt" task check
+```
+
+A clean result under an isolated basetemp is attributable to your change, not to the ambient shared-`/tmp` race. Do NOT point `--basetemp` at a static path shared across workers -- that re-introduces the collision. Solo / single-run invocations on a private worktree do not require this, but it is harmless to apply unconditionally.
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:
