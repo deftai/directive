@@ -1,0 +1,38 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Document feature slicing (tracer-bullet vertical slices) in the root README"
+  },
+  "plan": {
+    "title": "docs(readme): document feature slicing and complete the gh-dependent skill list",
+    "status": "proposed",
+    "narratives": {
+      "Description": "The root README.md does not mention feature slicing at all, and its Platform Requirements skill list (the gh-dependent skills) omits deft-directive-gh-slice and deft-directive-gh-arch even though both require the GitHub CLI.",
+      "Origin": "Operator request during an interactive session asking whether feature slicing is documented in the README.",
+      "Acceptance": "README.md gains a concise 'Feature slicing' subsection that explains tracer-bullet vertical slices (vertical vs horizontal, AFK/HITL, dependency ordering, durable slices.jsonl cohort records, and the triage:audit orphan/stalled/coverage surfaces) and links to the canonical skill. The gh-dependent skill list in Platform Requirements is corrected to include deft-directive-gh-slice and deft-directive-gh-arch. A CHANGELOG [Unreleased] entry is added. task check passes.",
+      "Overview": "Documentation-only change. Source of truth for the slicing process remains skills/deft-directive-gh-slice/SKILL.md; this surfaces the capability at the top level so users can discover it from the README.",
+      "Labels": "documentation"
+    },
+    "metadata": {
+      "kind": "story"
+    },
+    "items": [
+      {
+        "title": "Add a 'Feature slicing' subsection to README.md",
+        "status": "proposed"
+      },
+      {
+        "title": "Add deft-directive-gh-slice and deft-directive-gh-arch to the gh-dependent skill list in Platform Requirements",
+        "status": "proposed"
+      },
+      {
+        "title": "Add a CHANGELOG [Unreleased] entry",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "documentation"
+    ],
+    "references": []
+  }
+}
