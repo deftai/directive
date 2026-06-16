@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Pre-release tags are now flagged as GitHub pre-releases automatically (#425)** -- release-candidate, beta, and alpha tags (any tag whose version carries a SemVer pre-release suffix like `-rc.1`) are now marked as GitHub pre-releases at creation time, so operators no longer have to run a manual `gh release edit --prerelease` correction after every RC cut. Both release-creation paths agree: the release workflow sets `prerelease` from the tag name and `scripts/release.py` passes a tag-derived `--prerelease` to `gh release create`. Closes #425.
 
 ### Removed
 
