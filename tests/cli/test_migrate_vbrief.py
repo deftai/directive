@@ -23,6 +23,8 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from migrate_vbrief import (  # noqa: E402, I001
     DEPRECATION_SENTINEL,
     LIFECYCLE_FOLDERS,
+    _PRETTIER_BREADCRUMB_MARKER,
+    _PRETTIER_BREADCRUMB_PATHS,
     _build_project_definition,
     _create_scope_vbrief,
     _create_speckit_scope_vbrief,
@@ -34,6 +36,7 @@ from migrate_vbrief import (  # noqa: E402, I001
     _is_user_customized,
     _parse_prd_narratives,
     _parse_roadmap_items,
+    _prettier_breadcrumb_body,
     _resolve_repo_url,
     _slugify,
     _speckit_ip_index,
@@ -2952,3 +2955,91 @@ class TestPerFieldProvenance:
         assert migrator_meta["Description"] == "SPEC-owned body."
         assert migrator_meta["Description_source"] == "SPECIFICATION.md"
         assert migrator_meta["Status_source"]
+
+
+class TestPrettierRemediationBreadcrumb:
+    """#670: the migrator emits a prettier remediation breadcrumb.
+
+    The migration generator does not byte-match ``prettier``, so a consumer
+    whose ``task check`` runs ``prettier --check`` can hit a baseline failure
+    on a fresh post-migration checkout. The migrator emits a remediation note
+    on stdout (the action log) and into ``vbrief/migration/LEGACY-REPORT.md``
+    so that surprise becomes a known one-command fix.
+    """
+
+    # A non-canonical spec section forces ``emit_legacy_report`` to write
+    # LEGACY-REPORT.md so the breadcrumb has a legacy report to augment (the
+    # typical pre-v0.20 migration shape).
+    _SPEC_WITH_LEGACY = (
+        "# Spec\n\n"
+        "## Overview\n\nProject overview.\n\n"
+        "## Cowboy Rules\n\nNon-canonical section captured as legacy.\n"
+    )
+
+    def test_breadcrumb_emitted_on_stdout(self, tmp_path):
+        project = _make_project(tmp_path, spec_md=self._SPEC_WITH_LEGACY)
+        ok, actions = migrate(project)
+        assert ok
+        joined = "\n".join(actions)
+        assert _PRETTIER_BREADCRUMB_MARKER in joined
+        # (a) names the one-command fix.
+        assert "prettier --write" in joined
+        assert ".prettierignore" in joined
+
+    def test_breadcrumb_enumerates_generated_paths_on_stdout(self, tmp_path):
+        project = _make_project(tmp_path, spec_md=self._SPEC_WITH_LEGACY)
+        ok, actions = migrate(project)
+        assert ok
+        joined = "\n".join(actions)
+        # (b) enumerates every generated path the operator must clean.
+        for path in (
+            "SPECIFICATION.md",
+            "PROJECT.md",
+            "ROADMAP.md",
+            "vbrief/specification.vbrief.json",
+            "vbrief/PROJECT-DEFINITION.vbrief.json",
+            "vbrief/migration/LEGACY-REPORT.md",
+        ):
+            assert path in joined
+
+    def test_breadcrumb_written_to_legacy_report(self, tmp_path):
+        project = _make_project(tmp_path, spec_md=self._SPEC_WITH_LEGACY)
+        ok, _actions = migrate(project)
+        assert ok
+        report = project / "vbrief" / "migration" / "LEGACY-REPORT.md"
+        assert report.exists()
+        body = report.read_text(encoding="utf-8")
+        assert f"## {_PRETTIER_BREADCRUMB_MARKER}" in body
+        assert "prettier --write" in body
+        for path in _PRETTIER_BREADCRUMB_PATHS:
+            assert path in body
+
+    def test_breadcrumb_body_lists_all_enumerated_paths(self):
+        """Guards acceptance item 2 against silent path-list drift."""
+        body = "\n".join(_prettier_breadcrumb_body())
+        for path in (
+            "SPECIFICATION.md",
+            "PROJECT.md",
+            "ROADMAP.md",
+            "vbrief/specification.vbrief.json",
+            "vbrief/PROJECT-DEFINITION.vbrief.json",
+            "vbrief/migration/LEGACY-REPORT.md",
+        ):
+            assert path in body
+
+    def test_breadcrumb_idempotent_in_report(self, tmp_path):
+        project = _make_project(tmp_path, spec_md=self._SPEC_WITH_LEGACY)
+        migrate(project)
+        migrate(project)  # re-run on an already-migrated project
+        report = project / "vbrief" / "migration" / "LEGACY-REPORT.md"
+        body = report.read_text(encoding="utf-8")
+        # The section heading must appear exactly once -- no duplicate append.
+        assert body.count(f"## {_PRETTIER_BREADCRUMB_MARKER}") == 1
+
+    def test_breadcrumb_skipped_on_dry_run(self, tmp_path):
+        project = _make_project(tmp_path, spec_md=self._SPEC_WITH_LEGACY)
+        ok, actions = migrate(project, dry_run=True)
+        assert ok
+        joined = "\n".join(actions)
+        # Dry-run writes no files, so there is no prettier surprise to warn about.
+        assert _PRETTIER_BREADCRUMB_MARKER not in joined

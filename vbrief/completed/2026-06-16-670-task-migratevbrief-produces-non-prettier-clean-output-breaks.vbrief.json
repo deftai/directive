@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #670"
+  },
+  "plan": {
+    "title": "task migrate:vbrief produces non-prettier-clean output, breaks downstream task check",
+    "id": "670-migrate-prettier-breadcrumb",
+    "status": "completed",
+    "narratives": {
+      "Description": "Running `task migrate:vbrief` emits files that can fail a consumer's `prettier --check`, so a freshly-migrated repo hits a baseline `task check` failure with no guidance on how to fix it. Because migration is a rare one-shot pre-v0.20 legacy path, this story takes the minimum-effort route: emit a post-migration remediation breadcrumb so the surprise failure becomes a known one-command fix, rather than byte-matching prettier in the generator.",
+      "ImplementationPlan": "- In the scripts/migrate_vbrief.py module, append a remediation note to the migration completion summary on stdout and to vbrief/migration/LEGACY-REPORT.md that names the generated files and says to run `prettier --write` on them or add them to .prettierignore before `task check`.\n- Enumerate the specific generated paths (SPECIFICATION.md, PROJECT.md, ROADMAP.md, vbrief/specification.vbrief.json, vbrief/PROJECT-DEFINITION.vbrief.json, vbrief/migration/LEGACY-REPORT.md) in the note.\n- Add a regression test under tests/ that runs the migrator on a fixture and asserts the breadcrumb text appears in the output.",
+      "UserStory": "As a consumer migrating a pre-v0.20 project, I want a clear remediation note when migration output is not prettier-clean, so that I can unblock task check with one command instead of debugging a surprise failure.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/670",
+      "Overview": "## Summary\n\n`task migrate:vbrief` emits files that fail `prettier --check`, so any downstream repo that runs the documented `task check` pre-commit gate will be blocked immediately after migration.\n\n## Repro\n\nDiscovered while running the v0.20.0 migration on `deftai/bridge` (commit `ffafbee` in that repo's history, run via `task migrate:vbrief`). The migration produced these files in non-prettier-clean form:\n\n- `PROJECT.md`\n- `ROADMAP.md`\n- `SPECIFICATION.md`\n- `vbrief/migration/LEGACY-REPORT.md`\n- `vbrief/specification.vbrief.json`\n\nRunning `pnpm exec prettier --check` (or `task fmt:check`, which is the documented bridge gate) against any of these flagged them. `prettier --write` then made byte-level changes (whitespace / line-break / JSON-indent normalisations); the diff was purely cosmetic.\n\n## Impact\n\n- Every consumer that adopts the bridge-style `task check` gate (fmt:check + lint + typecheck + test) hits a baseline failure on a fresh post-migration checkout.\n- Contributors and agents are tempted to either (a) bypass the gate, or (b) silently re-format the auto-generated files, which then drifts back the next time the migrator runs.\n- The bridge scope vBRIEF [`vbrief/proposed/eval-build-fix-migrate-vbrief-prettier-output.vbrief.json`](https://github.com/deftai/bridge/blob/main/vbrief/proposed/eval-build-fix-migrate-vbrief-prettier-output.vbrief.json) tracks the downstream-side problem.\n\n## Workaround already applied in deftai/bridge\n\nPR [deftai/bridge#8](https://github.com/deftai/bridge/pull/8) ran `prettier --write` on the five offending files and excluded `.planning/evaluation/` from prettier so auto-generated metrics snapshots cannot regress the gate. This unblocked `task check` for the bridge repo, but the fix doesn't survive the next run of `task migrate:vbrief` — the next migration would emit the same non-prettier-clean output and re-break the gate.\n\n## Suggested fix (one of)\n\n1. **Generator-side fix (preferred):** make the migration generator emit byte-identical output to what `prettier --write` would produce — match prettier's defaults for Markdown line wrapping and JSON indentation (2 spaces, trailing newline, no BOM).\n2. **Post-process step in `task migrate:vbrief`:** after the generator runs, invoke `prettier --write` on the produced artifacts inside the same task so the migration leaves the working tree in a fmt:check-clean state.\n3. **Regression gate:** whichever path is taken, add a CI/test step that runs `task migrate:vbrief` against a fixture project and asserts `task fmt:check` exits 0 on the result.\n\nEither (1) or (2) resolves the bug; (3) prevents regression.\n\n## Acceptance\n\n- [ ] Running `task migrate:vbrief` on a fresh checkout produces output that satisfies `prettier --check` with the consumer repo's prettier config.\n- [ ] Regression gate added so this stays fixed.\n\n## Source conversation\n\nDiscovered during a Warp agent session: <https://app.warp.dev/conversation/44b7d687-f607-4e31-adeb-42aebab82ca4>",
+      "Labels": "bug, installer",
+      "Approach": "Scoped down to MINIMUM-EFFORT after 2026-06-16 investigation. Migration is now a rare, one-shot pre-v0.20 legacy path, so byte-matching prettier is over-investment. Empirical finding (running the current migrator on a fixture + isolating bridge PR #8's prettier-write commit ea7b4144): the migrator's own output is already deterministically clean for whitespace/newlines/tabs/CRLF/JSON-indent. The dominant residual delta is JSON single-element-array collapsing (`\"dependencies\": [\\n  \"1.1.1\"\\n]` -> `\"dependencies\": [\"1.1.1\"]`) which Python json.dumps(indent=2) always expands and prettier collapses based on printWidth -- consumer-config-dependent and hard to match generator-side. Markdown deltas are trivial spacing (blank line after HTML-comment blocks / before lists; strip trailing blank). DECISION: do NOT fix the formatting. Emit a post-migration remediation breadcrumb so the rare migrating consumer turns a surprise baseline `task check` failure into a known one-command fix. Generator byte-matching (issue option 1) and auto-running prettier (option 2) are OUT OF SCOPE."
+    },
+    "items": [
+      {
+        "title": "Migration emits a remediation breadcrumb",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a completed migration, when the migrator finishes, then it emits a remediation note on stdout and in vbrief/migration/LEGACY-REPORT.md explaining how to make the output prettier-clean before task check."
+        }
+      },
+      {
+        "title": "Breadcrumb enumerates the generated paths",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the remediation note, when a consumer reads it, then it lists the specific generated files (SPECIFICATION.md, PROJECT.md, ROADMAP.md, the two vbrief JSON files, and LEGACY-REPORT.md) to run prettier --write on."
+        }
+      },
+      {
+        "title": "Regression test guards the breadcrumb",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the migrator run against a fixture, when the regression test runs, then it asserts the prettier remediation breadcrumb appears in the output and fails if it is removed."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/migrate_vbrief.py",
+          "tests/cli/test_migrate_vbrief.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_migrate_vbrief.py",
+          "uv run python scripts/migrate_vbrief.py --help"
+        ],
+        "expected_outputs": [
+          "scripts/migrate_vbrief.py emits a prettier remediation breadcrumb on stdout and in LEGACY-REPORT.md",
+          "breadcrumb enumerates the generated file paths",
+          "passing regression test asserting the breadcrumb appears"
+        ],
+        "depends_on": [],
+        "conflict_group": "migrator",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bug fix ingested from GitHub issue #670; no spec-section requirement trace applies. Generator byte-matching (option 1) and auto-running prettier (option 2) are intentionally out of scope."
+      },
+      "completedAt": "2026-06-16T20:28:09Z",
+      "capacityBucket": "new-capability"
+    },
+    "tags": [
+      "bug",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/670",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #670: task migrate:vbrief produces non-prettier-clean output, breaks downstream task check"
+      }
+    ],
+    "updated": "2026-06-16T20:28:09Z"
+  }
+}
