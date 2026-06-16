@@ -4,6 +4,30 @@ You are reading this because a user told you to, or because a stale `AGENTS.md` 
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+## Installing Deft from GitHub (fetch-and-run one-liner)
+
+! If Deft is **not yet installed** and you were told to "download and install Deft from GitHub into this directory," do NOT build from a source checkout and do NOT guess a path. Run the canonical per-platform fetch-and-run one-liner below. Each downloads the correct release binary from `https://github.com/deftai/directive/releases/latest/download/<asset>`, makes it executable, then runs it headless against the current directory (`--yes --repo-root . --json`).
+
+**macOS (Intel + Apple Silicon):**
+
+```bash
+curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-macos-universal && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
+```
+
+**Linux** (amd64; use `install-linux-arm64` on Raspberry Pi / ARM):
+
+```bash
+curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-linux-amd64 && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
+```
+
+**Windows** (PowerShell; use `install-windows-arm64.exe` on Surface / Copilot+ PCs):
+
+```powershell
+Invoke-WebRequest -Uri https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe -OutFile $env:TEMP\deft-install.exe; & $env:TEMP\deft-install.exe --yes --repo-root . --json
+```
+
+⊗ Do NOT `go build` from a source checkout or a developer-specific path (e.g. a hardcoded `/Users/<name>/...` clone) — the canonical fetch path above never assumes a local clone. Once the installer finishes, continue with Step 1 below.
+
 ## Step 1 — Who are you?
 
 Ask the user: **"Are you (1) using deft in your project, or (2) working on deft itself?"**

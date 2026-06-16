@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #425"
+  },
+  "plan": {
+    "title": "ci(release): explicitly flag pre-release tags -- auto-detection not working for -rc.N suffix",
+    "id": "425-prerelease-tag-flag",
+    "status": "completed",
+    "narratives": {
+      "Description": "The release pipeline does not mark SemVer pre-release tags (-rc.N, -beta.N, -alpha.N) as GitHub pre-releases, so RC tags publish as normal releases and require a manual `gh release edit --prerelease` correction after every cut. This story makes the pre-release flag explicit and driven by the tag name's SemVer pre-release marker so RC, beta, and alpha cuts are flagged automatically.",
+      "ImplementationPlan": "- In the scripts/release.py module, compute a prerelease boolean from the tag name (true when the version after 'v' contains a '-') and pass it to the `gh release create` call via a `--prerelease` flag.\n- Mirror the same flag in the .github/workflows/release.yml softprops/action-gh-release step using `prerelease: ${{ contains(github.ref_name, '-') }}` so both creation paths agree.\n- Add a unit test in tests/ that verifies the prerelease-decision helper returns true for v0.20.0-rc.1 and v1.0.0-alpha.3 and false for v0.20.0.",
+      "UserStory": "As a release operator, I want pre-release tags flagged automatically, so that I no longer have to manually correct RC releases after every cut.",
+      "Approach": "2026-06-16 codebase verification: still valid/unfixed, but the workflow has been restructured since the issue was filed. .github/workflows/release.yml no longer has a `Create release` step -- it now uploads to a draft via softprops/action-gh-release@v3.0.0 (`Upload binaries to draft release`, draft: true), and the actual `gh release create --draft` happens in scripts/release.py with publish in scripts/release_publish.py. No `prerelease` field exists anywhere in the workflow and no rc/pre-release detection exists in release.py. Fix both create paths so they agree: set `prerelease: ${{ contains(github.ref_name, '-') }}` on the workflow softprops step AND pass a tag-derived `--prerelease` to the `gh release create` in scripts/release.py. (The publish step keeps prerelease as set; it only flips draft.)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/425",
+      "Overview": "## Summary\r\n\r\n`softprops/action-gh-release@v2` as currently configured in `.github/workflows/release.yml` does not automatically flag releases as pre-release when the tag has a SemVer pre-release suffix (`-rc.N`, `-beta.N`, etc.). Both `v0.20.0-rc.1` and `v0.20.0-rc.2` were published as regular releases (`isPrerelease: false`) and required manual `gh release edit --prerelease` intervention after the workflow completed.\r\n\r\nThis is low-cost operational friction now but will compound every time we cut an RC, alpha, or beta going forward.\r\n\r\n## Current state\r\n\r\n`.github/workflows/release.yml` (release job, around line 154-163):\r\n\r\n```yaml\r\n      - name: Create release\r\n        uses: softprops/action-gh-release@v2\r\n        with:\r\n          generate_release_notes: true\r\n          files: |\r\n            artifacts/install-windows-amd64.exe\r\n            artifacts/install-windows-arm64.exe\r\n            artifacts/install-macos-universal\r\n            artifacts/install-linux-amd64\r\n            artifacts/install-linux-arm64\r\n```\r\n\r\nNo `prerelease` field is specified, so the action falls back to its internal heuristic. Whatever that heuristic is, it has missed two rc tags in a row.\r\n\r\n## Evidence\r\n\r\nBoth RC tags required manual correction:\r\n\r\n- `v0.20.0-rc.1`: created as regular release, `gh release edit v0.20.0-rc.1 --prerelease` required\r\n- `v0.20.0-rc.2`: same, `gh release edit v0.20.0-rc.2 --prerelease` required\r\n\r\nBoth tags contain the hyphen-suffix that SemVer defines as pre-release (`-rc.1`, `-rc.2`).\r\n\r\n## Proposed fix\r\n\r\nAdd an explicit `prerelease` field driven by whether the tag name contains a hyphen (SemVer's canonical pre-release marker):\r\n\r\n```yaml\r\n      - name: Create release\r\n        uses: softprops/action-gh-release@v2\r\n        with:\r\n          generate_release_notes: true\r\n          prerelease: ${{ contains(github.ref_name, '-') }}\r\n          files: |\r\n            artifacts/install-windows-amd64.exe\r\n            artifacts/install-windows-arm64.exe\r\n            artifacts/install-macos-universal\r\n            artifacts/install-linux-amd64\r\n            artifacts/install-linux-arm64\r\n```\r\n\r\nBehavior after the fix:\r\n\r\n- `v0.20.0` → `prerelease: false` (no hyphen)\r\n- `v0.20.0-rc.1` → `prerelease: true`\r\n- `v0.20.0-beta.1` → `prerelease: true`\r\n- `v1.0.0-alpha.3` → `prerelease: true`\r\n\r\nCatches every SemVer pre-release qualifier without requiring a maintained list of suffixes.\r\n\r\n## Testing\r\n\r\nBecause the workflow only runs on tag push or `workflow_dispatch`, testing the change safely requires a disposable test tag. Recommend:\r\n\r\n1. Tag `v0.0.0-rc.test` from a throwaway commit.\r\n2. Push → workflow runs → verify release is flagged pre-release in `gh release view`.\r\n3. Delete tag + release.\r\n\r\nAlternatively, the fix can ship bundled with the next real RC (v0.20.1-rc.1 or similar) and will be validated there.\r\n\r\n## Severity / scheduling\r\n\r\n- **P3** — operational polish, not a correctness issue.\r\n- Small enough to land with any other release-workflow touch.\r\n- Not urgent for v0.20.0 final, but nice to have before future RCs.\r\n\r\n## Discovered\r\n\r\nDuring v0.20.0-rc.1 and rc.2 release cuts; manual `--prerelease` correction required both times.\r\n",
+      "Labels": "bug, github-actions"
+    },
+    "items": [
+      {
+        "title": "Flag pre-release tags at create time",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a tag like v0.20.0-rc.1, when the release pipeline creates the GitHub release, then the release is marked prerelease=true with no manual gh release edit."
+        }
+      },
+      {
+        "title": "Leave stable tags as full releases",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a stable tag like v0.20.0 with no hyphen, when the release pipeline creates the release, then it is marked prerelease=false."
+        }
+      },
+      {
+        "title": "Unit-test the prerelease decision helper",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the prerelease-decision helper, when the test suite runs, then it returns true for -rc, -beta, and -alpha tags and false for stable tags."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/release.py",
+          ".github/workflows/release.yml",
+          "tests/cli/test_release.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_release.py",
+          "uv run python scripts/release.py --help"
+        ],
+        "expected_outputs": [
+          "scripts/release.py passes a prerelease flag to gh release create derived from the tag name",
+          "release.yml softprops step sets prerelease via contains(github.ref_name, '-')",
+          "passing unit test covering rc/beta/alpha/stable tag inputs"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-pipeline",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bug fix ingested from GitHub issue #425; no spec-section requirement trace applies."
+      },
+      "completedAt": "2026-06-16T20:12:33Z",
+      "capacityBucket": "new-capability"
+    },
+    "tags": [
+      "bug",
+      "github-actions"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/425",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #425: ci(release): explicitly flag pre-release tags -- auto-detection not working for -rc.N suffix"
+      }
+    ],
+    "updated": "2026-06-16T20:12:33Z"
+  }
+}

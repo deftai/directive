@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **A copy-pasteable install one-liner for "download from GitHub and install here" (#1661)** -- the README install section and QUICK-START now carry a canonical per-platform fetch-and-run one-liner that downloads the correct release binary from `releases/latest/download`, makes it executable, and runs it headless (`--yes --repo-root . --json`). This gives agents asked to install Deft from GitHub a deterministic path so they stop fabricating a non-existent source-checkout `go build` and failing. A content test guards the guidance against regression. Closes #1661.
 
 ### Changed
 
 ### Fixed
 - **Migration now tells you how to make its output prettier-clean (#670)** -- `task migrate:vbrief` emits a remediation note on stdout and in `vbrief/migration/LEGACY-REPORT.md` after migrating. The note explains that generated files may not satisfy `prettier --check`, lists the specific generated paths, and points to the one-command fix (`prettier --write` or `.prettierignore`) so a fresh post-migration `task check` failure becomes a known fix instead of a surprise. Closes #670.
+- **Pre-release tags are now flagged as GitHub pre-releases automatically (#425)** -- release-candidate, beta, and alpha tags (any tag whose version carries a SemVer pre-release suffix like `-rc.1`) are now marked as GitHub pre-releases at creation time, so operators no longer have to run a manual `gh release edit --prerelease` correction after every RC cut. Both release-creation paths agree: the release workflow sets `prerelease` from the tag name and `scripts/release.py` passes a tag-derived `--prerelease` to `gh release create`. Closes #425.
 
 ### Removed
 
