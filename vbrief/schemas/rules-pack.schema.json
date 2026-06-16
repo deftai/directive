@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://deft.dev/schemas/rules-pack-0.1.schema.json",
   "title": "Rules Pack 0.1",
-  "description": "Canonical source schema for the rules-pack-0.1 tier-3 extension pack (#1296, design #1283, ADR-001, generalizing the #1294 lessons pilot + #1295 skills pack). The structured JSON at packs/rules/rules-pack-0.1.json is the SOURCE OF TRUTH for the RFC2119-tiered directives parsed from coding/*.md: for every marker-prefixed directive line it records id, tier (normalized from the coding/* RFC2119 legend per #748: !=MUST, ~=SHOULD, the SHOULD-NOT glyph=SHOULD_NOT, the MUST-NOT glyph=MUST_NOT, ?=MAY), domain (the source doc stem -- testing/security/hygiene/coding/toolchain/debugging/...), the directive text, and the path. Exactly one designated proof DOCUMENT (coding/testing.md) also carries its full body on its first rule entry so the doc can be regenerated as a banner-marked, drift-checked projection (scripts/pack_render.py); every other entry is metadata-only (body null) and the other coding docs keep their hand-authored markdown. The `x-sliceRegistry` block is the schema-declared, agent-facing slice API (mirrors lessons + skills): a named-slice registry mapping slice name -> { path (a constrained dotted path into the source -- NOT JSONPath), filters[] (the fixed tier/domain vocabulary), description }. Agents query by slice NAME only. The `x-display` block declares how scripts/packs_slice.py renders an entry as text (heading field, labelled metadata fields, optional body field, and the empty-result noun) so the slice formatter stays pack-agnostic. The `x-tierVocabulary` enumerates the controlled tier set.",
+  "description": "Canonical source schema for the rules-pack-0.1 tier-3 extension pack (#1296, design #1283, ADR-001, generalizing the #1294 lessons pilot + #1295 skills pack; source coverage broadened in #1637 s4). The structured JSON at packs/rules/rules-pack-0.1.json is the SOURCE OF TRUTH for the RFC2119-tiered directives parsed from coding/*.md plus AGENTS.md and main.md: for every marker-prefixed directive line it records id, tier (normalized from the RFC2119 legend per #748: !=MUST, ~=SHOULD, the SHOULD-NOT glyph=SHOULD_NOT, the MUST-NOT glyph=MUST_NOT, ?=MAY), domain (the source doc stem -- testing/security/hygiene/coding/toolchain/debugging/agents/main/...), the directive text, and the path. Every coding/*.md doc carries its full body on its first rule entry so each coding doc is regenerated as a banner-marked, drift-checked projection (scripts/pack_render.py). AGENTS.md and main.md are ingested as directive METADATA ONLY (body null, never rendered) -- the renderer skips null-body entries so AGENTS.md stays owned solely by `task agents:refresh`; AGENTS.md's managed-section block is excluded from extraction (rendered mirror of templates/agents-entry.md, not canonical). The `x-sliceRegistry` block is the schema-declared, agent-facing slice API (mirrors lessons + skills): a named-slice registry mapping slice name -> { path (a constrained dotted path into the source -- NOT JSONPath), filters[] (the fixed tier/domain vocabulary), description }. Agents query by slice NAME only. The `x-display` block declares how scripts/packs_slice.py renders an entry as text (heading field, labelled metadata fields, optional body field, and the empty-result noun) so the slice formatter stays pack-agnostic. The `x-tierVocabulary` enumerates the controlled tier set.",
   "type": "object",
   "additionalProperties": false,
   "required": ["pack", "version", "rules"],
@@ -17,7 +17,7 @@
     },
     "generated_from": {
       "type": "string",
-      "description": "Provenance: the sources the one-shot migration (scripts/pack_migrate_rules.py) parsed to build this pack (coding/*.md marker-prefixed directives)."
+      "description": "Provenance: the sources the one-shot migration (scripts/pack_migrate_rules.py) parsed to build this pack (coding/*.md + AGENTS.md + main.md marker-prefixed directives)."
     },
     "rules": {
       "type": "array",
@@ -42,7 +42,7 @@
             "type": "string",
             "minLength": 1,
             "pattern": "^[a-z0-9][a-z0-9-]*$",
-            "description": "Source doc stem (e.g. testing, security, hygiene, coding, toolchain, debugging, build-output, holzmann). The `by-domain` slice filters on this field."
+            "description": "Source doc stem (e.g. testing, security, hygiene, coding, toolchain, debugging, build-output, holzmann, agents, main). The `by-domain` slice filters on this field."
           },
           "text": {
             "type": "string",
@@ -51,12 +51,12 @@
           },
           "path": {
             "type": "string",
-            "pattern": "^coding/.+\\.md$",
-            "description": "Repo-relative path to the source coding doc."
+            "pattern": "^(?:coding/.+\\.md|AGENTS\\.md|main\\.md)$",
+            "description": "Repo-relative path to the source doc: a coding/*.md doc, or AGENTS.md / main.md (#1637 s4). coding/*.md entries are body-rendered projections; AGENTS.md / main.md entries are metadata-only (body null, never rendered)."
           },
           "body": {
             "type": ["string", "null"],
-            "description": "Full source-document body (banner-stripped, verbatim) for the ONE designated proof doc's first rule entry (coding/testing.md); null for every metadata-only entry. The renderer reconstructs the proof doc = banner + body."
+            "description": "Full source-document body (banner-stripped, verbatim) for EACH coding/*.md doc's first rule entry, so every coding doc reconstructs as banner + body (#1637 s4 broadened the single coding/testing.md proof to all coding docs). null for every other coding entry AND for ALL AGENTS.md / main.md entries -- the renderer skips null-body entries so AGENTS.md stays owned solely by `task agents:refresh`."
           }
         }
       }

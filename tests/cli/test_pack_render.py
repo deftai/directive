@@ -740,12 +740,17 @@ def test_markdown_document_renderer_dispatched_by_doc_kind() -> None:
 
 
 def test_rules_proof_doc_round_trips() -> None:
-    """Rendering the committed rules proof entry reproduces exactly the committed
-    coding/testing.md -- the invariant the drift gate asserts (ADR-001)."""
+    """Rendering the committed coding/testing.md rule entry reproduces exactly
+    the committed file -- the invariant the drift gate asserts (ADR-001).
+
+    packs:slice v2 #1637 s4 bodies every coding/*.md doc, so select the
+    testing.md entry by path rather than "the first bodied entry"."""
     pack = json.loads(_REAL_RULES_SOURCE.read_text(encoding="utf-8"))
     cfg = pack_render.RENDER_REGISTRY["rules"]
-    proof = next(r for r in pack["rules"] if r["body"] is not None)
-    assert proof["path"] == _RULES_PROOF_PATH
+    proof = next(
+        r for r in pack["rules"]
+        if r["path"] == _RULES_PROOF_PATH and r["body"] is not None
+    )
     rendered = pack_render.render_markdown_document(proof, cfg)
     committed = (_REPO_ROOT / _RULES_PROOF_PATH).read_text(encoding="utf-8")
     assert rendered == committed
@@ -765,10 +770,34 @@ def test_strategies_proof_doc_round_trips() -> None:
     assert rendered == committed
 
 
-def test_rules_exactly_one_proof_has_body() -> None:
+def test_rules_every_coding_doc_has_body() -> None:
+    """packs:slice v2 #1637 s4: every coding/*.md doc carries a body (one bodied
+    entry per doc) so each coding doc is a drift-checked projection."""
     pack = json.loads(_REAL_RULES_SOURCE.read_text(encoding="utf-8"))
-    bodied = [r for r in pack["rules"] if r["body"] is not None]
-    assert [r["path"] for r in bodied] == [_RULES_PROOF_PATH]
+    bodied_paths = {r["path"] for r in pack["rules"] if r["body"] is not None}
+    coding_docs = {
+        f"coding/{p.name}" for p in (_REPO_ROOT / "coding").glob("*.md")
+    }
+    assert bodied_paths == coding_docs
+    assert _RULES_PROOF_PATH in bodied_paths
+
+
+def test_rules_agents_and_main_are_metadata_only() -> None:
+    """#1637 s4 ownership boundary GUARD: AGENTS.md and main.md contribute
+    directive metadata only -- NEVER a body -- so packs:render never writes
+    them and AGENTS.md stays owned solely by `task agents:refresh`."""
+    pack = json.loads(_REAL_RULES_SOURCE.read_text(encoding="utf-8"))
+    extra = [r for r in pack["rules"] if r["path"] in ("AGENTS.md", "main.md")]
+    assert extra, "expected AGENTS.md / main.md directive entries to be ingested"
+    assert {r["domain"] for r in extra} == {"agents", "main"}
+    assert all(r["body"] is None for r in extra)
+    # And none of them appear as render targets.
+    rules_targets = pack_render.collect_targets("rules")
+    target_paths = {
+        path.relative_to(_REPO_ROOT).as_posix() for _n, path, _t in rules_targets
+    }
+    assert "AGENTS.md" not in target_paths
+    assert "main.md" not in target_paths
 
 
 def test_strategies_every_non_redirect_has_body() -> None:
@@ -804,17 +833,23 @@ def test_multipack_check_clean_covers_six_packs(capsys: pytest.CaptureFixture) -
     rc = pack_render.main(["--check"])
     out = capsys.readouterr().out
     assert rc == 0
-    # packs:slice v2 (#1637) captured a body for every skill AND every
-    # non-redirect strategy, so each renders one projection per source doc:
-    # 19 skills + 14 strategies + lessons + rules + patterns + swarm-spec = 37
-    # projections across six packs.
-    assert "37 projection(s) in sync" in out
+    # packs:slice v2 (#1637) captured a body for every skill, every non-redirect
+    # strategy, AND (s4) every coding/*.md rule doc, so each renders one
+    # projection per source doc: 19 skills + 14 strategies + 8 coding rule docs
+    # + lessons + patterns + swarm-spec = 44 projections across six packs.
+    # AGENTS.md / main.md are metadata-only (not rendered).
+    assert "44 projection(s) in sync" in out
 
 
 def test_pack_filter_limits_to_rules() -> None:
     targets = pack_render.collect_targets("rules")
     assert {name for name, _p, _t in targets} == {"rules"}
-    assert [path.name for _n, path, _t in targets] == ["testing.md"]
+    # packs:slice v2 #1637 s4: the renderer now projects every coding/*.md doc,
+    # not just the testing.md proof. The projected set must equal exactly the
+    # coding docs on disk (AGENTS.md / main.md are metadata-only, not rendered).
+    expected = {p.name for p in (_REPO_ROOT / "coding").glob("*.md")}
+    assert {path.name for _n, path, _t in targets} == expected
+    assert "testing.md" in expected
 
 
 def test_pack_filter_limits_to_strategies() -> None:

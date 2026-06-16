@@ -61,12 +61,12 @@ Legend (from RFC2119): !=MUST.
 """
 
 
-def _build(tmp_path: Path, proof_doc: str = "coding/testing.md") -> dict:
+def _build(tmp_path: Path, extra_sources: tuple[Path, ...] = ()) -> dict:
     coding = tmp_path / "coding"
     coding.mkdir()
     (coding / "testing.md").write_text(FIXTURE_TESTING_MD, encoding="utf-8")
     (coding / "security.md").write_text(FIXTURE_OTHER_MD, encoding="utf-8")
-    return pack_migrate_rules.build_pack(coding, proof_doc=proof_doc)
+    return pack_migrate_rules.build_pack(coding, extra_sources=extra_sources)
 
 
 # --- parse_rules ------------------------------------------------------------
@@ -131,21 +131,80 @@ def test_build_pack_classifies_domain_from_stem(tmp_path: Path) -> None:
     assert sec[0]["path"] == "coding/security.md"
 
 
-def test_build_pack_proof_doc_carries_body_others_null(tmp_path: Path) -> None:
+def test_build_pack_every_coding_doc_first_rule_bodied(tmp_path: Path) -> None:
+    """#1637 s4: every coding doc carries a body on its FIRST rule (one bodied
+    entry per doc); every other entry stays metadata-only."""
     pack = _build(tmp_path)
     bodied = [r for r in pack["rules"] if r["body"] is not None]
-    assert len(bodied) == 1
-    assert bodied[0]["path"] == "coding/testing.md"
-    assert bodied[0]["body"].startswith("# Testing Standards")
-    # security.md rules are all metadata-only.
-    assert all(r["body"] is None for r in pack["rules"] if r["domain"] == "security")
+    assert {r["path"] for r in bodied} == {"coding/testing.md", "coding/security.md"}
+    # Exactly one bodied entry per coding doc (the first rule).
+    assert len(bodied) == 2
+    testing_body = next(r for r in bodied if r["path"] == "coding/testing.md")
+    assert testing_body["body"].startswith("# Testing Standards")
 
 
-def test_build_pack_proof_body_is_first_testing_rule(tmp_path: Path) -> None:
+def test_build_pack_body_is_first_rule_per_doc(tmp_path: Path) -> None:
     pack = _build(tmp_path)
-    testing = [r for r in pack["rules"] if r["domain"] == "testing"]
-    assert testing[0]["body"] is not None
-    assert all(r["body"] is None for r in testing[1:])
+    for domain in ("testing", "security"):
+        doc_rules = [r for r in pack["rules"] if r["domain"] == domain]
+        assert doc_rules[0]["body"] is not None
+        assert all(r["body"] is None for r in doc_rules[1:])
+
+
+def test_strip_managed_section_removes_block() -> None:
+    """#1637 s4: the AGENTS.md managed-section mirror is stripped before
+    extraction so mirrored directives are not ingested twice."""
+    text = (
+        "# AGENTS\n\n! Maintainer rule above the mirror\n\n"
+        "<!-- deft:managed-section v3 sha=abc refreshed=2026-01-01 -->\n"
+        "! Mirrored rule that must NOT be ingested\n"
+        "<!-- /deft:managed-section -->\n\n"
+        "~ Maintainer rule below the mirror\n"
+    )
+    stripped = pack_migrate_rules.strip_managed_section(text)
+    assert "Mirrored rule that must NOT be ingested" not in stripped
+    assert "Maintainer rule above the mirror" in stripped
+    assert "Maintainer rule below the mirror" in stripped
+    rules = pack_migrate_rules.parse_rules(stripped, "agents")
+    texts = [r["text"] for r in rules]
+    assert "Maintainer rule above the mirror" in texts
+    assert "Maintainer rule below the mirror" in texts
+    assert "Mirrored rule that must NOT be ingested" not in texts
+
+
+def test_strip_managed_section_noop_without_block() -> None:
+    text = "# main\n\n! A canonical rule\n"
+    assert pack_migrate_rules.strip_managed_section(text) == text
+
+
+def test_build_pack_extra_sources_metadata_only(tmp_path: Path) -> None:
+    """#1637 s4 ownership boundary: extra sources (AGENTS.md / main.md) are
+    ingested as directive metadata only -- domain from stem, body always null,
+    and AGENTS.md's managed section excluded."""
+    agents = tmp_path / "AGENTS.md"
+    agents.write_text(
+        "# AGENTS\n\n! Canonical maintainer rule\n\n"
+        "<!-- deft:managed-section v3 sha=abc -->\n"
+        "! Mirror rule\n"
+        "<!-- /deft:managed-section -->\n",
+        encoding="utf-8",
+    )
+    main_md = tmp_path / "main.md"
+    main_md.write_text("# main\n\n~ A guideline rule\n", encoding="utf-8")
+    pack = _build(tmp_path, extra_sources=(agents, main_md))
+    extra = [r for r in pack["rules"] if r["path"] in ("AGENTS.md", "main.md")]
+    assert {r["domain"] for r in extra} == {"agents", "main"}
+    assert all(r["body"] is None for r in extra)
+    extra_texts = [r["text"] for r in extra]
+    assert "Canonical maintainer rule" in extra_texts
+    assert "A guideline rule" in extra_texts
+    # Managed-section mirror excluded.
+    assert "Mirror rule" not in extra_texts
+
+
+def test_build_pack_skips_missing_extra_source(tmp_path: Path) -> None:
+    pack = _build(tmp_path, extra_sources=(tmp_path / "nope.md",))
+    assert all(r["path"].startswith("coding/") for r in pack["rules"])
 
 
 def test_migrate_writes_and_round_trips(tmp_path: Path) -> None:
@@ -153,7 +212,7 @@ def test_migrate_writes_and_round_trips(tmp_path: Path) -> None:
     coding.mkdir()
     (coding / "testing.md").write_text(FIXTURE_TESTING_MD, encoding="utf-8")
     out = tmp_path / "out" / "rules-pack-0.1.json"
-    pack = pack_migrate_rules.migrate(coding, out, proof_doc="coding/testing.md")
+    pack = pack_migrate_rules.migrate(coding, out, extra_sources=())
     assert out.is_file()
     assert pack["pack"] == "rules-pack-0.1"
     assert pack["version"] == "0.1"
@@ -174,7 +233,7 @@ def test_strip_leading_banner_idempotent() -> None:
 def test_migrate_missing_dir_raises(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         pack_migrate_rules.migrate(
-            tmp_path / "nope", tmp_path / "o.json", proof_doc="coding/testing.md"
+            tmp_path / "nope", tmp_path / "o.json", extra_sources=()
         )
 
 
@@ -183,9 +242,7 @@ def test_migrate_no_directives_raises(tmp_path: Path) -> None:
     coding.mkdir()
     (coding / "empty.md").write_text("# Empty\n\nNo directives here.\n", encoding="utf-8")
     with pytest.raises(ValueError, match="no directives"):
-        pack_migrate_rules.migrate(
-            coding, tmp_path / "o.json", proof_doc="coding/testing.md"
-        )
+        pack_migrate_rules.migrate(coding, tmp_path / "o.json", extra_sources=())
 
 
 def test_migrate_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
@@ -193,8 +250,17 @@ def test_migrate_main_exit_codes(tmp_path: Path, capsys: pytest.CaptureFixture) 
     coding.mkdir()
     (coding / "testing.md").write_text(FIXTURE_TESTING_MD, encoding="utf-8")
     out = tmp_path / "pack.json"
+    # Point --extra-source at a non-existent file so main() ingests no real
+    # repo AGENTS.md/main.md (build_pack skips missing sources).
     rc = pack_migrate_rules.main(
-        ["--coding-dir", str(coding), "--proof-doc", "coding/testing.md", "--out", str(out)]
+        [
+            "--coding-dir",
+            str(coding),
+            "--extra-source",
+            str(tmp_path / "none.md"),
+            "--out",
+            str(out),
+        ]
     )
     assert rc == 0
     assert "with body" in capsys.readouterr().out
@@ -243,10 +309,23 @@ def test_generated_source_validates_against_schema() -> None:
     assert errors == [], f"schema validation errors: {errors}"
 
 
-def test_real_pack_exactly_one_proof_body() -> None:
+def test_real_pack_every_coding_doc_bodied() -> None:
+    """#1637 s4: the real pack bodies every coding/*.md doc (one entry each)."""
     pack = json.loads(_REAL_SOURCE.read_text(encoding="utf-8"))
-    bodied = [r for r in pack["rules"] if r["body"] is not None]
-    assert [r["path"] for r in bodied] == [_PROOF_DOC]
+    bodied_paths = {r["path"] for r in pack["rules"] if r["body"] is not None}
+    coding_docs = {f"coding/{p.name}" for p in (_REPO_ROOT / "coding").glob("*.md")}
+    assert bodied_paths == coding_docs
+    assert _PROOF_DOC in bodied_paths
+
+
+def test_real_pack_agents_main_ingested_metadata_only() -> None:
+    """#1637 s4 ownership boundary GUARD on the real pack: AGENTS.md + main.md
+    contribute directive metadata (domains agents/main) but NEVER a body."""
+    pack = json.loads(_REAL_SOURCE.read_text(encoding="utf-8"))
+    extra = [r for r in pack["rules"] if r["path"] in ("AGENTS.md", "main.md")]
+    assert extra, "expected AGENTS.md / main.md directives in the real pack"
+    assert {r["domain"] for r in extra} == {"agents", "main"}
+    assert all(r["body"] is None for r in extra)
 
 
 def test_schema_tier_enum_matches_migration_glyph_map() -> None:

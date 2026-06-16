@@ -1,0 +1,104 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json"
+  },
+  "plan": {
+    "id": "1637-s4-rules-broaden-source",
+    "title": "packs:slice v2 -- broaden rules-pack source to AGENTS.md + main.md",
+    "status": "completed",
+    "planRef": "proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.vbrief.json",
+    "narratives": {
+      "Description": "Broaden the rules pack source coverage beyond `coding/*` to also ingest the RFC2119 directives in AGENTS.md and main.md, and capture full bodies for every `coding/*.md` rule source document (not just the single `coding/testing.md` proof). REFINED 2026-06-16: the needs_refinement design question -- how migrating AGENTS.md interacts with `task agents:refresh` and the managed-section contract -- is resolved by an explicit ownership boundary. AGENTS.md and main.md are ingested as directive METADATA ONLY (id/tier/domain/text/path with body=null) and are NEVER rendered as `packs:render` projections, so AGENTS.md stays solely owned by `task agents:refresh` and the dual-owner collision is structurally impossible: the renderer already skips null-body entries (scripts/pack_render.py documents-mode `if not body: continue`). Body capture / projection rendering broadens only within the collision-safe `coding/*` set. AGENTS.md's managed-section block (delimited by `<!-- deft:managed-section -->` ... `<!-- /deft:managed-section -->`) is stripped before directive extraction because it is a rendered mirror of templates/agents-entry.md, not a canonical source -- this prevents duplicate directive entries. The rules-pack native schema enrichment fields remain out of scope (owned by #748).",
+      "DesignNote": "agents:refresh ownership boundary (resolves needs_refinement). AGENTS.md + main.md contribute directive metadata only (body=null, never rendered); `packs:render` writes only `coding/*.md` projections, so AGENTS.md remains owned solely by `task agents:refresh`. The renderer skips null-body entries (scripts/pack_render.py documents-mode), and a guard test (item a4) asserts AGENTS.md/main.md bodies stay null, so the two generators can never both write AGENTS.md. AGENTS.md's managed section is excluded from extraction (rendered mirror of templates/agents-entry.md). This boundary is what makes the story concurrency-safe and no longer needs_refinement.",
+      "ImplementationPlan": "1. Extend `scripts/pack_migrate_rules.py` to parse two additional explicit source files beyond the `coding/*.md` glob: AGENTS.md (domain `agents`) and main.md (domain `main`). Reuse the existing `parse_rules` glyph+prose extractor (AGENTS.md/main.md use the same `!` / `~` / `?` / SHOULD-NOT / MUST-NOT glyphs). For AGENTS.md, strip the `<!-- deft:managed-section -->` ... `<!-- /deft:managed-section -->` block before extraction (rendered mirror, not canonical). These two sources are metadata-only: every entry gets body=null and is therefore skipped by the renderer.\n2. Broaden body capture so EVERY `coding/*.md` doc carries its full body (regenerate-and-commit projection per ADR-001), not just the coding/testing.md proof; AGENTS.md/main.md stay body=null.\n3. Update `vbrief/schemas/rules-pack.schema.json`: broaden the `path` pattern from `^coding/.+\\.md$` to also permit `AGENTS.md` and `main.md` (e.g. `^(coding/.+\\.md|AGENTS\\.md|main\\.md)$`); refresh the schema + `generated_from` description to name the broadened source set. No domain enum exists (domain is a free `^[a-z0-9-]+$` slug) so `agents`/`main` need no enum edit.\n4. Regenerate: `task packs:render-rules` (rebuild pack JSON), `task packs:render -- --pack rules` (write coding/* projections), then `task packs:render -- --pack rules --check` and `task packs:render -- --check` (drift-clean; record the new total projection count for the test update).\n5. Add assertions to `tests/cli/test_pack_migrate_rules.py` and `tests/cli/test_pack_render.py`: (a) rules entries exist with domain `agents` and `main`; (b) every `coding/*.md` doc has a non-null body; (c) GUARD: no entry whose path is AGENTS.md or main.md ever has a non-null body; (d) update the multipack projection-count assertion. Confirm `task verify:pack-drift` is green.",
+      "UserStory": "As an agent loading framework rules, I want AGENTS.md and main.md directives represented in the rules pack, so that I can slice the full rule corpus from canonical JSON instead of only the coding directives."
+    },
+    "items": [
+      {
+        "id": "1637-s4-a1",
+        "title": "AGENTS.md + main.md directives ingested",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The rules pack JSON stores directive entries with domain `agents` (from AGENTS.md, managed-section excluded) and domain `main` (from main.md), in addition to the existing coding directives."
+        }
+      },
+      {
+        "id": "1637-s4-a2",
+        "title": "every coding/* rule body captured",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The rules pack stores a non-null body for every `coding/*.md` source document (not only coding/testing.md), each rendered as a banner-marked drift-checked projection; AGENTS.md and main.md entries stay body=null."
+        }
+      },
+      {
+        "id": "1637-s4-a3",
+        "title": "broadened sources slice and drift-clean",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "`task packs:slice rules by-domain --domain agents` and `--domain main` return the new directives, and `task packs:render -- --check` / `task verify:pack-drift` validate with no drift."
+        }
+      },
+      {
+        "id": "1637-s4-a4",
+        "title": "agents:refresh ownership boundary enforced",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A guard test asserts no rules entry whose path is AGENTS.md or main.md carries a non-null body, so `packs:render` never writes AGENTS.md and the sole owner of AGENTS.md remains `task agents:refresh`."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/pack_migrate_rules.py",
+          "packs/rules/rules-pack-0.1.json",
+          "vbrief/schemas/rules-pack.schema.json",
+          "coding/",
+          "tests/cli/test_pack_migrate_rules.py",
+          "tests/cli/test_pack_render.py"
+        ],
+        "read_only_sources": [
+          "AGENTS.md",
+          "main.md"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_pack_migrate_rules.py tests/cli/test_pack_render.py",
+          "task packs:render -- --check",
+          "task verify:pack-drift"
+        ],
+        "expected_outputs": [
+          "Rules pack entries with domain agents + main (AGENTS.md managed-section excluded)",
+          "Every coding/*.md body captured and rendered drift-clean",
+          "Guard test locking AGENTS.md/main.md body=null (agents:refresh ownership boundary)"
+        ],
+        "depends_on": [],
+        "conflict_group": "render-projection",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "refinement_note": "Refined 2026-06-16: resolved the agents:refresh managed-section interaction via the metadata-only / never-rendered ownership boundary (see narratives.DesignNote). readiness needs_refinement -> ready.",
+        "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637; schema enrichment portion deferred to #748; no specification.vbrief.json spec-section applies."
+      },
+      "completedAt": "2026-06-16T11:31:29Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1637: feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1283"
+      }
+    ],
+    "updated": "2026-06-16T11:31:29Z"
+  }
+}
