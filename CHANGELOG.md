@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **A copy-pasteable install one-liner for "download from GitHub and install here" (#1661)** -- the README install section and QUICK-START now carry a canonical per-platform fetch-and-run one-liner that downloads the correct release binary from `releases/latest/download`, makes it executable, and runs it headless (`--yes --repo-root . --json`). This gives agents asked to install Deft from GitHub a deterministic path so they stop fabricating a non-existent source-checkout `go build` and failing. A content test guards the guidance against regression. Closes #1661.
 
 ### Changed
 
 ### Fixed
 - **Returning Sessions now forces an actual read of your saved preferences (#696)** -- the harness used to let an agent merely check that USER.md exists, then greet you and silently adopt a name or preference injected by external context (Warp Drive notebooks, MCP outputs). The alignment confirmation now must echo your addressing-name read from inside USER.md, Returning Sessions is promoted to an enforced rule with an ordered read list, and USER.md "Personal (always wins)" entries are documented as overriding external context. Closes #696.
+- **Pre-release tags are now flagged as GitHub pre-releases automatically (#425)** -- release-candidate, beta, and alpha tags (any tag whose version carries a SemVer pre-release suffix like `-rc.1`) are now marked as GitHub pre-releases at creation time, so operators no longer have to run a manual `gh release edit --prerelease` correction after every RC cut. Both release-creation paths agree: the release workflow sets `prerelease` from the tag name and `scripts/release.py` passes a tag-derived `--prerelease` to `gh release create`. Closes #425.
 
 ### Removed
 

@@ -345,6 +345,35 @@ def _validate_version(version: str) -> None:
         )
 
 
+def is_prerelease_tag(version: str) -> bool:
+    """Return True when ``version`` carries a SemVer pre-release suffix (#425).
+
+    A SemVer pre-release is everything after the first ``-`` that follows the
+    core ``X.Y.Z`` version (``-rc.N``, ``-beta.N``, ``-alpha.N``, ...). This
+    pure tag-based decision drives the ``--prerelease`` flag passed to
+    ``gh release create`` so RC / beta / alpha cuts are flagged as GitHub
+    pre-releases automatically instead of requiring a manual
+    ``gh release edit --prerelease`` after every cut. It mirrors the
+    workflow-side ``prerelease: ${{ contains(github.ref_name, '-') }}`` so
+    both release-creation paths agree.
+
+    A leading ``v`` is tolerated so callers may pass either the tag
+    (``v0.20.0-rc.1``) or the bare version (``0.20.0-rc.1``).
+
+    Examples
+    --------
+        ``v0.20.0-rc.1``    -> True
+        ``v1.0.0-alpha.3``  -> True
+        ``0.20.0-beta.2``   -> True
+        ``v0.20.0``         -> False
+        ``0.20.0``          -> False
+    """
+    candidate = version.strip()
+    if candidate.startswith("v"):
+        candidate = candidate[1:]
+    return "-" in candidate
+
+
 def _today_iso() -> str:
     return _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%d")
 
@@ -1218,6 +1247,7 @@ def create_github_release(
     notes: str,
     *,
     draft: bool = True,
+    prerelease: bool = False,
 ) -> tuple[bool, str]:
     """Create the GitHub release tagged ``v<version>``.
 
@@ -1225,6 +1255,12 @@ def create_github_release(
     created in draft state so binaries upload via release.yml CI but the
     artifact is not yet visible to consumers. ``task release:publish --
     <version>`` flips the draft to public after manual review.
+
+    ``prerelease`` defaults to False; when True the release is created
+    with ``--prerelease`` so SemVer pre-release tags (``-rc.N`` / ``-beta.N``
+    / ``-alpha.N``) are flagged as GitHub pre-releases automatically (#425).
+    Callers derive the boolean from the tag via ``is_prerelease_tag`` so this
+    path agrees with the workflow-side ``prerelease: ${{ contains(...) }}``.
 
     Notes-file path (#731): when ``notes`` is non-empty we materialise
     it to a UTF-8 temp file and pass ``--notes-file <path>`` to ``gh``
@@ -1249,6 +1285,8 @@ def create_github_release(
     ]
     if draft:
         cmd.append("--draft")
+    if prerelease:
+        cmd.append("--prerelease")
 
     # Materialise notes to a UTF-8 temp file when non-empty so the
     # gh release create command line stays well under the OS argv cap
@@ -1309,7 +1347,12 @@ def create_github_release(
             return False, "gh CLI not found on PATH"
         if result.returncode != 0:
             return False, f"gh release create failed: {result.stderr.strip()}"
-        suffix = " (draft)" if draft else ""
+        flags = [
+            label
+            for label, enabled in (("draft", draft), ("prerelease", prerelease))
+            if enabled
+        ]
+        suffix = f" ({', '.join(flags)})" if flags else ""
         return True, f"created GitHub release {tag}{suffix}"
     finally:
         if notes_file is not None:
@@ -1912,20 +1955,27 @@ def run_pipeline(config: ReleaseConfig) -> int:
             _emit(11, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 12: GitHub release.
+    # Step 12: GitHub release. #425: flag SemVer pre-release tags
+    # (``-rc.N`` / ``-beta.N`` / ``-alpha.N``) as GitHub pre-releases
+    # automatically so RC cuts no longer require a manual
+    # ``gh release edit --prerelease``. The decision mirrors the
+    # workflow-side ``prerelease: ${{ contains(github.ref_name, '-') }}``.
+    prerelease = is_prerelease_tag(version)
     draft_suffix = " (draft)" if config.draft else " (PUBLIC)"
-    label = f"GitHub release v{version}{draft_suffix}"
+    prerelease_suffix = " (prerelease)" if prerelease else ""
+    label = f"GitHub release v{version}{draft_suffix}{prerelease_suffix}"
     create_succeeded = False
     if config.skip_release:
         _emit(12, label, "SKIP (--skip-release)")
     elif config.dry_run:
         draft_flag = " --draft" if config.draft else ""
+        prerelease_flag = " --prerelease" if prerelease else ""
         _emit(
             12,
             label,
             (
                 f"DRYRUN (would run `gh release create v{version} "
-                f"--repo {config.repo}{draft_flag} ...`)"
+                f"--repo {config.repo}{draft_flag}{prerelease_flag} ...`)"
             ),
         )
     else:
@@ -1936,7 +1986,12 @@ def run_pipeline(config: ReleaseConfig) -> int:
         # repos and when the template is absent (graceful degradation).
         notes = _prepend_upgrade_banner(notes, config.repo, project_root)
         ok, reason = create_github_release(
-            project_root, version, config.repo, notes, draft=config.draft
+            project_root,
+            version,
+            config.repo,
+            notes,
+            draft=config.draft,
+            prerelease=prerelease,
         )
         if ok:
             _emit(12, label, f"OK ({reason})")
