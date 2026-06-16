@@ -1865,17 +1865,19 @@ type pythonInterpreterCandidate struct {
 }
 
 // pythonInterpreterCandidates returns the ordered interpreter candidates the
-// preflight probes: DEFT_PYTHON (when set) -> python -> python3 -> the Windows
-// `py -3` launcher. The order matches the installed git hooks so the installer
-// validates the same interpreter the hooks will later use.
+// preflight probes: DEFT_PYTHON (when set) -> python3 -> python -> the Windows
+// `py -3` launcher. This order MUST match the installed git hooks
+// (.githooks/pre-commit and .githooks/pre-push, which probe
+// python3 -> python -> py -3 after DEFT_PYTHON) so the installer validates the
+// same interpreter the hooks will later resolve and use (Greptile #1676).
 func pythonInterpreterCandidates() []pythonInterpreterCandidate {
 	var cands []pythonInterpreterCandidate
 	if override := strings.TrimSpace(os.Getenv("DEFT_PYTHON")); override != "" {
 		cands = append(cands, pythonInterpreterCandidate{source: "DEFT_PYTHON", bin: override, probeDirect: true})
 	}
 	cands = append(cands,
-		pythonInterpreterCandidate{source: "python", bin: "python"},
 		pythonInterpreterCandidate{source: "python3", bin: "python3"},
+		pythonInterpreterCandidate{source: "python", bin: "python"},
 		pythonInterpreterCandidate{source: "py launcher", bin: "py", prefixArgs: []string{"-3"}},
 	)
 	return cands
@@ -1990,7 +1992,7 @@ func pythonPreflightMessage(pf pythonPreflight) string {
 	if pf.foundAny {
 		fmt.Fprintf(&b, "  Found Python %s via %s, which is too old.\n", pf.bestVersion.String(), pf.bestFound.source)
 	} else {
-		b.WriteString("  No usable Python interpreter was found (probed DEFT_PYTHON, python, python3, and the `py` launcher).\n")
+		b.WriteString("  No usable Python interpreter was found (probed DEFT_PYTHON, python3, python, and the `py` launcher).\n")
 	}
 	b.WriteString("  Install Python 3.11 or newer, then put it on PATH or set DEFT_PYTHON to its full path:\n")
 	b.WriteString("    Windows:     set DEFT_PYTHON=C:\\Users\\<you>\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\n")
@@ -1999,15 +2001,40 @@ func pythonPreflightMessage(pf pythonPreflight) string {
 	return b.String()
 }
 
+// pythonPreflightReported caches the preflight outcome once reportPythonPreflight
+// has surfaced it on the --yes / CI path (via EnsureCoreTools) so the later
+// doHandoffToDoctor call reuses the SAME result instead of re-probing the
+// interpreter and re-printing the actionable message a second time (the #1676
+// duplicate-message review finding). nil means "not yet reported" -- e.g. the
+// interactive install path never calls EnsureCoreTools, so doHandoffToDoctor
+// computes and prints the message itself. It is consume-once: reading it clears
+// the cache so a subsequent install in the same process starts fresh.
+var pythonPreflightReported *pythonPreflight
+
+// consumeReportedPythonPreflight returns the preflight previously surfaced by
+// reportPythonPreflight (and whether one was cached), clearing the cache so the
+// result is reused at most once.
+func consumeReportedPythonPreflight() (pythonPreflight, bool) {
+	if pythonPreflightReported == nil {
+		return pythonPreflight{}, false
+	}
+	pf := *pythonPreflightReported
+	pythonPreflightReported = nil
+	return pf, true
+}
+
 // reportPythonPreflight runs the interpreter preflight and prints either a
 // concise confirmation (documenting the DEFT_PYTHON override) or a loud,
 // actionable error block when no compatible 3.11+ interpreter resolves. The
-// returned outcome lets callers (the doctor handoff) reuse the resolution. It
-// never returns an error / aborts on its own -- aborting the whole install
-// requires the caller's flow control -- but the prominent message is the
-// install-time "fail loud" the #1668 issue asks for.
+// outcome is cached for the later doctor handoff (see pythonPreflightReported)
+// so the actionable message is not printed twice on the --yes/CI path. It never
+// returns an error / aborts on its own -- aborting the whole install requires
+// the caller's flow control -- but the prominent message is the install-time
+// "fail loud" the #1668 issue asks for.
 func reportPythonPreflight(w *Wizard) pythonPreflight {
 	pf := runPythonPreflight()
+	cached := pf
+	pythonPreflightReported = &cached
 	if pf.ok {
 		w.printf("Python preflight: %s satisfies the 3.11+ requirement (resolved via %s).\n", pf.version.String(), pf.resolved.source)
 		w.printf("  Override the interpreter with DEFT_PYTHON=<full path> if needed.\n")
@@ -2057,10 +2084,21 @@ func doHandoffToDoctor(w *Wizard, result *WizardResult, jsonOut bool) {
 		return
 	}
 
-	pf := runPythonPreflight()
+	// Reuse the preflight already surfaced by reportPythonPreflight on the
+	// --yes/CI path (EnsureCoreTools) so we neither re-probe the interpreter
+	// nor re-print the actionable message a second time (#1676). On the
+	// interactive path nothing was reported yet, so compute + print here.
+	pf, alreadyReported := consumeReportedPythonPreflight()
+	if !alreadyReported {
+		pf = runPythonPreflight()
+	}
 	if !pf.ok {
 		w.printf("\n--- Doctor handoff skipped: no compatible Python interpreter (3.11+) ---\n")
-		w.printf("%s", pythonPreflightMessage(pf))
+		if alreadyReported {
+			w.printf("(See the Python preflight message above for the fix.)\n")
+		} else {
+			w.printf("%s", pythonPreflightMessage(pf))
+		}
 		w.printf("(Re-run the doctor with `task doctor` once a 3.11+ interpreter is available.)\n")
 		return
 	}

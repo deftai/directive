@@ -43,14 +43,17 @@ fi
 # Resolve a usable Python interpreter (#1668). On Windows `python3` is usually
 # absent (only `python.exe` / the `py` launcher exist), and a bare `python3` on
 # PATH is often the Microsoft Store App-Execution-Alias stub that prints
-# "Python was not found" and exits non-zero. Probe DEFT_PYTHON (trusted
-# verbatim) -> python3 -> python -> the `py -3` launcher, validating each
-# non-override candidate by actually running `--version` and rejecting the
-# alias stub. PY_PREFIX carries the launcher selector (`-3`) when needed.
+# "Python was not found" and exits non-zero. Probe DEFT_PYTHON -> python3 ->
+# python -> the `py -3` launcher, validating each candidate by running
+# `--version`, rejecting the alias stub, AND enforcing the framework's Python
+# 3.11+ floor (#1676 -- framework scripts import `from datetime import UTC`,
+# added in 3.11). PY_PREFIX carries the launcher selector (`-3`) when needed.
 PYTHON_BIN=""
 PY_PREFIX=""
 
-# _deft_try BIN [PREFIX] -- probe a candidate; on success set PYTHON_BIN/PY_PREFIX.
+# _deft_try BIN [PREFIX] -- probe a candidate. Succeeds (and sets PYTHON_BIN /
+# PY_PREFIX) only when the candidate runs, is not the Windows alias stub, and
+# reports a Python version >= 3.11.
 _deft_try() {
     _bin="$1"
     _pre="${2:-}"
@@ -64,21 +67,43 @@ _deft_try() {
         *"Microsoft Store"*|*"was not found"*|*"execution alias"*) return 1 ;;
     esac
     case "$_out" in
-        *Python\ [0-9]*) PYTHON_BIN="$_bin"; PY_PREFIX="$_pre"; return 0 ;;
+        *Python\ [0-9]*) ;;
+        *) return 1 ;;
     esac
+    # Enforce the 3.11+ floor using POSIX parameter expansion (no sed/awk
+    # dependency). Parse major.minor from the "Python X.Y.Z" banner.
+    _rest=${_out#*Python }
+    _major=${_rest%%.*}
+    _rest=${_rest#*.}
+    _minor=${_rest%%.*}
+    case "$_major" in ''|*[!0-9]*) return 1 ;; esac
+    case "$_minor" in ''|*[!0-9]*) return 1 ;; esac
+    if [ "$_major" -gt 3 ]; then
+        PYTHON_BIN="$_bin"; PY_PREFIX="$_pre"; return 0
+    fi
+    if [ "$_major" -eq 3 ] && [ "$_minor" -ge 11 ]; then
+        PYTHON_BIN="$_bin"; PY_PREFIX="$_pre"; return 0
+    fi
     return 1
 }
 
 if [ -n "${DEFT_PYTHON:-}" ]; then
-    PYTHON_BIN="$DEFT_PYTHON"
+    # DEFT_PYTHON is the explicit override, but still version-checked so the
+    # hooks enforce the same 3.11+ floor as the installer (#1676).
+    _deft_try "$DEFT_PYTHON" || true
+    if [ -z "$PYTHON_BIN" ]; then
+        echo "deft pre-commit: DEFT_PYTHON ($DEFT_PYTHON) is not a usable Python 3.11+ interpreter." >&2
+        echo "  Point DEFT_PYTHON at a Python 3.11+ executable." >&2
+        exit 1
+    fi
 else
     _deft_try python3 || _deft_try python || _deft_try py "-3" || true
 fi
 
 if [ -z "$PYTHON_BIN" ]; then
-    echo "deft pre-commit: no usable python interpreter found." >&2
+    echo "deft pre-commit: no usable Python 3.11+ interpreter found." >&2
     echo "  Probed python3, python, and the 'py' launcher (rejecting the Windows" >&2
-    echo "  App-Execution-Alias stub)." >&2
+    echo "  App-Execution-Alias stub and interpreters older than 3.11)." >&2
     echo "  Set DEFT_PYTHON=<absolute python 3.11+ path> or install Python 3.11+." >&2
     exit 1
 fi

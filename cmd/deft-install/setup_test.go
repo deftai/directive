@@ -1758,9 +1758,11 @@ func withPythonSeams(t *testing.T, look func(string) (string, error), probe func
 	origProbe := pythonVersionProbeFunc
 	lookPathFunc = look
 	pythonVersionProbeFunc = probe
+	pythonPreflightReported = nil
 	t.Cleanup(func() {
 		lookPathFunc = origLook
 		pythonVersionProbeFunc = origProbe
+		pythonPreflightReported = nil
 	})
 }
 
@@ -1918,6 +1920,104 @@ func TestRunPythonPreflight_NoneFound(t *testing.T) {
 	pf := runPythonPreflight()
 	if pf.ok || pf.foundAny {
 		t.Fatalf("expected ok=false, foundAny=false when no interpreter resolves, got %+v", pf)
+	}
+}
+
+// TestRunPythonPreflight_Python3BeforePython pins the resolution order to match
+// the git hooks: when both `python3` and `python` are present and compatible,
+// `python3` is resolved first (Greptile #1676 -- the installer order MUST mirror
+// .githooks/pre-commit / pre-push, which probe python3 -> python -> py -3).
+func TestRunPythonPreflight_Python3BeforePython(t *testing.T) {
+	withPythonSeams(t, lookOnly("python3", "python"), func(bin string, _ ...string) (string, error) {
+		switch bin {
+		case "python3":
+			return "Python 3.11.0", nil
+		case "python":
+			return "Python 3.13.0", nil
+		}
+		return "", exec.ErrNotFound
+	})
+	pf := runPythonPreflight()
+	if !pf.ok {
+		t.Fatalf("expected a resolved interpreter, got ok=false (%+v)", pf)
+	}
+	if pf.resolved.source != "python3" {
+		t.Errorf("resolved.source = %q, want python3 (must be tried before python to match the hooks)", pf.resolved.source)
+	}
+	if pf.version.minor != 11 {
+		t.Errorf("resolved version = %s, want 3.11.0 (the python3 candidate)", pf.version.String())
+	}
+}
+
+// TestDoHandoffToDoctor_NoDuplicateFailureMessage pins Greptile #1676 finding 2:
+// on the --yes/CI path reportPythonPreflight prints the actionable block, and
+// the subsequent doHandoffToDoctor must NOT print it a second time -- it reuses
+// the cached preflight and emits only a short pointer.
+func TestDoHandoffToDoctor_NoDuplicateFailureMessage(t *testing.T) {
+	withPythonSeams(t, lookOnly("python"), func(bin string, _ ...string) (string, error) {
+		if bin == "python" {
+			return "Python 3.10.6", nil
+		}
+		return "", exec.ErrNotFound
+	})
+
+	// A doctor.py must exist so doHandoffToDoctor reaches the preflight branch
+	// (it returns early when the canonical doctor is absent).
+	proj := t.TempDir()
+	deftDir := filepath.Join(proj, ".deft", "core")
+	if err := os.MkdirAll(filepath.Join(deftDir, "scripts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deftDir, "scripts", "doctor.py"), []byte("# stub\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result := &WizardResult{ProjectDir: proj, DeftDir: deftDir}
+
+	var out bytes.Buffer
+	w := NewWizardWithLayout(strings.NewReader(""), &out, false, false)
+
+	// Simulate the --yes/CI ordering: EnsureCoreTools -> reportPythonPreflight,
+	// then the install epilogue -> doHandoffToDoctor.
+	reportPythonPreflight(w)
+	doHandoffToDoctor(w, result, false)
+
+	const marker = "Deft requires Python 3.11+"
+	if n := strings.Count(out.String(), marker); n != 1 {
+		t.Errorf("actionable preflight message printed %d times, want exactly 1; output:\n%s", n, out.String())
+	}
+	if !strings.Contains(out.String(), "Doctor handoff skipped") {
+		t.Errorf("doctor handoff should be skipped on an incompatible interpreter; output:\n%s", out.String())
+	}
+}
+
+// TestDoHandoffToDoctor_PrintsMessageOnInteractivePath verifies the interactive
+// path (no prior reportPythonPreflight) still prints the full actionable
+// message from doHandoffToDoctor itself.
+func TestDoHandoffToDoctor_PrintsMessageOnInteractivePath(t *testing.T) {
+	withPythonSeams(t, lookOnly("python"), func(bin string, _ ...string) (string, error) {
+		if bin == "python" {
+			return "Python 3.10.6", nil
+		}
+		return "", exec.ErrNotFound
+	})
+
+	proj := t.TempDir()
+	deftDir := filepath.Join(proj, ".deft", "core")
+	if err := os.MkdirAll(filepath.Join(deftDir, "scripts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deftDir, "scripts", "doctor.py"), []byte("# stub\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	result := &WizardResult{ProjectDir: proj, DeftDir: deftDir}
+
+	var out bytes.Buffer
+	w := NewWizardWithLayout(strings.NewReader(""), &out, false, false)
+	// No reportPythonPreflight call -> nothing cached -> message printed here.
+	doHandoffToDoctor(w, result, false)
+
+	if n := strings.Count(out.String(), "Deft requires Python 3.11+"); n != 1 {
+		t.Errorf("interactive path must print the actionable message exactly once; got %d:\n%s", n, out.String())
 	}
 }
 
