@@ -1034,14 +1034,22 @@ def evaluate_clean_gate(
     confidence,
     ci_failures: int,
     errored: bool,
+    terminal_check_run: bool = True,
 ):
-    """Reference (5)-condition CLEAN gate evaluator.
+    """Reference (6)-condition CLEAN gate evaluator.
 
     Mirrors the template body's `evaluate_clean_gate` function exactly --
     the order of checks is the operative contract so `clean_gate_holdout`
     names the FIRST failing condition, not a downstream cascade. Returns
     a tuple of ``(is_clean: bool, clean_gate_holdout: Optional[str])`` per
     the template body.
+
+    Condition (6) ``terminal_check_run`` (#1259) fails the gate CLOSED
+    unless the ``Greptile Review`` check-run on the current HEAD is terminal
+    (``status == "completed"`` AND ``conclusion`` in {success, neutral}). It
+    defaults to ``True`` here only so the legacy AC-3/AC-4 callers that
+    predate #1259 keep their pre-existing semantics; the INCOMPLETE_BUT_RATED
+    regression below passes ``terminal_check_run=False`` explicitly.
     """
     if last_reviewed_sha is None or last_reviewed_sha != head_sha:
         return False, "sha_match"
@@ -1053,6 +1061,8 @@ def evaluate_clean_gate(
         return False, "ci_failures"
     if errored:
         return False, "errored"
+    if not terminal_check_run:
+        return False, "terminal_check_run"
     return True, None
 
 
@@ -1094,6 +1104,7 @@ def simulate_poll_loop(
     ci_failures: int = 0,
     max_polls: int = 5,
     stall_threshold: int = 3,
+    terminal_check_run: bool = True,
 ):
     """Drive a synthetic poll loop over a static rolling-summary body.
 
@@ -1122,6 +1133,7 @@ def simulate_poll_loop(
             confidence=confidence,
             ci_failures=ci_failures,
             errored=errored,
+            terminal_check_run=terminal_check_run,
         )
         last_holdout = clean_gate_holdout
         log_lines.append(
@@ -1452,6 +1464,71 @@ def test_ac4_regression_clean_exit_unchanged_on_pre_1039_bodies() -> None:
     assert holdout == "has_blocking"
 
 
+def test_incomplete_but_rated_non_terminal_check_run_does_not_exit_clean() -> None:
+    """#1259 P1 regression: INCOMPLETE_BUT_RATED MUST NOT exit CLEAN.
+
+    The trap the #1259 fix to the poller's `evaluate_clean_gate` closes:
+    the rolling-summary parses fully clean (markdown-link SHA == HEAD,
+    confidence > 3, no P0/P1), CI is green, and the body is not the errored
+    sentinel -- so all FIVE legacy conditions pass -- BUT the `Greptile
+    Review` check-run is still non-terminal (in_progress / cancelled /
+    timed_out). Pre-#1259 the gate returned ``(True, None)`` and the poller
+    exited CLEAN prematurely against an un-landed review. With condition (6)
+    `terminal_check_run=False` the gate fails CLOSED: the loop never exits
+    CLEAN and instead bounds out via the (5) STALL fail-loud exit naming the
+    `terminal_check_run` holdout. `ci_failures` is scoped to `CI / *` checks
+    and canNOT stand in for the Greptile check-run, which is why this is a
+    distinct condition.
+    """
+    # Direct unit assertion on the gate: all five legacy conditions pass but
+    # the Greptile check-run is non-terminal -> holdout names terminal_check_run.
+    is_clean, holdout = evaluate_clean_gate(
+        last_reviewed_sha=_HEAD_SHA,
+        head_sha=_HEAD_SHA,
+        has_blocking=False,
+        confidence=5,
+        ci_failures=0,
+        errored=False,
+        terminal_check_run=False,
+    )
+    assert (is_clean, holdout) == (False, "terminal_check_run"), (
+        "non-terminal Greptile check-run must fail the CLEAN gate closed "
+        "with holdout='terminal_check_run' (#1259)"
+    )
+
+    # End-to-end loop: the SAME body that exits CLEAN within one poll when the
+    # check-run is terminal MUST NOT exit CLEAN when terminal_check_run=False;
+    # it bounds out via STALL with the terminal_check_run holdout.
+    exit_class, polls_run, holdout, log_lines = simulate_poll_loop(
+        body=BODY_AC4_MARKDOWN_LINK_CLEAN,
+        head_sha=_HEAD_SHA,
+        ci_failures=0,
+        max_polls=5,
+        stall_threshold=3,
+        terminal_check_run=False,
+    )
+    assert exit_class != "CLEAN", (
+        "INCOMPLETE_BUT_RATED (non-terminal Greptile check-run) must NOT exit "
+        f"CLEAN, got {exit_class!r}; log_lines={log_lines!r}"
+    )
+    assert exit_class == "STALL", (
+        "INCOMPLETE_BUT_RATED must bound out via the (5) STALL fail-loud exit, "
+        f"got {exit_class!r}; log_lines={log_lines!r}"
+    )
+    assert holdout == "terminal_check_run", (
+        f"STALL holdout must name terminal_check_run, got {holdout!r}"
+    )
+
+    # Sanity: the identical body WITH a terminal check-run still exits CLEAN,
+    # proving terminal_check_run is the sole differentiator.
+    clean_exit, _, clean_holdout, _ = simulate_poll_loop(
+        body=BODY_AC4_MARKDOWN_LINK_CLEAN,
+        head_sha=_HEAD_SHA,
+        terminal_check_run=True,
+    )
+    assert (clean_exit, clean_holdout) == ("CLEAN", None)
+
+
 # ---------------------------------------------------------------------------
 # Synchronization tests -- pin the template encoding so a future edit that
 # drops the (5) STALL block, the clean_gate_holdout surface, or the Tier 1
@@ -1486,6 +1563,56 @@ def test_template_contains_evaluate_clean_gate_function(template_text: str) -> N
         assert holdout_name in template_text, (
             f"template missing canonical holdout name {holdout_name} (#1039)"
         )
+
+
+def test_template_clean_gate_enforces_terminal_check_run(template_text: str) -> None:
+    """#1259 sync: template (1) CLEAN prose + evaluate_clean_gate BOTH enforce
+    the terminal Greptile check-run condition.
+
+    The #1259 fail-closed all-of in `skills/deft-directive-review-cycle/SKILL.md`
+    Step 6 requires a TERMINAL Greptile check-run; this test pins that the
+    swarm-dispatched poller path (the PRIMARY review-cycle path) propagates the
+    same condition into BOTH surfaces the poller copies: the executable
+    `evaluate_clean_gate` snippet AND the human-readable `### (1) CLEAN`
+    ALL-of bullet list. A future edit that drops either surface fails CI.
+    """
+    # 1) The evaluate_clean_gate function snippet enforces the (6)th condition.
+    gate_start = template_text.index("def evaluate_clean_gate(")
+    gate_block = template_text[gate_start : gate_start + 2200]
+    assert "terminal_check_run," in gate_block, (
+        "evaluate_clean_gate must accept a terminal_check_run parameter (#1259)"
+    )
+    assert "if not terminal_check_run:" in gate_block, (
+        "evaluate_clean_gate must fail closed on a non-terminal check-run (#1259)"
+    )
+    assert 'return False, "terminal_check_run"' in gate_block, (
+        "evaluate_clean_gate must name the terminal_check_run holdout (#1259)"
+    )
+    # The call site must thread the derived terminal flag into the gate.
+    assert "terminal_check_run=greptile_terminal" in template_text, (
+        "the evaluate_clean_gate call site must pass terminal_check_run (#1259)"
+    )
+
+    # 2) The (1) CLEAN ALL-of prose enumerates the same terminal condition.
+    # Anchor on the section HEADER (`### (1) CLEAN\n\nALL of:`), not the earlier
+    # backtick-wrapped prose reference to the section.
+    clean_start = template_text.index("### (1) CLEAN\n\nALL of:")
+    clean_block = template_text[clean_start : clean_start + 1600]
+    assert "terminal_check_run" in clean_block, (
+        "`### (1) CLEAN` ALL-of list must enumerate the terminal_check_run "
+        "condition (#1259)"
+    )
+    assert 'status == "completed"' in clean_block, (
+        "`### (1) CLEAN` must require the Greptile check-run status == completed (#1259)"
+    )
+    # The conclusion set is a literal (doubled) brace in the str.format payload.
+    assert "{{success, neutral}}" in clean_block, (
+        "`### (1) CLEAN` must require conclusion in {success, neutral} (#1259)"
+    )
+    assert "INCOMPLETE_BUT_RATED" in clean_block, (
+        "`### (1) CLEAN` must name the INCOMPLETE_BUT_RATED scenario the "
+        "terminal condition closes (#1259)"
+    )
 
 
 def test_template_contains_stall_terminal_exit(template_text: str) -> None:

@@ -312,9 +312,9 @@ When `is_informal_clean_missing_canonical_fields(...)` is True on the current po
 
 ## CLEAN gate evaluation, `clean_gate_holdout`, and per-poll instrumentation (#1039)
 
-The (1) CLEAN terminal exit is an AND of the five conditions enumerated under `### (1) CLEAN` below. A parse failure in ANY of the five (regex doesn't match Greptile's actual rendering / parse silently returns None / a `CI / *` check is `pending` rather than `completed`) keeps both `has_blocking = False` AND `is_clean = False` simultaneously, dropping the poller into the fall-through path that polls until the `{poll_cap_minutes}`-minute cap (PR #1038 recurrence, 2026-05-11; #1039). The gate evaluator below names the FIRST failing condition (in (1)/(2)/(3)/(4)/(5) order) as `clean_gate_holdout` so the per-poll log AND the (4) TIMEOUT / (5) STALL exit messages surface WHICH of the five conditions held the gate -- the operator MUST NEVER have to ask "which condition failed?" (Tier 3 per-condition fail-loud, #1039).
+The (1) CLEAN terminal exit is an AND of the six conditions enumerated under `### (1) CLEAN` below. A parse failure in ANY of them (regex doesn't match Greptile's actual rendering / parse silently returns None / a `CI / *` check is `pending` rather than `completed` / the Greptile Review check-run is non-terminal) keeps both `has_blocking = False` AND `is_clean = False` simultaneously, dropping the poller into the fall-through path that polls until the `{poll_cap_minutes}`-minute cap (PR #1038 recurrence, 2026-05-11; #1039). The gate evaluator below names the FIRST failing condition (in (1)/(2)/(3)/(4)/(5)/(6) order) as `clean_gate_holdout` so the per-poll log AND the (4) TIMEOUT / (5) STALL exit messages surface WHICH of the six conditions held the gate -- the operator MUST NEVER have to ask "which condition failed?" (Tier 3 per-condition fail-loud, #1039).
 
-Holdout names map to the five conditions verbatim: condition (1) -> `sha_match`, (2) -> `has_blocking`, (3) -> `confidence`, (4) -> `ci_failures`, (5) -> `errored`. The function MUST evaluate in this exact order so the holdout names the first failure, not a downstream cascade:
+Holdout names map to the six conditions verbatim: condition (1) -> `sha_match`, (2) -> `has_blocking`, (3) -> `confidence`, (4) -> `ci_failures`, (5) -> `errored`, (6) -> `terminal_check_run` (#1259). The function MUST evaluate in this exact order so the holdout names the first failure, not a downstream cascade:
 
 ```python
 def evaluate_clean_gate(
@@ -324,13 +324,30 @@ def evaluate_clean_gate(
     confidence,
     ci_failures,
     errored,
+    terminal_check_run,
 ):
-    """Return (is_clean, clean_gate_holdout) per the (5)-condition AND gate.
+    """Return (is_clean, clean_gate_holdout) per the (6)-condition AND gate.
 
-    clean_gate_holdout names the FIRST failing condition (in 1/2/3/4/5
-    order) or None when all five pass. The order is the operative
+    clean_gate_holdout names the FIRST failing condition (in 1/2/3/4/5/6
+    order) or None when all six pass. The order is the operative
     contract -- callers MUST NOT reorder the checks or the holdout will
     name a downstream cascade rather than the root cause (#1039).
+
+    Condition (6) `terminal_check_run` (#1259) fails the gate CLOSED unless
+    the `Greptile Review` check-run on the current HEAD is terminal --
+    `status == "completed"` AND `conclusion` in `{{success, neutral}}`. A
+    non-terminal Greptile conclusion (`queued` / `in_progress` /
+    `cancelled` / `timed_out` / `stale` / `action_required` / `failure`)
+    is NOT clean even when the rolling summary already parses clean (SHA
+    matches HEAD, confidence > 3, no P0/P1). This is the INCOMPLETE_BUT_RATED
+    scenario from `skills/deft-directive-review-cycle/SKILL.md` Step 6:
+    without (6), all five legacy conditions pass and the poller exits CLEAN
+    prematurely. `ci_failures` (condition 4) is scoped to `CI / *` checks
+    ONLY -- it does NOT cover the Greptile Review check-run -- so the
+    terminal Greptile conclusion is a DISTINCT condition that `ci_failures`
+    cannot stand in for. Mirrors the SKILL.md Step 6 fail-closed all-of's
+    terminal-check-run field so the swarm-dispatched poller path enforces
+    the same gate as the one-shot review-cycle entry.
     """
     if last_reviewed_sha is None or last_reviewed_sha != head_sha:
         return False, "sha_match"
@@ -342,10 +359,24 @@ def evaluate_clean_gate(
         return False, "ci_failures"
     if errored:
         return False, "errored"
+    if not terminal_check_run:
+        return False, "terminal_check_run"
     return True, None
 ```
 
-Each poll iteration MUST emit a Tier 1 diagnostic log line (#1039 AC-1) with the fields below in this exact order so a future operator can grep the poller's transcript for `is_clean=False` and see WHICH of the five conditions was the holdout. The fields appear verbatim in this order -- a future edit MUST NOT reorder, rename, or drop them; the `tests/content/test_swarm_poller_template.py` sync tests pin the field set:
+Each poll iteration MUST emit a Tier 1 diagnostic log line (#1039 AC-1) with the fields below in this exact order so a future operator can grep the poller's transcript for `is_clean=False` and see WHICH of the six conditions was the holdout. The fields appear verbatim in this order -- a future edit MUST NOT reorder, rename, or drop them; the `tests/content/test_swarm_poller_template.py` sync tests pin the field set:
+
+Derive `greptile_terminal` from the `Greptile Review` check-run on the current HEAD (NOT from the `CI / *` checks `ci_failure_count` already covers). The check-run is terminal-clean only when `status == "completed"` AND `conclusion` in `{{success, neutral}}`; any other status (`queued` / `in_progress`) or conclusion (`cancelled` / `timed_out` / `stale` / `action_required` / `failure` / `None`) is non-terminal and MUST fail the gate closed (#1259):
+
+```python
+# From `gh api repos/{repo}/commits/<head_sha>/check-runs` (or the parsed
+# `gh pr checks {pr_number}` output), find the `Greptile Review` check-run:
+greptile_terminal = (
+    greptile_run is not None
+    and greptile_run.get("status") == "completed"
+    and greptile_run.get("conclusion") in ("success", "neutral")
+)
+```
 
 ```python
 is_clean, clean_gate_holdout = evaluate_clean_gate(
@@ -355,6 +386,7 @@ is_clean, clean_gate_holdout = evaluate_clean_gate(
     confidence=confidence,
     ci_failures=ci_failure_count,
     errored=errored,
+    terminal_check_run=greptile_terminal,
 )
 print(
     f"[poll {{i}}/{{cap}}] last_reviewed_sha={{last_reviewed_sha}} "
@@ -380,6 +412,7 @@ ALL of:
 - `confidence > 3` (i.e. 4/5 or 5/5 -- a `confidence == 3` parse is NOT clean; the gate names `clean_gate_holdout="confidence"` and you stay in the loop, you do NOT send the CLEAN message).
 - `gh pr checks {pr_number}` shows no `failure` status on `CI / *` checks.
 - The Greptile rolling-summary comment body does NOT equal `Greptile encountered an error while reviewing this PR` (errored sentinel; #526).
+- `terminal_check_run` is True: the `Greptile Review` check-run on the current HEAD is terminal -- `status == "completed"` AND `conclusion` in `{{success, neutral}}` (#1259). A non-terminal Greptile conclusion (`queued` / `in_progress` / `cancelled` / `timed_out` / `stale` / `action_required` / `failure`) is NOT clean even when the rolling summary already parses clean (the INCOMPLETE_BUT_RATED scenario -- rolling summary posted, SHA matches, confidence > 3, no P0/P1, but the check-run has not terminally landed). This is DISTINCT from the `CI / *` `failure` bullet above: `ci_failures` is scoped to `CI / *` checks only and does NOT cover the Greptile Review check-run, so a non-terminal Greptile conclusion would otherwise slip through. The gate names `clean_gate_holdout="terminal_check_run"` and you stay in the loop.
 
 Send to parent:
 
@@ -447,7 +480,7 @@ Send:
 
 ### (5) STALL
 
-`has_blocking` is False (no blocking signals detected) AND `is_clean` is False (CLEAN gate not satisfied) for N consecutive polls (default N=3, ~4.5 min at the recommended 90s interval). This is the bounded fail-loud exit (#1039 AC-2) that surfaces a parse-gap or detector-coverage gap immediately, instead of letting the poller burn its `{poll_cap_minutes}`-minute cap polling stale state (PR #1038, 2026-05-11; the recurrence record). The exit message MUST surface `clean_gate_holdout` so the operator sees WHICH of the five CLEAN-gate conditions blocked progress (#1039 AC-3).
+`has_blocking` is False (no blocking signals detected) AND `is_clean` is False (CLEAN gate not satisfied) for N consecutive polls (default N=3, ~4.5 min at the recommended 90s interval). This is the bounded fail-loud exit (#1039 AC-2) that surfaces a parse-gap or detector-coverage gap immediately, instead of letting the poller burn its `{poll_cap_minutes}`-minute cap polling stale state (PR #1038, 2026-05-11; the recurrence record). The exit message MUST surface `clean_gate_holdout` so the operator sees WHICH of the six CLEAN-gate conditions blocked progress (#1039 AC-3, extended to the (6) terminal_check_run condition per #1259).
 
 Increment the `stall_streak` counter introduced under `## CLEAN gate evaluation, clean_gate_holdout, and per-poll instrumentation (#1039)` above; reset on any poll where `has_blocking` or `is_clean` flips True. When `stall_streak >= 3`, send:
 
@@ -510,7 +543,7 @@ Dogfood lessons captured during the #727 self-review cycle. The template body ab
 - **`Last reviewed commit:` regex is markdown-link aware AND non-greedy.** The recommended pattern is `r"Last reviewed commit:\s*\[.*?\]\(https?://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{{7,40}})"`. The naive inline-SHA form (`r"Last reviewed commit:\s*([0-9a-f]{{7,40}})"`) does NOT match Greptile's actual output -- Greptile emits `Last reviewed commit: [<subject>](<url>/commit/<sha>)` -- and is the bug Agent D's poll script hit (see #727 followup comments). The link-text group MUST be the non-greedy `.*?`, NOT a `[^\]]*` negated-bracket class: a commit subject containing escaped brackets (e.g. `add \[Unreleased\] entry`) makes `[^\]]*` stop at the first escaped `\]` rather than the real `](` boundary, so the regex fails to match and `last_reviewed_sha` falls to `None` -- a false STALL / TIMEOUT on an otherwise-clean review (#1326).
 - **P0/P1 detection uses the triple-tier detector at `### P0/P1 findings detection` above (#910), extended with Tier 2.5 SLizard heading form (#1035).** The detector body in this template is the authoritative implementation -- combine Tier 1 (HTML badge count via `body.count('<img alt="P0"')` / `body.count('<img alt="P1"')`), Tier 2 (markdown-bullet bold scan with line-scoped negation guards), Tier 2.5 (SLizard `### P[01]` heading-form regex `^#{{1,6}}\s+P([01])\s*[\u00b7\u2027\u2022\-]\s` with the SAME line-scoped negation-context guard as Tier 2), and Tier 3 (inline-prose sentinels: `Not safe to merge` substring + count-prose regex + line-anchored `^P[01] -- ` regex) via `has_blocking = (max(tier1_p0, tier2_p0, tier25_p0) + max(tier1_p1, tier2_p1, tier25_p1)) > 0 or tier3_sentinel`. Tier 2.5 is numbered 2.5 (not renumbered as a new Tier 4) so existing detector citations in `meta/lessons.md` and the swarm-skill anti-patterns -- which key on the 1/2/3 names -- stay stable. The single-tier badge-only approach is INSUFFICIENT and was the recurrence cause of three false-negatives in the v0.25.1 swarm session (#907 first review, #908 first review, #908 retrigger); the triple-tier-without-Tier-2.5 detector missed SLizard's `### P1 · ...` heading form on PR #1034 (2026-05-11, #1035). A `\b(P0|P1)\b` raw substring scan false-positives on the clean-summary phrase `No P0 or P1 issues found` and is forbidden -- the Tier 2 / Tier 2.5 / Tier 3 implementations above embed the negation-context guards (`No `, `Zero `, `0 `, lowercase `no `) and MUST be used verbatim.
 - **The detector strips code-fence regions before counting, but a residual self-reference false-positive remains (#1004).** On PRs that modify the detector itself (`templates/swarm-greptile-poller-prompt.md` or `tests/content/test_swarm_poller_template.py`), Greptile quotes the detector's own tokens (`<img alt="P0"`, `Not safe to merge`, `Three P1 findings`, ...) verbatim when describing the diff. The `strip_code_fences(body)` pre-process at the top of the `### P0/P1 findings detection` block removes triple-backtick fenced blocks and `<code>` / `<pre>` HTML regions before Tier 1/2/3 detection, so tokens Greptile quotes inside fences no longer count (option 1 from #1004). The RESIDUAL case: if Greptile quotes a detector token in UNFENCED prose (e.g. an inline summary sentence that names `Not safe to merge` while describing the change), or conversely renders a REAL finding inside a fence, the strip cannot disambiguate. When you are reviewing a PR that touches the detector and the poller reports `has_blocking=True`, manually confirm the flagged tokens are genuine findings and not Greptile quoting the detector's own source before escalating. Recurrence record: PR #996 first review (2026-05-08) reported `P0=3/P1=3/tier3=True` against an actual `1 P1 + 2 P2`; a careful poller logged the discrepancy and continued, but a less-careful poller would have looped on findings that do not exist (#1004, #910 follow-up).
-- **CLEAN-gate detector failures fail LOUD via (5) STALL, not silent via 30-min TIMEOUT (#1039).** The pre-#1039 poller could not distinguish a parse-gap (regex doesn't match Greptile's actual rendering -> `last_reviewed_sha = None` -> condition (1) False) from "Greptile is still working" (no review posted yet -> same outcome), so the wedged signature kept both `has_blocking = False` AND `is_clean = False` and the poller burned its `{poll_cap_minutes}`-minute cap. The (5) STALL terminal exit above bounds the wedged-signature exit at ~4.5 min (N=3 consecutive polls at the recommended 90s interval) and the `clean_gate_holdout` field in BOTH (4) TIMEOUT and (5) STALL exit messages names the FIRST of the five conditions that blocked the gate -- the operator MUST NEVER have to ask "which condition failed?" Recurrence record: PR #1038 (2026-05-11) poller agent `5794b0e7-...` wedged 30 min on a textbook clean review; maintainer intervened out-of-band; #1039.
+- **CLEAN-gate detector failures fail LOUD via (5) STALL, not silent via 30-min TIMEOUT (#1039).** The pre-#1039 poller could not distinguish a parse-gap (regex doesn't match Greptile's actual rendering -> `last_reviewed_sha = None` -> condition (1) False) from "Greptile is still working" (no review posted yet -> same outcome), so the wedged signature kept both `has_blocking = False` AND `is_clean = False` and the poller burned its `{poll_cap_minutes}`-minute cap. The (5) STALL terminal exit above bounds the wedged-signature exit at ~4.5 min (N=3 consecutive polls at the recommended 90s interval) and the `clean_gate_holdout` field in BOTH (4) TIMEOUT and (5) STALL exit messages names the FIRST of the six conditions that blocked the gate -- the operator MUST NEVER have to ask "which condition failed?" Recurrence record: PR #1038 (2026-05-11) poller agent `5794b0e7-...` wedged 30 min on a textbook clean review; maintainer intervened out-of-band; #1039. The INCOMPLETE_BUT_RATED variant -- rolling summary parses clean but the Greptile check-run is non-terminal -- is held by condition (6) `terminal_check_run` and bounded by the same (5) STALL exit (#1259).
 
 ## Cross-references
 
