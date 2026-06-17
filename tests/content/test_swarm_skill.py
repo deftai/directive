@@ -979,6 +979,11 @@ _PHASE6_LIFECYCLE_COMMIT_TOKENS = (
     "git push origin <configured-base-branch>",
     # the active/ -> completed/ move being committed
     "git add -A vbrief/",
+    # step 0 -- fast-forward the local base FIRST so the push is not rejected
+    # as non-fast-forward after the cascade advanced the remote base (#1358
+    # review finding 1).
+    "git merge --ff-only origin/<configured-base-branch>",
+    "non-fast-forward",
     # release-ceremony drift gate this step keeps green
     "check_vbrief_lifecycle_sync",
     # cross-reference to the reconcile recovery path
