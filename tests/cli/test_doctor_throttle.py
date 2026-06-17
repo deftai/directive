@@ -419,3 +419,69 @@ def test_cmd_doctor_corrupt_state_runs_full(
     # Corrupt-state fallback path is "treat as no-state"; full check runs
     # and emits the canonical header text.
     assert "Checking system dependencies" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# #1316 -- skip-severity findings must not inflate the persisted warning tally
+# ---------------------------------------------------------------------------
+
+
+def test_dirty_skip_status_line_excludes_skip_severity_from_warning_count(
+    doctor_module, doctor_state_module, tmp_path
+):
+    """#1316: a ``severity == "skip"`` finding must NOT count as a warning.
+
+    Reproduces the dirty throttle-skip off-by-one end-to-end: a full
+    doctor run on a maintainer/consumer repo emits the AGENTS.md-freshness
+    check's ``severity == "skip"`` finding alongside one real error and one
+    real warning. ``_persist_doctor_state`` writes the state, the next
+    invocation reads it back and renders the throttle-skip status line.
+
+    Before the fix ``last_finding_count`` was ``len(findings) == 3``, so
+    ``_render_doctor_status_line`` derived ``warns = 3 - 1 = 2`` and
+    over-reported "2 warnings". After the fix the skip is excluded
+    (``last_finding_count == 2``) and the line correctly reports
+    "1 warning".
+    """
+    # The autouse `_isolate_doctor_state_path` fixture pins
+    # DEFT_DOCTOR_STATE_PATH, so persist + read resolve to the same file
+    # regardless of the project_root argument.
+    findings = [
+        {
+            "severity": "error",
+            "message": "Root Taskfile.yml missing",
+            "check": "taskfile-include",
+        },
+        {
+            "severity": "warning",
+            "message": "Missing directory: tasks/",
+            "check": "framework-layout",
+        },
+        {
+            # Shaped exactly like _run_agents_md_freshness_check's skip
+            # finding (the #1316 trigger).
+            "severity": "skip",
+            "message": "no managed-section markers (likely maintainer repo)",
+            "check": "agents-md-managed-section-fresh",
+            "status": "skip",
+        },
+    ]
+
+    doctor_module._persist_doctor_state(tmp_path, exit_code=1, findings=findings)
+
+    state = doctor_state_module.read_state(tmp_path)
+    assert state is not None, "persisted doctor-state.json must be readable"
+    # The skip is excluded -- only the error + warning "matter".
+    assert state.last_finding_count == 2
+    assert state.last_error_count == 1
+
+    # A freshly persisted dirty state is within the 4h dirty window, so the
+    # throttle decision is a dirty skip -> the status line renders the
+    # warning tally as last_finding_count - last_error_count.
+    decision = doctor_state_module.decide_throttle(state)
+    assert decision.dirty is True
+    assert decision.skip is True
+
+    line = doctor_module._render_doctor_status_line(decision)
+    assert "1 error / 1 warning --" in line, line
+    assert "2 warning" not in line, line

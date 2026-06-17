@@ -587,9 +587,18 @@ def cache_fetch_all(
     ttl_seconds: int | None = None,
     state: str = "open",
     limit: int = 1000,
+    labels: tuple[str, ...] = (),
+    author: str | None = None,
     cache_root: Path | None = None,
 ) -> FetchAllReport:
-    """Populate the cache for every issue in ``repo``. See :mod:`_cache_fetch`."""
+    """Populate the cache for issues in ``repo``. See :mod:`_cache_fetch`.
+
+    ``labels`` (#1033) and ``author`` (#1055) scope the REST issue
+    enumeration so an operator can ingest a subset of the backlog rather
+    than the whole open queue. Both default to the unfiltered case
+    (empty labels / no author); when both are supplied they compose with
+    AND semantics (label-matching issues created by the given login).
+    """
     if source != "github-issue":
         raise CacheError(
             f"cache:fetch-all source={source!r} not supported in v1 "
@@ -620,6 +629,8 @@ def cache_fetch_all(
         delay_ms=delay_ms,
         state=state,
         limit=limit,
+        labels=labels,
+        author=author,
     )
 
 
@@ -847,6 +858,27 @@ def _build_parser() -> argparse.ArgumentParser:
     p_fa.add_argument("--state", default="open")
     p_fa.add_argument("--limit", type=int, default=1000)
     p_fa.add_argument(
+        "--label",
+        action="append",
+        default=None,
+        dest="labels",
+        metavar="NAME[,NAME...]",
+        help=(
+            "Scope ingestion to issues carrying the given label(s) (#1033). "
+            "Repeatable and comma-separated (--label a,b --label c). "
+            "Composes with --author via AND."
+        ),
+    )
+    p_fa.add_argument(
+        "--author",
+        default=None,
+        metavar="LOGIN",
+        help=(
+            "Scope ingestion to issues created by LOGIN (#1055). Maps to "
+            "the REST 'creator' param. Composes with --label via AND."
+        ),
+    )
+    p_fa.add_argument(
         "--refresh-closed",
         action="store_true",
         help=(
@@ -951,7 +983,26 @@ def _cmd_invalidate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _normalise_label_filter(raw: list[str] | None) -> tuple[str, ...]:
+    """Flatten repeated + comma-separated ``--label`` values into a tuple.
+
+    ``argparse(action="append")`` yields a list with one entry per flag
+    occurrence; each entry may itself be comma-separated. This mirrors
+    the gh CLI multi-label convention and the scm.py ``--rest issue
+    list`` label parsing so the two surfaces stay consistent (#1033).
+    """
+    if not raw:
+        return ()
+    return tuple(
+        item.strip()
+        for value in raw
+        for item in value.split(",")
+        if item.strip()
+    )
+
+
 def _cmd_fetch_all(args: argparse.Namespace) -> int:
+    labels = _normalise_label_filter(getattr(args, "labels", None))
     report = cache_fetch_all(
         source=args.source,
         repo=args.repo,
@@ -960,6 +1011,8 @@ def _cmd_fetch_all(args: argparse.Namespace) -> int:
         ttl_seconds=args.ttl_seconds,
         state=args.state,
         limit=args.limit,
+        labels=labels,
+        author=args.author,
     )
     sys.stdout.write(report.to_json() + "\n")
     rc = 0 if report.failed == 0 else 1

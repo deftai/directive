@@ -649,6 +649,7 @@ def rest_issue_list(
     *,
     state: str = "open",
     labels: tuple[str, ...] = (),
+    author: str | None = None,
     per_page: int = 30,
 ) -> list[dict[str, Any]]:
     """``GET /repos/{owner}/{repo}/issues`` -- list issues (REST collection).
@@ -671,9 +672,15 @@ def rest_issue_list(
             Mirrors gh CLI's ``--state`` flag and the REST ``state``
             query param.
         labels: Optional iterable of label names to filter by. Joined
-            with ``,`` per the REST contract (issues matching ANY of
-            the labels are returned). Empty tuple (default) applies
-            no label filter.
+            with ``,`` per the REST contract. Empty tuple (default)
+            applies no label filter.
+        author: Optional issue-creator login to filter by (#1055). Maps
+            to the REST ``creator`` query param (``gh issue list``'s
+            ``--author`` equivalent). ``None`` (default) applies no
+            author filter. Composes with ``labels`` via AND semantics:
+            GitHub applies each query param independently, so the result
+            is the intersection -- issues with the given label(s) AND
+            created by the given login.
         per_page: Max items per page. GitHub caps this at 100; the
             default of 30 mirrors the REST API's own default. This
             helper does NOT auto-paginate -- callers needing more than
@@ -694,8 +701,10 @@ def rest_issue_list(
     endpoint = f"repos/{owner}/{name}/issues"
     # gh api accepts repeated -F / --raw-field for query-string params;
     # we use --raw-field uniformly (string-typed) for state / per_page /
-    # labels per the REST contract. The labels filter is joined comma-
-    # separated per GitHub's documented multi-label query convention.
+    # labels / creator per the REST contract. The labels filter is joined
+    # comma-separated per GitHub's documented multi-label query
+    # convention. The ``creator`` param (#1055) is the REST spelling of
+    # gh's ``--author``; labels + creator compose as AND server-side.
     # SLizard P3 (#998 review): the prior comment claimed `-F for labels`
     # but the implementation has always used --raw-field; comment
     # corrected to match.
@@ -704,6 +713,8 @@ def rest_issue_list(
     args.extend(["--raw-field", f"per_page={per_page}"])
     if labels:
         args.extend(["--raw-field", f"labels={','.join(labels)}"])
+    if author:
+        args.extend(["--raw-field", f"creator={author}"])
     return _exec(
         args,
         endpoint=endpoint,
@@ -751,6 +762,7 @@ def rest_issue_list_paginated(
     *,
     state: str = "open",
     labels: tuple[str, ...] = (),
+    author: str | None = None,
     per_page: int = REST_MAX_PER_PAGE,
     limit: int | None = None,
     exclude_pulls: bool = True,
@@ -772,6 +784,9 @@ def rest_issue_list_paginated(
         repo: ``"owner/repo"`` slug.
         state: Forwarded to :func:`rest_issue_list` per-page.
         labels: Forwarded to :func:`rest_issue_list` per-page.
+        author: Optional issue-creator login forwarded per-page as the
+            REST ``creator`` param (#1055). ``None`` (default) applies
+            no author filter. Composes with ``labels`` via AND.
         per_page: Items per page. Clamped to
             :data:`REST_MAX_PER_PAGE` (100). Smaller values produce
             more round trips; larger values are silently capped.
@@ -807,6 +822,8 @@ def rest_issue_list_paginated(
         args.extend(["--raw-field", f"page={page}"])
         if labels:
             args.extend(["--raw-field", f"labels={','.join(labels)}"])
+        if author:
+            args.extend(["--raw-field", f"creator={author}"])
         page_payload = _exec(
             args,
             endpoint=endpoint,
