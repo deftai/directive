@@ -28,7 +28,9 @@ from reconcile_issues import (  # noqa: E402, I001
     format_json,
     format_markdown,
     is_terminal_lifecycle_path,
+    parse_decomposition_origin,  # #1319
     parse_issue_number,
+    parse_parent_issue,  # #1319
     parse_plan_ref,  # #1290
     reconcile_with_unlinked as reconcile,  # legacy three-section shape (#754)
     resolve_lifecycle_anchor,  # #1290
@@ -883,3 +885,198 @@ class TestApplyItemStatusPropagation:
         sub = items[0]["subItems"][0]
         assert sub["status"] == "cancelled"
         assert _ISO_UTC_RE.match(sub["completed"]), sub["completed"]
+
+
+# ---------------------------------------------------------------------------
+# #1319 -- decomposition children: own primary issue is the lifecycle anchor,
+# NOT the (often closed) decomposition_origin umbrella.
+# ---------------------------------------------------------------------------
+
+
+def _write_decomposition_child_1319(
+    vbrief_dir: Path,
+    folder: str,
+    filename: str,
+    *,
+    parent_issue: int | None,
+    decomposition_origin: int | None,
+    reference_issues: list[int],
+    plan_ref: int | None = None,
+    status: str = "running",
+) -> Path:
+    """Write a synthetic decomposition-child vBRIEF for the #1319 tests.
+
+    Mirrors the real shape of #1283 / #1284 / #1285 / #1291: an
+    ``x-tracking`` block under ``plan.metadata`` carrying ``parent_issue``
+    (the child's OWN issue) and ``decomposition_origin`` (the umbrella it
+    was carved from), plus a ``references[]`` array that may list both the
+    own issue and the closed umbrella.
+    """
+    folder_path = vbrief_dir / folder
+    folder_path.mkdir(parents=True, exist_ok=True)
+    x_tracking: dict = {}
+    if parent_issue is not None:
+        x_tracking["parent_issue"] = f"#{parent_issue}"
+    if decomposition_origin is not None:
+        x_tracking["decomposition_origin"] = f"#{decomposition_origin}"
+    references = [
+        {
+            "uri": f"https://github.com/deftai/directive/issues/{n}",
+            "type": "x-vbrief/github-issue",
+            "title": f"Issue #{n}",
+        }
+        for n in reference_issues
+    ]
+    plan: dict = {
+        "title": filename,
+        "status": status,
+        "items": [],
+        "references": references,
+        "metadata": {"kind": "research", "x-tracking": x_tracking},
+    }
+    if plan_ref is not None:
+        plan["planRef"] = f"#{plan_ref}"
+    data = {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
+    p = folder_path / filename
+    p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return p
+
+
+class TestParentIssueAccessors:
+    """#1319: x-tracking accessors read the child's provenance fields."""
+
+    def test_parse_parent_issue_hash(self):
+        data = {"plan": {"metadata": {"x-tracking": {"parent_issue": "#1283"}}}}
+        assert parse_parent_issue(data) == 1283
+
+    def test_parse_decomposition_origin_hash(self):
+        data = {
+            "plan": {"metadata": {"x-tracking": {"decomposition_origin": "#742"}}}
+        }
+        assert parse_decomposition_origin(data) == 742
+
+    def test_accessors_absent_return_none(self):
+        assert parse_parent_issue({"plan": {}}) is None
+        assert parse_decomposition_origin({"plan": {}}) is None
+        assert parse_parent_issue({}) is None
+
+
+class TestDecompositionChildPrimaryAnchor:
+    """#1319: a decomposition child's own OPEN issue anchors its lifecycle.
+
+    The v0.33.0 cut moved #1283 / #1284 / #1285 / #1291 to ``completed/``
+    because their ``decomposition_origin`` umbrella (#742) was CLOSED,
+    even though each child's own primary issue was still OPEN. These
+    tests fail before the fix (the closed umbrella drives the move) and
+    pass after (the child's own issue is the canonical anchor).
+    """
+
+    def test_parent_issue_anchor_beats_closed_umbrella_reference(self):
+        # Umbrella (#742) listed FIRST in references[] to stress the
+        # order-dependent pre-fix references fallback.
+        data = {
+            "plan": {
+                "metadata": {
+                    "x-tracking": {
+                        "parent_issue": "#1283",
+                        "decomposition_origin": "#742",
+                    }
+                },
+                "references": [
+                    {
+                        "type": "x-vbrief/github-issue",
+                        "uri": "https://github.com/deftai/directive/issues/742",
+                    },
+                    {
+                        "type": "x-vbrief/github-issue",
+                        "uri": "https://github.com/deftai/directive/issues/1283",
+                    },
+                ],
+            }
+        }
+        num, axis = resolve_lifecycle_anchor(data)
+        assert num == 1283
+        assert axis == "parent_issue"
+
+    def test_decomposition_origin_excluded_from_references_fallback(self):
+        # No parent_issue: the references fallback must STILL skip the
+        # decomposition_origin umbrella and resolve to the own open issue.
+        data = {
+            "plan": {
+                "metadata": {
+                    "x-tracking": {"decomposition_origin": "#742"}
+                },
+                "references": [
+                    {
+                        "type": "x-vbrief/github-issue",
+                        "uri": "https://github.com/deftai/directive/issues/742",
+                    },
+                    {
+                        "type": "x-vbrief/github-issue",
+                        "uri": "https://github.com/deftai/directive/issues/1283",
+                    },
+                ],
+            }
+        }
+        num, axis = resolve_lifecycle_anchor(data)
+        assert num == 1283
+        assert axis == "references"
+
+    def test_child_with_open_own_issue_stays_put(self, tmp_path):
+        # End-to-end: closed umbrella + closed cross-link, but the child's
+        # OWN issue (#1283) is OPEN -> the child must NOT be moved.
+        vbrief_dir = tmp_path / "vbrief"
+        src = _write_decomposition_child_1319(
+            vbrief_dir,
+            "active",
+            "1283-pack-slicing-rfc.vbrief.json",
+            parent_issue=1283,
+            decomposition_origin=742,
+            reference_issues=[742, 1283, 1290],
+        )
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        assert len(anchors) == 1
+        assert anchors[0]["issue_number"] == 1283
+        assert anchors[0]["axis"] == "parent_issue"
+
+        state_map = {
+            1283: IssueState("OPEN", None),
+            742: IssueState("CLOSED", "COMPLETED"),
+            1290: IssueState("CLOSED", "COMPLETED"),
+        }
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        assert report["no_open_issue"] == []
+        assert report["summary"]["linked_count"] == 1
+
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 0
+        assert failures == []
+        assert src.is_file(), (
+            "a decomposition child whose own issue is OPEN MUST stay put "
+            "even when its decomposition_origin umbrella is CLOSED"
+        )
+
+    def test_child_with_closed_own_issue_still_moves(self, tmp_path):
+        # Contrast: when the child's OWN issue is CLOSED+COMPLETED the
+        # move still fires -- the fix narrows the trigger, it does not
+        # disable legitimate completion.
+        vbrief_dir = tmp_path / "vbrief"
+        src = _write_decomposition_child_1319(
+            vbrief_dir,
+            "active",
+            "1283-done.vbrief.json",
+            parent_issue=1283,
+            decomposition_origin=742,
+            reference_issues=[742, 1283],
+        )
+        anchors = scan_lifecycle_anchors(vbrief_dir)
+        state_map = {
+            1283: IssueState("CLOSED", "COMPLETED"),
+            742: IssueState("CLOSED", "COMPLETED"),
+        }
+        report = build_lifecycle_report(anchors, state_map, log=False)
+        moved, _skipped, failures = apply_lifecycle_fixes(vbrief_dir, report)
+        assert moved == 1
+        assert failures == []
+        assert not src.is_file()
+        assert (vbrief_dir / "completed" / "1283-done.vbrief.json").is_file()

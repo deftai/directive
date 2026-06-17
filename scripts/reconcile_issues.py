@@ -654,6 +654,45 @@ def reconcile_with_unlinked(
 # ---------------------------------------------------------------------------
 
 
+def _parse_issue_ref_string(raw: object) -> int | None:
+    """Parse a bare ``#N`` id or a full issue URL into an issue number.
+
+    Shared by ``parse_plan_ref``, ``parse_parent_issue`` and
+    ``parse_decomposition_origin`` (#1290 / #1319). Returns ``None`` for
+    non-strings, empty strings, or strings that match neither shape.
+    """
+    if not isinstance(raw, str):
+        return None
+    candidate = raw.strip()
+    m = ISSUE_ID_PATTERN.match(candidate)
+    if m:
+        return int(m.group("number"))
+    m = ISSUE_URL_PATTERN.search(candidate)
+    if m:
+        return int(m.group("number"))
+    return None
+
+
+def _x_tracking(data: dict) -> dict:
+    """Return the ``metadata.x-tracking`` dict for a vBRIEF, or ``{}`` (#1319).
+
+    Decomposition children carry their tracking provenance under
+    ``plan.metadata.x-tracking`` (the observed shape); a top-level
+    ``metadata.x-tracking`` is also tolerated for robustness. Always
+    returns a dict so callers can ``.get(...)`` without guards.
+    """
+    for container in (data.get("plan"), data):
+        if not isinstance(container, dict):
+            continue
+        meta = container.get("metadata")
+        if not isinstance(meta, dict):
+            continue
+        xt = meta.get("x-tracking")
+        if isinstance(xt, dict):
+            return xt
+    return {}
+
+
 def parse_plan_ref(data: dict) -> int | None:
     """Extract the canonical issue number from ``plan.planRef`` (#1290).
 
@@ -667,42 +706,78 @@ def parse_plan_ref(data: dict) -> int | None:
     plan = data.get("plan", {})
     if not isinstance(plan, dict):
         return None
-    raw = plan.get("planRef")
-    if not isinstance(raw, str):
-        return None
-    candidate = raw.strip()
-    m = ISSUE_ID_PATTERN.match(candidate)
-    if m:
-        return int(m.group("number"))
-    m = ISSUE_URL_PATTERN.search(candidate)
-    if m:
-        return int(m.group("number"))
-    return None
+    return _parse_issue_ref_string(plan.get("planRef"))
+
+
+def parse_parent_issue(data: dict) -> int | None:
+    """Extract the vBRIEF's own issue from ``x-tracking.parent_issue`` (#1319).
+
+    Decomposition children (carved from an umbrella via the decompose
+    skill) record their OWN primary issue under
+    ``metadata.x-tracking.parent_issue`` even when ``plan.planRef`` is
+    absent. This is the canonical lifecycle anchor for those children:
+    it is the issue whose closure means the child's work is done, NOT
+    the umbrella it was carved from. Returns ``None`` when absent or
+    unparseable.
+    """
+    return _parse_issue_ref_string(_x_tracking(data).get("parent_issue"))
+
+
+def parse_decomposition_origin(data: dict) -> int | None:
+    """Extract the umbrella issue from ``x-tracking.decomposition_origin`` (#1319).
+
+    ``decomposition_origin`` is the (often closed) umbrella issue a child
+    vBRIEF was carved out of. Its closure is NOT a completion signal for
+    the child, so the references fallback in ``resolve_lifecycle_anchor``
+    excludes it. Returns ``None`` when absent or unparseable.
+    """
+    return _parse_issue_ref_string(_x_tracking(data).get("decomposition_origin"))
 
 
 def resolve_lifecycle_anchor(data: dict) -> tuple[int | None, str]:
-    """Resolve a vBRIEF's canonical lifecycle anchor (#1290 Phase B).
+    """Resolve a vBRIEF's canonical lifecycle anchor (#1290 Phase B / #1319).
 
     Returns ``(issue_number, axis)`` where ``axis`` is one of:
-      - ``"planRef"``     -- ``plan.planRef`` resolved to an issue number.
-      - ``"references"``  -- planRef absent/unresolvable; fell back to the
-                             first github-issue entry in ``references[]``.
-      - ``"none"``        -- neither yielded a github-issue number.
+      - ``"planRef"``      -- ``plan.planRef`` resolved to an issue number.
+      - ``"parent_issue"`` -- planRef absent; resolved the child's own
+                              issue from ``x-tracking.parent_issue``.
+      - ``"references"``   -- both absent; fell back to the first
+                              github-issue entry in ``references[]`` that
+                              is NOT the decomposition_origin umbrella.
+      - ``"none"``         -- nothing yielded a github-issue number.
 
-    The Axis B fix: ``plan.planRef`` is consulted FIRST. ``references[]``
-    is read only as a fallback, so an umbrella close no longer false-
-    positives across an entire cohort whose own planRef issues are still
-    open (the #742 / #1283 / #1284 / #1285 / #1291 recurrence).
+    The Axis B fix (#1290): ``plan.planRef`` is consulted FIRST so an
+    umbrella close does not false-positive across a cohort whose own
+    planRef issues are still open.
+
+    The #1319 hardening: decomposition children carved from an umbrella
+    frequently lack ``plan.planRef`` but DO record their own primary
+    issue under ``x-tracking.parent_issue``. That is consulted next, so a
+    closed umbrella never drags a child whose own issue is still open.
+    The ``references[]`` fallback additionally EXCLUDES the
+    ``x-tracking.decomposition_origin`` umbrella, so the closure of the
+    parent the child was carved from can never -- on its own -- be read
+    as the child's completion signal (the #742 / #1283 / #1284 / #1285 /
+    #1291 recurrence).
     """
     num = parse_plan_ref(data)
     if num is not None:
         return num, "planRef"
+    num = parse_parent_issue(data)
+    if num is not None:
+        return num, "parent_issue"
+    decomposition_origin = parse_decomposition_origin(data)
     for ref in extract_references_from_vbrief(data):
         if ref.get("type") not in GITHUB_ISSUE_REF_TYPES:
             continue
         num = parse_issue_number(ref)
-        if num is not None:
-            return num, "references"
+        if num is None:
+            continue
+        if decomposition_origin is not None and num == decomposition_origin:
+            # The umbrella the child was carved from is not a completion
+            # signal for the child (#1319). Skip it as an anchor candidate.
+            continue
+        return num, "references"
     return None, "none"
 
 

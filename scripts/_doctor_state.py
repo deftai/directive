@@ -9,6 +9,18 @@ Schema for ``vbrief/.eval/doctor-state.json``::
       "last_error_count":   0
     }
 
+Count semantics (#1316): ``last_finding_count`` is the count of findings
+that *mattered* -- it EXCLUDES ``severity == "skip"`` findings. A skip
+(e.g. doctor's AGENTS.md-freshness check reporting "no managed-section
+markers (likely maintainer repo)") carries neither error nor warning
+weight, so it must not inflate the persisted tally. The caller
+(``scripts/doctor.py::_persist_doctor_state``) is responsible for
+filtering skips before calling :func:`write_state`. This keeps the
+throttle-skip status line correct: ``_render_doctor_status_line``
+derives the warning tally as ``last_finding_count - last_error_count``,
+and a counted skip would over-report warnings by one on a dirty
+throttle-skip.
+
 Throttle rules:
 
 * 24h after a clean previous run (``last_error_count == 0``).

@@ -430,7 +430,9 @@ def _run_rest_list(extra: list[str]) -> int:
     Supported flags: ``--state {open|closed|all}`` (default open),
     ``--label NAME[,NAME...]`` (comma-separated label filter; multi-flag
     repetition `--label A --label B` is also accepted and merged into
-    the same filter set), ``--limit N`` (REST per_page, default 30),
+    the same filter set), ``--author LOGIN`` (#1055 -- filter by issue
+    creator; maps to the REST ``creator`` param and composes with
+    ``--label`` via AND), ``--limit N`` (REST per_page, default 30),
     ``--json field1,field2`` (project the response onto the named keys,
     list-aware).
 
@@ -451,6 +453,7 @@ def _run_rest_list(extra: list[str]) -> int:
     repo, extra = _extract_value_flag(extra, "--repo")
     state, extra = _extract_value_flag(extra, "--state", default="open")
     json_spec, extra = _extract_value_flag(extra, "--json")
+    author, extra = _extract_value_flag(extra, "--author")
     # --label may appear multiple times; collect all occurrences and
     # merge with comma-separated values from any single occurrence.
     label_values: list[str] = []
@@ -465,7 +468,8 @@ def _run_rest_list(extra: list[str]) -> int:
         print(
             f"error: --rest issue list does not recognise these flags: "
             f"{leftover_flags!r}. Supported flags are --repo, --state, "
-            "--label, --limit, --json. Additional filters belong on #881.",
+            "--label, --author, --limit, --json. Additional filters "
+            "belong on #881.",
             file=sys.stderr,
         )
         return 2
@@ -499,7 +503,7 @@ def _run_rest_list(extra: list[str]) -> int:
     assert state is not None  # default ensures non-None
     try:
         response = gh_rest.rest_issue_list(
-            repo, state=state, labels=labels, per_page=per_page
+            repo, state=state, labels=labels, author=author, per_page=per_page
         )
     except gh_rest.InvalidRepoError as exc:
         # See _run_rest_view for rationale; same gap (Greptile P1 #998

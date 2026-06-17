@@ -944,3 +944,117 @@ def test_swarm_runtime_generic_terminal_serial_downgrade_token_present(token: st
         f"{_SWARM_PATH}: runtime detection missing generic-terminal token "
         f"{token!r} -- see issue #1053 generic-terminal fallback criteria"
     )
+
+
+# ---------------------------------------------------------------------------
+# 10. #1358 -- Phase 6 post-merge lifecycle commit + push
+# ---------------------------------------------------------------------------
+#
+# After a swarm merge cascade, the Step 1.5 cohort sweep moves finished story
+# vBRIEFs active/ -> completed/, but those moves used to sit uncommitted in the
+# merger's worktree until an operator hand-ran `task scope:complete` and a
+# chore(vbrief) commit (the 2026-06-16 swarm recurrence). #1358 adds a REQUIRED
+# Phase 6 step requiring the monitor to commit + push the lifecycle moves as the
+# authoritative post-swarm lifecycle record, framed as the prevention for the
+# release ceremony's check_vbrief_lifecycle_sync drift gate. These tests pin the
+# load-bearing tokens so a future edit cannot silently drop the directive.
+#
+# Stable substring matches (not full-text); failure messages cite the missing
+# token so a contributor can locate the regression quickly.
+
+# Phase 6 spans from the "## Phase 6 — Close" heading to the next top-level
+# section ("## Crash Recovery"). The em dash in the heading is the canonical
+# glyph already used throughout the skill.
+_PHASE6_HEADER = "## Phase 6 \u2014 Close"
+_PHASE6_END = "## Crash Recovery"
+
+# The new Step 2b carries all three lifecycle-record verbs plus the release-gate
+# cross-references called out in issue #1358.
+_PHASE6_LIFECYCLE_COMMIT_TOKENS = (
+    # (1) the underlying scope:complete primitive the Step 1.5 sweep wraps
+    "task scope:complete",
+    # (2) the single canonical commit subject
+    "chore(vbrief): complete <slugs> post-merge",
+    # (3) the push of the lifecycle record to the base branch
+    "git push origin <configured-base-branch>",
+    # the active/ -> completed/ move being committed
+    "git add -A vbrief/",
+    # step 0 -- fast-forward the local base FIRST so the push is not rejected
+    # as non-fast-forward after the cascade advanced the remote base (#1358
+    # review finding 1).
+    "git merge --ff-only origin/<configured-base-branch>",
+    "non-fast-forward",
+    # release-ceremony drift gate this step keeps green
+    "check_vbrief_lifecycle_sync",
+    # cross-reference to the reconcile recovery path
+    "task reconcile:issues -- --apply-lifecycle-fixes",
+    "scripts/reconcile_issues.py",
+    # cross-reference to the release skill's Phase 1 sync gate
+    "skills/deft-directive-release/SKILL.md",
+    # the authoritative-record framing + issue self-citation
+    "authoritative post-swarm lifecycle record",
+    "#1358",
+)
+
+
+def _phase6_block(text: str) -> str:
+    """Return the Phase 6 block, bounded to the Crash Recovery section."""
+    start = text.find(_PHASE6_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_PHASE6_HEADER}' heading -- "
+        "the #1358 post-merge lifecycle commit step anchors inside Phase 6"
+    )
+    end = text.find(_PHASE6_END, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_PHASE6_END}' heading not found after Phase 6 -- "
+        "cannot bound the Phase 6 block for the #1358 assertions"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("token", _PHASE6_LIFECYCLE_COMMIT_TOKENS)
+def test_swarm_phase6_lifecycle_commit_push_token_present(token: str) -> None:
+    """Phase 6 must require committing + pushing the post-merge lifecycle record (#1358)."""
+    block = _phase6_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 6 missing #1358 lifecycle-commit token "
+        f"{token!r} -- see issue #1358 acceptance criteria (scope:complete + "
+        "chore(vbrief) commit + push)"
+    )
+
+
+def test_swarm_phase6_lifecycle_commit_step_is_required_rule() -> None:
+    """The #1358 step must open with a `!` MUST rule marking it REQUIRED."""
+    block = _phase6_block(_read_swarm())
+    start = block.find("### Step 2b: Commit and Push the Post-Merge Lifecycle Record (#1358)")
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing the #1358 '### Step 2b' heading inside Phase 6"
+    )
+    pattern = re.compile(r"!\s+\*\*REQUIRED\.\*\*", re.MULTILINE)
+    assert pattern.search(block[start:]), (
+        f"{_SWARM_PATH}: the #1358 Step 2b must be marked as a `!` MUST rule "
+        "labelled REQUIRED"
+    )
+
+
+def test_swarm_anti_patterns_1358_bullet_present() -> None:
+    """Anti-Patterns must carry a ⊗ bullet for an uncommitted lifecycle record (#1358)."""
+    text = _read_swarm()
+    anti_start = text.find("## Anti-Patterns")
+    assert anti_start != -1, (
+        f"{_SWARM_PATH}: missing '## Anti-Patterns' section heading"
+    )
+    anti_block = text[anti_start:]
+    found = False
+    for line in anti_block.splitlines():
+        if "#1358" in line and "chore(vbrief)" in line:
+            assert "\u2297" in line, (
+                f"{_SWARM_PATH}: #1358 anti-pattern bullet must use the "
+                f"\u2297 marker; found: {line.strip()!r}"
+            )
+            found = True
+            break
+    assert found, (
+        f"{_SWARM_PATH}: no Anti-Patterns bullet citing #1358 + chore(vbrief) "
+        "found -- the post-merge lifecycle-commit anti-pattern is missing"
+    )
