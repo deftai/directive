@@ -224,6 +224,161 @@ def test_greptile_informal_clean_references_poller_template() -> None:
     assert "(6) INFORMAL-CLEAN" in section
 
 
+# ---------------------------------------------------------------------------
+# 6. Fail-closed Step 6 exit predicate (#1259)
+#
+# The Step 6 exit predicate could previously evaluate true against a PARTIAL or
+# STALE Greptile review (confidence number alone, or a reviewed SHA lagging
+# HEAD), letting an agent exit clean -- and merge -- while a P0/P1 finding was
+# still in flight. The fix rewrites Step 6 as a fail-closed `ReviewerStatus`
+# all-of: terminal check-run + HEAD-SHA pinned at read time + HEAD-matching
+# completion marker + confidence > 3 + no P0/P1, with any missing/ambiguous
+# field resolving to `unknown` (NOT a pass). These tests pin the predicate's
+# presence and the named anti-patterns so a future copy-edit cannot silently
+# weaken it back to the confidence-only form.
+# ---------------------------------------------------------------------------
+
+
+def _step6_section() -> str:
+    """Return the SKILL.md substring spanning the Step 6 exit-condition block.
+
+    Runs from the `### Step 6:` anchor to the next `## ` top-level heading
+    (the Pre-Merge Re-Poll Gate section), so token checks are scoped to the
+    rewritten exit predicate and don't false-positive on the loop body above.
+    """
+    text = _read_skill()
+    start = text.find("### Step 6:")
+    assert start != -1, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 exit-condition anchor missing (#1259)"
+    )
+    end = text.find("\n## ", start)
+    assert end != -1 and end > start, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 section must be followed by a `## ` "
+        f"heading (the Pre-Merge Re-Poll Gate); current state malformed (#1259)"
+    )
+    return text[start:end]
+
+
+def test_step6_is_fail_closed_all_of() -> None:
+    """Step 6 MUST be a fail-closed all-of where missing/ambiguous => unknown
+    (NOT a pass) (#1259)."""
+    section = _step6_section()
+    assert "fail-closed" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must describe a fail-closed predicate "
+        "(#1259)"
+    )
+    assert "ReviewerStatus" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must name the ReviewerStatus all-of "
+        "(#1259)"
+    )
+    assert "unknown" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must resolve missing/ambiguous fields to "
+        "`unknown` (#1259)"
+    )
+    assert "#1259" in section
+
+
+def test_step6_requires_terminal_check_run() -> None:
+    """Step 6 MUST require a terminal check-run (completed + success/neutral)
+    and explicitly reject the non-terminal conclusions (#1259)."""
+    section = _step6_section()
+    assert 'status == "completed"' in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must require check_run.status == "
+        '"completed" (#1259)'
+    )
+    assert "success" in section and "neutral" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must accept only success/neutral "
+        "conclusions (#1259)"
+    )
+    # The non-terminal conclusions that MUST NOT count as clean.
+    for bad in ("cancelled", "timed_out", "stale", "action_required", "failure"):
+        assert bad in section, (
+            f"{_REVIEW_CYCLE_PATH}: Step 6 must explicitly exclude the "
+            f"`{bad}` conclusion from terminal-clean (#1259)"
+        )
+
+
+def test_step6_requires_sha_pinned_completion_marker() -> None:
+    """Step 6 MUST require the HEAD-SHA pinned at read time AND a HEAD-matching
+    `Last reviewed commit:` completion marker (#1259)."""
+    section = _step6_section()
+    assert "Last reviewed commit:" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must require the `Last reviewed commit:` "
+        "completion marker (#1259)"
+    )
+    # SHA-pinned at read time (the load-bearing freshness guard).
+    assert "AT READ TIME" in section or "head_sha_reviewed == current HEAD" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must pin head_sha_reviewed to the "
+        "current HEAD read at exit-evaluation time (#1259)"
+    )
+    # The non-greedy SHA regex (#1326) shared with the poller template.
+    assert r"Last reviewed commit:\s*\[.*?\]\(" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must carry the non-greedy SHA-extraction "
+        "regex (#1326)"
+    )
+
+
+def test_step6_requires_confidence_and_no_p0_p1() -> None:
+    """Step 6 MUST require confidence > 3 and no P0/P1 findings (#1259)."""
+    section = _step6_section()
+    assert "Confidence" in section and ("> 3" in section or "greater than 3" in section), (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must require confidence strictly greater "
+        "than 3 (#1259)"
+    )
+    assert "P0" in section and "P1" in section, (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must require zero P0/P1 findings (#1259)"
+    )
+
+
+def test_step6_confidence_alone_anti_pattern_present() -> None:
+    """Step 6 MUST forbid exiting on a confidence number alone while the check
+    run is non-terminal (#1259)."""
+    section = _step6_section()
+    pattern = re.compile(
+        r"^\u2297 Exit the loop on a confidence number alone",
+        re.MULTILINE,
+    )
+    assert pattern.search(section), (
+        f"{_REVIEW_CYCLE_PATH}: Step 6 must contain a `\u2297 Exit the loop on "
+        "a confidence number alone...` MUST NOT rule (#1259)"
+    )
+
+
+def test_pre_merge_re_poll_gate_present() -> None:
+    """SKILL.md MUST contain a mandatory pre-merge re-poll gate that re-fetches
+    reviewer state immediately before `gh pr merge` (#1259)."""
+    text = _read_skill()
+    assert "## Pre-Merge Re-Poll Gate (#1259)" in text, (
+        f"{_REVIEW_CYCLE_PATH}: must contain a Pre-Merge Re-Poll Gate section "
+        "(#1259)"
+    )
+    start = text.find("## Pre-Merge Re-Poll Gate (#1259)")
+    end = text.find("\n## ", start + 1)
+    section = text[start:end if end != -1 else len(text)]
+    assert "gh pr merge" in section and "re-fetch" in section, (
+        f"{_REVIEW_CYCLE_PATH}: pre-merge gate must mandate a re-fetch of "
+        "reviewer state before `gh pr merge` (#1259)"
+    )
+    pattern = re.compile(
+        r"^\u2297 Call `gh pr merge` on the strength of a review verdict",
+        re.MULTILINE,
+    )
+    assert pattern.search(section), (
+        f"{_REVIEW_CYCLE_PATH}: pre-merge gate must forbid merging on cached "
+        "review state (#1259)"
+    )
+
+
+def test_incomplete_but_rated_stall_signature_present() -> None:
+    """Stall Detection Rubric MUST carry the INCOMPLETE_BUT_RATED signature
+    (confidence present but no terminal check-run / completion marker) (#1259)."""
+    text = _read_skill()
+    assert "INCOMPLETE_BUT_RATED" in text, (
+        f"{_REVIEW_CYCLE_PATH}: Stall Detection Rubric must name the "
+        "`INCOMPLETE_BUT_RATED` signature (#1259)"
+    )
+
+
 def test_phase2_step1_no_cp1252_mojibake() -> None:
     """The newly-added rules MUST NOT contain the cp1252 mojibake form of
     \u2297 (e.g. `\u0393\u00E8\u00F9` -- the Windows-1252 round-trip

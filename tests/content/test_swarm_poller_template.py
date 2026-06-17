@@ -641,6 +641,46 @@ def template_text() -> str:
     return TEMPLATE_PATH.read_text(encoding="utf-8")
 
 
+def test_template_contains_non_greedy_last_reviewed_sha_regex(
+    template_text: str,
+) -> None:
+    """#1326: the template MUST encode the NON-GREEDY `Last reviewed commit:`
+    SHA regex (`\\[.*?\\]`), and MUST NOT carry the pre-#1326 greedy negated-
+    bracket form (`\\[[^\\]]*\\]`) in its regex lines.
+
+    This is the canonical-regex sync test updated in lockstep with the template
+    edit: a future change that reverts the link-text group to `[^\\]]*` (which
+    breaks on escaped-bracket commit subjects) fails here immediately. The bare
+    token `[^\\]]*` still appears in the template's EXPLANATORY prose (the
+    "NOT a `[^\\]]*` negated-bracket class" rationale), so the negative
+    assertion pins the full greedy REGEX fragment `Last reviewed commit:\\s*
+    \\[[^\\]]*\\]\\(`, not the standalone token.
+    """
+    assert r"Last reviewed commit:\s*\[.*?\]\(" in template_text, (
+        "template missing the non-greedy `Last reviewed commit:` SHA regex "
+        "(`\\[.*?\\]`) -- escaped-bracket commit subjects need the non-greedy "
+        "link-text group (#1326)"
+    )
+    assert r"Last reviewed commit:\s*\[[^\]]*\]\(" not in template_text, (
+        "template still carries the pre-#1326 greedy `[^\\]]*` negated-bracket "
+        "regex fragment -- revert breaks on escaped-bracket link text (#1326)"
+    )
+    assert "#1326" in template_text, (
+        "template must cite the escaped-bracket regex recurrence issue (#1326)"
+    )
+    rendered = template_text.format(
+        pr_number=1326,
+        repo="deftai/directive",
+        poll_interval_seconds=90,
+        poll_cap_minutes=30,
+        parent_agent_id="parent-id",
+    )
+    assert r"Last reviewed commit:\s*\[.*?\]\(" in rendered, (
+        "rendered template missing the non-greedy `Last reviewed commit:` "
+        "SHA regex (#1326)"
+    )
+
+
 def test_template_contains_code_fence_strip(template_text: str) -> None:
     """Template MUST encode the #1004 code-fence strip before detection.
 
@@ -883,8 +923,20 @@ _NAIVE_INLINE_SHA_RE = re.compile(
 )
 # Template-prescribed markdown-link regex (verbatim mirror of the template's
 # `Last reviewed commit:` section). Doubled-brace form not needed here because
-# this is the reference Python module, not the template body.
+# this is the reference Python module, not the template body. The link-text
+# group is the NON-GREEDY `.*?` (NOT a `[^\]]*` negated-bracket class) so a
+# commit subject carrying escaped brackets (e.g. `add \[Unreleased\] entry`)
+# binds to the real `](.../commit/<sha>` boundary instead of stopping at the
+# first escaped `\]` and falling through to last_reviewed_sha=None (#1326).
 _MARKDOWN_LINK_SHA_RE = re.compile(
+    r"Last reviewed commit:\s*\[.*?\]\("
+    r"https?://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{7,40})"
+)
+
+# Negative-control: the pre-#1326 greedy negated-bracket form. Used by the
+# escaped-bracket regression test to prove the OLD regex would have missed the
+# SHA (returns None) while the new non-greedy form extracts it correctly.
+_GREEDY_NEGATED_BRACKET_SHA_RE = re.compile(
     r"Last reviewed commit:\s*\[[^\]]*\]\("
     r"https?://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{7,40})"
 )
@@ -900,6 +952,78 @@ def parse_last_reviewed_sha_naive_inline(body: str):
     """Negative-control: the naive inline-SHA regex that does NOT match."""
     m = _NAIVE_INLINE_SHA_RE.search(body)
     return m.group(1) if m else None
+
+
+# ---------------------------------------------------------------------------
+# #1326 -- escaped-bracket link-text regression. Greptile commit subjects can
+# carry escaped brackets in the markdown link text (e.g. a CHANGELOG-touching
+# commit titled `docs: add \[Unreleased\] entry`). The pre-#1326 greedy
+# `[^\]]*` negated-bracket class stops at the first escaped `\]`, never reaches
+# the real `](.../commit/<sha>` boundary, and yields last_reviewed_sha=None --
+# a false STALL / TIMEOUT on a clean review. The non-greedy `.*?` form binds to
+# the real boundary. These tests pin both the failure mode (negative control)
+# and the fix.
+# ---------------------------------------------------------------------------
+
+_ESCAPED_BRACKET_SHA = "a1b2c3d4e5f60718293a4b5c6d7e8f9001122334"
+
+BODY_ESCAPED_BRACKET_LINK_TEXT = (
+    "Greptile review of head a1b2c3d\n"
+    "\n"
+    "## Confidence Score: 5/5\n"
+    "\n"
+    "No P0 or P1 issues found. The change looks clean and well-tested.\n"
+    "\n"
+    "Last reviewed commit: [docs: add \\[Unreleased\\] entry]"
+    f"(https://github.com/deftai/directive/commit/{_ESCAPED_BRACKET_SHA})\n"
+)
+
+
+def test_escaped_bracket_link_text_extracts_sha_non_greedy() -> None:
+    """#1326: a `Last reviewed commit:` link whose text contains escaped
+    brackets MUST extract the SHA via the non-greedy `.*?` regex.
+
+    The negative control proves the OLD greedy `[^\\]]*` form misses it.
+    """
+    # Negative control: the pre-#1326 greedy negated-bracket regex stops at the
+    # first escaped `\]` inside the link text and never matches -> None.
+    assert (
+        _GREEDY_NEGATED_BRACKET_SHA_RE.search(BODY_ESCAPED_BRACKET_LINK_TEXT)
+        is None
+    ), (
+        "negative control: the greedy `[^\\]]*` regex must FAIL to extract the "
+        "SHA from escaped-bracket link text (this is the #1326 bug)"
+    )
+    # The shipped non-greedy regex extracts the full 40-hex SHA correctly.
+    assert (
+        parse_last_reviewed_sha_markdown_link(BODY_ESCAPED_BRACKET_LINK_TEXT)
+        == _ESCAPED_BRACKET_SHA
+    ), (
+        "non-greedy `.*?` regex must extract the SHA from a commit subject "
+        "containing escaped brackets (#1326)"
+    )
+
+
+def test_escaped_bracket_link_text_clean_review_exits_clean() -> None:
+    """#1326: the escaped-bracket body is an otherwise-clean review and MUST
+    drive the poll loop to CLEAN, not STALL.
+
+    Pre-#1326 the greedy regex returned None for `last_reviewed_sha`, condition
+    (1) `sha_match` held the gate, and the poller wedged into STALL on a clean
+    review. With the non-greedy fix the SHA matches HEAD and the loop exits
+    CLEAN within one poll.
+    """
+    exit_class, polls_run, holdout, log_lines = simulate_poll_loop(
+        body=BODY_ESCAPED_BRACKET_LINK_TEXT,
+        head_sha=_ESCAPED_BRACKET_SHA,
+        max_polls=5,
+    )
+    assert exit_class == "CLEAN", (
+        f"escaped-bracket clean review must exit CLEAN, got {exit_class!r}; "
+        f"log_lines={log_lines!r}"
+    )
+    assert polls_run == 1
+    assert holdout is None
 
 
 def evaluate_clean_gate(

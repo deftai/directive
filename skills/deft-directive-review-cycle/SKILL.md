@@ -178,6 +178,8 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ! Auto-restart detection -- when the polling loop observes a NEW `startedAt` (Greptile dropped its prior check run and started a fresh one without any push from the agent, e.g. service-side restart), the agent MUST reset its elapsed-time clock to the new `startedAt` AND notify the user that an auto-restart was detected. Resetting the clock without notifying is forbidden -- the user needs to know the cycle effectively re-started.
 
+! **`INCOMPLETE_BUT_RATED` stall signature (#1259):** when a poll observes a parsed `Confidence Score: X/5` number BUT no terminal check-run (no `completed` status with a `{success, neutral}` conclusion) AND/OR no HEAD-matching `Last reviewed commit:` completion marker, classify the state as **`INCOMPLETE_BUT_RATED`** — Greptile has emitted a confidence rating against a review that has NOT terminally landed on the current HEAD. This is NOT an exit condition (the Step 6 fail-closed all-of resolves the missing fields to `unknown`); treat it as a stall signature and keep polling, escalating per the 10-minute threshold above if it persists. A confidence number is the single most common false-positive for a premature exit — `INCOMPLETE_BUT_RATED` names the trap so the agent does not mistake a rating for a verdict.
+
 ⊗ Auto-retrigger Greptile (empty commits, force-pushes, agent-posted `@greptileai` comments, status-check rebuilds) without explicit user approval. The escalation menu's option 2 is the ONLY supported re-trigger path, and even that requires the user to pick it.
 
 ! Document any user-approved override in a brief PR comment for auditability -- e.g. `Note: review-cycle stall detected at <SHA> after <N> min; user approved manual re-trigger via @greptileai per skills/deft-directive-review-cycle Stall Detection Rubric (#564).` This makes the override visible to humans reviewing the PR history and to future agents that resume the cycle.
@@ -263,16 +265,38 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ! Analyze all new findings before planning any changes.
 
-### Step 6: Exit condition check
+### Step 6: Exit condition check — fail-closed ReviewerStatus all-of (#1259)
 
-! Exit the loop and report to the user when ALL of these are true:
+! The loop MAY exit clean ONLY when a SINGLE fresh fetch (not cached state, not a verdict assembled across earlier polls) satisfies ALL of the `ReviewerStatus` fields below. This is a **fail-closed all-of**: any field that is missing, unparsed, or ambiguous resolves to **`unknown`**, and `unknown` is NOT a pass — the agent stays in the loop and returns to Step 2. A PARTIAL or STALE Greptile review MUST NOT satisfy the exit predicate; the predicate is what prevents merging un-reviewed code while a P0/P1 finding is still in flight (#1259).
 
-- No P0 or P1 issues remain (P2 issues are non-blocking style suggestions and do not gate the loop)
-- Greptile confidence score is greater than 3
+1. ! **Terminal check-run** — the `Greptile Review` check run on the current HEAD has `status == "completed"` AND `conclusion` in `{success, neutral}`. The conclusions `null`, `cancelled`, `timed_out`, `stale`, `action_required`, and `failure` are explicitly NOT terminal-clean: any of them resolves to `unknown` and the loop continues. A check run still `queued` / `in_progress` is `unknown`.
+2. ! **HEAD-SHA pinned AT READ TIME** — read the current HEAD SHA in the SAME fetch used to evaluate this predicate (`gh api repos/<owner>/<repo>/pulls/<number> -q .head.sha`, read AT exit-evaluation time, NOT carried over from an earlier poll) and require `head_sha_reviewed == current HEAD`. A review whose reviewed SHA lags HEAD is `unknown`.
+3. ! **Completion marker present and matching** — the rolling-summary comment body carries `Last reviewed commit: <sha>` AND that `<sha>` matches the current HEAD. Extract the SHA with the markdown-link-aware NON-GREEDY regex below. Markdown link text can contain escaped brackets (e.g. a commit subject `add \[Unreleased\] entry`), so a greedy `[^\]]*` stops at the first `]` and yields no match → false `unknown` on a clean review (#1326):
 
-? If the bot says "all prior issues resolved" but lists new issues, treat it as one final batch — not the start of another loop. Go back to Step 2 one more time, then stop.
+    ```
+    Last reviewed commit:\s*\[.*?\]\(https?://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{7,40})
+    ```
 
-If the exit condition is not met, go back to Step 2.
+   A missing or non-matching completion marker is `unknown`. See [`../../templates/swarm-greptile-poller-prompt.md`](../../templates/swarm-greptile-poller-prompt.md) `### Last reviewed commit:` for the canonical regex shared with the push-driven poller loop.
+4. ! **Confidence > 3** — the parsed `Confidence Score: X/5` is strictly greater than 3 (i.e. 4/5 or 5/5). A `confidence == 3`, an unparsed confidence, or an absent confidence is `unknown`.
+5. ! **No P0/P1 findings** — the triple-tier (+ Tier 2.5) detector reports zero P0 and zero P1 findings (P2 issues are non-blocking style suggestions and do not gate the loop).
+
+! All five fields MUST hold on the SAME single fresh fetch. The agent MUST NOT assemble a "pass" by combining a terminal check-run observed on one poll with a confidence parsed on an earlier poll — the read is atomic per the SHA-pinned-AT-READ-TIME rule above.
+
+? If the bot says "all prior issues resolved" but lists new issues, treat it as one final batch — not the start of another loop. Go back to Step 2 one more time, re-evaluate this all-of, then stop.
+
+⊗ Exit the loop on a confidence number alone while the check run is non-terminal (`queued` / `in_progress` / `cancelled` / `timed_out` / `stale` / `action_required`) — a confidence score is NOT a verdict without a terminal check-run AND a HEAD-matching completion marker (#1259).
+⊗ Exit the loop against a reviewed SHA that lags the current HEAD — a partial or stale review MUST resolve to `unknown`, never to a pass (#1259).
+
+If the exit predicate is not met (any field `unknown`), go back to Step 2.
+
+## Pre-Merge Re-Poll Gate (#1259)
+
+! Immediately before any `gh pr merge` invocation, the agent MUST re-fetch reviewer state ONE more time — a fresh `gh pr view <number> --comments`, a fresh `gh api repos/<owner>/<repo>/commits/<HEAD>/check-runs`, and a fresh HEAD-SHA read — and re-evaluate the Step 6 fail-closed all-of against that fresh fetch. The exit-condition pass recorded at the end of the review loop is NOT sufficient authorization to merge: review state can go stale between the loop's last poll and the merge call (a new push, a Greptile re-trigger, a service-side check-run reset).
+
+! Treat the re-poll and the `gh pr merge` as an atomic freshness window. If the re-poll shows ANY field `unknown`, ABORT the merge and return to Step 2.
+
+⊗ Call `gh pr merge` on the strength of a review verdict observed earlier in the loop without an immediately-preceding re-poll that re-satisfies the Step 6 all-of — merging on cached review state is forbidden (#1259).
 
 ### Informal-clean missing canonical fields (#1543)
 
@@ -366,3 +390,5 @@ python -m scripts._events emit plan:approved \
 - ⊗ Run a partial test suite instead of `task check` without documenting the pre-existing failure reason and open issue number in the PR body
 - ⊗ Create a PR without running `skills/deft-directive-pre-pr/SKILL.md` first -- the pre-PR quality loop catches issues before they reach the reviewer
 - ⊗ Activate Approach 3 (blocking `Start-Sleep` loop) without first warning the user that it will lock the conversation pane and receiving confirmation
+- ⊗ Exit the review loop on a Greptile confidence number alone while the check run is non-terminal -- a confidence score is NOT a verdict without a terminal check-run (`completed` + `{success, neutral}`) AND a HEAD-matching `Last reviewed commit:` completion marker (#1259)
+- ⊗ Call `gh pr merge` on cached/earlier review state without an immediately-preceding pre-merge re-poll that re-satisfies the Step 6 fail-closed all-of (#1259)
