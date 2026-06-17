@@ -1334,7 +1334,18 @@ def _persist_doctor_state(
     exit_code: int,
     findings: list[dict],
 ) -> None:
-    """Best-effort write of doctor-state.json after a full check (#1308)."""
+    """Best-effort write of doctor-state.json after a full check (#1308).
+
+    ``last_finding_count`` is persisted as the count of findings that
+    *mattered* -- ``severity == "skip"`` findings (e.g. the AGENTS.md
+    freshness check's "no managed-section markers (likely maintainer
+    repo)" skip) are EXCLUDED (#1316). Counting a skip would make
+    ``_render_doctor_status_line`` over-report warnings by one on a
+    dirty throttle-skip, because it derives the warning tally as
+    ``last_finding_count - last_error_count`` and a skip carries no
+    error/warning weight. See ``scripts/_doctor_state.py`` for the
+    persisted-schema contract.
+    """
     mod = _load_doctor_state_module()
     if mod is None:
         return
@@ -1342,7 +1353,9 @@ def _persist_doctor_state(
         mod.write_state(
             project_root,
             exit_code=int(exit_code),
-            finding_count=len(findings),
+            finding_count=sum(
+                1 for f in findings if f.get("severity") != "skip"
+            ),
             error_count=sum(1 for f in findings if f.get("severity") == "error"),
         )
     except Exception:  # noqa: BLE001 -- state write MUST NOT break doctor
@@ -1717,6 +1730,17 @@ def cmd_doctor(args: list[str]):
 
     Non-zero return is informational -- doctor's role is to surface
     the failure, not to block the upgrade gate.
+
+    Throttle-state count semantics (#1316): when a full run completes,
+    ``_persist_doctor_state`` writes ``last_finding_count`` as the count
+    of findings that *mattered* -- ``severity == "skip"`` findings are
+    EXCLUDED. A skip (e.g. the AGENTS.md freshness check reporting "no
+    managed-section markers (likely maintainer repo)") is neither an
+    error nor a warning, so counting it would make the next throttle-skip
+    status line over-report warnings by one (the line derives warnings as
+    ``last_finding_count - last_error_count``). The in-run ``--json``
+    ``summary`` block already counts only ``error`` / ``warning``
+    findings, so this keeps the persisted tally consistent with it.
     """
     flags = _parse_doctor_flags(args)
 
