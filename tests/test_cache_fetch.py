@@ -289,6 +289,130 @@ def test_run_fetch_all_skips_progress_for_small_cohort(
 
 
 # ---------------------------------------------------------------------------
+# #1033 + #1055 -- label / author ingest filters threaded to the REST lister
+# ---------------------------------------------------------------------------
+
+
+def test_run_fetch_all_threads_label_filter_to_lister(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """label-only: run_fetch_all forwards labels= to the paginated lister (#1033)."""
+    captured: dict[str, Any] = {}
+
+    def fake_lister(repo: str, **kwargs: Any) -> list[dict[str, Any]]:
+        captured.update(kwargs)
+        return [_rest_issue(1)]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+
+    run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+        labels=("adoption-blocker",),
+    )
+
+    # Only the set filter is forwarded; the unset author is omitted so the
+    # no-filter call signature stays identical to pre-#1055 behaviour.
+    assert captured["labels"] == ("adoption-blocker",)
+    assert "author" not in captured
+
+
+def test_run_fetch_all_threads_author_filter_to_lister(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """author-only: run_fetch_all forwards author= to the paginated lister (#1055)."""
+    captured: dict[str, Any] = {}
+
+    def fake_lister(repo: str, **kwargs: Any) -> list[dict[str, Any]]:
+        captured.update(kwargs)
+        return [_rest_issue(1)]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+
+    run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+        author="octocat",
+    )
+
+    assert captured["author"] == "octocat"
+    assert "labels" not in captured
+
+
+def test_run_fetch_all_threads_label_and_author_compose(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """combined: both filters reach the lister so the REST layer ANDs them (#1033+#1055)."""
+    captured: dict[str, Any] = {}
+
+    def fake_lister(repo: str, **kwargs: Any) -> list[dict[str, Any]]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+
+    run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+        labels=("bug", "p0"),
+        author="octocat",
+    )
+
+    assert captured["labels"] == ("bug", "p0")
+    assert captured["author"] == "octocat"
+
+
+def test_run_fetch_all_default_no_filters(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Defaults: omitting filters forwards empty labels + author=None (full backlog)."""
+    captured: dict[str, Any] = {}
+
+    def fake_lister(repo: str, **kwargs: Any) -> list[dict[str, Any]]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+
+    run_fetch_all(
+        repo="deftai/directive",
+        is_fresh=lambda _p: False,
+        entry_dir_for=lambda key: tmp_path / key.replace("/", "-"),
+        do_put=lambda _k, _r: None,
+        batch_size=10,
+        delay_ms=0,
+        state="open",
+        limit=1000,
+    )
+
+    # No filters set -> neither kwarg is forwarded (full-backlog default).
+    assert "labels" not in captured
+    assert "author" not in captured
+
+
+# ---------------------------------------------------------------------------
 # Canonical attribute names (#1247)
 # ---------------------------------------------------------------------------
 

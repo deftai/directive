@@ -272,6 +272,7 @@ class TestRestListDispatch:
             *,
             state: str = "open",
             labels: tuple[str, ...] = (),
+            author: str | None = None,
             per_page: int = 30,
         ) -> list[dict[str, Any]]:
             captured["repo"] = repo
@@ -310,6 +311,105 @@ class TestRestListDispatch:
             {"number": 2, "title": "second"},
         ]
 
+    def test_main_rest_list_author_only(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # #1055: --author flows through to rest_issue_list(author=...).
+        captured: dict[str, Any] = {}
+
+        def fake_list(
+            repo: str,
+            *,
+            state: str = "open",
+            labels: tuple[str, ...] = (),
+            author: str | None = None,
+            per_page: int = 30,
+        ) -> list[dict[str, Any]]:
+            captured["repo"] = repo
+            captured["labels"] = labels
+            captured["author"] = author
+            return [{"number": 7, "title": "by-octocat", "state": "open"}]
+
+        with mock.patch.object(scm.importlib, "import_module") as imp:
+            imp.return_value = SimpleNamespace(
+                rest_issue_list=fake_list,
+                GhRestError=gh_rest.GhRestError,
+            )
+            rc = scm.main([
+                "issue", "list", "--rest",
+                "--repo", "deftai/directive",
+                "--author", "octocat",
+            ])
+        assert rc == 0
+        assert captured["author"] == "octocat"
+        assert captured["labels"] == ()
+        capsys.readouterr()
+
+    def test_main_rest_list_label_and_author_compose(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # #1033 + #1055: --label and --author compose (AND). The scm stub
+        # forwards both to the REST helper, which appends both query params.
+        captured: dict[str, Any] = {}
+
+        def fake_list(
+            repo: str,
+            *,
+            state: str = "open",
+            labels: tuple[str, ...] = (),
+            author: str | None = None,
+            per_page: int = 30,
+        ) -> list[dict[str, Any]]:
+            captured["labels"] = labels
+            captured["author"] = author
+            return []
+
+        with mock.patch.object(scm.importlib, "import_module") as imp:
+            imp.return_value = SimpleNamespace(
+                rest_issue_list=fake_list,
+                GhRestError=gh_rest.GhRestError,
+            )
+            rc = scm.main([
+                "issue", "list", "--rest",
+                "--repo", "deftai/directive",
+                "--label", "bug",
+                "--author", "octocat",
+            ])
+        assert rc == 0
+        assert captured["labels"] == ("bug",)
+        assert captured["author"] == "octocat"
+        capsys.readouterr()
+
+    def test_main_rest_list_author_defaults_none(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # No --author => helper receives author=None (no filter).
+        captured: dict[str, Any] = {}
+
+        def fake_list(
+            repo: str,
+            *,
+            state: str = "open",
+            labels: tuple[str, ...] = (),
+            author: str | None = None,
+            per_page: int = 30,
+        ) -> list[dict[str, Any]]:
+            captured["author"] = author
+            return []
+
+        with mock.patch.object(scm.importlib, "import_module") as imp:
+            imp.return_value = SimpleNamespace(
+                rest_issue_list=fake_list,
+                GhRestError=gh_rest.GhRestError,
+            )
+            rc = scm.main([
+                "issue", "list", "--rest",
+                "--repo", "deftai/directive",
+            ])
+        assert rc == 0
+        assert captured["author"] is None
+        capsys.readouterr()
+
     def test_main_rest_list_non_integer_limit_errors(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
@@ -333,6 +433,7 @@ class TestRestListDispatch:
             *,
             state: str = "open",
             labels: tuple[str, ...] = (),
+            author: str | None = None,
             per_page: int = 30,
         ) -> list[dict[str, Any]]:
             raise gh_rest.InvalidRepoError(repo)
@@ -401,6 +502,7 @@ class TestRestListDispatch:
             *,
             state: str = "open",
             labels: tuple[str, ...] = (),
+            author: str | None = None,
             per_page: int = 30,
         ) -> list[dict[str, Any]]:
             invocations.append(
@@ -434,6 +536,7 @@ class TestRestListDispatch:
             *,
             state: str = "open",
             labels: tuple[str, ...] = (),
+            author: str | None = None,
             per_page: int = 30,
         ) -> list[dict[str, Any]]:
             captured["labels"] = labels
@@ -469,6 +572,7 @@ class TestRestListDispatch:
             *,
             state: str = "open",
             labels: tuple[str, ...] = (),
+            author: str | None = None,
             per_page: int = 30,
         ) -> list[dict[str, Any]]:
             captured["labels"] = labels

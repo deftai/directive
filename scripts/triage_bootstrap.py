@@ -369,9 +369,17 @@ def step_populate_cache(
     delay_ms: int | None = None,
     state: str | None = None,
     limit: int | None = None,
+    labels: tuple[str, ...] | None = None,
+    author: str | None = None,
     fetch_timeout_s: float | None = None,
 ) -> StepOutcome:
     """Mirror upstream issues for ``repo`` via :func:`cache_fetch_all`.
+
+    ``labels`` (#1033) and ``author`` (#1055) scope the cache:fetch-all
+    enumeration so an operator can bootstrap against a subset of the
+    backlog (e.g. one label, or one author) instead of the entire open
+    queue. Both forward to :func:`cache.cache_fetch_all` and compose
+    with AND semantics when supplied together.
 
     Resolution precedence for ``repo``:
 
@@ -448,6 +456,10 @@ def step_populate_cache(
         kwargs["state"] = state
     if limit is not None:
         kwargs["limit"] = limit
+    if labels:
+        kwargs["labels"] = labels
+    if author is not None:
+        kwargs["author"] = author
 
     effective_timeout = (
         fetch_timeout_s if fetch_timeout_s is not None else DEFAULT_FETCH_TIMEOUT_S
@@ -808,6 +820,8 @@ def run_bootstrap(
     delay_ms: int | None = None,
     state: str | None = None,
     limit: int | None = None,
+    labels: tuple[str, ...] | None = None,
+    author: str | None = None,
     fetch_timeout_s: float | None = None,
     progress: Any = _PROGRESS_DEFAULT,
 ) -> BootstrapResult:
@@ -872,6 +886,8 @@ def run_bootstrap(
         delay_ms=delay_ms,
         state=state,
         limit=limit,
+        labels=labels,
+        author=author,
         fetch_timeout_s=fetch_timeout_s,
     )
     result.steps.append(populate)
@@ -967,6 +983,27 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Issue state filter forwarded to cache:fetch-all --state.",
     )
     parser.add_argument(
+        "--label",
+        action="append",
+        default=None,
+        dest="labels",
+        metavar="NAME[,NAME...]",
+        help=(
+            "Scope ingestion to issues carrying the given label(s) (#1033), "
+            "forwarded to cache:fetch-all --label. Repeatable and comma-"
+            "separated. Composes with --author via AND."
+        ),
+    )
+    parser.add_argument(
+        "--author",
+        default=None,
+        metavar="LOGIN",
+        help=(
+            "Scope ingestion to issues created by LOGIN (#1055), forwarded "
+            "to cache:fetch-all --author. Composes with --label via AND."
+        ),
+    )
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=None,
@@ -1013,6 +1050,24 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     return parser
+
+
+def _normalise_label_filter(raw: list[str] | None) -> tuple[str, ...]:
+    """Flatten repeated + comma-separated ``--label`` values into a tuple.
+
+    Mirrors ``cache._normalise_label_filter`` so the bootstrap and the
+    underlying cache:fetch-all surface parse the multi-label convention
+    identically (#1033). ``argparse(action="append")`` yields one list
+    entry per flag occurrence; each entry may itself be comma-separated.
+    """
+    if not raw:
+        return ()
+    return tuple(
+        item.strip()
+        for value in raw
+        for item in value.split(",")
+        if item.strip()
+    )
 
 
 def _default_fetch_timeout_from_env() -> float:
@@ -1072,6 +1127,7 @@ def main(argv: list[str] | None = None) -> int:
         print(msg, file=sys.stderr)
         return 2
 
+    labels = _normalise_label_filter(getattr(args, "labels", None))
     result = run_bootstrap(
         project_root=project_root,
         repo=args.repo,
@@ -1079,6 +1135,8 @@ def main(argv: list[str] | None = None) -> int:
         delay_ms=args.delay_ms,
         state=args.state,
         limit=args.limit,
+        labels=labels,
+        author=args.author,
         fetch_timeout_s=args.fetch_timeout_s,
         progress=None if args.quiet else sys.stderr,
     )

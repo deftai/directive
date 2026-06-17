@@ -305,6 +305,8 @@ def run_fetch_all(
     delay_ms: int,
     state: str,
     limit: int,
+    labels: tuple[str, ...] = (),
+    author: str | None = None,
 ) -> FetchAllReport:
     """Drive the cache:fetch-all loop via paginated REST.
 
@@ -328,6 +330,13 @@ def run_fetch_all(
         state: Forwarded to ``rest_issue_list_paginated --state``
             (``open``/``closed``/``all``).
         limit: Forwarded to ``rest_issue_list_paginated --limit``.
+        labels: Optional label filter (#1033) forwarded to the REST
+            enumeration so a bootstrap can scope ingestion to issues
+            carrying the given label(s). Empty tuple (default) ingests
+            the full backlog.
+        author: Optional issue-creator login (#1055) forwarded to the
+            REST enumeration's ``creator`` param. ``None`` (default)
+            applies no author filter. Composes with ``labels`` via AND.
 
     Returns:
         :class:`FetchAllReport` with per-issue success / failure /
@@ -338,7 +347,9 @@ def run_fetch_all(
             cohort cannot be listed). Per-issue ``cache:put`` failures
             are captured on the report, not raised.
     """
-    issues = _list_issues_rest(repo, state=state, limit=limit)
+    issues = _list_issues_rest(
+        repo, state=state, limit=limit, labels=labels, author=author
+    )
     report = FetchAllReport()
     total = len(issues)
     if total >= PROGRESS_EVERY_N:
@@ -393,16 +404,35 @@ def run_fetch_all(
     return report
 
 
-def _list_issues_rest(repo: str, *, state: str, limit: int) -> list[dict[str, Any]]:
+def _list_issues_rest(
+    repo: str,
+    *,
+    state: str,
+    limit: int,
+    labels: tuple[str, ...] = (),
+    author: str | None = None,
+) -> list[dict[str, Any]]:
     """Wrap :func:`rest_issue_list_paginated` with retry on REST 429.
 
     REST's ``core`` bucket has a 5000/hr/user budget -- much larger than
     GraphQL's, but still throttleable on hot swarm sessions. On a 429
     we honour the gh-reported Retry-After (or the fallback constant)
     and try once more before surfacing the failure.
+
+    ``labels`` (#1033) and ``author`` (#1055) are forwarded to the
+    paginated lister so an operator can scope ingestion. They compose
+    via AND server-side. They are only added to the lister call when a
+    filter is actually set, so the no-filter call signature stays
+    identical to the pre-#1033/#1055 behaviour (the #1476 refresh-closed
+    reconciliation path reuses this helper with no filters).
     """
+    filter_kwargs: dict[str, Any] = {}
+    if labels:
+        filter_kwargs["labels"] = labels
+    if author is not None:
+        filter_kwargs["author"] = author
     try:
-        return _paginated_lister(repo, state=state, limit=limit)
+        return _paginated_lister(repo, state=state, limit=limit, **filter_kwargs)
     except InvalidRepoError as exc:
         raise CacheFetchError(f"invalid --repo {repo!r} for REST list enumeration: {exc}") from exc
     except GhRestError as exc:
@@ -417,7 +447,7 @@ def _list_issues_rest(repo: str, *, state: str, limit: int) -> list[dict[str, An
         )
         _sleep(retry_after)
         try:
-            return _paginated_lister(repo, state=state, limit=limit)
+            return _paginated_lister(repo, state=state, limit=limit, **filter_kwargs)
         except GhRestError as exc2:
             raise CacheFetchError(
                 f"rest_issue_list_paginated failed twice for repo={repo}: {exc2}"

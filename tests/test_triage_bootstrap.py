@@ -143,6 +143,79 @@ def test_populate_cache_uses_delay_free_default_via_cache_module(
     assert "issues_written=5" in outcome.message
 
 
+def test_populate_cache_forwards_label_filter(tmp_path: Path) -> None:
+    """--label scopes ingestion: forwarded to cache_fetch_all (#1033)."""
+    cache = _build_fake_cache()
+
+    outcome = triage_bootstrap.step_populate_cache(
+        tmp_path,
+        repo="deftai/directive",
+        cache_module=cache,
+        labels=("adoption-blocker",),
+    )
+
+    assert outcome.ok is True
+    kwargs = cache.calls[0]
+    assert kwargs["labels"] == ("adoption-blocker",)
+    assert "author" not in kwargs  # author=None is not forwarded
+
+
+def test_populate_cache_forwards_author_filter(tmp_path: Path) -> None:
+    """--author scopes ingestion: forwarded to cache_fetch_all (#1055)."""
+    cache = _build_fake_cache()
+
+    outcome = triage_bootstrap.step_populate_cache(
+        tmp_path,
+        repo="deftai/directive",
+        cache_module=cache,
+        author="octocat",
+    )
+
+    assert outcome.ok is True
+    kwargs = cache.calls[0]
+    assert kwargs["author"] == "octocat"
+    assert "labels" not in kwargs  # empty labels not forwarded
+
+
+def test_populate_cache_forwards_label_and_author_compose(tmp_path: Path) -> None:
+    """--label + --author compose end-to-end into cache_fetch_all (#1033+#1055)."""
+    cache = _build_fake_cache()
+
+    outcome = triage_bootstrap.step_populate_cache(
+        tmp_path,
+        repo="deftai/directive",
+        cache_module=cache,
+        labels=("bug", "p0"),
+        author="octocat",
+    )
+
+    assert outcome.ok is True
+    kwargs = cache.calls[0]
+    assert kwargs["labels"] == ("bug", "p0")
+    assert kwargs["author"] == "octocat"
+
+
+def test_run_bootstrap_threads_filters_to_populate(tmp_path: Path) -> None:
+    """run_bootstrap passes label + author through to the populate step (#1033+#1055)."""
+    cache = _build_fake_cache()
+
+    result = triage_bootstrap.run_bootstrap(
+        project_root=tmp_path,
+        repo="deftai/directive",
+        cache_module=cache,
+        labels=("bug",),
+        author="octocat",
+        progress=None,
+    )
+
+    # The populate step is step 1; its kwargs are what reached cache_fetch_all.
+    assert result.steps[0].name == "populate_cache"
+    assert len(cache.calls) == 1
+    kwargs = cache.calls[0]
+    assert kwargs["labels"] == ("bug",)
+    assert kwargs["author"] == "octocat"
+
+
 def test_populate_cache_skips_when_no_repo(tmp_path: Path) -> None:
     """No --repo and no git origin -> skip-with-OK."""
 

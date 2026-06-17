@@ -688,6 +688,49 @@ class TestRestIssueList:
             "--raw-field", "labels=epic,cache",
         ]
 
+    def test_argv_with_author_appends_creator(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # #1055: --author maps to the REST ``creator`` query param.
+        captured = _record_seam(monkeypatch, _ok_completed(stdout="[]"))
+        gh_rest.rest_issue_list("deftai/directive", author="octocat")
+        assert captured["args"] == [
+            "repos/deftai/directive/issues",
+            "--method", "GET",
+            "--raw-field", "state=open",
+            "--raw-field", "per_page=30",
+            "--raw-field", "creator=octocat",
+        ]
+
+    def test_argv_with_label_and_author_composes(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # #1033 + #1055: label + author compose server-side (AND). Both
+        # query params are appended; creator follows labels deterministically.
+        captured = _record_seam(monkeypatch, _ok_completed(stdout="[]"))
+        gh_rest.rest_issue_list(
+            "deftai/directive",
+            labels=("bug",),
+            author="octocat",
+        )
+        assert captured["args"] == [
+            "repos/deftai/directive/issues",
+            "--method", "GET",
+            "--raw-field", "state=open",
+            "--raw-field", "per_page=30",
+            "--raw-field", "labels=bug",
+            "--raw-field", "creator=octocat",
+        ]
+
+    def test_argv_author_none_omits_creator(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Defensive: author=None (default) must NOT append a creator field
+        # so the no-filter argv stays byte-for-byte what pre-#1055 emitted.
+        captured = _record_seam(monkeypatch, _ok_completed(stdout="[]"))
+        gh_rest.rest_issue_list("deftai/directive", author=None)
+        assert "creator=" not in " ".join(captured["args"])
+
     def test_dict_response_raises_with_list_hint(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -722,6 +765,43 @@ class TestRestIssueList:
         _record_seam(monkeypatch, _ok_completed(stdout=""))
         result = gh_rest.rest_issue_list("deftai/directive")
         assert result == []
+
+
+class TestRestIssueListPaginatedFilters:
+    """#1033 + #1055: paginated lister forwards labels + creator per page."""
+
+    def test_single_page_argv_includes_labels_and_creator(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # One short page (len < per_page) terminates pagination after the
+        # first request; _record_seam captures that single page's argv.
+        captured = _record_seam(
+            monkeypatch,
+            _ok_completed(stdout='[{"number": 1, "title": "a", "state": "open"}]'),
+        )
+        result = gh_rest.rest_issue_list_paginated(
+            "deftai/directive",
+            labels=("bug", "p0"),
+            author="octocat",
+            per_page=100,
+        )
+        assert result == [{"number": 1, "title": "a", "state": "open"}]
+        assert captured["args"] == [
+            "repos/deftai/directive/issues",
+            "--method", "GET",
+            "--raw-field", "state=open",
+            "--raw-field", "per_page=100",
+            "--raw-field", "page=1",
+            "--raw-field", "labels=bug,p0",
+            "--raw-field", "creator=octocat",
+        ]
+
+    def test_author_none_omits_creator_per_page(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        captured = _record_seam(monkeypatch, _ok_completed(stdout="[]"))
+        gh_rest.rest_issue_list_paginated("deftai/directive", per_page=100)
+        assert "creator=" not in " ".join(captured["args"])
 
 
 # ---------------------------------------------------------------------------
