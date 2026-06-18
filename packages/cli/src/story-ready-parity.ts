@@ -76,7 +76,11 @@ const VALID_COHORT: Record<string, string | null> = {
 
 /** Scenarios exercised by the parity harness (mirrors Python contract cases). */
 export const PARITY_SCENARIOS: readonly ParityScenario[] = [
-  { name: "clean-active-running-solo", vbriefRel: "2026-06-01-story.vbrief.json", envelopeRel: null },
+  {
+    name: "clean-active-running-solo",
+    vbriefRel: "2026-06-01-story.vbrief.json",
+    envelopeRel: null,
+  },
   {
     name: "dirty-tree",
     vbriefRel: "2026-06-01-story.vbrief.json",
@@ -230,7 +234,10 @@ function runScenario(
 }
 
 /** Diff python vs TS gate outputs across all parity scenarios. */
-export function diffParity(python: ScenarioResult, ts: ScenarioResult): {
+export function diffParity(
+  python: ScenarioResult,
+  ts: ScenarioResult,
+): {
   exitMismatch: boolean;
   messageMismatch: boolean;
   pythonMessage: string;

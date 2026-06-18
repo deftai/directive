@@ -1,12 +1,12 @@
-import { readFileSync, type PathLike } from "node:fs";
+import { type PathLike, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  type AllocationFields,
+  type ParsedAllocation,
   parseAllocationSection,
   SOLO_KIND,
   SWARM_COHORT_KIND,
   VALID_DISPATCH_KINDS,
-  type AllocationFields,
-  type ParsedAllocation,
 } from "./allocation.js";
 
 export const ACTIVE_FOLDER = "active";
@@ -45,7 +45,10 @@ function checkVbrief(vbriefPath: PathLike): { ok: true } | { ok: false; reason: 
     if (e.code === "ENOENT") {
       return { ok: false, reason: `target vBRIEF not found at ${path}` };
     }
-    return { ok: false, reason: `could not read target vBRIEF at ${path}: ${String(e.message ?? err)}` };
+    return {
+      ok: false,
+      reason: `could not read target vBRIEF at ${path}: ${String(e.message ?? err)}`,
+    };
   }
 
   let payload: unknown;
@@ -100,10 +103,7 @@ function readyMessage(treeNote: string, suffix: string): string {
   return `OK: ready to start -- ${treeNote}, vBRIEF active+running, ${suffix}`;
 }
 
-function classifyAllocation(
-  fields: AllocationFields,
-  treeNote: string,
-): EvaluateResult {
+function classifyAllocation(fields: AllocationFields, treeNote: string): EvaluateResult {
   const dispatchKind = fields.dispatch_kind ?? null;
   if (!("dispatch_kind" in fields) || dispatchKind === null) {
     return {
@@ -215,4 +215,4 @@ export function evaluate(vbriefPath: PathLike, options: EvaluateOptions = {}): E
   return classifyAllocation(fields, treeNote);
 }
 
-export { parseAllocationSection, SWARM_COHORT_KIND, SOLO_KIND };
+export { parseAllocationSection, SOLO_KIND, SWARM_COHORT_KIND };

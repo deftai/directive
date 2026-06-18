@@ -2,8 +2,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluate, parseAllocationSection } from "../../core/dist/story-ready/index.js";
 import { gitPorcelain } from "../../core/dist/story-ready/git.js";
+import { evaluate, parseAllocationSection } from "../../core/dist/story-ready/index.js";
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -139,7 +139,9 @@ export function run(argv: string[]): number {
   });
 
   if (args.emitJson) {
-    process.stdout.write(`${emitJson(vbriefPath, result.exitCode, result.message, result.dispatchKind)}\n`);
+    process.stdout.write(
+      `${emitJson(vbriefPath, result.exitCode, result.message, result.dispatchKind)}\n`,
+    );
   } else if (result.exitCode === 0) {
     process.stdout.write(`${result.message}\n`);
   } else {

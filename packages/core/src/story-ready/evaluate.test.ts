@@ -3,11 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import {
-  evaluate,
-  parseAllocationSection,
-  SWARM_COHORT_KIND,
-} from "./evaluate.js";
+import { evaluate, parseAllocationSection, SWARM_COHORT_KIND } from "./evaluate.js";
 import { gitPorcelain } from "./git.js";
 
 const temps: string[] = [];
