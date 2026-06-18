@@ -6,7 +6,7 @@
  *
  * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
  */
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -65,22 +65,17 @@ function runCapture(
   for (const key of Object.keys(merged)) {
     if (merged[key] === undefined) delete merged[key];
   }
-  try {
-    const stdout = execFileSync(cmd, args, {
-      cwd,
-      encoding: "utf8",
-      env: merged as NodeJS.ProcessEnv,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return { status: 0, stdout, stderr: "" };
-  } catch (err: unknown) {
-    const e = err as { status?: number; stdout?: string; stderr?: string };
-    return {
-      status: typeof e.status === "number" ? e.status : 2,
-      stdout: typeof e.stdout === "string" ? e.stdout : "",
-      stderr: typeof e.stderr === "string" ? e.stderr : "",
-    };
-  }
+  const result = spawnSync(cmd, args, {
+    cwd,
+    encoding: "utf8",
+    env: merged as NodeJS.ProcessEnv,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  return {
+    status: result.status ?? 2,
+    stdout: typeof result.stdout === "string" ? result.stdout : "",
+    stderr: typeof result.stderr === "string" ? result.stderr : "",
+  };
 }
 
 function writeProjectDefinition(root: string, plan: Record<string, unknown>): void {
