@@ -1,0 +1,23 @@
+{
+  "name": "@deftai/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "deft-ts": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@deftai/core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

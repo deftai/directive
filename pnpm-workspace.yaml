@@ -1,0 +1,10 @@
+packages:
+  - "packages/*"
+
+# pnpm 11 defaults to strictDepBuilds and blocks dependency build scripts
+# unless explicitly allowed via the `allowBuilds` map (it replaced the old
+# `onlyBuiltDependencies` list). esbuild (a vitest dependency) links its
+# prebuilt platform binary via a postinstall step, so it must be allowed for
+# a clean `pnpm install` to exit 0 locally and in CI (#1717).
+allowBuilds:
+  esbuild: true

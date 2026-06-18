@@ -1,0 +1,34 @@
+version: '3'
+
+# TypeScript engine monorepo verbs (#1717). The TS engine lives at the repo
+# root (packages/*) and coexists with the Python/Go engine during the
+# strangler-fig migration. These verbs are intentionally NOT wired into the
+# `task check` aggregate yet: that gate runs in environments without a Node
+# toolchain (e.g. the Python CI job), so the TS lane is validated by its own
+# `ts` CI job instead. Wiring into `task check` is deferred until the Node
+# toolchain is a guaranteed prerequisite everywhere `task check` runs.
+#
+# DEFT_ROOT resolves to the repo root (this fragment lives in tasks/, so
+# {{.TASKFILE_DIR}}/.. is the root), matching the sibling task fragments.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  build:
+    desc: "Build the TypeScript engine monorepo (tsc -b project references, #1717)"
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - pnpm run build
+
+  test:
+    desc: "Run the TypeScript engine test suite with coverage (vitest, #1717)"
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - pnpm run test
+
+  lint:
+    desc: "Lint + format-check the TypeScript engine (biome, #1717)"
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - pnpm run lint

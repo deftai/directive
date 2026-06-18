@@ -38,6 +38,11 @@ __pycache__/
 *.pyo
 .coverage
 htmlcov/
+
+# TypeScript engine toolchain (#1717)
+*.tsbuildinfo
+coverage/
+packages/*/dist/
 .pytest_cache/
 *.egg-info/
 

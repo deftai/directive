@@ -73,6 +73,9 @@ includes:
   core:
     taskfile: ./tasks/core.yml
     optional: true
+  ts:
+    taskfile: ./tasks/ts.yml
+    optional: true
   spec:
     taskfile: ./tasks/spec.yml
     optional: true
