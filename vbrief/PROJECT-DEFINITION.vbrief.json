@@ -11019,7 +11019,8 @@
           }
         ]
       },
-      "allowDirectCommitsToMaster": false
+      "allowDirectCommitsToMaster": false,
+      "swarmSubagentBackend": "composer"
     },
     "updated": "2026-06-12T20:26:00Z"
   }
