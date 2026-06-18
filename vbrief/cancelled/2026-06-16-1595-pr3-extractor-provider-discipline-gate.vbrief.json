@@ -8,7 +8,7 @@
   "plan": {
     "id": "1595-pr3-extractor-provider-discipline-gate",
     "title": "Add codebase extractor provider contract and discipline gate",
-    "status": "running",
+    "status": "cancelled",
     "narratives": {
       "Description": "PR3 for #1595 adds the contract layer between authored codeStructure metadata and the later MAP projection: a deterministic dependency-free default extractor, an out-of-process provider handshake, an architecture-map artifact format, a kind-to-command registry, and the PR3 discipline gate. This preserves the current-shape decision that directive owns contracts and a safe default path, not a heavy in-repo map engine.",
       "ImplementationPlan": "1. Define the tier-1 architecture-map output format and provider handshake with independent formatVersion and contractVersion fields. 2. Implement an AST-free default extractor that uses repository tree walking and import-line heuristics only, with no network, model, or parser dependency. 3. Add provider selection/validation that accepts a conformant external provider artifact when configured and falls back to the default extractor on absence, mismatch, or provider failure. 4. Add a projection-kind registry for codebase-map so canonical projectionManifest entries remain invocation-agnostic. 5. Extend task codebase:validate-structure with PR3 discipline checks: hard-block derived-fact keys and undeclared canonical siblings, warn on boundedness heuristics, and validate deterministic referential integrity where possible. 6. Add focused tests, docs, and a brief CHANGELOG entry.",
@@ -118,6 +118,6 @@
       },
       "capacityBucket": "new-capability"
     },
-    "updated": "2026-06-16T20:20:00Z"
+    "updated": "2026-06-18T14:37:55Z"
   }
 }

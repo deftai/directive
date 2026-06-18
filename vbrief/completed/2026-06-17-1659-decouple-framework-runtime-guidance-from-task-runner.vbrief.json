@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Decouple framework runtime and guidance from the task runner",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "Package-manager installs must be able to run Deft through the `deft`/`run` surface without requiring go-task on PATH. Runtime code should call Python entrypoints or the shared framework command dispatcher, while generated guidance should prefer `deft <verb>` and reserve `task deft:<verb>` for Taskfile include users.",
       "AcceptanceCriteria": "No runtime code path hard-depends on `task`; the `run`/future `deft` surface reaches the framework verbs needed by session, cache, triage, check, and release flows; generated AGENTS guidance points package consumers at `deft`; and a deterministic guard fails on future runtime go-task subprocess dependencies."
@@ -49,6 +49,10 @@
         "title": "Issue #1670: spec: unified `deft` CLI surface"
       }
     ],
-    "updated": "2026-06-17T00:00:00Z"
+    "updated": "2026-06-18T14:37:54Z",
+    "metadata": {
+      "completedAt": "2026-06-18T14:37:54Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
