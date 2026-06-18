@@ -43,7 +43,6 @@ export interface ParityResult {
 export function normalizeOutput(text: string): string {
   return text
     .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g, "<TS>")
-    .replace(/"generated_at": "<TS>"/g, '"generated_at": "<TS>"')
     .replace(/PROJECT-DEFINITION not found at [^\s)]+/g, "PROJECT-DEFINITION not found at <ROOT>")
     .replace(/fail-closed: PROJECT-DEFINITION not found at [^)]+/g, "fail-closed: PROJECT-DEFINITION not found at <ROOT>");
 }

@@ -317,7 +317,7 @@ export function renderJson(fields: PolicyField[], now?: Date): string {
 function formatValue(value: unknown): string {
   if (value === null) return "None";
   if (typeof value === "boolean") return value ? "true" : "false";
-  if (Array.isArray(value) || (typeof value === "object" && value !== null)) {
+  if (Array.isArray(value) || typeof value === "object") {
     // Match Python json.dumps(..., ensure_ascii=False, sort_keys=False) spacing.
     return JSON.stringify(value).replace(/":/g, '": ').replace(/,"/g, ', "');
   }
