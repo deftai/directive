@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **TypeScript engine port begins with the encoding gate (#1718)** -- The `verify:encoding` corruption gate now has a TypeScript implementation in `@deftai/core` (plus a thin CLI preserving the 0/1/2 exit contract) that is proven to flag exactly the same files as the existing Python gate. A new golden-output parity harness builds a fixture corpus of known corruption and diffs the two implementations on every CI run (cache-off), so the Python-to-TypeScript migration can proceed without behavior drift. Refs #1717 #1530.
 - **Policy surface ported to TypeScript (#1722)** -- Branch-policy resolution, disclosure lines, WIP-cap helpers, and the `policy:show` / `policy:allow-direct-commits` CLI behaviors now live in `@deftai/core` with a golden-diff parity harness against the Python oracle. Operators get the same fail-closed branch protection semantics and audit-log writes while the Wave-2 migration proceeds without behavior drift. Refs #1530.
+- **vBRIEF implementation-intent preflight gate ported to TypeScript (#1721)** -- The structural `#810` lifecycle gate that asserts a vBRIEF lives in `active/` with `plan.status == "running"` now has a pure `evaluate()` implementation in `@deftai/core`, a thin CLI with matching `--json` output, and a golden parity harness that diffs exit codes and messages against the Python oracle. Session-ritual wrapping and task-surface wiring remain deferred to keep the Wave-2a cohort conflict-free. Refs #1530.
 
 ### Changed
 
