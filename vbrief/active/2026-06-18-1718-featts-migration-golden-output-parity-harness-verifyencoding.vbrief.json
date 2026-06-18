@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(ts-migration): golden-output parity harness + verify:encoding tracer-bullet port (Wave 1)",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Description": "feat(ts-migration): golden-output parity harness + verify:encoding tracer-bullet port (Wave 1)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1718",
@@ -52,6 +52,6 @@
         "title": "Issue #1717"
       }
     ],
-    "updated": "2026-06-18T18:37:49Z"
+    "updated": "2026-06-18T18:47:48Z"
   }
 }
