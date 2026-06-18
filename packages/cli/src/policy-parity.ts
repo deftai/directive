@@ -44,7 +44,10 @@ export function normalizeOutput(text: string): string {
   return text
     .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g, "<TS>")
     .replace(/PROJECT-DEFINITION not found at [^\s)]+/g, "PROJECT-DEFINITION not found at <ROOT>")
-    .replace(/fail-closed: PROJECT-DEFINITION not found at [^)]+/g, "fail-closed: PROJECT-DEFINITION not found at <ROOT>");
+    .replace(
+      /fail-closed: PROJECT-DEFINITION not found at [^)]+/g,
+      "fail-closed: PROJECT-DEFINITION not found at <ROOT>",
+    );
 }
 
 interface Capture {
@@ -170,11 +173,7 @@ function runTsPolicy(
 }
 
 /** Diff one parity case between Python oracle and TS CLI. */
-export function diffCase(
-  python: CommandCapture,
-  ts: CommandCapture,
-  caseName: string,
-): ParityDiff {
+export function diffCase(python: CommandCapture, ts: CommandCapture, caseName: string): ParityDiff {
   const pyOut = normalizeOutput(python.stdout);
   const tsOut = normalizeOutput(ts.stdout);
   const pyErr = normalizeOutput(python.stderr);
@@ -190,7 +189,11 @@ export function diffCase(
 }
 
 export const PARITY_CASES: readonly ParityCase[] = [
-  { name: "resolve-default-missing-pd", argv: ["resolve"], env: { DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "" } },
+  {
+    name: "resolve-default-missing-pd",
+    argv: ["resolve"],
+    env: { DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "" },
+  },
   {
     name: "resolve-typed-false",
     argv: ["resolve"],
@@ -258,9 +261,7 @@ export function runParity(): ParityResult {
       rmSync(tsRepo, { recursive: true, force: true });
     }
   }
-  const ok = diffs.every(
-    (d) => !d.exitMismatch && !d.stdoutMismatch && !d.stderrMismatch,
-  );
+  const ok = diffs.every((d) => !d.exitMismatch && !d.stdoutMismatch && !d.stderrMismatch);
   return { ok, diffs };
 }
 

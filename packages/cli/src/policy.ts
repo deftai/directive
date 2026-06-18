@@ -178,7 +178,9 @@ export function parseArgs(argv: string[]): SetArgs {
   if (cmd === "enforce-branches" || cmd === "allow-direct-commits") {
     let confirm = false;
     let actor =
-      cmd === "enforce-branches" ? "task policy:enforce-branches" : "task policy:allow-direct-commits";
+      cmd === "enforce-branches"
+        ? "task policy:enforce-branches"
+        : "task policy:allow-direct-commits";
     let note = "";
     let projectRoot = ".";
     for (let i = 1; i < argv.length; i += 1) {
@@ -210,7 +212,16 @@ export function parseArgs(argv: string[]): SetArgs {
         return makeSetError(`unrecognized argument: ${arg}`);
       }
     }
-    return { cmd, confirm, actor, note, projectRoot, format: "text", changedOnly: false, field: null };
+    return {
+      cmd,
+      confirm,
+      actor,
+      note,
+      projectRoot,
+      format: "text",
+      changedOnly: false,
+      field: null,
+    };
   }
 
   return makeSetError(`unknown subcommand: ${cmd}`);
@@ -258,7 +269,9 @@ function runShow(args: ShowArgs): number {
 
 function runResolve(projectRoot: string): number {
   const result = resolvePolicy(projectRoot);
-  process.stdout.write(`allowDirectCommitsToMaster=${String(result.allowDirectCommits).toLowerCase()}\n`);
+  process.stdout.write(
+    `allowDirectCommitsToMaster=${String(result.allowDirectCommits).toLowerCase()}\n`,
+  );
   process.stdout.write(`source=${result.source}\n`);
   if (result.deprecationWarning !== null) {
     process.stdout.write(`warning=${result.deprecationWarning}\n`);
@@ -295,7 +308,9 @@ function runSet(args: SetArgs): number {
     if (changed) {
       process.stdout.write(`  audit: meta/policy-changes.log :: ${auditEntry}\n`);
     } else {
-      process.stdout.write("  no-op: value already matched (audit entry still appended for trail).\n");
+      process.stdout.write(
+        "  no-op: value already matched (audit entry still appended for trail).\n",
+      );
     }
     process.stdout.write(`${disclosureLine(resolvePolicy(projectRoot))}\n`);
     return 0;

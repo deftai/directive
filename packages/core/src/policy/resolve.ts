@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
 
 /** Filesystem-relative location of the project-definition vBRIEF. */
@@ -15,11 +15,7 @@ export const AUDIT_LOG_REL_PATH = "meta/policy-changes.log";
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
-export type PolicySource =
-  | "typed"
-  | "legacy-narrative"
-  | "env-bypass"
-  | "default-fail-closed";
+export type PolicySource = "typed" | "legacy-narrative" | "env-bypass" | "default-fail-closed";
 
 export interface PolicyResult {
   readonly allowDirectCommits: boolean;

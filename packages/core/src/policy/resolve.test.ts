@@ -2,15 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  ENV_BYPASS,
-  coerceLegacyNarrative,
-  resolvePolicy,
-  setPolicy,
-  type PolicyResult,
-} from "./resolve.js";
 import { disclosureLine } from "./disclosure.js";
-import { countVbriefWip, resolveWipCap } from "./wip.js";
 import {
   FIELD_ALLOW_DIRECT_COMMITS,
   FIELD_SESSION_RITUAL_STALENESS_HOURS,
@@ -23,6 +15,14 @@ import {
   renderJson,
   renderText,
 } from "./index.js";
+import {
+  coerceLegacyNarrative,
+  ENV_BYPASS,
+  type PolicyResult,
+  resolvePolicy,
+  setPolicy,
+} from "./resolve.js";
+import { countVbriefWip, resolveWipCap } from "./wip.js";
 
 function writeProjectDef(root: string, plan: Record<string, unknown>): void {
   const dir = join(root, "vbrief");
@@ -246,9 +246,7 @@ describe("setPolicy", () => {
       JSON.stringify({ plan: [] }),
       { encoding: "utf8" },
     );
-    expect(() => setPolicy(r, { allowDirectCommits: false })).toThrow(
-      "plan' is not an object",
-    );
+    expect(() => setPolicy(r, { allowDirectCommits: false })).toThrow("plan' is not an object");
   });
 
   it("throws when plan.policy is not object", () => {

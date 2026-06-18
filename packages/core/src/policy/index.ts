@@ -1,8 +1,4 @@
-import {
-  LEGACY_NARRATIVE_KEY,
-  coerceLegacyNarrative,
-  loadProjectDefinition,
-} from "./resolve.js";
+import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import { DEFAULT_WIP_CAP } from "./wip.js";
 
 export * from "./disclosure.js";
@@ -20,7 +16,9 @@ export const FIELD_TRIAGE_HOLD_MARKERS = "plan.policy.triageHoldMarkers";
 export const FIELD_SWARM_SUBAGENT_BACKEND = "plan.policy.swarmSubagentBackend";
 
 export const DEFAULT_SESSION_RITUAL_STALENESS_HOURS = 4;
-export const DEFAULT_TRIAGE_SCOPE_VALUE: readonly Record<string, unknown>[] = [{ rule: "all-open" }];
+export const DEFAULT_TRIAGE_SCOPE_VALUE: readonly Record<string, unknown>[] = [
+  { rule: "all-open" },
+];
 export const DEFAULT_TRIAGE_SCOPE_IGNORES_VALUE: readonly unknown[] = [];
 export const DEFAULT_TRIAGE_RANKING_LABELS_VALUE: readonly string[] = [];
 export const DEFAULT_TRIAGE_AUTO_CLASSIFY_VALUE: readonly unknown[] = [];
@@ -242,8 +240,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
   inspectAllowDirectCommits,
   inspectWipCap,
   inspectSessionRitualStalenessHours,
-  (data) =>
-    listFieldInspector(data, "triageScope", FIELD_TRIAGE_SCOPE, DEFAULT_TRIAGE_SCOPE_VALUE),
+  (data) => listFieldInspector(data, "triageScope", FIELD_TRIAGE_SCOPE, DEFAULT_TRIAGE_SCOPE_VALUE),
   (data) =>
     listFieldInspector(
       data,

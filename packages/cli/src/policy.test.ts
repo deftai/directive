@@ -1,9 +1,15 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { diffCase, normalizeOutput, PARITY_CASES, renderReport, runParity } from "./policy-parity.js";
-import { parseArgs, parseShowArgs, run } from "./policy.js";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { parseArgs, parseShowArgs, run } from "./policy.js";
+import {
+  diffCase,
+  normalizeOutput,
+  PARITY_CASES,
+  renderReport,
+  runParity,
+} from "./policy-parity.js";
 
 describe("normalizeOutput", () => {
   it("strips ISO timestamps", () => {
@@ -63,9 +69,7 @@ describe("parseShowArgs", () => {
 
 describe("parseArgs", () => {
   it("routes show subcommand", () => {
-    expect(parseArgs(["show", "--field", "plan.policy.wipCap"]).field).toBe(
-      "plan.policy.wipCap",
-    );
+    expect(parseArgs(["show", "--field", "plan.policy.wipCap"]).field).toBe("plan.policy.wipCap");
   });
 
   it("routes resolve subcommand", () => {
