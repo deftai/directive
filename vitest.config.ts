@@ -27,6 +27,10 @@ export default defineConfig({
         // unit tests. Its pure helpers (parseFindings/diffGates/findingKey)
         // are still unit-tested in parity.test.ts.
         "packages/cli/src/parity.ts",
+        // Same rationale (#1530 Wave 2): the policy parity runner spawns the
+        // Python oracle and is validated by the dedicated parity CI job, not
+        // the Python-less node-only TS job. Pure helpers stay unit-tested.
+        "packages/cli/src/policy-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

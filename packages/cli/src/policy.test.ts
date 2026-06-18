@@ -3,13 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, parseShowArgs, run } from "./policy.js";
-import {
-  diffCase,
-  normalizeOutput,
-  PARITY_CASES,
-  renderReport,
-  runParity,
-} from "./policy-parity.js";
+import { diffCase, normalizeOutput, PARITY_CASES, renderReport } from "./policy-parity.js";
 
 describe("normalizeOutput", () => {
   it("strips ISO timestamps", () => {
@@ -334,17 +328,4 @@ describe("policy-parity helpers", () => {
       }),
     ).toContain("DIVERGENCE");
   });
-
-  it("runParity executes against the Python oracle", () => {
-    const prev = process.env.DEFT_ROOT;
-    process.env.DEFT_ROOT = process.cwd();
-    try {
-      const result = runParity();
-      expect(result.diffs.length).toBe(PARITY_CASES.length);
-      expect(result.ok).toBe(true);
-    } finally {
-      if (prev === undefined) delete process.env.DEFT_ROOT;
-      else process.env.DEFT_ROOT = prev;
-    }
-  }, 120_000);
 });
