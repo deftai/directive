@@ -16,7 +16,9 @@
     "deft-verify-story-ready": "./dist/verify-story-ready.js",
     "deft-story-ready-parity": "./dist/story-ready-parity.js",
     "deft-verify-branch": "./dist/verify-branch.js",
-    "deft-branch-parity": "./dist/branch-parity.js"
+    "deft-branch-parity": "./dist/branch-parity.js",
+    "deft-verify-wip-cap": "./dist/verify-wip-cap.js",
+    "deft-wip-cap-parity": "./dist/wip-cap-parity.js"
   },
   "exports": {
     ".": {

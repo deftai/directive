@@ -25,6 +25,10 @@
     "./branch": {
       "types": "./dist/branch/index.d.ts",
       "default": "./dist/branch/index.js"
+    },
+    "./wip-cap": {
+      "types": "./dist/wip-cap/index.d.ts",
+      "default": "./dist/wip-cap/index.js"
     }
   },
   "dependencies": {

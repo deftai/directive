@@ -69,6 +69,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/branch-parity.js"
 
+  wip-cap-parity:
+    desc: "Golden-diff the ported verify:wip-cap gate vs the Python oracle, cache-off (#1723)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/wip-cap-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -78,3 +84,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-preflight-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/story-ready-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/branch-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/wip-cap-parity.js"

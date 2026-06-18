@@ -201,6 +201,9 @@ jobs:
       - name: Golden-diff parity -- branch gate (#1719)
         run: node packages/cli/dist/branch-parity.js
 
+      - name: Golden-diff parity -- wip-cap gate (#1723)
+        run: node packages/cli/dist/wip-cap-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

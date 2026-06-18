@@ -16,6 +16,7 @@ export * from "./encoding/index.js";
 export * as policy from "./policy/index.js";
 export * as preflight from "./preflight/index.js";
 export * as storyReady from "./story-ready/index.js";
+export * as wipCap from "./wip-cap/index.js";
 
 export const CORE_PACKAGE = "@deftai/core" as const;
 
