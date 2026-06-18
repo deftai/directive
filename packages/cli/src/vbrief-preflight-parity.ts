@@ -48,12 +48,17 @@ export const PARITY_FIXTURES: ReadonlyArray<readonly [string, string, string]> =
 /** Parse the structured `--json` stdout payload. */
 export function parseJsonOutput(stdout: string, exitCode: number): JsonGateOutput {
   const trimmed = stdout.trim();
-  const payload = JSON.parse(trimmed) as {
+  let payload: {
     ready: boolean;
     exit_code: number;
     vbrief_path: string;
     message: string;
   };
+  try {
+    payload = JSON.parse(trimmed) as typeof payload;
+  } catch {
+    throw new Error(`Expected JSON output but got: ${trimmed.length > 0 ? trimmed : "(empty)"}`);
+  }
   return {
     exitCode,
     ready: payload.ready,

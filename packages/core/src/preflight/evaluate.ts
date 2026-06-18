@@ -41,17 +41,13 @@ function nodeJsonErrorToPythonMsg(nodeMessage: string): string {
   return atPos >= 0 ? nodeMessage.slice(0, atPos) : nodeMessage;
 }
 
-function pathDisplay(vbriefPath: string): string {
-  return vbriefPath;
-}
-
 /**
  * Pure evaluator — returns `{ exitCode, message }`. Never throws; every error
  * path collapses to exit 1 with an actionable message. Faithful to
  * `scripts/preflight_implementation.py::evaluate`.
  */
 export function evaluate(vbriefPath: string): EvaluateResult {
-  const path = pathDisplay(vbriefPath);
+  const path = vbriefPath;
 
   let st: ReturnType<typeof statSync>;
   try {
