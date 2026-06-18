@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1723"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port verify:wip-cap to TS (Wave 2)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Port the WIP-cap re-validation gate (scripts/preflight_wip_cap.py) into a pure evaluate() in @deftai/core plus a thin CLI, preserving the three-state exit (0 within cap / 1 over cap / 2 config error), the --allow-over-cap escape hatch, the relief-hint refusal text, and the within-cap success banner. Reuses the already-landed @deftai/core/policy WIP helpers (resolveWipCap, countVbriefWip) and proves parity against the Python oracle via cache-off golden-diff fixtures.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1723",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nPort the WIP-cap gate to TS, preserving the `plan.policy.wipCap` enforcement, the relief hint, and `--allow-over-cap` semantics.\n\n## Acceptance criteria\n\n- [ ] `verify:wip-cap` runs on TS with the cap enforcement preserved\n- [ ] Golden-output parity vs the Python oracle (cache-off)\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1718\n",
+      "Labels": "determinism, refactor, runtime-portability, tooling",
+      "ImplementationPlan": "- Add packages/core/src/wip-cap/ with evaluate.ts (pure (projectRoot, {allowOverCap}) -> {code, message}) and index.ts. Reuse the already-landed @deftai/core/policy WIP helpers (resolveWipCap, countVbriefWip, DEFAULT_WIP_CAP) so cap resolution and the pending/+active/ count share a single source of truth.\n- Preserve all branches of scripts/preflight_wip_cap.py: within-cap success banner (exit 0), over-cap refusal with the canonical relief verbs (exit 1), --allow-over-cap framework grace (exit 0 with the OVER-cap warning), and the malformed-PROJECT-DEFINITION config error (exit 2). Match the --quiet behavior.\n- Add a thin packages/cli/src/verify-wip-cap.ts CLI plus a wip-cap-parity.ts harness that golden-diffs the TS output against scripts/preflight_wip_cap.py with cache off across fixtures covering every exit state. Cover the evaluate branches with vitest fixtures.",
+      "UserStory": "As a deft maintainer, I want the WIP-cap gate ported to TypeScript, so that cap re-validation no longer depends on the Python runtime."
+    },
+    "items": [
+      {
+        "title": "verify:wip-cap on TypeScript preserves the three-state exit",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "verify:wip-cap on TypeScript returns exit 0 within cap, returns exit 1 when it rejects an over-cap state, and returns exit 2 on a malformed PROJECT-DEFINITION, including the --allow-over-cap exit-0 grace path, matching the Python oracle."
+        }
+      },
+      {
+        "title": "Golden-output parity vs the Python oracle (cache-off)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "wip-cap-parity renders byte-identical banner and refusal text and returns the same exit code as scripts/preflight_wip_cap.py across fixtures covering all three exit states, with cache off."
+        }
+      }
+    ],
+    "tags": [
+      "determinism",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1723",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1723: feat(ts-migration): port verify:wip-cap to TS (Wave 2)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1718",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1718"
+      }
+    ],
+    "id": "2026-06-18-1723-featts-migration-port-verifywip-cap-to-ts-wave-2",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/wip-cap/evaluate.ts",
+          "packages/core/src/wip-cap/index.ts",
+          "packages/core/src/wip-cap/evaluate.test.ts",
+          "packages/cli/src/verify-wip-cap.ts",
+          "packages/cli/src/verify-wip-cap.test.ts",
+          "packages/cli/src/wip-cap-parity.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "node packages/cli/dist/wip-cap-parity.js",
+          "pnpm test packages/core/src/wip-cap"
+        ],
+        "expected_outputs": [
+          "wip-cap-parity exits 0 with byte-identical three-state output versus the Python oracle scripts/preflight_wip_cap.py (cache off)",
+          "vitest coverage >=85% across packages/core/src/wip-cap and packages/cli/src/verify-wip-cap.ts"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wip-cap",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to the Python oracle scripts/preflight_wip_cap.py via cache-off golden-diff parity fixtures, not a spec section."
+      },
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-06-18T23:01:15Z"
+    },
+    "updated": "2026-06-18T23:01:15Z"
+  }
+}
