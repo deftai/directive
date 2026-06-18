@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **TypeScript engine port begins with the encoding gate (#1718)** -- The `verify:encoding` corruption gate now has a TypeScript implementation in `@deftai/core` (plus a thin CLI preserving the 0/1/2 exit contract) that is proven to flag exactly the same files as the existing Python gate. A new golden-output parity harness builds a fixture corpus of known corruption and diffs the two implementations on every CI run (cache-off), so the Python-to-TypeScript migration can proceed without behavior drift. Refs #1717 #1530.
 
 ### Changed
 

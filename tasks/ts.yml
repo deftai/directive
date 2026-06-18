@@ -32,3 +32,15 @@ tasks:
     dir: '{{.DEFT_ROOT}}'
     cmds:
       - pnpm run lint
+
+  encoding:
+    desc: "Run the ported verify:encoding gate (TS @deftai/core port, #1718)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/verify-encoding.js" --all --project-root "{{.DEFT_ROOT}}"
+
+  parity:
+    desc: "Golden-diff the ported verify:encoding gate vs the Python oracle, cache-off (#1718)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/parity.js"

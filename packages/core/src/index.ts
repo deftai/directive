@@ -3,11 +3,11 @@ import type { EngineInfo } from "@deftai/types";
 /**
  * `@deftai/core` — the deft directive engine core.
  *
- * Wave-1 skeleton (#1717): exposes only its identity and an `engineInfo()`
- * accessor that consumes a type from `@deftai/types`, proving the
- * types → core project reference resolves. Ported enforcement logic lands
- * with #1718 onward.
+ * Hosts the first ported enforcement gate (`verify:encoding`, #1718) under
+ * `./encoding`, alongside the Wave-1 identity accessor.
  */
+
+export * from "./encoding/index.js";
 
 export const CORE_PACKAGE = "@deftai/core" as const;
 
