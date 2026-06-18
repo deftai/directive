@@ -19,6 +19,7 @@ export default defineConfig({
       "@deftai/core/policy": sub("core", "policy"),
       "@deftai/core/preflight": sub("core", "preflight"),
       "@deftai/core/story-ready": sub("core", "story-ready"),
+      "@deftai/core/branch": sub("core", "branch"),
       "@deftai/core": src("core"),
     },
   },
@@ -47,6 +48,10 @@ export default defineConfig({
         // the Python oracle and is validated by the dedicated parity CI job,
         // not the Python-less node-only TS job. Pure helpers stay unit-tested.
         "packages/cli/src/story-ready-parity.ts",
+        // Same rationale (#1530 Wave 2): the branch parity runner spawns the
+        // Python oracle and is validated by the dedicated parity CI job, not
+        // the Python-less node-only TS job. Pure helpers stay unit-tested.
+        "packages/cli/src/branch-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

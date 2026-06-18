@@ -11,8 +11,8 @@ import type { EngineInfo } from "@deftai/types";
  * avoid colliding on those shared symbol names.
  */
 
+export * as branch from "./branch/index.js";
 export * from "./encoding/index.js";
-
 export * as policy from "./policy/index.js";
 export * as preflight from "./preflight/index.js";
 export * as storyReady from "./story-ready/index.js";

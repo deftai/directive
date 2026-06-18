@@ -198,6 +198,9 @@ jobs:
       - name: Golden-diff parity -- story-ready gate (#1720)
         run: node packages/cli/dist/story-ready-parity.js
 
+      - name: Golden-diff parity -- branch gate (#1719)
+        run: node packages/cli/dist/branch-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

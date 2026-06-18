@@ -21,6 +21,10 @@
     "./story-ready": {
       "types": "./dist/story-ready/index.d.ts",
       "default": "./dist/story-ready/index.js"
+    },
+    "./branch": {
+      "types": "./dist/branch/index.d.ts",
+      "default": "./dist/branch/index.js"
     }
   },
   "dependencies": {
