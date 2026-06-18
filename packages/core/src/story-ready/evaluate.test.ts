@@ -16,6 +16,19 @@ afterAll(() => {
 const CLEAN_TREE = "";
 const DIRTY_TREE = " M scripts/foo.py\n?? scratch.txt\n";
 
+function gitCommit(cwd: string, message: string): void {
+  execFileSync("git", ["commit", "-q", "-m", message], {
+    cwd,
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "deft-test",
+      GIT_AUTHOR_EMAIL: "test@test.local",
+      GIT_COMMITTER_NAME: "deft-test",
+      GIT_COMMITTER_EMAIL: "test@test.local",
+    },
+  });
+}
+
 function writeVbrief(
   base: string,
   folder = "active",
@@ -212,7 +225,7 @@ describe("gitPorcelain", () => {
     writeFileSync(join(root, "f.txt"), "ok\n");
     execFileSync("git", ["init", "-q"], { cwd: root });
     execFileSync("git", ["add", "-A"], { cwd: root });
-    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root });
+    gitCommit(root, "init");
     expect(gitPorcelain(root)).toBe("");
   });
 

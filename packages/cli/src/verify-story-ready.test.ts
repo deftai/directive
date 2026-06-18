@@ -19,6 +19,19 @@ afterAll(() => {
   }
 });
 
+function gitCommit(cwd: string, message: string): void {
+  execFileSync("git", ["commit", "-q", "-m", message], {
+    cwd,
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "deft-test",
+      GIT_AUTHOR_EMAIL: "test@test.local",
+      GIT_COMMITTER_NAME: "deft-test",
+      GIT_COMMITTER_EMAIL: "test@test.local",
+    },
+  });
+}
+
 function buildRepo(status = "running"): { root: string; vbriefPath: string } {
   const root = mkdtempSync(join(tmpdir(), "deft-cli-sr-"));
   temps.push(root);
@@ -31,7 +44,7 @@ function buildRepo(status = "running"): { root: string; vbriefPath: string } {
   );
   execFileSync("git", ["init", "-q"], { cwd: root });
   execFileSync("git", ["add", "-A"], { cwd: root });
-  execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root });
+  gitCommit(root, "init");
   return { root, vbriefPath };
 }
 

@@ -111,6 +111,19 @@ interface Capture {
   stderr: string;
 }
 
+function gitCommit(cwd: string, message: string): void {
+  execFileSync("git", ["commit", "-q", "-m", message], {
+    cwd,
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "deft-parity",
+      GIT_AUTHOR_EMAIL: "parity@test.local",
+      GIT_COMMITTER_NAME: "deft-parity",
+      GIT_COMMITTER_EMAIL: "parity@test.local",
+    },
+  });
+}
+
 function runCapture(cmd: string, args: string[], cwd: string): Capture {
   try {
     const stdout = execFileSync(cmd, args, {
@@ -164,7 +177,7 @@ export function buildScenarioRepo(scenario: ParityScenario): {
   execFileSync("git", ["init", "-q"], { cwd: root });
   execFileSync("git", ["add", "-A"], { cwd: root });
   if (!scenario.dirty) {
-    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root });
+    gitCommit(root, "init");
   }
 
   const vbriefPath = join(root, "vbrief", "active", vbriefName);
