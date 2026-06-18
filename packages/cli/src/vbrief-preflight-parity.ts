@@ -160,7 +160,12 @@ export function runParity(): ParityResult {
       );
       const ts = runCapture(
         "node",
-        [join(deftRoot, "packages", "cli", "dist", "vbrief-preflight.js"), "--vbrief-path", fixturePath, "--json"],
+        [
+          join(deftRoot, "packages", "cli", "dist", "vbrief-preflight.js"),
+          "--vbrief-path",
+          fixturePath,
+          "--json",
+        ],
         deftRoot,
       );
       cases.push(

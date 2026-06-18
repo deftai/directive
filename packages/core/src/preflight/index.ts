@@ -1,2 +1,9 @@
-export { ACTIVE_FOLDER, ELIGIBLE_STATUS, ACTIVATE_HINT, evaluate, emitJson, formatActivateHint } from "./evaluate.js";
 export type { EvaluateResult } from "./evaluate.js";
+export {
+  ACTIVATE_HINT,
+  ACTIVE_FOLDER,
+  ELIGIBLE_STATUS,
+  emitJson,
+  evaluate,
+  formatActivateHint,
+} from "./evaluate.js";

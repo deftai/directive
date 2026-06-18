@@ -98,8 +98,7 @@ describe("vbrief-preflight-parity helpers", () => {
 
   it("diffOutputs reports clean when outputs match", async () => {
     const { diffOutputs, parseJsonOutput } = await import("./vbrief-preflight-parity.js");
-    const stdout =
-      '{"exit_code":0,"message":"OK","ready":true,"vbrief_path":"/a.vbrief.json"}';
+    const stdout = '{"exit_code":0,"message":"OK","ready":true,"vbrief_path":"/a.vbrief.json"}';
     const py = parseJsonOutput(stdout, 0);
     const ts = parseJsonOutput(stdout, 0);
     const r = diffOutputs("case", py, ts);
@@ -108,14 +107,8 @@ describe("vbrief-preflight-parity helpers", () => {
 
   it("diffOutputs flags mismatches", async () => {
     const { diffOutputs, parseJsonOutput } = await import("./vbrief-preflight-parity.js");
-    const py = parseJsonOutput(
-      '{"exit_code":1,"message":"a","ready":false,"vbrief_path":"/p"}',
-      1,
-    );
-    const ts = parseJsonOutput(
-      '{"exit_code":0,"message":"b","ready":true,"vbrief_path":"/p"}',
-      0,
-    );
+    const py = parseJsonOutput('{"exit_code":1,"message":"a","ready":false,"vbrief_path":"/p"}', 1);
+    const ts = parseJsonOutput('{"exit_code":0,"message":"b","ready":true,"vbrief_path":"/p"}', 0);
     const r = diffOutputs("case", py, ts);
     expect(r.ok).toBe(false);
     expect(r.exitMismatch).toBe(true);
@@ -138,20 +131,32 @@ describe("vbrief-preflight-parity helpers", () => {
     const { renderReport } = await import("./vbrief-preflight-parity.js");
     const clean = renderReport({
       ok: true,
-      cases: [{ name: "a", ok: true, pythonExit: 0, tsExit: 0, exitMismatch: false, messageMismatch: false, readyMismatch: false }],
+      cases: [
+        {
+          name: "a",
+          ok: true,
+          pythonExit: 0,
+          tsExit: 0,
+          exitMismatch: false,
+          messageMismatch: false,
+          readyMismatch: false,
+        },
+      ],
     });
     expect(clean).toContain("CLEAN");
     const bad = renderReport({
       ok: false,
-      cases: [{
-        name: "x",
-        ok: false,
-        pythonExit: 1,
-        tsExit: 0,
-        exitMismatch: true,
-        messageMismatch: true,
-        readyMismatch: false,
-      }],
+      cases: [
+        {
+          name: "x",
+          ok: false,
+          pythonExit: 1,
+          tsExit: 0,
+          exitMismatch: true,
+          messageMismatch: true,
+          readyMismatch: false,
+        },
+      ],
     });
     expect(bad).toContain("DIVERGENCE");
     expect(bad).toContain("exit mismatch");

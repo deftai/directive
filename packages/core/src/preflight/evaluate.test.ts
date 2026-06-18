@@ -2,8 +2,8 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { ELIGIBLE_STATUS, evaluate, emitJson, formatActivateHint } from "./evaluate.js";
-import { evaluate as evaluateFromIndex, emitJson as emitJsonFromIndex } from "./index.js";
+import { ELIGIBLE_STATUS, emitJson, evaluate, formatActivateHint } from "./evaluate.js";
+import { emitJson as emitJsonFromIndex, evaluate as evaluateFromIndex } from "./index.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -24,14 +24,22 @@ function writeVbrief(folder: string, name: string, content: string): string {
 
 describe("evaluate", () => {
   it("returns exit 0 for active/ + running", () => {
-    const path = writeVbrief("active", "story.vbrief.json", JSON.stringify({ plan: { status: "running" } }));
+    const path = writeVbrief(
+      "active",
+      "story.vbrief.json",
+      JSON.stringify({ plan: { status: "running" } }),
+    );
     const result = evaluate(path);
     expect(result.exitCode).toBe(0);
     expect(result.message).toBe(`OK ${path} -- ready for implementation.`);
   });
 
   it("rejects pending/ folder", () => {
-    const path = writeVbrief("pending", "story.vbrief.json", JSON.stringify({ plan: { status: "running" } }));
+    const path = writeVbrief(
+      "pending",
+      "story.vbrief.json",
+      JSON.stringify({ plan: { status: "running" } }),
+    );
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("pending/");
@@ -39,12 +47,20 @@ describe("evaluate", () => {
   });
 
   it("rejects proposed/ folder", () => {
-    const path = writeVbrief("proposed", "story.vbrief.json", JSON.stringify({ plan: { status: "running" } }));
+    const path = writeVbrief(
+      "proposed",
+      "story.vbrief.json",
+      JSON.stringify({ plan: { status: "running" } }),
+    );
     expect(evaluate(path).exitCode).toBe(1);
   });
 
   it("rejects wrong plan.status", () => {
-    const path = writeVbrief("active", "story.vbrief.json", JSON.stringify({ plan: { status: "pending" } }));
+    const path = writeVbrief(
+      "active",
+      "story.vbrief.json",
+      JSON.stringify({ plan: { status: "pending" } }),
+    );
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("plan.status is 'pending'");
@@ -119,7 +135,11 @@ describe("preflight index barrel", () => {
 
 describe("evaluate edge branches", () => {
   it("handles unreadable vBRIEF files", () => {
-    const path = writeVbrief("active", "locked.vbrief.json", JSON.stringify({ plan: { status: "running" } }));
+    const path = writeVbrief(
+      "active",
+      "locked.vbrief.json",
+      JSON.stringify({ plan: { status: "running" } }),
+    );
     chmodSync(path, 0o000);
     try {
       const result = evaluate(path);

@@ -28,10 +28,16 @@ function buildReject(path: string, reason: string): string {
 
 /** Map Node `JSON.parse` errors to CPython `json.JSONDecodeError.msg` for parity (#1721). */
 function nodeJsonErrorToPythonMsg(nodeMessage: string): string {
-  if (nodeMessage.includes("Expected property name") || nodeMessage.includes("Expected double-quoted property name")) {
+  if (
+    nodeMessage.includes("Expected property name") ||
+    nodeMessage.includes("Expected double-quoted property name")
+  ) {
     return "Expecting property name enclosed in double quotes";
   }
-  if (nodeMessage.startsWith("Unexpected token") || nodeMessage.startsWith("Unexpected end of JSON input")) {
+  if (
+    nodeMessage.startsWith("Unexpected token") ||
+    nodeMessage.startsWith("Unexpected end of JSON input")
+  ) {
     return "Expecting value";
   }
   if (nodeMessage.includes("Unexpected non-whitespace character after JSON")) {
