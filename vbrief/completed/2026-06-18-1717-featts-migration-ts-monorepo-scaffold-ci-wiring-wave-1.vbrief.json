@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(ts-migration): TS monorepo scaffold + CI wiring (Wave 1)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(ts-migration): TS monorepo scaffold + CI wiring (Wave 1)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1717",
@@ -47,6 +47,10 @@
         "title": "Issue #1717: feat(ts-migration): TS monorepo scaffold + CI wiring (Wave 1)"
       }
     ],
-    "updated": "2026-06-18T18:20:28Z"
+    "updated": "2026-06-18T18:31:15Z",
+    "metadata": {
+      "completedAt": "2026-06-18T18:31:15Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
