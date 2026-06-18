@@ -162,11 +162,4 @@ describe("vbrief-preflight-parity helpers", () => {
     expect(bad).toContain("exit mismatch");
     expect(bad).toContain("message mismatch");
   });
-
-  it("runParity agrees with the Python oracle on the fixture corpus", async () => {
-    const { runParity } = await import("./vbrief-preflight-parity.js");
-    const result = runParity();
-    expect(result.ok).toBe(true);
-    expect(result.cases.length).toBeGreaterThan(0);
-  }, 30_000);
 });

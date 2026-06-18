@@ -31,6 +31,10 @@ export default defineConfig({
         // Python oracle and is validated by the dedicated parity CI job, not
         // the Python-less node-only TS job. Pure helpers stay unit-tested.
         "packages/cli/src/policy-parity.ts",
+        // Same rationale (#1530 Wave 2): the preflight parity runner spawns the
+        // Python oracle and is validated by the dedicated parity CI job, not
+        // the Python-less node-only TS job. Pure helpers stay unit-tested.
+        "packages/cli/src/vbrief-preflight-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {
