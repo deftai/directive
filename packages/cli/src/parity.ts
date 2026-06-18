@@ -124,13 +124,21 @@ export const PARITY_FIXTURES: ReadonlyArray<readonly [string, string]> = [
 /** Build the throwaway git repo with all fixtures; return its root path. */
 export function buildFixtureRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-encoding-parity-"));
-  for (const [rel, content] of PARITY_FIXTURES) {
-    const full = join(root, rel);
-    mkdirSync(dirname(full), { recursive: true });
-    writeFileSync(full, content, { encoding: "utf8" });
+  // mkdtempSync already created the dir, so any failure below (a write error or
+  // git not being on PATH) must clean it up here -- the try/finally in
+  // runParity only fires once this function returns the path successfully.
+  try {
+    for (const [rel, content] of PARITY_FIXTURES) {
+      const full = join(root, rel);
+      mkdirSync(dirname(full), { recursive: true });
+      writeFileSync(full, content, { encoding: "utf8" });
+    }
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+  } catch (err) {
+    rmSync(root, { recursive: true, force: true });
+    throw err;
   }
-  execFileSync("git", ["init", "-q"], { cwd: root });
-  execFileSync("git", ["add", "-A"], { cwd: root });
   return root;
 }
 
@@ -195,7 +203,8 @@ function renderReport(result: ParityResult): string {
   return lines.join("\n");
 }
 
-if (process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`) {
+// Normalize via fileURLToPath so this fires on Windows too (see verify-encoding.ts).
+if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
   try {
     const result = runParity();
     if (result.ok) {
