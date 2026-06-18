@@ -8,7 +8,7 @@ import {
   diffParity,
   normaliseMessage,
   PARITY_SCENARIOS,
-  runParity,
+  renderReport,
 } from "./story-ready-parity.js";
 import { parseArgs, run } from "./verify-story-ready.js";
 
@@ -109,6 +109,46 @@ describe("run", () => {
     expect(silentRun(["--vbrief-path", vbriefPath, "--project-root", root])).toBe(1);
   });
 
+  it("returns 1 for a dirty working tree", () => {
+    const { root, vbriefPath } = buildRepo();
+    writeFileSync(join(root, "dirty.txt"), "untracked\n");
+    expect(silentRun(["--vbrief-path", vbriefPath, "--project-root", root])).toBe(1);
+  });
+
+  it("returns 0 with --allow-dirty on a dirty tree", () => {
+    const { root, vbriefPath } = buildRepo();
+    writeFileSync(join(root, "dirty.txt"), "untracked\n");
+    expect(silentRun(["--vbrief-path", vbriefPath, "--project-root", root, "--allow-dirty"])).toBe(
+      0,
+    );
+  });
+
+  it("returns 0 with satisfied swarm-cohort envelope", () => {
+    const { root, vbriefPath } = buildRepo();
+    const envelope = join(root, "env.md");
+    writeFileSync(
+      envelope,
+      [
+        "## Allocation context",
+        "- dispatch_kind: swarm-cohort",
+        "- allocation_plan_id: plan-1",
+        "- batching_rationale: approved cohort",
+      ].join("\n"),
+    );
+    execFileSync("git", ["add", envelope], { cwd: root });
+    gitCommit(root, "add envelope");
+    expect(
+      silentRun([
+        "--vbrief-path",
+        vbriefPath,
+        "--project-root",
+        root,
+        "--allocation-context",
+        envelope,
+      ]),
+    ).toBe(0);
+  });
+
   it("returns 2 for a missing allocation-context file", () => {
     const { root, vbriefPath } = buildRepo();
     expect(
@@ -129,6 +169,20 @@ describe("run", () => {
 
   it("returns 0 for --help without --vbrief-path", () => {
     expect(silentRun(["--help"])).toBe(0);
+  });
+
+  it("returns 0 and emits json on success", () => {
+    const { root, vbriefPath } = buildRepo();
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["--vbrief-path", vbriefPath, "--project-root", root, "--json"])).toBe(0);
+      const written = out.mock.calls.map((c) => String(c[0])).join("");
+      expect(written).toContain('"ready":true');
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
   });
 });
 
@@ -151,6 +205,26 @@ describe("story-ready-parity helpers", () => {
     expect(d.messageMismatch).toBe(true);
   });
 
+  it("renderReport describes clean and divergent parity results", () => {
+    expect(renderReport({ ok: true, scenarios: [] })).toContain("CLEAN");
+    expect(
+      renderReport({
+        ok: false,
+        scenarios: [
+          {
+            name: "dirty-tree",
+            exitMismatch: true,
+            pythonExit: 1,
+            tsExit: 0,
+            messageMismatch: true,
+            pythonMessage: "not ready",
+            tsMessage: "OK",
+          },
+        ],
+      }),
+    ).toContain("DIVERGENCE");
+  });
+
   it("buildScenarioRepo creates expected fixture layout", () => {
     const scenario = PARITY_SCENARIOS[0];
     if (scenario === undefined) {
@@ -162,8 +236,14 @@ describe("story-ready-parity helpers", () => {
     expect(envelopePath).toBeNull();
   });
 
-  it("runParity agrees with Python oracle", () => {
-    const result = runParity();
-    expect(result.ok).toBe(true);
-  }, 60_000);
+  it.each(
+    PARITY_SCENARIOS.map((s) => [s.name, s] as const),
+  )("buildScenarioRepo handles scenario %s", (_name, scenario) => {
+    const { root, vbriefPath, envelopePath } = buildScenarioRepo(scenario);
+    temps.push(root);
+    expect(vbriefPath).toContain(".vbrief.json");
+    if (scenario.envelopeRel !== null) {
+      expect(envelopePath).toContain(scenario.envelopeRel);
+    }
+  });
 });

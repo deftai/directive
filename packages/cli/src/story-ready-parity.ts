@@ -290,7 +290,8 @@ export function runParity(): ParityResult {
   return { ok, scenarios };
 }
 
-function renderReport(result: ParityResult): string {
+/** Render a human-readable parity report (exported for unit tests). */
+export function renderReport(result: ParityResult): string {
   if (result.ok) {
     return `verify_story_ready parity: CLEAN -- Python and TS agree on ${result.scenarios.length} scenario(s).`;
   }

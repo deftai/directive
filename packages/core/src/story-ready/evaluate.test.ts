@@ -92,6 +92,20 @@ describe("parseAllocationSection", () => {
     expect(found).toBe(true);
     expect(fields.dispatch_kind).toBe(SWARM_COHORT_KIND);
   });
+
+  it("returns false on undefined input", () => {
+    const [found] = parseAllocationSection(undefined);
+    expect(found).toBe(false);
+  });
+
+  it("ignores bullets without a colon", () => {
+    const [found, fields] = parseAllocationSection(
+      "## Allocation context\n- no-colon-bullet\n- dispatch_kind: solo\n",
+    );
+    expect(found).toBe(true);
+    expect(fields.dispatch_kind).toBe("solo");
+    expect(fields["no-colon-bullet"]).toBeUndefined();
+  });
 });
 
 describe("evaluate", () => {
@@ -215,6 +229,41 @@ describe("evaluate", () => {
     const result = evaluate(path, { gitStatus: CLEAN_TREE, allocationContext: envelope });
     expect(result.exitCode).toBe(0);
     expect(result.message.toLowerCase()).toContain("solo");
+  });
+
+  it("swarm-cohort missing batching_rationale is not ready (exit 1)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const path = writeVbrief(base);
+    const fields = { ...VALID_COHORT };
+    delete fields.batching_rationale;
+    const envelope = renderAllocation(fields);
+    const result = evaluate(path, { gitStatus: CLEAN_TREE, allocationContext: envelope });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("batching_rationale");
+  });
+
+  it("invalid vbrief json is not ready (exit 1)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const dir = join(base, "vbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "bad.vbrief.json");
+    writeFileSync(path, "{not json", "utf8");
+    temps.push(base);
+    const result = evaluate(path, { gitStatus: CLEAN_TREE });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("not valid JSON");
+  });
+
+  it("vbrief without plan object is not ready (exit 1)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
+    const dir = join(base, "vbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    const path = join(dir, "noplan.vbrief.json");
+    writeFileSync(path, JSON.stringify({ vBRIEFInfo: { version: "0.6" } }), "utf8");
+    temps.push(base);
+    const result = evaluate(path, { gitStatus: CLEAN_TREE });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("`plan` object");
   });
 });
 
