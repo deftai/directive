@@ -3,11 +3,19 @@ import type { EngineInfo } from "@deftai/types";
 /**
  * `@deftai/core` — the deft directive engine core.
  *
- * Hosts the first ported enforcement gate (`verify:encoding`, #1718) under
- * `./encoding`, alongside the Wave-1 identity accessor.
+ * Hosts the ported enforcement gates during the strangler-fig migration
+ * (#1530). The Wave-1 encoding gate (`verify:encoding`, #1718) is re-exported
+ * flat from the root for backward compatibility. The Wave-2 gates each expose
+ * an `evaluate()` / `EvaluateResult` pair, so they are re-exported under stable
+ * namespaces here (and as `@deftai/core/<gate>` subpaths in package.json) to
+ * avoid colliding on those shared symbol names.
  */
 
 export * from "./encoding/index.js";
+
+export * as policy from "./policy/index.js";
+export * as preflight from "./preflight/index.js";
+export * as storyReady from "./story-ready/index.js";
 
 export const CORE_PACKAGE = "@deftai/core" as const;
 

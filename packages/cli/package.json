@@ -8,7 +8,13 @@
   "bin": {
     "deft-ts": "./dist/bin.js",
     "deft-verify-encoding": "./dist/verify-encoding.js",
-    "deft-encoding-parity": "./dist/parity.js"
+    "deft-encoding-parity": "./dist/parity.js",
+    "deft-policy": "./dist/policy.js",
+    "deft-policy-parity": "./dist/policy-parity.js",
+    "deft-vbrief-preflight": "./dist/vbrief-preflight.js",
+    "deft-vbrief-preflight-parity": "./dist/vbrief-preflight-parity.js",
+    "deft-verify-story-ready": "./dist/verify-story-ready.js",
+    "deft-story-ready-parity": "./dist/story-ready-parity.js"
   },
   "exports": {
     ".": {

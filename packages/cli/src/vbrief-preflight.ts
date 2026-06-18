@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { emitJson, evaluate } from "../../core/dist/preflight/index.js";
+import { emitJson, evaluate } from "@deftai/core/preflight";
 
 interface ParsedArgs {
   vbriefPath: string | null;

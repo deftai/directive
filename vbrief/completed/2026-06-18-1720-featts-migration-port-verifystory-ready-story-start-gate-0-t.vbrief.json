@@ -1,0 +1,95 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1720"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port verify:story-ready (story-start Gate 0) to TS (Wave 2)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Port scripts/preflight_story_start.py into @deftai/core, preserving the three-state exit and the clean-tree, active-vBRIEF, and allocation-context consent-token checks. The TypeScript port reproduces the swarm-cohort versus solo classification and golden-diffs its findings and exit codes against the Python oracle with cache off.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1720",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nPort the story-start Gate 0 (`scripts/preflight_story_start.py`) to TS, preserving the three-state exit and the clean-tree / active-vBRIEF / allocation-context consent-token checks.\n\n## Acceptance criteria\n\n- [ ] `verify:story-ready` runs on TS with three-state exit preserved\n- [ ] Golden-output parity vs the Python oracle (cache-off)\n- [ ] Clean-tree, active-vBRIEF, and `## Allocation context` token checks reproduced\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1718\n",
+      "Labels": "determinism, refactor, runtime-portability, tooling",
+      "ImplementationPlan": "- Port the git clean-tree probe, the active+running lifecycle check, and the Allocation context parser from scripts/preflight_story_start.py into packages/core/src/story-ready/ modules.\n- Add packages/cli/src/verify-story-ready.ts plus a parity harness and vitest fixtures that verify the three-state exit against the Python oracle with cache off.",
+      "UserStory": "As a deft orchestrator, I want the story-start Gate 0 ported to TypeScript, so that story readiness is verified without depending on the Python runtime."
+    },
+    "items": [
+      {
+        "title": "verify:story-ready returns exit 0 for a clean tree with an a",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "verify:story-ready returns exit 0 for a clean tree with an active running vBRIEF and a satisfied allocation-context token."
+        }
+      },
+      {
+        "title": "verify:story-ready rejects a dirty tree or a non-running vBR",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "verify:story-ready rejects a dirty tree or a non-running vBRIEF and emits config-error exit 2 for a malformed allocation-context section."
+        }
+      },
+      {
+        "title": "The parity harness emits identical findings and exit codes t",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The parity harness emits identical findings and exit codes to the Python oracle across clean, dirty, solo, and swarm-cohort fixtures with cache off."
+        }
+      }
+    ],
+    "tags": [
+      "determinism",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1720",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1720: feat(ts-migration): port verify:story-ready (story-start Gate 0) to TS (Wave 2)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1718",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1718"
+      }
+    ],
+    "updated": "2026-06-18T21:47:35Z",
+    "id": "2026-06-18-1720-featts-migration-port-verifystory-ready-story-start-gate-0-t",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/story-ready/evaluate.ts",
+          "packages/core/src/story-ready/allocation.ts",
+          "packages/core/src/story-ready/git.ts",
+          "packages/core/src/story-ready/index.ts",
+          "packages/core/src/story-ready/evaluate.test.ts",
+          "packages/cli/src/verify-story-ready.ts",
+          "packages/cli/src/verify-story-ready.test.ts",
+          "packages/cli/src/story-ready-parity.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "node packages/cli/dist/story-ready-parity.js",
+          "pnpm test packages/core/src/story-ready"
+        ],
+        "expected_outputs": [
+          "story-ready-parity exits 0 with identical findings/exit codes versus the Python oracle (cache off)",
+          "vitest coverage >=85% across packages/core/src/story-ready and packages/cli/src/verify-story-ready.ts"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-story-ready",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to the Python oracle scripts/preflight_story_start.py via cache-off golden-diff parity fixtures, not a spec section."
+      },
+      "completedAt": "2026-06-18T21:47:35Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

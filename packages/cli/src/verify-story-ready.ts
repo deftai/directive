@@ -2,8 +2,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { gitPorcelain } from "../../core/dist/story-ready/git.js";
-import { evaluate, parseAllocationSection } from "../../core/dist/story-ready/index.js";
+import { evaluate, gitPorcelain, parseAllocationSection } from "@deftai/core/story-ready";
 
 interface ParsedArgs {
   vbriefPath: string | null;

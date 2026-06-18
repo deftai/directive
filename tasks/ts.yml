@@ -44,3 +44,30 @@ tasks:
     deps: [build]
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/parity.js"
+
+  policy-parity:
+    desc: "Golden-diff the ported policy surface vs the Python oracle, cache-off (#1722)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/policy-parity.js"
+
+  preflight-parity:
+    desc: "Golden-diff the ported vBRIEF preflight gate vs the Python oracle, cache-off (#1721)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-preflight-parity.js"
+
+  story-ready-parity:
+    desc: "Golden-diff the ported verify:story-ready gate vs the Python oracle, cache-off (#1720)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/story-ready-parity.js"
+
+  parity-all:
+    desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/policy-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-preflight-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/story-ready-parity.js"

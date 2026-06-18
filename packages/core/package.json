@@ -9,6 +9,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./policy": {
+      "types": "./dist/policy/index.d.ts",
+      "default": "./dist/policy/index.js"
+    },
+    "./preflight": {
+      "types": "./dist/preflight/index.d.ts",
+      "default": "./dist/preflight/index.js"
+    },
+    "./story-ready": {
+      "types": "./dist/story-ready/index.d.ts",
+      "default": "./dist/story-ready/index.js"
     }
   },
   "dependencies": {

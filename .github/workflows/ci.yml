@@ -152,12 +152,13 @@ jobs:
         run: pnpm run test
 
   parity:
-    name: Encoding parity (TS port vs Python oracle)
-    # #1718 tracer-bullet gate: golden-diffs the ported `verify:encoding`
-    # (@deftai/core) against the Python oracle (scripts/verify_encoding.py)
-    # over a fixture corpus of known corruption, cache-off. Needs BOTH the
-    # Node and Python toolchains, so it lives in its own job rather than the
-    # node-only `ts` lane or the python-only `python` lane.
+    name: TS port parity (vs Python oracle)
+    # #1718 tracer-bullet gate, extended for the #1530 Wave-2 gates: golden-diffs
+    # each ported gate (@deftai/core) against its Python oracle over a fixture
+    # corpus, cache-off. Needs BOTH the Node and Python toolchains, so it lives
+    # in its own job rather than the node-only `ts` lane or the python-only
+    # `python` lane. This is the authoritative parity check: the node-only `ts`
+    # job intentionally does NOT invoke the oracle (no Python/uv there).
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -185,8 +186,17 @@ jobs:
       - name: Build (tsc -b project references)
         run: pnpm run build
 
-      - name: Golden-diff parity (TS port vs Python oracle, cache-off)
+      - name: Golden-diff parity -- encoding gate (#1718)
         run: node packages/cli/dist/parity.js
+
+      - name: Golden-diff parity -- policy surface (#1722)
+        run: node packages/cli/dist/policy-parity.js
+
+      - name: Golden-diff parity -- vBRIEF preflight gate (#1721)
+        run: node packages/cli/dist/vbrief-preflight-parity.js
+
+      - name: Golden-diff parity -- story-ready gate (#1720)
+        run: node packages/cli/dist/story-ready-parity.js
 
   go:
     name: Go (test + build)

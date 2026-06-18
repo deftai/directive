@@ -1,0 +1,96 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1722"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port policy surface (show / allow-direct-commits / disclosure) to TS (Wave 2)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Port the typed branch-policy resolution, the policy:show and policy:allow-direct-commits surfaces, and disclosure_line from scripts/policy.py into the @deftai/core TypeScript module. The port preserves byte-identical disclosure phrasing and the audit-row write, and proves parity against the Python oracle via cache-off golden-diff fixtures.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1722",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nPort `scripts/policy.py` (the typed policy resolution, `policy:show`, `policy:allow-direct-commits`, and `disclosure_line`) to TS, preserving the audit-row write and disclosure phrasing.\n\n## Acceptance criteria\n\n- [ ] `policy:show` / `policy:allow-direct-commits` run on TS with identical resolution semantics\n- [ ] `disclosure_line` phrasing is byte-identical\n- [ ] Golden-output parity vs the Python oracle (cache-off)\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1718\n",
+      "Labels": "determinism, refactor, runtime-portability, tooling",
+      "ImplementationPlan": "- Port resolve_policy, PolicyResult, ENV_BYPASS, disclosure_line, resolve_wip_cap, and count_vbrief_wip from scripts/policy.py into packages/core/src/policy/ TypeScript modules.\n- Add a thin packages/cli/src/policy.ts CLI plus a policy-parity.ts harness that golden-diffs the TS output against the Python oracle with cache off, and cover the resolution branches with vitest fixtures.",
+      "UserStory": "As a deft maintainer, I want the policy surface ported to TypeScript, so that policy resolution no longer depends on the Python runtime."
+    },
+    "items": [
+      {
+        "title": "policy:show on TypeScript returns the same resolved source a",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "policy:show on TypeScript returns the same resolved source and field values as the Python oracle for typed, legacy, and default-fail-closed states."
+        }
+      },
+      {
+        "title": "disclosure_line renders byte-identical phrasing to scripts/p",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "disclosure_line renders byte-identical phrasing to scripts/policy.py for both enabled and disabled branch-policy states."
+        }
+      },
+      {
+        "title": "policy:allow-direct-commits records an audit row and persist",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "policy:allow-direct-commits records an audit row and persists the typed flag, and the parity harness exits 0 against the Python oracle with cache off."
+        }
+      }
+    ],
+    "tags": [
+      "determinism",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1722",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1722: feat(ts-migration): port policy surface (show / allow-direct-commits / disclosure) to TS (Wave 2)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1718",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1718"
+      }
+    ],
+    "updated": "2026-06-18T21:47:35Z",
+    "id": "2026-06-18-1722-featts-migration-port-policy-surface-show-allow-direct-commi",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy/resolve.ts",
+          "packages/core/src/policy/disclosure.ts",
+          "packages/core/src/policy/wip.ts",
+          "packages/core/src/policy/index.ts",
+          "packages/core/src/policy/resolve.test.ts",
+          "packages/core/src/policy/disclosure.test.ts",
+          "packages/cli/src/policy.ts",
+          "packages/cli/src/policy.test.ts",
+          "packages/cli/src/policy-parity.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "node packages/cli/dist/policy-parity.js",
+          "pnpm test packages/core/src/policy"
+        ],
+        "expected_outputs": [
+          "policy-parity exits 0 with byte-identical disclosure_line and resolution output versus the Python oracle (cache off)",
+          "vitest coverage >=85% across packages/core/src/policy and packages/cli/src/policy.ts"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-policy",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to the Python oracle scripts/policy.py via cache-off golden-diff parity fixtures, not a spec section."
+      },
+      "completedAt": "2026-06-18T21:47:35Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -6,11 +6,19 @@ import { defineConfig } from "vitest/config";
 // and decoupled from build order). `tsc -b` remains the type-check + emit
 // gate; vitest validates behaviour. (#1717)
 const src = (pkg: string): string => resolve(import.meta.dirname, "packages", pkg, "src/index.ts");
+const sub = (pkg: string, subpath: string): string =>
+  resolve(import.meta.dirname, "packages", pkg, "src", subpath, "index.ts");
 
 export default defineConfig({
   resolve: {
+    // Subpath aliases MUST precede the bare "@deftai/core" entry: rollup's alias
+    // matcher rewrites the first prefix match, so the more specific gate
+    // subpaths have to win before the root alias rewrites them incorrectly.
     alias: {
       "@deftai/types": src("types"),
+      "@deftai/core/policy": sub("core", "policy"),
+      "@deftai/core/preflight": sub("core", "preflight"),
+      "@deftai/core/story-ready": sub("core", "story-ready"),
       "@deftai/core": src("core"),
     },
   },
@@ -35,6 +43,10 @@ export default defineConfig({
         // Python oracle and is validated by the dedicated parity CI job, not
         // the Python-less node-only TS job. Pure helpers stay unit-tested.
         "packages/cli/src/vbrief-preflight-parity.ts",
+        // Same rationale (#1530 Wave 2): the story-ready parity runner spawns
+        // the Python oracle and is validated by the dedicated parity CI job,
+        // not the Python-less node-only TS job. Pure helpers stay unit-tested.
+        "packages/cli/src/story-ready-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {
