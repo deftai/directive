@@ -2,7 +2,7 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { ACTIVATE_HINT, ELIGIBLE_STATUS, evaluate, emitJson } from "./evaluate.js";
+import { ACTIVATE_HINT, ELIGIBLE_STATUS, evaluate, emitJson, formatActivateHint } from "./evaluate.js";
 import { evaluate as evaluateFromIndex, emitJson as emitJsonFromIndex } from "./index.js";
 
 const temps: string[] = [];
@@ -35,7 +35,7 @@ describe("evaluate", () => {
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("pending/");
-    expect(result.message).toContain(ACTIVATE_HINT.replace("{path}", path));
+    expect(result.message).toContain(formatActivateHint(path));
   });
 
   it("rejects proposed/ folder", () => {

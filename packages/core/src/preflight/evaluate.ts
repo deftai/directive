@@ -17,8 +17,13 @@ export interface EvaluateResult {
   readonly message: string;
 }
 
+/** Substitute `{path}` without `$`-pattern expansion in user paths (#1721). */
+export function formatActivateHint(path: string): string {
+  return ACTIVATE_HINT.replace("{path}", () => path);
+}
+
 function buildReject(path: string, reason: string): string {
-  return `${reason}\n  ${ACTIVATE_HINT.replace("{path}", path)}`;
+  return `${reason}\n  ${formatActivateHint(path)}`;
 }
 
 /** Map Node `JSON.parse` errors to CPython `json.JSONDecodeError.msg` for parity (#1721). */
