@@ -11,6 +11,7 @@ interface ParsedArgs {
   allocationContext: string | null;
   allowDirty: boolean;
   emitJson: boolean;
+  help?: boolean;
   error?: string;
 }
 
@@ -58,7 +59,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     } else if (arg?.startsWith("--allocation-context=")) {
       parsed.allocationContext = arg.slice("--allocation-context=".length);
     } else if (arg === "--help" || arg === "-h") {
-      return parsed;
+      return { ...parsed, help: true };
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -69,6 +70,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
   }
   return parsed;
 }
+
+const HELP_TEXT = `usage: verify-story-ready [--vbrief-path PATH] [--project-root PATH]
+                          [--allocation-context PATH] [--allow-dirty] [--json]
+
+Deterministic story-start Gate 0 (#1378). Three-state exit: 0 ready / 1 not ready / 2 config error.
+`;
 
 function emitJson(
   vbriefPath: string,
@@ -94,6 +101,10 @@ function emitJson(
 /** Run the gate and return the process exit code. */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
+  if (args.help) {
+    process.stdout.write(HELP_TEXT);
+    return 0;
+  }
   if (args.error !== undefined) {
     process.stderr.write(`verify_story_ready: ${args.error}\n`);
     return 2;

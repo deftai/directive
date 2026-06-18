@@ -113,6 +113,10 @@ describe("run", () => {
   it("returns 2 for bad args", () => {
     expect(silentRun(["--bogus"])).toBe(2);
   });
+
+  it("returns 0 for --help without --vbrief-path", () => {
+    expect(silentRun(["--help"])).toBe(0);
+  });
 });
 
 describe("story-ready-parity helpers", () => {

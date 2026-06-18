@@ -23,6 +23,7 @@ export interface ScenarioResult {
 export interface ParityScenario {
   readonly name: string;
   readonly vbriefRel: string;
+  readonly vbriefStatus?: string;
   readonly envelopeRel: string | null;
   readonly allowDirty?: boolean;
   readonly dirty?: boolean;
@@ -40,9 +41,6 @@ export interface ParityResult {
     readonly tsMessage: string;
   }>;
 }
-
-const CLEAN_TREE = "";
-const DIRTY_TREE = " M scripts/foo.py\n?? scratch.txt\n";
 
 function writeVbrief(
   root: string,
@@ -88,6 +86,7 @@ export const PARITY_SCENARIOS: readonly ParityScenario[] = [
   {
     name: "non-running-vbrief",
     vbriefRel: "2026-06-01-pending.vbrief.json",
+    vbriefStatus: "approved",
     envelopeRel: null,
   },
   {
@@ -139,9 +138,8 @@ export function buildScenarioRepo(scenario: ParityScenario): {
   envelopePath: string | null;
 } {
   const root = mkdtempSync(join(tmpdir(), "deft-story-ready-parity-"));
-  const vbriefName =
-    scenario.name === "non-running-vbrief" ? "2026-06-01-pending.vbrief.json" : scenario.vbriefRel;
-  const status = scenario.name === "non-running-vbrief" ? "approved" : "running";
+  const vbriefName = scenario.vbriefRel;
+  const status = scenario.vbriefStatus ?? "running";
   writeVbrief(root, vbriefName, status);
 
   if (scenario.dirty) {
