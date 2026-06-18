@@ -184,21 +184,26 @@ export function normaliseMessage(stdout: string, stderr: string, exitCode: numbe
 export function buildScenarioRepo(scenario: ParityScenario): { root: string } {
   const root = mkdtempSync(join(tmpdir(), "deft-branch-parity-"));
   const defaultBranch = scenario.defaultBranchName ?? "master";
-  writeFileSync(join(root, "README.md"), "# parity\n", "utf8");
+  try {
+    writeFileSync(join(root, "README.md"), "# parity\n", "utf8");
 
-  if (scenario.plan !== null && scenario.plan !== undefined) {
-    writeProjectDef(root, scenario.plan);
-  }
+    if (scenario.plan !== null && scenario.plan !== undefined) {
+      writeProjectDef(root, scenario.plan);
+    }
 
-  execFileSync("git", ["init", "-q"], { cwd: root });
-  execFileSync("git", ["branch", "-M", defaultBranch], { cwd: root });
-  execFileSync("git", ["add", "-A"], { cwd: root });
-  gitCommit(root, "init");
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["branch", "-M", defaultBranch], { cwd: root });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    gitCommit(root, "init");
 
-  if (scenario.branch === "feature") {
-    execFileSync("git", ["checkout", "-q", "-b", "feat/parity"], { cwd: root });
-  } else if (scenario.branch === "detached") {
-    execFileSync("git", ["checkout", "-q", "--detach"], { cwd: root });
+    if (scenario.branch === "feature") {
+      execFileSync("git", ["checkout", "-q", "-b", "feat/parity"], { cwd: root });
+    } else if (scenario.branch === "detached") {
+      execFileSync("git", ["checkout", "-q", "--detach"], { cwd: root });
+    }
+  } catch (err) {
+    rmSync(root, { recursive: true, force: true });
+    throw err;
   }
 
   return { root };
@@ -271,17 +276,21 @@ export function runParity(): ParityResult {
   const scenarios: ParityResult["scenarios"] = [];
 
   for (const scenario of PARITY_SCENARIOS) {
-    const { root, python, ts } = runScenario(deftRoot, scenario);
+    let root: string | undefined;
     try {
-      const diff = diffParity(python, ts);
+      const ran = runScenario(deftRoot, scenario);
+      root = ran.root;
+      const diff = diffParity(ran.python, ran.ts);
       scenarios.push({
         name: scenario.name,
-        pythonExit: python.exitCode,
-        tsExit: ts.exitCode,
+        pythonExit: ran.python.exitCode,
+        tsExit: ran.ts.exitCode,
         ...diff,
       });
     } finally {
-      rmSync(root, { recursive: true, force: true });
+      if (root !== undefined) {
+        rmSync(root, { recursive: true, force: true });
+      }
     }
   }
 
@@ -320,7 +329,8 @@ if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.
     process.stderr.write(`${renderReport(result)}\n`);
     process.exit(1);
   } catch (err) {
-    process.stderr.write(`verify_branch parity: harness error -- ${String(err)}\n`);
+    const msg = String(err).replace(/\r?\n/g, " ");
+    process.stderr.write(`verify_branch parity: harness error -- ${msg}\n`);
     process.exit(2);
   }
 }
