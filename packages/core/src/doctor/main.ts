@@ -284,6 +284,14 @@ function runInstallIntegrityChecks(
         data: (entry.data as Record<string, unknown>) ?? {},
       });
     }
+    for (const err of (result.errors as string[]) ?? []) {
+      sink.error(String(err));
+      addFinding({
+        severity: "error",
+        message: String(err),
+        check: "install-integrity",
+      });
+    }
   } catch (exc) {
     const message = `Install-integrity probe unavailable: ${exc instanceof Error ? exc.name : "Error"}: ${exc}`;
     sink.warn(message);

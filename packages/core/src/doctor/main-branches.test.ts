@@ -293,6 +293,28 @@ describe("install integrity and agents paths", () => {
     }
   });
 
+  it("install integrity surfaces top-level errors", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
+    try {
+      writeConsumerRoot(root);
+      const spy = vi.spyOn(checks, "runChecks").mockReturnValue({
+        project_root: root,
+        install_root: null,
+        exit_code: 2,
+        checks: [],
+        errors: ["project root does not exist: /missing"],
+      });
+      expect(
+        cmdDoctor(["--full", "--json", "--project-root", root], {
+          whichFn: () => "/bin/x",
+        }),
+      ).toBe(1);
+      spy.mockRestore();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("taskfile write failure surfaces error", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-doc-"));
     const lines: string[] = [];

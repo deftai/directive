@@ -2,13 +2,11 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { AGENTS_MANAGED_CLOSE } from "./constants.js";
 import { resolveDefaultFrameworkRoot } from "./paths.js";
 
-const AGENTS_MANAGED_OPEN_RE = /<!--\s*deft:managed-section\s+v(1|2|3)(?:\s+([^>]*?))?\s*-->/g;
 const AGENTS_MANAGED_OPEN_SINGLE = /<!--\s*deft:managed-section\s+v(1|2|3)(?:\s+([^>]*?))?\s*-->/;
-const AGENTS_MANAGED_CLOSE = "<!-- /deft:managed-section -->";
 const AGENTS_MANAGED_OPEN_V3_LITERAL = "<!-- deft:managed-section v3 -->";
-const V3_ATTR_KEYS = new Set(["sha", "refreshed", "session"]);
 
 export interface AgentsMdSeams {
   readonly frameworkRoot?: string;
@@ -281,7 +279,3 @@ function defaultReadAgents(path: string): string | null {
     return null;
   }
 }
-
-// silence unused
-void AGENTS_MANAGED_OPEN_RE;
-void V3_ATTR_KEYS;

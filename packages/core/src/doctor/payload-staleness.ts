@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { CANONICAL_UPGRADE_COMMAND } from "./constants.js";
 import { locateManifest, parseInstallManifest } from "./manifest.js";
 import type { OutputSink } from "./output.js";
-import { readTextSafe, resolveDefaultFrameworkRoot, resolveScriptDir } from "./paths.js";
+import { readTextSafe, resolveDefaultFrameworkRoot } from "./paths.js";
 import type { Finding } from "./types.js";
 
 export interface PayloadStalenessSeams {
