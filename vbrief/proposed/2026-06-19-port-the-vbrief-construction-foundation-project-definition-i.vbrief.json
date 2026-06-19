@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json"
+  },
+  "plan": {
+    "id": "1782-s1-vbrief-build",
+    "title": "Port the vBRIEF construction foundation (project-definition I/O + build/sources/routing/speckit) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json",
+    "narratives": {
+      "Description": "Port the vBRIEF construction foundation -- scripts/_project_definition_io.py, scripts/_vbrief_build.py, scripts/_vbrief_sources.py, scripts/_vbrief_routing.py, and scripts/_vbrief_speckit.py -- to TypeScript with golden parity. This is the highest-fan-in layer the rest of the vBRIEF spine reads through (build constructs vBRIEF records, sources resolves origins, routing places lifecycle folders, speckit assembles narratives, project-definition-io reads/writes PROJECT-DEFINITION). Dispatched first; the validation, reconcile, and activate stories build on its types. Subprocess/gh capture (where present) uses Node execFile with explicit UTF-8 (#1366).",
+      "ImplementationPlan": "1. Create packages/core/src/vbrief-build with TS ports of project-definition I/O, the build constructor, source resolution, lifecycle routing, and speckit narrative assembly, with vitest unit tests in the module directory.\n2. Add packages/cli/src/vbrief-build-parity.ts that drives the TS functions and a python -c invocation of the frozen Python helpers over shared fixtures and asserts byte-identical output with cache off (the Python modules are the oracle and are NOT modified).",
+      "UserStory": "As a directive maintainer, I want the vBRIEF construction foundation available in TypeScript, so that record construction, source resolution, routing, and narrative assembly run on the TS engine with the same output as the Python modules."
+    },
+    "items": [
+      {
+        "id": "1782-s1-a1",
+        "title": "construction + routing output preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS vbrief-build foundation returns the same constructed vBRIEF record, resolved sources, and lifecycle-folder routing that the Python _vbrief_build/_vbrief_sources/_vbrief_routing modules produce for the same inputs."
+        }
+      },
+      {
+        "id": "1782-s1-a2",
+        "title": "project-definition I/O round-trip preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Reading and writing a PROJECT-DEFINITION fixture through the TS project-definition I/O returns the same parsed structure and serialized bytes the Python _project_definition_io module produces."
+        }
+      },
+      {
+        "id": "1782-s1-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the vbrief-build-parity binary returns exit 0 and renders byte-identical output to the Python construction-foundation oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-build/",
+          "packages/cli/src/vbrief-build-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/vbrief-build-parity.js",
+          "pnpm --filter @deftai/core test src/vbrief-build"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/vbrief-build module with vitest unit tests",
+          "New packages/cli/src/vbrief-build-parity.ts parity binary",
+          "Byte-identical parity vs the Python construction foundation under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave5-vbrief-build",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1782 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1782",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1782: feat(ts-migration): port the vBRIEF spine (build / validation / reconcile / conformance) to TS (Wave 5)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json"
+  },
+  "plan": {
+    "id": "1782-s3-vbrief-validate",
+    "title": "Port the vbrief:validate CLI + verify:vbrief-conformance gate to TypeScript (composer)",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/vbrief_validate.py (the full vBRIEF validator CLI) and scripts/verify_vbrief_conformance.py (the bare-key conformance gate, #1620) to TypeScript with golden parity. This is the composer: it orchestrates the vbrief-build foundation (#1782-s1) and the validation primitives (#1782-s2), so it is dispatched after both land. It is the gate task check runs as vbrief:validate. gh/subprocess capture uses Node execFile with explicit UTF-8 (#1366).",
+      "ImplementationPlan": "1. Create packages/core/src/vbrief-validate composing @deftai/core/vbrief-build and @deftai/core/vbrief-validation, porting the full validator CLI and the conformance gate, with vitest unit tests.\n2. Add packages/cli/src/vbrief-validate.ts exposing the TS validate + conformance verbs behind the existing CLI seam.\n3. Add packages/cli/src/vbrief-validate-parity.ts that runs the TS path and the Python scripts/vbrief_validate.py + verify_vbrief_conformance.py oracle over the full vbrief/ tree and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want vbrief:validate and verify:vbrief-conformance in TypeScript, so that the validation gate task check runs executes on the TS engine with the same verdicts and report as the Python modules."
+    },
+    "items": [
+      {
+        "id": "1782-s3-a1",
+        "title": "validate report preserved over the full tree",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS vbrief:validate over the repository vbrief/ tree returns the same scope-count, PROJECT-DEFINITION verdict, and per-file diagnostics the Python vbrief_validate.py module produces."
+        }
+      },
+      {
+        "id": "1782-s3-a2",
+        "title": "conformance gate verdict preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS verify:vbrief-conformance gate returns the same three-state exit and bare-key findings the Python verify_vbrief_conformance.py module produces for the same fixtures."
+        }
+      },
+      {
+        "id": "1782-s3-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the vbrief-validate-parity binary returns exit 0 and renders byte-identical output to the Python vbrief_validate.py + verify_vbrief_conformance.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-validate/",
+          "packages/cli/src/vbrief-validate.ts",
+          "packages/cli/src/vbrief-validate-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/vbrief-validate-parity.js",
+          "pnpm --filter @deftai/core test src/vbrief-validate"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/vbrief-validate module composing vbrief-build + vbrief-validation, with vitest unit tests",
+          "New packages/cli/src/vbrief-validate-parity.ts parity binary",
+          "Byte-identical parity vs scripts/vbrief_validate.py + verify_vbrief_conformance.py under cache-off"
+        ],
+        "depends_on": [
+          "1782-s1-vbrief-build",
+          "1782-s2-vbrief-validation"
+        ],
+        "conflict_group": "ts-wave5-vbrief-validate",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1782 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1782",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1782: feat(ts-migration): port the vBRIEF spine (build / validation / reconcile / conformance) to TS (Wave 5)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      }
+    ]
+  }
+}

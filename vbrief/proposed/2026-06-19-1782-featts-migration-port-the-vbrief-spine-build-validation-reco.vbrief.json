@@ -1,0 +1,74 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1782"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port the vBRIEF spine (build / validation / reconcile / conformance) to TS (Wave 5)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port the vBRIEF spine (build / validation / reconcile / conformance) to TS (Wave 5)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1782",
+      "Overview": "## Parent\n#1530 (Part 1 of 2)\n\n## What to build\nPort directive's vBRIEF core — the highest fan-in surface the rest of the engine reads through — to TypeScript with golden parity: `_vbrief_build`, `_vbrief_validation`, `_vbrief_fidelity`, `_vbrief_routing`, `_vbrief_safety`, `_vbrief_sources`, `_vbrief_story_quality`, `_vbrief_reconciliation`, `_vbrief_speckit`, `vbrief_validate`, `vbrief_activate`, `vbrief_reconcile_graph/labels/umbrellas`, `verify_vbrief_conformance`, `_project_definition_io`.\n\n## Why first\nIssue intake, scope lifecycle, swarm, and several `task check` gates all read/validate vBRIEFs. Porting the spine first de-risks every downstream Bucket-B wave.\n\n## Acceptance criteria\n- [ ] TS ports with cache-off golden parity vs the Python oracle (incl. validation/conformance failure fixtures)\n- [ ] Wired into `@deftai/core` (export + subpath), `tasks/ts.yml` parity targets, CI golden-diff steps\n- [ ] CHANGELOG entry; `task check` green\n\n## Standing invariants (all #1530 Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The golden parity gate runs **cache-off**.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) **and** has CI usage.\n- Subprocess/`gh` capture uses Node `execFile` with explicit UTF-8 (closes the #1366 class structurally; the Python `_safe_subprocess`/`_stdio_utf8` shims are NOT ported — the problem does not exist in Node).\n\n## Full-conversion scope note (#1530)\nPart of the **full** Python→TS conversion. Per operator decision (2026-06-19) the cutover (#1731) deletes nothing until the engine is wholly TS. Accepted non-ports: Python-runtime shims, build/packaging tooling (superseded by the pnpm/tsc build), pre-v0.20 migration tooling (retired with a deprecation notice), and the Go installer (separate keep/fold decision in #1731). Owning an agent runtime is out of scope — net-new future work (#1707), not a conversion.\n\n## Type\nAFK\n\n## Blocked by\n- Blocked by #1730"
+    },
+    "items": [
+      {
+        "title": "TS ports with cache-off golden parity vs the Python oracle (incl. validation/conformance failure fixtures)",
+        "status": "proposed"
+      },
+      {
+        "title": "Wired into  (export + subpath),  parity targets, CI golden-diff steps",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry;  green",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1782",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1782: feat(ts-migration): port the vBRIEF spine (build / validation / reconcile / conformance) to TS (Wave 5)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-vbrief-construction-foundation-project-definition-i.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the vBRIEF construction foundation (project-definition I/O + build/sources/routing/speckit) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-vbrief-validation-primitives-validation-fidelity-st.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the vBRIEF validation primitives (validation / fidelity / story-quality / safety) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-vbrief-reconciliation-engine-reconciliation-reconci.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the vBRIEF reconciliation engine (reconciliation + reconcile graph/labels/umbrellas) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-vbrief-activate-lifecycle-verb-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the vBRIEF activate lifecycle verb to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-vbriefvalidate-cli-verifyvbrief-conformance-gate-to.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the vbrief:validate CLI + verify:vbrief-conformance gate to TypeScript (composer)",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json"
+  },
+  "plan": {
+    "id": "1782-s4-vbrief-reconcile",
+    "title": "Port the vBRIEF reconciliation engine (reconciliation + reconcile graph/labels/umbrellas) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json",
+    "narratives": {
+      "Description": "Port the vBRIEF reconciliation engine -- scripts/_vbrief_reconciliation.py, scripts/vbrief_reconcile_graph.py, scripts/vbrief_reconcile_labels.py, and scripts/vbrief_reconcile_umbrellas.py -- to TypeScript with golden parity. These reconcile vBRIEF state against GitHub (dependency graph, labels, umbrella current-shape). reconcile_labels depends on reconcile_graph; both are ported in this story so the file scope stays disjoint. gh capture uses Node execFile with explicit UTF-8 (#1366), reusing @deftai/core/scm.",
+      "ImplementationPlan": "1. Create packages/core/src/vbrief-reconcile with TS ports of the reconciliation core, graph reconcile, label reconcile, and umbrella reconcile, reusing @deftai/core/scm for gh, with vitest unit tests.\n2. Add packages/cli/src/vbrief-reconcile-parity.ts that drives the TS path and the frozen Python modules over fixtures (fake gh on PATH) and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the vBRIEF reconciliation engine in TypeScript, so that graph/label/umbrella reconciliation runs on the TS engine with the same output as the Python modules and UTF-8-safe gh capture."
+    },
+    "items": [
+      {
+        "id": "1782-s4-a1",
+        "title": "reconciliation output preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS reconciliation engine returns the same graph/label/umbrella reconcile actions the Python _vbrief_reconciliation/vbrief_reconcile_graph/labels/umbrellas modules produce for the same fixture."
+        }
+      },
+      {
+        "id": "1782-s4-a2",
+        "title": "UTF-8-safe gh capture by default",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running reconcile against a fixture whose gh output carries non-ASCII bytes returns the reconcile actions and emits no decode error, because capture uses execFile with explicit UTF-8."
+        }
+      },
+      {
+        "id": "1782-s4-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the vbrief-reconcile-parity binary returns exit 0 and renders byte-identical output to the Python reconciliation oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-reconcile/",
+          "packages/cli/src/vbrief-reconcile-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/vbrief-reconcile-parity.js",
+          "pnpm --filter @deftai/core test src/vbrief-reconcile"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/vbrief-reconcile module with vitest unit tests",
+          "New packages/cli/src/vbrief-reconcile-parity.ts parity binary",
+          "Byte-identical parity vs the Python reconciliation engine under cache-off"
+        ],
+        "depends_on": [
+          "1782-s1-vbrief-build"
+        ],
+        "conflict_group": "ts-wave5-vbrief-reconcile",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1782 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1782",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1782: feat(ts-migration): port the vBRIEF spine (build / validation / reconcile / conformance) to TS (Wave 5)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      }
+    ]
+  }
+}

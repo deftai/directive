@@ -1,0 +1,76 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json"
+  },
+  "plan": {
+    "id": "1782-s5-vbrief-activate",
+    "title": "Port the vBRIEF activate lifecycle verb to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/vbrief_activate.py -- the lifecycle verb that moves a vBRIEF from pending to active and sets plan.status to running -- to TypeScript with golden parity. Reuses the vbrief-build foundation types (#1782-s1).",
+      "ImplementationPlan": "1. Create packages/core/src/vbrief-activate with the TS port of the activate transition, with vitest unit tests.\n2. Add packages/cli/src/vbrief-activate-parity.ts that drives the TS path and the frozen Python scripts/vbrief_activate.py over fixtures and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the vBRIEF activate verb in TypeScript, so that the pending-to-active transition runs on the TS engine with the same output and side effects as the Python module."
+    },
+    "items": [
+      {
+        "id": "1782-s5-a1",
+        "title": "activate transition preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS activate verb on a pending vBRIEF fixture updates its lifecycle folder to active and persists plan.status as running, matching what the Python vbrief_activate.py module produces."
+        }
+      },
+      {
+        "id": "1782-s5-a2",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the vbrief-activate-parity binary returns exit 0 and renders byte-identical output to the Python scripts/vbrief_activate.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-activate/",
+          "packages/cli/src/vbrief-activate-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/vbrief-activate-parity.js",
+          "pnpm --filter @deftai/core test src/vbrief-activate"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/vbrief-activate module with vitest unit tests",
+          "New packages/cli/src/vbrief-activate-parity.ts parity binary",
+          "Byte-identical parity vs scripts/vbrief_activate.py under cache-off"
+        ],
+        "depends_on": [
+          "1782-s1-vbrief-build"
+        ],
+        "conflict_group": "ts-wave5-vbrief-activate",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1782 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1782",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1782: feat(ts-migration): port the vBRIEF spine (build / validation / reconcile / conformance) to TS (Wave 5)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      }
+    ]
+  }
+}
