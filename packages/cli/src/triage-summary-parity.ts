@@ -396,7 +396,8 @@ if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.
     process.stderr.write(`${renderReport(result)}\n`);
     process.exit(1);
   } catch (err) {
-    process.stderr.write(`triage:summary parity: harness error -- ${String(err)}\n`);
+    const msg = String(err).replace(/\r?\n/g, " ");
+    process.stderr.write(`triage:summary parity: harness error -- ${msg}\n`);
     process.exit(2);
   }
 }
