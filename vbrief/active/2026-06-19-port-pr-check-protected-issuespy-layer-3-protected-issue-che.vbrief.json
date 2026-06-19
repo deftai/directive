@@ -6,7 +6,7 @@
   "plan": {
     "id": "1730-s2-pr-protected-issues",
     "title": "Port pr_check_protected_issues.py (Layer-3 protected-issue check) to TypeScript",
-    "status": "proposed",
+    "status": "running",
     "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/pr_check_protected_issues.py -- the Layer-3 protected-issue inspector (#701) that refuses a cascade when a PR persistently links a protected/umbrella issue via closingIssuesReferences -- to TypeScript over Node execFile UTF-8-safe capture, reusing @deftai/core/scm gh helpers. It is independently buildable as a self-contained packages/core/src/pr-protected-issues module with a golden parity binary.",
@@ -93,6 +93,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T13:39:11Z"
   }
 }

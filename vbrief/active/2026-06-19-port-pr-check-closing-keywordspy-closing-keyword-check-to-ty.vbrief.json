@@ -6,7 +6,7 @@
   "plan": {
     "id": "1730-s3-pr-closing-keywords",
     "title": "Port pr_check_closing_keywords.py (closing-keyword check) to TypeScript",
-    "status": "proposed",
+    "status": "running",
     "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/pr_check_closing_keywords.py -- the check that inspects a PR body for issue-closing keywords (Closes #N / Fixes #N) and reports which issues it would close -- to TypeScript over Node execFile UTF-8-safe capture, reusing @deftai/core/scm gh helpers. It is independently buildable as a self-contained packages/core/src/pr-closing-keywords module with a golden parity binary.",
@@ -93,6 +93,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T13:39:12Z"
   }
 }

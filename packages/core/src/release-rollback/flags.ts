@@ -92,6 +92,12 @@ export function parseRollbackFlags(args: readonly string[]): RollbackFlags {
       unknown.push(token);
     }
     i += 1;
+    // argparse aborts on the first parse error and never reaches later tokens;
+    // match that so a swallowed value (e.g. `--allow-low-downloads --dry-run`)
+    // cannot leak the following flag into a parsed field.
+    if (parseError !== null) {
+      break;
+    }
   }
 
   return {
