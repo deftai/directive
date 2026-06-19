@@ -231,6 +231,18 @@ jobs:
       - name: Golden-diff parity -- triage aux verbs B (#1725)
         run: node packages/cli/dist/triage-aux-b-parity.js
 
+      - name: Golden-diff parity -- scope lifecycle family (#1726)
+        run: node packages/cli/dist/scope-lifecycle-parity.js
+
+      - name: Golden-diff parity -- slice family (#1727)
+        run: node packages/cli/dist/slice-parity.js
+
+      - name: Golden-diff parity -- unified content cache (#1728)
+        run: node packages/cli/dist/cache-parity.js
+
+      - name: Golden-diff parity -- deft doctor (#1728)
+        run: node packages/cli/dist/doctor-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

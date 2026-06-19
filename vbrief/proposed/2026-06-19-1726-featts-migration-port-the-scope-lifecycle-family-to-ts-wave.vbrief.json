@@ -47,7 +47,7 @@
         "title": "Issue #1724"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-scope-lifecycle-family-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-scope-lifecycle-family-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the scope:* lifecycle family to TypeScript",
         "TrustLevel": "internal"

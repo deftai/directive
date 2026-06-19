@@ -22,6 +22,10 @@ export default defineConfig({
       "@deftai/core/branch": sub("core", "branch"),
       "@deftai/core/wip-cap": sub("core", "wip-cap"),
       "@deftai/core/scm": sub("core", "scm"),
+      "@deftai/core/scope": sub("core", "scope"),
+      "@deftai/core/slice": sub("core", "slice"),
+      "@deftai/core/cache": sub("core", "cache"),
+      "@deftai/core/doctor": sub("core", "doctor"),
       "@deftai/core/triage": sub("core", "triage"),
       "@deftai/core": src("core"),
     },
@@ -75,6 +79,13 @@ export default defineConfig({
         "packages/cli/src/triage-queue-parity.ts",
         "packages/cli/src/triage-scope-parity.ts",
         "packages/cli/src/triage-summary-parity.ts",
+        // Same rationale (#1530 Wave 3, batch 2): the scope/slice/cache/doctor
+        // parity runners spawn the Python oracle and are validated by the
+        // dedicated parity CI job, not the node-only TS job.
+        "packages/cli/src/scope-lifecycle-parity.ts",
+        "packages/cli/src/slice-parity.ts",
+        "packages/cli/src/cache-parity.ts",
+        "packages/cli/src/doctor-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

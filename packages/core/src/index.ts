@@ -12,10 +12,14 @@ import type { EngineInfo } from "@deftai/types";
  */
 
 export * as branch from "./branch/index.js";
+export * as cache from "./cache/index.js";
+export * as doctor from "./doctor/index.js";
 export * from "./encoding/index.js";
 export * as policy from "./policy/index.js";
 export * as preflight from "./preflight/index.js";
 export * as scm from "./scm/index.js";
+export * as scope from "./scope/index.js";
+export * as slice from "./slice/index.js";
 export * as storyReady from "./story-ready/index.js";
 export * as triage from "./triage/index.js";
 export * as wipCap from "./wip-cap/index.js";

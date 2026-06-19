@@ -6,7 +6,7 @@
   "plan": {
     "id": "1728-s1-cache",
     "title": "Port the unified content cache (cache.py) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/cache.py (the unified content cache and quarantine: put, get, invalidate, fetch-all, prune, plus TTL handling) to a TypeScript cache module under packages/core. This story is independently buildable because the cache module is self-contained, owns its on-disk cache directory, and ships a golden parity binary against the Python oracle; it is sequenced before the doctor port because the deft doctor cache-fresh probe reads the cache.",
@@ -72,7 +72,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1728 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T07:00:36Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -86,6 +88,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1724"
       }
-    ]
+    ],
+    "updated": "2026-06-19T07:00:36Z"
   }
 }

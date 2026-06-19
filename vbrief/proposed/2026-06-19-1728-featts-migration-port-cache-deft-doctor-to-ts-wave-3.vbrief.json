@@ -47,13 +47,13 @@
         "title": "Issue #1724"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-unified-content-cache-cachepy-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-unified-content-cache-cachepy-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the unified content cache (cache.py) to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-deft-doctor-doctorpy-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-deft-doctor-doctorpy-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port deft doctor (doctor.py) to TypeScript",
         "TrustLevel": "internal"

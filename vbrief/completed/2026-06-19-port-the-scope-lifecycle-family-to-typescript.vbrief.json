@@ -6,7 +6,7 @@
   "plan": {
     "id": "1726-s1-scope-lifecycle",
     "title": "Port the scope:* lifecycle family to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1726-featts-migration-port-the-scope-lifecycle-family-to-ts-wave.vbrief.json",
     "narratives": {
       "Description": "Port the scripts/scope_lifecycle.py family (promote, activate, complete, cancel, restore, block, unblock, fail, demote, and undo) to TypeScript, preserving the atomic plan.status plus plan.updated plus folder-move semantics and the audit log. This is kept as one story rather than split because every transition shares the same atomic write engine and audit path, so splitting it across parallel workers would force overlapping edits to the same module; it remains independently buildable as a single self-contained scope module with a golden parity binary.",
@@ -72,7 +72,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1726 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T07:00:35Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -86,6 +88,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1724"
       }
-    ]
+    ],
+    "updated": "2026-06-19T07:00:35Z"
   }
 }

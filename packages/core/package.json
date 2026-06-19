@@ -34,6 +34,22 @@
       "types": "./dist/scm/index.d.ts",
       "default": "./dist/scm/index.js"
     },
+    "./scope": {
+      "types": "./dist/scope/index.d.ts",
+      "default": "./dist/scope/index.js"
+    },
+    "./slice": {
+      "types": "./dist/slice/index.d.ts",
+      "default": "./dist/slice/index.js"
+    },
+    "./cache": {
+      "types": "./dist/cache/index.d.ts",
+      "default": "./dist/cache/index.js"
+    },
+    "./doctor": {
+      "types": "./dist/doctor/index.d.ts",
+      "default": "./dist/doctor/index.js"
+    },
     "./triage": {
       "types": "./dist/triage/index.d.ts",
       "default": "./dist/triage/index.js"

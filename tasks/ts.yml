@@ -94,6 +94,30 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-a-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-b-parity.js"
 
+  scope-lifecycle-parity:
+    desc: "Golden-diff the ported scope:* lifecycle family vs the Python oracle, cache-off (#1726)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/scope-lifecycle-parity.js"
+
+  slice-parity:
+    desc: "Golden-diff the ported slice:* family vs the Python oracle, cache-off (#1727)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/slice-parity.js"
+
+  cache-parity:
+    desc: "Golden-diff the ported unified content cache vs the Python oracle, cache-off (#1728)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/cache-parity.js"
+
+  doctor-parity:
+    desc: "Golden-diff the ported deft doctor vs the Python oracle, cache-off (#1728)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/doctor-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -113,3 +137,7 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-scope-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-a-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-b-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/scope-lifecycle-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/slice-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/cache-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/doctor-parity.js"

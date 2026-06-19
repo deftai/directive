@@ -6,7 +6,7 @@
   "plan": {
     "id": "1728-s2-doctor",
     "title": "Port deft doctor (doctor.py) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/doctor.py (deft doctor: install-integrity, toolchain probe, AGENTS.md managed-section freshness, and payload-staleness detection from the VERSION manifest) to a TypeScript doctor module under packages/core. This story depends on the cache port because the doctor cache-fresh probe reads the cache module; it is independently buildable thereafter as a self-contained module with a golden parity binary.",
@@ -74,7 +74,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1728 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T07:00:36Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -88,6 +90,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1724"
       }
-    ]
+    ],
+    "updated": "2026-06-19T07:00:36Z"
   }
 }
