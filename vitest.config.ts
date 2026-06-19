@@ -54,6 +54,7 @@ export default defineConfig({
         "packages/core/src/intake/parity-scenarios.ts",
       ),
       "@deftai/core/lifecycle": sub("core", "lifecycle"),
+      "@deftai/core/orchestration": sub("core", "orchestration"),
       "@deftai/core/packs": sub("core", "packs"),
       "@deftai/core": src("core"),
     },
@@ -142,6 +143,7 @@ export default defineConfig({
         "packages/cli/src/intake-parity.ts",
         "packages/cli/src/lifecycle-packs-parity.ts",
         "packages/cli/src/session-parity.ts",
+        "packages/cli/src/orchestration-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

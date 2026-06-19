@@ -260,6 +260,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/session-parity.js"
 
+  orchestration-parity:
+    desc: "Golden-diff the ported monitor/investigation gate verbs vs the Python oracle, cache-off (#1788 s2)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/orchestration-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -305,3 +311,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/intake-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/lifecycle-packs-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/session-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/orchestration-parity.js"

@@ -6,7 +6,7 @@
   "plan": {
     "id": "1788-s2-monitor-investigation-gates",
     "title": "Port subagent monitor + investigation gates to TS",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.vbrief.json",
     "narratives": {
       "Description": "Port the monitor and investigation-gate verbs from Python to TypeScript. Covers subagent_monitor, probe_session, verify_investigation, and verify_judgment_gates so monitor polling, probe-session state, and the investigation close gates run on the TS engine as advisory CLI verbs.",
@@ -63,7 +63,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-19T23:04:13Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -78,6 +80,6 @@
         "title": "Issue #1530"
       }
     ],
-    "updated": "2026-06-19T22:47:41Z"
+    "updated": "2026-06-19T23:04:13Z"
   }
 }
