@@ -1,0 +1,62 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1783"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port the remaining verify/validate gates to TS (Wave 5)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port the remaining verify/validate gates to TS (Wave 5)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1783",
+      "Overview": "## Parent\n#1530 (Part 1 of 2)\n\n## What to build\nPort the `task check` gates still Python-only: `verify-stubs`, `verify_hooks_installed`, `verify_no_task_runtime`, `verify_scm_boundary`, `verify_tools`, `verify_capacity`, `validate-links`, `validate_strategy_output`, `rule_ownership_lint`, `code_structure_validate`, `toolchain-check`.\n\n## Acceptance criteria\n- [ ] TS ports with cache-off golden parity vs the Python oracle (three-state exits preserved)\n- [ ] Wired into `@deftai/core`, `tasks/ts.yml`, CI; runnable from the TS engine\n- [ ] CHANGELOG entry; `task check` green\n\n## Standing invariants (all #1530 Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The golden parity gate runs **cache-off**.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) **and** has CI usage.\n- Subprocess/`gh` capture uses Node `execFile` with explicit UTF-8 (closes the #1366 class structurally; the Python `_safe_subprocess`/`_stdio_utf8` shims are NOT ported — the problem does not exist in Node).\n\n## Full-conversion scope note (#1530)\nPart of the **full** Python→TS conversion. Per operator decision (2026-06-19) the cutover (#1731) deletes nothing until the engine is wholly TS. Accepted non-ports: Python-runtime shims, build/packaging tooling (superseded by the pnpm/tsc build), pre-v0.20 migration tooling (retired with a deprecation notice), and the Go installer (separate keep/fold decision in #1731). Owning an agent runtime is out of scope — net-new future work (#1707), not a conversion.\n\n## Type\nAFK\n\n## Blocked by\n- Blocked by #1730"
+    },
+    "items": [
+      {
+        "title": "TS ports with cache-off golden parity vs the Python oracle (three-state exits preserved)",
+        "status": "proposed"
+      },
+      {
+        "title": "Wired into , , CI; runnable from the TS engine",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry;  green",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1783",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1783: feat(ts-migration): port the remaining verify/validate gates to TS (Wave 5)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-environment-toolchain-verify-gates-verify-tools-ver.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the environment / toolchain verify gates (verify_tools / verify_hooks_installed / toolchain-check / verify_no_task_runtime) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-source-tree-scanner-gates-verify-scm-boundary-rule.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the source-tree scanner gates (verify_scm_boundary / rule_ownership_lint / code_structure_validate / verify-stubs) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-content-validator-gates-validate-links-validate-str.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the content validator gates (validate-links / validate_strategy_output / verify_capacity) to TypeScript",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

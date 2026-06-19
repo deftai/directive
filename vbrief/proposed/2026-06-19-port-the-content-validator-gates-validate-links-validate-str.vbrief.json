@@ -1,0 +1,74 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-19-1783-featts-migration-port-the-remaining-verifyvalidate-gates-to.vbrief.json"
+  },
+  "plan": {
+    "id": "1783-s3-validate-content",
+    "title": "Port the content validator gates (validate-links / validate_strategy_output / verify_capacity) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1783-featts-migration-port-the-remaining-verifyvalidate-gates-to.vbrief.json",
+    "narratives": {
+      "Description": "Port the three content-validator gates -- scripts/validate-links.py, scripts/validate_strategy_output.py, and scripts/verify_capacity.py -- to TypeScript with cache-off golden parity vs the Python oracle. validate-links checks intra-doc link integrity, validate_strategy_output validates strategy-output structure, and verify_capacity checks the WIP/capacity policy. All are leaf gates with no inter-dependency; three-state exits are preserved. Any regex ported MUST be a linear recognizer to avoid CodeQL js/polynomial-redos while staying byte-identical.",
+      "ImplementationPlan": "1. Create packages/core/src/validate-content with TS ports of the three validators, with vitest unit tests covering clean / each-failure-class / config-error per gate.\n2. Add packages/cli/src/validate-content-parity.ts that drives the TS functions and a python -c invocation of the frozen Python gates over shared fixtures and asserts byte-identical output (stdout + exit code) with cache off.\n3. Wire the module into index.ts, package.json subpath exports, vitest.config.ts alias, tasks/ts.yml (validate-content-parity into parity-all), and a CI golden-diff step.",
+      "UserStory": "As a directive maintainer, I want the content validator gates in TypeScript, so that the link-integrity, strategy-output, and capacity checks run on the TS engine with the same verdicts, messages, and exit codes as the Python modules."
+    },
+    "items": [
+      {
+        "id": "1783-s3-a1",
+        "title": "validator verdicts + exit codes preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS validate-content gates returns the same three-state exit code and the same diagnostic messages the Python validate-links / validate_strategy_output / verify_capacity modules produce for the clean, each-failure-class, and config-error fixtures."
+        }
+      },
+      {
+        "id": "1783-s3-a2",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the validate-content-parity binary returns exit 0 and renders byte-identical output to the Python content-validator oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/validate-content/",
+          "packages/cli/src/validate-content-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/validate-content-parity.js",
+          "pnpm --filter @deftai/core test src/validate-content"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/validate-content module with vitest unit tests",
+          "New packages/cli/src/validate-content-parity.ts parity binary",
+          "Byte-identical parity vs the three Python content-validator gates under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave5b-validate-content",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1783 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1783",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1783: feat(ts-migration): port the remaining verify/validate gates to TS (Wave 5)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      }
+    ]
+  }
+}

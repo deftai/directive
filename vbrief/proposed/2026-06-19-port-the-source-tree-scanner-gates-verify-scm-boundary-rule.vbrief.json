@@ -1,0 +1,74 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-19-1783-featts-migration-port-the-remaining-verifyvalidate-gates-to.vbrief.json"
+  },
+  "plan": {
+    "id": "1783-s2-verify-source",
+    "title": "Port the source-tree scanner gates (verify_scm_boundary / rule_ownership_lint / code_structure_validate / verify-stubs) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1783-featts-migration-port-the-remaining-verifyvalidate-gates-to.vbrief.json",
+    "narratives": {
+      "Description": "Port the four source-scanning gates -- scripts/verify_scm_boundary.py, scripts/rule_ownership_lint.py, scripts/code_structure_validate.py, and scripts/verify-stubs.py -- to TypeScript with cache-off golden parity vs the Python oracle. These scan tracked source for policy violations: scm_boundary forbids raw gh outside scm.py, rule_ownership_lint checks rule-section ownership, code_structure_validate enforces module-structure rules, and verify-stubs forbids stray stub markers. All are leaf gates with no inter-dependency; three-state exits are preserved. File-walk/glob behavior must match the Python ordering so diagnostics render in the same sequence. Any regex ported MUST be a linear recognizer (no polynomial backtracking) to avoid CodeQL js/polynomial-redos while staying byte-identical.",
+      "ImplementationPlan": "1. Create packages/core/src/verify-source with TS ports of the four scanners, with vitest unit tests covering clean / each-violation-class / config-error per gate.\n2. Add packages/cli/src/verify-source-parity.ts that drives the TS functions and a python -c invocation of the frozen Python gates over shared source fixtures and asserts byte-identical output (stdout + exit code) with cache off.\n3. Wire the module into index.ts, package.json subpath exports, vitest.config.ts alias, tasks/ts.yml (verify-source-parity into parity-all), and a CI golden-diff step.",
+      "UserStory": "As a directive maintainer, I want the source-tree scanner gates in TypeScript, so that the scm-boundary, rule-ownership, code-structure, and stub checks run on the TS engine with the same findings, ordering, and exit codes as the Python modules."
+    },
+    "items": [
+      {
+        "id": "1783-s2-a1",
+        "title": "scanner findings + ordering + exit codes preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS verify-source gates returns the same three-state exit code and the same ordered findings the Python verify_scm_boundary / rule_ownership_lint / code_structure_validate / verify-stubs modules produce for the clean and each-violation-class fixtures."
+        }
+      },
+      {
+        "id": "1783-s2-a2",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the verify-source-parity binary returns exit 0 and renders byte-identical output to the Python source-scanner oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/verify-source/",
+          "packages/cli/src/verify-source-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/verify-source-parity.js",
+          "pnpm --filter @deftai/core test src/verify-source"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/verify-source module with vitest unit tests",
+          "New packages/cli/src/verify-source-parity.ts parity binary",
+          "Byte-identical parity vs the four Python source-scanner gates under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave5b-verify-source",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1783 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1783",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1783: feat(ts-migration): port the remaining verify/validate gates to TS (Wave 5)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1730"
+      }
+    ]
+  }
+}
