@@ -93,6 +93,10 @@
     "./vbrief-build": {
       "types": "./dist/vbrief-build/index.d.ts",
       "default": "./dist/vbrief-build/index.js"
+    },
+    "./vbrief-activate": {
+      "types": "./dist/vbrief-activate/index.d.ts",
+      "default": "./dist/vbrief-activate/index.js"
     }
   },
   "dependencies": {

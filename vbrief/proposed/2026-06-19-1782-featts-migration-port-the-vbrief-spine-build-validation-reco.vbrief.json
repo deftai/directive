@@ -55,7 +55,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-19-port-the-vbrief-activate-lifecycle-verb-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-vbrief-activate-lifecycle-verb-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the vBRIEF activate lifecycle verb to TypeScript",
         "TrustLevel": "internal"
