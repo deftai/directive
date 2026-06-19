@@ -85,6 +85,10 @@
     "./pr-monitor": {
       "types": "./dist/pr-monitor/index.d.ts",
       "default": "./dist/pr-monitor/index.js"
+    },
+    "./pr-wait-mergeable": {
+      "types": "./dist/pr-wait-mergeable/index.d.ts",
+      "default": "./dist/pr-wait-mergeable/index.js"
     }
   },
   "dependencies": {

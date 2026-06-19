@@ -35,6 +35,7 @@ export default defineConfig({
       "@deftai/core/pr-protected-issues": sub("core", "pr-protected-issues"),
       "@deftai/core/pr-closing-keywords": sub("core", "pr-closing-keywords"),
       "@deftai/core/pr-monitor": sub("core", "pr-monitor"),
+      "@deftai/core/pr-wait-mergeable": sub("core", "pr-wait-mergeable"),
       "@deftai/core": src("core"),
     },
   },
@@ -108,6 +109,7 @@ export default defineConfig({
         "packages/cli/src/pr-protected-issues-parity.ts",
         "packages/cli/src/pr-closing-keywords-parity.ts",
         "packages/cli/src/pr-monitor-parity.ts",
+        "packages/cli/src/pr-wait-mergeable-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

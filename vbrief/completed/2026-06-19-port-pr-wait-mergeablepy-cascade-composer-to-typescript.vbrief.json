@@ -6,7 +6,7 @@
   "plan": {
     "id": "1730-s5-pr-wait-mergeable",
     "title": "Port pr_wait_mergeable.py (cascade composer) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/pr_wait_mergeable.py -- the cascade composer (#1369) that chains the Layer-3 protected-issue check AHEAD of the resilient wait loop and the merge-readiness primitive, then invokes gh pr merge, behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error) -- to TypeScript. It composes the merged @deftai/core pr-merge-readiness, pr-protected-issues, and pr-monitor modules and is dispatched last because it depends on them.",
@@ -68,7 +68,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T14:56:03Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -97,6 +99,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T14:56:03Z"
   }
 }

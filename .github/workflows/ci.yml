@@ -267,6 +267,9 @@ jobs:
       - name: Golden-diff parity -- monitor_pr (#1730)
         run: node packages/cli/dist/pr-monitor-parity.js
 
+      - name: Golden-diff parity -- pr_wait_mergeable (#1730)
+        run: node packages/cli/dist/pr-wait-mergeable-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

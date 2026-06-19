@@ -87,7 +87,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-pr-wait-mergeablepy-cascade-composer-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-pr-wait-mergeablepy-cascade-composer-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port pr_wait_mergeable.py (cascade composer) to TypeScript",
         "TrustLevel": "internal"

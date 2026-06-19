@@ -166,6 +166,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-monitor-parity.js"
 
+  pr-wait-mergeable-parity:
+    desc: "Golden-diff the ported pr_wait_mergeable.py cascade composer vs the Python oracle, cache-off (#1730)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-wait-mergeable-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -197,3 +203,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-protected-issues-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-closing-keywords-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-monitor-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-wait-mergeable-parity.js"

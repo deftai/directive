@@ -20,6 +20,7 @@ export * as prClosingKeywords from "./pr-closing-keywords/index.js";
 export * as prMergeReadiness from "./pr-merge-readiness/index.js";
 export * as prMonitor from "./pr-monitor/index.js";
 export * as prProtectedIssues from "./pr-protected-issues/index.js";
+export * as prWaitMergeable from "./pr-wait-mergeable/index.js";
 export * as preflight from "./preflight/index.js";
 export * as release from "./release/index.js";
 export * as releaseE2e from "./release-e2e/index.js";
