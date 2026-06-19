@@ -212,6 +212,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-activate-parity.js"
 
+  verify-env-parity:
+    desc: "Golden-diff the ported verify_tools / verify_hooks_installed / toolchain-check / verify_no_task_runtime gates vs the Python oracle, cache-off (#1783 s1)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/verify-env-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -249,3 +255,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-validation-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-validate-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-activate-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/verify-env-parity.js"

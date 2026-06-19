@@ -109,6 +109,10 @@
     "./vbrief-activate": {
       "types": "./dist/vbrief-activate/index.d.ts",
       "default": "./dist/vbrief-activate/index.js"
+    },
+    "./verify-env": {
+      "types": "./dist/verify-env/index.d.ts",
+      "default": "./dist/verify-env/index.js"
     }
   },
   "dependencies": {

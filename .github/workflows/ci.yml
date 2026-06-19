@@ -285,6 +285,9 @@ jobs:
       - name: Golden-diff parity -- vbrief:validate CLI + conformance (#1782 s3)
         run: node packages/cli/dist/vbrief-validate-parity.js
 
+      - name: Golden-diff parity -- verify-env gates (#1783 s1)
+        run: node packages/cli/dist/verify-env-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404
