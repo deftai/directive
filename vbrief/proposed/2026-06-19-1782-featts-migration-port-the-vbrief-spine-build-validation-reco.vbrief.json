@@ -37,7 +37,7 @@
         "title": "Issue #1730"
       },
       {
-        "uri": "active/2026-06-19-port-the-vbrief-construction-foundation-project-definition-i.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-vbrief-construction-foundation-project-definition-i.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the vBRIEF construction foundation (project-definition I/O + build/sources/routing/speckit) to TypeScript",
         "TrustLevel": "internal"
