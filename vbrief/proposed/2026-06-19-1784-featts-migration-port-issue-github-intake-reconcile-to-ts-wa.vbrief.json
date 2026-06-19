@@ -1,0 +1,41 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1784"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port issue / GitHub intake + reconcile to TS (Wave 6)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port issue / GitHub intake + reconcile to TS (Wave 6)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1784",
+      "Overview": "## Parent\n#1530 (Part 1 of 2)\n\n## What to build\nPort the issue-intake and GitHub-reconcile surface: `issue_ingest`, `issue_emit`, `reconcile_issues`, `github_body`, `github_auth_modes`, `gh_rest`, `candidates_log`. Reuse the ported `@deftai/core/scm` adapter for all `gh` access.\n\n## Acceptance criteria\n- [ ] TS ports with cache-off golden parity vs the Python oracle\n- [ ] Wired into `@deftai/core`, `tasks/ts.yml`, CI\n- [ ] CHANGELOG entry; `task check` green\n\n## Standing invariants (all #1530 Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The golden parity gate runs **cache-off**.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) **and** has CI usage.\n- Subprocess/`gh` capture uses Node `execFile` with explicit UTF-8 (closes the #1366 class structurally; the Python `_safe_subprocess`/`_stdio_utf8` shims are NOT ported — the problem does not exist in Node).\n\n## Full-conversion scope note (#1530)\nPart of the **full** Python→TS conversion. Per operator decision (2026-06-19) the cutover (#1731) deletes nothing until the engine is wholly TS. Accepted non-ports: Python-runtime shims, build/packaging tooling (superseded by the pnpm/tsc build), pre-v0.20 migration tooling (retired with a deprecation notice), and the Go installer (separate keep/fold decision in #1731). Owning an agent runtime is out of scope — net-new future work (#1707), not a conversion.\n\n## Type\nAFK\n\n## Blocked by\n- Blocked by #1530 (Wave 5: vBRIEF spine)"
+    },
+    "items": [
+      {
+        "title": "TS ports with cache-off golden parity vs the Python oracle",
+        "status": "proposed"
+      },
+      {
+        "title": "Wired into , , CI",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry;  green",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1784",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1784: feat(ts-migration): port issue / GitHub intake + reconcile to TS (Wave 6)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1530"
+      }
+    ]
+  }
+}
