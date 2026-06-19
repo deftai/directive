@@ -1,0 +1,102 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json"
+  },
+  "plan": {
+    "id": "1730-s5-pr-wait-mergeable",
+    "title": "Port pr_wait_mergeable.py (cascade composer) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/pr_wait_mergeable.py -- the cascade composer (#1369) that chains the Layer-3 protected-issue check AHEAD of the resilient wait loop and the merge-readiness primitive, then invokes gh pr merge, behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error) -- to TypeScript. It composes the merged @deftai/core pr-merge-readiness, pr-protected-issues, and pr-monitor modules and is dispatched last because it depends on them.",
+      "ImplementationPlan": "1. Create the packages/core/src/pr-wait-mergeable module porting the cascade orchestration that runs the protected-issue check first, then the wait loop and readiness primitive, then the merge invocation, composing the merged @deftai/core/pr-merge-readiness / pr-protected-issues / pr-monitor modules, with vitest unit tests in the module directory.\n2. Add packages/cli/src/pr-wait-mergeable.ts exposing the TS cascade verb behind the CLI seam.\n3. Add packages/cli/src/pr-wait-mergeable-parity.ts that runs the TS path and the Python scripts/pr_wait_mergeable.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the wait-mergeable-and-merge cascade available in TypeScript, so that the protected-issue-first ordering and three-state cascade exit run on the TS engine with the same behavior as the Python module."
+    },
+    "items": [
+      {
+        "id": "1730-s5-a1",
+        "title": "protected-issue-first ordering preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS cascade against a PR linking a protected issue returns the same escalation exit the Python pr_wait_mergeable.py module returns, before any merge is attempted."
+        }
+      },
+      {
+        "id": "1730-s5-a2",
+        "title": "three-state cascade exit preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS cascade returns exit 0 on merged, 1 on timeout-or-escalation, and 2 on config error, matching the Python module across the same fixtures."
+        }
+      },
+      {
+        "id": "1730-s5-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the pr-wait-mergeable-parity binary returns exit 0 and renders byte-identical output to the Python scripts/pr_wait_mergeable.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-wait-mergeable/",
+          "packages/cli/src/pr-wait-mergeable.ts",
+          "packages/cli/src/pr-wait-mergeable-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/pr-wait-mergeable-parity.js",
+          "pnpm --filter @deftai/core test src/pr-wait-mergeable"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/pr-wait-mergeable module with vitest unit tests",
+          "New packages/cli/src/pr-wait-mergeable-parity.ts parity binary",
+          "Byte-identical parity vs scripts/pr_wait_mergeable.py under cache-off"
+        ],
+        "depends_on": [
+          "1730-s1-pr-merge-readiness",
+          "1730-s2-pr-protected-issues",
+          "1730-s4-monitor-pr"
+        ],
+        "conflict_group": "ts-wave4b-wait-mergeable",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1730: feat(ts-migration): port pr_* monitors + cascade automation to TS (Wave 4)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      }
+    ]
+  }
+}

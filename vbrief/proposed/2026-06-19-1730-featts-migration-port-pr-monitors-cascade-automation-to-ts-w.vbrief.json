@@ -1,0 +1,100 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1730"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port pr_* monitors + cascade automation to TS (Wave 4)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port pr_* monitors + cascade automation to TS (Wave 4)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1730",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nPort the `pr_*` monitors and cascade automation (`scripts/monitor_pr.py`, `pr_merge_readiness.py`, `pr_wait_mergeable.py`, `pr_check_protected_issues.py`, `_safe_subprocess.py`) to TS, with Node `execFile` (no shell) UTF-8-safe capture as the default -- structurally closing the #1366 capture-decode class.\n\n## Acceptance criteria\n\n- [ ] `pr:*` cascade/monitor verbs run on TS with the protected-issue pre-check ordering preserved\n- [ ] Subprocess capture is UTF-8-safe by default via `execFile` (no shell)\n- [ ] Golden-output parity vs the Python oracle (cache-off)\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1725\n- Blocked by #1726\n- Blocked by #1727\n- Blocked by #1728\n",
+      "Labels": "ci-cd, refactor, runtime-portability, tooling"
+    },
+    "items": [
+      {
+        "title": "cascade/monitor verbs run on TS with the protected-issue pre-check ordering preserved",
+        "status": "proposed"
+      },
+      {
+        "title": "Subprocess capture is UTF-8-safe by default via  (no shell)",
+        "status": "proposed"
+      },
+      {
+        "title": "Golden-output parity vs the Python oracle (cache-off)",
+        "status": "proposed"
+      },
+      {
+        "title": "passes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "ci-cd",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1730: feat(ts-migration): port pr_* monitors + cascade automation to TS (Wave 4)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-pr-merge-readinesspy-merge-readiness-primitive-to-types.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port pr_merge_readiness.py (merge-readiness primitive) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-pr-check-protected-issuespy-layer-3-protected-issue-che.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port pr_check_protected_issues.py (Layer-3 protected-issue check) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-pr-check-closing-keywordspy-closing-keyword-check-to-ty.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port pr_check_closing_keywords.py (closing-keyword check) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-monitor-prpy-resilient-wait-loop-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port monitor_pr.py (resilient wait loop) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-pr-wait-mergeablepy-cascade-composer-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port pr_wait_mergeable.py (cascade composer) to TypeScript",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

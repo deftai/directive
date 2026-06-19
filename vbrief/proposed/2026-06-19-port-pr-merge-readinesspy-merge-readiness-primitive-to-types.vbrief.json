@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json"
+  },
+  "plan": {
+    "id": "1730-s1-pr-merge-readiness",
+    "title": "Port pr_merge_readiness.py (merge-readiness primitive) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/pr_merge_readiness.py -- the merge-readiness primitive that parses Greptile findings, computes the confidence verdict, applies the layered fallbacks (#1368), and returns the three-state readiness result -- to TypeScript. Subprocess capture uses Node execFile (no shell) with explicit UTF-8 decoding, structurally closing the #1366 capture-decode class. It reuses the @deftai/core/scm gh helpers and is the foundation the pr_wait_mergeable cascade composer builds on; dispatched first.",
+      "ImplementationPlan": "1. Create the packages/core/src/pr-merge-readiness module porting the Greptile-findings parse, confidence verdict, and layered fallbacks over Node execFile UTF-8-safe capture, reusing @deftai/core/scm for gh calls, with vitest unit tests in the module directory.\n2. Add packages/cli/src/pr-merge-readiness.ts exposing the TS readiness verb behind the existing CLI seam.\n3. Add packages/cli/src/pr-merge-readiness-parity.ts that runs the TS path and the Python scripts/pr_merge_readiness.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the PR merge-readiness check available in TypeScript, so that the Greptile-findings verdict and layered fallbacks run on the TS engine with the same output as the Python module and UTF-8-safe capture by default."
+    },
+    "items": [
+      {
+        "id": "1730-s1-a1",
+        "title": "readiness verdict + layered fallbacks preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS merge-readiness check returns the same three-state verdict and findings counts the Python pr_merge_readiness.py module produces for the same PR fixture."
+        }
+      },
+      {
+        "id": "1730-s1-a2",
+        "title": "UTF-8-safe capture by default",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the readiness check against a fixture whose gh output carries non-ASCII bytes returns the parsed verdict and emits no decode error, because capture uses execFile with explicit UTF-8."
+        }
+      },
+      {
+        "id": "1730-s1-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the pr-merge-readiness-parity binary returns exit 0 and renders byte-identical output to the Python scripts/pr_merge_readiness.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-merge-readiness/",
+          "packages/cli/src/pr-merge-readiness.ts",
+          "packages/cli/src/pr-merge-readiness-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/pr-merge-readiness-parity.js",
+          "pnpm --filter @deftai/core test src/pr-merge-readiness"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/pr-merge-readiness module with vitest unit tests",
+          "New packages/cli/src/pr-merge-readiness-parity.ts parity binary",
+          "Byte-identical parity vs scripts/pr_merge_readiness.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave4b-merge-readiness",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1730: feat(ts-migration): port pr_* monitors + cascade automation to TS (Wave 4)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      }
+    ]
+  }
+}

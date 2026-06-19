@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json"
+  },
+  "plan": {
+    "id": "1730-s4-monitor-pr",
+    "title": "Port monitor_pr.py (resilient wait loop) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/monitor_pr.py -- the resilient wait-until-ready loop (#1368) that polls PR state with bounded retries and survives transient gh failures without going blind -- to TypeScript over Node execFile UTF-8-safe capture, reusing @deftai/core/scm gh helpers. It is independently buildable as a self-contained packages/core/src/pr-monitor module with a golden parity binary.",
+      "ImplementationPlan": "1. Create the packages/core/src/pr-monitor module porting the bounded-retry wait loop and the transient-failure resilience over Node execFile UTF-8-safe capture, reusing @deftai/core/scm and an injectable clock, with vitest unit tests in the module directory.\n2. Add packages/cli/src/pr-monitor.ts exposing the TS monitor verb behind the CLI seam.\n3. Add packages/cli/src/pr-monitor-parity.ts that runs the TS path and the Python scripts/monitor_pr.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the resilient PR wait loop available in TypeScript, so that polling survives transient gh failures on the TS engine with the same behavior as the Python module."
+    },
+    "items": [
+      {
+        "id": "1730-s4-a1",
+        "title": "bounded-retry wait loop preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS monitor wait loop against a fixture that becomes ready after transient failures returns the same ready result the Python monitor_pr.py module returns."
+        }
+      },
+      {
+        "id": "1730-s4-a2",
+        "title": "transient-failure resilience preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS monitor against a fixture emitting transient gh errors returns the same retry-then-resolve outcome the Python module produces, with no decode crash."
+        }
+      },
+      {
+        "id": "1730-s4-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the pr-monitor-parity binary returns exit 0 and renders byte-identical output to the Python scripts/monitor_pr.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-monitor/",
+          "packages/cli/src/pr-monitor.ts",
+          "packages/cli/src/pr-monitor-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/pr-monitor-parity.js",
+          "pnpm --filter @deftai/core test src/pr-monitor"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/pr-monitor module with vitest unit tests",
+          "New packages/cli/src/pr-monitor-parity.ts parity binary",
+          "Byte-identical parity vs scripts/monitor_pr.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave4b-monitor",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1730: feat(ts-migration): port pr_* monitors + cascade automation to TS (Wave 4)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      }
+    ]
+  }
+}

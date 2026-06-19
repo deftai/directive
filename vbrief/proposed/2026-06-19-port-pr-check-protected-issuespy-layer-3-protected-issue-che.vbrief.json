@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json"
+  },
+  "plan": {
+    "id": "1730-s2-pr-protected-issues",
+    "title": "Port pr_check_protected_issues.py (Layer-3 protected-issue check) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/pr_check_protected_issues.py -- the Layer-3 protected-issue inspector (#701) that refuses a cascade when a PR persistently links a protected/umbrella issue via closingIssuesReferences -- to TypeScript over Node execFile UTF-8-safe capture, reusing @deftai/core/scm gh helpers. It is independently buildable as a self-contained packages/core/src/pr-protected-issues module with a golden parity binary.",
+      "ImplementationPlan": "1. Create the packages/core/src/pr-protected-issues module porting the protected-issue link inspection and the refuse/allow decision over Node execFile UTF-8-safe capture, reusing @deftai/core/scm, with vitest unit tests in the module directory.\n2. Add packages/cli/src/pr-protected-issues.ts exposing the TS check behind the CLI seam.\n3. Add packages/cli/src/pr-protected-issues-parity.ts that runs the TS path and the Python scripts/pr_check_protected_issues.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the protected-issue pre-check available in TypeScript, so that the cascade refuses to merge a PR linking a protected issue with the same decision the Python module makes."
+    },
+    "items": [
+      {
+        "id": "1730-s2-a1",
+        "title": "protected-issue refusal preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS protected-issue check against a PR that links a protected issue returns the same refuse decision the Python pr_check_protected_issues.py module returns."
+        }
+      },
+      {
+        "id": "1730-s2-a2",
+        "title": "clean PR allowed",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS protected-issue check against a PR with no protected-issue links returns the same allow decision the Python module returns."
+        }
+      },
+      {
+        "id": "1730-s2-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the pr-protected-issues-parity binary returns exit 0 and renders byte-identical output to the Python scripts/pr_check_protected_issues.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-protected-issues/",
+          "packages/cli/src/pr-protected-issues.ts",
+          "packages/cli/src/pr-protected-issues-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/pr-protected-issues-parity.js",
+          "pnpm --filter @deftai/core test src/pr-protected-issues"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/pr-protected-issues module with vitest unit tests",
+          "New packages/cli/src/pr-protected-issues-parity.ts parity binary",
+          "Byte-identical parity vs scripts/pr_check_protected_issues.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave4b-protected-issues",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1730",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1730: feat(ts-migration): port pr_* monitors + cascade automation to TS (Wave 4)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      }
+    ]
+  }
+}
