@@ -6,7 +6,7 @@
   "plan": {
     "id": "1729-s4-release-e2e",
     "title": "Port release_e2e.py (release:e2e rehearsal) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/release_e2e.py -- the release:e2e end-to-end rehearsal that exercises the full release flow against a temp/throwaway target before a real release -- to TypeScript. It builds on the shared release-core helpers from 1729-s1 and is independently buildable as a self-contained packages/core/src/release-e2e module with a golden parity binary.",
@@ -66,7 +66,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-4 framework-internal TS port traced to GitHub issue #1729 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T12:55:46Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -95,6 +97,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T12:55:46Z"
   }
 }

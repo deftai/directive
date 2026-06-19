@@ -57,6 +57,18 @@
     "./release": {
       "types": "./dist/release/index.d.ts",
       "default": "./dist/release/index.js"
+    },
+    "./release-publish": {
+      "types": "./dist/release-publish/index.d.ts",
+      "default": "./dist/release-publish/index.js"
+    },
+    "./release-rollback": {
+      "types": "./dist/release-rollback/index.d.ts",
+      "default": "./dist/release-rollback/index.js"
+    },
+    "./release-e2e": {
+      "types": "./dist/release-e2e/index.d.ts",
+      "default": "./dist/release-e2e/index.js"
     }
   },
   "dependencies": {

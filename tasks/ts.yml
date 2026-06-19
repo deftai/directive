@@ -124,6 +124,24 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/release-parity.js"
 
+  release-publish-parity:
+    desc: "Golden-diff the ported release_publish.py vs the Python oracle, cache-off (#1729)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-publish-parity.js"
+
+  release-rollback-parity:
+    desc: "Golden-diff the ported release_rollback.py vs the Python oracle, cache-off (#1729)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-rollback-parity.js"
+
+  release-e2e-parity:
+    desc: "Golden-diff the ported release_e2e.py vs the Python oracle, cache-off (#1729)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-e2e-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -148,3 +166,6 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/cache-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/doctor-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/release-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-publish-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-rollback-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-e2e-parity.js"

@@ -69,19 +69,19 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-release-publishpy-releasepublish-flow-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-release-publishpy-releasepublish-flow-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port release_publish.py (release:publish flow) to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-release-rollbackpy-releaserollback-flow-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-release-rollbackpy-releaserollback-flow-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port release_rollback.py (release:rollback flow) to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-release-e2epy-releasee2e-rehearsal-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-release-e2epy-releasee2e-rehearsal-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port release_e2e.py (release:e2e rehearsal) to TypeScript",
         "TrustLevel": "internal"

@@ -28,6 +28,9 @@ export default defineConfig({
       "@deftai/core/doctor": sub("core", "doctor"),
       "@deftai/core/triage": sub("core", "triage"),
       "@deftai/core/release": sub("core", "release"),
+      "@deftai/core/release-publish": sub("core", "release-publish"),
+      "@deftai/core/release-rollback": sub("core", "release-rollback"),
+      "@deftai/core/release-e2e": sub("core", "release-e2e"),
       "@deftai/core": src("core"),
     },
   },
@@ -87,10 +90,13 @@ export default defineConfig({
         "packages/cli/src/slice-parity.ts",
         "packages/cli/src/cache-parity.ts",
         "packages/cli/src/doctor-parity.ts",
-        // Same rationale (#1530 Wave 4, #1729): the release parity runner spawns
-        // the Python oracle and is validated by the dedicated parity CI job, not
+        // Same rationale (#1530 Wave 4, #1729): the release parity runners spawn
+        // the Python oracle and are validated by the dedicated parity CI job, not
         // the Python-less node-only TS job. Pure helpers stay unit-tested.
         "packages/cli/src/release-parity.ts",
+        "packages/cli/src/release-publish-parity.ts",
+        "packages/cli/src/release-rollback-parity.ts",
+        "packages/cli/src/release-e2e-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

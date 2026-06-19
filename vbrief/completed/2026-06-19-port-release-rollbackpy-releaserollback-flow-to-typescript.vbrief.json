@@ -6,7 +6,7 @@
   "plan": {
     "id": "1729-s3-release-rollback",
     "title": "Port release_rollback.py (release:rollback flow) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/release_rollback.py -- the release:rollback flow that reverts a published or drafted release, unwinds the tag/release/CHANGELOG promotion, and applies the rollback-time safety guards (#716) -- to TypeScript. It builds on the shared release-core helpers from 1729-s1 and is independently buildable as a self-contained packages/core/src/release-rollback module with a golden parity binary.",
@@ -66,7 +66,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-4 framework-internal TS port traced to GitHub issue #1729 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T12:55:46Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -95,6 +97,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T12:55:46Z"
   }
 }

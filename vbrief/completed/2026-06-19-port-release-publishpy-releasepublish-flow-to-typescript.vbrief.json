@@ -6,7 +6,7 @@
   "plan": {
     "id": "1729-s2-release-publish",
     "title": "Port release_publish.py (release:publish flow) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/release_publish.py -- the release:publish flow that promotes a drafted release to published, drives the GitHub release create/edit, and applies the publish-time safety checks (#716) -- to TypeScript. It builds on the shared release-core helpers from 1729-s1 and is independently buildable as a self-contained packages/core/src/release-publish module with a golden parity binary.",
@@ -66,7 +66,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-4 framework-internal TS port traced to GitHub issue #1729 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T12:55:46Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -95,6 +97,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T12:55:46Z"
   }
 }
