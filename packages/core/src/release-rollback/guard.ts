@@ -20,10 +20,7 @@ export function sumDownloads(payload: GhReleasePayload): number {
   return total;
 }
 
-export function releaseAgeSeconds(
-  payload: GhReleasePayload,
-  now: Date = new Date(),
-): number {
+export function releaseAgeSeconds(payload: GhReleasePayload, now: Date = new Date()): number {
   const createdAt = payload.createdAt ?? payload.publishedAt;
   if (!createdAt) {
     return 0;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EXIT_OK, EXIT_VIOLATION } from "./constants.js";
+import { ghReleaseDelete, ghReleaseExists, ghReleaseViewJson } from "./gh.js";
 import {
   gitDeleteLocalTag,
   gitDeleteRemoteTag,
@@ -9,8 +10,7 @@ import {
   gitTagExistsOrigin,
   resolveReleasePrepSha,
 } from "./git.js";
-import { ghReleaseDelete, ghReleaseExists, ghReleaseViewJson } from "./gh.js";
-import { computeThreshold, doubleReadDownloads, releaseAgeSeconds, sumDownloads } from "./guard.js";
+import { computeThreshold, doubleReadDownloads, sumDownloads } from "./guard.js";
 import { cmdRollback } from "./main.js";
 import {
   detectState,
@@ -313,7 +313,8 @@ describe("release-rollback coverage boost", () => {
       ...emit,
       ghReleaseViewJson: () => [false, null, "release not found"],
       spawnText: (_cmd, args) => {
-        if (args.includes("ls-remote")) return { status: 0, stdout: "x\trefs/tags/v0.21.0\n", stderr: "" };
+        if (args.includes("ls-remote"))
+          return { status: 0, stdout: "x\trefs/tags/v0.21.0\n", stderr: "" };
         if (args.includes("rev-parse")) return { status: 0, stdout: `${SHA}\n`, stderr: "" };
         return { status: 0, stdout: "", stderr: "" };
       },
@@ -538,12 +539,7 @@ describe("release-rollback coverage boost", () => {
     const seams: RollbackSeams = {
       ghReleaseViewJson: () => [true, { assets: [{ downloadCount: 0 }] }, ""],
     };
-    const [ok] = doubleReadDownloads(
-      "0.21.0",
-      "deftai/directive",
-      { sleepSeconds: 0.001 },
-      seams,
-    );
+    const [ok] = doubleReadDownloads("0.21.0", "deftai/directive", { sleepSeconds: 0.001 }, seams);
     expect(ok).toBe(true);
   });
 
@@ -583,7 +579,8 @@ describe("release-rollback coverage boost", () => {
       ...emit,
       spawnText: (_cmd, args) => {
         if (args.includes("rev-parse")) return { status: 0, stdout: `${SHA}\n`, stderr: "" };
-        if (args.includes("push") && args.includes("--delete")) return { status: 0, stdout: "", stderr: "" };
+        if (args.includes("push") && args.includes("--delete"))
+          return { status: 0, stdout: "", stderr: "" };
         if (args.includes("-l")) return { status: 0, stdout: "", stderr: "" };
         if (args.includes("revert")) return { status: 1, stdout: "", stderr: "conflict" };
         return { status: 0, stdout: "", stderr: "" };
@@ -604,4 +601,3 @@ describe("release-rollback coverage boost", () => {
     expect(unwindTagPushedNoRelease(cfg(), conflictSeams)).toBe(EXIT_VIOLATION);
   });
 });
-

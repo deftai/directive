@@ -258,8 +258,7 @@ export function runRollback(config: RollbackConfig, seams: RollbackSeams = {}): 
   if (config.dryRun) {
     emit(
       "Detect post-release state",
-      `DRYRUN (would probe gh release view v${config.version} + ` +
-        "git tag -l + git ls-remote)",
+      `DRYRUN (would probe gh release view v${config.version} + git tag -l + git ls-remote)`,
       seams,
     );
     const [state, payload, reason] = detectState(config, seams);

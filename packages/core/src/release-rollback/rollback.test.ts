@@ -1,31 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  DEFAULT_BOT_THRESHOLD,
-  EXIT_CONFIG_ERROR,
-  EXIT_OK,
-  EXIT_VIOLATION,
-  FIVE_MINUTES_SECONDS,
-  THIRTY_MINUTES_SECONDS,
-} from "./constants.js";
+import { DEFAULT_BOT_THRESHOLD, EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
+import { ghReleaseDelete, ghReleaseExists } from "./gh.js";
+import { gitPushBase, gitRevertReleaseCommit, resolveReleasePrepSha } from "./git.js";
 import { computeThreshold, doubleReadDownloads, releaseAgeSeconds, sumDownloads } from "./guard.js";
-import {
-  gitDeleteLocalTag,
-  gitDeleteRemoteTag,
-  gitPushBase,
-  gitRevertReleaseCommit,
-  gitTagExistsLocal,
-  gitTagExistsOrigin,
-  resolveReleasePrepSha,
-} from "./git.js";
-import { ghReleaseDelete, ghReleaseExists, ghReleaseViewJson } from "./gh.js";
 import { cmdRollback } from "./main.js";
-import {
-  detectState,
-  runRollback,
-  unwindLocal,
-  unwindReleased,
-  unwindTagPushedNoRelease,
-} from "./pipeline.js";
+import { detectState, runRollback, unwindLocal, unwindReleased } from "./pipeline.js";
 import type { GhReleasePayload, RollbackConfig, RollbackSeams } from "./types.js";
 
 const RELEASE_PREP_SHA = "6573335cafef00d000000000000000000000bbbb";
@@ -192,7 +171,12 @@ describe("doubleReadDownloads", () => {
         return next ?? [false, null, "exhausted"];
       },
     };
-    const [ok, c1, c2, reason] = doubleReadDownloads("0.21.0", "deftai/directive", { sleepSeconds: 0 }, seams);
+    const [ok, c1, c2, reason] = doubleReadDownloads(
+      "0.21.0",
+      "deftai/directive",
+      { sleepSeconds: 0 },
+      seams,
+    );
     expect(ok).toBe(true);
     expect(c1).toBe(3);
     expect(c2).toBe(3);
@@ -212,7 +196,12 @@ describe("doubleReadDownloads", () => {
         return next ?? [false, null, "exhausted"];
       },
     };
-    const [ok, c1, c2, reason] = doubleReadDownloads("0.21.0", "deftai/directive", { sleepSeconds: 0 }, seams);
+    const [ok, c1, c2, reason] = doubleReadDownloads(
+      "0.21.0",
+      "deftai/directive",
+      { sleepSeconds: 0 },
+      seams,
+    );
     expect(ok).toBe(false);
     expect(c1).toBe(3);
     expect(c2).toBe(5);
@@ -223,7 +212,12 @@ describe("doubleReadDownloads", () => {
     const seams: RollbackSeams = {
       ghReleaseViewJson: () => [false, null, "auth required"],
     };
-    const [ok, , , reason] = doubleReadDownloads("0.21.0", "deftai/directive", { sleepSeconds: 0 }, seams);
+    const [ok, , , reason] = doubleReadDownloads(
+      "0.21.0",
+      "deftai/directive",
+      { sleepSeconds: 0 },
+      seams,
+    );
     expect(ok).toBe(false);
     expect(reason).toContain("first read failed");
   });
@@ -241,7 +235,12 @@ describe("doubleReadDownloads", () => {
         return next ?? [false, null, "exhausted"];
       },
     };
-    const [ok, , , reason] = doubleReadDownloads("0.21.0", "deftai/directive", { sleepSeconds: 0 }, seams);
+    const [ok, , , reason] = doubleReadDownloads(
+      "0.21.0",
+      "deftai/directive",
+      { sleepSeconds: 0 },
+      seams,
+    );
     expect(ok).toBe(false);
     expect(reason).toContain("second read failed");
   });
@@ -260,7 +259,7 @@ describe("detectState", () => {
   it("returns tag-pushed-no-release", () => {
     const seams: RollbackSeams = {
       ghReleaseViewJson: () => [false, null, "release not found"],
-      spawnText: (cmd, args) => {
+      spawnText: (_cmd, args) => {
         if (args.includes("ls-remote")) {
           return { status: 0, stdout: "abc\trefs/tags/v0.21.0\n", stderr: "" };
         }
@@ -277,7 +276,7 @@ describe("detectState", () => {
   it("returns local-only", () => {
     const seams: RollbackSeams = {
       ghReleaseViewJson: () => [false, null, "release not found"],
-      spawnText: (cmd, args) => {
+      spawnText: (_cmd, args) => {
         if (args.includes("ls-remote")) {
           return { status: 0, stdout: "", stderr: "" };
         }
@@ -430,7 +429,7 @@ describe("unwindReleased guard paths", () => {
 describe("cmdRollback", () => {
   it("invalid version exits 2", () => {
     const stderr: string[] = [];
-    const orig = process.stderr.write.bind(process.stderr);
+    const _orig = process.stderr.write.bind(process.stderr);
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
       stderr.push(String(chunk));
       return true;

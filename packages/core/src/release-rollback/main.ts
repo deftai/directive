@@ -1,8 +1,8 @@
+import { resolveProjectRoot, resolveRepo } from "../release/paths.js";
+import { validateVersion } from "../release/version.js";
 import { EXIT_CONFIG_ERROR } from "./constants.js";
 import { formatRollbackHelp, parseRollbackFlags } from "./flags.js";
 import { runRollback } from "./pipeline.js";
-import { resolveProjectRoot, resolveRepo } from "../release/paths.js";
-import { validateVersion } from "../release/version.js";
 import type { RollbackConfig, RollbackSeams } from "./types.js";
 
 export function cmdRollback(args: readonly string[], seams: RollbackSeams = {}): number {

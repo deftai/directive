@@ -113,12 +113,7 @@ function runScenario(
   scenario: ParityScenario,
 ): { python: ScenarioResult; ts: ScenarioResult } {
   const argv = [...scenario.argv];
-  const pyArgs = [
-    "run",
-    "python",
-    join(deftRoot, "scripts", "release_rollback.py"),
-    ...argv,
-  ];
+  const pyArgs = ["run", "python", join(deftRoot, "scripts", "release_rollback.py"), ...argv];
   const tsArgs = [join(deftRoot, "packages", "cli", "dist", "release-rollback.js"), ...argv];
   const py = runCapture("uv", pyArgs, deftRoot);
   const ts = runCapture("node", tsArgs, deftRoot);

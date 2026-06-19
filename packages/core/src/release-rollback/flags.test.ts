@@ -42,12 +42,7 @@ describe("parseRollbackFlags", () => {
   });
 
   it("records empty equals-form values as unknown", () => {
-    const flags = parseRollbackFlags([
-      "0.21.0",
-      "--repo=",
-      "--base-branch=",
-      "--project-root=",
-    ]);
+    const flags = parseRollbackFlags(["0.21.0", "--repo=", "--base-branch=", "--project-root="]);
     expect(flags.unknown).toContain("--repo= (empty value)");
     expect(flags.unknown).toContain("--base-branch= (empty value)");
     expect(flags.unknown).toContain("--project-root= (empty value)");

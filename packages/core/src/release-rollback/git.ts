@@ -18,11 +18,7 @@ export function gitTagExistsOrigin(
   seams: RollbackSeams = {},
 ): boolean {
   const tag = `v${version}`;
-  const result = runGit(
-    projectRoot,
-    ["ls-remote", "--tags", "origin", `refs/tags/${tag}`],
-    seams,
-  );
+  const result = runGit(projectRoot, ["ls-remote", "--tags", "origin", `refs/tags/${tag}`], seams);
   return Boolean(result.stdout.trim());
 }
 
@@ -67,11 +63,7 @@ export function resolveReleasePrepSha(
   }
 
   const grepPattern = `^${RELEASE_COMMIT_SUBJECT_PREFIX}${version}`;
-  const grep = runGit(
-    projectRoot,
-    ["log", "--grep", grepPattern, "--format=%H", "-n", "1"],
-    seams,
-  );
+  const grep = runGit(projectRoot, ["log", "--grep", grepPattern, "--format=%H", "-n", "1"], seams);
   if (grep.status === 0) {
     const lines = (grep.stdout || "").trim().split(/\r?\n/);
     if (lines.length > 0) {
@@ -107,8 +99,7 @@ export function gitRevertReleaseCommit(
   const abort = runGit(projectRoot, ["revert", "--abort"], seams);
   let abortNote = "";
   if (abort.status !== 0) {
-    abortNote =
-      ` (additionally, \`git revert --abort\` failed: ` + `${abort.stderr.trim()})`;
+    abortNote = ` (additionally, \`git revert --abort\` failed: ${abort.stderr.trim()})`;
   }
   const stderr = (result.stderr || "").trim();
   return [
