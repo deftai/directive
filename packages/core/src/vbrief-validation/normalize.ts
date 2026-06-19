@@ -10,6 +10,52 @@ export function splitLines(content: string): string[] {
   return lines;
 }
 
+// Single-character whitespace probe. A regex without a quantifier is constant
+// time, so these helpers replace ReDoS-prone anchored quantifiers like
+// ``/\s+$/`` / ``/X+$/`` with linear character scans (CodeQL js/polynomial-redos).
+const WS_CHAR = /\s/;
+
+/** Equivalent of ``value.replace(/\s+$/, "")`` without backtracking. */
+export function stripTrailingWhitespace(value: string): string {
+  let end = value.length;
+  while (end > 0 && WS_CHAR.test(value[end - 1] as string)) {
+    end -= 1;
+  }
+  return value.slice(0, end);
+}
+
+/** Equivalent of ``value.replace(/^\s+/, "")`` without backtracking. */
+export function stripLeadingWhitespace(value: string): string {
+  let start = 0;
+  while (start < value.length && WS_CHAR.test(value[start] as string)) {
+    start += 1;
+  }
+  return value.slice(start);
+}
+
+/** Equivalent of ``value.replace(/^[chars]+|[chars]+$/g, "")`` without backtracking. */
+export function stripEdgeChars(value: string, chars: string): string {
+  const set = new Set(chars);
+  let start = 0;
+  let end = value.length;
+  while (start < end && set.has(value[start] as string)) {
+    start += 1;
+  }
+  while (end > start && set.has(value[end - 1] as string)) {
+    end -= 1;
+  }
+  return value.slice(start, end);
+}
+
+/** Equivalent of ``value.replace(/[char]+$/, "")`` without backtracking. */
+export function stripTrailingChar(value: string, char: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === char) {
+    end -= 1;
+  }
+  return value.slice(0, end);
+}
+
 /** Replace absolute fixture paths with a stable token for parity payloads. */
 export function normalizeFixturePaths(value: unknown, fixtureRoot: string): unknown {
   const token = "<FIXTURE>";

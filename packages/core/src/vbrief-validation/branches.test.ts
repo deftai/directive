@@ -23,6 +23,7 @@ import {
 import {
   finalizeMigration,
   isolateInvalidOutput,
+  setValidateAllForTests,
   slugifyId,
   validateMigrationOutput,
 } from "./validation.js";
@@ -112,9 +113,14 @@ describe("remaining vbrief-validation branches", () => {
   });
 
   it("covers main --all mode", () => {
+    setValidateAllForTests(() => [[], []]);
     const root = mkdtempSync(join(tmpdir(), "vb-main-all-"));
-    expect(cmdVbriefValidation(["--all", "--fixture-root", root])).toBe(0);
-    rmSync(root, { recursive: true, force: true });
+    try {
+      expect(cmdVbriefValidation(["--all", "--fixture-root", root])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setValidateAllForTests(null);
+    }
   });
 
   it("validateMigrationOutput uses bridge when directory exists", () => {

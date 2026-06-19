@@ -1,3 +1,4 @@
+import { stripEdgeChars, stripTrailingChar } from "./normalize.js";
 import type { JsonObject } from "./types.js";
 
 export const BROAD_FILE_SCOPE_ROOTS = new Set(["backend", "frontend", "docs", "vbrief"]);
@@ -108,7 +109,11 @@ export const OBSERVABLE_TERMS = [
   "then ",
 ] as const;
 
-const USER_STORY_RE = /^\s*As\s+a[n]?\s+[^,]+,\s*I\s+want\s+.+,\s*so\s+that\s+.+\.\s*$/is;
+// ReDoS-free equivalent of the original ``\s+[^,]+`` / ``\s+.+`` segments: a
+// leading ``\s`` followed by a greedy class fully absorbs the extra whitespace,
+// so the match set is identical without the overlapping-quantifier backtracking
+// (CodeQL js/polynomial-redos).
+const USER_STORY_RE = /^\s*As\s+a[n]?\s[^,]+,\s*I\s+want\s.+,\s*so\s+that\s.+\.\s*$/is;
 
 export function asStrList(value: unknown): string[] {
   if (value === null || value === undefined) {
@@ -309,12 +314,12 @@ export function storyQualityIssues(params: StoryQualityParams): string[] {
 function fileScopeIssues(swarm: JsonObject): string[] {
   const issues: string[] = [];
   for (const filePath of asStrList(swarm.file_scope)) {
-    const normalized = filePath.trim().replace(/^\/+|\/+$/g, "");
+    const normalized = stripEdgeChars(filePath.trim(), "/");
     const root = normalized.split("/", 1)[0] ?? "";
     if (
       /[*?[]/.test(normalized) ||
       BROAD_FILE_SCOPE_ROOTS.has(normalized) ||
-      BROAD_FILE_SCOPE_ROOTS.has(filePath.replace(/\/+$/, "")) ||
+      BROAD_FILE_SCOPE_ROOTS.has(stripTrailingChar(filePath, "/")) ||
       (BROAD_FILE_SCOPE_ROOTS.has(root) && (normalized === root || normalized === `${root}/*`))
     ) {
       issues.push(`broad file_scope is not swarm-ready: ${filePath}`);
@@ -372,10 +377,52 @@ function looksObservable(lower: string): boolean {
 }
 
 function sentenceCount(value: string): number {
-  return value
-    .trim()
-    .split(/[.!?]+(?:\s+|$)/)
-    .filter((part) => part.trim().length > 0).length;
+  // Equivalent of ``value.trim().split(/[.!?]+(?:\s+|$)/).filter(non-empty-trim).length``
+  // implemented as a linear scan to avoid the ReDoS-prone ``[.!?]+(?:\s+|$)``
+  // (CodeQL js/polynomial-redos). A segment boundary is a maximal run of
+  // ``[.!?]`` immediately followed by whitespace or end-of-string.
+  const trimmed = value.trim();
+  let count = 0;
+  let segmentHasContent = false;
+  let i = 0;
+  while (i < trimmed.length) {
+    const ch = trimmed[i] as string;
+    if (ch === "." || ch === "!" || ch === "?") {
+      let j = i + 1;
+      while (j < trimmed.length) {
+        const next = trimmed[j] as string;
+        if (next === "." || next === "!" || next === "?") {
+          j += 1;
+        } else {
+          break;
+        }
+      }
+      const boundary = j >= trimmed.length || /\s/.test(trimmed[j] as string);
+      if (boundary) {
+        if (segmentHasContent) {
+          count += 1;
+        }
+        segmentHasContent = false;
+        i = j;
+        while (i < trimmed.length && /\s/.test(trimmed[i] as string)) {
+          i += 1;
+        }
+        continue;
+      }
+      // Terminators not followed by whitespace/end are ordinary segment content.
+      segmentHasContent = true;
+      i = j;
+      continue;
+    }
+    if (!/\s/.test(ch)) {
+      segmentHasContent = true;
+    }
+    i += 1;
+  }
+  if (segmentHasContent) {
+    count += 1;
+  }
+  return count;
 }
 
 function stepCount(value: string): number {

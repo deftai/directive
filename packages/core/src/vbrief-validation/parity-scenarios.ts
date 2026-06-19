@@ -108,6 +108,79 @@ const STORY_QUALITY_BASE = {
   concurrentReady: true,
 };
 
+// Edge-case batteries that stress the ReDoS-free regex rewrites (task headings,
+// Depends/Traces/Acceptance lines, h2 heading parsing, slug edge strips, and the
+// user-story template). Kept byte-identical to the Python driver so the harness
+// proves equivalence on inputs the base fixtures do not reach (#1782 s2).
+const EDGE_SPEC = `### t1.1.1 -- Title A [done]
+
+Body line.
+
+Depends on: t1.0.1, t1.0.2
+
+**Traces**: FR-1, NFR-2
+
+Acceptance criteria:
+
+- crit one
+
+#### \`t2.2\` Backtick title
+
+**Depends on** : none
+
+Traces: FR-9
+
+Acceptance:
+
+- crit two
+
+### t3.3.3: colon title [pending]
+
+Dependson: t1.0.1
+
+##### t6.6.6 five hashes not a task
+
+### t4.4.4    spaced   [wip]
+
+### t5.5.5 title with [notend] tail
+`;
+
+const EDGE_HEADINGS = `## Title one  
+
+body1
+
+##   Spaced Title   
+
+body2
+
+## 
+
+still body
+
+### h3 not top
+
+## Final
+
+last
+`;
+
+const EDGE_SLUGS = [
+  "---Hello---World---",
+  "!!!",
+  "  spaced  ",
+  "Mix-Of_Things 42",
+  `${"a".repeat(90)}----`,
+];
+
+const EDGE_STORIES = [
+  "As  a   maintainer ,  I want   x , so   that   y .",
+  "As an engineer, I want feature, so that benefit.",
+  "as a x, i want y, so that z.",
+  "As a role, I want cap, so that out",
+  "As a, I want y, so that z.",
+  "As a role, I want cap, so that done.",
+];
+
 function writeValidProjectDefinition(vbriefDir: string): void {
   const data = {
     vBRIEFInfo: { version: "0.6" },
@@ -440,6 +513,21 @@ export function runParityScenario(name: string, ctx: ParityScenarioContext): Par
       const [records, actions] = writeBackups(projectRoot, [[src, dst]], { dryRun: true });
       return { scenario: name, ok: true, payload: { records, actions } };
     }
+    case "regex-edge-cases":
+      return {
+        scenario: name,
+        ok: true,
+        payload: {
+          tasks: parseSpecTasks(EDGE_SPEC),
+          headings: parseTopLevelSections(EDGE_HEADINGS),
+          slugs: EDGE_SLUGS.map((s) => slugifyId(s)),
+          stories: EDGE_STORIES.map((s) =>
+            storyQualityIssues({ ...STORY_QUALITY_BASE, userStory: s }).some((i) =>
+              i.includes("UserStory must match"),
+            ),
+          ),
+        },
+      };
     default:
       return { scenario: name, ok: false, payload: { error: `unknown scenario: ${name}` } };
   }
@@ -473,6 +561,7 @@ export const PARITY_SCENARIO_NAMES = [
   "safety-plan-backups",
   "safety-manifest-roundtrip",
   "safety-write-backups-dryrun",
+  "regex-edge-cases",
 ] as const;
 
 /** Render scenario output bytes for parity compare. */

@@ -5,17 +5,231 @@ import {
   partitionSections,
   SPEC_KNOWN_MAPPINGS,
 } from "./legacy-sections.js";
-import { splitLines } from "./normalize.js";
+import { splitLines, stripEdgeChars } from "./normalize.js";
 import type { JsonObject, MigrationLogEntry, SectionTuple, SpecTask } from "./types.js";
 
 export { CANONICAL_SPEC_KEYS, SPEC_KNOWN_MAPPINGS };
 
-const TASK_HEADING_RE =
-  /^(?<hashes>#{3,4})\s+(?:`)?(?<task_id>t[0-9]+(?:\.[0-9]+)+)(?:`)?(?:\s*[-:]+\s*|\s+)(?<title>[^[\n]+?)(?:\s*\[(?<status>[a-zA-Z_-]+)\])?\s*$/;
+// --- ReDoS-free line-header parsers (CodeQL js/polynomial-redos) -------------
+// The original regexes used overlapping ``\s*``/``.+`` quantifiers that CodeQL
+// flags as polynomial. These helpers reproduce the exact match semantics with
+// linear character scans (``/\s/.test(singleChar)`` is constant time).
 
-const DEPENDS_ON_RE = /^\*{0,2}\s*Depends\s*on\s*\*{0,2}\s*:\s*(?<deps>.+)$/i;
+/** Skip a run of whitespace; return the index after it. */
+function skipWs(s: string, start: number): number {
+  let i = start;
+  while (i < s.length && /\s/.test(s[i] as string)) {
+    i += 1;
+  }
+  return i;
+}
 
-const TRACES_RE = /^\s*\*{0,2}\s*Traces\s*\*{0,2}\s*:\s*(?<traces>.+)$/i;
+/** Consume up to ``max`` ``*`` characters; return the index after them. */
+function skipAsterisks(s: string, start: number, max: number): number {
+  let i = start;
+  while (i < start + max && s[i] === "*") {
+    i += 1;
+  }
+  return i;
+}
+
+/** Case-insensitive literal match of ``lit`` at ``i``. */
+function literalAt(s: string, i: number, lit: string): boolean {
+  return s.slice(i, i + lit.length).toLowerCase() === lit;
+}
+
+/**
+ * Equivalent of ``/^\*{0,2}\s*Depends\s*on\s*\*{0,2}\s*:\s*(?<deps>.+)$/i``
+ * applied to a trimmed line. Returns the raw deps substring (caller trims) or
+ * null when the line is not a "Depends on:" line.
+ */
+function matchDependsOn(s: string): string | null {
+  let i = skipAsterisks(s, 0, 2);
+  i = skipWs(s, i);
+  if (!literalAt(s, i, "depends")) {
+    return null;
+  }
+  i = skipWs(s, i + 7);
+  if (!literalAt(s, i, "on")) {
+    return null;
+  }
+  i = skipWs(s, i + 2);
+  i = skipAsterisks(s, i, 2);
+  i = skipWs(s, i);
+  if (s[i] !== ":") {
+    return null;
+  }
+  i += 1;
+  // ``\s*(?<deps>.+)$`` matches iff >=1 char remains after the colon.
+  return i < s.length ? s.slice(i) : null;
+}
+
+/**
+ * Equivalent of ``/^\s*\*{0,2}\s*Traces\s*\*{0,2}\s*:\s*(?<traces>.+)$/i``
+ * applied to a trimmed line. Returns the raw traces substring or null.
+ */
+function matchTraces(s: string): string | null {
+  let i = skipWs(s, 0);
+  i = skipAsterisks(s, i, 2);
+  i = skipWs(s, i);
+  if (!literalAt(s, i, "traces")) {
+    return null;
+  }
+  i = skipWs(s, i + 6);
+  i = skipAsterisks(s, i, 2);
+  i = skipWs(s, i);
+  if (s[i] !== ":") {
+    return null;
+  }
+  i += 1;
+  return i < s.length ? s.slice(i) : null;
+}
+
+/**
+ * Equivalent of ``/^\*{0,2}\s*Acceptance(?:\s+criteria)?\*{0,2}\s*:?\s*$/i``
+ * applied to a trimmed line.
+ */
+function isAcceptanceHeading(s: string): boolean {
+  let i = skipAsterisks(s, 0, 2);
+  i = skipWs(s, i);
+  if (!literalAt(s, i, "acceptance")) {
+    return false;
+  }
+  i += 10;
+  // optional ``\s+criteria`` (the whitespace is mandatory inside the group)
+  const afterWs = skipWs(s, i);
+  if (afterWs > i && literalAt(s, afterWs, "criteria")) {
+    i = afterWs + 8;
+  }
+  i = skipAsterisks(s, i, 2);
+  i = skipWs(s, i);
+  if (s[i] === ":") {
+    i += 1;
+  }
+  i = skipWs(s, i);
+  return i === s.length;
+}
+
+/** Match a trailing ``[status]`` group: ``\[[a-zA-Z_-]+\]\s*$`` (tail starts at ``[``). */
+function matchBracketStatus(tail: string): string | null {
+  let i = 1;
+  while (i < tail.length && /[a-zA-Z_-]/.test(tail[i] as string)) {
+    i += 1;
+  }
+  if (i === 1 || tail[i] !== "]") {
+    return null;
+  }
+  const status = tail.slice(1, i);
+  i = skipWs(tail, i + 1);
+  return i === tail.length ? status : null;
+}
+
+/**
+ * Parse ``(?<title>[^[\n]+?)(?:\s*\[(?<status>[a-zA-Z_-]+)\])?\s*$`` over the
+ * region after a task-heading separator. Title is trimmed by the caller.
+ */
+function parseTitleAndStatus(region: string): { title: string; status: string | null } | null {
+  if (region.length === 0) {
+    return null;
+  }
+  const bracket = region.indexOf("[");
+  if (bracket === -1) {
+    return { title: region.trim(), status: null };
+  }
+  if (bracket === 0) {
+    return null; // title requires >=1 character before the '['
+  }
+  const status = matchBracketStatus(region.slice(bracket));
+  if (status === null) {
+    return null; // a '[' that is not a valid trailing status cannot be in the title
+  }
+  return { title: region.slice(0, bracket).trim(), status };
+}
+
+/**
+ * Equivalent of TASK_HEADING_RE:
+ * ``^(?<hashes>#{3,4})\s+(?:`)?(?<task_id>t[0-9]+(?:\.[0-9]+)+)(?:`)?``
+ * ``(?:\s*[-:]+\s*|\s+)(?<title>[^[\n]+?)(?:\s*\[(?<status>[a-zA-Z_-]+)\])?\s*$``
+ * implemented as a linear parser to avoid the ReDoS-prone separator/title
+ * overlaps. Returns the captured groups or null.
+ */
+function matchTaskHeading(
+  line: string,
+): { task_id: string; title: string; status: string | null } | null {
+  let i = 0;
+  let hashes = 0;
+  while (line[i] === "#") {
+    hashes += 1;
+    i += 1;
+  }
+  if (hashes < 3 || hashes > 4) {
+    return null;
+  }
+  const afterHashWs = skipWs(line, i);
+  if (afterHashWs === i) {
+    return null; // \s+ requires >=1 whitespace
+  }
+  i = afterHashWs;
+  if (line[i] === "`") {
+    i += 1;
+  }
+  // task_id: t[0-9]+(?:\.[0-9]+)+
+  const idStart = i;
+  if (line[i] !== "t") {
+    return null;
+  }
+  i += 1;
+  let digits = 0;
+  while (i < line.length && line[i] !== undefined && /[0-9]/.test(line[i] as string)) {
+    i += 1;
+    digits += 1;
+  }
+  if (digits === 0) {
+    return null;
+  }
+  let groups = 0;
+  while (line[i] === ".") {
+    let k = i + 1;
+    let groupDigits = 0;
+    while (k < line.length && /[0-9]/.test(line[k] as string)) {
+      k += 1;
+      groupDigits += 1;
+    }
+    if (groupDigits === 0) {
+      break;
+    }
+    i = k;
+    groups += 1;
+  }
+  if (groups === 0) {
+    return null;
+  }
+  const taskId = line.slice(idStart, i);
+  if (line[i] === "`") {
+    i += 1;
+  }
+  const tail = line.slice(i);
+  // Separator alt1: \s* [-:]+ \s*  (trailing whitespace folds into the title)
+  const afterSepWs = skipWs(tail, 0);
+  let dashEnd = afterSepWs;
+  while (dashEnd < tail.length && (tail[dashEnd] === "-" || tail[dashEnd] === ":")) {
+    dashEnd += 1;
+  }
+  if (dashEnd > afterSepWs) {
+    const parsed = parseTitleAndStatus(tail.slice(dashEnd));
+    if (parsed) {
+      return { task_id: taskId, title: parsed.title, status: parsed.status };
+    }
+  }
+  // Separator alt2: \s+  (mandatory >=1 whitespace; the rest folds into title)
+  if (tail.length > 0 && /\s/.test(tail[0] as string)) {
+    const parsed = parseTitleAndStatus(tail.slice(1));
+    if (parsed) {
+      return { task_id: taskId, title: parsed.title, status: parsed.status };
+    }
+  }
+  return null;
+}
 
 const REQ_DEF_RE =
   /^\s*(?:[-*]\s+)?\*{0,2}\s*(?<id>(?:FR|NFR)-\d+)\s*\*{0,2}\s*[:-]+\s*(?<desc>.+?)\s*$/i;
@@ -55,7 +269,7 @@ function stripBulletPrefix(value: string): string {
 function tokenizeDeps(raw: string): string[] {
   const out: string[] = [];
   for (const tok of raw.split(/[,\s]+/)) {
-    const cleaned = tok.trim().replace(/^[`*,;. ]+|[`*,;. ]+$/g, "");
+    const cleaned = stripEdgeChars(tok.trim(), "`*,;. ");
     if (cleaned) {
       out.push(cleaned);
     }
@@ -86,27 +300,27 @@ export function parseSpecTasks(content: string): SpecTask[] {
     let inAcceptance = false;
     for (const raw of bodyLines) {
       const stripped = raw.trim();
-      const depMatch = DEPENDS_ON_RE.exec(stripped);
-      if (depMatch?.groups?.deps !== undefined) {
-        const depsRaw = depMatch.groups.deps.trim();
-        if (!["none", "n/a", "-"].includes(depsRaw.toLowerCase())) {
-          depends.push(...tokenizeDeps(depsRaw));
+      const depsRaw = matchDependsOn(stripped);
+      if (depsRaw !== null) {
+        const deps = depsRaw.trim();
+        if (!["none", "n/a", "-"].includes(deps.toLowerCase())) {
+          depends.push(...tokenizeDeps(deps));
         }
         inAcceptance = false;
         continue;
       }
-      const traceMatch = TRACES_RE.exec(stripped);
-      if (traceMatch?.groups?.traces !== undefined) {
+      const tracesRaw = matchTraces(stripped);
+      if (tracesRaw !== null) {
         TRACE_ID_RE.lastIndex = 0;
-        let m = TRACE_ID_RE.exec(traceMatch.groups.traces);
+        let m = TRACE_ID_RE.exec(tracesRaw);
         while (m !== null) {
           traces.push(m[0].toUpperCase());
-          m = TRACE_ID_RE.exec(traceMatch.groups.traces);
+          m = TRACE_ID_RE.exec(tracesRaw);
         }
         inAcceptance = false;
         continue;
       }
-      if (/^\*{0,2}\s*Acceptance(?:\s+criteria)?\*{0,2}\s*:?\s*$/i.test(stripped)) {
+      if (isAcceptanceHeading(stripped)) {
         inAcceptance = true;
         continue;
       }
@@ -156,13 +370,13 @@ export function parseSpecTasks(content: string): SpecTask[] {
   for (let idx = 0; idx < lines.length; idx += 1) {
     const line = lines[idx] ?? "";
     const lineNo = idx + 1;
-    const heading = TASK_HEADING_RE.exec(line);
-    if (heading?.groups?.task_id !== undefined) {
+    const heading = matchTaskHeading(line);
+    if (heading !== null) {
       flush(lineNo - 1);
       current = {
-        task_id: heading.groups.task_id.trim(),
-        title: heading.groups.title?.trim() ?? "",
-        status: mapSpecStatus(heading.groups.status ?? null),
+        task_id: heading.task_id.trim(),
+        title: heading.title,
+        status: mapSpecStatus(heading.status ?? null),
       };
       currentStart = lineNo;
       currentBodyLines = [];

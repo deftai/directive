@@ -116,6 +116,69 @@ STORY_QUALITY_BASE = {
     "concurrent_ready": True,
 }
 
+EDGE_SPEC = """### t1.1.1 -- Title A [done]
+
+Body line.
+
+Depends on: t1.0.1, t1.0.2
+
+**Traces**: FR-1, NFR-2
+
+Acceptance criteria:
+
+- crit one
+
+#### \x60t2.2\x60 Backtick title
+
+**Depends on** : none
+
+Traces: FR-9
+
+Acceptance:
+
+- crit two
+
+### t3.3.3: colon title [pending]
+
+Dependson: t1.0.1
+
+##### t6.6.6 five hashes not a task
+
+### t4.4.4    spaced   [wip]
+
+### t5.5.5 title with [notend] tail
+"""
+
+EDGE_HEADINGS = """## Title one  
+
+body1
+
+##   Spaced Title   
+
+body2
+
+## 
+
+still body
+
+### h3 not top
+
+## Final
+
+last
+"""
+
+EDGE_SLUGS = ["---Hello---World---", "!!!", "  spaced  ", "Mix-Of_Things 42", "a" * 90 + "----"]
+
+EDGE_STORIES = [
+    "As  a   maintainer ,  I want   x , so   that   y .",
+    "As an engineer, I want feature, so that benefit.",
+    "as a x, i want y, so that z.",
+    "As a role, I want cap, so that out",
+    "As a, I want y, so that z.",
+    "As a role, I want cap, so that done.",
+]
+
 
 def sorted_diag(errors, warnings):
     return {"errors": sorted(errors), "warnings": sorted(warnings)}
@@ -407,6 +470,16 @@ def run_scenario(name, fixture_root):
             {"source": r.source, "backup": r.backup, "source_sha256": r.source_sha256, "size_bytes": r.size_bytes}
             for r in records
         ], "actions": actions}}
+    if name == "regex-edge-cases":
+        return {"scenario": name, "ok": True, "payload": {
+            "tasks": parse_spec_tasks(EDGE_SPEC),
+            "headings": parse_top_level_sections(EDGE_HEADINGS),
+            "slugs": [slugify_id(s) for s in EDGE_SLUGS],
+            "stories": [
+                any("UserStory must match" in i for i in story_quality_issues(**{**STORY_QUALITY_BASE, "user_story": s}))
+                for s in EDGE_STORIES
+            ],
+        }}
     return {"scenario": name, "ok": False, "payload": {"error": f"unknown scenario: {name}"}}
 
 

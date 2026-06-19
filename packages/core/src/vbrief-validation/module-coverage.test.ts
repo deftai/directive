@@ -402,10 +402,15 @@ describe("vbrief-validation module branch coverage", () => {
   it("covers fidelity status defaults and main fixture-root flag", () => {
     expect(mapSpecStatus(null)).toBe("pending");
     expect(mapSpecStatus("")).toBe("pending");
+    setValidateAllForTests(() => [[], []]);
     const root = mkdtempSync(join(tmpdir(), "vb-main-fixture-"));
-    expect(run(["--all", "--fixture-root", root])).toBe(0);
-    expect(run(["--fixture-root"])).toBe(2);
-    rmSync(root, { recursive: true, force: true });
+    try {
+      expect(run(["--all", "--fixture-root", root])).toBe(0);
+      expect(run(["--fixture-root"])).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setValidateAllForTests(null);
+    }
   });
 
   it("covers nested trace detection and slug fallback ordering", () => {

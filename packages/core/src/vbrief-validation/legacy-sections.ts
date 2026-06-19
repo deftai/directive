@@ -1,4 +1,4 @@
-import { splitLines } from "./normalize.js";
+import { splitLines, stripLeadingWhitespace, stripTrailingWhitespace } from "./normalize.js";
 import type { SectionTuple } from "./types.js";
 
 /** Legacy section helpers consumed by fidelity (#495 / #506 D5). */
@@ -77,7 +77,7 @@ export function parseTopLevelSections(content: string): SectionTuple[] {
     if (currentTitle === null) {
       return;
     }
-    const body = currentBody.join("\n").replace(/\s+$/, "");
+    const body = stripTrailingWhitespace(currentBody.join("\n"));
     sections.push([currentTitle, body, currentStart, endLine]);
   };
 
@@ -93,10 +93,12 @@ export function parseTopLevelSections(content: string): SectionTuple[] {
       continue;
     }
     if (!inFence) {
-      const match = /^##\s+(.+?)\s*$/.exec(line);
-      if (match) {
+      // Equivalent of ``/^##\s+(.+?)\s*$/`` (h2 heading) without backtracking:
+      // ``##`` then >=1 whitespace then >=1 character, captured fully trimmed.
+      const rest = line.startsWith("##") ? line.slice(2) : "";
+      if (rest.length >= 2 && /\s/.test(rest[0] as string)) {
         flush(lineNo - 1);
-        currentTitle = match[1]?.trim() ?? "";
+        currentTitle = stripTrailingWhitespace(stripLeadingWhitespace(rest));
         currentStart = lineNo;
         currentBody.length = 0;
         continue;
@@ -127,7 +129,7 @@ export function partitionSections(
       continue;
     }
     if (key in canonical) {
-      canonical[key] = `${canonical[key]?.replace(/\s+$/, "")}\n\n${body.trim()}`;
+      canonical[key] = `${stripTrailingWhitespace(canonical[key] ?? "")}\n\n${body.trim()}`;
     } else {
       canonical[key] = body.trim();
     }

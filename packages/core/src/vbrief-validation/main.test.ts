@@ -4,9 +4,14 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cmdVbriefValidation, run } from "./main.js";
 import { PARITY_SCENARIO_NAMES, runParityScenario } from "./parity-scenarios.js";
+import { setValidateAllForTests } from "./validation.js";
 
 describe("vbrief-validation parity scenarios", () => {
   it("runs every named scenario", () => {
+    // Stub the Python validate_all bridge so the suite stays hermetic in the
+    // Node-only CI job (the real bridge is exercised by the parity harness in
+    // the Python-enabled parity job).
+    setValidateAllForTests(() => [[], []]);
     const root = mkdtempSync(join(tmpdir(), "vb-parity-"));
     try {
       for (const name of PARITY_SCENARIO_NAMES) {
@@ -15,6 +20,7 @@ describe("vbrief-validation parity scenarios", () => {
       }
     } finally {
       rmSync(root, { recursive: true, force: true });
+      setValidateAllForTests(null);
     }
   });
 });

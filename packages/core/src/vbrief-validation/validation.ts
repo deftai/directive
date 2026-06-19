@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, renameSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { stripEdgeChars, stripTrailingChar } from "./normalize.js";
 import type { FinalizeMigrationOptions, JsonObject, ValidateAllFn } from "./types.js";
 
 export const RECOVERY_HINT = "Restore with: task migrate:vbrief -- --rollback";
@@ -55,12 +56,12 @@ export function setValidateAllForTests(fn: ValidateAllFn | null): void {
 export function slugifyId(raw: string | null | undefined, existing?: Set<string>): string {
   const text = (raw ?? "").trim();
   let slug = text.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  slug = slug.replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+  slug = stripEdgeChars(slug, "-");
   if (!slug) {
     slug = "untitled";
   }
   if (slug.length > ID_MAX_LENGTH) {
-    slug = slug.slice(0, ID_MAX_LENGTH).replace(/-+$/, "") || slug.slice(0, ID_MAX_LENGTH);
+    slug = stripTrailingChar(slug.slice(0, ID_MAX_LENGTH), "-") || slug.slice(0, ID_MAX_LENGTH);
   }
   if (existing === undefined) {
     return slug;
