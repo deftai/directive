@@ -46,7 +46,7 @@
         "title": "Issue #1530"
       },
       {
-        "uri": "pending/2026-06-19-port-swarm-cohort-cli-verbs-to-ts.vbrief.json",
+        "uri": "active/2026-06-19-port-swarm-cohort-cli-verbs-to-ts.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port swarm cohort CLI verbs to TS",
         "TrustLevel": "internal"

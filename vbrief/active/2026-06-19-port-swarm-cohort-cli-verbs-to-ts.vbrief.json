@@ -6,7 +6,7 @@
   "plan": {
     "id": "1788-s1-swarm-cohort-verbs",
     "title": "Port swarm cohort CLI verbs to TS",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.vbrief.json",
     "narratives": {
       "Description": "Port the harness-agnostic swarm cohort verbs from Python to TypeScript. Covers swarm_launch, swarm_complete_cohort, swarm_readiness, swarm_verify_review_clean, and swarm_worktrees so cohort launch-manifest emission, worktree-map resolution, and readiness checks run on the TS engine as advisory CLI verbs.",
@@ -77,6 +77,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1530"
       }
-    ]
+    ],
+    "updated": "2026-06-19T22:47:41Z"
   }
 }
