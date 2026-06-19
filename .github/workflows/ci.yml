@@ -258,6 +258,15 @@ jobs:
       - name: Golden-diff parity -- pr_merge_readiness (#1730)
         run: node packages/cli/dist/pr-merge-readiness-parity.js
 
+      - name: Golden-diff parity -- pr_check_protected_issues (#1730)
+        run: node packages/cli/dist/pr-protected-issues-parity.js
+
+      - name: Golden-diff parity -- pr_check_closing_keywords (#1730)
+        run: node packages/cli/dist/pr-closing-keywords-parity.js
+
+      - name: Golden-diff parity -- monitor_pr (#1730)
+        run: node packages/cli/dist/pr-monitor-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

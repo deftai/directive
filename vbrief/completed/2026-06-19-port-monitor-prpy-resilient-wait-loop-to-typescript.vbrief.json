@@ -6,7 +6,7 @@
   "plan": {
     "id": "1730-s4-monitor-pr",
     "title": "Port monitor_pr.py (resilient wait loop) to TypeScript",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/monitor_pr.py -- the resilient wait-until-ready loop (#1368) that polls PR state with bounded retries and survives transient gh failures without going blind -- to TypeScript over Node execFile UTF-8-safe capture, reusing @deftai/core/scm gh helpers. It is independently buildable as a self-contained packages/core/src/pr-monitor module with a golden parity binary.",
@@ -64,7 +64,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T13:58:40Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -94,6 +96,6 @@
         "title": "Issue #1728"
       }
     ],
-    "updated": "2026-06-19T13:39:12Z"
+    "updated": "2026-06-19T13:58:40Z"
   }
 }

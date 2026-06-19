@@ -73,6 +73,18 @@
     "./pr-merge-readiness": {
       "types": "./dist/pr-merge-readiness/index.d.ts",
       "default": "./dist/pr-merge-readiness/index.js"
+    },
+    "./pr-protected-issues": {
+      "types": "./dist/pr-protected-issues/index.d.ts",
+      "default": "./dist/pr-protected-issues/index.js"
+    },
+    "./pr-closing-keywords": {
+      "types": "./dist/pr-closing-keywords/index.d.ts",
+      "default": "./dist/pr-closing-keywords/index.js"
+    },
+    "./pr-monitor": {
+      "types": "./dist/pr-monitor/index.d.ts",
+      "default": "./dist/pr-monitor/index.js"
     }
   },
   "dependencies": {

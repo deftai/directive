@@ -32,6 +32,9 @@ export default defineConfig({
       "@deftai/core/release-rollback": sub("core", "release-rollback"),
       "@deftai/core/release-e2e": sub("core", "release-e2e"),
       "@deftai/core/pr-merge-readiness": sub("core", "pr-merge-readiness"),
+      "@deftai/core/pr-protected-issues": sub("core", "pr-protected-issues"),
+      "@deftai/core/pr-closing-keywords": sub("core", "pr-closing-keywords"),
+      "@deftai/core/pr-monitor": sub("core", "pr-monitor"),
       "@deftai/core": src("core"),
     },
   },
@@ -102,6 +105,9 @@ export default defineConfig({
         // spawn the Python oracle and are validated by the dedicated parity CI
         // job, not the Python-less node-only TS job. Pure helpers stay unit-tested.
         "packages/cli/src/pr-merge-readiness-parity.ts",
+        "packages/cli/src/pr-protected-issues-parity.ts",
+        "packages/cli/src/pr-closing-keywords-parity.ts",
+        "packages/cli/src/pr-monitor-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {
