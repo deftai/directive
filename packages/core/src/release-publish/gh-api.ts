@@ -1,5 +1,6 @@
 import { resolveGh } from "../release/gh.js";
 import { spawnText } from "../release/spawn.js";
+import type { SpawnResult } from "../release/types.js";
 import { RELEASES_LIST_ENDPOINT_TEMPLATE } from "./constants.js";
 import type { NormalisedRelease, ReleasePublishSeams, ViewReleaseState } from "./types.js";
 
@@ -21,7 +22,7 @@ export function ghApiFindReleaseByTag(
 ): [ViewReleaseState, NormalisedRelease | null, string] {
   const endpoint = RELEASES_LIST_ENDPOINT_TEMPLATE.replace("{repo}", repo);
   const spawn = seams.spawnText ?? spawnText;
-  let result;
+  let result: SpawnResult;
   try {
     result = spawn(ghPath, ["api", "--paginate", endpoint], {
       timeoutMs: 120_000,
@@ -103,7 +104,7 @@ export function editReleasePublish(
   }
 
   const endpoint = `repos/${repo}/releases/${resolvedId}`;
-  let result;
+  let result: SpawnResult;
   try {
     result = spawn(ghPath, ["api", endpoint, "--method", "PATCH", "-F", "draft=false"], {
       timeoutMs: 60_000,

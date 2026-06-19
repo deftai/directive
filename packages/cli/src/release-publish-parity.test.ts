@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { diffParity, PARITY_SCENARIOS, pickOutput, renderReport } from "./release-publish-parity.js";
+import {
+  diffParity,
+  PARITY_SCENARIOS,
+  pickOutput,
+  renderReport,
+} from "./release-publish-parity.js";
 
 describe("release-publish-parity helpers", () => {
   it("exports expected scenarios including safety paths", () => {

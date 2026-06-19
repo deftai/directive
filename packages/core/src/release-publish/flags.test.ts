@@ -1,10 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { RELEASE_PUBLISH_HELP } from "./constants.js";
-import {
-  formatMissingVersionError,
-  formatReleasePublishHelp,
-  parsePublishFlags,
-} from "./flags.js";
+import { formatMissingVersionError, formatReleasePublishHelp, parsePublishFlags } from "./flags.js";
 
 describe("release-publish flags", () => {
   it("formats help byte-identical to Python argparse", () => {

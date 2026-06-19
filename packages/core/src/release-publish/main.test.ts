@@ -34,9 +34,7 @@ describe("cmdReleasePublish", () => {
 
   it("dry-run delegates to runPublish", () => {
     const spy = vi.spyOn(pipeline, "runPublish").mockReturnValue(0);
-    expect(
-      cmdReleasePublish(["0.21.0", "--dry-run", "--repo", "deftai/directive"], {}),
-    ).toBe(0);
+    expect(cmdReleasePublish(["0.21.0", "--dry-run", "--repo", "deftai/directive"], {})).toBe(0);
     expect(spy.mock.calls[0]?.[0]).toMatchObject({
       version: "0.21.0",
       repo: "deftai/directive",

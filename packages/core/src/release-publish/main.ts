@@ -1,13 +1,9 @@
 import { EXIT_CONFIG_ERROR } from "../release/constants.js";
 import { resolveProjectRoot, resolveRepo } from "../release/paths.js";
-import {
-  formatMissingVersionError,
-  formatReleasePublishHelp,
-  parsePublishFlags,
-} from "./flags.js";
+import { validateVersion } from "../release/version.js";
+import { formatMissingVersionError, formatReleasePublishHelp, parsePublishFlags } from "./flags.js";
 import { runPublish } from "./pipeline.js";
 import type { PublishConfig, ReleasePublishSeams } from "./types.js";
-import { validateVersion } from "../release/version.js";
 
 export function cmdReleasePublish(
   args: readonly string[],
