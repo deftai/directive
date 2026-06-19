@@ -6,7 +6,7 @@
   "plan": {
     "id": "1783-s3-validate-content",
     "title": "Port the content validator gates (validate-links / validate_strategy_output / verify_capacity) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1783-featts-migration-port-the-remaining-verifyvalidate-gates-to.vbrief.json",
     "narratives": {
       "Description": "Port the three content-validator gates -- scripts/validate-links.py, scripts/validate_strategy_output.py, and scripts/verify_capacity.py -- to TypeScript with cache-off golden parity vs the Python oracle. validate-links checks intra-doc link integrity, validate_strategy_output validates strategy-output structure, and verify_capacity checks the WIP/capacity policy. All are leaf gates with no inter-dependency; three-state exits are preserved. Any regex ported MUST be a linear recognizer to avoid CodeQL js/polynomial-redos while staying byte-identical.",
@@ -55,7 +55,9 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1783 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T20:23:48Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -69,6 +71,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1730"
       }
-    ]
+    ],
+    "updated": "2026-06-19T20:23:48Z"
   }
 }

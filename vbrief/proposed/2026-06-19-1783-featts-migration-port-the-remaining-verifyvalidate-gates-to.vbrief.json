@@ -49,7 +49,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-content-validator-gates-validate-links-validate-str.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-content-validator-gates-validate-links-validate-str.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the content validator gates (validate-links / validate_strategy_output / verify_capacity) to TypeScript",
         "TrustLevel": "internal"

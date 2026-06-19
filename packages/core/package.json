@@ -117,6 +117,10 @@
     "./verify-source": {
       "types": "./dist/verify-source/index.d.ts",
       "default": "./dist/verify-source/index.js"
+    },
+    "./validate-content": {
+      "types": "./dist/validate-content/index.d.ts",
+      "default": "./dist/validate-content/index.js"
     }
   },
   "dependencies": {

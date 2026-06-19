@@ -291,6 +291,9 @@ jobs:
       - name: Golden-diff parity -- source-tree scanner gates (#1783 s2)
         run: node packages/cli/dist/verify-source-parity.js
 
+      - name: Golden-diff parity -- content validator gates (#1783 s3)
+        run: node packages/cli/dist/validate-content-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404
