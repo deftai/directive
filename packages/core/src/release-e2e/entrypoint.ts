@@ -86,9 +86,12 @@ export async function runEntrypointWorker(
   testBehavior?: "hang" | "throw",
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   const localWorker = fileURLToPath(new URL("./entrypoint-worker-thread.js", import.meta.url));
-  const distWorker = localWorker.includes(`${sep}src${sep}`)
-    ? localWorker.replace(`${sep}src${sep}`, `${sep}dist${sep}`)
-    : localWorker;
+  const srcSegment = `${sep}src${sep}`;
+  const srcIdx = localWorker.indexOf(srcSegment);
+  const distWorker =
+    srcIdx === -1
+      ? localWorker
+      : `${localWorker.slice(0, srcIdx)}${sep}dist${sep}${localWorker.slice(srcIdx + srcSegment.length)}`;
   const workerPath = existsSync(localWorker) ? localWorker : distWorker;
 
   return new Promise((resolvePromise) => {
