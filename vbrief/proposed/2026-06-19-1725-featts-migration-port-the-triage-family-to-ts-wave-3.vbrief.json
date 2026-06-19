@@ -90,7 +90,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-triage-aux-verbs-b-bulk-subscribe-help-smoketest-to-typ.vbrief.json",
+        "uri": "active/2026-06-19-port-triage-aux-verbs-b-bulk-subscribe-help-smoketest-to-typ.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage aux verbs B (bulk / subscribe / help / smoketest) to TypeScript",
         "TrustLevel": "internal"

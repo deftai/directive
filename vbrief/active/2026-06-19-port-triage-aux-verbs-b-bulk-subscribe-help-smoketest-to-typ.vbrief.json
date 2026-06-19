@@ -6,7 +6,7 @@
   "plan": {
     "id": "1725-s8-triage-aux-b",
     "title": "Port triage aux verbs B (bulk / subscribe / help / smoketest) to TypeScript",
-    "status": "proposed",
+    "status": "running",
     "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port the second aux cluster of the triage family (scripts/triage_bulk.py, triage_subscribe.py, triage_help.py, and triage_smoketest.py) to TypeScript, preserving the bulk action surface, the subscription handling, the help text, and the smoketest self-check. This story is independently buildable because each verb gets its own packages/core/src/triage subdirectory with no overlap with the other triage stories, and it ships a golden parity binary against the Python oracles.",
@@ -84,6 +84,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1724"
       }
-    ]
+    ],
+    "updated": "2026-06-19T01:56:57Z"
   }
 }
