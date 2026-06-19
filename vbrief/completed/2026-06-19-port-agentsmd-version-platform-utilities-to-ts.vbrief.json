@@ -6,7 +6,7 @@
   "plan": {
     "id": "1787-s3-platform-utilities",
     "title": "Port AGENTS.md + version + platform utilities to TS",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.vbrief.json",
     "narratives": {
       "Description": "Port the shared platform and text utilities from Python to TypeScript. Covers _agents_md, slug_normalize, resolve_version, resolve_changelog_unreleased, platform_capabilities, and ip_risk so AGENTS.md managed-section handling, slug normalization, version resolution, and changelog union-merge run on the TS engine identically.",
@@ -63,7 +63,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-19T23:03:10Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -78,6 +80,6 @@
         "title": "Issue #1530"
       }
     ],
-    "updated": "2026-06-19T22:47:41Z"
+    "updated": "2026-06-19T23:03:10Z"
   }
 }

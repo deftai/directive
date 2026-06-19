@@ -57,6 +57,7 @@ export default defineConfig({
       "@deftai/core/orchestration": sub("core", "orchestration"),
       "@deftai/core/packs": sub("core", "packs"),
       "@deftai/core/swarm": sub("core", "swarm"),
+      "@deftai/core/platform": sub("core", "platform"),
       "@deftai/core": src("core"),
     },
   },
@@ -146,6 +147,7 @@ export default defineConfig({
         "packages/cli/src/session-parity.ts",
         "packages/cli/src/orchestration-parity.ts",
         "packages/cli/src/swarm-parity.ts",
+        "packages/cli/src/platform-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

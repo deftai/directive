@@ -161,6 +161,10 @@
     "./swarm": {
       "types": "./dist/swarm/index.d.ts",
       "default": "./dist/swarm/index.js"
+    },
+    "./platform": {
+      "types": "./dist/platform/index.d.ts",
+      "default": "./dist/platform/index.js"
     }
   },
   "dependencies": {

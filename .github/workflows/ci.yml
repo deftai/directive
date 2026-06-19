@@ -315,6 +315,9 @@ jobs:
       - name: Golden-diff parity -- swarm cohort verbs (#1788 s1)
         run: node packages/cli/dist/swarm-parity.js
 
+      - name: Golden-diff parity -- AGENTS.md/version/platform (#1787 s3)
+        run: node packages/cli/dist/platform-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

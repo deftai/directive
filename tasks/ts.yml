@@ -272,6 +272,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/swarm-parity.js"
 
+  platform-parity:
+    desc: "Golden-diff the ported AGENTS.md/version/platform utilities vs the Python oracle, cache-off (#1787 s3)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/platform-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -319,3 +325,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/session-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/orchestration-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/swarm-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/platform-parity.js"
