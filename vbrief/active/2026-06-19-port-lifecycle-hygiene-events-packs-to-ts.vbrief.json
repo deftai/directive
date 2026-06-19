@@ -6,7 +6,7 @@
   "plan": {
     "id": "1787-s2-lifecycle-events-packs",
     "title": "Port lifecycle hygiene + events + packs to TS",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.vbrief.json",
     "narratives": {
       "Description": "Port the lifecycle-hygiene, event-detection, and content-packs surface from Python to TypeScript. Covers _lifecycle_hygiene, _event_detect, _events, pack_render, packs_slice, and quarantine_ext so lifecycle nudges and pack slicing run on the TS engine with identical output.",
@@ -78,6 +78,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1530"
       }
-    ]
+    ],
+    "updated": "2026-06-19T22:47:40Z"
   }
 }
