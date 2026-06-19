@@ -1,5 +1,11 @@
 import { extractValueFlag, filterJsonFields } from "./argv.js";
-import { GhRestError, InvalidRepoError, restIssueList, restIssueView } from "./gh-rest.js";
+import {
+  GhRestError,
+  type GhRestSeams,
+  InvalidRepoError,
+  restIssueList,
+  restIssueView,
+} from "./gh-rest.js";
 import { pyRepr, pythonJsonStringify } from "./py-format.js";
 
 function parseJsonFields(jsonSpec: string | null): string[] {
@@ -10,7 +16,10 @@ function parseJsonFields(jsonSpec: string | null): string[] {
 }
 
 /** Dispatch `scm issue view --rest <N> --repo X [--json fields]`. */
-export function runRestView(extra: readonly string[]): {
+export function runRestView(
+  extra: readonly string[],
+  seams: GhRestSeams = {},
+): {
   exitCode: number;
   stdout: string;
   stderr: string;
@@ -61,7 +70,7 @@ export function runRestView(extra: readonly string[]): {
   }
 
   try {
-    const response = restIssueView(repo, issueN);
+    const response = restIssueView(repo, issueN, seams);
     const fields = parseJsonFields(jsonSpec);
     const filtered = filterJsonFields(response, fields);
     return {
@@ -89,7 +98,10 @@ export function runRestView(extra: readonly string[]): {
 }
 
 /** Dispatch `scm issue list --rest --repo X [...flags]`. */
-export function runRestList(extra: readonly string[]): {
+export function runRestList(
+  extra: readonly string[],
+  seams: GhRestSeams = {},
+): {
   exitCode: number;
   stdout: string;
   stderr: string;
@@ -167,12 +179,16 @@ export function runRestList(extra: readonly string[]): {
   );
 
   try {
-    const response = restIssueList(repo, {
-      state: state ?? "open",
-      labels,
-      author,
-      perPage,
-    });
+    const response = restIssueList(
+      repo,
+      {
+        state: state ?? "open",
+        labels,
+        author,
+        perPage,
+      },
+      seams,
+    );
     const fields = parseJsonFields(jsonSpec);
     const filtered = filterJsonFields(response, fields);
     return {

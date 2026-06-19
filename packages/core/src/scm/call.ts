@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { resolveBinary } from "./binary.js";
 import { SUPPORTED_CALL_SOURCES } from "./constants.js";
-import { ScmStubError } from "./errors.js";
 import { pyRepr } from "./py-format.js";
 
 /** Mirrors Python `subprocess.CompletedProcess`. */
@@ -41,15 +40,7 @@ export function call(
     );
   }
 
-  let resolved: string;
-  try {
-    resolved = options.binary ?? resolveBinary(options.whichFn);
-  } catch (err: unknown) {
-    if (err instanceof ScmStubError) {
-      throw err;
-    }
-    throw err;
-  }
+  const resolved: string = options.binary ?? resolveBinary(options.whichFn);
 
   const argv = [resolved, verb, ...(args ?? [])];
   const captureOutput = options.captureOutput ?? true;

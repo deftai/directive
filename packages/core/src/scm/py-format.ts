@@ -23,8 +23,13 @@ export function pyTuple(items: readonly unknown[]): string {
   return `(${items.map((item) => pyRepr(item)).join(", ")})`;
 }
 
-/** JSON.dumps(..., ensure_ascii=False) default separators: ', ' and ': ' */
+/** JSON.dumps(..., ensure_ascii=False) default separators: ', ' and ': '.
+ * Only structural separators are expanded -- colons/commas inside string
+ * literals are preserved so values like "fix: bug" or "foo, bar" survive. */
 export function pythonJsonStringify(value: unknown): string {
-  const compact = JSON.stringify(value);
-  return compact.replace(/,/g, ", ").replace(/:/g, ": ");
+  return JSON.stringify(value, null, 0).replace(
+    /("(?:[^"\\]|\\.)*")|([:,])/g,
+    (_match, str: string | undefined, sep: string | undefined) =>
+      str !== undefined ? str : sep === ":" ? ": " : ", ",
+  );
 }

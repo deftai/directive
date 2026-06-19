@@ -17,4 +17,20 @@ describe("py-format", () => {
   it("pythonJsonStringify matches Python spacing", () => {
     expect(pythonJsonStringify({ number: 1, title: "x" })).toBe('{"number": 1, "title": "x"}');
   });
+
+  it("pythonJsonStringify preserves colons and commas inside string values", () => {
+    expect(pythonJsonStringify({ title: "fix: bug", body: "foo, bar" })).toBe(
+      '{"title": "fix: bug", "body": "foo, bar"}',
+    );
+  });
+
+  it("pythonJsonStringify preserves URLs containing colons", () => {
+    expect(pythonJsonStringify({ url: "https://example.com:443/a,b" })).toBe(
+      '{"url": "https://example.com:443/a,b"}',
+    );
+  });
+
+  it("pythonJsonStringify preserves escaped quotes inside strings", () => {
+    expect(pythonJsonStringify({ q: 'a "b: c, d" e' })).toBe('{"q": "a \\"b: c, d\\" e"}');
+  });
 });

@@ -4,15 +4,19 @@ import { ScmStubError } from "./errors.js";
 
 export type WhichFn = (name: string) => string | null;
 
-/** Default PATH lookup mirroring Python `shutil.which`. */
+/** Default PATH lookup mirroring Python `shutil.which`. Uses the
+ * platform-native resolver (`where` on Windows, `which` elsewhere) so
+ * executable resolution works cross-platform. */
 export function defaultWhich(name: string): string | null {
+  const locator = process.platform === "win32" ? "where" : "which";
   try {
-    const result = execFileSync("which", [name], {
+    const result = execFileSync(locator, [name], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
-    const trimmed = result.trim();
-    return trimmed.length > 0 ? trimmed : null;
+    // `where` may return multiple lines; take the first non-empty match.
+    const first = result.split(/\r?\n/).find((line) => line.trim().length > 0);
+    return first !== undefined ? first.trim() : null;
   } catch {
     return null;
   }

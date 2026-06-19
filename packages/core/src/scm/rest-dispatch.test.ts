@@ -138,7 +138,25 @@ describe("runRestList", () => {
         labels: ["epic", "cache"],
         perPage: 50,
       }),
+      expect.anything(),
     );
+    vi.restoreAllMocks();
+  });
+
+  it("threads the injected runGhApi seam through to the REST helper", () => {
+    const viewSpy = vi.spyOn(ghRest, "restIssueView").mockReturnValue({ number: 7 });
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const runGhApiFn = vi.fn();
+    main(["issue", "view", "--rest", "7", "--repo", "deftai/directive"], {
+      whichFn: () => "/usr/bin/gh",
+      runGhApiFn,
+    });
+    expect(viewSpy).toHaveBeenCalledWith(
+      "deftai/directive",
+      7,
+      expect.objectContaining({ runGhApiFn }),
+    );
+    stdout.mockRestore();
     vi.restoreAllMocks();
   });
 

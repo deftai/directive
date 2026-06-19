@@ -3,10 +3,13 @@ import { extractFlag } from "./argv.js";
 import { buildCommand } from "./build-command.js";
 import { REST_OPT_IN_VERBS } from "./constants.js";
 import { ScmStubError } from "./errors.js";
+import type { GhRestSeams } from "./gh-rest.js";
 import { runRestList, runRestView } from "./rest-dispatch.js";
 
 export interface MainOptions {
   readonly whichFn?: Parameters<typeof import("./binary.js").resolveBinary>[0];
+  /** Subprocess seam threaded through the `--rest` path for test isolation. */
+  readonly runGhApiFn?: GhRestSeams["runGhApiFn"];
 }
 
 /**
@@ -42,7 +45,11 @@ export function main(argv: readonly string[], options: MainOptions = {}): number
       );
       return 2;
     }
-    const result = verb === "view" ? runRestView(extra) : runRestList(extra);
+    const seams: GhRestSeams = {
+      whichFn: options.whichFn,
+      runGhApiFn: options.runGhApiFn,
+    };
+    const result = verb === "view" ? runRestView(extra, seams) : runRestList(extra, seams);
     if (result.stdout.length > 0) {
       process.stdout.write(result.stdout);
     }
