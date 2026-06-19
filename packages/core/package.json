@@ -53,6 +53,10 @@
     "./triage": {
       "types": "./dist/triage/index.d.ts",
       "default": "./dist/triage/index.js"
+    },
+    "./release": {
+      "types": "./dist/release/index.d.ts",
+      "default": "./dist/release/index.js"
     }
   },
   "dependencies": {

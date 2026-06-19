@@ -27,6 +27,7 @@ export default defineConfig({
       "@deftai/core/cache": sub("core", "cache"),
       "@deftai/core/doctor": sub("core", "doctor"),
       "@deftai/core/triage": sub("core", "triage"),
+      "@deftai/core/release": sub("core", "release"),
       "@deftai/core": src("core"),
     },
   },
@@ -86,6 +87,10 @@ export default defineConfig({
         "packages/cli/src/slice-parity.ts",
         "packages/cli/src/cache-parity.ts",
         "packages/cli/src/doctor-parity.ts",
+        // Same rationale (#1530 Wave 4, #1729): the release parity runner spawns
+        // the Python oracle and is validated by the dedicated parity CI job, not
+        // the Python-less node-only TS job. Pure helpers stay unit-tested.
+        "packages/cli/src/release-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

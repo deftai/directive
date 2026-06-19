@@ -118,6 +118,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/doctor-parity.js"
 
+  release-parity:
+    desc: "Golden-diff the ported release.py core vs the Python oracle, cache-off (#1729)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -141,3 +147,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/slice-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/cache-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/doctor-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/release-parity.js"

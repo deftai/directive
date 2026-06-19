@@ -63,7 +63,7 @@
         "title": "Issue #1728"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-releasepy-core-version-bump-changelog-section-extra.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-releasepy-core-version-bump-changelog-section-extra.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the release.py core (version bump + CHANGELOG section extraction + GitHub release-body flow) to TypeScript",
         "TrustLevel": "internal"

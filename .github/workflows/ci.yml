@@ -243,6 +243,9 @@ jobs:
       - name: Golden-diff parity -- deft doctor (#1728)
         run: node packages/cli/dist/doctor-parity.js
 
+      - name: Golden-diff parity -- release pipeline core (#1729)
+        run: node packages/cli/dist/release-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

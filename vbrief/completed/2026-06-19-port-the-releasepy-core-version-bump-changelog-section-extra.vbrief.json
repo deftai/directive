@@ -6,7 +6,7 @@
   "plan": {
     "id": "1729-s1-release-core",
     "title": "Port the release.py core (version bump + CHANGELOG section extraction + GitHub release-body flow) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/release.py -- the release-pipeline core that the publish, rollback, and e2e flows all build on -- to TypeScript. This covers version resolution/bump, the CHANGELOG [version] section extraction (_section_for_version, including the 125,000-char GitHub release-body ceiling guard from #1242), the ROADMAP/CHANGELOG promotion flow, and the top-level `release` verb. It is dispatched first as the foundation because publish/rollback/e2e import these shared helpers; it is independently buildable as a self-contained packages/core/src/release module with a golden parity binary.",
@@ -64,7 +64,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-4 framework-internal TS port traced to GitHub issue #1729 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T11:42:07Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -93,6 +95,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T11:42:07Z"
   }
 }

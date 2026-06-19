@@ -17,6 +17,7 @@ export * as doctor from "./doctor/index.js";
 export * from "./encoding/index.js";
 export * as policy from "./policy/index.js";
 export * as preflight from "./preflight/index.js";
+export * as release from "./release/index.js";
 export * as scm from "./scm/index.js";
 export * as scope from "./scope/index.js";
 export * as slice from "./slice/index.js";
