@@ -134,13 +134,59 @@ export async function runEntrypointWorker(
   });
 }
 
+function runPromiseSync<T>(promise: Promise<T>): T {
+  const sab = new SharedArrayBuffer(4);
+  const ia = new Int32Array(sab);
+  type Outcome = { ok: true; value: T } | { ok: false; error: unknown };
+  const box: { outcome?: Outcome } = {};
+  void promise.then(
+    (value) => {
+      box.outcome = { ok: true, value };
+      Atomics.store(ia, 0, 1);
+      Atomics.notify(ia, 0);
+    },
+    (error) => {
+      box.outcome = { ok: false, error };
+      Atomics.store(ia, 0, 1);
+      Atomics.notify(ia, 0);
+    },
+  );
+  Atomics.wait(ia, 0, 0);
+  const outcome = box.outcome;
+  if (outcome === undefined) {
+    throw new Error("promise sync wait failed");
+  }
+  if (!outcome.ok) {
+    throw outcome.error;
+  }
+  return outcome.value;
+}
+
+function callReleaseEntrypointWorkerBacked(
+  kind: "release" | "rollback",
+  argv: string[],
+  cloneDir: string,
+  timeout: number,
+): [number, string] {
+  const timeoutMs = Math.max(1, Math.floor(timeout * 1000));
+  const result = runPromiseSync(runEntrypointWorker(kind, argv, cloneDir, timeoutMs));
+  return [result.code, result.stderr || result.stdout];
+}
+
 /** Run a release entrypoint in-process with subprocess-style bounds. */
 export function callReleaseEntrypoint(
   entrypoint: EntrypointFn,
   argv: string[],
   cloneDir: string,
-  _timeout: number = RELEASE_ENTRYPOINT_TIMEOUT_SECONDS,
+  timeout: number = RELEASE_ENTRYPOINT_TIMEOUT_SECONDS,
 ): [number, string] {
+  if (entrypoint === defaultReleaseEntrypoint) {
+    return callReleaseEntrypointWorkerBacked("release", argv, cloneDir, timeout);
+  }
+  if (entrypoint === defaultRollbackEntrypoint) {
+    return callReleaseEntrypointWorkerBacked("rollback", argv, cloneDir, timeout);
+  }
+
   const oldCwd = process.cwd();
   const oldProjectRoot = process.env.DEFT_PROJECT_ROOT;
   const restoreOwner = Symbol("entrypoint-restore");
@@ -164,8 +210,8 @@ export async function callReleaseEntrypointTimed(
   const oldCwd = process.cwd();
   const oldProjectRoot = process.env.DEFT_PROJECT_ROOT;
   const restoreOwner = Symbol("entrypoint-restore");
-  activateProcessState(restoreOwner, cloneDir);
   try {
+    activateProcessState(restoreOwner, cloneDir);
     const timeoutMs = Math.max(1, Math.floor(timeout * 1000));
     const result = await runEntrypointWorker(kind, argv, cloneDir, timeoutMs, testBehavior);
     return [result.code, result.stderr || result.stdout];

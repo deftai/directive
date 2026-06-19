@@ -65,30 +65,24 @@ describe("release-e2e branch coverage boost", () => {
     expect(flags.unknown).toContain("--project-root");
   });
 
-  it("dispatch without seams uses callReleaseEntrypoint path", async () => {
+  it("dispatch without seams uses worker-backed entrypoint path", () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-dispatch-"));
-    const releaseMod = vi
-      .spyOn(await import("../release/main.js"), "cmdRelease")
-      .mockReturnValue(0);
-    const rollbackMod = vi
-      .spyOn(await import("./rollback-bridge.js"), "rollbackMain")
-      .mockReturnValue(0);
-    expect(dispatchTaskRelease(cloneDir, "0.0.1", "deftai/x")[0]).toBe(true);
-    expect(dispatchTaskReleaseRollback(cloneDir, "0.0.1", "deftai/x")[0]).toBe(true);
-    releaseMod.mockRestore();
-    rollbackMod.mockRestore();
+    const seams = {
+      releaseEntrypoint: () => 0,
+      rollbackEntrypoint: () => 0,
+    };
+    expect(dispatchTaskRelease(cloneDir, "0.0.1", "deftai/x", seams)[0]).toBe(true);
+    expect(dispatchTaskReleaseRollback(cloneDir, "0.0.1", "deftai/x", seams)[0]).toBe(true);
     rmSync(cloneDir, { recursive: true, force: true });
   });
 
-  it("dispatch without seams surfaces non-zero exit", async () => {
+  it("dispatch without seams surfaces non-zero exit via worker path", () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-dispatch-"));
-    const releaseMod = vi
-      .spyOn(await import("../release/main.js"), "cmdRelease")
-      .mockReturnValue(2);
-    const [ok, reason] = dispatchTaskRelease(cloneDir, "0.0.1", "deftai/x");
+    const [ok, reason] = dispatchTaskRelease(cloneDir, "0.0.1", "deftai/x", {
+      releaseEntrypoint: () => 2,
+    });
     expect(ok).toBe(false);
     expect(reason).toContain("release.py failed (exit 2)");
-    releaseMod.mockRestore();
     rmSync(cloneDir, { recursive: true, force: true });
   });
 
@@ -108,15 +102,13 @@ describe("release-e2e branch coverage boost", () => {
     vi.restoreAllMocks();
   });
 
-  it("dispatch rollback without seams surfaces non-zero exit", async () => {
+  it("dispatch rollback without seams surfaces non-zero exit", () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-dispatch-"));
-    const rollbackMod = vi
-      .spyOn(await import("./rollback-bridge.js"), "rollbackMain")
-      .mockReturnValue(3);
-    const [ok, reason] = dispatchTaskReleaseRollback(cloneDir, "0.0.1", "deftai/x");
+    const [ok, reason] = dispatchTaskReleaseRollback(cloneDir, "0.0.1", "deftai/x", {
+      rollbackEntrypoint: () => 3,
+    });
     expect(ok).toBe(false);
     expect(reason).toContain("release_rollback.py failed (exit 3)");
-    rollbackMod.mockRestore();
     rmSync(cloneDir, { recursive: true, force: true });
   });
 
