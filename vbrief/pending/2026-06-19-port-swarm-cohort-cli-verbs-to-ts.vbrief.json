@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.vbrief.json"
+  },
+  "plan": {
+    "id": "1788-s1-swarm-cohort-verbs",
+    "title": "Port swarm cohort CLI verbs to TS",
+    "status": "pending",
+    "planRef": "proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.vbrief.json",
+    "narratives": {
+      "Description": "Port the harness-agnostic swarm cohort verbs from Python to TypeScript. Covers swarm_launch, swarm_complete_cohort, swarm_readiness, swarm_verify_review_clean, and swarm_worktrees so cohort launch-manifest emission, worktree-map resolution, and readiness checks run on the TS engine as advisory CLI verbs.",
+      "ImplementationPlan": "1. Port swarm_launch, swarm_complete_cohort, swarm_readiness, swarm_verify_review_clean, and swarm_worktrees into a packages/core/src/swarm module, preserving launch-manifest JSON shape, worktree-map collision detection, and review-clean checks as advisory verbs that never own a runtime. 2. Add a packages/cli/src/swarm-parity.ts harness diffing TS verb output against the Python oracle cache-off across launch-manifest, worktree-map, readiness, and review-clean fixtures. 3. Wire the module into @deftai/core, tasks/ts.yml, and CI with unit tests for worktree-map collision and readiness gating branches.",
+      "UserStory": "As a swarm orchestrator, I want the swarm cohort CLI verbs running on the TypeScript engine, so that launch manifests and worktree maps are produced identically to the Python implementation.",
+      "Traces": "#1788, #1530"
+    },
+    "items": [
+      {
+        "id": "1788-s1-swarm-cohort-verbs-a1",
+        "title": "Given a pre-approved cohort, when the TS swarm-launch verb runs, then it emits a launch manifest that matches the Python oracle byte-for-byte cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a pre-approved cohort, when the TS swarm-launch verb runs, then it emits a launch manifest that matches the Python oracle byte-for-byte cache-off.",
+          "Traces": "#1788, #1530"
+        }
+      },
+      {
+        "id": "1788-s1-swarm-cohort-verbs-a2",
+        "title": "Given a worktree map with a same-path collision, when the TS resolver runs, then it rejects with the same error as the Python module.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a worktree map with a same-path collision, when the TS resolver runs, then it rejects with the same error as the Python module.",
+          "Traces": "#1788, #1530"
+        }
+      },
+      {
+        "id": "1788-s1-swarm-cohort-verbs-a3",
+        "title": "Given an active cohort, when the TS readiness verb runs, then it returns the same three-state exit and allocatable list as Python.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an active cohort, when the TS readiness verb runs, then it returns the same three-state exit and allocatable list as Python.",
+          "Traces": "#1788, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/swarm/",
+          "packages/cli/src/swarm-parity.ts"
+        ],
+        "verify_commands": [
+          "task ts:swarm-parity"
+        ],
+        "expected_outputs": [
+          "swarm parity: CLEAN"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-swarm",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1788",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1788: feat(ts-migration): port swarm + orchestration verbs to TS (Wave 7)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1530"
+      }
+    ]
+  }
+}

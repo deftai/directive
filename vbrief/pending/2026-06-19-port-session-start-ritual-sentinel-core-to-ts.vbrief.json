@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.vbrief.json"
+  },
+  "plan": {
+    "id": "1787-s1-session-ritual-core",
+    "title": "Port session-start + ritual-sentinel core to TS",
+    "status": "pending",
+    "planRef": "proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.vbrief.json",
+    "narratives": {
+      "Description": "Port the session-start ritual engine and its gating sentinel from Python to TypeScript. Covers session_start, _session_start_hook, ritual_sentinel, resume_conditions, and verify_session_ritual so the quick-tier and gated-tier session ritual run on the TS engine with the same staleness, defer, and skip semantics.",
+      "ImplementationPlan": "1. Port the session_start, _session_start_hook, ritual_sentinel, resume_conditions, and verify_session_ritual Python modules into a new packages/core/src/session module, preserving the ritual-state JSON shape and tier semantics. 2. Add a packages/cli/src/session-parity.ts harness that diffs the TS ritual output against the frozen Python oracle cache-off and assert byte-identical state across quick/gated/defer/skip fixtures. 3. Wire the session module into @deftai/core, tasks/ts.yml, and CI, and add unit tests covering staleness expiry and defer paths.",
+      "UserStory": "As a deft session operator, I want the session-start ritual and its gated verifier running on the TypeScript engine, so that ritual state is recorded identically to the Python implementation.",
+      "Traces": "#1787, #1530"
+    },
+    "items": [
+      {
+        "id": "1787-s1-session-ritual-core-a1",
+        "title": "Given a fresh worktree, when the TS session-start ritual runs, then it records ritual state that matches the Python oracle byte-for-byte cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fresh worktree, when the TS session-start ritual runs, then it records ritual state that matches the Python oracle byte-for-byte cache-off.",
+          "Traces": "#1787, #1530"
+        }
+      },
+      {
+        "id": "1787-s1-session-ritual-core-a2",
+        "title": "Given a stale ritual state past the staleness window, when the gated verifier runs, then it fails closed and emits the same diagnostic as Python.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a stale ritual state past the staleness window, when the gated verifier runs, then it fails closed and emits the same diagnostic as Python.",
+          "Traces": "#1787, #1530"
+        }
+      },
+      {
+        "id": "1787-s1-session-ritual-core-a3",
+        "title": "Given a deferred ritual step, when verify-session-ritual runs, then it returns the same three-state exit code as the Python module.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a deferred ritual step, when verify-session-ritual runs, then it returns the same three-state exit code as the Python module.",
+          "Traces": "#1787, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/",
+          "packages/cli/src/session-parity.ts"
+        ],
+        "verify_commands": [
+          "task ts:session-parity"
+        ],
+        "expected_outputs": [
+          "session parity: CLEAN"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-session",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1787",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1787: feat(ts-migration): port session / ritual / lifecycle + packs surface to TS (Wave 7)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1530"
+      }
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1788"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port swarm + orchestration verbs to TS (Wave 7)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port swarm + orchestration verbs to TS (Wave 7)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1788",
+      "Overview": "## Parent\n#1530 (Part 1 of 2)\n\n## What to build\nPort the swarm/orchestration **CLI verbs** (harness-agnostic; this is NOT runtime ownership): `swarm_launch`, `swarm_complete_cohort`, `swarm_readiness`, `swarm_verify_review_clean`, `swarm_worktrees`, `subagent_monitor`, `probe_session`, `verify_investigation`, `verify_judgment_gates`.\n\n## Scope boundary\nThese stay advisory CLI verbs invoked by the external host harness. Owning an agent loop / refuse-to-dispatch enforcement is explicitly **out of scope** — that is the net-new #1707 question, not a conversion. Porting these verbs to typed `@deftai/core` surfaces *feeds* a future #1707 decision (something typed to wrap) without adopting a runtime.\n\n## Acceptance criteria\n- [ ] TS ports with cache-off golden parity vs the Python oracle\n- [ ] Wired into `@deftai/core`, `tasks/ts.yml`, CI\n- [ ] CHANGELOG entry; `task check` green\n\n## Standing invariants (all #1530 Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The golden parity gate runs **cache-off**.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) **and** has CI usage.\n- Subprocess/`gh` capture uses Node `execFile` with explicit UTF-8 (closes the #1366 class structurally; the Python `_safe_subprocess`/`_stdio_utf8` shims are NOT ported — the problem does not exist in Node).\n\n## Full-conversion scope note (#1530)\nPart of the **full** Python→TS conversion. Per operator decision (2026-06-19) the cutover (#1731) deletes nothing until the engine is wholly TS. Accepted non-ports: Python-runtime shims, build/packaging tooling (superseded by the pnpm/tsc build), pre-v0.20 migration tooling (retired with a deprecation notice), and the Go installer (separate keep/fold decision in #1731). Owning an agent runtime is out of scope — net-new future work (#1707), not a conversion.\n\n## Type\nAFK\n\n## Blocked by\n- Blocked by #1530 (Wave 6)",
+      "Labels": "swarm, refactor, runtime-portability, tooling, ts-migration, area:cli"
+    },
+    "items": [
+      {
+        "title": "TS ports with cache-off golden parity vs the Python oracle",
+        "status": "proposed"
+      },
+      {
+        "title": "Wired into , , CI",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry;  green",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "swarm",
+      "refactor",
+      "runtime-portability",
+      "tooling",
+      "ts-migration",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1788",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1788: feat(ts-migration): port swarm + orchestration verbs to TS (Wave 7)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1530"
+      },
+      {
+        "uri": "pending/2026-06-19-port-swarm-cohort-cli-verbs-to-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port swarm cohort CLI verbs to TS",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-19-port-subagent-monitor-investigation-gates-to-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port subagent monitor + investigation gates to TS",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

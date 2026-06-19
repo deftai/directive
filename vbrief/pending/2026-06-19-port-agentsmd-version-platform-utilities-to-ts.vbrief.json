@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.vbrief.json"
+  },
+  "plan": {
+    "id": "1787-s3-platform-utilities",
+    "title": "Port AGENTS.md + version + platform utilities to TS",
+    "status": "pending",
+    "planRef": "proposed/2026-06-19-1787-featts-migration-port-session-ritual-lifecycle-packs-surface.vbrief.json",
+    "narratives": {
+      "Description": "Port the shared platform and text utilities from Python to TypeScript. Covers _agents_md, slug_normalize, resolve_version, resolve_changelog_unreleased, platform_capabilities, and ip_risk so AGENTS.md managed-section handling, slug normalization, version resolution, and changelog union-merge run on the TS engine identically.",
+      "ImplementationPlan": "1. Port _agents_md, slug_normalize, resolve_version, resolve_changelog_unreleased, platform_capabilities, and ip_risk into a packages/core/src/platform module, preserving the managed-section sha computation, changelog union-merge dedup-by-issue rule, and ReDoS-safe linear scanners. 2. Add a packages/cli/src/platform-parity.ts harness diffing TS output against the Python oracle cache-off across agents-refresh, slugify, version-resolve, and changelog-resolve fixtures. 3. Wire the module into @deftai/core, tasks/ts.yml, and CI with unit tests for the changelog union-merge and slug edge cases.",
+      "UserStory": "As a deft maintainer, I want the AGENTS.md, version, and changelog utilities running on the TypeScript engine, so that managed-section refresh and changelog resolution match the Python output exactly.",
+      "Traces": "#1787, #1530"
+    },
+    "items": [
+      {
+        "id": "1787-s3-platform-utilities-a1",
+        "title": "Given a changelog with conflicting Unreleased entries, when the TS resolver runs, then it union-merges and returns the same body as the Python oracle.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a changelog with conflicting Unreleased entries, when the TS resolver runs, then it union-merges and returns the same body as the Python oracle.",
+          "Traces": "#1787, #1530"
+        }
+      },
+      {
+        "id": "1787-s3-platform-utilities-a2",
+        "title": "Given an AGENTS.md managed section, when the TS agents-md renderer runs, then it computes the same section sha and emits identical content cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an AGENTS.md managed section, when the TS agents-md renderer runs, then it computes the same section sha and emits identical content cache-off.",
+          "Traces": "#1787, #1530"
+        }
+      },
+      {
+        "id": "1787-s3-platform-utilities-a3",
+        "title": "Given a raw title string, when the TS slug normalizer runs, then it returns the same slug as the Python module across unicode fixtures.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a raw title string, when the TS slug normalizer runs, then it returns the same slug as the Python module across unicode fixtures.",
+          "Traces": "#1787, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/platform/",
+          "packages/cli/src/platform-parity.ts"
+        ],
+        "verify_commands": [
+          "task ts:platform-parity"
+        ],
+        "expected_outputs": [
+          "platform parity: CLEAN"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-platform",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1787",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1787: feat(ts-migration): port session / ritual / lifecycle + packs surface to TS (Wave 7)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1530"
+      }
+    ]
+  }
+}

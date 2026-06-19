@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.vbrief.json"
+  },
+  "plan": {
+    "id": "1788-s2-monitor-investigation-gates",
+    "title": "Port subagent monitor + investigation gates to TS",
+    "status": "pending",
+    "planRef": "proposed/2026-06-19-1788-featts-migration-port-swarm-orchestration-verbs-to-ts-wave-7.vbrief.json",
+    "narratives": {
+      "Description": "Port the monitor and investigation-gate verbs from Python to TypeScript. Covers subagent_monitor, probe_session, verify_investigation, and verify_judgment_gates so monitor polling, probe-session state, and the investigation close gates run on the TS engine as advisory CLI verbs.",
+      "ImplementationPlan": "1. Port subagent_monitor, probe_session, verify_investigation, and verify_judgment_gates into a packages/core/src/orchestration module, preserving monitor poll state, probe completion criteria, and the investigation claim-ledger close-gate exit semantics. 2. Add a packages/cli/src/orchestration-parity.ts harness diffing TS verb output against the Python oracle cache-off across monitor-state, probe-session, investigation-close, and judgment-gate fixtures. 3. Wire the module into @deftai/core, tasks/ts.yml, and CI with unit tests for the investigation close-gate and judgment-gate failure branches.",
+      "UserStory": "As a swarm orchestrator, I want the subagent monitor and investigation-gate verbs running on the TypeScript engine, so that monitor state and investigation close gates behave identically to Python.",
+      "Traces": "#1788, #1530"
+    },
+    "items": [
+      {
+        "id": "1788-s2-monitor-investigation-gates-a1",
+        "title": "Given a running cohort, when the TS subagent-monitor verb runs, then it reports the same monitor state as the Python oracle cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a running cohort, when the TS subagent-monitor verb runs, then it reports the same monitor state as the Python oracle cache-off.",
+          "Traces": "#1788, #1530"
+        }
+      },
+      {
+        "id": "1788-s2-monitor-investigation-gates-a2",
+        "title": "Given an investigation with an open claim ledger, when the TS verify-investigation gate runs, then it blocks with the same exit code as Python.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an investigation with an open claim ledger, when the TS verify-investigation gate runs, then it blocks with the same exit code as Python.",
+          "Traces": "#1788, #1530"
+        }
+      },
+      {
+        "id": "1788-s2-monitor-investigation-gates-a3",
+        "title": "Given a probe session, when the TS probe verb runs, then it records the same completion-criteria state as the Python module.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a probe session, when the TS probe verb runs, then it records the same completion-criteria state as the Python module.",
+          "Traces": "#1788, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/orchestration/",
+          "packages/cli/src/orchestration-parity.ts"
+        ],
+        "verify_commands": [
+          "task ts:orchestration-parity"
+        ],
+        "expected_outputs": [
+          "orchestration parity: CLEAN"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-orchestration",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1788",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1788: feat(ts-migration): port swarm + orchestration verbs to TS (Wave 7)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1530"
+      }
+    ]
+  }
+}

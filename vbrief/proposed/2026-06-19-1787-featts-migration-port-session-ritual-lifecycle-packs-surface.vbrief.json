@@ -1,0 +1,70 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1787"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port session / ritual / lifecycle + packs surface to TS (Wave 7)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port session / ritual / lifecycle + packs surface to TS (Wave 7)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1787",
+      "Overview": "## Parent\n#1530 (Part 1 of 2)\n\n## What to build\nPort the session/ritual/lifecycle + packs surface: `session_start`, `_session_start_hook`, `ritual_sentinel`, `resume_conditions`, `verify_session_ritual`, `_lifecycle_hygiene`, `_event_detect`, `_events`, `pack_render`, `packs_slice`, `quarantine_ext`, `_agents_md`, `slug_normalize`, `resolve_version`, `resolve_changelog_unreleased`, `platform_capabilities`, `ip_risk`.\n\n## Acceptance criteria\n- [ ] TS ports with cache-off golden parity vs the Python oracle\n- [ ] Wired into `@deftai/core`, `tasks/ts.yml`, CI\n- [ ] CHANGELOG entry; `task check` green\n\n## Standing invariants (all #1530 Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The golden parity gate runs **cache-off**.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) **and** has CI usage.\n- Subprocess/`gh` capture uses Node `execFile` with explicit UTF-8 (closes the #1366 class structurally; the Python `_safe_subprocess`/`_stdio_utf8` shims are NOT ported — the problem does not exist in Node).\n\n## Full-conversion scope note (#1530)\nPart of the **full** Python→TS conversion. Per operator decision (2026-06-19) the cutover (#1731) deletes nothing until the engine is wholly TS. Accepted non-ports: Python-runtime shims, build/packaging tooling (superseded by the pnpm/tsc build), pre-v0.20 migration tooling (retired with a deprecation notice), and the Go installer (separate keep/fold decision in #1731). Owning an agent runtime is out of scope — net-new future work (#1707), not a conversion.\n\n## Type\nAFK\n\n## Blocked by\n- Blocked by #1530 (Wave 6)",
+      "Labels": "refactor, runtime-portability, tooling, ts-migration, area:cli"
+    },
+    "items": [
+      {
+        "title": "TS ports with cache-off golden parity vs the Python oracle",
+        "status": "proposed"
+      },
+      {
+        "title": "Wired into , , CI",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry;  green",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "refactor",
+      "runtime-portability",
+      "tooling",
+      "ts-migration",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1787",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1787: feat(ts-migration): port session / ritual / lifecycle + packs surface to TS (Wave 7)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1530"
+      },
+      {
+        "uri": "pending/2026-06-19-port-session-start-ritual-sentinel-core-to-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port session-start + ritual-sentinel core to TS",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-19-port-lifecycle-hygiene-events-packs-to-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port lifecycle hygiene + events + packs to TS",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-19-port-agentsmd-version-platform-utilities-to-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port AGENTS.md + version + platform utilities to TS",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}
