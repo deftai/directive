@@ -273,6 +273,18 @@ jobs:
       - name: Golden-diff parity -- vbrief-build foundation (#1782 s1)
         run: node packages/cli/dist/vbrief-build-parity.js
 
+      - name: Golden-diff parity -- vbrief-validation primitives (#1782 s2)
+        run: node packages/cli/dist/vbrief-validation-parity.js
+
+      - name: Golden-diff parity -- vbrief-reconcile engine (#1782 s4)
+        run: node packages/cli/dist/vbrief-reconcile-parity.js
+
+      - name: Golden-diff parity -- vbrief-activate verb (#1782 s5)
+        run: node packages/cli/dist/vbrief-activate-parity.js
+
+      - name: Golden-diff parity -- vbrief:validate CLI + conformance (#1782 s3)
+        run: node packages/cli/dist/vbrief-validate-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404
