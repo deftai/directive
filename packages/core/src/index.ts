@@ -34,6 +34,7 @@ export * as releaseRollback from "./release-rollback/index.js";
 export * as render from "./render/index.js";
 export * as scm from "./scm/index.js";
 export * as scope from "./scope/index.js";
+export * as session from "./session/index.js";
 export * as slice from "./slice/index.js";
 export * as storyReady from "./story-ready/index.js";
 export * as triage from "./triage/index.js";

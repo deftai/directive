@@ -38,6 +38,10 @@
       "types": "./dist/scope/index.d.ts",
       "default": "./dist/scope/index.js"
     },
+    "./session": {
+      "types": "./dist/session/index.d.ts",
+      "default": "./dist/session/index.js"
+    },
     "./slice": {
       "types": "./dist/slice/index.d.ts",
       "default": "./dist/slice/index.js"

@@ -306,6 +306,9 @@ jobs:
       - name: Golden-diff parity -- lifecycle/events/packs (#1787 s2)
         run: node packages/cli/dist/lifecycle-packs-parity.js
 
+      - name: Golden-diff parity -- session/ritual core (#1787 s1)
+        run: node packages/cli/dist/session-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

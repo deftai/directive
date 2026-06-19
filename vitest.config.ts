@@ -23,6 +23,7 @@ export default defineConfig({
       "@deftai/core/wip-cap": sub("core", "wip-cap"),
       "@deftai/core/scm": sub("core", "scm"),
       "@deftai/core/scope": sub("core", "scope"),
+      "@deftai/core/session": sub("core", "session"),
       "@deftai/core/slice": sub("core", "slice"),
       "@deftai/core/cache": sub("core", "cache"),
       "@deftai/core/doctor": sub("core", "doctor"),
@@ -140,6 +141,7 @@ export default defineConfig({
         "packages/cli/src/codebase-parity.ts",
         "packages/cli/src/intake-parity.ts",
         "packages/cli/src/lifecycle-packs-parity.ts",
+        "packages/cli/src/session-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {
