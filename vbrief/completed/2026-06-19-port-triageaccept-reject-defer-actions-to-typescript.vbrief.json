@@ -6,7 +6,7 @@
   "plan": {
     "id": "1725-s4-triage-actions",
     "title": "Port triage:accept / reject / defer actions to TypeScript",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_actions.py to a TypeScript triage actions module, preserving the accept, reject, and defer transitions and the cache mutations they apply to candidate state. This story is independently buildable in its own packages/core/src/triage/actions subdirectory and ships a golden parity binary against the Python oracle.",
@@ -64,7 +64,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T02:00:39Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -79,6 +81,6 @@
         "title": "Issue #1724"
       }
     ],
-    "updated": "2026-06-19T01:54:57Z"
+    "updated": "2026-06-19T02:00:39Z"
   }
 }
