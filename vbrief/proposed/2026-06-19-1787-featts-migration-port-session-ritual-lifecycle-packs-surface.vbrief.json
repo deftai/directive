@@ -51,7 +51,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-19-port-lifecycle-hygiene-events-packs-to-ts.vbrief.json",
+        "uri": "completed/2026-06-19-port-lifecycle-hygiene-events-packs-to-ts.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port lifecycle hygiene + events + packs to TS",
         "TrustLevel": "internal"
