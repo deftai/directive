@@ -141,6 +141,14 @@
     "./intake/parity-scenarios": {
       "types": "./dist/intake/parity-scenarios.d.ts",
       "default": "./dist/intake/parity-scenarios.js"
+    },
+    "./lifecycle": {
+      "types": "./dist/lifecycle/index.d.ts",
+      "default": "./dist/lifecycle/index.js"
+    },
+    "./packs": {
+      "types": "./dist/packs/index.d.ts",
+      "default": "./dist/packs/index.js"
     }
   },
   "dependencies": {

@@ -52,6 +52,8 @@ export default defineConfig({
         import.meta.dirname,
         "packages/core/src/intake/parity-scenarios.ts",
       ),
+      "@deftai/core/lifecycle": sub("core", "lifecycle"),
+      "@deftai/core/packs": sub("core", "packs"),
       "@deftai/core": src("core"),
     },
   },
@@ -137,6 +139,7 @@ export default defineConfig({
         "packages/cli/src/render-parity.ts",
         "packages/cli/src/codebase-parity.ts",
         "packages/cli/src/intake-parity.ts",
+        "packages/cli/src/lifecycle-packs-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

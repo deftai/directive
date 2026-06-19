@@ -303,6 +303,9 @@ jobs:
       - name: Golden-diff parity -- issue intake + reconcile (#1784)
         run: node packages/cli/dist/intake-parity.js
 
+      - name: Golden-diff parity -- lifecycle/events/packs (#1787 s2)
+        run: node packages/cli/dist/lifecycle-packs-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404
