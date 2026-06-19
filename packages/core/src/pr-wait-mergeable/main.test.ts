@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { EXIT_CONFIG_ERROR, EXIT_MERGED } from "./constants.js";
 import { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_MERGED,
-} from "./constants.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
 
 function cleanMonitorPayload(prNumber = 1370): Record<string, unknown> {
@@ -78,9 +75,9 @@ describe("runWaitMergeable", () => {
   it("malformed protected token exits two", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    expect(
-      runWaitMergeable(["1370", "--repo", "deftai/directive", "--protected", "\u00b2"]),
-    ).toBe(EXIT_CONFIG_ERROR);
+    expect(runWaitMergeable(["1370", "--repo", "deftai/directive", "--protected", "\u00b2"])).toBe(
+      EXIT_CONFIG_ERROR,
+    );
     expect(stderr.mock.calls[0]?.[0]).toContain("Invalid protected issue token");
     stderr.mockRestore();
     stdout.mockRestore();

@@ -129,14 +129,7 @@ export function runGhMerge(
   } catch {
     return [-1, "", "gh CLI not found. Install GitHub CLI."];
   }
-  const args = [
-    "pr",
-    "merge",
-    String(prNumber),
-    "--squash",
-    "--delete-branch",
-    "--admin",
-  ];
+  const args = ["pr", "merge", String(prNumber), "--squash", "--delete-branch", "--admin"];
   if (repo) {
     args.push("--repo", repo);
   }

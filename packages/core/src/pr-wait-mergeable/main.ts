@@ -1,10 +1,6 @@
 import { parseProtected } from "../pr-protected-issues/parse.js";
 import { waitMergeableAndMerge } from "./cascade.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_MERGED,
-  EXIT_TIMEOUT_OR_ESCALATION,
-} from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { toResultDict } from "./result.js";
 
 /** Match Python json.dumps(..., indent=2) default ensure_ascii=True. */

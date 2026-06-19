@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { waitMergeableAndMerge } from "./cascade.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_MERGED,
-  EXIT_TIMEOUT_OR_ESCALATION,
-} from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { toResultDict } from "./result.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
 
@@ -18,7 +14,11 @@ function makeProtectedFn(returncode: number, stdout = "", stderr = ""): Protecte
   return fn;
 }
 
-function makeMonitorFn(returncode: number, payload: Record<string, unknown> | null, stderr = ""): MonitorFn {
+function makeMonitorFn(
+  returncode: number,
+  payload: Record<string, unknown> | null,
+  stderr = "",
+): MonitorFn {
   const calls: Array<readonly [number, string, number]> = [];
   const stdout = payload !== null ? JSON.stringify(payload, null, 2) : "";
   const fn: MonitorFn = (prNumber, repo, capMinutes) => {
@@ -194,7 +194,9 @@ describe("waitMergeableAndMerge", () => {
 
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
     expect(result.outcome).toBe("protected-linked");
-    expect((protectedFn as { calls: unknown[] }).calls).toEqual([[1370, "deftai/directive", [1119]]]);
+    expect((protectedFn as { calls: unknown[] }).calls).toEqual([
+      [1370, "deftai/directive", [1119]],
+    ]);
     expect((monitorFn as { calls: unknown[] }).calls).toEqual([]);
     expect((mergeFn as { calls: unknown[] }).calls).toEqual([]);
     expect(result.error).toContain("closingIssuesReferences");

@@ -4,7 +4,11 @@ import * as wrappers from "./wrappers.js";
 
 describe("captureExec", () => {
   it("returns stdout on success", () => {
-    const result = wrappers.captureExec(process.execPath, ["-e", "process.stdout.write('ok')"], 5000);
+    const result = wrappers.captureExec(
+      process.execPath,
+      ["-e", "process.stdout.write('ok')"],
+      5000,
+    );
     expect(result.returncode).toBe(0);
     expect(result.stdout).toBe("ok");
   });

@@ -26,7 +26,10 @@ export function toResultDict(result: WaitMergeableResult): Record<string, unknow
 }
 
 export function makeResult(
-  fields: Omit<WaitMergeableResult, "monitorResult" | "protectedCheck" | "mergeStdout" | "mergeStderr"> & {
+  fields: Omit<
+    WaitMergeableResult,
+    "monitorResult" | "protectedCheck" | "mergeStdout" | "mergeStderr"
+  > & {
     readonly monitorResult?: Record<string, unknown>;
     readonly protectedCheck?: Record<string, unknown>;
     readonly mergeStdout?: string;

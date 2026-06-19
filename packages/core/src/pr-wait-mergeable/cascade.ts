@@ -1,16 +1,7 @@
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_MERGED,
-  EXIT_TIMEOUT_OR_ESCALATION,
-} from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { makeResult } from "./result.js";
-import type {
-  MergeFn,
-  MonitorFn,
-  ProtectedCheckFn,
-  WaitMergeableResult,
-} from "./types.js";
+import type { MergeFn, MonitorFn, ProtectedCheckFn, WaitMergeableResult } from "./types.js";
 import { runGhMerge, runMonitor, runProtectedCheck } from "./wrappers.js";
 
 export interface WaitMergeableOptions {
@@ -66,8 +57,7 @@ export function waitMergeableAndMerge(
         exitCode: EXIT_CONFIG_ERROR,
         protectedCheck: protectedCheckPayload,
         error:
-          `protected-issue check exited ${prcRc} (config error). ` +
-          `stderr: ${prcStderr.trim()}`,
+          `protected-issue check exited ${prcRc} (config error). ` + `stderr: ${prcStderr.trim()}`,
       });
     }
   }

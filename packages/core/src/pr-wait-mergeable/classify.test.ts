@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
-import {
-  EXIT_CONFIG_ERROR,
-  EXIT_MERGED,
-  EXIT_TIMEOUT_OR_ESCALATION,
-} from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 
 describe("parseMonitorPayload", () => {
   it("returns empty object for blank stdout", () => {
