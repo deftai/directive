@@ -182,6 +182,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-wait-mergeable-parity.js"
 
+  vbrief-build-parity:
+    desc: "Golden-diff the ported vBRIEF construction foundation vs the Python oracle, cache-off (#1782 s1)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-build-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -214,3 +220,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-closing-keywords-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-monitor-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-wait-mergeable-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-build-parity.js"

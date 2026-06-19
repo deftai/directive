@@ -89,12 +89,17 @@
     "./pr-wait-mergeable": {
       "types": "./dist/pr-wait-mergeable/index.d.ts",
       "default": "./dist/pr-wait-mergeable/index.js"
+    },
+    "./vbrief-build": {
+      "types": "./dist/vbrief-build/index.d.ts",
+      "default": "./dist/vbrief-build/index.js"
     }
   },
   "dependencies": {
     "@deftai/types": "workspace:*"
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "pnpm -w exec vitest run --coverage packages/core/src"
   }
 }
