@@ -198,6 +198,7 @@ describe("session extra coverage", () => {
     );
     expect(
       verifySessionRitual(badPolicy.root, {
+        bypass: false,
         now,
         runGit: (_r, a) =>
           a[2] === "HEAD"
@@ -223,6 +224,7 @@ describe("session extra coverage", () => {
     );
     expect(
       verifySessionRitual(root, {
+        bypass: false,
         now,
         runGit: () => ({ code: 1, stdout: "", stderr: "no git" }),
       }).code,
@@ -313,6 +315,7 @@ describe("session extra coverage", () => {
       }),
     );
     const result = verifySessionRitual(root, {
+      bypass: false,
       tier: "gated",
       now,
       runGit: (_r, a) =>

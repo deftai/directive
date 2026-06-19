@@ -121,6 +121,7 @@ describe("session branches", () => {
       }),
     );
     const headDrift = verifySessionRitual(root, {
+      bypass: false,
       now,
       runGit: fakeGit(head, resolve(root)),
     });
@@ -142,6 +143,7 @@ describe("session branches", () => {
       }),
     );
     const wtDrift = verifySessionRitual(root, {
+      bypass: false,
       now,
       runGit: fakeGit(head, resolve(root)),
     });
@@ -165,7 +167,9 @@ describe("session branches", () => {
         },
       }),
     );
-    expect(verifySessionRitual(root, { now, runGit: fakeGit(head, resolve(root)) }).code).toBe(1);
+    expect(
+      verifySessionRitual(root, { bypass: false, now, runGit: fakeGit(head, resolve(root)) }).code,
+    ).toBe(1);
 
     writeRitualState(
       root,
@@ -185,6 +189,7 @@ describe("session branches", () => {
       throw new Error("disk full");
     });
     const gated = verifySessionRitual(root, {
+      bypass: false,
       tier: "gated",
       now,
       runGit: fakeGit(head, resolve(root)),

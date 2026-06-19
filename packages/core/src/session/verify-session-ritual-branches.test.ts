@@ -55,6 +55,7 @@ describe("verify-session-ritual branches", () => {
     mkdirSync(join(root, ".deft"), { recursive: true });
     writeFileSync(join(root, ".deft", "ritual-state.json"), "{", "utf8");
     const result = verifySessionRitual(root, {
+      bypass: false,
       runGit: (_r, a) =>
         a[2] === "HEAD"
           ? { code: 0, stdout: head, stderr: "" }
@@ -81,6 +82,7 @@ describe("verify-session-ritual branches", () => {
       }),
     );
     const result = verifySessionRitual(root, {
+      bypass: false,
       now: new Date("2026-06-09T01:00:00Z"),
       runGit: (_r, a) =>
         a[2] === "HEAD"
