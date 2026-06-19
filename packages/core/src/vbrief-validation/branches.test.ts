@@ -30,7 +30,10 @@ import {
 function writeInvalidPd(vbriefDir: string): void {
   writeFileSync(
     join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Bad", status: "in_progress", items: [] } }),
+    JSON.stringify({
+      vBRIEFInfo: { version: "0.6" },
+      plan: { title: "Bad", status: "in_progress", items: [] },
+    }),
     "utf8",
   );
 }

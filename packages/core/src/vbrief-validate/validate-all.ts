@@ -18,9 +18,23 @@ export interface ValidateAllResult {
   readonly scopeCount: number;
 }
 
+/**
+ * Convert backslashes to forward slashes and strip any trailing slashes
+ * using a linear scan (no regex). Avoids the CodeQL ``js/polynomial-redos``
+ * alert that ``/\/+$/`` triggers while staying byte-identical to Python's
+ * normalization for display-path construction.
+ */
+function normalizeVbriefDir(vbriefDir: string): string {
+  const forward = vbriefDir.split("\\").join("/");
+  let end = forward.length;
+  while (end > 0 && forward.charCodeAt(end - 1) === 47 /* "/" */) {
+    end -= 1;
+  }
+  return forward.slice(0, end);
+}
+
 function toDisplayPath(vbriefDir: string, folder: string, name: string): string {
-  const normalized = vbriefDir.replace(/\\/g, "/").replace(/\/+$/, "");
-  return `${normalized}/${folder}/${name}`;
+  return `${normalizeVbriefDir(vbriefDir)}/${folder}/${name}`;
 }
 
 /** Find all .vbrief.json files in lifecycle folders. */
@@ -93,7 +107,7 @@ export function validateAll(
     warnings.push(...validateOriginProvenance(display, data, vbriefDir, strictOriginTypes));
   }
 
-  const normalizedDir = vbriefDir.replace(/\\/g, "/").replace(/\/+$/, "");
+  const normalizedDir = normalizeVbriefDir(vbriefDir);
   const projectDefDisplay = `${normalizedDir}/PROJECT-DEFINITION.vbrief.json`;
   const projectDefAbsolute = join(vbriefDir, "PROJECT-DEFINITION.vbrief.json");
   if (existsSync(projectDefAbsolute)) {

@@ -937,7 +937,13 @@ describe("vbrief-validate extra coverage", () => {
   });
 
   it("covers schema missing plan fields and validateProjectDef empty narratives", () => {
-    expect(validateProjectDefNarratives("f", {})).toEqual([]);
+    // Python defaults `plan.get("narratives", {})` to {} and still emits the
+    // D3 "missing expected key" diagnostics, so a plan with no narratives key
+    // yields one error per expected key (parity with validate_all, #1782 s3).
+    const emptyPlanNarratives = validateProjectDefNarratives("f", {});
+    expect(emptyPlanNarratives.length).toBe(2);
+    expect(emptyPlanNarratives.some((e) => e.includes("'overview' (D3)"))).toBe(true);
+    expect(emptyPlanNarratives.some((e) => e.includes("'techstack' (D3)"))).toBe(true);
     expect(
       validateVbriefSchema({ vBRIEFInfo: { version: "0.6" }, plan: { title: "T" } }, "f.json").some(
         (e) => e.includes("missing required field 'status'"),

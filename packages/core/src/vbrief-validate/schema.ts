@@ -151,7 +151,10 @@ export function normalizeNarrativeKey(key: string): string {
 /** Check expected PROJECT-DEFINITION narrative keys (D3). */
 export function validateProjectDefNarratives(filepath: string, plan: JsonObject): string[] {
   const errors: string[] = [];
-  const narratives = plan.narratives;
+  // Mirror Python ``plan.get("narratives", {})`` -- a missing ``narratives``
+  // key defaults to an empty object, which still triggers the
+  // "missing expected key" D3 diagnostics (parity with validate_all).
+  const narratives = "narratives" in plan ? plan.narratives : {};
   if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
     const present = new Set(Object.keys(narratives).map((key) => normalizeNarrativeKey(key)));
     for (const expected of PROJECT_DEF_EXPECTED_NARRATIVES) {

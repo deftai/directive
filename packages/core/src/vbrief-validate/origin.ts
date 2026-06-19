@@ -75,13 +75,11 @@ export function validateOriginProvenance(
   if (!hasOrigin) {
     if (strictOriginTypes) {
       return [
-        `${filepath}: scope vBRIEF in '${folder}/' has no references ` +
-          "with an allow-listed origin type (D11; " +
-          "--strict-origin-types)",
+        `${filepath}: scope vBRIEF in '${folder}/' has no references with an allow-listed origin type (D11; --strict-origin-types)`,
       ];
     }
     return [
-      `${filepath}: scope vBRIEF in '${folder}/' has no references ` + "with an origin type (D11)",
+      `${filepath}: scope vBRIEF in '${folder}/' has no references with an origin type (D11)`,
     ];
   }
   return [];

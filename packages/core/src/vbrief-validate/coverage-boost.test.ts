@@ -194,4 +194,53 @@ describe("vbrief-validate coverage boost", () => {
     expect(runConformance(["--staged", "--project-root", root])).toBe(0);
     rmSync(root, { recursive: true, force: true });
   });
+
+  // #1782 s3: a PROJECT-DEFINITION whose plan omits `narratives` entirely must
+  // still emit the D3 "missing expected key" diagnostics -- Python defaults
+  // `plan.get("narratives", {})` to {} and validates. (Parity with the s2
+  // `finalize-migration-failure` scenario which previously diverged 3 vs 5.)
+  it("emits D3 narrative errors when PROJECT-DEFINITION omits narratives", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-no-narr-"));
+    const vbrief = join(root, "vbrief");
+    mkdirSync(vbrief, { recursive: true });
+    writeFileSync(
+      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: {} }),
+      "utf8",
+    );
+    const { errors } = validateAll(vbrief);
+    expect(errors.filter((e) => e.includes("missing required field")).length).toBe(3);
+    expect(errors.some((e) => e.includes("narratives missing expected key 'overview' (D3)"))).toBe(
+      true,
+    );
+    expect(errors.some((e) => e.includes("narratives missing expected key 'techstack' (D3)"))).toBe(
+      true,
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  // #1782 s3: the trailing-slash normalization replaced the ReDoS-prone
+  // `/\/+$/` regex with a linear scanner. Cover trailing slashes, many
+  // repeated slashes, and the no-trailing-slash (end-of-string) edge.
+  it("normalizes trailing slashes in display paths (ReDoS-safe linear scan)", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-slash-"));
+    const vbrief = join(root, "vbrief");
+    mkdirSync(join(vbrief, "active"), { recursive: true });
+    writeFileSync(
+      join(vbrief, "active", "2026-01-01-slug.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: { title: "T", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+    for (const variant of [vbrief, `${vbrief}/`, `${vbrief}////`]) {
+      const found = discoverVbriefs(variant);
+      expect(found.length).toBe(1);
+      // No doubled or trailing slash leaks into the display path.
+      expect(found[0]?.display).toBe(`${vbrief}/active/2026-01-01-slug.vbrief.json`);
+      expect(found[0]?.display.includes("//")).toBe(false);
+    }
+    rmSync(root, { recursive: true, force: true });
+  });
 });

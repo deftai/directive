@@ -20,11 +20,7 @@ import {
   itemsHaveAcceptance,
   missingRequiredSwarmFields,
 } from "./story-quality.js";
-import {
-  finalizeMigration,
-  isolateInvalidOutput,
-  slugifyId,
-} from "./validation.js";
+import { finalizeMigration, isolateInvalidOutput, slugifyId } from "./validation.js";
 
 describe("vbrief-validation coverage boost", () => {
   it("covers story-quality helpers", () => {
@@ -56,7 +52,10 @@ describe("vbrief-validation coverage boost", () => {
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
       join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Bad", status: "in_progress", items: [] } }),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: { title: "Bad", status: "in_progress", items: [] },
+      }),
       "utf8",
     );
     const stderr: string[] = [];
