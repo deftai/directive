@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1725-s3-triage-classify",
+    "title": "Port triage:classify to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/triage_classify.py to a TypeScript triage classify module, preserving the candidate classification logic (resume, orphan, urgent, and label-derived buckets) that feeds the queue ranking. This story is independently buildable in its own packages/core/src/triage/classify subdirectory and ships a golden parity binary against the Python oracle.",
+      "ImplementationPlan": "1. Create the packages/core/src/triage/classify module that ports the classification rules and bucket assignment from triage_classify.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-classify-parity.ts parity binary that runs the TS classifier and the Python scripts/triage_classify.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",
+      "UserStory": "As an operator triaging candidates, I want triage:classify available in TypeScript, so that candidate classification runs on the TS engine with the same buckets as the Python module."
+    },
+    "items": [
+      {
+        "id": "1725-s3-a1",
+        "title": "classification buckets reproduced",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running triage:classify on the TS port returns the same classification bucket for each candidate that the Python module assigns."
+        }
+      },
+      {
+        "id": "1725-s3-a2",
+        "title": "label-derived rules preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The TS classifier validates label-derived classifications identically to the Python module across the fixture corpus."
+        }
+      },
+      {
+        "id": "1725-s3-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the triage-classify parity binary returns exit 0 and renders byte-identical output to the Python triage_classify.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/classify/",
+          "packages/cli/src/triage-classify.ts",
+          "packages/cli/src/triage-classify-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/triage-classify-parity.js",
+          "pnpm --filter @deftai/core test src/triage/classify"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/triage/classify module with vitest unit tests",
+          "New packages/cli/src/triage-classify-parity.ts parity binary",
+          "Byte-identical parity vs scripts/triage_classify.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-triage",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1725: feat(ts-migration): port the triage:* family to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

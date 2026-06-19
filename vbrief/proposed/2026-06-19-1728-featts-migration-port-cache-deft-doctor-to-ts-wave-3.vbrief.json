@@ -1,0 +1,66 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1728"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port cache + deft doctor to TS (Wave 3)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port cache + deft doctor to TS (Wave 3)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1728",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nPort `scripts/cache.py` (the unified content cache + quarantine: put/get/invalidate/fetch-all/prune, TTL) and `scripts/doctor.py` (`deft doctor`: install-integrity + toolchain + managed-section freshness + payload staleness) to TS.\n\n## Acceptance criteria\n\n- [ ] `cache:*` verbs run on TS with TTL/quarantine semantics preserved\n- [ ] `deft doctor` reproduces the install-integrity / toolchain / freshness probes\n- [ ] Golden-output parity vs the Python oracle (cache-off)\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1724\n",
+      "Labels": "refactor, runtime-portability, tooling"
+    },
+    "items": [
+      {
+        "title": "verbs run on TS with TTL/quarantine semantics preserved",
+        "status": "proposed"
+      },
+      {
+        "title": "reproduces the install-integrity / toolchain / freshness probes",
+        "status": "proposed"
+      },
+      {
+        "title": "Golden-output parity vs the Python oracle (cache-off)",
+        "status": "proposed"
+      },
+      {
+        "title": "passes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1728: feat(ts-migration): port cache + deft doctor to TS (Wave 3)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-unified-content-cache-cachepy-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the unified content cache (cache.py) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-deft-doctor-doctorpy-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port deft doctor (doctor.py) to TypeScript",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

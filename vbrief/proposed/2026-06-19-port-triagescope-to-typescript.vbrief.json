@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1725-s6-triage-scope",
+    "title": "Port triage:scope to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/triage_scope.py to a TypeScript triage scope module, preserving the triageScope configuration resolution and the scope-membership decisions that gate which candidates appear in the queue. This story is independently buildable in its own packages/core/src/triage/scope subdirectory and ships a golden parity binary against the Python oracle.",
+      "ImplementationPlan": "1. Create the packages/core/src/triage/scope module that ports the triageScope resolution and scope-membership predicate from triage_scope.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-scope-parity.ts parity binary that runs the TS scope and the Python scripts/triage_scope.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",
+      "UserStory": "As an operator scoping triage, I want triage:scope available in TypeScript, so that scope-membership decisions run on the TS engine with the same configuration resolution as the Python module."
+    },
+    "items": [
+      {
+        "id": "1725-s6-a1",
+        "title": "scope membership reproduced",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running triage:scope on the TS port returns the same in-scope and out-of-scope decision per candidate that the Python module returns."
+        }
+      },
+      {
+        "id": "1725-s6-a2",
+        "title": "configured vs default scope distinguished",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The TS scope module emits the configured-versus-not-configured wording for triageScope exactly as the Python module distinguishes them."
+        }
+      },
+      {
+        "id": "1725-s6-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the triage-scope parity binary returns exit 0 and renders byte-identical output to the Python triage_scope.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/scope/",
+          "packages/cli/src/triage-scope.ts",
+          "packages/cli/src/triage-scope-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/triage-scope-parity.js",
+          "pnpm --filter @deftai/core test src/triage/scope"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/triage/scope module with vitest unit tests",
+          "New packages/cli/src/triage-scope-parity.ts parity binary",
+          "Byte-identical parity vs scripts/triage_scope.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-triage",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1725: feat(ts-migration): port the triage:* family to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

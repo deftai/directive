@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1725-s4-triage-actions",
+    "title": "Port triage:accept / reject / defer actions to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/triage_actions.py to a TypeScript triage actions module, preserving the accept, reject, and defer transitions and the cache mutations they apply to candidate state. This story is independently buildable in its own packages/core/src/triage/actions subdirectory and ships a golden parity binary against the Python oracle.",
+      "ImplementationPlan": "1. Create the packages/core/src/triage/actions module that ports the accept, reject, and defer handlers and their candidate-state cache mutations from triage_actions.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-actions-parity.ts parity binary that runs the TS actions and the Python scripts/triage_actions.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",
+      "UserStory": "As an operator deciding on candidates, I want triage accept, reject, and defer available in TypeScript, so that those transitions run on the TS engine with the same cache effects as the Python module."
+    },
+    "items": [
+      {
+        "id": "1725-s4-a1",
+        "title": "accept/reject/defer transitions run",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running triage:accept, triage:reject, or triage:defer on the TS port updates the candidate state in the cache the same way the Python module does."
+        }
+      },
+      {
+        "id": "1725-s4-a2",
+        "title": "defer records reason and window",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running triage:defer persists the defer reason and suppression window on the candidate, matching the Python module's recorded fields."
+        }
+      },
+      {
+        "id": "1725-s4-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the triage-actions parity binary returns exit 0 and renders byte-identical output to the Python triage_actions.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/actions/",
+          "packages/cli/src/triage-actions.ts",
+          "packages/cli/src/triage-actions-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/triage-actions-parity.js",
+          "pnpm --filter @deftai/core test src/triage/actions"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/triage/actions module with vitest unit tests",
+          "New packages/cli/src/triage-actions-parity.ts parity binary",
+          "Byte-identical parity vs scripts/triage_actions.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-triage",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1725: feat(ts-migration): port the triage:* family to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

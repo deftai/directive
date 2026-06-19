@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1725-s2-triage-summary",
+    "title": "Port triage:summary (welcome one-liner) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/triage_summary.py to a TypeScript triage summary module, preserving the triage-cache one-line headline and the in-flight count plus scope-gap wording the welcome surface emits. This story is independently buildable in its own packages/core/src/triage/summary subdirectory and ships a golden parity binary against the Python oracle.",
+      "ImplementationPlan": "1. Create the packages/core/src/triage/summary module that ports the headline composition, the filesystem-truth in-flight count, and the scope-gap line from triage_summary.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-summary-parity.ts parity binary that runs the TS summary and the Python scripts/triage_summary.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",
+      "UserStory": "As an operator starting a session, I want triage:summary available in TypeScript, so that the one-line triage headline and in-flight count come from the TS engine with the same wording as the Python module."
+    },
+    "items": [
+      {
+        "id": "1725-s2-a1",
+        "title": "headline wording reproduced",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running triage:summary on the TS port renders the same one-line headline text the Python module emits for an identical cache."
+        }
+      },
+      {
+        "id": "1725-s2-a2",
+        "title": "in-flight count is filesystem-truth",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The TS summary returns the in-flight count from a live count of running active vBRIEFs, matching the Python filesystem-truth count."
+        }
+      },
+      {
+        "id": "1725-s2-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the triage-summary parity binary returns exit 0 and renders byte-identical output to the Python triage_summary.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/summary/",
+          "packages/cli/src/triage-summary.ts",
+          "packages/cli/src/triage-summary-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/triage-summary-parity.js",
+          "pnpm --filter @deftai/core test src/triage/summary"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/triage/summary module with vitest unit tests",
+          "New packages/cli/src/triage-summary-parity.ts parity binary",
+          "Byte-identical parity vs scripts/triage_summary.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-triage",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1725: feat(ts-migration): port the triage:* family to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

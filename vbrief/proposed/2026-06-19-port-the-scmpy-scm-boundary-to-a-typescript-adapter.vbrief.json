@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1724-featts-migration-port-the-scmpy-scm-boundary-to-a-ts-adapter.vbrief.json"
+  },
+  "plan": {
+    "id": "1724-s1-scm-adapter",
+    "title": "Port the scm.py SCM boundary to a TypeScript adapter",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1724-featts-migration-port-the-scmpy-scm-boundary-to-a-ts-adapter.vbrief.json",
+    "narratives": {
+      "Description": "Port the scripts/scm.py boundary (the scm.call(source, verb, args) shim, the ghx->gh preference ladder in resolve_binary, and the github-issue NotImplementedError for non-GitHub sources) to a TypeScript SCM adapter under packages/core. This is the shared foundation that the Wave-3 triage, scope, and slice families call to reach GitHub, so it is built and merged first; it is independently buildable because the adapter is a self-contained module with a golden parity binary and no dependency on any other Wave-3 port.",
+      "ImplementationPlan": "1. Create the packages/core/src/scm module that ports resolve_binary (the ghx->gh ladder), the call(source, verb, args) dispatch, and the non-github-issue rejection path, with vitest unit tests in the same module directory.\n2. Add a packages/cli/src/scm-parity.ts parity binary that runs the TS adapter and the Python scripts/scm.py oracle over a fixture corpus and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary, keeping the Python suite as the authoritative oracle until cutover.",
+      "UserStory": "As a directive maintainer, I want the SCM boundary available as a TypeScript adapter, so that the triage, scope, and slice families can route GitHub access through TS instead of the Python scm.py shim."
+    },
+    "items": [
+      {
+        "id": "1724-s1-a1",
+        "title": "ghx->gh ladder preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The TS adapter returns ghx as the binary when ghx is on PATH and falls back to gh when it is absent, preserving the documented preference ladder."
+        }
+      },
+      {
+        "id": "1724-s1-a2",
+        "title": "non-GitHub source rejected",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Calling the adapter with a non github-issue source rejects the request and emits the deferred-abstraction NotImplementedError-equivalent error rather than shelling out."
+        }
+      },
+      {
+        "id": "1724-s1-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the scm parity binary returns exit 0 and renders byte-identical output to the Python scm.py oracle across the fixture corpus with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scm/",
+          "packages/cli/src/scm-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/scm-parity.js",
+          "pnpm --filter @deftai/core test src/scm"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/scm module with vitest unit tests",
+          "New packages/cli/src/scm-parity.ts parity binary",
+          "Byte-identical parity vs scripts/scm.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-scm",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1724 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1724: feat(ts-migration): port the scm.py SCM boundary to a TS adapter (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1718",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1718"
+      }
+    ]
+  }
+}

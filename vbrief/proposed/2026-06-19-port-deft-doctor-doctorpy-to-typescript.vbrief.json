@@ -1,0 +1,93 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1728-s2-doctor",
+    "title": "Port deft doctor (doctor.py) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/doctor.py (deft doctor: install-integrity, toolchain probe, AGENTS.md managed-section freshness, and payload-staleness detection from the VERSION manifest) to a TypeScript doctor module under packages/core. This story depends on the cache port because the doctor cache-fresh probe reads the cache module; it is independently buildable thereafter as a self-contained module with a golden parity binary.",
+      "ImplementationPlan": "1. Create the packages/core/src/doctor module that ports the install-integrity, toolchain, managed-section freshness, and payload-staleness probes, reading the ported cache module for the cache-fresh check, with vitest unit tests in the module directory.\n2. Reproduce the canonical headless upgrade command emitted when the payload manifest is behind, matching the Python doctor.py source strings.\n3. Add a packages/cli/src/doctor-parity.ts parity binary that runs the TS doctor and the Python scripts/doctor.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want deft doctor available in TypeScript, so that the install-integrity, toolchain, managed-section freshness, and payload-staleness probes run on the TS engine without the Python doctor.py module."
+    },
+    "items": [
+      {
+        "id": "1728-s2-a1",
+        "title": "healthy install probes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running deft doctor on a healthy install returns exit 0 and emits the install-integrity, toolchain, and freshness probe results."
+        }
+      },
+      {
+        "id": "1728-s2-a2",
+        "title": "stale managed section detected",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running deft doctor against a stale AGENTS.md managed section shows the staleness and redirects the operator to agents:refresh."
+        }
+      },
+      {
+        "id": "1728-s2-a3",
+        "title": "behind payload emits upgrade command",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running deft doctor against a behind payload manifest emits the canonical headless deft-install upgrade command."
+        }
+      },
+      {
+        "id": "1728-s2-a4",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the doctor parity binary returns exit 0 and renders byte-identical output to the Python doctor.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/",
+          "packages/cli/src/doctor.ts",
+          "packages/cli/src/doctor-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/doctor-parity.js",
+          "pnpm --filter @deftai/core test src/doctor"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/doctor module with vitest unit tests",
+          "New packages/cli/src/doctor-parity.ts parity binary",
+          "Byte-identical parity vs scripts/doctor.py under cache-off"
+        ],
+        "depends_on": [
+          "1728-s1-cache"
+        ],
+        "conflict_group": "ts-wave3-cache-doctor",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1728 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1728: feat(ts-migration): port cache + deft doctor to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

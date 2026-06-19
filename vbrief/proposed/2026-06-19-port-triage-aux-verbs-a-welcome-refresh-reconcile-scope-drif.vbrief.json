@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 7 decomposed from proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1725-s7-triage-aux-a",
+    "title": "Port triage aux verbs A (welcome / refresh / reconcile / scope-drift) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port the first aux cluster of the triage family (scripts/triage_welcome.py, triage_refresh.py, triage_reconcile.py, and triage_scope_drift.py) to TypeScript, preserving the welcome surface wording, the cache refresh path, the origin reconciliation, and the scope-drift detection. This story is independently buildable because each verb gets its own packages/core/src/triage subdirectory with no overlap with the other triage stories, and it ships a golden parity binary against the Python oracles.",
+      "ImplementationPlan": "1. Create the packages/core/src/triage/welcome, refresh, reconcile, and scope-drift modules that port the four Python scripts, with vitest unit tests in each module directory.\n2. Add a packages/cli/src/triage-aux-a-parity.ts parity binary that runs each TS verb and its Python oracle (triage_welcome.py, triage_refresh.py, triage_reconcile.py, triage_scope_drift.py) and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python modules remain the oracles.",
+      "UserStory": "As an operator running session-start triage, I want the welcome, refresh, reconcile, and scope-drift verbs available in TypeScript, so that those triage surfaces run on the TS engine with the same wording as the Python modules."
+    },
+    "items": [
+      {
+        "id": "1725-s7-a1",
+        "title": "welcome and refresh reproduced",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running triage:welcome and triage:refresh on the TS port renders the same surface wording and refreshes the cache the same way the Python modules do."
+        }
+      },
+      {
+        "id": "1725-s7-a2",
+        "title": "reconcile and scope-drift reproduced",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running triage:reconcile and triage:scope-drift on the TS port returns the same stale origins and scope drift the Python modules report."
+        }
+      },
+      {
+        "id": "1725-s7-a3",
+        "title": "golden parity vs Python oracles",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the triage-aux-a parity binary returns exit 0 and renders byte-identical output to the four Python oracles with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/welcome/",
+          "packages/core/src/triage/refresh/",
+          "packages/core/src/triage/reconcile/",
+          "packages/core/src/triage/scope-drift/",
+          "packages/cli/src/triage-welcome.ts",
+          "packages/cli/src/triage-refresh.ts",
+          "packages/cli/src/triage-reconcile.ts",
+          "packages/cli/src/triage-scope-drift.ts",
+          "packages/cli/src/triage-aux-a-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/triage-aux-a-parity.js",
+          "pnpm --filter @deftai/core test src/triage/welcome"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/triage welcome, refresh, reconcile, scope-drift modules with vitest unit tests",
+          "New packages/cli/src/triage-aux-a-parity.ts parity binary",
+          "Byte-identical parity vs the four Python triage oracles under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-triage",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1725: feat(ts-migration): port the triage:* family to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

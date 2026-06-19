@@ -1,0 +1,103 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1725"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port the triage:* family to TS (Wave 3)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port the triage:* family to TS (Wave 3)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1725",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nPort the `triage:*` verb family (`scripts/triage_*.py`: summary, queue, classification, bootstrap, accept/reject/defer, scope) to `@deft/core` + CLI, preserving cache semantics and queue ranking order.\n\n## Acceptance criteria\n\n- [ ] `triage:summary` / `triage:queue` and the accept/reject/defer surface run on TS\n- [ ] Queue ranking + `[RESUME]`/`[ORPHAN]`/`[URGENT]` ordering reproduced\n- [ ] Golden-output parity vs the Python oracle (cache-off)\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1724\n",
+      "Labels": "triage, refactor, runtime-portability, tooling"
+    },
+    "items": [
+      {
+        "title": "/  and the accept/reject/defer surface run on TS",
+        "status": "proposed"
+      },
+      {
+        "title": "Queue ranking + // ordering reproduced",
+        "status": "proposed"
+      },
+      {
+        "title": "Golden-output parity vs the Python oracle (cache-off)",
+        "status": "proposed"
+      },
+      {
+        "title": "passes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "triage",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1725: feat(ts-migration): port the triage:* family to TS (Wave 3)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triagequeue-ranking-resumeorphanurgent-order-to-typescr.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage:queue (ranking + RESUME/ORPHAN/URGENT order) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triagesummary-welcome-one-liner-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage:summary (welcome one-liner) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triageclassify-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage:classify to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triageaccept-reject-defer-actions-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage:accept / reject / defer actions to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triagebootstrap-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage:bootstrap to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triagescope-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage:scope to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triage-aux-verbs-a-welcome-refresh-reconcile-scope-drif.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage aux verbs A (welcome / refresh / reconcile / scope-drift) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-triage-aux-verbs-b-bulk-subscribe-help-smoketest-to-typ.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port triage aux verbs B (bulk / subscribe / help / smoketest) to TypeScript",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

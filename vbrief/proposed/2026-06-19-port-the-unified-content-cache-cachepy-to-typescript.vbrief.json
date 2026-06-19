@@ -1,0 +1,91 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1728-s1-cache",
+    "title": "Port the unified content cache (cache.py) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/cache.py (the unified content cache and quarantine: put, get, invalidate, fetch-all, prune, plus TTL handling) to a TypeScript cache module under packages/core. This story is independently buildable because the cache module is self-contained, owns its on-disk cache directory, and ships a golden parity binary against the Python oracle; it is sequenced before the doctor port because the deft doctor cache-fresh probe reads the cache.",
+      "ImplementationPlan": "1. Create the packages/core/src/cache module that ports put, get, invalidate, fetch-all, and prune over the on-disk cache with TTL expiry and the quarantine path, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/cache-parity.ts parity binary that runs the TS cache verbs and the Python scripts/cache.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module stays the authoritative oracle.",
+      "UserStory": "As a directive maintainer, I want the content cache available in TypeScript, so that cache put, get, invalidate, prune, and quarantine run on the TS engine with the same TTL semantics as cache.py."
+    },
+    "items": [
+      {
+        "id": "1728-s1-a1",
+        "title": "put/get honor TTL",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running cache put then get returns the stored entry until its TTL expires, after which get returns a miss."
+        }
+      },
+      {
+        "id": "1728-s1-a2",
+        "title": "invalidate and prune behavior",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running cache invalidate deletes the targeted entry and running prune removes every entry past its TTL."
+        }
+      },
+      {
+        "id": "1728-s1-a3",
+        "title": "quarantine preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "An undecodable or corrupt payload persists to the quarantine path rather than being served, matching the Python cache quarantine behavior."
+        }
+      },
+      {
+        "id": "1728-s1-a4",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the cache parity binary returns exit 0 and renders byte-identical output to the Python cache.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/cache/",
+          "packages/cli/src/cache.ts",
+          "packages/cli/src/cache-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/cache-parity.js",
+          "pnpm --filter @deftai/core test src/cache"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/cache module with vitest unit tests",
+          "New packages/cli/src/cache-parity.ts parity binary",
+          "Byte-identical parity vs scripts/cache.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-cache-doctor",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1728 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1728: feat(ts-migration): port cache + deft doctor to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

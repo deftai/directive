@@ -1,0 +1,91 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1726-featts-migration-port-the-scope-lifecycle-family-to-ts-wave.vbrief.json"
+  },
+  "plan": {
+    "id": "1726-s1-scope-lifecycle",
+    "title": "Port the scope:* lifecycle family to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1726-featts-migration-port-the-scope-lifecycle-family-to-ts-wave.vbrief.json",
+    "narratives": {
+      "Description": "Port the scripts/scope_lifecycle.py family (promote, activate, complete, cancel, restore, block, unblock, fail, demote, and undo) to TypeScript, preserving the atomic plan.status plus plan.updated plus folder-move semantics and the audit log. This is kept as one story rather than split because every transition shares the same atomic write engine and audit path, so splitting it across parallel workers would force overlapping edits to the same module; it remains independently buildable as a single self-contained scope module with a golden parity binary.",
+      "ImplementationPlan": "1. Create the packages/core/src/scope module that ports each lifecycle transition over the atomic status plus timestamp plus folder-move engine and the audit log writer, with vitest unit tests in the module directory.\n2. Port scope undo so non-terminal transitions are reversible and terminal actions are refused, matching the Python reversibility contract.\n3. Add a packages/cli/src/scope-lifecycle-parity.ts parity binary that runs the TS transitions and the Python scripts/scope_lifecycle.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the scope:* lifecycle transitions available in TypeScript, so that vBRIEF promote, activate, complete, and recovery moves run on the TS engine with the same atomic semantics as the Python module."
+    },
+    "items": [
+      {
+        "id": "1726-s1-a1",
+        "title": "atomic transition semantics preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running a scope transition such as promote, activate, or complete updates plan.status and plan.updated and moves the vBRIEF to the matching lifecycle folder atomically."
+        }
+      },
+      {
+        "id": "1726-s1-a2",
+        "title": "undo reversibility preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running scope undo after a non-terminal transition restores the prior status and folder, while undo after a terminal action is rejected."
+        }
+      },
+      {
+        "id": "1726-s1-a3",
+        "title": "audit log entries recorded",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Each transition records an audit-log entry that matches the field shape the Python scope_lifecycle.py module writes."
+        }
+      },
+      {
+        "id": "1726-s1-a4",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the scope-lifecycle parity binary returns exit 0 and renders byte-identical output to the Python scope_lifecycle.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/",
+          "packages/cli/src/scope-lifecycle.ts",
+          "packages/cli/src/scope-lifecycle-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/scope-lifecycle-parity.js",
+          "pnpm --filter @deftai/core test src/scope"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/scope module with vitest unit tests",
+          "New packages/cli/src/scope-lifecycle-parity.ts parity binary",
+          "Byte-identical parity vs scripts/scope_lifecycle.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-scope",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1726 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1726: feat(ts-migration): port the scope:* lifecycle family to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}

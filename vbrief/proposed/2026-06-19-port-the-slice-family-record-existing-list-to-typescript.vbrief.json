@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1727-featts-migration-port-the-slice-family-to-ts-wave-3.vbrief.json"
+  },
+  "plan": {
+    "id": "1727-s1-slice-record",
+    "title": "Port the slice:* family (record-existing / list) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1727-featts-migration-port-the-slice-family-to-ts-wave-3.vbrief.json",
+    "narratives": {
+      "Description": "Port the scripts/slice_record.py family (slice:record-existing and slice:list) to TypeScript, preserving the slices.jsonl cohort-record shape and the record-existing idempotency contract. This story is independently buildable because the slice module is self-contained, reads and writes only the cohort-record file, and ships a golden parity binary against the Python oracle.",
+      "ImplementationPlan": "1. Create the packages/core/src/slice module that ports record-existing and list over the slices.jsonl cohort-record file, preserving field order and idempotency, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/slice-parity.ts parity binary that runs the TS verbs and the Python scripts/slice_record.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the authoritative oracle.",
+      "UserStory": "As a directive maintainer, I want the slice:* cohort-record commands available in TypeScript, so that recording and listing umbrella cohort slices no longer depends on the Python slice_record.py module."
+    },
+    "items": [
+      {
+        "id": "1727-s1-a1",
+        "title": "slice:list reproduces cohort shape",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running slice:list on the TS port returns the recorded cohort entries in the same slices.jsonl shape the Python module produces."
+        }
+      },
+      {
+        "id": "1727-s1-a2",
+        "title": "record-existing is idempotent",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running slice:record-existing twice on a matching umbrella and child set persists exactly one cohort record, preserving idempotency."
+        }
+      },
+      {
+        "id": "1727-s1-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the slice parity binary returns exit 0 and renders byte-identical output to the Python slice_record.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/slice/",
+          "packages/cli/src/slice.ts",
+          "packages/cli/src/slice-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/slice-parity.js",
+          "pnpm --filter @deftai/core test src/slice"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/slice module with vitest unit tests",
+          "New packages/cli/src/slice-parity.ts parity binary",
+          "Byte-identical parity vs scripts/slice_record.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave3-slice",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1727 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1727: feat(ts-migration): port the slice:* family to TS (Wave 3)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1724",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1724"
+      }
+    ]
+  }
+}
