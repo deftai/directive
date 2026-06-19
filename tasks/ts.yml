@@ -242,6 +242,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/codebase-parity.js"
 
+  intake-parity:
+    desc: "Golden-diff the ported issue intake + reconcile surface vs the Python oracle, cache-off (#1784)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/intake-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -284,3 +290,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/validate-content-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/render-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/codebase-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/intake-parity.js"

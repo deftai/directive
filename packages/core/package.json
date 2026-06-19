@@ -133,6 +133,14 @@
     "./capacity": {
       "types": "./dist/capacity/index.d.ts",
       "default": "./dist/capacity/index.js"
+    },
+    "./intake": {
+      "types": "./dist/intake/index.d.ts",
+      "default": "./dist/intake/index.js"
+    },
+    "./intake/parity-scenarios": {
+      "types": "./dist/intake/parity-scenarios.d.ts",
+      "default": "./dist/intake/parity-scenarios.js"
     }
   },
   "dependencies": {

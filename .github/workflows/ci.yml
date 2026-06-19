@@ -300,6 +300,9 @@ jobs:
       - name: Golden-diff parity -- codebase mapping + capacity (#1786)
         run: node packages/cli/dist/codebase-parity.js
 
+      - name: Golden-diff parity -- issue intake + reconcile (#1784)
+        run: node packages/cli/dist/intake-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404
