@@ -6,6 +6,18 @@ import {
   stripTrailingChar,
   stripTrailingWhitespace,
 } from "./normalize.js";
+import { storyQualityIssues } from "./story-quality.js";
+
+const userStoryAccepted = (userStory: string): boolean =>
+  !storyQualityIssues({
+    title: "t",
+    description: "d",
+    implementationPlan: "p",
+    userStory,
+    acceptanceTexts: [],
+    acceptanceCountJustification: "",
+    swarm: {},
+  }).some((i) => i.includes("UserStory must match"));
 
 describe("ReDoS-free normalize helpers", () => {
   it("strips trailing whitespace exactly like /\\s+$/", () => {
@@ -32,6 +44,43 @@ describe("ReDoS-free normalize helpers", () => {
     expect(stripTrailingChar("a///", "/")).toBe("a");
     expect(stripTrailingChar("///", "/")).toBe("");
     expect(stripTrailingChar("abc", "/")).toBe("abc");
+  });
+});
+
+describe("linear USER_STORY recognizer parity", () => {
+  it("accepts well-formed user stories (single-line, multi-line, commas, spaces)", () => {
+    const valid = [
+      "As a maintainer, I want x, so that y.",
+      "As an engineer, I want feature, so that benefit.",
+      "as a x, i want y, so that z.",
+      "As a dev, I want\nmulti line, so that\noutcome.\n",
+      "As a dev, I want a, b, c, so that x, y, z.",
+      "As a   role,   I   want   cap,   so   that   out.",
+      "   As a role, I want cap, so that out.  \n",
+      "As a role, I want cap, so that v1.2 ships.",
+      "As  a   maintainer ,  I want   x , so   that   y .",
+    ];
+    for (const story of valid) {
+      expect(userStoryAccepted(story), story).toBe(true);
+    }
+  });
+
+  it("rejects malformed user stories", () => {
+    const invalid = [
+      "",
+      "As a role, I want cap, so that out", // missing trailing period
+      "As a role, I want cap.", // missing so-that clause
+      "As a role, so that out.", // missing want clause
+      "I want cap, As a role, so that out.", // wrong order
+      "As animal, I want cap, so that out.", // "As a" not followed by whitespace
+      "As a role, I want , so that out.", // empty capability
+      "As a role, I want cap, so that .", // empty outcome
+      "As a role, I want cap, so that out.x", // junk after terminator
+      "As a, I want y, so that z.", // no whitespace after "a" before role
+    ];
+    for (const story of invalid) {
+      expect(userStoryAccepted(story), story).toBe(false);
+    }
   });
 });
 

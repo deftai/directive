@@ -1,4 +1,4 @@
-import { stripEdgeChars, stripTrailingChar } from "./normalize.js";
+import { stripEdgeChars, stripTrailingChar, stripTrailingWhitespace } from "./normalize.js";
 import type { JsonObject } from "./types.js";
 
 export const BROAD_FILE_SCOPE_ROOTS = new Set(["backend", "frontend", "docs", "vbrief"]);
@@ -109,11 +109,54 @@ export const OBSERVABLE_TERMS = [
   "then ",
 ] as const;
 
-// ReDoS-free equivalent of the original ``\s+[^,]+`` / ``\s+.+`` segments: a
-// leading ``\s`` followed by a greedy class fully absorbs the extra whitespace,
-// so the match set is identical without the overlapping-quantifier backtracking
-// (CodeQL js/polynomial-redos).
-const USER_STORY_RE = /^\s*As\s+a[n]?\s[^,]+,\s*I\s+want\s.+,\s*so\s+that\s.+\.\s*$/is;
+// Linear, ReDoS-free recognizer for the Python USER_STORY_RE:
+//   ^\s*As\s+a[n]?\s+[^,]+,\s*I\s+want\s+.+,\s*so\s+that\s+.+\.\s*$  (IGNORECASE | DOTALL)
+// The two greedy ``.+`` segments under DOTALL are the polynomial-backtracking
+// source (CodeQL js/polynomial-redos). They are only ever consumed by a boolean
+// ``.test()`` (no capture groups), so we replace the regex with an existence
+// check that accepts EXACTLY the same language:
+//   * The bounded, unambiguous prefix (``As a/an <role>, I want``) is matched by a
+//     linear regex -- ``[^,]+`` is followed by ``,`` (excluded from the class) and
+//     every quantified ``\s`` sits next to a literal, so there is no overlapping
+//     adjacent-quantifier backtracking.
+//   * The ``.+,...,.+\.`` tail is verified by scanning for the literal connective
+//     ``, so that`` and a trailing literal period via string ops -- no backtracking.
+// A single mandatory ``\s`` is enough wherever Python wrote ``\s+`` because the
+// following greedy class (``[^,]+`` or DOTALL ``.+``) also matches whitespace, so
+// the extra whitespace folds into it -- the accepted set is identical.
+const USER_STORY_PREFIX_RE = /^\s*As\s+a[n]?\s[^,]+,\s*I\s+want\s/i;
+const SO_THAT_PREFIX_RE = /^\s*so\s+that\s/i;
+
+// Equivalent of ``^\s*so\s+that\s+.+\.\s*$`` (DOTALL) on the post-comma remainder.
+function matchesSoThatClause(text: string): boolean {
+  const prefix = SO_THAT_PREFIX_RE.exec(text);
+  if (prefix === null) {
+    return false;
+  }
+  // outcome ``.+`` then literal ``\.`` then ``\s*$``: after stripping trailing
+  // whitespace the remainder must end with ``.`` and carry >=1 outcome char.
+  const outcome = stripTrailingWhitespace(text.slice(prefix[0].length));
+  return outcome.length >= 2 && outcome.endsWith(".");
+}
+
+// Equivalent of ``.+,\s*so\s+that\s+.+\.\s*$`` (DOTALL): the capability ``.+`` is
+// >=1 char, so try every comma at index >=1 and verify the so-that tail.
+function matchesCapabilityAndOutcome(text: string): boolean {
+  for (let i = 1; i < text.length; i += 1) {
+    if (text[i] === "," && matchesSoThatClause(text.slice(i + 1))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function matchesUserStory(text: string): boolean {
+  const prefix = USER_STORY_PREFIX_RE.exec(text);
+  if (prefix === null) {
+    return false;
+  }
+  return matchesCapabilityAndOutcome(text.slice(prefix[0].length));
+}
 
 export function asStrList(value: unknown): string[] {
   if (value === null || value === undefined) {
@@ -261,7 +304,7 @@ export interface StoryQualityParams {
 export function storyQualityIssues(params: StoryQualityParams): string[] {
   const issues: string[] = [];
   const concurrentReady = params.concurrentReady ?? true;
-  if (!USER_STORY_RE.test(params.userStory ?? "")) {
+  if (!matchesUserStory(params.userStory ?? "")) {
     issues.push("UserStory must match 'As a <role>, I want <capability>, so that <outcome>.'");
   }
   issues.push(...descriptionIssues(params.description));

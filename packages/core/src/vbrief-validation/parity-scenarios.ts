@@ -179,6 +179,32 @@ const EDGE_STORIES = [
   "As a role, I want cap, so that out",
   "As a, I want y, so that z.",
   "As a role, I want cap, so that done.",
+  // multi-line via DOTALL (\n inside the want/so-that clauses)
+  "As a dev, I want\nmulti line, so that\noutcome.\n",
+  // extra internal commas in both clauses
+  "As a dev, I want a, b, c, so that x, y, z.",
+  // multiple spaces after As a / want / that
+  "As a   role,   I   want   cap,   so   that   out.",
+  // leading whitespace + trailing newline
+  "   As a role, I want cap, so that out.  \n",
+  // invalid: missing trailing period
+  "As a role, I want cap, so that out",
+  // invalid: missing the so-that clause
+  "As a role, I want cap.",
+  // invalid: missing the want clause
+  "As a role, so that out.",
+  // invalid: wrong clause order
+  "I want cap, As a role, so that out.",
+  // invalid: "As a" not followed by whitespace (role glued on)
+  "As animal, I want cap, so that out.",
+  // invalid: empty capability before the comma
+  "As a role, I want , so that out.",
+  // invalid: empty outcome before the period
+  "As a role, I want cap, so that .",
+  // valid: period inside the outcome, real terminator at end
+  "As a role, I want cap, so that v1.2 ships.",
+  // invalid: trailing non-space after the terminating period
+  "As a role, I want cap, so that out.x",
 ];
 
 function writeValidProjectDefinition(vbriefDir: string): void {

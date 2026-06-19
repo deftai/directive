@@ -177,6 +177,19 @@ EDGE_STORIES = [
     "As a role, I want cap, so that out",
     "As a, I want y, so that z.",
     "As a role, I want cap, so that done.",
+    "As a dev, I want\nmulti line, so that\noutcome.\n",
+    "As a dev, I want a, b, c, so that x, y, z.",
+    "As a   role,   I   want   cap,   so   that   out.",
+    "   As a role, I want cap, so that out.  \n",
+    "As a role, I want cap, so that out",
+    "As a role, I want cap.",
+    "As a role, so that out.",
+    "I want cap, As a role, so that out.",
+    "As animal, I want cap, so that out.",
+    "As a role, I want , so that out.",
+    "As a role, I want cap, so that .",
+    "As a role, I want cap, so that v1.2 ships.",
+    "As a role, I want cap, so that out.x",
 ]
 
 
