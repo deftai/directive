@@ -32,6 +32,7 @@ export * as slice from "./slice/index.js";
 export * as storyReady from "./story-ready/index.js";
 export * as triage from "./triage/index.js";
 export * as vbriefBuild from "./vbrief-build/index.js";
+export * as vbriefValidation from "./vbrief-validation/index.js";
 export * as wipCap from "./wip-cap/index.js";
 
 export const CORE_PACKAGE = "@deftai/core" as const;
