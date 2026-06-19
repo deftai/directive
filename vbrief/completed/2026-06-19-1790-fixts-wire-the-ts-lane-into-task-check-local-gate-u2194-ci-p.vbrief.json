@@ -1,0 +1,45 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1790"
+  },
+  "plan": {
+    "title": "fix(ts): wire the TS lane into task check (local-gate \\u2194 CI parity, #1530 cutover prerequisite)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(ts): wire the TS lane into task check (local-gate \\u2194 CI parity, #1530 cutover prerequisite)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1790",
+      "Overview": "## Parent\n#1530 (Part 1 of 2)\n\n## Problem\n`task check` (`check:framework-source`) runs only the **Python** suite + gates locally; the TypeScript engine (build + biome lint + vitest) runs **only in the CI \"TypeScript (build + lint + test)\" job**. So a contributor's local `task check` can pass green while a TS lint/format/test failure reddens CI after push (this bit PR #1780 — the composer worker's local `task check` was green but CI biome failed on unformatted files). As Bucket-B ports (Waves 5–7) land, this gap widens, and after cutover (#1731) there is no Python suite left to be the local gate — so closing this is a cutover prerequisite.\n\n## What to build\nAdd a **Node-toolchain-aware** TS lane to `task check`:\n- A guarded `ts:check-lane` that runs `pnpm run lint` + `build` + `test` when a Node/pnpm toolchain is present, and **skips with a clear notice (exit 0)** when it is absent — mirroring the existing `core:test` / `core:lint` vendored-consumer guards (#1474). This preserves the documented invariant that `check:framework-source` must not hard-require Node in Node-less environments.\n- Wire `ts:check-lane` into `check:framework-source`.\n- Update the now-stale top-of-`tasks/ts.yml` comment that says the TS lane is intentionally unwired.\n\n## Acceptance criteria\n- [ ] `task check` runs the TS lane (lint+build+test) when pnpm is on PATH\n- [ ] `task check` skips the TS lane with a notice (exit 0) when pnpm is absent\n- [ ] Guard logic has unit-test coverage\n- [ ] A TS lint/format failure now fails `task check` locally (the PR #1780 class is caught pre-push)\n\n## Type\nAFK"
+    },
+    "items": [
+      {
+        "title": "runs the TS lane (lint+build+test) when pnpm is on PATH",
+        "status": "proposed"
+      },
+      {
+        "title": "skips the TS lane with a notice (exit 0) when pnpm is absent",
+        "status": "proposed"
+      },
+      {
+        "title": "Guard logic has unit-test coverage",
+        "status": "proposed"
+      },
+      {
+        "title": "A TS lint/format failure now fails  locally (the PR #1780 class is caught pre-push)",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1790",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1790: fix(ts): wire the TS lane into task check (local-gate \\u2194 CI parity, #1530 cutover prerequisite)"
+      }
+    ],
+    "updated": "2026-06-19T16:33:44Z",
+    "metadata": {
+      "completedAt": "2026-06-19T16:33:44Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

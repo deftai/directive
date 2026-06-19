@@ -2,11 +2,15 @@ version: '3'
 
 # TypeScript engine monorepo verbs (#1717). The TS engine lives at the repo
 # root (packages/*) and coexists with the Python/Go engine during the
-# strangler-fig migration. These verbs are intentionally NOT wired into the
-# `task check` aggregate yet: that gate runs in environments without a Node
-# toolchain (e.g. the Python CI job), so the TS lane is validated by its own
-# `ts` CI job instead. Wiring into `task check` is deferred until the Node
-# toolchain is a guaranteed prerequisite everywhere `task check` runs.
+# strangler-fig migration.
+#
+# `check:framework-source` now runs the TS lane via the `ts:check-lane`
+# Node-toolchain-aware guard (#1790): when `pnpm` is on PATH it runs
+# lint+build+test, and when it is absent it skips with a notice and exits 0
+# (so the gate still works in Node-less environments, mirroring the #1474
+# vendored-consumer guards). This closed the PR #1780 gap where a TS biome
+# failure passed a local `task check` but reddened CI. The dedicated `ts` CI
+# job still runs the lane unconditionally.
 #
 # DEFT_ROOT resolves to the repo root (this fragment lives in tasks/, so
 # {{.TASKFILE_DIR}}/.. is the root), matching the sibling task fragments.
@@ -32,6 +36,12 @@ tasks:
     dir: '{{.DEFT_ROOT}}'
     cmds:
       - pnpm run lint
+
+  check-lane:
+    desc: "Run the TS lane (lint+build+test) when a Node toolchain is present; skip with a notice otherwise (#1530 local-gate<->CI parity, #1790)."
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/ts_check_lane.py" --project-root "{{.DEFT_ROOT}}"
 
   encoding:
     desc: "Run the ported verify:encoding gate (TS @deftai/core port, #1718)"

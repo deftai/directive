@@ -330,6 +330,7 @@ tasks:
       - core:validate
       - core:lint
       - core:test
+      - ts:check-lane
       - toolchain:check
       - verify:stubs
       - verify:links
