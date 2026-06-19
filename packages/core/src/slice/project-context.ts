@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { parseGitHubRepoSlug } from "../text/redos-safe.js";
 import { ENV_PROJECT_REPO, ENV_PROJECT_ROOT, PROJECT_ROOT_SENTINELS } from "./constants.js";
 
 function isProjectRoot(candidate: string): boolean {
@@ -37,18 +38,7 @@ export function resolveProjectRoot(cliProjectRoot?: string | null, start?: strin
 
 /** Accept OWNER/NAME or a full GitHub URL, return OWNER/NAME. */
 export function normaliseRepoSlug(value: string): string | null {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    return null;
-  }
-  const urlMatch = trimmed.match(/github\.com[:/]([^/\s]+)\/([^/\s]+?)(?:\.git)?(?:\s|$)/);
-  if (urlMatch?.[1] && urlMatch[2]) {
-    return `${urlMatch[1]}/${urlMatch[2]}`;
-  }
-  if (/^[^/\s]+\/[^/\s]+$/.test(trimmed)) {
-    return trimmed;
-  }
-  return null;
+  return parseGitHubRepoSlug(value);
 }
 
 function detectRepoFromGit(projectRoot: string | null): string | null {

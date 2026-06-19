@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Wave 3–4 TypeScript ports no longer carry polynomial-ReDoS regexes (#1810)** -- Twelve high-severity CodeQL `js/polynomial-redos` alerts on master (plus one URL-substring sanitization finding) blocked unrelated PRs via diff-baseline mis-attribution. The flagged cache, scope, doctor, pr-merge-readiness, scm, slice, and triage modules now use linear scanners with byte-identical golden parity. Refs #1810 #1530.
 
 ### Removed
 

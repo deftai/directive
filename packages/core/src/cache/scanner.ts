@@ -1,3 +1,5 @@
+import { parseMarkdownHeading } from "../text/redos-safe.js";
+
 /**
  * Quarantine scanner v2 port (mirrors `scripts/cache_scanner.py`).
  * SCANNER_VERSION must stay in lockstep with the Python module.
@@ -65,7 +67,6 @@ const HEADING_ROLE_PREFIX_RE = new RegExp(
 const BODY_VECTOR_RE =
   /(?:curl|wget|fetch)\s+[^|\n]*\|\s*(?:sh|bash|zsh|ksh)\b|\bbase64\s+(?:-d|--decode|-D)\b|\beval\s*[($"'`]/i;
 
-const HEADING_RE = /^(#{1,6})\s+(.*\S.*)$/;
 const FENCE_RE = /^(```|~~~)/;
 const QUARANTINE_FENCE_OPEN = "```quarantined";
 const QUARANTINE_FENCE_CLOSE = "```";
@@ -111,9 +112,9 @@ function detectCredentials(text: string): ScanFlag[] {
 }
 
 function headingText(line: string): string | null {
-  const match = HEADING_RE.exec(line);
-  if (!match) return null;
-  return match[2]?.trim() ?? null;
+  const match = parseMarkdownHeading(line);
+  if (match === null) return null;
+  return match.text.trim();
 }
 
 function headingSignal(text: string): boolean {
@@ -184,7 +185,7 @@ function detectInjectionHeading(text: string): [string, ScanFlag | null] {
           sectionEnd += 1;
           continue;
         }
-        if (HEADING_RE.test(nxt)) break;
+        if (parseMarkdownHeading(nxt) !== null) break;
         sectionEnd += 1;
       }
 

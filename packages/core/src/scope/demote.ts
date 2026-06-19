@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { stripTrailingPathSeparators } from "../text/redos-safe.js";
 import { append, canonicalLogPath, latestForPath, newDecisionId } from "./audit-log.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { formatVbriefJson, utcNowIso } from "./vbrief-json.js";
@@ -217,7 +218,7 @@ export function resolveFilePath(
   raw: string,
   cliProjectRoot?: string | null,
 ): [string | null, string | null] {
-  const stripped = raw.trim().replace(/[\\/]+$/, "");
+  const stripped = stripTrailingPathSeparators(raw.trim());
   if (stripped.length === 0) {
     return [
       null,
@@ -241,7 +242,7 @@ export function resolveDemoteFilePath(
   raw: string,
   cliProjectRoot?: string | null,
 ): [string | null, string | null] {
-  const stripped = raw.trim().replace(/[\\/]+$/, "");
+  const stripped = stripTrailingPathSeparators(raw.trim());
   if (stripped.length === 0) {
     return [
       null,

@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { findSkillPathsInText } from "../text/redos-safe.js";
 import {
   isDeprecationRedirectStub,
   locateManifest,
@@ -9,8 +10,6 @@ import {
 } from "./manifest.js";
 import { readTextSafe } from "./paths.js";
 import type { CheckResult } from "./types.js";
-
-const SKILL_PATH_RE = /(?<root>[\w./-]+?)\/skills\/(?<name>[a-z][\w-]*)\/SKILL\.md/g;
 
 export interface CheckSeams {
   readonly readText?: (path: string) => string | null;
@@ -69,9 +68,7 @@ export function checkSkillPathsResolve(
   agentsMdText: string,
   seams: CheckSeams = {},
 ): CheckResult {
-  const referenced = [
-    ...new Set([...agentsMdText.matchAll(SKILL_PATH_RE)].map((m) => m[0])),
-  ].sort();
+  const referenced = findSkillPathsInText(agentsMdText).sort();
   if (referenced.length === 0) {
     return {
       name: "skill-paths-resolve",

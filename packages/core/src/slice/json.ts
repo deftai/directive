@@ -1,3 +1,5 @@
+import { expandPythonJsonSeparators } from "../text/redos-safe.js";
+
 /** Recursively sort object keys like Python json.dumps(..., sort_keys=True). */
 export function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -16,11 +18,7 @@ export function sortKeysDeep(value: unknown): unknown {
 
 /** JSON.dumps(..., sort_keys=True, ensure_ascii=False) with Python separators. */
 export function pythonJsonStringify(value: unknown): string {
-  return JSON.stringify(sortKeysDeep(value)).replace(
-    /("(?:[^"\\]|\\.)*")|([:,])/g,
-    (_match, str: string | undefined, sep: string | undefined) =>
-      str !== undefined ? str : sep === ":" ? ": " : ", ",
-  );
+  return expandPythonJsonSeparators(JSON.stringify(sortKeysDeep(value)));
 }
 
 /** JSON.dumps(..., sort_keys=True, ensure_ascii=False, indent=2). */

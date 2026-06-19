@@ -1,3 +1,5 @@
+import { expandPythonJsonSeparators } from "../text/redos-safe.js";
+
 /** Format values like Python `repr()` for golden parity with the oracle. */
 export function pyRepr(value: unknown): string {
   if (value === null) {
@@ -27,9 +29,5 @@ export function pyTuple(items: readonly unknown[]): string {
  * Only structural separators are expanded -- colons/commas inside string
  * literals are preserved so values like "fix: bug" or "foo, bar" survive. */
 export function pythonJsonStringify(value: unknown): string {
-  return JSON.stringify(value, null, 0).replace(
-    /("(?:[^"\\]|\\.)*")|([:,])/g,
-    (_match, str: string | undefined, sep: string | undefined) =>
-      str !== undefined ? str : sep === ":" ? ": " : ", ",
-  );
+  return expandPythonJsonSeparators(JSON.stringify(value, null, 0));
 }

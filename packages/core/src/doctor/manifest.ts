@@ -1,25 +1,16 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { parseManifestKeyValueLine, stripEdgeQuotes } from "../text/redos-safe.js";
 import { readTextSafe } from "./paths.js";
-
-const MANIFEST_LINE_RE = /^\s*(?<key>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?<value>.*?)\s*$/;
 
 export function parseManifest(text: string): Record<string, string> {
   const parsed: Record<string, string> = {};
   for (const line of text.split("\n")) {
-    const stripped = line.trim();
-    if (!stripped || stripped.startsWith("#")) {
+    const row = parseManifestKeyValueLine(line);
+    if (row === null) {
       continue;
     }
-    const match = MANIFEST_LINE_RE.exec(stripped);
-    if (!match?.groups?.key) {
-      continue;
-    }
-    const key = match.groups.key.trim().toLowerCase();
-    const value = (match.groups.value ?? "").trim().replace(/^['"]|['"]$/g, "");
-    if (key) {
-      parsed[key] = value;
-    }
+    parsed[row.key] = row.value;
   }
   return parsed;
 }
@@ -34,7 +25,7 @@ export function parseInstallManifest(text: string): Record<string, string> {
     const colon = stripped.indexOf(":");
     const k = stripped.slice(0, colon).trim();
     let v = stripped.slice(colon + 1).trim();
-    v = v.replace(/^['"]|['"]$/g, "");
+    v = stripEdgeQuotes(v);
     if (k) {
       data[k] = v;
     }

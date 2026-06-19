@@ -1,11 +1,9 @@
+import { expandPythonJsonSeparators } from "../text/redos-safe.js";
+
 /** JSON.dumps(..., sort_keys=True) with default separators. */
 export function pythonJsonDump(value: unknown): string {
   const normalized = sortKeysDeep(value);
-  return JSON.stringify(normalized, null, 0).replace(
-    /("(?:[^"\\]|\\.)*")|([:,])/g,
-    (_match, str: string | undefined, sep: string | undefined) =>
-      str !== undefined ? str : sep === ":" ? ": " : ", ",
-  );
+  return expandPythonJsonSeparators(JSON.stringify(normalized, null, 0));
 }
 
 function sortKeysDeep(value: unknown): unknown {

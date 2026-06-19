@@ -1,8 +1,8 @@
+import { findLastReviewedCommitSha } from "../text/redos-safe.js";
 import {
   CONFIDENCE_RE,
   GREPTILE_ERRORED_SENTINEL,
   INFORMAL_CLEAN_SIGNAL_RE,
-  LAST_REVIEWED_RE,
   P0_BADGE,
   P1_BADGE,
   SECTION_RE,
@@ -59,9 +59,7 @@ export function parseGreptileBody(body: string): GreptileVerdict {
 
   const errored = body.trim().startsWith(GREPTILE_ERRORED_SENTINEL);
 
-  const shaMatches = [...body.matchAll(LAST_REVIEWED_RE)];
-  const lastReviewedSha =
-    shaMatches.length > 0 ? (shaMatches[shaMatches.length - 1]?.groups?.sha ?? null) : null;
+  const lastReviewedSha = findLastReviewedCommitSha(body);
 
   const confMatch = CONFIDENCE_RE.exec(body);
   const confidence = confMatch?.groups?.score !== undefined ? Number(confMatch.groups.score) : null;
