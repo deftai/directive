@@ -58,8 +58,14 @@ describe("parseRollbackFlags", () => {
     expect(flags.unknown).toContain("extra");
   });
 
-  it("sets help flag", () => {
-    expect(parseRollbackFlags(["--help"]).help).toBe(true);
-    expect(parseRollbackFlags(["-h"]).help).toBe(true);
+  it("errors when allow-low-downloads is followed by another flag", () => {
+    const flags = parseRollbackFlags(["0.21.0", "--allow-low-downloads", "--dry-run"]);
+    expect(flags.parseError).toBe("argument --allow-low-downloads: expected one argument");
+    expect(flags.dryRun).toBe(false);
+  });
+
+  it("errors when allow-low-downloads has no trailing value", () => {
+    const flags = parseRollbackFlags(["0.21.0", "--allow-low-downloads"]);
+    expect(flags.parseError).toBe("argument --allow-low-downloads: expected one argument");
   });
 });

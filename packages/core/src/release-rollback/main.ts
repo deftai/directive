@@ -1,6 +1,6 @@
 import { resolveProjectRoot, resolveRepo } from "../release/paths.js";
 import { validateVersion } from "../release/version.js";
-import { EXIT_CONFIG_ERROR } from "./constants.js";
+import { EXIT_CONFIG_ERROR, ROLLBACK_USAGE_SHORT } from "./constants.js";
 import { formatRollbackHelp, parseRollbackFlags } from "./flags.js";
 import { runRollback } from "./pipeline.js";
 import type { RollbackConfig, RollbackSeams } from "./types.js";
@@ -11,6 +11,12 @@ export function cmdRollback(args: readonly string[], seams: RollbackSeams = {}):
   if (flags.help) {
     process.stdout.write(formatRollbackHelp());
     return 0;
+  }
+
+  if (flags.parseError) {
+    process.stderr.write(ROLLBACK_USAGE_SHORT);
+    process.stderr.write(`release_rollback: error: ${flags.parseError}\n`);
+    return EXIT_CONFIG_ERROR;
   }
 
   if (flags.unknown.length > 0) {

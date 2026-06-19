@@ -460,6 +460,20 @@ describe("cmdRollback", () => {
     expect(stdout.join("")).toContain("usage: release_rollback");
     vi.restoreAllMocks();
   });
+
+  it("parse error for allow-low-downloads missing value exits 2", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    expect(cmdRollback(["0.21.0", "--allow-low-downloads", "--dry-run"])).toBe(EXIT_CONFIG_ERROR);
+    const out = stderr.join("");
+    expect(out).toContain("expected one argument");
+    expect(out).toContain("usage: release_rollback");
+    expect(out).not.toContain("State-aware release unwind");
+    vi.restoreAllMocks();
+  });
 });
 
 describe("git helpers", () => {

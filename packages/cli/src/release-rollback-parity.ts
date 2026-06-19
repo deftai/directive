@@ -47,6 +47,10 @@ export const PARITY_SCENARIOS: readonly ParityScenario[] = [
     name: "dry-run-absent",
     argv: ["0.99.0", "--dry-run", "--repo", "deftai/directive"],
   },
+  {
+    name: "allow-low-downloads-missing-value",
+    argv: ["0.21.0", "--allow-low-downloads", "--dry-run"],
+  },
   { name: "help", argv: ["--help"], compareStdout: true },
 ];
 

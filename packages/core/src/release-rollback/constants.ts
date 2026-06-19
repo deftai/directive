@@ -16,6 +16,14 @@ export const DOUBLE_READ_SLEEP_SECONDS = 5;
 /** Subject prefix for the auto-generated release-prep commit. */
 export const RELEASE_COMMIT_SUBJECT_PREFIX = "chore(release): v";
 
+/** Short usage line emitted by argparse on parse errors (not full --help). */
+export const ROLLBACK_USAGE_SHORT =
+  "usage: release_rollback [-h] [--dry-run] [--repo OWNER/REPO]\n" +
+  "                        [--base-branch BRANCH] [--project-root PATH]\n" +
+  "                        [--allow-low-downloads N] [--allow-data-loss]\n" +
+  "                        [--force-strict-0]\n" +
+  "                        version\n";
+
 /** Byte-identical argparse --help from scripts/release_rollback.py (Python 3.12). */
 export const ROLLBACK_HELP =
   "usage: release_rollback [-h] [--dry-run] [--repo OWNER/REPO]\n" +

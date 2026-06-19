@@ -2,6 +2,17 @@ import { DEFAULT_BASE_BRANCH } from "../release/constants.js";
 import { ROLLBACK_HELP } from "./constants.js";
 import type { RollbackFlags } from "./types.js";
 
+function isFlagToken(value: string): boolean {
+  if (!value.startsWith("-")) {
+    return false;
+  }
+  if (value.startsWith("--")) {
+    return true;
+  }
+  // Single-dash letter flags (e.g. -h), not negative numbers (e.g. -1).
+  return /^-[a-zA-Z]/.test(value);
+}
+
 export function parseRollbackFlags(args: readonly string[]): RollbackFlags {
   let help = false;
   let dryRun = false;
@@ -13,6 +24,7 @@ export function parseRollbackFlags(args: readonly string[]): RollbackFlags {
   let projectRoot: string | null = null;
   let version: string | null = null;
   const unknown: string[] = [];
+  let parseError: string | null = null;
 
   const takeValue = (flag: string, i: number): string | null => {
     if (i + 1 >= args.length) {
@@ -56,11 +68,17 @@ export function parseRollbackFlags(args: readonly string[]): RollbackFlags {
       projectRoot = token.slice("--project-root=".length) || null;
       if (!projectRoot) unknown.push("--project-root= (empty value)");
     } else if (token === "--allow-low-downloads") {
-      const v = takeValue(token, i);
-      if (v !== null) {
-        const parsed = Number.parseInt(v, 10);
-        allowLowDownloads = Number.isNaN(parsed) ? 0 : parsed;
-        i += 1;
+      if (i + 1 >= args.length) {
+        parseError = "argument --allow-low-downloads: expected one argument";
+      } else {
+        const v = args[i + 1] ?? "";
+        if (isFlagToken(v)) {
+          parseError = "argument --allow-low-downloads: expected one argument";
+        } else {
+          const parsed = Number.parseInt(v, 10);
+          allowLowDownloads = Number.isNaN(parsed) ? 0 : parsed;
+          i += 1;
+        }
       }
     } else if (token.startsWith("--allow-low-downloads=")) {
       const v = token.slice("--allow-low-downloads=".length);
@@ -87,6 +105,7 @@ export function parseRollbackFlags(args: readonly string[]): RollbackFlags {
     allowDataLoss,
     forceStrict0,
     unknown,
+    parseError,
   };
 }
 

@@ -24,6 +24,7 @@ export interface RollbackFlags {
   readonly allowDataLoss: boolean;
   readonly forceStrict0: boolean;
   readonly unknown: readonly string[];
+  readonly parseError: string | null;
 }
 
 export interface GhReleasePayload {
