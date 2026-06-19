@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -23,7 +23,6 @@ import {
 import {
   finalizeMigration,
   isolateInvalidOutput,
-  setValidateAllForTests,
   slugifyId,
 } from "./validation.js";
 
@@ -55,7 +54,11 @@ describe("vbrief-validation coverage boost", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-boost-"));
     const vbrief = join(root, "vbrief");
     mkdirSync(vbrief, { recursive: true });
-    setValidateAllForTests(() => [["bad"], []]);
+    writeFileSync(
+      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Bad", status: "in_progress", items: [] } }),
+      "utf8",
+    );
     const stderr: string[] = [];
     const [ok, actions] = finalizeMigration(root, vbrief, ["seed"], {
       stderrWriter: (c) => stderr.push(c),
@@ -63,7 +66,6 @@ describe("vbrief-validation coverage boost", () => {
     });
     expect(ok).toBe(false);
     expect(actions.some((a) => a.includes("outside.invalid"))).toBe(true);
-    setValidateAllForTests(null);
     expect(isolateInvalidOutput(root, join(root, "missing"))).toBeNull();
     rmSync(root, { recursive: true, force: true });
   });

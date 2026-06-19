@@ -55,13 +55,8 @@ export interface SafetyManifestData {
   file_modifications: FileModification[];
 }
 
-export type ValidateAllResult = readonly [errors: string[], warnings: string[]];
-
-export type ValidateAllFn = (vbriefDir: string) => ValidateAllResult;
-
 export interface FinalizeMigrationOptions {
   readonly stderrWriter?: (chunk: string) => void;
-  readonly validateAll?: ValidateAllFn;
   readonly isolateInvalid?: typeof import("./validation.js").isolateInvalidOutput;
 }
 

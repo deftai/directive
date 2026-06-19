@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -14,7 +14,7 @@ import {
 import { cmdVbriefValidation, run } from "./main.js";
 import { sortFailureActions, sortFailureStderr } from "./normalize.js";
 import { storyQualityIssues } from "./story-quality.js";
-import { finalizeMigration, setValidateAllForTests } from "./validation.js";
+import { finalizeMigration } from "./validation.js";
 
 describe("vbrief-validation extra branch coverage", () => {
   it("covers main CLI branches", () => {
@@ -75,15 +75,35 @@ describe("vbrief-validation extra branch coverage", () => {
 
   it("covers finalize success with warnings", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-finalize-ok-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    setValidateAllForTests(() => [[], ["warn-one"]]);
+    const pending = join(root, "vbrief", "pending");
+    mkdirSync(pending, { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: {
+          title: "PROJECT-DEFINITION",
+          status: "running",
+          narratives: { Overview: "Test overview narrative.", "tech stack": "Python 3.12" },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(
+      join(pending, "2026-01-01-test-scope.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: { title: "Test", status: "pending", items: [], references: [] },
+      }),
+      "utf8",
+    );
     const stderr: string[] = [];
     const [ok] = finalizeMigration(root, join(root, "vbrief"), ["seed"], {
       stderrWriter: (c) => stderr.push(c),
     });
     expect(ok).toBe(true);
-    expect(stderr.join("")).toContain("WARNING: warn-one");
-    setValidateAllForTests(null);
+    expect(stderr.join("")).toContain("WARNING:");
     rmSync(root, { recursive: true, force: true });
   });
 

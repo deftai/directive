@@ -40,7 +40,6 @@ import {
 import {
   finalizeMigration,
   isolateInvalidOutput,
-  setValidateAllForTests,
   slugFallbackId,
   slugifyId,
   validateMigrationOutput,
@@ -55,7 +54,7 @@ describe("vbrief-validation module branch coverage", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-val-br-"));
     const filePath = join(root, "not-a-dir");
     writeFileSync(filePath, "x", "utf8");
-    const [fileErrors] = validateMigrationOutput(filePath, () => [[], []]);
+    const [fileErrors] = validateMigrationOutput(filePath);
     expect(fileErrors[0]).toContain("expected vbrief directory does not exist");
 
     mkdirSync(join(root, "vbrief"), { recursive: true });
@@ -63,10 +62,15 @@ describe("vbrief-validation module branch coverage", () => {
     const isolated = isolateInvalidOutput(root, join(root, "vbrief"));
     expect(isolated).toContain("vbrief.invalid.2");
 
+    mkdirSync(join(root, "vbrief.invalid.2"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief.invalid.2", "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: {} }),
+      "utf8",
+    );
     const stderr: string[] = [];
     const [ok] = finalizeMigration(root, join(root, "vbrief.invalid.2"), ["seed"], {
       stderrWriter: (chunk) => stderr.push(chunk),
-      validateAll: () => [["schema error"], []],
       isolateInvalid: () => null,
     });
     expect(ok).toBe(false);
@@ -136,18 +140,25 @@ describe("vbrief-validation module branch coverage", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("covers validate_all injectable branches and slugify collision", () => {
+  it("covers validateAll migration branches and slugify collision", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-bridge-"));
     mkdirSync(join(root, "vbrief"), { recursive: true });
-    setValidateAllForTests(() => {
-      throw new Error("bridge broke");
-    });
-    expect(() => validateMigrationOutput(join(root, "vbrief"))).toThrow("bridge broke");
-    setValidateAllForTests(() => [[], []]);
+    writeFileSync(
+      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: {
+          title: "PROJECT-DEFINITION",
+          status: "running",
+          narratives: { Overview: "Test overview narrative.", "tech stack": "Python 3.12" },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
     const [errors, warnings] = validateMigrationOutput(join(root, "vbrief"));
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
-    setValidateAllForTests(null);
 
     const existing = new Set<string>(["hello"]);
     expect(slugifyId("hello", existing)).toMatch(/^hello-[0-9a-f]{6}$/);
@@ -402,24 +413,33 @@ describe("vbrief-validation module branch coverage", () => {
   it("covers fidelity status defaults and main fixture-root flag", () => {
     expect(mapSpecStatus(null)).toBe("pending");
     expect(mapSpecStatus("")).toBe("pending");
-    setValidateAllForTests(() => [[], []]);
     const root = mkdtempSync(join(tmpdir(), "vb-main-fixture-"));
     try {
+      mkdirSync(join(root, "vbrief"), { recursive: true });
+      writeFileSync(
+        join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+        JSON.stringify({
+          vBRIEFInfo: { version: "0.6" },
+          plan: {
+            title: "PROJECT-DEFINITION",
+            status: "running",
+            narratives: { Overview: "Test overview narrative.", "tech stack": "Python 3.12" },
+            items: [],
+          },
+        }),
+        "utf8",
+      );
       expect(run(["--all", "--fixture-root", root])).toBe(0);
       expect(run(["--fixture-root"])).toBe(2);
     } finally {
       rmSync(root, { recursive: true, force: true });
-      setValidateAllForTests(null);
     }
   });
 
   it("covers nested trace detection and slug fallback ordering", () => {
     expect(itemHasTraces({ subItems: [{ narrative: { Traces: "FR-9" } }] })).toBe(true);
     expect(slugFallbackId({ task_id: "t1.1.1", synthetic_id: "syn" })).toBe("t1.1.1");
-    const [missingErrors] = validateMigrationOutput("/path/that/does/not/exist/vbrief", () => [
-      [],
-      [],
-    ]);
+    const [missingErrors] = validateMigrationOutput("/path/that/does/not/exist/vbrief");
     expect(missingErrors[0]).toContain("does not exist");
     expect(
       storyQualityIssues({

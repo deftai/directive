@@ -65,7 +65,6 @@ export {
   ID_MAX_LENGTH,
   isolateInvalidOutput,
   RECOVERY_HINT,
-  setValidateAllForTests,
   slugFallbackId,
   slugifyId,
   validateMigrationOutput,

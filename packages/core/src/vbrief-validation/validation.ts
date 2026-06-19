@@ -1,56 +1,13 @@
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, renameSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
+import { validateAllMigration } from "../vbrief-validate/validate-all.js";
 import { stripEdgeChars, stripTrailingChar } from "./normalize.js";
-import type { FinalizeMigrationOptions, JsonObject, ValidateAllFn } from "./types.js";
+import type { FinalizeMigrationOptions, JsonObject } from "./types.js";
 
 export const RECOVERY_HINT = "Restore with: task migrate:vbrief -- --rollback";
 export const ID_MAX_LENGTH = 80;
 export const HASH_SUFFIX_LENGTH = 6;
-
-function resolveDeftRoot(): string {
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-}
-
-function defaultValidateAll(vbriefDir: string): readonly [string[], string[]] {
-  const deftRoot = resolveDeftRoot();
-  const scriptsDir = join(deftRoot, "scripts");
-  const code = `
-import json, sys
-from pathlib import Path
-sys.path.insert(0, ${JSON.stringify(scriptsDir)})
-from vbrief_validate import validate_all
-errors, warnings, _ = validate_all(Path(${JSON.stringify(vbriefDir)}))
-print(json.dumps([errors, warnings], ensure_ascii=False))
-`;
-  const result = spawnSync("uv", ["run", "python", "-c", code], {
-    cwd: deftRoot,
-    encoding: "utf8",
-    env: { ...process.env, PYTHONUTF8: "1" },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  if (result.status !== 0) {
-    throw new Error(
-      typeof result.stderr === "string" && result.stderr.trim()
-        ? result.stderr.trim()
-        : "validate_all bridge failed",
-    );
-  }
-  const parsed = JSON.parse(String(result.stdout ?? "[[],[]]")) as [string[], string[]];
-  return [parsed[0] ?? [], parsed[1] ?? []];
-}
-
-let validateAllImpl: ValidateAllFn = defaultValidateAll;
-
-/** Test hook: replace the vbrief_validate bridge. */
-export function setValidateAllForTests(fn: ValidateAllFn | null): void {
-  validateAllImpl = fn ?? defaultValidateAll;
-}
 
 /** Return a slug-safe id for filenames and in-JSON id fields (#498). */
 export function slugifyId(raw: string | null | undefined, existing?: Set<string>): string {
@@ -106,10 +63,7 @@ export function slugFallbackId(item: JsonObject): string {
 }
 
 /** Validate every file emitted by the migrator under ``vbriefDir``. */
-export function validateMigrationOutput(
-  vbriefDir: string,
-  validateAll: ValidateAllFn = validateAllImpl,
-): readonly [string[], string[]] {
+export function validateMigrationOutput(vbriefDir: string): readonly [string[], string[]] {
   try {
     if (!statSync(vbriefDir).isDirectory()) {
       return [[`${vbriefDir}: expected vbrief directory does not exist`], []];
@@ -117,7 +71,7 @@ export function validateMigrationOutput(
   } catch {
     return [[`${vbriefDir}: expected vbrief directory does not exist`], []];
   }
-  const [errors, warnings] = validateAll(vbriefDir);
+  const [errors, warnings] = validateAllMigration(vbriefDir);
   return [[...errors], [...warnings]];
 }
 
@@ -144,9 +98,8 @@ export function finalizeMigration(
   options: FinalizeMigrationOptions = {},
 ): readonly [boolean, string[]] {
   const stderrWriter = options.stderrWriter ?? ((chunk: string) => process.stderr.write(chunk));
-  const validateAll = options.validateAll ?? validateAllImpl;
   const isolateFn = options.isolateInvalid ?? isolateInvalidOutput;
-  const [errors, warnings] = validateMigrationOutput(vbriefDir, validateAll);
+  const [errors, warnings] = validateMigrationOutput(vbriefDir);
   if (errors.length === 0) {
     for (const w of warnings) {
       stderrWriter(`WARNING: ${w}\n`);

@@ -1,26 +1,39 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cmdVbriefValidation, run } from "./main.js";
 import { PARITY_SCENARIO_NAMES, runParityScenario } from "./parity-scenarios.js";
-import { setValidateAllForTests } from "./validation.js";
+
+function seedValidProjectDefinition(vbriefDir: string): void {
+  mkdirSync(vbriefDir, { recursive: true });
+  writeFileSync(
+    join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+    JSON.stringify({
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "PROJECT-DEFINITION",
+        status: "running",
+        narratives: { Overview: "Test overview narrative.", "tech stack": "Python 3.12" },
+        items: [],
+      },
+    }),
+    "utf8",
+  );
+}
 
 describe("vbrief-validation parity scenarios", () => {
   it("runs every named scenario", () => {
-    // Stub the Python validate_all bridge so the suite stays hermetic in the
-    // Node-only CI job (the real bridge is exercised by the parity harness in
-    // the Python-enabled parity job).
-    setValidateAllForTests(() => [[], []]);
     const root = mkdtempSync(join(tmpdir(), "vb-parity-"));
     try {
+      seedValidProjectDefinition(join(root, "vbrief-valid"));
+      seedValidProjectDefinition(join(root, "vbrief"));
       for (const name of PARITY_SCENARIO_NAMES) {
         const result = runParityScenario(name, { fixtureRoot: root });
         expect(result.ok, name).toBe(true);
       }
     } finally {
       rmSync(root, { recursive: true, force: true });
-      setValidateAllForTests(null);
     }
   });
 });

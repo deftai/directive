@@ -34,6 +34,7 @@ export * as triage from "./triage/index.js";
 export * as vbriefActivate from "./vbrief-activate/index.js";
 export * as vbriefBuild from "./vbrief-build/index.js";
 export * as vbriefReconcile from "./vbrief-reconcile/index.js";
+export * as vbriefValidate from "./vbrief-validate/index.js";
 export * as vbriefValidation from "./vbrief-validation/index.js";
 export * as wipCap from "./wip-cap/index.js";
 

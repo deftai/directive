@@ -200,6 +200,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-validation-parity.js"
 
+  vbrief-validate-parity:
+    desc: "Golden-diff the ported vbrief:validate + verify:vbrief-conformance gates vs the Python oracle, cache-off (#1782 s3)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-validate-parity.js"
+
   vbrief-activate-parity:
     desc: "Golden-diff the ported vbrief_activate.py lifecycle verb vs the Python oracle, cache-off (#1782 s5)"
     deps: [build]
@@ -241,4 +247,5 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-build-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-reconcile-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-validation-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-validate-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-activate-parity.js"
