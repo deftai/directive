@@ -121,20 +121,25 @@ describe("stepPopulateCache", () => {
     expect(outcome.details.skipped).toBe("no-repo");
   });
 
-  it("returns timeout when populate exceeds cap", async () => {
+  it("stepPopulateCache watchdog triggers on slow async cacheFetchAll", async () => {
     const root = makeRoot();
-    const cache = {
+    const cache: CacheModule = {
       cacheFetchAll: () =>
-        new Promise<{ succeeded: number }>((resolvePromise) => {
-          setTimeout(() => resolvePromise({ succeeded: 0 }), 5000);
+        new Promise<FetchAllReport>((resolvePromise) => {
+          setTimeout(() => resolvePromise({ succeeded: 0, failed: 0, skipped: 0 }), 5000);
         }),
     };
+    const started = performance.now();
     const outcome = await stepPopulateCache(root, "deftai/directive", {
       cacheModule: cache,
       fetchTimeoutS: 0.05,
     });
+    const elapsed = performance.now() - started;
     expect(outcome.ok).toBe(false);
     expect(outcome.details.timed_out).toBe(true);
+    expect(outcome.message).toContain("0.05s");
+    expect(outcome.message).not.toContain("0.05g");
+    expect(elapsed).toBeLessThan(2000);
   });
 
   it("rejects invalid repo slug", async () => {

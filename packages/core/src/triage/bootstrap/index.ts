@@ -1,7 +1,8 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { promisify } from "node:util";
 import {
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
@@ -36,6 +37,8 @@ const GIT_ORIGIN_RE =
 const REPO_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 const RUNNER_UNSET = Symbol("runner-unset");
+
+const execFileAsync = promisify(execFile);
 
 function defaultWhich(name: string): string | null {
   const locator = process.platform === "win32" ? "where" : "which";
@@ -162,7 +165,10 @@ function cacheModulePresent(deftRoot: string): boolean {
   return existsSync(join(deftRoot, "scripts", "cache.py"));
 }
 
-function invokePythonCacheFetchAll(deftRoot: string, kwargs: CacheFetchAllKwargs): FetchAllReport {
+async function invokePythonCacheFetchAll(
+  deftRoot: string,
+  kwargs: CacheFetchAllKwargs,
+): Promise<FetchAllReport> {
   const payload = JSON.stringify({
     source: kwargs.source,
     repo: kwargs.repo,
@@ -203,12 +209,12 @@ if callable(summary_line):
         pass
 print(json.dumps(out))
 `;
-  const stdout = execFileSync("uv", ["run", "python", "-c", script, payload], {
+  const { stdout } = await execFileAsync("uv", ["run", "python", "-c", script, payload], {
     cwd: deftRoot,
     encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 10 * 1024 * 1024,
   });
-  const parsed = JSON.parse(stdout.trim()) as {
+  const parsed = JSON.parse(String(stdout).trim()) as {
     succeeded?: number | null;
     failed?: number | null;
     skipped?: number | null;
@@ -226,7 +232,7 @@ print(json.dumps(out))
 function loadDefaultCacheModule(deftRoot: string): CacheModule | null {
   if (!cacheModulePresent(deftRoot)) return null;
   return {
-    cacheFetchAll(kwargs: CacheFetchAllKwargs): FetchAllReport {
+    cacheFetchAll(kwargs: CacheFetchAllKwargs): Promise<FetchAllReport> {
       return invokePythonCacheFetchAll(deftRoot, kwargs);
     },
   };
@@ -328,7 +334,7 @@ export async function stepPopulateCache(
     return stepOutcome(
       "populate_cache",
       false,
-      `cache:fetch-all wall-clock timeout after ${effectiveTimeout}g for repo=${effectiveRepo} (an underlying \`task scm:issue:view\` subprocess is likely stuck; re-run with --fetch-timeout-s=0 to disable the watchdog or with a higher value, or shrink the run via --limit / --state=open)`,
+      `cache:fetch-all wall-clock timeout after ${effectiveTimeout}s for repo=${effectiveRepo} (an underlying \`task scm:issue:view\` subprocess is likely stuck; re-run with --fetch-timeout-s=0 to disable the watchdog or with a higher value, or shrink the run via --limit / --state=open)`,
       {
         repo: effectiveRepo,
         source: CACHE_SOURCE,
