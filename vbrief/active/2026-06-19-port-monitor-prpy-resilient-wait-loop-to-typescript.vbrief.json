@@ -6,7 +6,7 @@
   "plan": {
     "id": "1730-s4-monitor-pr",
     "title": "Port monitor_pr.py (resilient wait loop) to TypeScript",
-    "status": "proposed",
+    "status": "running",
     "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/monitor_pr.py -- the resilient wait-until-ready loop (#1368) that polls PR state with bounded retries and survives transient gh failures without going blind -- to TypeScript over Node execFile UTF-8-safe capture, reusing @deftai/core/scm gh helpers. It is independently buildable as a self-contained packages/core/src/pr-monitor module with a golden parity binary.",
@@ -93,6 +93,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T13:39:12Z"
   }
 }
