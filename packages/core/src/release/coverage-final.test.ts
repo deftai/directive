@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { promoteChangelog } from "./changelog.js";
+import { cmdRelease } from "./main.js";
 import { runPipeline } from "./pipeline.js";
 import { syncPyprojectForRelease } from "./pyproject-sync.js";
 import { runUvLock } from "./python-bridge.js";
 import { defaultWhich } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
-import { cmdRelease } from "./main.js";
 
 const CHANGELOG = `## [Unreleased]\n\n### Added\n- item\n`;
 
@@ -54,7 +54,7 @@ describe("pipeline write path", () => {
     };
     expect(runPipeline(config, seams)).toBe(0);
     expect(writes["/proj/CHANGELOG.md"]).toContain("## [0.21.0]");
-    expect(writes["/proj/pyproject.toml"]).toContain('0.21.0');
+    expect(writes["/proj/pyproject.toml"]).toContain("0.21.0");
   });
 
   it("fails when uv lock fails", () => {
@@ -78,10 +78,15 @@ describe("pipeline write path", () => {
 
 describe("syncPyprojectForRelease errors", () => {
   it("returns FAIL for malformed pyproject", () => {
-    const [note] = syncPyprojectForRelease("/p", "0.21.0", { dryRun: false }, {
-      fileExists: () => true,
-      readFile: () => "[tool]\n",
-    });
+    const [note] = syncPyprojectForRelease(
+      "/p",
+      "0.21.0",
+      { dryRun: false },
+      {
+        fileExists: () => true,
+        readFile: () => "[tool]\n",
+      },
+    );
     expect(note).toContain("FAIL");
   });
 });

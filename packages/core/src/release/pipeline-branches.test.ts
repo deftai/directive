@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createGithubRelease, verifyReleaseDraft } from "./gh.js";
-import {
-  checkGitClean,
-  commitReleaseArtifacts,
-  createTag,
-  pushRelease,
-} from "./git.js";
+import { checkGitClean, commitReleaseArtifacts, createTag, pushRelease } from "./git.js";
 import { runPipeline } from "./pipeline.js";
 import { spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -22,8 +17,7 @@ function baseSeams(overrides: ReleaseSeams = {}): ReleaseSeams {
     checkTagAvailable: () => [true, "ok"],
     checkVbriefLifecycleSync: () => [true, 0, ""],
     fileExists: (p) => /\.(md|toml)$/.test(p),
-    readFile: (p) =>
-      p.endsWith("pyproject.toml") ? '[project]\nversion = "0.20.0"\n' : CHANGELOG,
+    readFile: (p) => (p.endsWith("pyproject.toml") ? '[project]\nversion = "0.20.0"\n' : CHANGELOG),
     writeFile: () => undefined,
     runUvLock: () => [true, "uv.lock regenerated"],
     refreshRoadmap: () => [true, "ok"],
@@ -103,21 +97,15 @@ describe("pipeline remaining branches", () => {
   });
 
   it("fails roadmap refresh", () => {
-    expect(
-      runPipeline(baseConfig, baseSeams({ refreshRoadmap: () => [false, "bad"] })),
-    ).toBe(1);
+    expect(runPipeline(baseConfig, baseSeams({ refreshRoadmap: () => [false, "bad"] }))).toBe(1);
   });
 
   it("fails build step", () => {
-    expect(
-      runPipeline(baseConfig, baseSeams({ runBuild: () => [false, "build fail"] })),
-    ).toBe(1);
+    expect(runPipeline(baseConfig, baseSeams({ runBuild: () => [false, "build fail"] }))).toBe(1);
   });
 
   it("runs tag and push when skip_tag false", () => {
-    expect(
-      runPipeline({ ...baseConfig, skipRelease: true }, baseSeams()),
-    ).toBe(0);
+    expect(runPipeline({ ...baseConfig, skipRelease: true }, baseSeams())).toBe(0);
   });
 
   it("creates github release when skip_release false", () => {
@@ -133,12 +121,7 @@ describe("pipeline remaining branches", () => {
       },
       sleep: () => undefined,
     });
-    expect(
-      runPipeline(
-        { ...baseConfig, skipRelease: false, skipTag: true },
-        seams,
-      ),
-    ).toBe(0);
+    expect(runPipeline({ ...baseConfig, skipRelease: false, skipTag: true }, seams)).toBe(0);
   });
 
   it("fails github release create", () => {
@@ -153,9 +136,7 @@ describe("pipeline remaining branches", () => {
         return { status: 0, stdout: "", stderr: "" };
       },
     });
-    expect(
-      runPipeline({ ...baseConfig, skipRelease: false, skipTag: true }, seams),
-    ).toBe(1);
+    expect(runPipeline({ ...baseConfig, skipRelease: false, skipTag: true }, seams)).toBe(1);
   });
 
   it("warns on allow-dirty non-dry-run", () => {
@@ -167,10 +148,7 @@ describe("pipeline remaining branches", () => {
       },
     });
     expect(
-      runPipeline(
-        { ...baseConfig, allowDirty: true, dryRun: false, skipRelease: true },
-        seams,
-      ),
+      runPipeline({ ...baseConfig, allowDirty: true, dryRun: false, skipRelease: true }, seams),
     ).toBe(0);
   });
 
@@ -235,10 +213,7 @@ describe("pipeline remaining branches", () => {
 
   it("skips verify when --no-draft", () => {
     expect(
-      runPipeline(
-        { ...baseConfig, draft: false, skipRelease: true, skipTag: true },
-        baseSeams(),
-      ),
+      runPipeline({ ...baseConfig, draft: false, skipRelease: true, skipTag: true }, baseSeams()),
     ).toBe(0);
   });
 });

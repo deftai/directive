@@ -1,7 +1,7 @@
 import { EXIT_CONFIG_ERROR } from "./constants.js";
 import { formatReleaseHelp, parseReleaseFlags } from "./flags.js";
-import { runPipeline } from "./pipeline.js";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
+import { runPipeline } from "./pipeline.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { validateVersion } from "./version.js";
 

@@ -28,10 +28,7 @@ export function runGit(
   });
 }
 
-export function checkGitClean(
-  projectRoot: string,
-  seams: ReleaseSeams = {},
-): [boolean, string] {
+export function checkGitClean(projectRoot: string, seams: ReleaseSeams = {}): [boolean, string] {
   const result = runGit(projectRoot, ["status", "--porcelain"], seams);
   if (result.status !== 0) {
     return [false, `git status failed: ${result.stderr.trim()}`];
@@ -70,9 +67,7 @@ export function commitReleaseArtifacts(
       }
     });
 
-  const pathsToStage = RELEASE_ARTIFACTS.filter((rel) =>
-    exists(`${projectRoot}/${rel}`),
-  );
+  const pathsToStage = RELEASE_ARTIFACTS.filter((rel) => exists(`${projectRoot}/${rel}`));
   if (pathsToStage.length === 0) {
     return [true, "no release artifacts to commit (none exist)"];
   }
@@ -88,12 +83,7 @@ export function commitReleaseArtifacts(
   }
 
   const subject = releaseCommitSubject(version);
-  const commit = runGit(
-    projectRoot,
-    ["commit", "-m", subject],
-    seams,
-    releaseSubprocessEnv(),
-  );
+  const commit = runGit(projectRoot, ["commit", "-m", subject], seams, releaseSubprocessEnv());
   if (commit.status !== 0) {
     return [false, `git commit failed: ${commit.stderr.trim()}`];
   }

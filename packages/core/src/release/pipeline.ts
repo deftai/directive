@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { prependUpgradeBanner, promoteChangelog, sectionForVersion } from "./changelog.js";
 import {
   EXIT_CONFIG_ERROR,
   EXIT_OK,
@@ -9,7 +10,7 @@ import {
   VERIFY_DRAFT_INTERVAL_SECONDS,
   VERIFY_DRAFT_MAX_ATTEMPTS,
 } from "./constants.js";
-import { prependUpgradeBanner, promoteChangelog, sectionForVersion } from "./changelog.js";
+import { checkTagAvailable, createGithubRelease, readTextFile, verifyReleaseDraft } from "./gh.js";
 import {
   checkGitClean,
   commitReleaseArtifacts,
@@ -18,12 +19,6 @@ import {
   pushRelease,
   releaseCommitSubject,
 } from "./git.js";
-import {
-  checkTagAvailable,
-  createGithubRelease,
-  readTextFile,
-  verifyReleaseDraft,
-} from "./gh.js";
 import { resolveScriptsDir, todayIso } from "./paths.js";
 import { pyprojectPathFor, syncPyprojectForRelease } from "./pyproject-sync.js";
 import {
@@ -71,11 +66,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     } else if (config.allowDirty) {
       emit(1, label, `WARN (dirty, --allow-dirty set):\n${output}`);
     } else {
-      emit(
-        1,
-        label,
-        "FAIL (working tree is dirty; commit/stash or pass --allow-dirty)",
-      );
+      emit(1, label, "FAIL (working tree is dirty; commit/stash or pass --allow-dirty)");
       process.stderr.write(`${output}\n`);
       return EXIT_VIOLATION;
     }
@@ -100,11 +91,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   if (config.allowVbriefDrift) {
     emit(3, label, "SKIP (--allow-vbrief-drift)");
   } else if (config.dryRun) {
-    emit(
-      3,
-      label,
-      "DRYRUN (would scan vbrief/ + gh open issues for closed-issue mismatches)",
-    );
+    emit(3, label, "DRYRUN (would scan vbrief/ + gh open issues for closed-issue mismatches)");
   } else {
     const [ok, mismatchCount, reason] = checkVbriefFn(projectRoot, config.repo);
     if (ok) {

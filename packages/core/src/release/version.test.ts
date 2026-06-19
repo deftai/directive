@@ -1,17 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { NonPublishableVersionError, isPrereleaseTag, toPep440, validateVersion } from "./version.js";
+import {
+  isPrereleaseTag,
+  NonPublishableVersionError,
+  toPep440,
+  validateVersion,
+} from "./version.js";
 
 describe("validateVersion", () => {
   it.each(["0.0.0", "0.21.0", "1.2.3", "10.20.30"])("accepts %s", (v) => {
     expect(() => validateVersion(v)).not.toThrow();
   });
 
-  it.each(["v0.21.0", "0.21", "0.21.0-rc.1", "0.21.0+build", "0.21.0.0", "abc", ""])(
-    "rejects %s",
-    (v) => {
-      expect(() => validateVersion(v)).toThrow(/Invalid version/);
-    },
-  );
+  it.each([
+    "v0.21.0",
+    "0.21",
+    "0.21.0-rc.1",
+    "0.21.0+build",
+    "0.21.0.0",
+    "abc",
+    "",
+  ])("rejects %s", (v) => {
+    expect(() => validateVersion(v)).toThrow(/Invalid version/);
+  });
 });
 
 describe("isPrereleaseTag", () => {

@@ -1,15 +1,15 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitReleaseArtifacts, checkGitClean } from "./git.js";
-import { syncPyprojectForRelease } from "./pyproject-sync.js";
+import { parseReleaseFlags } from "./flags.js";
+import { checkGitClean, commitReleaseArtifacts } from "./git.js";
 import { runPipeline } from "./pipeline.js";
+import { syncPyprojectForRelease } from "./pyproject-sync.js";
 import { runUvLock } from "./python-bridge.js";
 import { defaultWhich, spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPublishable } from "./version.js";
-import { parseReleaseFlags } from "./flags.js";
 
 describe("spawn edge branches", () => {
   it("defaultWhich returns path for node", () => {
@@ -74,10 +74,15 @@ describe("git commit branches", () => {
 
 describe("syncPyprojectForRelease disk path", () => {
   it("reports idempotent pyproject sync", () => {
-    const [note, text] = syncPyprojectForRelease("/p", "0.1.0", { dryRun: false }, {
-      fileExists: () => true,
-      readFile: () => '[project]\nversion = "0.1.0"\n',
-    });
+    const [note, text] = syncPyprojectForRelease(
+      "/p",
+      "0.1.0",
+      { dryRun: false },
+      {
+        fileExists: () => true,
+        readFile: () => '[project]\nversion = "0.1.0"\n',
+      },
+    );
     expect(note).toContain("already at");
     expect(text).toBeNull();
   });

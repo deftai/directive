@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { prependUpgradeBanner } from "./changelog.js";
-import {
-  checkTagAvailable,
-  createGithubRelease,
-  verifyReleaseDraft,
-} from "./gh.js";
+import { parseReleaseFlags } from "./flags.js";
+import { checkTagAvailable, createGithubRelease, verifyReleaseDraft } from "./gh.js";
 import type { ReleaseSeams } from "./types.js";
 import { toPep440 } from "./version.js";
-import { parseReleaseFlags } from "./flags.js";
 
 describe("checkTagAvailable remaining branches", () => {
   it("fails when git tag -l errors", () => {
@@ -49,13 +45,7 @@ describe("verifyReleaseDraft flip failure", () => {
       },
       sleep: () => undefined,
     };
-    const [ok] = verifyReleaseDraft(
-      "/p",
-      "0.21.0",
-      "r",
-      { sleep: () => undefined },
-      seams,
-    );
+    const [ok] = verifyReleaseDraft("/p", "0.21.0", "r", { sleep: () => undefined }, seams);
     expect(ok).toBe(false);
   });
 });

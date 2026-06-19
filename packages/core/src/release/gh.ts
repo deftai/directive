@@ -1,9 +1,9 @@
 import { existsSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { runGit } from "./git.js";
 import { defaultWhich, spawnText } from "./spawn.js";
 import type { ReleaseSeams } from "./types.js";
-import { runGit } from "./git.js";
 
 export function resolveGh(seams: ReleaseSeams = {}): string | null {
   const which = seams.whichGh ?? defaultWhich;
@@ -58,10 +58,7 @@ export function checkTagAvailable(
   if (gh.status === 0) {
     return [false, `GitHub release ${tag} already exists on ${repo}; choose a different version`];
   }
-  return [
-    true,
-    `local clean${remoteUnverifiedNote}; no GitHub release ${tag} on ${repo}`,
-  ];
+  return [true, `local clean${remoteUnverifiedNote}; no GitHub release ${tag} on ${repo}`];
 }
 
 export function createGithubRelease(
@@ -96,7 +93,7 @@ export function createGithubRelease(
 
   const spawn = seams.spawnText ?? spawnText;
   try {
-    const result = spawn(cmd[0]!, cmd.slice(1), {
+    const result = spawn(ghPath, cmd.slice(1), {
       cwd: projectRoot,
       timeoutMs: 120_000,
       env: { ...process.env },
@@ -187,12 +184,15 @@ export function verifyReleaseDraft(
 ): [boolean, string] {
   const maxAttempts = options.maxAttempts ?? 5;
   const interval = options.interval ?? 1.0;
-  const sleepFn = options.sleep ?? seams.sleep ?? ((s: number) => {
-    const start = Date.now();
-    while (Date.now() - start < s * 1000) {
-      // busy-wait fallback for tests injecting sleep
-    }
-  });
+  const sleepFn =
+    options.sleep ??
+    seams.sleep ??
+    ((s: number) => {
+      const start = Date.now();
+      while (Date.now() - start < s * 1000) {
+        // busy-wait fallback for tests injecting sleep
+      }
+    });
 
   if (maxAttempts <= 0) {
     return [true, "verify gate disabled (max_attempts <= 0)"];

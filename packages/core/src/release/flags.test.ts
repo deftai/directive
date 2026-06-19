@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatReleaseHelp, parseReleaseFlags } from "./flags.js";
 import { RELEASE_HELP } from "./constants.js";
+import { formatReleaseHelp, parseReleaseFlags } from "./flags.js";
 
 describe("parseReleaseFlags", () => {
   it("parses full argv set", () => {

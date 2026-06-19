@@ -63,9 +63,9 @@ describe("promoteChangelog", () => {
   });
 
   it("rejects missing Unreleased heading", () => {
-    expect(() => promoteChangelog("no heading", "0.21.0", "deftai/directive", "2026-04-28")).toThrow(
-      "does not contain",
-    );
+    expect(() =>
+      promoteChangelog("no heading", "0.21.0", "deftai/directive", "2026-04-28"),
+    ).toThrow("does not contain");
   });
 
   it("rejects multiline summary", () => {

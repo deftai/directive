@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  checkTagAvailable,
-  createGithubRelease,
-  resolveGh,
-  verifyReleaseDraft,
-} from "./gh.js";
+import { checkTagAvailable, createGithubRelease, resolveGh, verifyReleaseDraft } from "./gh.js";
 import {
   checkGitClean,
   commitReleaseArtifacts,
@@ -13,11 +8,10 @@ import {
   pushRelease,
   releaseSubprocessEnv,
 } from "./git.js";
+import { runPipeline } from "./pipeline.js";
 import { syncPyprojectForRelease } from "./pyproject-sync.js";
 import { runUvLock } from "./python-bridge.js";
-import { runPipeline } from "./pipeline.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
-import { NonPublishableVersionError } from "./version.js";
 
 describe("git helpers", () => {
   const seams: ReleaseSeams = {
@@ -106,9 +100,15 @@ describe("gh helpers", () => {
       return true;
     }) as typeof process.stderr.write;
     try {
-      const [ok] = verifyReleaseDraft("/proj", "0.21.0", "deftai/directive", {}, {
-        whichGh: () => null,
-      });
+      const [ok] = verifyReleaseDraft(
+        "/proj",
+        "0.21.0",
+        "deftai/directive",
+        {},
+        {
+          whichGh: () => null,
+        },
+      );
       expect(ok).toBe(true);
       expect(lines.join("")).toContain("WARNING");
     } finally {
@@ -166,27 +166,42 @@ describe("syncPyprojectForRelease branches", () => {
   const py = `[project]\nversion = "0.20.0"\n`;
 
   it("handles non-publishable version", () => {
-    const [note] = syncPyprojectForRelease("/p", "0.0.0-test.1", { dryRun: false }, {
-      fileExists: () => true,
-      readFile: () => py,
-    });
+    const [note] = syncPyprojectForRelease(
+      "/p",
+      "0.0.0-test.1",
+      { dryRun: false },
+      {
+        fileExists: () => true,
+        readFile: () => py,
+      },
+    );
     expect(note).toContain("non-publishable");
   });
 
   it("returns new text on happy path", () => {
-    const [note, text] = syncPyprojectForRelease("/p", "0.21.0", { dryRun: false }, {
-      fileExists: () => true,
-      readFile: () => py,
-    });
+    const [note, text] = syncPyprojectForRelease(
+      "/p",
+      "0.21.0",
+      { dryRun: false },
+      {
+        fileExists: () => true,
+        readFile: () => py,
+      },
+    );
     expect(note).toContain("0.21.0");
     expect(text).toContain('version = "0.21.0"');
   });
 
   it("dry-run returns note without text", () => {
-    const [, text] = syncPyprojectForRelease("/p", "0.21.0", { dryRun: true }, {
-      fileExists: () => true,
-      readFile: () => py,
-    });
+    const [, text] = syncPyprojectForRelease(
+      "/p",
+      "0.21.0",
+      { dryRun: true },
+      {
+        fileExists: () => true,
+        readFile: () => py,
+      },
+    );
     expect(text).toBeNull();
   });
 });
@@ -287,9 +302,15 @@ describe("verifyReleaseDraft polling", () => {
   });
 
   it("disables gate when maxAttempts <= 0", () => {
-    const [ok] = verifyReleaseDraft("/p", "0.1.0", "r", { maxAttempts: 0 }, {
-      whichGh: () => "/usr/bin/gh",
-    });
+    const [ok] = verifyReleaseDraft(
+      "/p",
+      "0.1.0",
+      "r",
+      { maxAttempts: 0 },
+      {
+        whichGh: () => "/usr/bin/gh",
+      },
+    );
     expect(ok).toBe(true);
   });
 });
@@ -357,10 +378,7 @@ describe("runPipeline additional branches", () => {
       todayIso: () => "2026-01-01",
     };
     expect(
-      runPipeline(
-        { ...base, allowDirty: true, allowVbriefDrift: true, dryRun: true },
-        seams,
-      ),
+      runPipeline({ ...base, allowDirty: true, allowVbriefDrift: true, dryRun: true }, seams),
     ).toBe(0);
   });
 });

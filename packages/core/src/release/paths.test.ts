@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveProjectRoot, resolveRepo, todayIso } from "./paths.js";
+import { resolveProjectRoot, resolveRepo } from "./paths.js";
 
 describe("paths", () => {
   it("resolveProjectRoot honours explicit path", () => {

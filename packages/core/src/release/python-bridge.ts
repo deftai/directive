@@ -4,7 +4,7 @@ import { defaultWhich, spawnText } from "./spawn.js";
 import type { ReleaseSeams } from "./types.js";
 
 function runUvPython(
-  scriptsDir: string,
+  _scriptsDir: string,
   code: string,
   cwd: string,
   env: NodeJS.ProcessEnv = process.env,
@@ -109,7 +109,11 @@ export function checkVbriefLifecycleSync(
     };
     return [payload.ok, payload.mismatch_count, payload.reason];
   } catch {
-    return [false, -1, `reconcile_issues bridge failed: ${result.stderr.trim() || result.stdout.trim()}`];
+    return [
+      false,
+      -1,
+      `reconcile_issues bridge failed: ${result.stderr.trim() || result.stdout.trim()}`,
+    ];
   }
 }
 

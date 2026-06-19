@@ -8,7 +8,7 @@
  * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -157,10 +157,7 @@ export function normaliseStderr(text: string): string {
   return text.replace(/\d{4}-\d{2}-\d{2}/g, "YYYY-MM-DD");
 }
 
-export function pickOutput(
-  result: ScenarioResult,
-  stream: "stdout" | "stderr",
-): string {
+export function pickOutput(result: ScenarioResult, stream: "stdout" | "stderr"): string {
   return stream === "stdout" ? result.stdout : result.stderr;
 }
 

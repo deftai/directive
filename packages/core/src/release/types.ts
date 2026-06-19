@@ -62,10 +62,7 @@ export interface ReleaseSeams {
     projectRoot: string,
     repo: string,
   ) => [boolean, number, string];
-  readonly runBuild?: (
-    projectRoot: string,
-    version: string | null,
-  ) => [boolean, string];
+  readonly runBuild?: (projectRoot: string, version: string | null) => [boolean, string];
   readonly runUvLock?: (projectRoot: string) => [boolean, string];
   readonly checkTagAvailable?: (
     version: string,

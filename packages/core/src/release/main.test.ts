@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cmdRelease } from "./main.js";
-import type { ReleaseSeams } from "./types.js";
 import { runPipeline } from "./pipeline.js";
+import type { ReleaseSeams } from "./types.js";
 
 const CHANGELOG = `## [Unreleased]\n\n### Added\n- x\n`;
 
