@@ -75,6 +75,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/wip-cap-parity.js"
 
+  scm-parity:
+    desc: "Golden-diff the ported scm.py SCM boundary vs the Python oracle, cache-off (#1724)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/scm-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -85,3 +91,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/story-ready-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/branch-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/wip-cap-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/scm-parity.js"

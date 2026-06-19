@@ -6,7 +6,7 @@
   "plan": {
     "id": "1724-s1-scm-adapter",
     "title": "Port the scm.py SCM boundary to a TypeScript adapter",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1724-featts-migration-port-the-scmpy-scm-boundary-to-a-ts-adapter.vbrief.json",
     "narratives": {
       "Description": "Port the scripts/scm.py boundary (the scm.call(source, verb, args) shim, the ghx->gh preference ladder in resolve_binary, and the github-issue NotImplementedError for non-GitHub sources) to a TypeScript SCM adapter under packages/core. This is the shared foundation that the Wave-3 triage, scope, and slice families call to reach GitHub, so it is built and merged first; it is independently buildable because the adapter is a self-contained module with a golden parity binary and no dependency on any other Wave-3 port.",
@@ -63,7 +63,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1724 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T01:44:15Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -77,6 +79,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1718"
       }
-    ]
+    ],
+    "updated": "2026-06-19T01:44:15Z"
   }
 }

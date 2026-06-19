@@ -29,6 +29,10 @@
     "./wip-cap": {
       "types": "./dist/wip-cap/index.d.ts",
       "default": "./dist/wip-cap/index.js"
+    },
+    "./scm": {
+      "types": "./dist/scm/index.d.ts",
+      "default": "./dist/scm/index.js"
     }
   },
   "dependencies": {

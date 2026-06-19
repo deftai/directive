@@ -21,6 +21,7 @@ export default defineConfig({
       "@deftai/core/story-ready": sub("core", "story-ready"),
       "@deftai/core/branch": sub("core", "branch"),
       "@deftai/core/wip-cap": sub("core", "wip-cap"),
+      "@deftai/core/scm": sub("core", "scm"),
       "@deftai/core": src("core"),
     },
   },
@@ -57,6 +58,10 @@ export default defineConfig({
         // Python oracle and is validated by the dedicated parity CI job, not
         // the Python-less node-only TS job. Pure helpers stay unit-tested.
         "packages/cli/src/wip-cap-parity.ts",
+        // Same rationale (#1530 Wave 3): the scm parity runner spawns the
+        // Python oracle and is validated by the dedicated parity CI job, not
+        // the Python-less node-only TS job. Pure helpers stay unit-tested.
+        "packages/cli/src/scm-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

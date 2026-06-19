@@ -48,7 +48,7 @@
         "title": "Issue #1718"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-scmpy-scm-boundary-to-a-typescript-adapter.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-scmpy-scm-boundary-to-a-typescript-adapter.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the scm.py SCM boundary to a TypeScript adapter",
         "TrustLevel": "internal"
