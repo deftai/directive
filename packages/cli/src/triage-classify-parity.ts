@@ -49,8 +49,9 @@ export interface ParityResult {
 export function normalizeOutput(text: string): string {
   return text
     .replace(/project_root=[^\s)]+/g, "project_root=<ROOT>")
-    .replace(/\/tmp\/deft-triage-classify-parity-[^\s/]+/g, "<TMPROOT>")
-    .replace(/\/home\/[^\s/]+\/deft-triage-classify-parity-[^\s/]+/g, "<TMPROOT>");
+    // Match the parity temp root regardless of platform tmpdir prefix
+    // (/tmp on Linux, /var/folders/... on macOS, etc.).
+    .replace(/\S*deft-triage-classify-parity-[^\s/]+/g, "<TMPROOT>");
 }
 
 interface Capture {
