@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { normaliseStderr, PARITY_SCENARIOS, runParity } from "../../../cli/src/release-e2e-parity.js";
+import {
+  normaliseStderr,
+  PARITY_SCENARIOS,
+  runParity,
+} from "../../../cli/src/release-e2e-parity.js";
 
 describe("release-e2e parity helpers", () => {
   it("normalises repo slugs in stderr", () => {

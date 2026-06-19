@@ -122,7 +122,11 @@ export async function runEntrypointWorker(
     }, timeoutMs);
     worker.on("message", (msg: { code: number; stdout: string; stderr: string }) => finish(msg));
     worker.on("error", (err) =>
-      finish({ code: EXIT_VIOLATION, stdout: "", stderr: err instanceof Error ? err.message : "worker error" }),
+      finish({
+        code: EXIT_VIOLATION,
+        stdout: "",
+        stderr: err instanceof Error ? err.message : "worker error",
+      }),
     );
   });
 }
@@ -132,7 +136,7 @@ export function callReleaseEntrypoint(
   entrypoint: EntrypointFn,
   argv: string[],
   cloneDir: string,
-  timeout: number = RELEASE_ENTRYPOINT_TIMEOUT_SECONDS,
+  _timeout: number = RELEASE_ENTRYPOINT_TIMEOUT_SECONDS,
 ): [number, string] {
   const oldCwd = process.cwd();
   const oldProjectRoot = process.env.DEFT_PROJECT_ROOT;

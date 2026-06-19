@@ -2,18 +2,10 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { REHEARSAL_VERSION } from "./constants.js";
-import {
-  dispatchTaskRelease,
-  dispatchTaskReleaseRollback,
-} from "./entrypoint.js";
+import { dispatchTaskRelease, dispatchTaskReleaseRollback } from "./entrypoint.js";
 import { emit } from "./flags.js";
-import {
-  cloneRepoToTemp,
-  pushMirror,
-  setOriginToTempRepo,
-  verifyTag,
-} from "./git-ops.js";
 import { verifyDraftRelease } from "./gh-ops.js";
+import { cloneRepoToTemp, pushMirror, setOriginToTempRepo, verifyTag } from "./git-ops.js";
 import type { E2ESeams } from "./types.js";
 
 export function runRehearsal(

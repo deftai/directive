@@ -53,11 +53,7 @@ export function normaliseStderr(text: string): string {
     .replace(/\d{4}-\d{2}-\d{2}/g, "YYYY-MM-DD");
 }
 
-function runCapture(
-  cmd: string,
-  args: string[],
-  cwd: string,
-): CommandCapture {
+function runCapture(cmd: string, args: string[], cwd: string): CommandCapture {
   const result = spawnSync(cmd, args, {
     cwd,
     encoding: "utf8",
@@ -84,8 +80,16 @@ function resolveDeftRoot(): string {
 
 function runScenario(deftRoot: string, scenario: ParityScenario): ParityDiff {
   const argv = [...scenario.argv];
-  const py = runCapture("uv", ["run", "python", join(deftRoot, "scripts", "release_e2e.py"), ...argv], deftRoot);
-  const ts = runCapture("node", [join(deftRoot, "packages", "cli", "dist", "release-e2e.js"), ...argv], deftRoot);
+  const py = runCapture(
+    "uv",
+    ["run", "python", join(deftRoot, "scripts", "release_e2e.py"), ...argv],
+    deftRoot,
+  );
+  const ts = runCapture(
+    "node",
+    [join(deftRoot, "packages", "cli", "dist", "release-e2e.js"), ...argv],
+    deftRoot,
+  );
   const stream: "stdout" | "stderr" = scenario.compareStdout ? "stdout" : "stderr";
   let pythonOutput = stream === "stdout" ? py.stdout : py.stderr;
   let tsOutput = stream === "stdout" ? ts.stdout : ts.stderr;

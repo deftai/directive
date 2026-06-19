@@ -27,11 +27,7 @@ export interface E2ESeams {
     args: readonly string[],
     options?: { cwd?: string; env?: NodeJS.ProcessEnv; timeoutMs?: number },
   ) => SpawnResult;
-  runGit?: (
-    projectRoot: string,
-    args: readonly string[],
-    env?: NodeJS.ProcessEnv,
-  ) => SpawnResult;
+  runGit?: (projectRoot: string, args: readonly string[], env?: NodeJS.ProcessEnv) => SpawnResult;
   mkdtemp?: (prefix: string) => string;
   rmTemp?: (path: string) => void;
   generateRepoSlug?: () => string;

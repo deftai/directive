@@ -1,27 +1,21 @@
+import { resolveProjectRoot } from "../release/paths.js";
 import { EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION, RELEASE_E2E_HELP } from "./constants.js";
-import { destroyTempRepo, provisionTempRepo } from "./gh-ops.js";
 import { emit, generateRepoSlug, parseE2EFlags } from "./flags.js";
+import { destroyTempRepo, provisionTempRepo } from "./gh-ops.js";
 import { runRehearsal } from "./rehearsal.js";
 import type { E2EConfig, E2ESeams } from "./types.js";
-import { resolveProjectRoot } from "../release/paths.js";
 
 export function runE2e(config: E2EConfig, seams: E2ESeams = {}): number {
   const slug = config.repoSlug ?? generateRepoSlug(seams);
   const owner = config.owner;
 
   if (config.dryRun) {
-    emit(
-      "Provision temp repo",
-      `DRYRUN (would run \`gh repo create --private ${owner}/${slug}\`)`,
-    );
+    emit("Provision temp repo", `DRYRUN (would run \`gh repo create --private ${owner}/${slug}\`)`);
     emit(
       "Rehearsal",
       "DRYRUN (would run pipeline-mirror rehearsal: clone -> push heads+tags -> task release -> verify draft + tag -> task release:rollback against temp repo)",
     );
-    emit(
-      "Destroy temp repo",
-      `DRYRUN (would run \`gh repo delete ${owner}/${slug} --yes\`)`,
-    );
+    emit("Destroy temp repo", `DRYRUN (would run \`gh repo delete ${owner}/${slug} --yes\`)`);
     return EXIT_OK;
   }
 
@@ -73,7 +67,9 @@ export function cmdReleaseE2e(args: readonly string[], seams: E2ESeams = {}): nu
   }
 
   if (flags.unknown.length > 0) {
-    process.stderr.write(`release_e2e: error: unrecognized arguments: ${flags.unknown.join(" ")}\n`);
+    process.stderr.write(
+      `release_e2e: error: unrecognized arguments: ${flags.unknown.join(" ")}\n`,
+    );
     return EXIT_CONFIG_ERROR;
   }
 

@@ -22,7 +22,15 @@ describe("runWorkerEntrypoint", () => {
     vi.spyOn(await import("../release/main.js"), "cmdRelease").mockReturnValue(0);
     const result = runWorkerEntrypoint({
       kind: "release",
-      argv: ["0.0.1", "--dry-run", "--skip-ci", "--skip-build", "--repo", "deftai/x", "--allow-vbrief-drift"],
+      argv: [
+        "0.0.1",
+        "--dry-run",
+        "--skip-ci",
+        "--skip-build",
+        "--repo",
+        "deftai/x",
+        "--allow-vbrief-drift",
+      ],
       cloneDir,
     });
     expect(result.code).toBe(0);

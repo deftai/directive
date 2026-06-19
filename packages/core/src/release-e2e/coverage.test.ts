@@ -2,7 +2,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { ENTRYPOINT_TIMEOUT_EXIT_CODE, EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
+import {
+  ENTRYPOINT_TIMEOUT_EXIT_CODE,
+  EXIT_CONFIG_ERROR,
+  EXIT_OK,
+  EXIT_VIOLATION,
+} from "./constants.js";
 import {
   callReleaseEntrypoint,
   callReleaseEntrypointTimed,
@@ -11,15 +16,15 @@ import {
   restoreProcessStateForTest,
   runEntrypointWorker,
 } from "./entrypoint.js";
+import { runWorkerEntrypoint } from "./entrypoint-worker.js";
 import { generateRepoSlug, parseE2EFlags } from "./flags.js";
 import * as ghOps from "./gh-ops.js";
-import { pushMirror, setOriginToTempRepo } from "./git-ops.js";
 import * as gitOps from "./git-ops.js";
-import { rollbackMain } from "./rollback-bridge.js";
-import { runWorkerEntrypoint } from "./entrypoint-worker.js";
-import { cmdReleaseE2e, runE2e } from "./main.js";
+import { pushMirror, setOriginToTempRepo } from "./git-ops.js";
 import * as mainModule from "./main.js";
+import { cmdReleaseE2e, runE2e } from "./main.js";
 import * as rehearsalModule from "./rehearsal.js";
+import { rollbackMain } from "./rollback-bridge.js";
 
 describe("release-e2e branch coverage boost", () => {
   it("setOriginToTempRepo happy path", () => {
@@ -62,7 +67,9 @@ describe("release-e2e branch coverage boost", () => {
 
   it("dispatch without seams uses callReleaseEntrypoint path", async () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-dispatch-"));
-    const releaseMod = vi.spyOn(await import("../release/main.js"), "cmdRelease").mockReturnValue(0);
+    const releaseMod = vi
+      .spyOn(await import("../release/main.js"), "cmdRelease")
+      .mockReturnValue(0);
     const rollbackMod = vi
       .spyOn(await import("./rollback-bridge.js"), "rollbackMain")
       .mockReturnValue(0);
@@ -75,7 +82,9 @@ describe("release-e2e branch coverage boost", () => {
 
   it("dispatch without seams surfaces non-zero exit", async () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-dispatch-"));
-    const releaseMod = vi.spyOn(await import("../release/main.js"), "cmdRelease").mockReturnValue(2);
+    const releaseMod = vi
+      .spyOn(await import("../release/main.js"), "cmdRelease")
+      .mockReturnValue(2);
     const [ok, reason] = dispatchTaskRelease(cloneDir, "0.0.1", "deftai/x");
     expect(ok).toBe(false);
     expect(reason).toContain("release.py failed (exit 2)");
@@ -113,16 +122,24 @@ describe("release-e2e branch coverage boost", () => {
 
   it("callReleaseEntrypoint captures stdout and non-Error throws", () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-cap-"));
-    const [code1, out1] = callReleaseEntrypoint(() => {
-      process.stdout.write("stdout payload");
-      return 0;
-    }, [], cloneDir);
+    const [code1, out1] = callReleaseEntrypoint(
+      () => {
+        process.stdout.write("stdout payload");
+        return 0;
+      },
+      [],
+      cloneDir,
+    );
     expect(code1).toBe(0);
     expect(out1).toContain("stdout payload");
 
-    const [code2, out2] = callReleaseEntrypoint(() => {
-      throw "string throw";
-    }, [], cloneDir);
+    const [code2, out2] = callReleaseEntrypoint(
+      () => {
+        throw "string throw";
+      },
+      [],
+      cloneDir,
+    );
     expect(code2).toBe(EXIT_VIOLATION);
     expect(out2).toContain("string throw");
     rmSync(cloneDir, { recursive: true, force: true });

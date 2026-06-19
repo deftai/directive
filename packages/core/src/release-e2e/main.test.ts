@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  ENTRYPOINT_TIMEOUT_EXIT_CODE,
   EXIT_CONFIG_ERROR,
   EXIT_OK,
   EXIT_VIOLATION,
@@ -18,21 +17,15 @@ import {
   defaultReleaseEntrypoint,
   dispatchTaskRelease,
   dispatchTaskReleaseRollback,
-  runEntrypointWorker,
 } from "./entrypoint.js";
 import { generateRepoSlug, parseE2EFlags } from "./flags.js";
 import * as ghOps from "./gh-ops.js";
-import * as gitOps from "./git-ops.js";
 import { destroyTempRepo, provisionTempRepo, verifyDraftRelease } from "./gh-ops.js";
-import {
-  cloneRepoToTemp,
-  pushMirror,
-  setOriginToTempRepo,
-  verifyTag,
-} from "./git-ops.js";
+import * as gitOps from "./git-ops.js";
+import { cloneRepoToTemp, pushMirror, setOriginToTempRepo, verifyTag } from "./git-ops.js";
 import { cmdReleaseE2e, runE2e } from "./main.js";
-import { runRehearsal } from "./rehearsal.js";
 import * as rehearsalModule from "./rehearsal.js";
+import { runRehearsal } from "./rehearsal.js";
 import type { E2EConfig, E2ESeams } from "./types.js";
 
 function config(overrides: Partial<E2EConfig> = {}): E2EConfig {
@@ -212,11 +205,15 @@ describe("rehearsal step helpers", () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-clone-"));
     const captured: { env?: string; cwd?: string } = {};
     try {
-      callReleaseEntrypoint(() => {
-        captured.env = process.env.DEFT_PROJECT_ROOT;
-        captured.cwd = process.cwd();
-        return 0;
-      }, ["0.0.1"], cloneDir);
+      callReleaseEntrypoint(
+        () => {
+          captured.env = process.env.DEFT_PROJECT_ROOT;
+          captured.cwd = process.cwd();
+          return 0;
+        },
+        ["0.0.1"],
+        cloneDir,
+      );
       expect(captured.env).toBe(cloneDir);
       expect(captured.cwd).toBe(cloneDir);
       expect(process.env.DEFT_PROJECT_ROOT).toBe("/operator/real/repo");
@@ -230,9 +227,14 @@ describe("rehearsal step helpers", () => {
   it("callReleaseEntrypoint converts exception to failure", () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-clone-"));
     try {
-      const [code, output] = callReleaseEntrypoint(() => {
-        throw new Error("boom");
-      }, ["0.0.1"], cloneDir, 1);
+      const [code, output] = callReleaseEntrypoint(
+        () => {
+          throw new Error("boom");
+        },
+        ["0.0.1"],
+        cloneDir,
+        1,
+      );
       expect(code).toBe(EXIT_VIOLATION);
       expect(output).toContain("Error: boom");
     } finally {
@@ -242,7 +244,13 @@ describe("rehearsal step helpers", () => {
 
   it("callReleaseEntrypointTimed forwards worker result", async () => {
     const cloneDir = mkdtempSync(join(tmpdir(), "deft-clone-"));
-    const [code, output] = await callReleaseEntrypointTimed("test", ["0.0.1"], cloneDir, 0.2, "throw");
+    const [code, output] = await callReleaseEntrypointTimed(
+      "test",
+      ["0.0.1"],
+      cloneDir,
+      0.2,
+      "throw",
+    );
     expect(code).toBeGreaterThan(0);
     expect(output.length).toBeGreaterThan(0);
     rmSync(cloneDir, { recursive: true, force: true });
@@ -317,11 +325,13 @@ describe("rehearsal step helpers", () => {
   });
 
   it("dispatch failures surface output", () => {
-    expect(dispatchTaskRelease("/clone", "0.0.1", "deftai/x", { releaseEntrypoint: () => 1 })[1]).toContain(
-      "release.py failed",
-    );
     expect(
-      dispatchTaskReleaseRollback("/clone", "0.0.1", "deftai/x", { rollbackEntrypoint: () => 2 })[1],
+      dispatchTaskRelease("/clone", "0.0.1", "deftai/x", { releaseEntrypoint: () => 1 })[1],
+    ).toContain("release.py failed");
+    expect(
+      dispatchTaskReleaseRollback("/clone", "0.0.1", "deftai/x", {
+        rollbackEntrypoint: () => 2,
+      })[1],
     ).toContain("release_rollback.py failed");
   });
 });
@@ -423,7 +433,9 @@ describe("runE2e orchestration", () => {
   });
 
   it("dry-run emits DRYRUN lines", () => {
-    expect(runE2e(config({ dryRun: true, repoSlug: "deftai-release-test-fixed-abcdef" }))).toBe(EXIT_OK);
+    expect(runE2e(config({ dryRun: true, repoSlug: "deftai-release-test-fixed-abcdef" }))).toBe(
+      EXIT_OK,
+    );
     const err = errLines.join("");
     expect(err).toContain("DRYRUN");
     expect(err).toContain("pipeline-mirror");
