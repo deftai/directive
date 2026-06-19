@@ -64,8 +64,112 @@ const HEADING_ROLE_PREFIX_RE = new RegExp(
   "i",
 );
 
-const BODY_VECTOR_RE =
-  /(?:curl|wget|fetch)\s+[^|\n]*\|\s*(?:sh|bash|zsh|ksh)\b|\bbase64\s+(?:-d|--decode|-D)\b|\beval\s*[($"'`]/i;
+// #1811 follow-up: the previous `BODY_VECTOR_RE` regex (`(?:curl|wget|fetch)\s+
+// [^|\n]*\|...`) is a CodeQL `js/polynomial-redos` hazard -- `\s+` overlaps
+// `[^|\n]*`, so a line like `curl ` + a long run of spaces with no pipe forces
+// polynomial backtracking. The recognizer below scans each line ONCE for the
+// same three vectors, preserving byte-identical match semantics:
+//   1. curl/wget/fetch <args> | sh|bash|zsh|ksh  (pipe-to-shell)
+//   2. base64 -d | --decode | -D                 (decode flag, word-bounded)
+//   3. eval followed by ( $ " ' ` delimiter
+const PIPE_SHELL_KEYWORDS = ["curl", "wget", "fetch"] as const;
+const SHELL_TARGETS = ["sh", "bash", "zsh", "ksh"] as const;
+const EVAL_DELIMITERS = new Set(["(", "$", '"', "'", "`"]);
+const WS_RE = /\s/;
+
+function isAsciiWordChar(ch: string | undefined): boolean {
+  if (ch === undefined) return false;
+  return (
+    (ch >= "a" && ch <= "z") || (ch >= "A" && ch <= "Z") || (ch >= "0" && ch <= "9") || ch === "_"
+  );
+}
+
+function isWs(ch: string | undefined): boolean {
+  return ch !== undefined && WS_RE.test(ch);
+}
+
+/** `\b` immediately before index `i` (keyword first char is always a word char). */
+function wordBoundaryBefore(line: string, i: number): boolean {
+  return i === 0 || !isAsciiWordChar(line[i - 1]);
+}
+
+/** `\b` immediately after index `j` (token last char is always a word char). */
+function wordBoundaryAfter(line: string, j: number): boolean {
+  return j >= line.length || !isAsciiWordChar(line[j]);
+}
+
+function matchesAt(line: string, i: number, token: string): boolean {
+  return line.slice(i, i + token.length).toLowerCase() === token;
+}
+
+/** Mirror `(?:curl|wget|fetch)\s+[^|\n]*\|\s*(?:sh|bash|zsh|ksh)\b` at start `i`. */
+function pipeToShellAt(line: string, i: number, kw: string): boolean {
+  const afterKw = i + kw.length;
+  // `\s+` requires at least one whitespace char right after the keyword.
+  if (!isWs(line[afterKw])) return false;
+  // `[^|\n]*\|`: the first pipe after the keyword, with no intervening newline.
+  let p = afterKw + 1;
+  while (p < line.length) {
+    const ch = line[p] as string;
+    if (ch === "|") break;
+    if (ch === "\n") return false;
+    p += 1;
+  }
+  if (p >= line.length || line[p] !== "|") return false;
+  // `\s*` after the pipe.
+  let q = p + 1;
+  while (isWs(line[q])) q += 1;
+  // `(?:sh|bash|zsh|ksh)\b`.
+  for (const target of SHELL_TARGETS) {
+    if (matchesAt(line, q, target) && wordBoundaryAfter(line, q + target.length)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Mirror `\bbase64\s+(?:-d|--decode|-D)\b` at start `i`. */
+function base64DecodeAt(line: string, i: number): boolean {
+  if (!wordBoundaryBefore(line, i)) return false;
+  const afterKw = i + "base64".length;
+  if (!isWs(line[afterKw])) return false;
+  let j = afterKw + 1;
+  while (isWs(line[j])) j += 1;
+  // `--decode` (word-bounded), case-insensitive.
+  if (matchesAt(line, j, "--decode") && wordBoundaryAfter(line, j + 8)) return true;
+  // `-d` / `-D` (word-bounded): dash + d, with a boundary after.
+  if (line[j] === "-") {
+    const flag = line[j + 1];
+    if (flag === "d" || flag === "D") {
+      return wordBoundaryAfter(line, j + 2);
+    }
+  }
+  return false;
+}
+
+/** Mirror `\beval\s*[($"'`+"`"+`]` at start `i`. */
+function evalDelimiterAt(line: string, i: number): boolean {
+  if (!wordBoundaryBefore(line, i)) return false;
+  let j = i + "eval".length;
+  while (isWs(line[j])) j += 1;
+  const ch = line[j];
+  return ch !== undefined && EVAL_DELIMITERS.has(ch);
+}
+
+/**
+ * Linear, backtracking-free recognizer equivalent to the old `BODY_VECTOR_RE`.
+ * Scans the line once; byte-identical match semantics to the prior regex.
+ */
+export function lineHasShellVector(line: string): boolean {
+  for (let i = 0; i < line.length; i += 1) {
+    for (const kw of PIPE_SHELL_KEYWORDS) {
+      if (matchesAt(line, i, kw) && pipeToShellAt(line, i, kw)) return true;
+    }
+    if (matchesAt(line, i, "base64") && base64DecodeAt(line, i)) return true;
+    if (matchesAt(line, i, "eval") && evalDelimiterAt(line, i)) return true;
+  }
+  return false;
+}
 
 const FENCE_RE = /^(```|~~~)/;
 const QUARANTINE_FENCE_OPEN = "```quarantined";
@@ -136,7 +240,7 @@ function bodyHasShellVector(bodyLines: readonly string[]): boolean {
       continue;
     }
     if (inFence !== null) continue;
-    if (BODY_VECTOR_RE.test(ln)) return true;
+    if (lineHasShellVector(ln)) return true;
   }
   return false;
 }
@@ -211,7 +315,7 @@ function detectInjectionHeading(text: string): [string, ScanFlag | null] {
       continue;
     }
 
-    if (headingSignal(line) || BODY_VECTOR_RE.test(line)) {
+    if (headingSignal(line) || lineHasShellVector(line)) {
       out.push(QUARANTINE_FENCE_OPEN);
       out.push(line);
       out.push(QUARANTINE_FENCE_CLOSE);

