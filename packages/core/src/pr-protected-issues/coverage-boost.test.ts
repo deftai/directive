@@ -18,12 +18,6 @@ vi.mock("../scm/binary.js", () => ({
   resolveBinary: () => "gh",
 }));
 
-function ghPayload(...issueNumbers: number[]): string {
-  return JSON.stringify({
-    closingIssuesReferences: issueNumbers.map((n) => ({ number: n })),
-  });
-}
-
 describe("coverage boost branches", () => {
   it("defaultRunGh handles ENOENT", () => {
     const err = new Error("spawn gh ENOENT") as NodeJS.ErrnoException;

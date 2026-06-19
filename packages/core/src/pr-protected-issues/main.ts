@@ -1,8 +1,4 @@
-import {
-  EXIT_EXTERNAL_ERROR,
-  EXIT_OK,
-  EXIT_PROTECTED_LINKED,
-} from "./constants.js";
+import { EXIT_EXTERNAL_ERROR, EXIT_OK, EXIT_PROTECTED_LINKED } from "./constants.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "./gh.js";
 import { parseProtected } from "./parse.js";
 import type { RunGhFn } from "./types.js";
@@ -109,9 +105,7 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   }
 
   if (protectedIssues.length === 0) {
-    process.stderr.write(
-      `PR #${args.prNumber}: no --protected issues supplied; skipping check.\n`,
-    );
+    process.stderr.write(`PR #${args.prNumber}: no --protected issues supplied; skipping check.\n`);
     return EXIT_OK;
   }
 

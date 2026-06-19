@@ -208,7 +208,12 @@ function runScenario(
     };
     const py = runCapture(
       "uv",
-      ["run", "python", join(deftRoot, "scripts", "pr_check_protected_issues.py"), ...scenario.argv],
+      [
+        "run",
+        "python",
+        join(deftRoot, "scripts", "pr_check_protected_issues.py"),
+        ...scenario.argv,
+      ],
       deftRoot,
       env,
     );

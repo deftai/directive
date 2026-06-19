@@ -84,9 +84,7 @@ export function fetchClosingIssuesReferences(
     payload = JSON.parse(result.stdout) as unknown;
   } catch (exc: unknown) {
     const message = exc instanceof Error ? exc.message : String(exc);
-    process.stderr.write(
-      `Error: failed to parse gh CLI output for PR #${prNumber}: ${message}\n`,
-    );
+    process.stderr.write(`Error: failed to parse gh CLI output for PR #${prNumber}: ${message}\n`);
     return null;
   }
 

@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  EXIT_EXTERNAL_ERROR,
-  EXIT_OK,
-  EXIT_PROTECTED_LINKED,
-} from "./constants.js";
+import { EXIT_EXTERNAL_ERROR, EXIT_OK, EXIT_PROTECTED_LINKED } from "./constants.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "./gh.js";
 import { cmdPrProtectedIssues, parseArgs, run } from "./main.js";
 import { parseProtected } from "./parse.js";
@@ -254,17 +250,17 @@ describe("run CLI", () => {
 
   it("returns external error on gh failure", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    expect(
-      run(["701", "--protected", "167"], { runGh: makeRunGh("", 4, "auth") }),
-    ).toBe(EXIT_EXTERNAL_ERROR);
+    expect(run(["701", "--protected", "167"], { runGh: makeRunGh("", 4, "auth") })).toBe(
+      EXIT_EXTERNAL_ERROR,
+    );
     stderr.mockRestore();
   });
 
   it("returns external error on malformed json", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    expect(
-      run(["701", "--protected", "167"], { runGh: makeRunGh("not-json") }),
-    ).toBe(EXIT_EXTERNAL_ERROR);
+    expect(run(["701", "--protected", "167"], { runGh: makeRunGh("not-json") })).toBe(
+      EXIT_EXTERNAL_ERROR,
+    );
     stderr.mockRestore();
   });
 
@@ -284,9 +280,7 @@ describe("run CLI", () => {
 
   it("cmdPrProtectedIssues delegates to run", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    expect(
-      cmdPrProtectedIssues(["701"], { runGh: makeRunGh(ghPayload()) }),
-    ).toBe(EXIT_OK);
+    expect(cmdPrProtectedIssues(["701"], { runGh: makeRunGh(ghPayload()) })).toBe(EXIT_OK);
     stderr.mockRestore();
   });
 });
