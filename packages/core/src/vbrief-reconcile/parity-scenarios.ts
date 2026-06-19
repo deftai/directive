@@ -11,7 +11,7 @@ import {
   reconcileScopeItems,
 } from "./reconciliation.js";
 import type { LabelClient, UmbrellaClient } from "./types.js";
-import { reconcileUmbrellas, renderUmbrellasReport } from "./umbrellas.js";
+import { parseCurrentShape, reconcileUmbrellas, renderUmbrellasReport } from "./umbrellas.js";
 
 class MemoryLabelClient implements LabelClient {
   fetchLabels(): string[] {
@@ -59,6 +59,7 @@ export const PARITY_SCENARIO_NAMES = [
   "reconcile-scope-clean",
   "reconcile-scope-orphan",
   "reconcile-report",
+  "reconcile-parse-shape",
   "graph-dry-run",
   "graph-cycle",
   "graph-missing-proposed",
@@ -80,6 +81,18 @@ const OVERRIDES_SAMPLE =
   "    body_source: spec\n" +
   "  roadmap-9:\n" +
   "    drop: true\n";
+
+// Whitespace-edge body for the ReDoS-hardened parse path (#1782 s4): leading
+// runs of spaces/tabs, an all-whitespace tail, and a final line without a
+// trailing newline -- exactly the inputs the `\s*(\S.*|)$` rewrite must parse
+// byte-identically to the Python oracle's `\s*(.*)$`.
+const PARSE_SHAPE_BODY =
+  "## Current shape (as of pass-4)\n" +
+  "Last updated:    2026-06-19T00:00:00Z   \n" +
+  "Last pass type:\tverify\t\n" +
+  "Child-count history:   pass-1: 2, pass-2: 3,  pass-3: 5\n" +
+  "Trailing field with empty value:      \n" +
+  "Child-count history: pass-9: 9";
 
 function specWith(items: unknown[]): Record<string, unknown> {
   return {
@@ -227,6 +240,19 @@ export function runParityScenario(
         scenario: name,
         ok: true,
         payload: formatReconciliationMarkdown(report, FIXED_REPORT_NOW),
+      };
+    }
+    case "reconcile-parse-shape": {
+      const parsed = parseCurrentShape(PARSE_SHAPE_BODY);
+      return {
+        scenario: name,
+        ok: true,
+        payload: {
+          passN: parsed.passN,
+          history: parsed.history,
+          lastUpdated: parsed.lastUpdated,
+          lastPassType: parsed.lastPassType,
+        },
       };
     }
     case "graph-dry-run": {

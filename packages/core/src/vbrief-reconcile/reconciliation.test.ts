@@ -32,6 +32,35 @@ describe("parseOverridesYaml", () => {
   it("returns empty for blank input", () => {
     expect(parseOverridesYaml("")).toEqual({});
   });
+
+  // ReDoS-hardening regression fixtures (#1782 s4 / CodeQL js/polynomial-redos):
+  // the `rawLine.trimEnd()` rewrite of `replace(/\s+$/, "")` must stay
+  // byte-identical across trailing-whitespace / end-of-string / many-repetition
+  // inputs, mirroring Python's `raw_line.rstrip()`.
+  it("strips trailing whitespace via trimEnd identically to the regex", () => {
+    const text =
+      "overrides:\n" +
+      "  t1:   \t \n" +
+      "    status: completed   \n" +
+      "    body_source: spec\t\t\n";
+    expect(parseOverridesYaml(text)).toEqual({
+      t1: { status: "completed", body_source: "spec" },
+    });
+  });
+
+  it("handles a final line with no trailing newline", () => {
+    const text = "overrides:\n  t1:\n    drop: true";
+    expect(parseOverridesYaml(text)).toEqual({ t1: { drop: true } });
+  });
+
+  it("stays linear on many-repetition trailing whitespace", () => {
+    const pad = " ".repeat(50000);
+    const text = `overrides:\n  t1:${pad}\n    status: completed${pad}\n`;
+    const start = Date.now();
+    const result = parseOverridesYaml(text);
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(result).toEqual({ t1: { status: "completed" } });
+  });
 });
 
 describe("normalizeTaskId", () => {

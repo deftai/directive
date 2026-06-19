@@ -66,7 +66,12 @@ export function parseOverridesYaml(text: string): Record<string, Record<string, 
   let inOverrides = false;
 
   for (const rawLine of text.split("\n")) {
-    const line = rawLine.replace(/\s+$/, "");
+    // ReDoS-hardened (#1782 s4 / CodeQL js/polynomial-redos): replace the
+    // `/\s+$/` trailing-strip with String.prototype.trimEnd(), which removes
+    // exactly the JS `\s` set (WhiteSpace + LineTerminator) and so is
+    // byte-identical to the prior regex while being linear-time. Mirrors the
+    // Python oracle's `raw_line.rstrip()`.
+    const line = rawLine.trimEnd();
     const stripped = line.trimStart();
     if (!stripped || stripped.startsWith("#")) continue;
 

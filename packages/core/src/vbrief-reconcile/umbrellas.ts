@@ -11,9 +11,16 @@ export const CHILD_REF_TYPE = "x-vbrief/plan";
 const SCM_SOURCE = "github-issue";
 
 const HEADER_RE = /^## Current shape \(as of pass-(\d+)\)/m;
-const HISTORY_RE = /^Child-count history:\s*(.*)$/m;
-const LAST_UPDATED_RE = /^Last updated:\s*(.*)$/m;
-const LAST_PASS_TYPE_RE = /^Last pass type:\s*(.*)$/m;
+// ReDoS-hardened (#1782 s4 / CodeQL js/polynomial-redos): the original
+// `\s*(.*)$` let `\s*` and `.*` both match horizontal whitespace (overlapping
+// repetitions). Replacing the capture with `(\S.*|)` makes `\s*`'s successor
+// disjoint (starts with a non-whitespace char) while the empty alternation
+// preserves the exact `""`-not-undefined capture of an all-whitespace tail.
+// Captured language is byte-identical to the frozen Python oracle
+// (`r"^...:\s*(.*)$"`, re.MULTILINE) for every input.
+const HISTORY_RE = /^Child-count history:\s*(\S.*|)$/m;
+const LAST_UPDATED_RE = /^Last updated:\s*(\S.*|)$/m;
+const LAST_PASS_TYPE_RE = /^Last pass type:\s*(\S.*|)$/m;
 const HISTORY_TOKEN_RE = /^\s*pass-(\d+):\s*(\d+)\s*$/;
 
 const READING_ORDER =

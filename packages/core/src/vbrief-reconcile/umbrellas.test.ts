@@ -67,6 +67,77 @@ describe("parseCurrentShape", () => {
   it("tolerates missing header", () => {
     expect(parseCurrentShape("no header").passN).toBeNull();
   });
+
+  // ReDoS-hardening regression fixtures (#1782 s4 / CodeQL js/polynomial-redos):
+  // the `\s*(\S.*|)$` rewrite of HISTORY_RE / LAST_UPDATED_RE / LAST_PASS_TYPE_RE
+  // must stay byte-identical to the prior `\s*(.*)$` across these edge inputs.
+  it("parses fields at end-of-string with no trailing newline", () => {
+    const body =
+      "## Current shape (as of pass-2)\n" +
+      "Last updated: 2026-06-19T00:00:00Z\n" +
+      "Last pass type: additive\n" +
+      "Child-count history: pass-1: 1, pass-2: 2";
+    const parsed = parseCurrentShape(body);
+    expect(parsed.passN).toBe(2);
+    expect(parsed.lastUpdated).toBe("2026-06-19T00:00:00Z");
+    expect(parsed.lastPassType).toBe("additive");
+    expect(parsed.history).toEqual([
+      [1, 1],
+      [2, 2],
+    ]);
+  });
+
+  it("strips surrounding whitespace identically to the trim-based parse", () => {
+    const body =
+      "## Current shape (as of pass-1)\n" +
+      "Last updated:    2026-06-19T00:00:00Z   \n" +
+      "Last pass type:\tverify\t\n" +
+      "Child-count history:   pass-1: 5  \n";
+    const parsed = parseCurrentShape(body);
+    expect(parsed.lastUpdated).toBe("2026-06-19T00:00:00Z");
+    expect(parsed.lastPassType).toBe("verify");
+    expect(parsed.history).toEqual([[1, 5]]);
+  });
+
+  it("returns empty string (not null) for an all-whitespace field tail at end-of-string", () => {
+    // Mirrors the frozen Python oracle: `\s*` (which includes newlines) only
+    // collapses to an empty capture when no non-whitespace follows, i.e. when
+    // the field sits at the very end of the body. Verified against
+    // vbrief_reconcile_umbrellas.parse_current_shape.
+    const body =
+      "## Current shape (as of pass-2)\n" +
+      "Last pass type: additive\n" +
+      "Child-count history: pass-1: 1\n" +
+      "Last updated:     ";
+    const parsed = parseCurrentShape(body);
+    expect(parsed.lastUpdated).toBe("");
+    expect(parsed.lastPassType).toBe("additive");
+    expect(parsed.history).toEqual([[1, 1]]);
+  });
+
+  it("captures across a whitespace run that spans newlines (Python \\s* semantics)", () => {
+    // `\s*` consumes the trailing spaces AND the newline, so the capture is the
+    // next non-whitespace line's content -- identical to the old `\s*(.*)$` and
+    // to the Python oracle. The rewrite preserves this cross-newline behavior.
+    const body = "## Current shape (as of pass-1)\nLast updated:      \nLast pass type: additive\n";
+    const parsed = parseCurrentShape(body);
+    expect(parsed.lastUpdated).toBe("Last pass type: additive");
+  });
+
+  it("stays linear on many-repetition whitespace input", () => {
+    const spaces = " ".repeat(50000);
+    const body =
+      "## Current shape (as of pass-1)\n" +
+      `Last updated:${spaces}2026-06-19T00:00:00Z\n` +
+      `Last pass type:${spaces}refactor\n` +
+      `Child-count history:${spaces}pass-1: 1\n`;
+    const start = Date.now();
+    const parsed = parseCurrentShape(body);
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(parsed.lastUpdated).toBe("2026-06-19T00:00:00Z");
+    expect(parsed.lastPassType).toBe("refactor");
+    expect(parsed.history).toEqual([[1, 1]]);
+  });
 });
 
 describe("classifyPassType", () => {

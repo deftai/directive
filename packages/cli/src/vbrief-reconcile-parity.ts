@@ -103,6 +103,7 @@ from _vbrief_reconciliation import (
     parse_overrides_yaml,
     reconcile_scope_items,
 )
+from vbrief_reconcile_umbrellas import parse_current_shape
 import _vbrief_reconciliation as _vr_mod
 
 FIXED_REPORT_NOW = datetime(2026, 6, 19, 12, 0, 0, tzinfo=timezone.utc)
@@ -114,6 +115,15 @@ OVERRIDES_SAMPLE = """overrides:
   roadmap-9:
     drop: true
 """
+
+PARSE_SHAPE_BODY = (
+    "## Current shape (as of pass-4)\\n"
+    "Last updated:    2026-06-19T00:00:00Z   \\n"
+    "Last pass type:\\tverify\\t\\n"
+    "Child-count history:   pass-1: 2, pass-2: 3,  pass-3: 5\\n"
+    "Trailing field with empty value:      \\n"
+    "Child-count history: pass-9: 9"
+)
 
 def spec_with(items):
     return {
@@ -177,6 +187,18 @@ def run_scenario(name):
         finally:
             _vr_mod.datetime = prior
         return {"scenario": name, "ok": True, "payload": payload}
+    if name == "reconcile-parse-shape":
+        shape = parse_current_shape(PARSE_SHAPE_BODY)
+        return {
+            "scenario": name,
+            "ok": True,
+            "payload": {
+                "passN": shape.pass_n,
+                "history": [[n, c] for n, c in shape.history],
+                "lastUpdated": shape.last_updated,
+                "lastPassType": shape.last_pass_type,
+            },
+        }
     raise SystemExit(f"unknown library scenario: {name}")
 
 if __name__ == "__main__":
@@ -212,6 +234,7 @@ const LIBRARY_SCENARIOS = new Set([
   "reconcile-scope-clean",
   "reconcile-scope-orphan",
   "reconcile-report",
+  "reconcile-parse-shape",
 ]);
 
 function installFakeGh(): { binDir: string; cleanup: () => void } {
