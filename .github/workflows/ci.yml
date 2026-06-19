@@ -312,6 +312,9 @@ jobs:
       - name: Golden-diff parity -- monitor/investigation gates (#1788 s2)
         run: node packages/cli/dist/orchestration-parity.js
 
+      - name: Golden-diff parity -- swarm cohort verbs (#1788 s1)
+        run: node packages/cli/dist/swarm-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

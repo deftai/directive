@@ -157,6 +157,10 @@
     "./orchestration": {
       "types": "./dist/orchestration/index.d.ts",
       "default": "./dist/orchestration/index.js"
+    },
+    "./swarm": {
+      "types": "./dist/swarm/index.d.ts",
+      "default": "./dist/swarm/index.js"
     }
   },
   "dependencies": {

@@ -56,6 +56,7 @@ export default defineConfig({
       "@deftai/core/lifecycle": sub("core", "lifecycle"),
       "@deftai/core/orchestration": sub("core", "orchestration"),
       "@deftai/core/packs": sub("core", "packs"),
+      "@deftai/core/swarm": sub("core", "swarm"),
       "@deftai/core": src("core"),
     },
   },
@@ -144,6 +145,7 @@ export default defineConfig({
         "packages/cli/src/lifecycle-packs-parity.ts",
         "packages/cli/src/session-parity.ts",
         "packages/cli/src/orchestration-parity.ts",
+        "packages/cli/src/swarm-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {
