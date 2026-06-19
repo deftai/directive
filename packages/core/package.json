@@ -69,6 +69,10 @@
     "./release-e2e": {
       "types": "./dist/release-e2e/index.d.ts",
       "default": "./dist/release-e2e/index.js"
+    },
+    "./pr-merge-readiness": {
+      "types": "./dist/pr-merge-readiness/index.d.ts",
+      "default": "./dist/pr-merge-readiness/index.js"
     }
   },
   "dependencies": {

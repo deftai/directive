@@ -255,6 +255,9 @@ jobs:
       - name: Golden-diff parity -- release:e2e (#1729)
         run: node packages/cli/dist/release-e2e-parity.js
 
+      - name: Golden-diff parity -- pr_merge_readiness (#1730)
+        run: node packages/cli/dist/pr-merge-readiness-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

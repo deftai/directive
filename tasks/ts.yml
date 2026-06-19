@@ -142,6 +142,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/release-e2e-parity.js"
 
+  pr-merge-readiness-parity:
+    desc: "Golden-diff the ported pr_merge_readiness.py vs the Python oracle, cache-off (#1730)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-merge-readiness-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -169,3 +175,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/release-publish-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/release-rollback-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/release-e2e-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-merge-readiness-parity.js"

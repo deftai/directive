@@ -6,7 +6,7 @@
   "plan": {
     "id": "1730-s1-pr-merge-readiness",
     "title": "Port pr_merge_readiness.py (merge-readiness primitive) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1730-featts-migration-port-pr-monitors-cascade-automation-to-ts-w.vbrief.json",
     "narratives": {
       "Description": "Port scripts/pr_merge_readiness.py -- the merge-readiness primitive that parses Greptile findings, computes the confidence verdict, applies the layered fallbacks (#1368), and returns the three-state readiness result -- to TypeScript. Subprocess capture uses Node execFile (no shell) with explicit UTF-8 decoding, structurally closing the #1366 capture-decode class. It reuses the @deftai/core/scm gh helpers and is the foundation the pr_wait_mergeable cascade composer builds on; dispatched first.",
@@ -64,7 +64,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-4b framework-internal TS port traced to GitHub issue #1730 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T13:33:07Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -93,6 +95,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1728"
       }
-    ]
+    ],
+    "updated": "2026-06-19T13:33:07Z"
   }
 }

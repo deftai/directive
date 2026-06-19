@@ -31,6 +31,7 @@ export default defineConfig({
       "@deftai/core/release-publish": sub("core", "release-publish"),
       "@deftai/core/release-rollback": sub("core", "release-rollback"),
       "@deftai/core/release-e2e": sub("core", "release-e2e"),
+      "@deftai/core/pr-merge-readiness": sub("core", "pr-merge-readiness"),
       "@deftai/core": src("core"),
     },
   },
@@ -97,6 +98,10 @@ export default defineConfig({
         "packages/cli/src/release-publish-parity.ts",
         "packages/cli/src/release-rollback-parity.ts",
         "packages/cli/src/release-e2e-parity.ts",
+        // Same rationale (#1530 Wave 4b, #1730): the pr-monitor parity runners
+        // spawn the Python oracle and are validated by the dedicated parity CI
+        // job, not the Python-less node-only TS job. Pure helpers stay unit-tested.
+        "packages/cli/src/pr-merge-readiness-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

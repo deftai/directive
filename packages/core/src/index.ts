@@ -16,6 +16,7 @@ export * as cache from "./cache/index.js";
 export * as doctor from "./doctor/index.js";
 export * from "./encoding/index.js";
 export * as policy from "./policy/index.js";
+export * as prMergeReadiness from "./pr-merge-readiness/index.js";
 export * as preflight from "./preflight/index.js";
 export * as release from "./release/index.js";
 export * as releaseE2e from "./release-e2e/index.js";

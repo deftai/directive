@@ -63,7 +63,7 @@
         "title": "Issue #1728"
       },
       {
-        "uri": "proposed/2026-06-19-port-pr-merge-readinesspy-merge-readiness-primitive-to-types.vbrief.json",
+        "uri": "completed/2026-06-19-port-pr-merge-readinesspy-merge-readiness-primitive-to-types.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port pr_merge_readiness.py (merge-readiness primitive) to TypeScript",
         "TrustLevel": "internal"
