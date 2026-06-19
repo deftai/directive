@@ -61,7 +61,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-vbriefvalidate-cli-verifyvbrief-conformance-gate-to.vbrief.json",
+        "uri": "active/2026-06-19-port-the-vbriefvalidate-cli-verifyvbrief-conformance-gate-to.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the vbrief:validate CLI + verify:vbrief-conformance gate to TypeScript (composer)",
         "TrustLevel": "internal"

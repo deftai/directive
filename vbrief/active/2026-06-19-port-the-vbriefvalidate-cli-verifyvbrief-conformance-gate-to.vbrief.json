@@ -6,7 +6,7 @@
   "plan": {
     "id": "1782-s3-vbrief-validate",
     "title": "Port the vbrief:validate CLI + verify:vbrief-conformance gate to TypeScript (composer)",
-    "status": "proposed",
+    "status": "running",
     "planRef": "proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json",
     "narratives": {
       "Description": "Port scripts/vbrief_validate.py (the full vBRIEF validator CLI) and scripts/verify_vbrief_conformance.py (the bare-key conformance gate, #1620) to TypeScript with golden parity. This is the composer: it orchestrates the vbrief-build foundation (#1782-s1) and the validation primitives (#1782-s2), so it is dispatched after both land. It is the gate task check runs as vbrief:validate. gh/subprocess capture uses Node execFile with explicit UTF-8 (#1366).",
@@ -81,6 +81,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1730"
       }
-    ]
+    ],
+    "updated": "2026-06-19T19:12:42Z"
   }
 }
