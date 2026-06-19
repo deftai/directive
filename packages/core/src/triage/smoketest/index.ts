@@ -141,6 +141,7 @@ export interface ScriptRunner {
 export interface SmoketestDeps {
   readonly scriptsDir: string;
   readonly scriptRunner: ScriptRunner;
+  readonly runInlinePython?: (code: string, stdin: string, cwd: string) => ScriptCapture;
 }
 
 function defaultScriptRunner(scriptsDir: string): ScriptRunner {
@@ -198,10 +199,28 @@ export function copyFixtureToTmp(fixtureRoot: string, tmpRoot: string): string {
   return project;
 }
 
+function defaultInlineRunner(): NonNullable<SmoketestDeps["runInlinePython"]> {
+  return (code, stdin, cwd) => {
+    const result = spawnSync("uv", ["run", "python", "-c", code], {
+      input: stdin,
+      encoding: "utf8",
+      cwd,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return {
+      returncode: result.status ?? 2,
+      stdout: typeof result.stdout === "string" ? result.stdout : "",
+      stderr: typeof result.stderr === "string" ? result.stderr : "",
+    };
+  };
+}
+
 export function renderCache(
   projectRoot: string,
   issuesSpec: Record<string, unknown>,
   scriptsDir: string,
+  runInline: NonNullable<SmoketestDeps["runInlinePython"]> = defaultInlineRunner(),
+  cwd = dirname(scriptsDir),
 ): void {
   const py = `
 import json, sys
@@ -228,13 +247,8 @@ for issue in spec['issues']:
     }
     cache_put('github-issue', f'{repo}/{n}', raw, cache_root=cache_root, fetched_at=now_dt)
 `;
-  const result = spawnSync("uv", ["run", "python", "-c", py], {
-    input: JSON.stringify(issuesSpec),
-    encoding: "utf8",
-    cwd: dirname(scriptsDir),
-    stdio: ["pipe", "pipe", "pipe"],
-  });
-  if ((result.status ?? 2) !== 0) {
+  const result = runInline(py, JSON.stringify(issuesSpec), cwd);
+  if (result.returncode !== 0) {
     throw new Error(`renderCache failed: ${result.stderr}`);
   }
 }
@@ -255,12 +269,11 @@ export function runSmoketest(
       ? resolve(process.env.DEFT_ROOT)
       : resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", ".."));
   const scriptsDir = join(deftRoot, "scripts");
-  void (
-    options.deps ?? {
-      scriptsDir,
-      scriptRunner: defaultScriptRunner(scriptsDir),
-    }
-  );
+  const deps: SmoketestDeps = options.deps ?? {
+    scriptsDir,
+    scriptRunner: defaultScriptRunner(scriptsDir),
+  };
+  const runInline = deps.runInlinePython ?? defaultInlineRunner();
 
   const lastRunPath = join(fixtureRoot, LAST_RUN_FILENAME);
   const log = new AssertLog({ verbose: options.verbose ?? false });
@@ -287,12 +300,12 @@ export function runSmoketest(
   const tmpDir = mkdtempSync(join(tmpdir(), "deft-triage-smoketest-"));
   try {
     const projectRoot = copyFixtureToTmp(fixtureRoot, join(tmpDir, "project"));
-    renderCache(projectRoot, issuesSpec, scriptsDir);
+    renderCache(projectRoot, issuesSpec, deps.scriptsDir, runInline, deftRoot);
 
     const stageRunner = `
 import json, sys
 from pathlib import Path
-sys.path.insert(0, ${JSON.stringify(scriptsDir)})
+sys.path.insert(0, ${JSON.stringify(deps.scriptsDir)})
 from triage_smoketest import AssertLog, TOTAL_STAGES, STAGE_LABELS, FIXTURE_REPO
 import _triage_smoketest_stages as stages
 
@@ -327,23 +340,22 @@ except Exception as e:
         print(json.dumps({'exit_code': 1, 'records': log.records, 'error': traceback.format_exc()}))
         raise
 `;
-    const result = spawnSync("uv", ["run", "python", "-c", stageRunner], {
-      input: JSON.stringify({
+    const result = runInline(
+      stageRunner,
+      JSON.stringify({
         project_root: projectRoot,
         issues_spec: issuesSpec,
         cache_only: options.cacheOnly ?? false,
         verbose: options.verbose ?? false,
       }),
-      encoding: "utf8",
-      cwd: deftRoot,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    if ((result.status ?? 2) !== 0) {
+      deftRoot,
+    );
+    if (result.returncode !== 0) {
       process.stderr.write(`[triage:smoketest] stage runner failed: ${result.stderr}\n`);
       log.writeJson(lastRunPath, { exitCode: 1, fixtureRepo: FIXTURE_REPO });
       return 1;
     }
-    const payload = JSON.parse(result.stdout as string) as {
+    const payload = JSON.parse(result.stdout) as {
       exit_code: number;
       records: AssertRecord[];
       error?: string;

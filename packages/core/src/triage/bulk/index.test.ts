@@ -416,4 +416,24 @@ describe("bulk edge paths", () => {
     });
     expect(lines.join("")).toContain("unreadable raw.json");
   });
+
+  it("bulkAction reject with null reason calls reject without kwargs", () => {
+    const calls: unknown[] = [];
+    const rejectFn = (n: number, repo: string, ...args: unknown[]) => {
+      calls.push([n, repo, ...args]);
+    };
+    bulkAction("reject", "deftai/directive", {
+      issuesProvider: () => [{ number: 9, labels: [] }],
+      reason: null,
+      actionsModule: {
+        accept: () => {},
+        reject: rejectFn,
+        defer: () => {},
+        needs_ac: () => {},
+      },
+      candidatesLogModule: { readAll: () => [] },
+      out: { write: () => {} },
+    });
+    expect(calls).toEqual([[9, "deftai/directive"]]);
+  });
 });

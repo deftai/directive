@@ -346,7 +346,11 @@ function invokeAction(
     kwargs.reason = reason;
   }
   try {
-    fn(issueNumber, repo, kwargs);
+    if (Object.keys(kwargs).length > 0) {
+      fn(issueNumber, repo, kwargs);
+    } else {
+      fn(issueNumber, repo);
+    }
   } catch (exc: unknown) {
     if (!isSignatureMismatch(exc)) {
       throw exc;
@@ -557,11 +561,14 @@ export function createPythonActionsModule(scriptsDir: string): TriageActionsModu
       runAction("accept", n, repo);
     },
     reject(n, repo, ...args: unknown[]) {
-      const reason =
-        typeof args[0] === "object" && args[0] !== null && "reason" in (args[0] as object)
-          ? String((args[0] as { reason: unknown }).reason)
-          : String(args[0] ?? "");
-      runAction("reject", n, repo, ["--reason", reason]);
+      let reason: string | undefined;
+      if (typeof args[0] === "object" && args[0] !== null && "reason" in (args[0] as object)) {
+        reason = String((args[0] as { reason: unknown }).reason);
+      } else if (typeof args[0] === "string") {
+        reason = args[0];
+      }
+      const extra = reason !== undefined && reason.length > 0 ? ["--reason", reason] : [];
+      runAction("reject", n, repo, extra);
     },
     defer(n, repo) {
       runAction("defer", n, repo, ["--reason", "bulk defer"]);

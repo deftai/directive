@@ -8,7 +8,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 
 export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.eval/subscription-history.jsonl";
 export const SUBSCRIPTION_HISTORY_SCHEMA = "deft.triage.subscription-change.v1";
@@ -70,7 +70,7 @@ export function atomicWriteProjectDefinition(path: string, data: Record<string, 
   const parent = join(path, "..");
   mkdirSync(parent, { recursive: true });
   const payload = JSON.stringify(data, null, 2);
-  const tmpName = join(parent, `${path.split("/").pop()}.${process.pid}.${Date.now()}.tmp`);
+  const tmpName = join(parent, `${basename(path)}.${process.pid}.${Date.now()}.tmp`);
   try {
     writeFileSync(tmpName, payload.endsWith("\n") ? payload : `${payload}\n`, {
       encoding: "utf8",

@@ -323,7 +323,7 @@ export function runParity(): ParityResult {
       ownsFixture = true;
       if (testCase.name === "subscribe-label-idempotent") {
         for (const repo of [pyRepo, tsRepo]) {
-          runCapture(
+          const setup = runCapture(
             "uv",
             [
               "run",
@@ -337,6 +337,11 @@ export function runParity(): ParityResult {
             ],
             deftRoot,
           );
+          if (setup.status !== 0) {
+            throw new Error(
+              `subscribe-label-idempotent setup failed for ${repo}: ${setup.stderr || setup.stdout}`,
+            );
+          }
         }
       }
     }
