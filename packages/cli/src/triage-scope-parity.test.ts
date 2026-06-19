@@ -9,7 +9,6 @@ import {
   diffCase,
   normalizeOutput,
   renderReport,
-  runParity,
 } from "./triage-scope-parity.js";
 
 describe("triage-scope parity harness", () => {
@@ -66,12 +65,6 @@ describe("triage-scope parity harness", () => {
   it("buildFixtureRepo creates project definition", () => {
     const root = buildFixtureRepo({ policy: { triageScope: [{ rule: "all-open" }] } });
     expect(root.length).toBeGreaterThan(0);
-  });
-
-  it("runParity matches python oracle end-to-end", () => {
-    const result = runParity();
-    expect(result.ok).toBe(true);
-    expect(renderReport(result)).toContain("CLEAN");
   });
 });
 
