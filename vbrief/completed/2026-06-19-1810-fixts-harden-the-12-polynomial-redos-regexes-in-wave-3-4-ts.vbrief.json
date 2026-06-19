@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(ts): harden the 12 polynomial-ReDoS regexes in Wave 3-4 TS ports (clear master CodeQL backlog)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(ts): harden the 12 polynomial-ReDoS regexes in Wave 3-4 TS ports (clear master CodeQL backlog)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1810",
@@ -41,6 +41,10 @@
         "title": "Issue #1530"
       }
     ],
-    "updated": "2026-06-19T21:55:49Z"
+    "updated": "2026-06-19T22:00:05Z",
+    "metadata": {
+      "completedAt": "2026-06-19T22:00:05Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
