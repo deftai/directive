@@ -188,6 +188,12 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-build-parity.js"
 
+  vbrief-reconcile-parity:
+    desc: "Golden-diff the ported vBRIEF reconciliation engine vs the Python oracle, cache-off (#1782 s4)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-reconcile-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -221,3 +227,4 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-monitor-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/pr-wait-mergeable-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-build-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/vbrief-reconcile-parity.js"
