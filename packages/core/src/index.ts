@@ -13,6 +13,8 @@ import type { EngineInfo } from "@deftai/types";
 
 export * as branch from "./branch/index.js";
 export * as cache from "./cache/index.js";
+export * as capacity from "./capacity/index.js";
+export * as codebase from "./codebase/index.js";
 export * as doctor from "./doctor/index.js";
 export * from "./encoding/index.js";
 export * as policy from "./policy/index.js";

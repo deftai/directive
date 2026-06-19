@@ -1,6 +1,9 @@
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import { DEFAULT_WIP_CAP } from "./wip.js";
 
+export * from "./autonomy.js";
+export * from "./capacity.js";
+export * from "./decisions.js";
 export * from "./disclosure.js";
 export * from "./resolve.js";
 export * from "./wip.js";

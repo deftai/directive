@@ -45,6 +45,8 @@ export default defineConfig({
       "@deftai/core/verify-source": sub("core", "verify-source"),
       "@deftai/core/validate-content": sub("core", "validate-content"),
       "@deftai/core/render": sub("core", "render"),
+      "@deftai/core/codebase": sub("core", "codebase"),
+      "@deftai/core/capacity": sub("core", "capacity"),
       "@deftai/core": src("core"),
     },
   },
@@ -128,6 +130,7 @@ export default defineConfig({
         "packages/cli/src/verify-source-parity.ts",
         "packages/cli/src/validate-content-parity.ts",
         "packages/cli/src/render-parity.ts",
+        "packages/cli/src/codebase-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

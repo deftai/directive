@@ -297,6 +297,9 @@ jobs:
       - name: Golden-diff parity -- spec/PRD/render family (#1785)
         run: node packages/cli/dist/render-parity.js
 
+      - name: Golden-diff parity -- codebase mapping + capacity (#1786)
+        run: node packages/cli/dist/codebase-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

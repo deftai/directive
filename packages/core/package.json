@@ -125,6 +125,14 @@
     "./render": {
       "types": "./dist/render/index.d.ts",
       "default": "./dist/render/index.js"
+    },
+    "./codebase": {
+      "types": "./dist/codebase/index.d.ts",
+      "default": "./dist/codebase/index.js"
+    },
+    "./capacity": {
+      "types": "./dist/capacity/index.d.ts",
+      "default": "./dist/capacity/index.js"
     }
   },
   "dependencies": {
