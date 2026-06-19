@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1729"
+  },
+  "plan": {
+    "title": "feat(ts-migration): port the release pipeline (release*.py) to TS (Wave 4)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): port the release pipeline (release*.py) to TS (Wave 4)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1729",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nPort the release pipeline (`scripts/release*.py` -> `deft release:*`: release / publish / rollback / e2e, CHANGELOG section extraction, GitHub release body flow) to TS.\n\n## Acceptance criteria\n\n- [ ] `release:*` verbs run on TS with the publish/rollback/e2e flow preserved\n- [ ] CHANGELOG `[version]` section extraction + release-body flow reproduced\n- [ ] Golden-output parity vs the Python oracle (cache-off)\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1725\n- Blocked by #1726\n- Blocked by #1727\n- Blocked by #1728\n",
+      "Labels": "ci-cd, refactor, runtime-portability, tooling"
+    },
+    "items": [
+      {
+        "title": "verbs run on TS with the publish/rollback/e2e flow preserved",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG  section extraction + release-body flow reproduced",
+        "status": "proposed"
+      },
+      {
+        "title": "Golden-output parity vs the Python oracle (cache-off)",
+        "status": "proposed"
+      },
+      {
+        "title": "passes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "ci-cd",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1729",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1729: feat(ts-migration): port the release pipeline (release*.py) to TS (Wave 4)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-the-releasepy-core-version-bump-changelog-section-extra.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port the release.py core (version bump + CHANGELOG section extraction + GitHub release-body flow) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-release-publishpy-releasepublish-flow-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port release_publish.py (release:publish flow) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-release-rollbackpy-releaserollback-flow-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port release_rollback.py (release:rollback flow) to TypeScript",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "proposed/2026-06-19-port-release-e2epy-releasee2e-rehearsal-to-typescript.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port release_e2e.py (release:e2e rehearsal) to TypeScript",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

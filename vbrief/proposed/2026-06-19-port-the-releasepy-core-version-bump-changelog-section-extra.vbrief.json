@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json"
+  },
+  "plan": {
+    "id": "1729-s1-release-core",
+    "title": "Port the release.py core (version bump + CHANGELOG section extraction + GitHub release-body flow) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/release.py -- the release-pipeline core that the publish, rollback, and e2e flows all build on -- to TypeScript. This covers version resolution/bump, the CHANGELOG [version] section extraction (_section_for_version, including the 125,000-char GitHub release-body ceiling guard from #1242), the ROADMAP/CHANGELOG promotion flow, and the top-level `release` verb. It is dispatched first as the foundation because publish/rollback/e2e import these shared helpers; it is independently buildable as a self-contained packages/core/src/release module with a golden parity binary.",
+      "ImplementationPlan": "1. Create the packages/core/src/release module porting version resolution, CHANGELOG [version] section extraction (with the release-body length guard), the ROADMAP/CHANGELOG promotion flow, and the `release` verb, with vitest unit tests in the module directory.\n2. Add packages/cli/src/release.ts exposing the TS `release` verb behind the existing CLI seam.\n3. Add packages/cli/src/release-parity.ts that runs the TS path and the Python scripts/release.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want the release pipeline core available in TypeScript, so that version bump, CHANGELOG section extraction, and the release-body flow run on the TS engine with the same output as the Python module."
+    },
+    "items": [
+      {
+        "id": "1729-s1-a1",
+        "title": "version resolution + bump preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS release core returns the same bumped version value that the Python release.py module produces for the same inputs."
+        }
+      },
+      {
+        "id": "1729-s1-a2",
+        "title": "CHANGELOG section extraction + release-body guard preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Extracting the CHANGELOG [version] section returns the same text the Python module returns, and a section exceeding the 125,000-char GitHub release-body ceiling is rejected with the same error."
+        }
+      },
+      {
+        "id": "1729-s1-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the release-parity binary returns exit 0 and renders byte-identical output to the Python scripts/release.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/",
+          "packages/cli/src/release.ts",
+          "packages/cli/src/release-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/release-parity.js",
+          "pnpm --filter @deftai/core test src/release"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/release module with vitest unit tests",
+          "New packages/cli/src/release-parity.ts parity binary",
+          "Byte-identical parity vs scripts/release.py under cache-off"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-wave4-release-core",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-4 framework-internal TS port traced to GitHub issue #1729 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1729",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1729: feat(ts-migration): port the release pipeline (release*.py) to TS (Wave 4)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      }
+    ]
+  }
+}

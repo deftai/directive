@@ -1,0 +1,100 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json"
+  },
+  "plan": {
+    "id": "1729-s3-release-rollback",
+    "title": "Port release_rollback.py (release:rollback flow) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/release_rollback.py -- the release:rollback flow that reverts a published or drafted release, unwinds the tag/release/CHANGELOG promotion, and applies the rollback-time safety guards (#716) -- to TypeScript. It builds on the shared release-core helpers from 1729-s1 and is independently buildable as a self-contained packages/core/src/release-rollback module with a golden parity binary.",
+      "ImplementationPlan": "1. Create the packages/core/src/release-rollback module porting the rollback flow, the tag/release/CHANGELOG unwind, and the rollback-time safety guards over the merged release-core helpers, with vitest unit tests in the module directory.\n2. Add packages/cli/src/release-rollback.ts exposing the TS `release:rollback` verb behind the CLI seam.\n3. Add packages/cli/src/release-rollback-parity.ts that runs the TS path and the Python scripts/release_rollback.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want release:rollback available in TypeScript, so that reverting a release runs on the TS engine with the same unwind sequence and safety guards as the Python module."
+    },
+    "items": [
+      {
+        "id": "1729-s3-a1",
+        "title": "rollback unwind sequence preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS release:rollback flow deletes the tag and release and reverts the CHANGELOG promotion in the same sequence the Python release_rollback.py module performs."
+        }
+      },
+      {
+        "id": "1729-s3-a2",
+        "title": "rollback-time safety guards preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running release:rollback against a state that fails a rollback-time safety guard is refused with the same guard message the Python module emits."
+        }
+      },
+      {
+        "id": "1729-s3-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the release-rollback-parity binary returns exit 0 and renders byte-identical output to the Python scripts/release_rollback.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-rollback/",
+          "packages/cli/src/release-rollback.ts",
+          "packages/cli/src/release-rollback-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/release-rollback-parity.js",
+          "pnpm --filter @deftai/core test src/release-rollback"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/release-rollback module with vitest unit tests",
+          "New packages/cli/src/release-rollback-parity.ts parity binary",
+          "Byte-identical parity vs scripts/release_rollback.py under cache-off"
+        ],
+        "depends_on": [
+          "1729-s1-release-core"
+        ],
+        "conflict_group": "ts-wave4-release-rollback",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-4 framework-internal TS port traced to GitHub issue #1729 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1729",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1729: feat(ts-migration): port the release pipeline (release*.py) to TS (Wave 4)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      }
+    ]
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json"
+  },
+  "plan": {
+    "id": "1729-s4-release-e2e",
+    "title": "Port release_e2e.py (release:e2e rehearsal) to TypeScript",
+    "status": "proposed",
+    "planRef": "proposed/2026-06-19-1729-featts-migration-port-the-release-pipeline-releasepy-to-ts-w.vbrief.json",
+    "narratives": {
+      "Description": "Port scripts/release_e2e.py -- the release:e2e end-to-end rehearsal that exercises the full release flow against a temp/throwaway target before a real release -- to TypeScript. It builds on the shared release-core helpers from 1729-s1 and is independently buildable as a self-contained packages/core/src/release-e2e module with a golden parity binary.",
+      "ImplementationPlan": "1. Create the packages/core/src/release-e2e module porting the end-to-end rehearsal orchestration over the merged release-core helpers, with vitest unit tests in the module directory.\n2. Add packages/cli/src/release-e2e.ts exposing the TS `release:e2e` verb behind the CLI seam.\n3. Add packages/cli/src/release-e2e-parity.ts that runs the TS path and the Python scripts/release_e2e.py oracle and asserts byte-identical output with cache off.",
+      "UserStory": "As a directive maintainer, I want release:e2e available in TypeScript, so that the release rehearsal runs on the TS engine with the same end-to-end flow as the Python module."
+    },
+    "items": [
+      {
+        "id": "1729-s4-a1",
+        "title": "e2e rehearsal orchestration preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the TS release:e2e rehearsal returns the same end-to-end result against the throwaway target that the Python release_e2e.py module produces."
+        }
+      },
+      {
+        "id": "1729-s4-a2",
+        "title": "rehearsal pass/fail reporting preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running release:e2e reports rehearsal pass/fail with the same exit code and summary the Python module emits."
+        }
+      },
+      {
+        "id": "1729-s4-a3",
+        "title": "golden parity vs Python oracle",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running the release-e2e-parity binary returns exit 0 and renders byte-identical output to the Python scripts/release_e2e.py oracle with cache off."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-e2e/",
+          "packages/cli/src/release-e2e.ts",
+          "packages/cli/src/release-e2e-parity.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/release-e2e-parity.js",
+          "pnpm --filter @deftai/core test src/release-e2e"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/release-e2e module with vitest unit tests",
+          "New packages/cli/src/release-e2e-parity.ts parity binary",
+          "Byte-identical parity vs scripts/release_e2e.py under cache-off"
+        ],
+        "depends_on": [
+          "1729-s1-release-core"
+        ],
+        "conflict_group": "ts-wave4-release-e2e",
+        "size": "L",
+        "file_scope_confidence": "high",
+        "model_tier": "high",
+        "missing_traces_justification": "#1530 Wave-4 framework-internal TS port traced to GitHub issue #1729 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1729",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1729: feat(ts-migration): port the release pipeline (release*.py) to TS (Wave 4)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1725",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1725"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1726",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1726"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1727",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1727"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1728",
+        "type": "x-vbrief/blocks",
+        "title": "Issue #1728"
+      }
+    ]
+  }
+}
