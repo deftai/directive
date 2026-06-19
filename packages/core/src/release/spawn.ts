@@ -26,8 +26,18 @@ export function spawnText(
     timeout: options.timeoutMs,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  let status = result.status;
+  if (status === null) {
+    if (result.signal !== null && result.signal !== undefined) {
+      status = 128;
+    } else if (result.error) {
+      status = 2;
+    } else {
+      status = 0;
+    }
+  }
   return {
-    status: result.status ?? (result.error ? 2 : 0),
+    status,
     stdout: typeof result.stdout === "string" ? result.stdout : "",
     stderr: typeof result.stderr === "string" ? result.stderr : "",
   };

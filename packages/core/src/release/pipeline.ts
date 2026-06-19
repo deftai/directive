@@ -372,7 +372,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   }
 
   process.stderr.write(
-    `Release v${version} pipeline complete (dry_run=${config.dryRun}, skip_tag=${config.skipTag}, skip_release=${config.skipRelease}).\n`,
+    `Release v${version} pipeline complete (dry_run=${config.dryRun ? "True" : "False"}, skip_tag=${config.skipTag ? "True" : "False"}, skip_release=${config.skipRelease ? "True" : "False"}).\n`,
   );
   return EXIT_OK;
 }
