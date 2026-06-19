@@ -60,7 +60,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-19-port-triageclassify-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-triageclassify-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage:classify to TypeScript",
         "TrustLevel": "internal"
