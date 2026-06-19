@@ -69,19 +69,19 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-pr-check-protected-issuespy-layer-3-protected-issue-che.vbrief.json",
+        "uri": "active/2026-06-19-port-pr-check-protected-issuespy-layer-3-protected-issue-che.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port pr_check_protected_issues.py (Layer-3 protected-issue check) to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-pr-check-closing-keywordspy-closing-keyword-check-to-ty.vbrief.json",
+        "uri": "active/2026-06-19-port-pr-check-closing-keywordspy-closing-keyword-check-to-ty.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port pr_check_closing_keywords.py (closing-keyword check) to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-monitor-prpy-resilient-wait-loop-to-typescript.vbrief.json",
+        "uri": "active/2026-06-19-port-monitor-prpy-resilient-wait-loop-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port monitor_pr.py (resilient wait loop) to TypeScript",
         "TrustLevel": "internal"
