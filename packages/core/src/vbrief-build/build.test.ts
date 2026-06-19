@@ -71,6 +71,17 @@ describe("createScopeVbrief", () => {
     expect(referenceHasRequiredFields({ uri: "  ", type: "x-vbrief/plan" })).toBe(false);
     expect(referenceHasRequiredFields({ uri: "u", type: "t" })).toBe(true);
   });
+
+  it("strips multiple trailing slashes from the repo url (rstrip parity)", () => {
+    const refUri = (repoUrl: string): string => {
+      const scope = createScopeVbrief({ number: "9", title: "T" }, repoUrl);
+      const refs = (scope.plan as Record<string, unknown>).references as Record<string, unknown>[];
+      return refs[0]?.uri as string;
+    };
+    expect(refUri("https://github.com/o/r/")).toBe("https://github.com/o/r/issues/9");
+    expect(refUri("https://github.com/o/r///")).toBe("https://github.com/o/r/issues/9");
+    expect(refUri("  https://github.com/o/r//  ")).toBe("https://github.com/o/r/issues/9");
+  });
 });
 
 describe("referenceWithDefaultTrust", () => {

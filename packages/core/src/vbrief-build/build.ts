@@ -23,6 +23,21 @@ export function slugify(text: string): string {
   return slug.slice(0, 60).replace(/^-+|-+$/g, "");
 }
 
+/**
+ * Strip trailing ``/`` characters, mirroring Python ``str.rstrip("/")``.
+ *
+ * A linear loop (no regex) so there is no backtracking — this replaces the
+ * polynomial ``/\/+$/`` form CodeQL flagged as ``js/polynomial-redos`` while
+ * preserving byte-identical behaviour with the frozen Python oracle.
+ */
+function stripTrailingSlashes(value: string): string {
+  let result = value;
+  while (result.endsWith("/")) {
+    result = result.slice(0, -1);
+  }
+  return result;
+}
+
 /** Return a copied reference with the default TrustLevel filled when known. */
 export function referenceWithDefaultTrust(ref: JsonObject): JsonObject {
   const normalized = structuredClone(ref) as JsonObject;
@@ -43,9 +58,7 @@ function githubIssueReference(params: {
   readonly number: unknown;
   readonly title: unknown;
 }): JsonObject | null {
-  const cleanedRepo = String(params.repoUrl ?? "")
-    .trim()
-    .replace(/\/+$/, "");
+  const cleanedRepo = stripTrailingSlashes(String(params.repoUrl ?? "").trim());
   const cleanedNumber = String(params.number ?? "")
     .trim()
     .replace(/^#+/, "")

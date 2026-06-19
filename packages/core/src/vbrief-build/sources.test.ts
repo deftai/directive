@@ -53,6 +53,22 @@ describe("extractTechStack", () => {
   it("reads bold tech stack line", () => {
     expect(extractTechStack(SAMPLE_PROJECT_MD)).toBe("Python");
   });
+
+  it("captures a ## Tech Stack section that runs to end-of-string", () => {
+    // Regression: Python's \Z anchor matches absolute end-of-string. The prior
+    // TS port translated it as a literal "Z", so a section with no trailing
+    // "\n## " heading and no literal "Z" returned "" instead of the section.
+    expect(extractTechStack("## Tech Stack\nRust + TypeScript")).toBe("Rust + TypeScript");
+  });
+
+  it("captures a section ending with a trailing newline", () => {
+    expect(extractTechStack("## Tech Stack\nRust + TypeScript\n")).toBe("Rust + TypeScript");
+  });
+
+  it("stops at the next ## heading and keeps multi-line bodies", () => {
+    expect(extractTechStack("## Tech Stack\nRust\n## Next\nmore")).toBe("Rust");
+    expect(extractTechStack("## Tech Stack\nRust\nVitest\n")).toBe("Rust\nVitest");
+  });
 });
 
 describe("firstProseParagraph", () => {

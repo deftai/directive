@@ -36,7 +36,11 @@ describe("branch coverage helpers", () => {
     expect(
       resolveRepoUrl({ plan: { references: [null, { uri: "https://github.com/only" }] } }),
     ).toBe("");
-    expect(extractTechStack("## Tech Stack\n\n\n## Next")).toBe("");
+    // Oracle parity: the heading's ``\s*\n`` consumes the blank lines, so the
+    // remainder "## Next" has no leading "\n" for the "\n##\s" terminator and is
+    // captured to \Z. Confirmed against scripts/_vbrief_sources.py (returns
+    // "## Next"). The prior "" assertion encoded the \Z-mistranslation bug.
+    expect(extractTechStack("## Tech Stack\n\n\n## Next")).toBe("## Next");
   });
 
   it("covers roadmap parsing branches", () => {

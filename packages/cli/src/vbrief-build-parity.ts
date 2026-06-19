@@ -221,6 +221,27 @@ def run_scenario(name, fixture_root):
             pending_content = json.loads(pending_path.read_text(encoding="utf-8"))
         rewritten = json.loads(plan_path.read_text(encoding="utf-8"))
         return {"scenario": name, "ok": ok, "payload": {"actions": actions, "pendingContent": pending_content, "rewrittenPlan": rewritten, "pendingFiles": ["pending"]}}
+    if name == "extract-tech-stack-eos":
+        return {"scenario": name, "ok": True, "payload": {
+            "endOfString": extract_tech_stack("## Tech Stack\nRust + TypeScript"),
+            "trailingNewline": extract_tech_stack("## Tech Stack\nRust + TypeScript\n"),
+            "followedByHeading": extract_tech_stack("## Tech Stack\nRust\n## Next\nmore"),
+            "multiLine": extract_tech_stack("## Tech Stack\nRust\nVitest\n"),
+        }}
+    if name == "speckit-ip-index-edge":
+        return {"scenario": name, "ok": True, "payload": {
+            "longDigits": speckit_ip_index({"id": "12345678901234"}, 1),
+            "trailingWhitespace": speckit_ip_index({"id": "ip-7   "}, 1),
+            "trailingNewline": speckit_ip_index({"id": "ip-8\n"}, 1),
+            "titleFallback": speckit_ip_index({"id": "phase", "title": "IP-3: Build"}, 9),
+            "noDigits": speckit_ip_index({"id": "phase-x", "title": "no ip"}, 5),
+        }}
+    if name == "repo-url-trailing-slashes":
+        return {"scenario": name, "ok": True, "payload": {
+            "single": create_scope_vbrief({"number": "5", "title": "T"}, repo_url="https://github.com/o/r/"),
+            "multiple": create_scope_vbrief({"number": "6", "title": "U"}, repo_url="https://github.com/o/r///"),
+            "spaced": create_scope_vbrief({"number": "7", "title": "V"}, repo_url="  https://github.com/o/r//  "),
+        }}
     return {"scenario": name, "ok": False, "payload": {"error": f"unknown scenario: {name}"}}
 
 def main():

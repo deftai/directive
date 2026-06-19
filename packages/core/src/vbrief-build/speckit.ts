@@ -44,7 +44,11 @@ export function speckitIpSlug(title: string, itemId: string): string {
 /** Derive the numeric IP index for a speckit plan item. */
 export function speckitIpIndex(item: JsonObject, fallbackIndex: number): number {
   const itemId = String(item.id ?? "");
-  const tail = itemId.match(/(\d+)\s*$/);
+  // Python oracle: re.search(r"(\d+)\s*$", item_id). Digits and whitespace are
+  // disjoint classes, so trimming trailing whitespace first and anchoring with
+  // /(\d+)$/ is parity-exact while removing the polynomial backtracking CodeQL
+  // flagged (js/polynomial-redos). See scripts/_vbrief_speckit.py:69.
+  const tail = itemId.trimEnd().match(/(\d+)$/);
   if (tail) {
     return Number.parseInt(tail[1] ?? "0", 10);
   }

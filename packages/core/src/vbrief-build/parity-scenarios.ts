@@ -305,6 +305,41 @@ export function runParityScenario(name: string, ctx: ParityScenarioContext): Par
         payload: { actions, pendingContent, rewrittenPlan, pendingFiles },
       };
     }
+    case "extract-tech-stack-eos":
+      // Regression coverage for the ``\Z`` (absolute end-of-string) anchor bug:
+      // a ``## Tech Stack`` section that runs to end-of-string must be captured.
+      return {
+        scenario: name,
+        ok: true,
+        payload: {
+          endOfString: extractTechStack("## Tech Stack\nRust + TypeScript"),
+          trailingNewline: extractTechStack("## Tech Stack\nRust + TypeScript\n"),
+          followedByHeading: extractTechStack("## Tech Stack\nRust\n## Next\nmore"),
+          multiLine: extractTechStack("## Tech Stack\nRust\nVitest\n"),
+        },
+      };
+    case "speckit-ip-index-edge":
+      return {
+        scenario: name,
+        ok: true,
+        payload: {
+          longDigits: speckitIpIndex({ id: "12345678901234" }, 1),
+          trailingWhitespace: speckitIpIndex({ id: "ip-7   " }, 1),
+          trailingNewline: speckitIpIndex({ id: "ip-8\n" }, 1),
+          titleFallback: speckitIpIndex({ id: "phase", title: "IP-3: Build" }, 9),
+          noDigits: speckitIpIndex({ id: "phase-x", title: "no ip" }, 5),
+        },
+      };
+    case "repo-url-trailing-slashes":
+      return {
+        scenario: name,
+        ok: true,
+        payload: {
+          single: createScopeVbrief({ number: "5", title: "T" }, "https://github.com/o/r/"),
+          multiple: createScopeVbrief({ number: "6", title: "U" }, "https://github.com/o/r///"),
+          spaced: createScopeVbrief({ number: "7", title: "V" }, "  https://github.com/o/r//  "),
+        },
+      };
     default:
       return { scenario: name, ok: false, payload: { error: `unknown scenario: ${name}` } };
   }
@@ -325,6 +360,9 @@ export const PARITY_SCENARIO_NAMES = [
   "create-speckit-scope",
   "project-definition-roundtrip",
   "migrate-speckit-plan",
+  "extract-tech-stack-eos",
+  "speckit-ip-index-edge",
+  "repo-url-trailing-slashes",
 ] as const;
 
 /** Render scenario output bytes for parity compare. */

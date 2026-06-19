@@ -26,6 +26,13 @@ describe("speckit helpers", () => {
     expect(speckitIpIndex({ id: "phase-ip-3", title: "IP 3: Build" }, 9)).toBe(3);
     expect(speckitIpIndex({ id: "", title: "IP 7: Build" }, 9)).toBe(7);
   });
+
+  it("handles long all-digit ids and trailing whitespace/newlines", () => {
+    expect(speckitIpIndex({ id: "12345678901234" }, 1)).toBe(12345678901234);
+    expect(speckitIpIndex({ id: "ip-7   " }, 1)).toBe(7);
+    expect(speckitIpIndex({ id: "ip-8\n" }, 1)).toBe(8);
+    expect(speckitIpIndex({ id: "phase-x", title: "no ip" }, 5)).toBe(5);
+  });
 });
 
 describe("createSpeckitScopeVbrief", () => {

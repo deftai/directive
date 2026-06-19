@@ -183,9 +183,22 @@ export function extractTechStack(projectContent: string): string {
     return boldMatch[1]?.trim() ?? "";
   }
 
-  const sectionMatch = projectContent.match(/##\s+Tech\s+Stack\s*\n(.*?)(?=\n##\s|Z)/is);
-  if (sectionMatch) {
-    const section = sectionMatch[1]?.trim() ?? "";
+  // Python oracle: re.search(r"##\s+Tech\s+Stack\s*\n(.*?)(?=\n##\s|\Z)", ...,
+  // re.IGNORECASE | re.DOTALL). The capture is the minimal (lazy) run after the
+  // heading up to the next "\n## " heading OR the absolute end of string (\Z).
+  // We decompose into linear primitives: a non-backtracking heading match, then
+  // a slice up to the first "\n##\s" (or the whole remainder). This removes the
+  // lazy-dotAll polynomial source (js/polynomial-redos) AND fixes the prior
+  // ``\Z`` mistranslation (a literal ``Z``) that diverged from the oracle when a
+  // ``## Tech Stack`` section ran to end-of-string. See scripts/_vbrief_sources.py:193.
+  const headingMatch = projectContent.match(/##\s+Tech\s+Stack\s*\n/i);
+  if (headingMatch?.index !== undefined) {
+    const bodyStart = headingMatch.index + headingMatch[0].length;
+    const remainder = projectContent.slice(bodyStart);
+    const nextHeading = remainder.match(/\n##\s/);
+    const body =
+      nextHeading?.index !== undefined ? remainder.slice(0, nextHeading.index) : remainder;
+    const section = body.trim();
     if (section) {
       return section;
     }
