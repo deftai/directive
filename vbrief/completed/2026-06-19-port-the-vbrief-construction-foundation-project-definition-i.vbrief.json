@@ -6,7 +6,7 @@
   "plan": {
     "id": "1782-s1-vbrief-build",
     "title": "Port the vBRIEF construction foundation (project-definition I/O + build/sources/routing/speckit) to TypeScript",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1782-featts-migration-port-the-vbrief-spine-build-validation-reco.vbrief.json",
     "narratives": {
       "Description": "Port the vBRIEF construction foundation -- scripts/_project_definition_io.py, scripts/_vbrief_build.py, scripts/_vbrief_sources.py, scripts/_vbrief_routing.py, and scripts/_vbrief_speckit.py -- to TypeScript with golden parity. This is the highest-fan-in layer the rest of the vBRIEF spine reads through (build constructs vBRIEF records, sources resolves origins, routing places lifecycle folders, speckit assembles narratives, project-definition-io reads/writes PROJECT-DEFINITION). Dispatched first; the validation, reconcile, and activate stories build on its types. Subprocess/gh capture (where present) uses Node execFile with explicit UTF-8 (#1366).",
@@ -63,7 +63,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1782 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T17:49:02Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -78,6 +80,6 @@
         "title": "Issue #1730"
       }
     ],
-    "updated": "2026-06-19T16:49:49Z"
+    "updated": "2026-06-19T17:49:02Z"
   }
 }

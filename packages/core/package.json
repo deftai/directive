@@ -97,6 +97,10 @@
     "./vbrief-validation": {
       "types": "./dist/vbrief-validation/index.d.ts",
       "default": "./dist/vbrief-validation/index.js"
+    },
+    "./vbrief-activate": {
+      "types": "./dist/vbrief-activate/index.d.ts",
+      "default": "./dist/vbrief-activate/index.js"
     }
   },
   "dependencies": {
