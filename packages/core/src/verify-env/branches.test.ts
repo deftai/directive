@@ -3,16 +3,16 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { runToolchainCheck, defaultCommandRunner } from "./toolchain-check.js";
+import { defaultCommandRunner, runToolchainCheck } from "./toolchain-check.js";
 import { evaluate } from "./verify-hooks-installed.js";
+import { defaultPythonFiles, formatScanResult, scan } from "./verify-no-task-runtime.js";
 import {
   defaultProbe,
-  detectPlatform,
   defaultRun,
+  detectPlatform,
   verificationResultToJson,
   verifyRequiredTools,
 } from "./verify-tools.js";
-import { defaultPythonFiles, formatScanResult, scan } from "./verify-no-task-runtime.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -36,7 +36,8 @@ describe("verify-tools branches", () => {
       assumeYes: true,
       includeTask: true,
       platformId: "linux",
-      probe: (c) => (["git", "uv", "python3", "gh", "apt-get"].includes(c) ? `/usr/bin/${c}` : null),
+      probe: (c) =>
+        ["git", "uv", "python3", "gh", "apt-get"].includes(c) ? `/usr/bin/${c}` : null,
       runFn: (cmd) => {
         commands.push([...cmd]);
         return { returncode: 1, stdout: "", stderr: "install failed" };
@@ -53,7 +54,8 @@ describe("verify-tools branches", () => {
       assumeYes: false,
       includeTask: true,
       platformId: "linux",
-      probe: (c) => (["git", "uv", "python3", "gh", "apt-get"].includes(c) ? `/usr/bin/${c}` : null),
+      probe: (c) =>
+        ["git", "uv", "python3", "gh", "apt-get"].includes(c) ? `/usr/bin/${c}` : null,
       inputFn: () => "n",
       outputFn: (line) => {
         lines.push(line);
@@ -129,7 +131,8 @@ describe("verify-tools branches", () => {
       assumeYes: true,
       includeTask: true,
       platformId: "linux",
-      probe: (c) => (["git", "uv", "python3", "gh", "apt-get"].includes(c) ? `/usr/bin/${c}` : null),
+      probe: (c) =>
+        ["git", "uv", "python3", "gh", "apt-get"].includes(c) ? `/usr/bin/${c}` : null,
     });
     expect(result.exitCode).toBe(1);
   });

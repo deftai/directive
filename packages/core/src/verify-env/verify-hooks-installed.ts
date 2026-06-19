@@ -34,10 +34,14 @@ function defaultGitConfigReader(projectRoot: string): {
   error: string | null;
 } {
   try {
-    const stdout = childProcess.execFileSync("git", ["-C", projectRoot, "config", "--get", "core.hooksPath"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const stdout = childProcess.execFileSync(
+      "git",
+      ["-C", projectRoot, "config", "--get", "core.hooksPath"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     const value = stdout.trim();
     return { hooksPath: value.length > 0 ? value : null, error: null };
   } catch (err: unknown) {
