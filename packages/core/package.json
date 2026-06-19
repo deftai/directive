@@ -94,6 +94,10 @@
       "types": "./dist/vbrief-build/index.d.ts",
       "default": "./dist/vbrief-build/index.js"
     },
+    "./vbrief-reconcile": {
+      "types": "./dist/vbrief-reconcile/index.d.ts",
+      "default": "./dist/vbrief-reconcile/index.js"
+    },
     "./vbrief-validation": {
       "types": "./dist/vbrief-validation/index.d.ts",
       "default": "./dist/vbrief-validation/index.js"

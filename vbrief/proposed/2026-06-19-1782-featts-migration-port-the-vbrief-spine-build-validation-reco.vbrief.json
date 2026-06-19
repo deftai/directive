@@ -49,7 +49,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-vbrief-reconciliation-engine-reconciliation-reconci.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-vbrief-reconciliation-engine-reconciliation-reconci.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the vBRIEF reconciliation engine (reconciliation + reconcile graph/labels/umbrellas) to TypeScript",
         "TrustLevel": "internal"
