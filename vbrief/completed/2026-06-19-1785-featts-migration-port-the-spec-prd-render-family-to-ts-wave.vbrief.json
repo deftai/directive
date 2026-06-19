@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(ts-migration): port the spec / PRD / render family to TS (Wave 6)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "feat(ts-migration): port the spec / PRD / render family to TS (Wave 6)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1785",
@@ -36,6 +36,11 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1530"
       }
-    ]
+    ],
+    "updated": "2026-06-19T20:57:45Z",
+    "metadata": {
+      "completedAt": "2026-06-19T20:57:45Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

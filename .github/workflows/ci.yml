@@ -294,6 +294,9 @@ jobs:
       - name: Golden-diff parity -- content validator gates (#1783 s3)
         run: node packages/cli/dist/validate-content-parity.js
 
+      - name: Golden-diff parity -- spec/PRD/render family (#1785)
+        run: node packages/cli/dist/render-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

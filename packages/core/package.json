@@ -121,6 +121,10 @@
     "./validate-content": {
       "types": "./dist/validate-content/index.d.ts",
       "default": "./dist/validate-content/index.js"
+    },
+    "./render": {
+      "types": "./dist/render/index.d.ts",
+      "default": "./dist/render/index.js"
     }
   },
   "dependencies": {
