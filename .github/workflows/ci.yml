@@ -288,6 +288,9 @@ jobs:
       - name: Golden-diff parity -- verify-env gates (#1783 s1)
         run: node packages/cli/dist/verify-env-parity.js
 
+      - name: Golden-diff parity -- source-tree scanner gates (#1783 s2)
+        run: node packages/cli/dist/verify-source-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

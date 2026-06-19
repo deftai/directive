@@ -37,6 +37,7 @@ export * as vbriefReconcile from "./vbrief-reconcile/index.js";
 export * as vbriefValidate from "./vbrief-validate/index.js";
 export * as vbriefValidation from "./vbrief-validation/index.js";
 export * as verifyEnv from "./verify-env/index.js";
+export * as verifySource from "./verify-source/index.js";
 export * as wipCap from "./wip-cap/index.js";
 
 export const CORE_PACKAGE = "@deftai/core" as const;

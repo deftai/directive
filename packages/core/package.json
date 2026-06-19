@@ -113,6 +113,10 @@
     "./verify-env": {
       "types": "./dist/verify-env/index.d.ts",
       "default": "./dist/verify-env/index.js"
+    },
+    "./verify-source": {
+      "types": "./dist/verify-source/index.d.ts",
+      "default": "./dist/verify-source/index.js"
     }
   },
   "dependencies": {

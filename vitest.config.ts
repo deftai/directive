@@ -42,6 +42,7 @@ export default defineConfig({
       "@deftai/core/vbrief-validation": sub("core", "vbrief-validation"),
       "@deftai/core/vbrief-activate": sub("core", "vbrief-activate"),
       "@deftai/core/verify-env": sub("core", "verify-env"),
+      "@deftai/core/verify-source": sub("core", "verify-source"),
       "@deftai/core": src("core"),
     },
   },
@@ -122,6 +123,7 @@ export default defineConfig({
         "packages/cli/src/vbrief-validate-parity.ts",
         "packages/cli/src/vbrief-activate-parity.ts",
         "packages/cli/src/verify-env-parity.ts",
+        "packages/cli/src/verify-source-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

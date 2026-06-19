@@ -6,7 +6,7 @@
   "plan": {
     "id": "1783-s2-verify-source",
     "title": "Port the source-tree scanner gates (verify_scm_boundary / rule_ownership_lint / code_structure_validate / verify-stubs) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1783-featts-migration-port-the-remaining-verifyvalidate-gates-to.vbrief.json",
     "narratives": {
       "Description": "Port the four source-scanning gates -- scripts/verify_scm_boundary.py, scripts/rule_ownership_lint.py, scripts/code_structure_validate.py, and scripts/verify-stubs.py -- to TypeScript with cache-off golden parity vs the Python oracle. These scan tracked source for policy violations: scm_boundary forbids raw gh outside scm.py, rule_ownership_lint checks rule-section ownership, code_structure_validate enforces module-structure rules, and verify-stubs forbids stray stub markers. All are leaf gates with no inter-dependency; three-state exits are preserved. File-walk/glob behavior must match the Python ordering so diagnostics render in the same sequence. Any regex ported MUST be a linear recognizer (no polynomial backtracking) to avoid CodeQL js/polynomial-redos while staying byte-identical.",
@@ -55,7 +55,9 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "missing_traces_justification": "#1530 Wave-5 framework-internal TS port traced to GitHub issue #1783 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T20:20:57Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -69,6 +71,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1730"
       }
-    ]
+    ],
+    "updated": "2026-06-19T20:20:57Z"
   }
 }

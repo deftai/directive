@@ -43,7 +43,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-source-tree-scanner-gates-verify-scm-boundary-rule.vbrief.json",
+        "uri": "completed/2026-06-19-port-the-source-tree-scanner-gates-verify-scm-boundary-rule.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the source-tree scanner gates (verify_scm_boundary / rule_ownership_lint / code_structure_validate / verify-stubs) to TypeScript",
         "TrustLevel": "internal"
