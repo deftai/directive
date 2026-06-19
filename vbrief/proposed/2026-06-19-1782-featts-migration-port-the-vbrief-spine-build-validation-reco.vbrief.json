@@ -43,7 +43,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-the-vbrief-validation-primitives-validation-fidelity-st.vbrief.json",
+        "uri": "active/2026-06-19-port-the-vbrief-validation-primitives-validation-fidelity-st.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port the vBRIEF validation primitives (validation / fidelity / story-quality / safety) to TypeScript",
         "TrustLevel": "internal"
