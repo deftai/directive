@@ -81,6 +81,19 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/scm-parity.js"
 
+  triage-parity:
+    desc: "Golden-diff every ported triage verb vs its Python oracle, cache-off (#1530 Wave 3, #1725)"
+    deps: [build]
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-queue-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-summary-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-classify-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-actions-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-bootstrap-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-scope-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-a-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-b-parity.js"
+
   parity-all:
     desc: "Run every TS-port golden-diff parity harness vs the Python oracle (#1530 Wave 2)"
     deps: [build]
@@ -92,3 +105,11 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/branch-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/wip-cap-parity.js"
       - node "{{.DEFT_ROOT}}/packages/cli/dist/scm-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-queue-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-summary-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-classify-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-actions-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-bootstrap-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-scope-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-a-parity.js"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/triage-aux-b-parity.js"

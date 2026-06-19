@@ -33,6 +33,10 @@
     "./scm": {
       "types": "./dist/scm/index.d.ts",
       "default": "./dist/scm/index.js"
+    },
+    "./triage": {
+      "types": "./dist/triage/index.d.ts",
+      "default": "./dist/triage/index.js"
     }
   },
   "dependencies": {

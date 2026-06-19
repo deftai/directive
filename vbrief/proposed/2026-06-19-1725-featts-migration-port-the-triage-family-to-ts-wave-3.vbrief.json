@@ -48,13 +48,13 @@
         "title": "Issue #1724"
       },
       {
-        "uri": "proposed/2026-06-19-port-triagequeue-ranking-resumeorphanurgent-order-to-typescr.vbrief.json",
+        "uri": "completed/2026-06-19-port-triagequeue-ranking-resumeorphanurgent-order-to-typescr.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage:queue (ranking + RESUME/ORPHAN/URGENT order) to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-triagesummary-welcome-one-liner-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-triagesummary-welcome-one-liner-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage:summary (welcome one-liner) to TypeScript",
         "TrustLevel": "internal"
@@ -72,25 +72,25 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-triagebootstrap-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-triagebootstrap-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage:bootstrap to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-triagescope-to-typescript.vbrief.json",
+        "uri": "completed/2026-06-19-port-triagescope-to-typescript.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage:scope to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-19-port-triage-aux-verbs-a-welcome-refresh-reconcile-scope-drif.vbrief.json",
+        "uri": "completed/2026-06-19-port-triage-aux-verbs-a-welcome-refresh-reconcile-scope-drif.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage aux verbs A (welcome / refresh / reconcile / scope-drift) to TypeScript",
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-19-port-triage-aux-verbs-b-bulk-subscribe-help-smoketest-to-typ.vbrief.json",
+        "uri": "completed/2026-06-19-port-triage-aux-verbs-b-bulk-subscribe-help-smoketest-to-typ.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port triage aux verbs B (bulk / subscribe / help / smoketest) to TypeScript",
         "TrustLevel": "internal"

@@ -6,7 +6,7 @@
   "plan": {
     "id": "1725-s6-triage-scope",
     "title": "Port triage:scope to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_scope.py to a TypeScript triage scope module, preserving the triageScope configuration resolution and the scope-membership decisions that gate which candidates appear in the queue. This story is independently buildable in its own packages/core/src/triage/scope subdirectory and ships a golden parity binary against the Python oracle.",
@@ -64,7 +64,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T05:48:31Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -78,6 +80,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1724"
       }
-    ]
+    ],
+    "updated": "2026-06-19T05:48:31Z"
   }
 }

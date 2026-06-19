@@ -6,7 +6,7 @@
   "plan": {
     "id": "1725-s1-triage-queue",
     "title": "Port triage:queue (ranking + RESUME/ORPHAN/URGENT order) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_queue.py to a TypeScript triage queue module, preserving the candidate ranking order and the [RESUME], [ORPHAN], and [URGENT] classification tags exactly. This is the highest-risk triage slice because the ranking order is observable in operator output, so it ships a golden parity binary; it is independently buildable in its own packages/core/src/triage/queue subdirectory.",
@@ -64,7 +64,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T05:48:30Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -78,6 +80,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1724"
       }
-    ]
+    ],
+    "updated": "2026-06-19T05:48:30Z"
   }
 }

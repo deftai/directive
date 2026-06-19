@@ -207,6 +207,30 @@ jobs:
       - name: Golden-diff parity -- scm boundary (#1724)
         run: node packages/cli/dist/scm-parity.js
 
+      - name: Golden-diff parity -- triage queue (#1725)
+        run: node packages/cli/dist/triage-queue-parity.js
+
+      - name: Golden-diff parity -- triage summary (#1725)
+        run: node packages/cli/dist/triage-summary-parity.js
+
+      - name: Golden-diff parity -- triage classify (#1725)
+        run: node packages/cli/dist/triage-classify-parity.js
+
+      - name: Golden-diff parity -- triage actions (#1725)
+        run: node packages/cli/dist/triage-actions-parity.js
+
+      - name: Golden-diff parity -- triage bootstrap (#1725)
+        run: node packages/cli/dist/triage-bootstrap-parity.js
+
+      - name: Golden-diff parity -- triage scope (#1725)
+        run: node packages/cli/dist/triage-scope-parity.js
+
+      - name: Golden-diff parity -- triage aux verbs A (#1725)
+        run: node packages/cli/dist/triage-aux-a-parity.js
+
+      - name: Golden-diff parity -- triage aux verbs B (#1725)
+        run: node packages/cli/dist/triage-aux-b-parity.js
+
   go:
     name: Go (test + build)
     runs-on: blacksmith-4vcpu-ubuntu-2404

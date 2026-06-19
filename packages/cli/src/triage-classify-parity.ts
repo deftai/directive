@@ -47,11 +47,13 @@ export interface ParityResult {
 
 /** Strip volatile absolute paths before compare. */
 export function normalizeOutput(text: string): string {
-  return text
-    .replace(/project_root=[^\s)]+/g, "project_root=<ROOT>")
-    // Match the parity temp root regardless of platform tmpdir prefix
-    // (/tmp on Linux, /var/folders/... on macOS, etc.).
-    .replace(/\S*deft-triage-classify-parity-[^\s/]+/g, "<TMPROOT>");
+  return (
+    text
+      .replace(/project_root=[^\s)]+/g, "project_root=<ROOT>")
+      // Match the parity temp root regardless of platform tmpdir prefix
+      // (/tmp on Linux, /var/folders/... on macOS, etc.).
+      .replace(/\S*deft-triage-classify-parity-[^\s/]+/g, "<TMPROOT>")
+  );
 }
 
 interface Capture {

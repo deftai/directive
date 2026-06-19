@@ -22,6 +22,7 @@ export default defineConfig({
       "@deftai/core/branch": sub("core", "branch"),
       "@deftai/core/wip-cap": sub("core", "wip-cap"),
       "@deftai/core/scm": sub("core", "scm"),
+      "@deftai/core/triage": sub("core", "triage"),
       "@deftai/core": src("core"),
     },
   },
@@ -62,6 +63,18 @@ export default defineConfig({
         // Python oracle and is validated by the dedicated parity CI job, not
         // the Python-less node-only TS job. Pure helpers stay unit-tested.
         "packages/cli/src/scm-parity.ts",
+        // Same rationale (#1530 Wave 3, #1725): the triage parity runners each
+        // spawn the Python oracle and are validated by the dedicated parity CI
+        // job, not the Python-less node-only TS job. Pure helpers stay
+        // unit-tested in their *-parity.test.ts companions.
+        "packages/cli/src/triage-actions-parity.ts",
+        "packages/cli/src/triage-aux-a-parity.ts",
+        "packages/cli/src/triage-aux-b-parity.ts",
+        "packages/cli/src/triage-bootstrap-parity.ts",
+        "packages/cli/src/triage-classify-parity.ts",
+        "packages/cli/src/triage-queue-parity.ts",
+        "packages/cli/src/triage-scope-parity.ts",
+        "packages/cli/src/triage-summary-parity.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {

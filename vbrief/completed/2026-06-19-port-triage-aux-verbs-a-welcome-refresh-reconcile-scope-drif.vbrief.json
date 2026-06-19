@@ -6,7 +6,7 @@
   "plan": {
     "id": "1725-s7-triage-aux-a",
     "title": "Port triage aux verbs A (welcome / refresh / reconcile / scope-drift) to TypeScript",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port the first aux cluster of the triage family (scripts/triage_welcome.py, triage_refresh.py, triage_reconcile.py, and triage_scope_drift.py) to TypeScript, preserving the welcome surface wording, the cache refresh path, the origin reconciliation, and the scope-drift detection. This story is independently buildable because each verb gets its own packages/core/src/triage subdirectory with no overlap with the other triage stories, and it ships a golden parity binary against the Python oracles.",
@@ -70,7 +70,9 @@
         "file_scope_confidence": "high",
         "model_tier": "high",
         "missing_traces_justification": "#1530 Wave-3 framework-internal TS port traced to GitHub issue #1725 and umbrella epic #1530; no specification.vbrief.json spec-section applies to maintainer tooling."
-      }
+      },
+      "completedAt": "2026-06-19T05:48:29Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -84,6 +86,7 @@
         "type": "x-vbrief/blocks",
         "title": "Issue #1724"
       }
-    ]
+    ],
+    "updated": "2026-06-19T05:48:29Z"
   }
 }
