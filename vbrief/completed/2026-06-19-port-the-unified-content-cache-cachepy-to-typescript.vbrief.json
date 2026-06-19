@@ -7,7 +7,7 @@
     "id": "1728-s1-cache",
     "title": "Port the unified content cache (cache.py) to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/cache.py (the unified content cache and quarantine: put, get, invalidate, fetch-all, prune, plus TTL handling) to a TypeScript cache module under packages/core. This story is independently buildable because the cache module is self-contained, owns its on-disk cache directory, and ships a golden parity binary against the Python oracle; it is sequenced before the doctor port because the deft doctor cache-fresh probe reads the cache.",
       "ImplementationPlan": "1. Create the packages/core/src/cache module that ports put, get, invalidate, fetch-all, and prune over the on-disk cache with TTL expiry and the quarantine path, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/cache-parity.ts parity binary that runs the TS cache verbs and the Python scripts/cache.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module stays the authoritative oracle.",

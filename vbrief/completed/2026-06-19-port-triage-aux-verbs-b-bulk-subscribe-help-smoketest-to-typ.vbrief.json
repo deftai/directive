@@ -7,7 +7,7 @@
     "id": "1725-s8-triage-aux-b",
     "title": "Port triage aux verbs B (bulk / subscribe / help / smoketest) to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port the second aux cluster of the triage family (scripts/triage_bulk.py, triage_subscribe.py, triage_help.py, and triage_smoketest.py) to TypeScript, preserving the bulk action surface, the subscription handling, the help text, and the smoketest self-check. This story is independently buildable because each verb gets its own packages/core/src/triage subdirectory with no overlap with the other triage stories, and it ships a golden parity binary against the Python oracles.",
       "ImplementationPlan": "1. Create the packages/core/src/triage/bulk, subscribe, help, and smoketest modules that port the four Python scripts, with vitest unit tests in each module directory.\n2. Add a packages/cli/src/triage-aux-b-parity.ts parity binary that runs each TS verb and its Python oracle (triage_bulk.py, triage_subscribe.py, triage_help.py, triage_smoketest.py) and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python modules remain the oracles.",

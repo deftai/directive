@@ -7,7 +7,7 @@
     "id": "1726-s1-scope-lifecycle",
     "title": "Port the scope:* lifecycle family to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1726-featts-migration-port-the-scope-lifecycle-family-to-ts-wave.vbrief.json",
+    "planRef": "completed/2026-06-19-1726-featts-migration-port-the-scope-lifecycle-family-to-ts-wave.vbrief.json",
     "narratives": {
       "Description": "Port the scripts/scope_lifecycle.py family (promote, activate, complete, cancel, restore, block, unblock, fail, demote, and undo) to TypeScript, preserving the atomic plan.status plus plan.updated plus folder-move semantics and the audit log. This is kept as one story rather than split because every transition shares the same atomic write engine and audit path, so splitting it across parallel workers would force overlapping edits to the same module; it remains independently buildable as a single self-contained scope module with a golden parity binary.",
       "ImplementationPlan": "1. Create the packages/core/src/scope module that ports each lifecycle transition over the atomic status plus timestamp plus folder-move engine and the audit log writer, with vitest unit tests in the module directory.\n2. Port scope undo so non-terminal transitions are reversible and terminal actions are refused, matching the Python reversibility contract.\n3. Add a packages/cli/src/scope-lifecycle-parity.ts parity binary that runs the TS transitions and the Python scripts/scope_lifecycle.py oracle and asserts byte-identical output with cache off.",

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(ts-migration): port the scope:* lifecycle family to TS (Wave 3)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "feat(ts-migration): port the scope:* lifecycle family to TS (Wave 3)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1726",
@@ -54,7 +54,10 @@
       }
     ],
     "metadata": {
-      "kind": "epic"
-    }
+      "kind": "epic",
+      "completedAt": "2026-06-19T10:32:54Z",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-06-19T10:32:54Z"
   }
 }

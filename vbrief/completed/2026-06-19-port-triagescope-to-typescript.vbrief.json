@@ -7,7 +7,7 @@
     "id": "1725-s6-triage-scope",
     "title": "Port triage:scope to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_scope.py to a TypeScript triage scope module, preserving the triageScope configuration resolution and the scope-membership decisions that gate which candidates appear in the queue. This story is independently buildable in its own packages/core/src/triage/scope subdirectory and ships a golden parity binary against the Python oracle.",
       "ImplementationPlan": "1. Create the packages/core/src/triage/scope module that ports the triageScope resolution and scope-membership predicate from triage_scope.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-scope-parity.ts parity binary that runs the TS scope and the Python scripts/triage_scope.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",

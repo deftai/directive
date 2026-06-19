@@ -7,7 +7,7 @@
     "id": "1725-s3-triage-classify",
     "title": "Port triage:classify to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_classify.py to a TypeScript triage classify module, preserving the candidate classification logic (resume, orphan, urgent, and label-derived buckets) that feeds the queue ranking. This story is independently buildable in its own packages/core/src/triage/classify subdirectory and ships a golden parity binary against the Python oracle.",
       "ImplementationPlan": "1. Create the packages/core/src/triage/classify module that ports the classification rules and bucket assignment from triage_classify.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-classify-parity.ts parity binary that runs the TS classifier and the Python scripts/triage_classify.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",

@@ -7,7 +7,7 @@
     "id": "1725-s7-triage-aux-a",
     "title": "Port triage aux verbs A (welcome / refresh / reconcile / scope-drift) to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port the first aux cluster of the triage family (scripts/triage_welcome.py, triage_refresh.py, triage_reconcile.py, and triage_scope_drift.py) to TypeScript, preserving the welcome surface wording, the cache refresh path, the origin reconciliation, and the scope-drift detection. This story is independently buildable because each verb gets its own packages/core/src/triage subdirectory with no overlap with the other triage stories, and it ships a golden parity binary against the Python oracles.",
       "ImplementationPlan": "1. Create the packages/core/src/triage/welcome, refresh, reconcile, and scope-drift modules that port the four Python scripts, with vitest unit tests in each module directory.\n2. Add a packages/cli/src/triage-aux-a-parity.ts parity binary that runs each TS verb and its Python oracle (triage_welcome.py, triage_refresh.py, triage_reconcile.py, triage_scope_drift.py) and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python modules remain the oracles.",

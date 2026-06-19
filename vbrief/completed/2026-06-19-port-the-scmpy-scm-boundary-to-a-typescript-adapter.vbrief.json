@@ -7,7 +7,7 @@
     "id": "1724-s1-scm-adapter",
     "title": "Port the scm.py SCM boundary to a TypeScript adapter",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1724-featts-migration-port-the-scmpy-scm-boundary-to-a-ts-adapter.vbrief.json",
+    "planRef": "completed/2026-06-19-1724-featts-migration-port-the-scmpy-scm-boundary-to-a-ts-adapter.vbrief.json",
     "narratives": {
       "Description": "Port the scripts/scm.py boundary (the scm.call(source, verb, args) shim, the ghx->gh preference ladder in resolve_binary, and the github-issue NotImplementedError for non-GitHub sources) to a TypeScript SCM adapter under packages/core. This is the shared foundation that the Wave-3 triage, scope, and slice families call to reach GitHub, so it is built and merged first; it is independently buildable because the adapter is a self-contained module with a golden parity binary and no dependency on any other Wave-3 port.",
       "ImplementationPlan": "1. Create the packages/core/src/scm module that ports resolve_binary (the ghx->gh ladder), the call(source, verb, args) dispatch, and the non-github-issue rejection path, with vitest unit tests in the same module directory.\n2. Add a packages/cli/src/scm-parity.ts parity binary that runs the TS adapter and the Python scripts/scm.py oracle over a fixture corpus and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary, keeping the Python suite as the authoritative oracle until cutover.",

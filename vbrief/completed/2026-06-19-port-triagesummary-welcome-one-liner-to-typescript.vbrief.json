@@ -7,7 +7,7 @@
     "id": "1725-s2-triage-summary",
     "title": "Port triage:summary (welcome one-liner) to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_summary.py to a TypeScript triage summary module, preserving the triage-cache one-line headline and the in-flight count plus scope-gap wording the welcome surface emits. This story is independently buildable in its own packages/core/src/triage/summary subdirectory and ships a golden parity binary against the Python oracle.",
       "ImplementationPlan": "1. Create the packages/core/src/triage/summary module that ports the headline composition, the filesystem-truth in-flight count, and the scope-gap line from triage_summary.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-summary-parity.ts parity binary that runs the TS summary and the Python scripts/triage_summary.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",

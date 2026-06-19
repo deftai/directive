@@ -7,7 +7,7 @@
     "id": "1725-s4-triage-actions",
     "title": "Port triage:accept / reject / defer actions to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_actions.py to a TypeScript triage actions module, preserving the accept, reject, and defer transitions and the cache mutations they apply to candidate state. This story is independently buildable in its own packages/core/src/triage/actions subdirectory and ships a golden parity binary against the Python oracle.",
       "ImplementationPlan": "1. Create the packages/core/src/triage/actions module that ports the accept, reject, and defer handlers and their candidate-state cache mutations from triage_actions.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-actions-parity.ts parity binary that runs the TS actions and the Python scripts/triage_actions.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",

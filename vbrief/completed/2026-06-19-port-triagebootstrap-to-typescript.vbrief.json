@@ -7,7 +7,7 @@
     "id": "1725-s5-triage-bootstrap",
     "title": "Port triage:bootstrap to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1725-featts-migration-port-the-triage-family-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/triage_bootstrap.py to a TypeScript triage bootstrap module, preserving the candidate-corpus bootstrap that seeds the triage cache and the watchdog timing safeguards it applies. This story is independently buildable in its own packages/core/src/triage/bootstrap subdirectory and ships a golden parity binary against the Python oracle.",
       "ImplementationPlan": "1. Create the packages/core/src/triage/bootstrap module that ports the cache-seeding bootstrap and its watchdog guards from triage_bootstrap.py, with vitest unit tests in the module directory.\n2. Add a packages/cli/src/triage-bootstrap-parity.ts parity binary that runs the TS bootstrap and the Python scripts/triage_bootstrap.py oracle and asserts byte-identical output with cache off.\n3. Verify the port with the new vitest tests and the parity binary while the Python module remains the oracle.",

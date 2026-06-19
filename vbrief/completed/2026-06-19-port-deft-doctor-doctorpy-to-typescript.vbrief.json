@@ -7,7 +7,7 @@
     "id": "1728-s2-doctor",
     "title": "Port deft doctor (doctor.py) to TypeScript",
     "status": "completed",
-    "planRef": "proposed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
+    "planRef": "completed/2026-06-19-1728-featts-migration-port-cache-deft-doctor-to-ts-wave-3.vbrief.json",
     "narratives": {
       "Description": "Port scripts/doctor.py (deft doctor: install-integrity, toolchain probe, AGENTS.md managed-section freshness, and payload-staleness detection from the VERSION manifest) to a TypeScript doctor module under packages/core. This story depends on the cache port because the doctor cache-fresh probe reads the cache module; it is independently buildable thereafter as a self-contained module with a golden parity binary.",
       "ImplementationPlan": "1. Create the packages/core/src/doctor module that ports the install-integrity, toolchain, managed-section freshness, and payload-staleness probes, reading the ported cache module for the cache-fresh check, with vitest unit tests in the module directory.\n2. Reproduce the canonical headless upgrade command emitted when the payload manifest is behind, matching the Python doctor.py source strings.\n3. Add a packages/cli/src/doctor-parity.ts parity binary that runs the TS doctor and the Python scripts/doctor.py oracle and asserts byte-identical output with cache off.",
