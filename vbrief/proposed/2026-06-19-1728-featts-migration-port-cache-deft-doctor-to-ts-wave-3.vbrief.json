@@ -14,11 +14,11 @@
     },
     "items": [
       {
-        "title": "verbs run on TS with TTL/quarantine semantics preserved",
+        "title": "`cache:*` verbs run on TS with TTL/quarantine semantics preserved",
         "status": "proposed"
       },
       {
-        "title": "reproduces the install-integrity / toolchain / freshness probes",
+        "title": "`deft doctor` reproduces the install-integrity / toolchain / freshness probes",
         "status": "proposed"
       },
       {
@@ -26,7 +26,7 @@
         "status": "proposed"
       },
       {
-        "title": "passes",
+        "title": "`task check` passes",
         "status": "proposed"
       }
     ],

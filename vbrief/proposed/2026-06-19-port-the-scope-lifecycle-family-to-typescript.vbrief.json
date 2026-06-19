@@ -66,7 +66,9 @@
           "New packages/cli/src/scope-lifecycle-parity.ts parity binary",
           "Byte-identical parity vs scripts/scope_lifecycle.py under cache-off"
         ],
-        "depends_on": [],
+        "depends_on": [
+          "1724-s1-scm-adapter"
+        ],
         "conflict_group": "ts-wave3-scope",
         "size": "L",
         "file_scope_confidence": "high",

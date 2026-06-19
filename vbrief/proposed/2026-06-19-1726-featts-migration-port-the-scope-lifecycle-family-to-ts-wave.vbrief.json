@@ -14,11 +14,11 @@
     },
     "items": [
       {
-        "title": "All  transitions run on TS with atomic status+timestamp+folder-move semantics",
+        "title": "All `scope:*` transitions run on TS with atomic status+timestamp+folder-move semantics",
         "status": "proposed"
       },
       {
-        "title": "reversibility preserved (terminal actions refused)",
+        "title": "`scope:undo` reversibility preserved (terminal actions refused)",
         "status": "proposed"
       },
       {
@@ -26,7 +26,7 @@
         "status": "proposed"
       },
       {
-        "title": "passes",
+        "title": "`task check` passes",
         "status": "proposed"
       }
     ],

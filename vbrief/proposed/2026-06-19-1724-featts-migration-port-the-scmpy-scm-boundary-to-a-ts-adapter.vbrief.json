@@ -14,7 +14,7 @@
     },
     "items": [
       {
-        "title": "-equivalent TS adapter preserves the ghx->gh ladder and source abstraction",
+        "title": "`scm.call`-equivalent TS adapter preserves the ghx->gh ladder and source abstraction",
         "status": "proposed"
       },
       {
@@ -26,7 +26,7 @@
         "status": "proposed"
       },
       {
-        "title": "passes",
+        "title": "`task check` passes",
         "status": "proposed"
       }
     ],

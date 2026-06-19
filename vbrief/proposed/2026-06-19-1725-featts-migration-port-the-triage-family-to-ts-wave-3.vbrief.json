@@ -14,11 +14,11 @@
     },
     "items": [
       {
-        "title": "/  and the accept/reject/defer surface run on TS",
+        "title": "`triage:summary` / `triage:queue` and the accept/reject/defer surface run on TS",
         "status": "proposed"
       },
       {
-        "title": "Queue ranking + // ordering reproduced",
+        "title": "Queue ranking + `[RESUME]`/`[ORPHAN]`/`[URGENT]` ordering reproduced",
         "status": "proposed"
       },
       {
@@ -26,7 +26,7 @@
         "status": "proposed"
       },
       {
-        "title": "passes",
+        "title": "`task check` passes",
         "status": "proposed"
       }
     ],

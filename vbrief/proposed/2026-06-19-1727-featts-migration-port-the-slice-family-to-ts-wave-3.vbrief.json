@@ -14,7 +14,7 @@
     },
     "items": [
       {
-        "title": "/  run on TS with the cohort-record shape preserved",
+        "title": "`slice:record-existing` / `slice:list` run on TS with the cohort-record shape preserved",
         "status": "proposed"
       },
       {
@@ -26,7 +26,7 @@
         "status": "proposed"
       },
       {
-        "title": "passes",
+        "title": "`task check` passes",
         "status": "proposed"
       }
     ],

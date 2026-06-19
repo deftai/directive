@@ -58,7 +58,9 @@
           "New packages/cli/src/triage-classify-parity.ts parity binary",
           "Byte-identical parity vs scripts/triage_classify.py under cache-off"
         ],
-        "depends_on": [],
+        "depends_on": [
+          "1724-s1-scm-adapter"
+        ],
         "conflict_group": "ts-wave3-triage",
         "size": "M",
         "file_scope_confidence": "high",

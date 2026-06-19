@@ -67,6 +67,7 @@
           "Byte-identical parity vs scripts/doctor.py under cache-off"
         ],
         "depends_on": [
+          "1724-s1-scm-adapter",
           "1728-s1-cache"
         ],
         "conflict_group": "ts-wave3-cache-doctor",

@@ -64,7 +64,9 @@
           "New packages/cli/src/triage-aux-b-parity.ts parity binary",
           "Byte-identical parity vs the four Python triage oracles under cache-off"
         ],
-        "depends_on": [],
+        "depends_on": [
+          "1724-s1-scm-adapter"
+        ],
         "conflict_group": "ts-wave3-triage",
         "size": "L",
         "file_scope_confidence": "high",
