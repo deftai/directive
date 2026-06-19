@@ -1,8 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("../../core/dist/doctor/main.js", () => ({
+  cmdDoctor: vi.fn(() => 0),
+}));
+
+import { cmdDoctor } from "../../core/dist/doctor/main.js";
 import { run } from "./doctor.js";
 
 describe("doctor CLI", () => {
-  it("returns 0 for full json with tools present", () => {
+  it("delegates argv to cmdDoctor", () => {
     expect(run(["--full", "--json"])).toBe(0);
+    expect(cmdDoctor).toHaveBeenCalledWith(["--full", "--json"]);
   });
 });

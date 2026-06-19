@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -196,7 +196,9 @@ describe("doctor coverage final", () => {
   });
 
   it("resolveDefaultFrameworkRoot returns a path", () => {
-    expect(resolveDefaultFrameworkRoot()).toContain("wt-1728-doctor");
+    const root = resolveDefaultFrameworkRoot();
+    expect(existsSync(join(root, "main.md"))).toBe(true);
+    expect(existsSync(join(root, "templates", "agents-entry.md"))).toBe(true);
   });
 
   it("payload staleness skip when sha or ref missing", () => {
