@@ -262,13 +262,22 @@ export function latestLocalPublishableTag(repoRoot?: string): string | null {
 }
 
 export function latestRemotePublishableTag(remote = "origin", repoRoot?: string): string | null {
+  // Guard against second-order command injection: a remote beginning with "-"
+  // (e.g. "--upload-pack=<cmd>") would be parsed by git as an option and could
+  // execute an arbitrary command. Legitimate remote names/URLs never start with
+  // "-", so reject them outright. "--end-of-options" is defense-in-depth.
+  if (remote.startsWith("-")) return null;
   const cwd = repoRoot ?? frameworkRoot();
   try {
-    const stdout = execFileSync("git", ["ls-remote", "--tags", "--refs", remote], {
-      cwd,
-      encoding: "utf8",
-      timeout: 10_000,
-    });
+    const stdout = execFileSync(
+      "git",
+      ["ls-remote", "--tags", "--refs", "--end-of-options", remote],
+      {
+        cwd,
+        encoding: "utf8",
+        timeout: 10_000,
+      },
+    );
     return latestPublishableTag(stdout.split("\n"));
   } catch {
     return null;

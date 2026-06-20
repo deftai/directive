@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Closed a command-injection risk in the TypeScript version resolver (#1824)** -- The remote-tag lookup now rejects remote names that begin with `-` (and passes `--end-of-options` to git), so a crafted remote can no longer be smuggled in as a git option to execute an arbitrary command. Behavior is unchanged for all real remotes; this clears the `js/second-order-command-line-injection` CodeQL alert from the #1787 platform-utilities port. Refs #1824 #1787 #1530.
 - **Hardened a ReDoS-prone regex in the TypeScript swarm launcher (#1822)** -- The swarm cohort branch-name sanitizer no longer uses a backtracking regex to strip leading/trailing separators, so pathological story IDs (long runs of `-`/`.`) can't cause slow processing. Branch names are unchanged for all normal inputs; this clears the `js/polynomial-redos` CodeQL alert introduced by the #1788 swarm-verbs port. Refs #1822 #1788 #1530.
 
 ### Added

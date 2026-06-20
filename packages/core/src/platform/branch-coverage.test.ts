@@ -168,6 +168,17 @@ describe("resolve-version parse + classify branch coverage", () => {
     expect(latestLocalPublishableTag("/nonexistent-platform-branch-xyz")).toBeNull();
     expect(latestRemotePublishableTag("origin", "/nonexistent-platform-branch-xyz")).toBeNull();
   });
+
+  it("latestRemotePublishableTag rejects option-like remotes without shelling out (#1824)", () => {
+    // The leading-dash guard must short-circuit BEFORE execFileSync so a remote
+    // that git would parse as an option (argument injection) never reaches git.
+    // The fast return (no 10s git timeout) also proves no subprocess was spawned.
+    const started = Date.now();
+    for (const evil of ["--upload-pack=touch /tmp/pwned", "-x", "--exec=evil"]) {
+      expect(latestRemotePublishableTag(evil)).toBeNull();
+    }
+    expect(Date.now() - started).toBeLessThan(500);
+  });
 });
 
 describe("agents-md hasV3ManagedMarker branch coverage", () => {
