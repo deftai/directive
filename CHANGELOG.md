@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Hardened a ReDoS-prone regex in the TypeScript swarm launcher (#1822)** -- The swarm cohort branch-name sanitizer no longer uses a backtracking regex to strip leading/trailing separators, so pathological story IDs (long runs of `-`/`.`) can't cause slow processing. Branch names are unchanged for all normal inputs; this clears the `js/polynomial-redos` CodeQL alert introduced by the #1788 swarm-verbs port. Refs #1822 #1788 #1530.
+
 ### Added
 - **Lifecycle hygiene, events, and content-packs ported to TypeScript (#1787 s2)** -- Lifecycle nudges, detection-bound and behavioral event helpers, pack rendering, slice registry access, and quarantine extension handling now run on the TypeScript engine with byte-identical golden parity against the frozen Python oracle (cache off). Operators get the same pack discovery, slice filtering, and lifecycle hygiene output while Wave 7 of the Python-to-TypeScript migration proceeds without behavior drift. Refs #1787 #1530.
 - **Session-start and ritual-sentinel core ported to TypeScript (#1787 s1)** -- The session-start ritual recorder, fail-closed verify gate, resume-nudge sentinel, and resume-condition evaluator now live in `@deftai/core/session` with the same quick/gated tier semantics, staleness window, defer/skip behavior, and three-state exit contracts as the Python modules. A golden parity harness diffs five fixture scenarios cache-off on CI so Wave 7 of the migration cannot drift. Refs #1787 #1530.

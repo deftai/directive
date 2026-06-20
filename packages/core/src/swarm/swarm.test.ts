@@ -113,6 +113,68 @@ describe("swarm readiness + launch", () => {
     expect(looksLikePath("100")).toBe(false);
     expect(looksLikePath("a.vbrief.json")).toBe(true);
   });
+
+  it("safeSegment strips leading/trailing separators with byte-identical output (#1822)", () => {
+    // Reference oracle: the original regex semantics this fix replaced.
+    const oracle = (raw: string): string => {
+      let cleaned = "";
+      for (const ch of raw.trim()) {
+        cleaned +=
+          (ch >= "A" && ch <= "Z") ||
+          (ch >= "a" && ch <= "z") ||
+          (ch >= "0" && ch <= "9") ||
+          ch === "." ||
+          ch === "_" ||
+          ch === "-"
+            ? ch
+            : "-";
+      }
+      cleaned = cleaned.replace(/^[-.]+|[-.]+$/g, "");
+      return cleaned.length > 0 ? cleaned : "story";
+    };
+    const branchOf = (storyId: string): string => {
+      const manifest = buildManifest(
+        [{ token: "x", story_id: storyId, path: "/p/a.json", relpath: "r" }],
+        {
+          projectRoot: "/proj",
+          dispatchKind: "solo",
+          allocationPlanId: null,
+          batchingRationale: "t",
+          operatorApprovalEvidence: "e",
+        },
+      );
+      return (manifest[0]?.branch as string).replace(/^swarm\//, "");
+    };
+    for (const input of [
+      "s1",
+      "----abc----",
+      "..weird..name..",
+      "-.-.-.-.",
+      "feature/Some Thing!",
+      "trailing---",
+      "---leading",
+      "a-b.c_d",
+    ]) {
+      expect(branchOf(input)).toBe(oracle(input));
+    }
+  });
+
+  it("safeSegment runs in linear time on pathological separator runs (#1822)", () => {
+    const evil = `${"-".repeat(100_000)}story${"-".repeat(100_000)}`;
+    const started = Date.now();
+    const manifest = buildManifest(
+      [{ token: "x", story_id: evil, path: "/p/a.json", relpath: "r" }],
+      {
+        projectRoot: "/proj",
+        dispatchKind: "solo",
+        allocationPlanId: null,
+        batchingRationale: "t",
+        operatorApprovalEvidence: "e",
+      },
+    );
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(manifest[0]?.branch).toBe("swarm/story");
+  });
 });
 
 describe("swarm subagent backend", () => {

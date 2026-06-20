@@ -366,7 +366,15 @@ function safeSegment(text: string): string {
       cleaned += "-";
     }
   }
-  cleaned = cleaned.replace(/^[-.]+|[-.]+$/g, "");
+  let start = 0;
+  let end = cleaned.length;
+  while (start < end && (cleaned[start] === "-" || cleaned[start] === ".")) {
+    start += 1;
+  }
+  while (end > start && (cleaned[end - 1] === "-" || cleaned[end - 1] === ".")) {
+    end -= 1;
+  }
+  cleaned = cleaned.slice(start, end);
   return cleaned.length > 0 ? cleaned : "story";
 }
 
