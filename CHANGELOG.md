@@ -97,6 +97,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+### Added
+- **scope-decompose, scope-undo, scope-demote, changelog-resolve-unreleased, and architecture-preflight-sor wired into the TypeScript engine (#1854 Wave 8.6 s4)** -- Five Python scripts are now dispatched from the `deft-ts` unified CLI entry point: `scope_decompose.py` and `preflight_architecture_sor.py` are ported as new `@deftai/core` modules with full Vitest unit suites (including edge-case fixtures mirrored from the Python tests); `scope_undo.py`, `scope_demote.py`, and `resolve_changelog_unreleased.py` are wire-flipped to existing TS modules. The corresponding Taskfiles (`tasks/scope.yml`, `scope-undo.yml`, `changelog.yml`, `architecture.yml`) now invoke `node packages/cli/dist/bin.js` instead of `uv run python`. Refs #1854 #1530.
+
 ## [0.52.0] - 2026-06-18
 
 > Deft commands now run without go-task via a package-first deft <verb> surface, plus a provider-ready codebase-map contract and refreshed architecture docs.

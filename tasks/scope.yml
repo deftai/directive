@@ -118,11 +118,10 @@ tasks:
   decompose:
     desc: "Apply/check an approved epic/phase -> story decomposition draft"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ensure-ts
     cmds:
-      # Keep CLI_ARGS bare; go-task shell-escapes pass-through args and quoting breaks multi-arg calls.
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scope_decompose.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-decompose {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   # Operator-driven demote (D1 / #1121). Moves a vBRIEF scope from
   # vbrief/pending/ back to vbrief/proposed/ and appends a structured
@@ -136,7 +135,7 @@ tasks:
   demote:
     desc: "Demote a vBRIEF scope: pending/ -> proposed/ (#1121). Single-file or --batch --older-than-days N (default 45)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ensure-ts
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scope_demote.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-demote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

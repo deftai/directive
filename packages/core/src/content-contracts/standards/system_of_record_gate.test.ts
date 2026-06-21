@@ -35,7 +35,8 @@ describe("test_system_of_record_gate.py", () => {
     const verify_tasks = readText("tasks/verify.yml");
     expect(taskfile).toContain("tasks/architecture.yml");
     expect(architecture_tasks).toContain("sor-preflight");
-    expect(architecture_tasks).toContain("preflight_architecture_sor.py");
+    // architecture.yml now dispatches via Node.js CLI (wire-flipped in #1854)
+    expect(architecture_tasks).toContain("architecture-preflight-sor");
     expect(verify_tasks).toContain("architecture-sor");
     expect(verify_tasks).toContain("preflight_architecture_sor.py");
   });

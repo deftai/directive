@@ -123,6 +123,11 @@ export const CORE_MODULE_VERBS = [
   "pack-migrate-patterns",
   "pack-migrate-swarm-spec",
   "policy-set",
+  "scope-undo",
+  "scope-demote",
+  "scope-decompose",
+  "changelog-resolve-unreleased",
+  "architecture-preflight-sor",
 ] as const;
 
 /** Task-style aliases (framework_commands / Taskfile names). */
@@ -457,6 +462,30 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       return loadPythonScriptHandler("pack_migrate_swarm_spec.py");
     case "policy-set":
       return loadPythonScriptHandler("policy_set.py");
+    case "scope-undo": {
+      const { undoMain } = await import("../../core/dist/scope/main.js");
+      return undoMain;
+    }
+    case "scope-demote": {
+      const { demoteMain } = await import("../../core/dist/scope/main.js");
+      return demoteMain;
+    }
+    case "scope-decompose": {
+      const { decomposeMain } = await import("../../core/dist/scope/decompose.js");
+      return decomposeMain;
+    }
+    case "changelog-resolve-unreleased": {
+      const { changelogResolveUnreleasedMain } = await import(
+        "../../core/dist/platform/changelog-cli.js"
+      );
+      return changelogResolveUnreleasedMain;
+    }
+    case "architecture-preflight-sor": {
+      const { architecturePreflightSorMain } = await import(
+        "../../core/dist/architecture/sor-preflight.js"
+      );
+      return architecturePreflightSorMain;
+    }
     default:
       throw new Error(`unknown core verb: ${verb}`);
   }

@@ -32,7 +32,5 @@ tasks:
   undo:
     desc: "Reverse a scope-lifecycle audit entry (#1134). Single: `task scope:undo -- <decision_id>` / `task scope:undo -- --decision-id=<uuid>`. Batch: `task scope:undo -- --batch-id=<uuid>`. Optional `--dry-run`."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scope_undo.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-undo {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

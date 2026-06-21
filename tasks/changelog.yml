@@ -20,7 +20,5 @@ tasks:
   resolve-unreleased:
     desc: "Union-merge CHANGELOG.md [Unreleased] conflicts (#911) -- task changelog:resolve-unreleased [-- --changelog-path PATH] [--dry-run]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/resolve_changelog_unreleased.py" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" changelog-resolve-unreleased {{.CLI_ARGS}}
