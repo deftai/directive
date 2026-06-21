@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { REPO_ROOT } from "./helpers.js";
+import { REPO_ROOT, REQUIRED_OSES } from "./helpers.js";
 
-export const REQUIRED_OSES = new Set(["darwin", "linux", "windows"]);
+export { REQUIRED_OSES };
 
 const OS_LINE = /^os\s*:\s*\[(?<body>[^\]]*)\]\s*$/m;
 const OS_TOKEN = /['"]([^'"]+)['"]/g;

@@ -2,11 +2,14 @@ import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   DEPRECATED_SKILL_REDIRECT_STUBS,
+  PLATFORM_DETECTION_HEADING,
+  RFC2119_LEGEND,
   readAgentsMd,
   readRepoFile,
   readSkill,
   repoFileExists,
   repoPath,
+  USER_MD_GATE_HEADING,
 } from "./helpers.js";
 
 /** Port of tests/content/test_skills.py (#1838 #1530) */
@@ -15,9 +18,6 @@ const _SKILL_PATHS = [
   "skills/deft-directive-build/SKILL.md",
   "skills/deft-directive-setup/SKILL.md",
 ];
-const RFC2119_LEGEND = "!=MUST, ~=SHOULD";
-const PLATFORM_DETECTION_HEADING = "## Platform Detection";
-const USER_MD_GATE_HEADING = "## USER.md Gate";
 const _SWARM_PATH = "skills/deft-directive-swarm/SKILL.md";
 const _SYNC_PATH = "skills/deft-directive-sync/SKILL.md";
 const _SYNC_POINTER_PATH = ".agents/skills/deft-directive-sync/SKILL.md";

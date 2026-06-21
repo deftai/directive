@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-/** Repo root — four levels up from packages/core/src/content-contracts/skills */
+/** Repo root — five levels up from packages/core/src/content-contracts/skills */
 export const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..", "..");
 // skills -> content-contracts -> src -> core -> packages -> repo root (5 levels)
 

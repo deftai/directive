@@ -485,7 +485,7 @@ export function simulatePollLoop(params: {
     if (errored) {
       return ["ERRORED", i, cleanGateHoldout, logLines];
     }
-    if (!hasBlocking && !isClean) {
+    if (!hasBlocking) {
       stallStreak += 1;
     } else {
       stallStreak = 0;
