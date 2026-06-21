@@ -46,7 +46,7 @@
         "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)"
       },
       {
-        "uri": "pending/2026-06-21-port-content-skillspromptagentsmd-contract-tests-to-vitest.vbrief.json",
+        "uri": "completed/2026-06-21-port-content-skillspromptagentsmd-contract-tests-to-vitest.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port content skills/prompt/AGENTS.md contract tests to vitest",
         "TrustLevel": "internal"
