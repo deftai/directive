@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Fixed `task pr:*` and `task swarm:*` after the Wave 8 flip (#1828 s5 follow-up)** -- The pr/swarm Taskfile gates referenced `ts:build` without the leading-colon absolute namespace marker, so from the included fragments it resolved to the non-existent `pr:ts:build`/`swarm:ts:build` and broke `task pr:wait-mergeable-and-merge`, `task swarm:launch`, and siblings. Quoted `:ts:build` restores cross-namespace resolution. Refs #1828 #1530.
+
 ### Changed
 - **Verify and preflight gates now run on the TypeScript engine (#1828 s2)** -- Consumer-critical `task verify:*` and `task vbrief:*` preflight gates in `tasks/verify.yml` and `tasks/vbrief.yml` route through the unified `deft-ts` dispatcher (`packages/cli/dist/bin.js`) with `ts:build` as a dependency so a clean checkout self-builds first. Python scripts remain in-tree as parity oracles; gates without a TS port yet (including `verify:cache-fresh`, session ritual, scm-boundary, and architecture-sor) still invoke Python until their Wave 8 follow-ups land. Refs #1828 #1530.
 
