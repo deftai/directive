@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 8 decomposed from proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json"
+  },
+  "plan": {
+    "id": "1838-s8-integration-e2e-tests",
+    "title": "Retarget cache/scm/triage integration e2e tests at TS entrypoints",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
+    "narratives": {
+      "Description": "Retarget the tests/integration end-to-end suites (cache, cache-quarantine, scm-smoke, triage-smoke, triage-bootstrap-at-scale, consumer-tasks) from the python entrypoints at the deft-ts dispatcher and TS modules. These are flow-level tests, so each is rebuilt to drive the live TS surface while asserting the same end-state as the python original.",
+      "ImplementationPlan": "1. For each tests/integration suite, add a vitest spec under packages/core/src/integration-e2e that drives the deft-ts verb or TS module end-to-end and asserts the same final cache/scm/triage state as the python flow. 2. Preserve the watchdog/at-scale timing assertions using injected clocks where the python test used real sleeps; record the coverage map. 3. Run task ts:check-lane and task core:test so both suites stay green.",
+      "UserStory": "As a maintainer, I want the cache/scm/triage integration flows asserted against the live TS surface, so that end-to-end behavior stays covered after the python flow is deleted in Wave 9.",
+      "Traces": "#1838, #1530"
+    },
+    "items": [
+      {
+        "id": "1838-s8-integration-e2e-tests-a1",
+        "title": "Given a retargeted integration spec, when task ts:check-lane runs, then it drives the deft-ts surface end-to-end and asserts the same final state as the python flow.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a retargeted integration spec, when task ts:check-lane runs, then it drives the deft-ts surface end-to-end and asserts the same final state as the python flow.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s8-integration-e2e-tests-a2",
+        "title": "Given the at-scale suite, when ported, then its timing assertions use injected clocks rather than real sleeps to stay fast.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the at-scale suite, when ported, then its timing assertions use injected clocks rather than real sleeps to stay fast.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s8-integration-e2e-tests-a3",
+        "title": "Given the additive change, when task core:test runs, then the python integration tests still pass unchanged in-tree.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the additive change, when task core:test runs, then the python integration tests still pass unchanged in-tree.",
+          "Traces": "#1838, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/integration-e2e",
+          "tests/integration"
+        ],
+        "verify_commands": [
+          "task ts:check-lane",
+          "task core:test"
+        ],
+        "expected_outputs": [
+          "integration e2e flows retargeted at TS entrypoints"
+        ],
+        "depends_on": [],
+        "conflict_group": "integration-e2e",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1838",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

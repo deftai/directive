@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json"
+  },
+  "plan": {
+    "id": "1838-s6-cli-render-mapping-tests",
+    "title": "Retarget pack/spec/render/codebase CLI tests at the deft-ts dispatcher",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
+    "narratives": {
+      "Description": "Retarget the tests/cli tests for the pack, spec, project, roadmap, framework-commands, codebase, and capacity surfaces from the python CLI at the deft-ts dispatcher. Each test is audited against the TS module's existing unit tests, and only genuinely missing render or mapping behavior becomes a new vitest spec.",
+      "ImplementationPlan": "1. For each tests/cli pack/spec/project/roadmap/framework/codebase/capacity test, audit the packages/core/src render and mapping modules' existing unit coverage; record redundant cases and add a vitest spec under packages/cli/src/render-cli for missing behavior that invokes the deft-ts verb and asserts argv and rendered output. 2. Record the coverage map and tag dedup'd python tests for Wave-9 deletion. 3. Run task ts:check-lane and task core:test so both suites stay green.",
+      "UserStory": "As a maintainer, I want the pack/spec/render/codebase CLI tests exercising the deft-ts dispatcher, so that the render and mapping CLI surface stays covered after the flip.",
+      "Traces": "#1838, #1530"
+    },
+    "items": [
+      {
+        "id": "1838-s6-cli-render-mapping-tests-a1",
+        "title": "Given a retargeted render/mapping CLI spec, when task ts:check-lane runs, then it invokes the deft-ts verb and asserts the same rendered output as the python original.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a retargeted render/mapping CLI spec, when task ts:check-lane runs, then it invokes the deft-ts verb and asserts the same rendered output as the python original.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s6-cli-render-mapping-tests-a2",
+        "title": "Given a redundant python CLI test, when audited, then the coverage map records the existing TS unit test that covers the invariant.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a redundant python CLI test, when audited, then the coverage map records the existing TS unit test that covers the invariant.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s6-cli-render-mapping-tests-a3",
+        "title": "Given the additive change, when task core:test runs, then the python CLI tests still pass unchanged in-tree.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the additive change, when task core:test runs, then the python CLI tests still pass unchanged in-tree.",
+          "Traces": "#1838, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/render-cli",
+          "tests/cli"
+        ],
+        "verify_commands": [
+          "task ts:check-lane",
+          "task core:test"
+        ],
+        "expected_outputs": [
+          "render/mapping CLI tests retargeted at deft-ts dispatcher"
+        ],
+        "depends_on": [],
+        "conflict_group": "cli-tests-render",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1838",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

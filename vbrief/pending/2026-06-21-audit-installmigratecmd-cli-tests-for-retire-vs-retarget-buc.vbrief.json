@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 7 decomposed from proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json"
+  },
+  "plan": {
+    "id": "1838-s7-cli-install-migrate-tail",
+    "title": "Audit install/migrate/cmd CLI tests for retire-vs-retarget (Bucket C)",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
+    "narratives": {
+      "Description": "Audit the tests/cli tail covering migrate, precutover, cmd-gate, upgrade, run, setup, vendored, and relocate surfaces, which test code in the accepted-non-port set (pre-v0.20 migration tooling, the Go installer deposit, build/packaging). For each file decide retire-with-Wave-9 versus retarget at a TS equivalent, since blindly porting tests for soon-deleted code is wasted work.",
+      "ImplementationPlan": "1. For each tests/cli migrate/precutover/cmd/upgrade/run/setup/vendored/relocate test, classify the underlying script as accepted-non-port (retire at Wave 9) or live (retarget) and record a one-line rationale per file in the coverage map. 2. For the live retarget subset, add a vitest spec under packages/cli/src/install-cli invoking the deft-ts verb and asserting exit codes; leave accepted-non-port tests in python tagged for Wave-9 deletion. 3. Run task ts:check-lane and task core:test so both suites stay green.",
+      "UserStory": "As a maintainer, I want the install/migrate CLI tail triaged into retire-vs-retarget, so that I do not waste effort porting tests for code the cutover will delete.",
+      "Traces": "#1838, #1530"
+    },
+    "items": [
+      {
+        "id": "1838-s7-cli-install-migrate-tail-a1",
+        "title": "Given each install/migrate tail test, when audited, then the coverage map records a retire-at-Wave-9 or retarget classification with a one-line rationale.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given each install/migrate tail test, when audited, then the coverage map records a retire-at-Wave-9 or retarget classification with a one-line rationale.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s7-cli-install-migrate-tail-a2",
+        "title": "Given a live-code retarget spec, when task ts:check-lane runs, then it invokes the deft-ts verb and asserts the same exit code as the python original.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a live-code retarget spec, when task ts:check-lane runs, then it invokes the deft-ts verb and asserts the same exit code as the python original.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s7-cli-install-migrate-tail-a3",
+        "title": "Given the additive change, when task core:test runs, then the python CLI tests still pass unchanged in-tree.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the additive change, when task core:test runs, then the python CLI tests still pass unchanged in-tree.",
+          "Traces": "#1838, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/install-cli",
+          "tests/cli"
+        ],
+        "verify_commands": [
+          "task ts:check-lane",
+          "task core:test"
+        ],
+        "expected_outputs": [
+          "install/migrate CLI tail triaged retire-vs-retarget"
+        ],
+        "depends_on": [],
+        "conflict_group": "cli-tests-install",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1838",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

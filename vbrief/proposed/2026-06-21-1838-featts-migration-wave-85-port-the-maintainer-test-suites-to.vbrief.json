@@ -1,0 +1,101 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1838"
+  },
+  "plan": {
+    "title": "feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1838",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2). Sits between Wave 8 (flip, #1828 ✅) and Wave 9 (delete, #1731). Added as a blocker of #1731.\n\n## Why this wave exists\n\nWave 8 (#1828) flipped the live `task` gate **execution** to the TS engine, but the **maintainer test suites are still Python-only**: `tests/content/` (78 files), `tests/cli/` (150 files), and `tests/integration/` (6 files) — ~234 files / ~8,700 assertions. \"Full conversion\" (the operator decision of 2026-06-19) explicitly includes these tests, but they were originally folded into Wave 9 (#1731) as items 9.3/9.4 and chained to the destructive delete + bake window.\n\nThat coupling was wrong: **porting tests does not require deleting Python.** vitest tests are purely additive — they coexist with pytest indefinitely. Only the *deletion* of `scripts/*.py` + retiring the parity oracles needs the 2-3 release bake. So this wave pulls the entire test-conversion body out of #1731 and stands it up independently, unblocking the bulk of the \"full conversion\" now while the genuinely irreversible delete stays correctly gated on #1731.\n\n## What to build\n\nPort / retarget every maintainer Python test to vitest, **additively** — the Python pytest suite stays green and in-tree throughout (nothing is deleted in this wave; the pytest teardown is Wave 9 / #1731). Three buckets:\n\n- **Bucket A — content artifact tests** (`tests/content/`, mostly): read `.md`/`.json`/template artifacts and assert substrings/ordering/shape. Mechanical pytest→vitest (`fs.readFileSync` + `expect().toContain()`). No Python dependency.\n- **Bucket B — source-coupled tests** (a minority of `tests/content/` + most of `tests/cli/`): tests that `import` a Python module or exercise the Python CLI argument surface. **Retarget** at the TS module / the `deft-ts` dispatcher (built in Wave 8 s0). Audit against the TS port's existing unit tests first: if the invariant is already covered, record the mapping and mark the pytest for Wave-9 deletion (do NOT delete now); only write a new TS test where coverage is genuinely missing. Not blind 1:1 translation.\n- **Bucket C — accepted-non-port residue**: CLI tests for code that is an accepted non-port (pre-v0.20 `migrate_*`/`precutover`/`_vbrief_legacy`, Go installer deposit, build/packaging tooling). Do NOT port these — audit and tag them \"stays Python until Wave 9 deletes the underlying code,\" with a one-line rationale per file.\n\n## Acceptance criteria\n\n- [ ] Every in-scope Python test is either (a) ported to an equivalent vitest test, (b) confirmed redundant against an existing TS unit test (mapping recorded, pytest tagged for Wave-9 deletion), or (c) tagged Bucket-C accepted-non-port with rationale.\n- [ ] The Python pytest suite stays green at every merge (additive — no Python test deleted in this wave).\n- [ ] `task ts:check-lane` stays green; global vitest branch coverage stays at/above the 85% floor (new tests must not drag coverage down).\n- [ ] `task check` (framework-source + consumer) stays green at every merge.\n- [ ] A per-story coverage map (Python test → TS test / existing-coverage / non-port) is recorded so Wave 9's pytest teardown is mechanical.\n\n## Proposed stories (decomposed separately)\n\n- **8.5.1** content: skills / prompt-preamble / AGENTS.md / interview / speckit contracts (~40 files, Bucket A)\n- **8.5.2** content: standards / security / patterns + taskfile / structure / schema / vBRIEF / strategy contracts (~38 files, Bucket A + a few Bucket B like `test_code_structure_profile`)\n- **8.5.3** CLI: vbrief / preflight / scope / issue / reconcile lifecycle (~35 files, Bucket B retarget+dedup)\n- **8.5.4** CLI: pr / swarm / release / subagent / probe / resolve (~28 files, Bucket B)\n- **8.5.5** CLI: verify / doctor / policy / validate / session / ritual gates (~22 files, Bucket B)\n- **8.5.6** CLI: pack / spec / project / roadmap / framework / codebase / capacity render+mapping (~24 files, Bucket B)\n- **8.5.7** CLI: migrate / cmd / upgrade / run / setup / install tail (~25 files — Bucket C audit: retire-vs-retarget per file)\n- **8.5.8** integration: cache / scm / triage / consumer-tasks e2e (~6 files, retarget at TS entrypoints)\n\n## Standing invariants\n\n- **Additive only** — Python pytest stays the live maintainer suite and runs wholesale until deleted in Wave 9 (#1731). No Python test is removed in this wave.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- New TS tests must hold vitest branch coverage at/above the 85% floor.\n\n## Type\n\nfeat (umbrella)\n",
+      "Labels": "process, runtime-portability, ts-migration"
+    },
+    "items": [
+      {
+        "title": "Every in-scope Python test is either (a) ported to an equivalent vitest test, (b) confirmed redundant against an existing TS unit test (mapping recorded, pytest tagged for Wave-9 deletion), or (c) tagged Bucket-C accepted-non-port with rationale.",
+        "status": "proposed"
+      },
+      {
+        "title": "The Python pytest suite stays green at every merge (additive — no Python test deleted in this wave).",
+        "status": "proposed"
+      },
+      {
+        "title": "stays green; global vitest branch coverage stays at/above the 85% floor (new tests must not drag coverage down).",
+        "status": "proposed"
+      },
+      {
+        "title": "(framework-source + consumer) stays green at every merge.",
+        "status": "proposed"
+      },
+      {
+        "title": "A per-story coverage map (Python test → TS test / existing-coverage / non-port) is recorded so Wave 9's pytest teardown is mechanical.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "process",
+      "runtime-portability",
+      "ts-migration"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1838",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)"
+      },
+      {
+        "uri": "pending/2026-06-21-port-content-skillspromptagentsmd-contract-tests-to-vitest.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port content skills/prompt/AGENTS.md contract tests to vitest",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-port-content-standardssecuritytaskfileschema-contract-tests.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port content standards/security/taskfile/schema contract tests to vitest",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-retarget-vbriefscopeissuereconcile-cli-tests-at-the-deft-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Retarget vbrief/scope/issue/reconcile CLI tests at the deft-ts dispatcher",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-retarget-prswarmrelease-cli-tests-at-the-deft-ts-dispatcher.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Retarget pr/swarm/release CLI tests at the deft-ts dispatcher",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-retarget-verifydoctorpolicysession-cli-tests-at-the-deft-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Retarget verify/doctor/policy/session CLI tests at the deft-ts dispatcher",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-retarget-packspecrendercodebase-cli-tests-at-the-deft-ts-dis.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Retarget pack/spec/render/codebase CLI tests at the deft-ts dispatcher",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-audit-installmigratecmd-cli-tests-for-retire-vs-retarget-buc.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Audit install/migrate/cmd CLI tests for retire-vs-retarget (Bucket C)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-retarget-cachescmtriage-integration-e2e-tests-at-ts-entrypoi.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Retarget cache/scm/triage integration e2e tests at TS entrypoints",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

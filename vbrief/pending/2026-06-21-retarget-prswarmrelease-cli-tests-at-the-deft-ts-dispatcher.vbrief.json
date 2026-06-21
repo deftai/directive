@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json"
+  },
+  "plan": {
+    "id": "1838-s4-cli-pr-swarm-release-tests",
+    "title": "Retarget pr/swarm/release CLI tests at the deft-ts dispatcher",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
+    "narratives": {
+      "Description": "Retarget the tests/cli tests for the pr, swarm, release, subagent-monitor, probe, and resolve command surfaces from the python CLI at the deft-ts dispatcher. The release and pr clusters are the largest here, so each test is audited against the TS module's existing unit tests and only missing argument-surface behavior becomes a new vitest spec.",
+      "ImplementationPlan": "1. For each tests/cli pr/swarm/release/subagent/probe/resolve test, audit the corresponding packages/core/src module's existing unit coverage; record redundant cases and add a vitest spec under packages/cli/src/orchestration-cli for genuinely missing behavior that invokes the deft-ts verb and asserts argv plus exit codes. 2. Record the coverage map and tag dedup'd python tests for Wave-9 deletion. 3. Run task ts:check-lane and task core:test so both suites stay green with coverage at the floor.",
+      "UserStory": "As a maintainer, I want the pr/swarm/release CLI tests exercising the deft-ts dispatcher, so that the live orchestration CLI surface stays covered and redundant python cases are flagged for Wave-9 removal.",
+      "Traces": "#1838, #1530"
+    },
+    "items": [
+      {
+        "id": "1838-s4-cli-pr-swarm-release-tests-a1",
+        "title": "Given a retargeted pr/swarm/release CLI spec, when task ts:check-lane runs, then it invokes the deft-ts verb and asserts the same argv handling and exit code as the python original.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a retargeted pr/swarm/release CLI spec, when task ts:check-lane runs, then it invokes the deft-ts verb and asserts the same argv handling and exit code as the python original.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s4-cli-pr-swarm-release-tests-a2",
+        "title": "Given a redundant python CLI test, when audited, then the coverage map records the existing TS unit test that covers the invariant.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a redundant python CLI test, when audited, then the coverage map records the existing TS unit test that covers the invariant.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s4-cli-pr-swarm-release-tests-a3",
+        "title": "Given the additive change, when task core:test runs, then the python CLI tests still pass unchanged in-tree.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the additive change, when task core:test runs, then the python CLI tests still pass unchanged in-tree.",
+          "Traces": "#1838, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/orchestration-cli",
+          "tests/cli"
+        ],
+        "verify_commands": [
+          "task ts:check-lane",
+          "task core:test"
+        ],
+        "expected_outputs": [
+          "pr/swarm/release CLI tests retargeted at deft-ts dispatcher"
+        ],
+        "depends_on": [],
+        "conflict_group": "cli-tests-orchestration",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1838",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

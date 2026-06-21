@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json"
+  },
+  "plan": {
+    "id": "1838-s1-content-skills-contracts",
+    "title": "Port content skills/prompt/AGENTS.md contract tests to vitest",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
+    "narratives": {
+      "Description": "Port the tests/content artifact tests covering skills, the agent-prompt preamble, AGENTS.md sections, the interview/speckit/cost phases, and swarm/refinement/triage skill contracts from pytest to vitest. These are Bucket-A mechanical conversions: each test reads a markdown or template artifact and asserts substrings, ordering, or shape, so the TS version reads the same file and asserts the same facts with no behavioral change.",
+      "ImplementationPlan": "1. For each in-scope tests/content/test_*skill*/agents_md/preamble/interview/speckit file, add an equivalent vitest spec under packages/core/src/content-contracts/skills/ that reads the same artifact via node fs and asserts the same substrings. 2. Record a coverage map (python file -> ts spec) so the Wave-9 pytest teardown is mechanical. 3. Run task ts:check-lane and task core:test to confirm both the new TS specs and the untouched python suite stay green; assert the new specs hold branch coverage at the floor.",
+      "UserStory": "As a maintainer pursuing full TS conversion, I want the skills/AGENTS.md content contracts asserted in vitest, so that those invariants survive the Wave-9 deletion of the python test suite.",
+      "Traces": "#1838, #1530"
+    },
+    "items": [
+      {
+        "id": "1838-s1-content-skills-contracts-a1",
+        "title": "Given the ported skills/AGENTS.md content specs, when task ts:check-lane runs, then the new vitest specs pass and assert the same artifact substrings as their pytest originals.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the ported skills/AGENTS.md content specs, when task ts:check-lane runs, then the new vitest specs pass and assert the same artifact substrings as their pytest originals.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s1-content-skills-contracts-a2",
+        "title": "Given the additive port, when task core:test runs, then the original python content tests still pass unchanged in-tree.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the additive port, when task core:test runs, then the original python content tests still pass unchanged in-tree.",
+          "Traces": "#1838, #1530"
+        }
+      },
+      {
+        "id": "1838-s1-content-skills-contracts-a3",
+        "title": "Given the coverage map, when it is inspected, then every in-scope python file maps to a ts spec or a recorded existing-coverage entry.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the coverage map, when it is inspected, then every in-scope python file maps to a ts spec or a recorded existing-coverage entry.",
+          "Traces": "#1838, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/content-contracts/skills",
+          "tests/content"
+        ],
+        "verify_commands": [
+          "task ts:check-lane",
+          "task core:test"
+        ],
+        "expected_outputs": [
+          "skills/AGENTS.md content contracts asserted in vitest"
+        ],
+        "depends_on": [],
+        "conflict_group": "content-contracts-skills",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1838",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}
