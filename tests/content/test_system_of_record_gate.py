@@ -37,7 +37,10 @@ def test_taskfile_surfaces_system_of_record_gate() -> None:
     verify_tasks = _read("tasks/verify.yml")
     assert "tasks/architecture.yml" in taskfile
     assert "sor-preflight" in architecture_tasks
-    assert "preflight_architecture_sor.py" in architecture_tasks
+    # Wave 8.6 (#1854): tasks/architecture.yml flipped from the Python script to
+    # the TS dispatcher verb. verify.yml's architecture-sor gate is not in this
+    # wave's scope and still references the Python script.
+    assert "architecture-preflight-sor" in architecture_tasks
     assert "architecture-sor" in verify_tasks
     assert "preflight_architecture_sor.py" in verify_tasks
 
