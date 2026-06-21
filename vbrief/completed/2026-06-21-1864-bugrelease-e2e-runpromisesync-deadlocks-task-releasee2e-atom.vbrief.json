@@ -1,0 +1,37 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1864"
+  },
+  "plan": {
+    "title": "bug(release-e2e): runPromiseSync deadlocks task release:e2e -- Atomics.wait blocks the main event loop that must resolve the worker Promise",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(release-e2e): runPromiseSync deadlocks task release:e2e -- Atomics.wait blocks the main event loop that must resolve the worker Promise",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1864",
+      "Overview": "## Symptom\n\n`task release:e2e` hangs indefinitely. Observed during the v0.53.0 release rehearsal (2026-06-21): the harness provisioned the temp repo, cloned, `set-origin`, `push-mirror` (all OK), the worker even created the draft `v0.0.1` on the temp repo -- then the **main thread deadlocked** in `futex_wait_queue` for 20+ min, blowing past the 600s release / 300s rollback internal timeouts, and never reached the `try/finally` teardown (temp repo was left undeleted). Process state: `Sl`, `wchan=futex_wait_queue`, no active `gh`/`git`/`pnpm` subprocess.\n\n## Root cause\n\n`packages/core/src/release-e2e/entrypoint.ts::runPromiseSync` (lines ~137-163) blocks the **main thread** with `Atomics.wait(ia, 0, 0)` while waiting on the Promise returned by `runEntrypointWorker`. But that Promise only ever settles via **main-thread event-loop callbacks**:\n\n- `worker.on(\"message\", ...)`\n- `worker.on(\"error\", ...)`\n- the `setTimeout(..., timeoutMs)` timeout timer\n\n`Atomics.wait` blocks the main event loop, so none of those callbacks can run -- including the timeout timer -- and the `promise.then` handler that calls `Atomics.store`/`Atomics.notify` is a microtask that also cannot run. The notify therefore never fires, and `Atomics.wait` blocks forever. The timeout cannot save it because the timer lives on the same blocked event loop.\n\nThe worker thread itself runs `cmdRelease` fine (hence the draft got created); only the main thread's synchronous wait is wedged.\n\nCall chain: `runRehearsal` (sync) -> `dispatchTaskRelease` (sync) -> `callReleaseEntrypoint` -> `callReleaseEntrypointWorkerBacked` -> `runPromiseSync(runEntrypointWorker(...))`.\n\nWhy tests didn't catch it: the unit tests exercise `callReleaseEntrypointTimed` (the **async** `await` path) and/or mock the worker, so they never hit the sync `runPromiseSync` deadlock that the real e2e dispatch uses.\n\n## Fix direction\n\nResolve the worker result without depending on the blocked main event loop. Canonical Node pattern for synchronous worker handoff:\n\n- Share a `SharedArrayBuffer` Int32 signal with the worker; have the **worker thread** call `Atomics.store(signal,0,1); Atomics.notify(signal,0)` after posting its result. The cross-thread notify wakes the main `Atomics.wait(signal, 0, 0, timeoutMs)` (and the SAB-level `timeoutMs` gives a working timeout).\n- Pass results structured via a `MessageChannel` and read synchronously with `receiveMessageOnPort(port)` after the wait returns `\"ok\"`.\n- On `Atomics.wait(...) === \"timed-out\"`, `worker.terminate()` and return `ENTRYPOINT_TIMEOUT_EXIT_CODE`.\n\n(Alternative: make the whole `runRehearsal` -> dispatch chain `async` and use the already-correct `callReleaseEntrypointTimed`; larger blast radius up to the e2e main.)\n\nAdd a test that drives the **sync** `callReleaseEntrypoint` worker-backed path end-to-end with a fast real worker to prove (a) it returns the result without hanging and (b) the timeout path returns `124` instead of deadlocking.\n\n## Provenance\n\nIntroduced by the TypeScript port of the release pipeline (#1729, Wave-4a of #1530). The Python oracle used real subprocesses with OS-level timeouts; the TS port substituted an in-process worker + `Atomics.wait` and introduced the event-loop-blocking deadlock.\n\nRefs #1729 #1530",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1864",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1864: bug(release-e2e): runPromiseSync deadlocks task release:e2e -- Atomics.wait blocks the main event loop that must resolve the worker Promise"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1729",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1729"
+      }
+    ],
+    "updated": "2026-06-21T22:43:58Z",
+    "metadata": {
+      "completedAt": "2026-06-21T22:43:58Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

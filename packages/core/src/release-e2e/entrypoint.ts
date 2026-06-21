@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Worker } from "node:worker_threads";
+import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 import { cmdRelease } from "../release/main.js";
 import {
   ENTRYPOINT_TIMEOUT_EXIT_CODE,
@@ -77,6 +77,82 @@ function runEntrypointWithCapture(entrypoint: EntrypointFn, argv: string[]): [nu
   }
 }
 
+/**
+ * Resolve the compiled worker-thread bootstrap path, preferring the sibling
+ * file when running from source and falling back to the dist mirror.
+ */
+function resolveWorkerPath(): string {
+  const localWorker = fileURLToPath(new URL("./entrypoint-worker-thread.js", import.meta.url));
+  const srcSegment = `${sep}src${sep}`;
+  const srcIdx = localWorker.indexOf(srcSegment);
+  const distWorker =
+    srcIdx === -1
+      ? localWorker
+      : `${localWorker.slice(0, srcIdx)}${sep}dist${sep}${localWorker.slice(srcIdx + srcSegment.length)}`;
+  return existsSync(localWorker) ? localWorker : distWorker;
+}
+
+/**
+ * Synchronous worker-backed entrypoint runner (#1864).
+ *
+ * The earlier `runPromiseSync` deadlocked: it blocked the main thread with
+ * `Atomics.wait` while waiting on a Promise whose only settle paths
+ * (`worker.on("message")`, `worker.on("error")`, the timeout `setTimeout`)
+ * were main-thread event-loop callbacks -- which a blocked event loop can
+ * never run, so the `Atomics.notify` microtask never fired and the wait
+ * (and the timeout) hung forever.
+ *
+ * The fix relies on a CROSS-THREAD wake: the worker writes its result to a
+ * transferred MessagePort and calls `Atomics.notify` from the worker thread,
+ * which wakes the main thread's `Atomics.wait` without needing the event
+ * loop. `Atomics.wait`'s own `timeoutMs` is the working timeout backstop
+ * (covering the rare worker-load-failure-before-notify case), and
+ * `receiveMessageOnPort` reads the queued result synchronously.
+ */
+export function runEntrypointWorkerSync(
+  kind: "release" | "rollback" | "test",
+  argv: string[],
+  cloneDir: string,
+  timeoutMs: number,
+  testBehavior?: "ok" | "hang" | "throw",
+): { code: number; stdout: string; stderr: string } {
+  const workerPath = resolveWorkerPath();
+  const signal = new Int32Array(new SharedArrayBuffer(4)); // 0 = pending, 1 = settled
+  const channel = new MessageChannel();
+  let worker: Worker;
+  try {
+    worker = new Worker(workerPath, {
+      workerData: { kind, argv, cloneDir, signal, port: channel.port2, testBehavior },
+      transferList: [channel.port2],
+    });
+  } catch (err) {
+    return {
+      code: EXIT_VIOLATION,
+      stdout: "",
+      stderr: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  try {
+    const waitResult = Atomics.wait(signal, 0, 0, timeoutMs);
+    if (waitResult === "timed-out") {
+      return {
+        code: ENTRYPOINT_TIMEOUT_EXIT_CODE,
+        stdout: "",
+        stderr: `${kind} timed out after ${timeoutMs / 1000}s`,
+      };
+    }
+    const received = receiveMessageOnPort(channel.port1);
+    if (received === undefined) {
+      return { code: EXIT_VIOLATION, stdout: "", stderr: "worker produced no result" };
+    }
+    return received.message as { code: number; stdout: string; stderr: string };
+  } finally {
+    channel.port1.close();
+    void worker.terminate();
+  }
+}
+
 /** @internal Exported for unit tests that mock worker-backed timeouts. */
 export async function runEntrypointWorker(
   kind: "release" | "rollback" | "test",
@@ -85,14 +161,7 @@ export async function runEntrypointWorker(
   timeoutMs: number,
   testBehavior?: "hang" | "throw",
 ): Promise<{ code: number; stdout: string; stderr: string }> {
-  const localWorker = fileURLToPath(new URL("./entrypoint-worker-thread.js", import.meta.url));
-  const srcSegment = `${sep}src${sep}`;
-  const srcIdx = localWorker.indexOf(srcSegment);
-  const distWorker =
-    srcIdx === -1
-      ? localWorker
-      : `${localWorker.slice(0, srcIdx)}${sep}dist${sep}${localWorker.slice(srcIdx + srcSegment.length)}`;
-  const workerPath = existsSync(localWorker) ? localWorker : distWorker;
+  const workerPath = resolveWorkerPath();
 
   return new Promise((resolvePromise) => {
     let worker: Worker;
@@ -134,34 +203,6 @@ export async function runEntrypointWorker(
   });
 }
 
-function runPromiseSync<T>(promise: Promise<T>): T {
-  const sab = new SharedArrayBuffer(4);
-  const ia = new Int32Array(sab);
-  type Outcome = { ok: true; value: T } | { ok: false; error: unknown };
-  const box: { outcome?: Outcome } = {};
-  void promise.then(
-    (value) => {
-      box.outcome = { ok: true, value };
-      Atomics.store(ia, 0, 1);
-      Atomics.notify(ia, 0);
-    },
-    (error) => {
-      box.outcome = { ok: false, error };
-      Atomics.store(ia, 0, 1);
-      Atomics.notify(ia, 0);
-    },
-  );
-  Atomics.wait(ia, 0, 0);
-  const outcome = box.outcome;
-  if (outcome === undefined) {
-    throw new Error("promise sync wait failed");
-  }
-  if (!outcome.ok) {
-    throw outcome.error;
-  }
-  return outcome.value;
-}
-
 function callReleaseEntrypointWorkerBacked(
   kind: "release" | "rollback",
   argv: string[],
@@ -169,7 +210,7 @@ function callReleaseEntrypointWorkerBacked(
   timeout: number,
 ): [number, string] {
   const timeoutMs = Math.max(1, Math.floor(timeout * 1000));
-  const result = runPromiseSync(runEntrypointWorker(kind, argv, cloneDir, timeoutMs));
+  const result = runEntrypointWorkerSync(kind, argv, cloneDir, timeoutMs);
   return [result.code, result.stderr || result.stdout];
 }
 
