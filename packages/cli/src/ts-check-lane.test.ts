@@ -18,6 +18,10 @@ describe("ts-check-lane parseArgs", () => {
     expect(parseArgs(["--project-root"]).error).toContain("expected one argument");
   });
 
+  it("errors when --project-root= has an empty value", () => {
+    expect(parseArgs(["--project-root="]).error).toContain("expected one argument");
+  });
+
   it("errors on an unrecognized argument", () => {
     expect(parseArgs(["--bogus"]).error).toContain("unrecognized argument");
   });

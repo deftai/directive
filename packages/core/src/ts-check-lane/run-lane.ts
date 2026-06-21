@@ -110,7 +110,18 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   for (const command of LANE_COMMANDS) {
     const argv = [pnpm, ...command];
     const result = runner(argv, projectRoot);
-    const code = result.status ?? 0;
+    const code = result.status;
+    // A null status means the child was terminated by a signal (SIGKILL / OOM /
+    // SIGTERM) before it could exit. Mapping that to 0 would silently pass a
+    // half-run lint/test on a memory-constrained machine, so treat it as a hard
+    // failure -- this mirrors the Python oracle, whose returncode is negative
+    // (non-zero) for a signal-killed process.
+    if (code === null) {
+      out(
+        `[ts:check-lane] \`pnpm ${command.join(" ")}\` was killed by a signal before exit -- treating as failure.`,
+      );
+      return 1;
+    }
     if (code !== 0) {
       out(`[ts:check-lane] \`pnpm ${command.join(" ")}\` failed (exit ${code}).`);
       return code;

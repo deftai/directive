@@ -62,15 +62,15 @@ describe("runTsLane", () => {
     expect(messages.some((m) => m.includes("build` failed (exit 2)"))).toBe(true);
   });
 
-  it("treats a null status (signal kill) as exit 0 success", () => {
-    const runner = new Runner([]);
+  it("treats a null status (signal kill / OOM) as a hard failure", () => {
+    const messages: string[] = [];
     const rc = runTsLane("/repo", {
       pnpm: "pnpm",
       runner: () => ({ status: null }),
-      out: () => undefined,
+      out: (m) => messages.push(m),
     });
-    expect(rc).toBe(0);
-    void runner;
+    expect(rc).toBe(1);
+    expect(messages.some((m) => m.includes("killed by a signal"))).toBe(true);
   });
 });
 

@@ -26,7 +26,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.projectRoot = next;
       i++;
     } else if (arg.startsWith("--project-root=")) {
-      parsed.projectRoot = arg.slice("--project-root=".length);
+      const value = arg.slice("--project-root=".length);
+      if (value === "")
+        return { ...parsed, error: "argument --project-root: expected one argument" };
+      parsed.projectRoot = value;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
