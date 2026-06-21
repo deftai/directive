@@ -12,6 +12,7 @@ tasks:
   start:
     desc: "Run quick-tier session-start ritual and write .deft/ritual-state.json (#1348). Flags: --defer step=reason / --json"
     dir: '{{.USER_WORKING_DIR}}'
+    deps: [":ts:build"]
     env:
       PYTHONUTF8: "1"
     cmds:

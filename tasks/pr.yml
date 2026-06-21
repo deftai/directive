@@ -39,6 +39,7 @@ tasks:
   check-closing-keywords:
     desc: "Scan PR body + commit messages for closing-keyword substrings in negation/quotation/example contexts that would trigger Layer 0 false-positive auto-closes (#737)"
     dir: '{{.USER_WORKING_DIR}}'
+    deps: [":ts:build"]
     env:
       PYTHONUTF8: "1"
     cmds:

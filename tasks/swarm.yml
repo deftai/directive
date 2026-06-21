@@ -7,6 +7,7 @@ tasks:
   readiness:
     desc: "Report whether story vBRIEFs are ready for concurrent swarm allocation"
     dir: '{{.USER_WORKING_DIR}}'
+    deps: [":ts:build"]
     env:
       PYTHONUTF8: "1"
     cmds:

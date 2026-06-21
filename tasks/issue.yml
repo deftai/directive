@@ -43,6 +43,7 @@ tasks:
   emit:
     desc: "File GitHub issue(s) from scope vBRIEF(s) (<path> | --umbrella <glob> | --per-vbrief <glob> [--dry-run])"
     dir: '{{.USER_WORKING_DIR}}'
+    deps: [":ts:build"]
     env:
       PYTHONUTF8: "1"
     cmds:

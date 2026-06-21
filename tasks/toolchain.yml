@@ -6,6 +6,7 @@ vars:
 tasks:
   check:
     desc: Verify required toolchain is installed (go, uv, git, gh, node, pnpm)
+    deps: [":ts:build"]
     env:
       PYTHONUTF8: "1"
     cmds:
