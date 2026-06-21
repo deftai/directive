@@ -72,7 +72,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-21-keystone-sequential-port-the-task-check-orchestrator-to-ts.vbrief.json",
+        "uri": "completed/2026-06-21-keystone-sequential-port-the-task-check-orchestrator-to-ts.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Keystone (sequential): port the task check orchestrator to TS",
         "TrustLevel": "internal"

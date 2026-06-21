@@ -6,7 +6,7 @@
   "plan": {
     "id": "1854-s5-check-orchestrator",
     "title": "Keystone (sequential): port the task check orchestrator to TS",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
     "narratives": {
       "Description": "The keystone: task check is dispatched by scripts/_project_context.py --dispatch-task-check, which has no TS module. Until it is ported, deleting Python breaks the primary pre-commit gate. This story ports the check orchestrator to a TS module (deft-ts check) and repoints the root Taskfile check target. It must land last because its TS replacement invokes the gate verbs that s1-s4 expose; running it earlier would call verbs that do not yet exist.",
@@ -72,7 +72,9 @@
         "size": "XL",
         "file_scope_confidence": "medium",
         "model_tier": "claude-4.6-sonnet-medium-thinking"
-      }
+      },
+      "completedAt": "2026-06-21T18:30:47Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -82,7 +84,7 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-21T17:28:02Z",
+    "updated": "2026-06-21T18:30:47Z",
     "architecture": {
       "systemOfRecord": {
         "note": "This story ports Python scripts to TypeScript. The only filesystem writes are in colocated Vitest test helpers that create temp fixtures for unit tests — they are not production code.",
@@ -91,7 +93,10 @@
             "name": "Vitest temp-fixture writer",
             "classification": "dev_only_fixture",
             "owner": "packages/core/src/preflight-cache/evaluate.test.ts",
-            "approvedStorage": ["json_file", "filesystem"],
+            "approvedStorage": [
+              "json_file",
+              "filesystem"
+            ],
             "excludedFromProduction": true,
             "productionGuard": "writeFileSync calls are inside Vitest test helpers using mkdtempSync — never invoked at runtime"
           }
