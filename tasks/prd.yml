@@ -16,9 +16,9 @@ tasks:
   _ts-build:
     internal: true
     desc: "Build @deftai/cli dist/ before TS-backed render gates run (#1854 s2)."
-    dir: '{{.DEFT_ROOT}}'
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - pnpm run build
+      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   render:
     # Caching: intentionally absent. `prd:render` runs in <30ms and its
