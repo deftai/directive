@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(ts-migration): cutover -- delete Python after full parity + settle installer question (Wave 4)",
-    "status": "running",
+    "status": "cancelled",
     "narratives": {
       "Description": "feat(ts-migration): cutover -- delete Python after full parity + settle installer question (Wave 4)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1731",
@@ -108,6 +108,6 @@
         "title": "Issue #1730"
       }
     ],
-    "updated": "2026-06-21T16:09:27Z"
+    "updated": "2026-06-21T19:22:41Z"
   }
 }
