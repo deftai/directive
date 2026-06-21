@@ -14567,7 +14567,7 @@ The observed failure showed parent shell GitHub authentication can pass while th
 
 `task triage:welcome -- --onboard` fails in a consumer install when the framework Taskfile is included under a namespace (for example `deft:`). The welcome script shells out to unprefixed task names, but the consumer-visible tasks are namespaced.
 
-Observed in `deftai/cartograph` after upgrading to Deft Directive `v0.44.0`.
+Observed in a consumer install after upgrading to Deft Directive `v0.44.0`.
 
 ## Observed
 
@@ -14608,7 +14608,7 @@ This is first-run friction for the new session-start/onboarding flow:
 
 - The command partially mutates policy state before failing.
 - The operator is left with an incomplete bootstrap and no final summary.
-- In the Cartograph run, the scope/cap choices had to be corrected manually, then `task deft:triage:bootstrap` and `task deft:triage:summary` had to be run directly.
+- In that consumer run, the scope/cap choices had to be corrected manually, then `task deft:triage:bootstrap` and `task deft:triage:summary` had to be run directly.
 
 ## Expected
 
