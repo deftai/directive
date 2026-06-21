@@ -1,0 +1,37 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1867"
+  },
+  "plan": {
+    "title": "bug(subprocess-capture): gh api --paginate sites lack maxBuffer; >1MB responses fail (release publish/rollback + consumer triage:scope)",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(subprocess-capture): gh api --paginate sites lack maxBuffer; >1MB responses fail (release publish/rollback + consumer triage:scope)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1867",
+      "Overview": "## Symptom\n`task release:publish -- 0.53.0` (and `release:rollback`) fail immediately at the release-lookup step with an **empty** error:\n\n```\n[publish] View v0.53.0 on deftai/directive... FAIL (gh api repos/deftai/directive/releases?per_page=100 failed: )\n```\n\nRunning the same `gh api --paginate repos/deftai/directive/releases?per_page=100` manually works and exits 0.\n\n## Root cause (a bug *class*, not a single site)\nSeveral subprocess-capture sites invoke `gh api --paginate ...` (or otherwise capture a potentially large response) via `spawnSync` **without an explicit `maxBuffer`**, so they inherit Node's 1 MB default. When the response exceeds 1 MB, `spawnSync` returns `error = ENOBUFS`, `status = null`, truncated `stdout`, and **empty `stderr`** — surfacing as a failure with no detail.\n\nFor `deftai/directive` the `--paginate` releases response is ~1.46 MB (96+ releases), so publish/rollback fail. `--paginate` concatenates *all* pages into one response, so the size grows unbounded with total release count (~68+ releases crosses 1 MB at deft's ~15 KB/release).\n\n## Affected sites\n- **`packages/core/src/release/spawn.ts::spawnText`** — backs `release:publish` / `release:rollback` (`release-publish/gh-api.ts` uses `gh api --paginate`). Affects **any** project (incl. consumers) running `task release` once its repo has enough releases.\n- **`packages/core/src/triage/scope/mutations.ts::fetchNamesViaGh`** — `gh api --paginate` for `task triage:scope -- --diff-from-upstream`. **Consumer-facing**: breaks immediately against a large upstream repo, independent of release count.\n- **`packages/core/src/scm/gh-rest.ts::runGhApi`** — central REST shim; no `maxBuffer`. Lower risk (list helpers paginate in JS, one bounded page per call) but worth hardening defensively as the highest-leverage chokepoint.\n\n## Already safe (no change needed)\nPR cascade (`pr-merge-readiness`, `pr-protected-issues`, `pr-closing-keywords`, `pr-wait-mergeable`), `swarm/subprocess.ts`, and `triage/bootstrap/index.ts` already set `maxBuffer: 10 MB` (learned in the #1366 cycle).\n\n## Fix\n- Introduce a shared `GH_MAX_BUFFER` constant (align with the existing 10 MB, or bump to 64 MB) and apply it at the three unguarded sites above.\n- Surface `result.error.message` on overflow so the failure is never an empty error again.\n- Add regression tests: (a) maxBuffer is applied, (b) the empty-stderr / `result.error` mapping yields a non-empty message.\n\nRefs #1729 #1530 #1366.",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1867",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1867: bug(subprocess-capture): gh api --paginate sites lack maxBuffer; >1MB responses fail (release publish/rollback + consumer triage:scope)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1729",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1729"
+      }
+    ],
+    "updated": "2026-06-21T23:59:42Z",
+    "metadata": {
+      "completedAt": "2026-06-21T23:59:42Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

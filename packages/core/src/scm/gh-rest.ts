@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { GH_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveBinary } from "./binary.js";
 import { pyRepr } from "./py-format.js";
 
@@ -68,12 +69,20 @@ export function runGhApi(
     encoding: "utf8",
     timeout: timeoutMs,
     env: process.env,
+    maxBuffer: GH_MAX_BUFFER,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  let stderr = typeof result.stderr === "string" ? result.stderr : "";
+  // A spawn-level failure (e.g. ENOBUFS when stdout exceeds maxBuffer) yields a
+  // null status and empty stderr; surface error.message so the GhRestError that
+  // wraps this never reports a blank reason (#1867).
+  if (result.status === null && result.error && stderr.trim().length === 0) {
+    stderr = result.error.message;
+  }
   return {
     returncode: result.status ?? 1,
     stdout: typeof result.stdout === "string" ? result.stdout : "",
-    stderr: typeof result.stderr === "string" ? result.stderr : "",
+    stderr,
   };
 }
 

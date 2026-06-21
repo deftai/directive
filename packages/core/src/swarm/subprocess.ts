@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { GH_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export interface TextCaptureResult {
   readonly returncode: number;
@@ -20,7 +21,7 @@ export function runText(
       cwd: options.cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
-      maxBuffer: 10 * 1024 * 1024,
+      maxBuffer: GH_MAX_BUFFER,
     });
     return {
       returncode: 0,

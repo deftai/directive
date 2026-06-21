@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { resolveBinary } from "../scm/binary.js";
+import { GH_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { GH_TIMEOUT_S, GREPTILE_LOGIN } from "./constants.js";
 import type { RunGhFn, RunGhResult } from "./types.js";
 
@@ -15,7 +16,7 @@ export function defaultRunGh(cmd: readonly string[]): RunGhResult {
       encoding: "utf8",
       timeout: GH_TIMEOUT_S * 1000,
       stdio: ["ignore", "pipe", "pipe"],
-      maxBuffer: 10 * 1024 * 1024,
+      maxBuffer: GH_MAX_BUFFER,
     });
     return { returncode: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
   } catch (err: unknown) {

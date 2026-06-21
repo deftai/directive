@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
+import { GH_MAX_BUFFER } from "../../subprocess/max-buffer.js";
 import {
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
@@ -212,7 +213,7 @@ print(json.dumps(out))
   const { stdout } = await execFileAsync("uv", ["run", "python", "-c", script, payload], {
     cwd: deftRoot,
     encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
+    maxBuffer: GH_MAX_BUFFER,
   });
   const parsed = JSON.parse(String(stdout).trim()) as {
     succeeded?: number | null;
