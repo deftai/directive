@@ -82,7 +82,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-audit-installmigratecmd-cli-tests-for-retire-vs-retarget-buc.vbrief.json",
+        "uri": "active/2026-06-21-audit-installmigratecmd-cli-tests-for-retire-vs-retarget-buc.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Audit install/migrate/cmd CLI tests for retire-vs-retarget (Bucket C)",
         "TrustLevel": "internal"
