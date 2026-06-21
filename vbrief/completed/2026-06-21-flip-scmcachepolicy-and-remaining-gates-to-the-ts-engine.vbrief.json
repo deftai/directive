@@ -6,7 +6,7 @@
   "plan": {
     "id": "1828-s6-flip-scm-cache-policy-misc",
     "title": "Flip scm/cache/policy and remaining gates to the TS engine",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
     "narratives": {
       "Description": "Repoint the remaining live gates (scm, cache, policy_set, pack_render, roadmap_render, github_body, validate_strategy_output, codebase/capacity validators) from Python to the deft-ts dispatcher, keeping Python in-tree as oracle. This story closes out the long tail so no live `task` gate still invokes Python.",
@@ -71,7 +71,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-21T02:01:27Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -80,6 +82,7 @@
         "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-21T02:01:27Z"
   }
 }

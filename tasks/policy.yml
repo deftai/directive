@@ -25,47 +25,47 @@ tasks:
     # any scripts that called it directly (back-compat for #746 consumers).
     desc: "Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [-- --format=json] [--changed-only] [--field=<name>]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/_policy_show_cli.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy show --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   enforce-branches:
     desc: "Set plan.policy.allowDirectCommitsToMaster=false (enforce feature branches). Audits to meta/policy-changes.log. (#746)"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" enforce-branches {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy enforce-branches --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   allow-direct-commits:
     desc: "Set plan.policy.allowDirectCommitsToMaster=true (capability-cost: branch-protection OFF). Requires --confirm to apply. (#746)"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" allow-direct-commits {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy allow-direct-commits --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   wip-cap:
     desc: "Set plan.policy.wipCap=N (#1124 / D4 of #1119). Requires --set N --confirm. Default cap is 10 per umbrella #1119 Current Shape v3."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" wip-cap {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy-set wip-cap {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   subagent-backend:
     desc: "Set plan.policy.swarmSubagentBackend to a known coding sub-agent provider id (#1531a). -- task policy:subagent-backend -- --set composer|grok-build|cursor-cloud"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" subagent-backend {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy-set subagent-backend {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   subagent-backends:
     desc: "Probe stable sub-agent backend ids, role capabilities, and harness availability without spawning workers (#1531a). -- task policy:subagent-backends [-- --format=json]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" subagent-backends {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy-set subagent-backends {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

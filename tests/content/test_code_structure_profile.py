@@ -56,7 +56,8 @@ def test_codebase_task_is_registered() -> None:
     assert "extract-default:" in codebase_tasks
     assert "provider-map:" in codebase_tasks
     assert "projection-registry:" in codebase_tasks
-    assert "code_structure_validate.py" in codebase_tasks
+    assert "packages/cli/dist/bin.js" in codebase_tasks
+    assert "code-structure-validate" in codebase_tasks
 
 
 def test_profile_doc_names_physical_home_and_later_slices() -> None:

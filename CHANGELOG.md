@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **scm/cache/policy and remaining live gates now route through the TS engine (#1828 s6)** -- The scm stub, unified cache, typed policy surface, pack slice/render, roadmap render, codebase validators, and capacity show/backfill tasks now invoke `deft-ts` via `packages/cli/dist/bin.js` instead of `uv run python`, with Python scripts kept in-tree as parity oracles. Refs #1828 #1530.
+
 ### Fixed
 - **Fixed `task pr:*` and `task swarm:*` after the Wave 8 flip (#1828 s5 follow-up)** -- The pr/swarm Taskfile gates referenced `ts:build` without the leading-colon absolute namespace marker, so from the included fragments it resolved to the non-existent `pr:ts:build`/`swarm:ts:build` and broke `task pr:wait-mergeable-and-merge`, `task swarm:launch`, and siblings. Quoted `:ts:build` restores cross-namespace resolution. Refs #1828 #1530.
 

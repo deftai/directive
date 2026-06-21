@@ -86,7 +86,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-flip-scmcachepolicy-and-remaining-gates-to-the-ts-engine.vbrief.json",
+        "uri": "completed/2026-06-21-flip-scmcachepolicy-and-remaining-gates-to-the-ts-engine.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Flip scm/cache/policy and remaining gates to the TS engine",
         "TrustLevel": "internal"

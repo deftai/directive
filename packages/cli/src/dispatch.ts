@@ -3,6 +3,9 @@
  * Routes to ported command modules in packages/cli and packages/core.
  */
 
+import { execFileSync } from "node:child_process";
+import { join, resolve } from "node:path";
+
 export type CommandHandler = (argv: string[]) => number | Promise<number>;
 
 export interface DispatchIo {
@@ -97,6 +100,16 @@ export const CORE_MODULE_VERBS = [
   "swarm-verify-review-clean",
   "swarm-worktrees",
   "framework-commands",
+  "pack-render",
+  "packs-slice",
+  "roadmap-render",
+  "code-structure-validate",
+  "pack-migrate-skills",
+  "pack-migrate-rules",
+  "pack-migrate-strategies",
+  "pack-migrate-patterns",
+  "pack-migrate-swarm-spec",
+  "policy-set",
 ] as const;
 
 /** Task-style aliases (framework_commands / Taskfile names). */
@@ -214,7 +227,76 @@ async function loadCliModuleHandler(stem: string, io: DispatchIo): Promise<Comma
   return handler;
 }
 
-async function loadCoreModuleHandler(verb: string): Promise<CommandHandler> {
+function resolveDeftRoot(): string {
+  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
+    return resolve(process.env.DEFT_ROOT);
+  }
+  return resolve(import.meta.dirname, "..", "..", "..");
+}
+
+function parseCodeStructureArgs(argv: readonly string[]): {
+  projectRoot: string;
+  paths: string[];
+  json: boolean;
+  strict: boolean;
+  error?: string;
+} {
+  let projectRoot = ".";
+  const paths: string[] = [];
+  let json = false;
+  let strict = false;
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--project-root") {
+      const v = argv[i + 1];
+      if (v === undefined)
+        return { projectRoot, paths, json, strict, error: "missing --project-root value" };
+      projectRoot = v;
+      i += 1;
+    } else if (arg?.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--path") {
+      const v = argv[i + 1];
+      if (v === undefined)
+        return { projectRoot, paths, json, strict, error: "missing --path value" };
+      paths.push(v);
+      i += 1;
+    } else if (arg?.startsWith("--path=")) {
+      paths.push(arg.slice("--path=".length));
+    } else if (arg === "--json") {
+      json = true;
+    } else if (arg === "--strict") {
+      strict = true;
+    } else {
+      return { projectRoot, paths, json, strict, error: `unrecognized argument: ${arg}` };
+    }
+  }
+  return { projectRoot, paths, json, strict };
+}
+
+function loadPythonScriptHandler(scriptName: string): CommandHandler {
+  return (argv) => {
+    const deftRoot = resolveDeftRoot();
+    try {
+      execFileSync(
+        "uv",
+        ["--project", deftRoot, "run", "python", join(deftRoot, "scripts", scriptName), ...argv],
+        {
+          cwd: deftRoot,
+          encoding: "utf8",
+          env: { ...process.env, PYTHONUTF8: "1", DEFT_CACHE_DISABLE: "1" },
+          stdio: "inherit",
+        },
+      );
+      return 0;
+    } catch (err) {
+      const e = err as { status?: number };
+      return typeof e.status === "number" ? e.status : 1;
+    }
+  };
+}
+
+async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<CommandHandler> {
   switch (verb) {
     case "scm": {
       const { main } = await import("../../core/dist/scm/main.js");
@@ -266,6 +348,48 @@ async function loadCoreModuleHandler(verb: string): Promise<CommandHandler> {
       const { frameworkCommandsMain } = await import("@deftai/core/render");
       return (argv) => frameworkCommandsMain(argv);
     }
+    case "pack-render": {
+      const { main } = await import("../../core/dist/packs/pack-render.js");
+      return (argv) => main([...argv]);
+    }
+    case "packs-slice": {
+      const { main } = await import("../../core/dist/packs/packs-slice.js");
+      return (argv) => main([...argv]);
+    }
+    case "roadmap-render": {
+      const { main } = await import("../../core/dist/render/roadmap-render.js");
+      return (argv) => main(argv);
+    }
+    case "code-structure-validate": {
+      const { evaluateCodeStructure } = await import("@deftai/core/verify-source");
+      return (argv) => {
+        const parsed = parseCodeStructureArgs(argv);
+        if (parsed.error !== undefined) {
+          io.writeErr(`code_structure_validate: ${parsed.error}\n`);
+          return 2;
+        }
+        const result = evaluateCodeStructure(parsed.projectRoot, {
+          paths: parsed.paths.length > 0 ? parsed.paths : undefined,
+          json: parsed.json,
+          strict: parsed.strict,
+        });
+        if (result.stdout) io.writeOut(result.stdout);
+        if (result.stderr) io.writeErr(result.stderr);
+        return result.code;
+      };
+    }
+    case "pack-migrate-skills":
+      return loadPythonScriptHandler("pack_migrate_skills.py");
+    case "pack-migrate-rules":
+      return loadPythonScriptHandler("pack_migrate_rules.py");
+    case "pack-migrate-strategies":
+      return loadPythonScriptHandler("pack_migrate_strategies.py");
+    case "pack-migrate-patterns":
+      return loadPythonScriptHandler("pack_migrate_patterns.py");
+    case "pack-migrate-swarm-spec":
+      return loadPythonScriptHandler("pack_migrate_swarm_spec.py");
+    case "policy-set":
+      return loadPythonScriptHandler("policy_set.py");
     default:
       throw new Error(`unknown core verb: ${verb}`);
   }
@@ -278,7 +402,7 @@ function loadHandler(canonical: string, io: DispatchIo): Promise<CommandHandler>
   if (pending === undefined) {
     pending = (CLI_MODULE_VERBS as readonly string[]).includes(canonical)
       ? loadCliModuleHandler(canonical, io)
-      : loadCoreModuleHandler(canonical);
+      : loadCoreModuleHandler(canonical, io);
     handlerCache.set(canonical, pending);
   }
   return pending;

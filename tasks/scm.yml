@@ -13,7 +13,7 @@ version: '3'
 #   - scm:issue:view    (thin wrapper over `ghx|gh issue view`)
 #   - scm:issue:close   (thin wrapper over `ghx|gh issue close`)
 #   - scm:issue:edit    (thin wrapper over `ghx|gh issue edit`)
-#   - scm:body:*        (#1555 safe Markdown body posting via scripts/github_body.py)
+#   - scm:body:*        (#1555 safe Markdown body posting via github-body TS CLI)
 #
 # Each command is a thin pass-through to `ghx <verb>` (when ghx is on PATH)
 # or `gh <verb>` (fallback). Output JSON via the consumer-supplied --json
@@ -56,71 +56,71 @@ tasks:
   issue:list:
     desc: "[#883 stub] List issues -- task scm:issue:list -- [--rest] --repo OWNER/NAME --json number,title,state,updatedAt [--state ...] (#976 --rest routes via REST helpers; default forwards to ghx|gh)"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue list {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue list {{.CLI_ARGS}}
 
   issue:view:
     desc: "[#883 stub] View an issue -- task scm:issue:view -- [--rest] <N> --repo OWNER/NAME --json number,title,body,state,author,createdAt,updatedAt,labels,comments (#976 --rest routes via REST helpers and emits REST shape; default forwards to ghx|gh GraphQL shape)"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue view {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue view {{.CLI_ARGS}}
 
   issue:close:
     desc: "[#883 stub] Close an issue -- task scm:issue:close -- <N> --repo OWNER/NAME [--comment ...]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue close {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue close {{.CLI_ARGS}}
 
   issue:edit:
     desc: "[#883 stub] Edit an issue -- task scm:issue:edit -- <N> --repo OWNER/NAME [--add-label ...] [--body ...]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue edit {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue edit {{.CLI_ARGS}}
 
   body:issue:create:
     desc: "[#1555] Safely create an issue body from --body-file without shell Markdown interpolation"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" issue-create {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body issue-create {{.CLI_ARGS}}
 
   body:issue:edit:
     desc: "[#1555] Safely edit an issue body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" issue-edit {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body issue-edit {{.CLI_ARGS}}
 
   body:comment:create:
     desc: "[#1555] Safely create an issue/PR comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" comment-create {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body comment-create {{.CLI_ARGS}}
 
   body:comment:edit:
     desc: "[#1555] Safely edit an issue comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" comment-edit {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body comment-edit {{.CLI_ARGS}}
 
   body:pr:edit:
     desc: "[#1555] Safely edit a PR body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/github_body.py" pr-edit {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body pr-edit {{.CLI_ARGS}}

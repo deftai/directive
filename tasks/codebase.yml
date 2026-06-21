@@ -7,33 +7,33 @@ tasks:
   validate-structure:
     desc: "Validate authored codeStructure metadata and PR3 discipline rules (#1595)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     # Per conventions/task-caching.md: no sources/generates because this task
     # forwards user-supplied paths and project-root flags via CLI_ARGS.
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/code_structure_validate.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" code-structure-validate --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   extract-default:
     desc: "Emit the dependency-free default codebase-map artifact to stdout (#1595 PR3)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/codebase_default_extractor.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" codebase-default-extractor --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   provider-map:
     desc: "Select an external codebase-map provider or fall back to the default artifact (#1595 PR3)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/codebase_provider.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" codebase-provider --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   projection-registry:
     desc: "Inspect registered codebase projection kinds (#1595 PR3)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/codebase_projection_registry.py" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" codebase-projection-registry {{.CLI_ARGS}}
