@@ -48,31 +48,31 @@
         "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)"
       },
       {
-        "uri": "active/2026-06-21-flip-the-5-bucket-a-entrypoints-to-their-existing-ts-verbs.vbrief.json",
+        "uri": "completed/2026-06-21-flip-the-5-bucket-a-entrypoints-to-their-existing-ts-verbs.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Flip the 5 Bucket-A entrypoints to their existing TS verbs",
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-21-wire-flip-the-render-family-specvalidate-specrender-prdrende.vbrief.json",
+        "uri": "completed/2026-06-21-wire-flip-the-render-family-specvalidate-specrender-prdrende.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Wire + flip the render family (spec:validate, spec:render, prd:render, project:render)",
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-21-wire-flip-every-remaining-python-gate-in-tasksverifyyml-the.vbrief.json",
+        "uri": "completed/2026-06-21-wire-flip-every-remaining-python-gate-in-tasksverifyyml-the.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Wire + flip every remaining Python gate in tasks/verify.yml + the two root-Taskfile gates",
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-21-wireport-flip-scopeundo-scopedemote-scopedecompose-changelog.vbrief.json",
+        "uri": "completed/2026-06-21-wireport-flip-scopeundo-scopedemote-scopedecompose-changelog.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Wire/port + flip scope:undo, scope:demote, scope:decompose, changelog:resolve, architecture:sor",
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-keystone-sequential-port-the-task-check-orchestrator-to-ts.vbrief.json",
+        "uri": "active/2026-06-21-keystone-sequential-port-the-task-check-orchestrator-to-ts.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Keystone (sequential): port the task check orchestrator to TS",
         "TrustLevel": "internal"

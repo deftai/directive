@@ -6,7 +6,7 @@
   "plan": {
     "id": "1854-s1-bucketA-flip",
     "title": "Flip the 5 Bucket-A entrypoints to their existing TS verbs",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
     "narratives": {
       "Description": "Five live task entrypoints already have a registered TS dispatcher verb but their Taskfile lines still shell `uv run python scripts/*.py`. This story repoints those lines to `node {{.DEFT_ROOT}}/packages/cli/dist/bin.js <verb>` so they execute TS, with no new TS code required. It is independently buildable because each owned Taskfile is touched by no other Wave 8.6 story, and the verbs (session:start, issue-emit, pr-closing-keywords, swarm-readiness, toolchain:check) are already exposed and parity-proven.",
@@ -69,7 +69,9 @@
         "size": "S",
         "file_scope_confidence": "high",
         "model_tier": "composer-2.5-fast"
-      }
+      },
+      "completedAt": "2026-06-21T17:27:59Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -79,6 +81,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-21T16:34:52Z"
+    "updated": "2026-06-21T17:27:59Z"
   }
 }

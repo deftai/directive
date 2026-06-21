@@ -6,7 +6,7 @@
   "plan": {
     "id": "1854-s5-check-orchestrator",
     "title": "Keystone (sequential): port the task check orchestrator to TS",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
     "narratives": {
       "Description": "The keystone: task check is dispatched by scripts/_project_context.py --dispatch-task-check, which has no TS module. Until it is ported, deleting Python breaks the primary pre-commit gate. This story ports the check orchestrator to a TS module (deft-ts check) and repoints the root Taskfile check target. It must land last because its TS replacement invokes the gate verbs that s1-s4 expose; running it earlier would call verbs that do not yet exist.",
@@ -81,6 +81,7 @@
         "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-21T17:28:02Z"
   }
 }

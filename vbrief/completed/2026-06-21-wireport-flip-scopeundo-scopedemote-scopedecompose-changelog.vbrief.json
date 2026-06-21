@@ -6,7 +6,7 @@
   "plan": {
     "id": "1854-s4-scope-changelog-arch",
     "title": "Wire/port + flip scope:undo, scope:demote, scope:decompose, changelog:resolve, architecture:sor",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
     "narratives": {
       "Description": "This story finishes the lower-volume Bucket-B entrypoints that live in their own Taskfiles: scope_undo and scope_demote (core/src/scope/main.ts exists, so wire), resolve_changelog_unreleased (core/src/platform exists, so wire), and the two that need a genuine TS port (scope_decompose and preflight_architecture_sor have no core module). It exclusively owns tasks/scope.yml, tasks/scope-undo.yml, tasks/changelog.yml, and tasks/architecture.yml. It is independently buildable but carries real porting work, so it is the heaviest non-keystone story.",
@@ -72,7 +72,9 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "claude-4.6-sonnet-medium-thinking"
-      }
+      },
+      "completedAt": "2026-06-21T17:28:01Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -82,6 +84,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-21T16:34:54Z"
+    "updated": "2026-06-21T17:28:01Z"
   }
 }

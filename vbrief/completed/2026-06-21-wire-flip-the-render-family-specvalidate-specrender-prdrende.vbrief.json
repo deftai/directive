@@ -6,7 +6,7 @@
   "plan": {
     "id": "1854-s2-render-family",
     "title": "Wire + flip the render family (spec:validate, spec:render, prd:render, project:render)",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
     "narratives": {
       "Description": "The spec/PRD/project render and spec validate gates have parity-proven TS core modules (packages/core/src/render/spec-validate.ts, spec-render.ts, prd-render.ts, project-render.ts) but no dispatcher verb, so tasks/spec.yml, tasks/prd.yml, and tasks/project.yml still shell Python. This story exposes each module as a dispatcher verb and repoints the three owned Taskfiles. It is independently buildable: it owns those three Taskfiles exclusively and adds isolated case blocks to the dispatch switch.",
@@ -70,7 +70,9 @@
         "size": "M",
         "file_scope_confidence": "high",
         "model_tier": "composer-2.5-fast"
-      }
+      },
+      "completedAt": "2026-06-21T17:28:00Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -80,6 +82,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-21T16:34:52Z"
+    "updated": "2026-06-21T17:28:00Z"
   }
 }
