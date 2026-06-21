@@ -44,7 +44,7 @@ export function isFrameworkSourceContext(frameworkRoot: string, projectRoot: str
  *
  * Mirrors _project_context.py::dispatch_task_check target selection.
  */
-export function selectTarget(frameworkRoot: string, projectRoot: string): string {
+export function resolveCheckTarget(frameworkRoot: string, projectRoot: string): string {
   return isFrameworkSourceContext(frameworkRoot, projectRoot)
     ? "check:framework-source"
     : "check:consumer";
@@ -68,7 +68,7 @@ export function dispatchTaskCheck(
   const taskfilePath = join(resolvedFramework, "Taskfile.yml");
   const taskBin = seams.taskBin ?? "task";
 
-  const target = selectTarget(resolvedFramework, resolvedProject);
+  const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
 
   const spawn = seams.spawnFn ?? defaultSpawn;

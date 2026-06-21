@@ -374,7 +374,7 @@ export function evaluateCommand(
   if (envBypassActive()) {
     return [
       0,
-      `⚠ deft destructive-gh-verb gate: ${ENV_BYPASS}=1 is set -- policy bypassed for this session.`,
+      `⚠ deft destructive-gh-verb gate: ${ENV_BYPASS}=1 is set -- policy bypassed for this invocation.`,
     ];
   }
   const verdict = classifyCommand(command, defaultBranches);

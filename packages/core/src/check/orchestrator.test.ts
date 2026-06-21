@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { dispatchTaskCheck, isFrameworkSourceContext, selectTarget } from "./orchestrator.js";
+import { dispatchTaskCheck, isFrameworkSourceContext, resolveCheckTarget } from "./orchestrator.js";
 
 describe("isFrameworkSourceContext", () => {
   it("returns true when framework and project roots are the same path", () => {
@@ -20,13 +20,13 @@ describe("isFrameworkSourceContext", () => {
   });
 });
 
-describe("selectTarget", () => {
+describe("resolveCheckTarget", () => {
   it("returns check:framework-source when roots are equal", () => {
-    expect(selectTarget("/same/path", "/same/path")).toBe("check:framework-source");
+    expect(resolveCheckTarget("/same/path", "/same/path")).toBe("check:framework-source");
   });
 
   it("returns check:consumer when roots differ", () => {
-    expect(selectTarget("/framework", "/consumer")).toBe("check:consumer");
+    expect(resolveCheckTarget("/framework", "/consumer")).toBe("check:consumer");
   });
 });
 

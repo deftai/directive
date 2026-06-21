@@ -82,6 +82,21 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-21T17:28:02Z"
+    "updated": "2026-06-21T17:28:02Z",
+    "architecture": {
+      "systemOfRecord": {
+        "note": "This story ports Python scripts to TypeScript. The only filesystem writes are in colocated Vitest test helpers that create temp fixtures for unit tests — they are not production code.",
+        "stateSurfaces": [
+          {
+            "name": "Vitest temp-fixture writer",
+            "classification": "dev_only_fixture",
+            "owner": "packages/core/src/preflight-cache/evaluate.test.ts",
+            "approvedStorage": ["json_file", "filesystem"],
+            "excludedFromProduction": true,
+            "productionGuard": "writeFileSync calls are inside Vitest test helpers using mkdtempSync — never invoked at runtime"
+          }
+        ]
+      }
+    }
   }
 }

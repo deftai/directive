@@ -161,7 +161,7 @@ function evaluatePrePush(refs: RefLine[], branches: ReadonlySet<string>): [numbe
   if (["1", "true", "yes", "on"].includes(bypass)) {
     return [
       0,
-      `⚠ deft destructive-gh-verb gate (pre-push): default-branch push detected (${blocked.join("; ")}) but ${ENV_BYPASS}=1 is set -- policy bypassed for this session.`,
+      `⚠ deft destructive-gh-verb gate (pre-push): default-branch push detected (${blocked.join("; ")}) but ${ENV_BYPASS}=1 is set -- policy bypassed for this invocation.`,
     ];
   }
 
