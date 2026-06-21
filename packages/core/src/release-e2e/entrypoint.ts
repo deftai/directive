@@ -133,6 +133,15 @@ export function runEntrypointWorkerSync(
     };
   }
 
+  // Crash guard: a worker 'error' event (async module-load failure, or a
+  // post-timeout throw when the worker posts to the already-closed port) is
+  // re-thrown as an uncaught exception if no listener is attached. We can't act
+  // on it here -- this function runs synchronously while the event loop is
+  // blocked in Atomics.wait, so an 'error' event can only be delivered on a
+  // later tick after we've already returned -- but registering a no-op listener
+  // keeps a late worker failure from crashing the whole process (#1864 / #1865).
+  worker.on("error", () => {});
+
   try {
     const waitResult = Atomics.wait(signal, 0, 0, timeoutMs);
     if (waitResult === "timed-out") {

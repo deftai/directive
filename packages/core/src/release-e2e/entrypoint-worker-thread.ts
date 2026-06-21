@@ -14,7 +14,15 @@ interface WorkerBootstrapData extends WorkerEntrypointData {
 const data = workerData as WorkerBootstrapData;
 const result = runWorkerEntrypoint(data);
 const target = data.port ?? parentPort;
-target?.postMessage(result);
+try {
+  target?.postMessage(result);
+} catch {
+  // The parent may have closed the MessageChannel after a timeout +
+  // worker.terminate() (e.g. the slow "hang" path). Posting to a closed port
+  // throws here, outside runWorkerEntrypoint's catch -- which would surface as
+  // a worker 'error' event. The parent already returned its timeout result, so
+  // swallow it (#1864 / #1865 review).
+}
 if (data.signal !== undefined) {
   Atomics.store(data.signal, 0, 1);
   Atomics.notify(data.signal, 0);

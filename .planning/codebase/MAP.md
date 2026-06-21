@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: f1027ef358ab6675a4ac2a406b42a51748ae2c27246fed73ee89ac1873b8a4ad -->
-<!-- Source digest sha256: 46e535f153b3bfb363c8e9f126d95b883f52756d82b4dc2b16d5ef5e6ee2171e -->
+<!-- Artifact sha256: 2bbf18f17687ff2e81f4687d5a2e232c69b6f5bdb2c12b1d81176e077eaa4d99 -->
+<!-- Source digest sha256: 418c977b8c31432119a2652b4ed34aece026029445b84b4e9e0f2df9325717e3 -->
 
 # Codebase MAP
 
@@ -14,7 +14,7 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `46e535f153b3bfb363c8e9f126d95b883f52756d82b4dc2b16d5ef5e6ee2171e` |
+| Source digest | `418c977b8c31432119a2652b4ed34aece026029445b84b4e9e0f2df9325717e3` |
 
 ## Modules
 
