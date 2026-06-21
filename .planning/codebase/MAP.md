@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: 90b47180318a34fc6c150373b1a206398c74ec2210c06e8ea89d005e2a31b2b2 -->
-<!-- Source digest sha256: 7c185b3dd481d5af6b49f58c49666a697b2517603ac66056c6cf6bfec4634405 -->
+<!-- Artifact sha256: 93bd95eaa68f142e3d0ec82a0c43f248dd2cdc364f64fb6d3f13be47827a1ec8 -->
+<!-- Source digest sha256: cfb253e4343ae8e34bd7d9518359909d1fe59428d2207a9ef97abfe2793e2d5c -->
 
 # Codebase MAP
 
@@ -14,7 +14,7 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `7c185b3dd481d5af6b49f58c49666a697b2517603ac66056c6cf6bfec4634405` |
+| Source digest | `cfb253e4343ae8e34bd7d9518359909d1fe59428d2207a9ef97abfe2793e2d5c` |
 
 ## Modules
 
@@ -22,7 +22,7 @@
 | --- | --- | --- | --- | ---: |
 | `framework-content` | Framework Content | Agent-consumed standards, strategies, skills, templates, and documentation. | `AGENTS.md`, `SKILL.md`, `README.md`, `QUICK-START.md`, ... | 270 |
 | `python-tooling` | Python Tooling | Framework CLI helpers, validators, lifecycle tools, and automation scripts. | `run`, `run.py`, `run.bat`, `scripts/**/*.py` | 163 |
-| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1014 |
+| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1019 |
 | `task-runner` | Task Runner | Taskfile entry points that expose framework commands in source and consumer installs. | `Taskfile.yml`, `tasks/**/*.yml` | 47 |
 | `go-installer` | Go Installer | Standalone installer binary for end-user and maintainer installs. | `go.mod`, `cmd/deft-install/**/*.go` | 27 |
 | `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 744 |
@@ -118,6 +118,7 @@
 | `packages/core/src/triage/subscribe/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/triage/summary/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/triage/welcome/index.ts` | `typescript-engine` | heuristic |
+| `packages/core/src/ts-check-lane/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/validate-content/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/vbrief-activate/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/vbrief-build/index.ts` | `typescript-engine` | heuristic |
@@ -140,7 +141,7 @@
 | Markdown | 273 |
 | Other | 5 |
 | Python | 455 |
-| TypeScript | 1003 |
+| TypeScript | 1008 |
 | YAML | 53 |
 
 ## Degraded Signals
