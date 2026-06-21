@@ -89,22 +89,23 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief-validate conformance --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   destructive-gh-verbs:
-    desc: "Detection-bound gate for destructive gh verbs (#1019). Runs scripts/preflight_gh.py --self-test so the fixture-vs-classifier contract fails CI on drift. Override via DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 (per-shell emergency bypass)."
+    desc: "Detection-bound gate for destructive gh verbs (#1019). Runs preflight-gh --self-test so the fixture-vs-classifier contract fails CI on drift. Override via DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 (per-shell emergency bypass)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # No sources:/generates: -- the self-test fixture table is the
     # invariant under test; we want the gate to re-run on every
     # `task check` invocation regardless of whether the classifier file
     # mtime moved. Caching here would silently mask a regression.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_gh.py" --self-test {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/preflight_gh.py --self-test (#1854 s5).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" preflight-gh --self-test {{.CLI_ARGS}}
 
   cache-fresh:
     desc: "Pre-`start_agent` cache-freshness gate (#1127). Refuses implementation dispatch when the triage cache is stale, missing, or the target issue's latest decision is not `accept`. Subscription-aware via plan.policy.triageScope[] (D12 / #1131). Flags: --for-issue N / --max-age-hours N / --allow-stale / --repo OWNER/NAME / --allow-missing-bootstrap (consumed by the framework's own `task check` so a fresh checkout passes -- consumers leave it OFF)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--for-issue / --max-age-hours / --allow-stale / --repo) that
@@ -114,7 +115,8 @@ tasks:
     # `task triage:bootstrap`; consumer projects leave it off so a
     # missing cache fails their `task check` loudly.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_cache.py" --project-root "{{.USER_WORKING_DIR}}" --allow-missing-bootstrap {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/preflight_cache.py --allow-missing-bootstrap (#1854 s5).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" preflight-cache --project-root "{{.USER_WORKING_DIR}}" --allow-missing-bootstrap {{.CLI_ARGS}}
 
   codebase-map-fresh:
     desc: "Drift gate for the generated .planning/codebase/MAP.md projection (#1595 PR4)."
@@ -190,12 +192,13 @@ tasks:
   architecture-sor:
     desc: "Diff-time system-of-record architecture gate. Scans stateful persistence signals and requires a matching architecture.systemOfRecord record. Example: task verify:architecture-sor -- --base-ref origin/main [--story-path <path>]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per conventions/task-caching.md: no sources/generates because this gate
     # forwards --base-ref, --story-path, and --json through CLI_ARGS.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_architecture_sor.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/preflight_architecture_sor.py (#1854 s5).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" architecture-preflight-sor --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   capacity:
     desc: "Three-state ADVISORY capacity gate (#1419 Slice 4). Reports trailing-window target-vs-actual bucket mix from plan.policy.capacityAllocation; exits 0 in the default advise posture (and on insufficient sample / unconfigured policy), 1 only under an explicit enforce posture with a sampled deficit, 2 on config error. DELIBERATELY NOT in the `task check` aggregate -- capacity must never fail-closed on the framework tree."

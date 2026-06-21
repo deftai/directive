@@ -165,6 +165,18 @@
     "./platform": {
       "types": "./dist/platform/index.d.ts",
       "default": "./dist/platform/index.js"
+    },
+    "./check": {
+      "types": "./dist/check/index.d.ts",
+      "default": "./dist/check/index.js"
+    },
+    "./preflight-gh": {
+      "types": "./dist/preflight-gh/index.d.ts",
+      "default": "./dist/preflight-gh/index.js"
+    },
+    "./preflight-cache": {
+      "types": "./dist/preflight-cache/index.d.ts",
+      "default": "./dist/preflight-cache/index.js"
     }
   },
   "dependencies": {

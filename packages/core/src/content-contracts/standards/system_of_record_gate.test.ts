@@ -35,9 +35,10 @@ describe("test_system_of_record_gate.py", () => {
     const verify_tasks = readText("tasks/verify.yml");
     expect(taskfile).toContain("tasks/architecture.yml");
     expect(architecture_tasks).toContain("sor-preflight");
-    // architecture.yml now dispatches via Node.js CLI (wire-flipped in #1854)
+    // architecture.yml flipped to TS dispatcher (Wave 8.6 s4 / #1854)
     expect(architecture_tasks).toContain("architecture-preflight-sor");
     expect(verify_tasks).toContain("architecture-sor");
-    expect(verify_tasks).toContain("preflight_architecture_sor.py");
+    // verify.yml's architecture-sor gate also flipped to TS (Wave 8.6 s5 / #1854)
+    expect(verify_tasks).toContain("architecture-preflight-sor");
   });
 });

@@ -33,6 +33,7 @@ const HANDLER_KEYS = [
 /** CLI modules in packages/cli/src (excluding parity harnesses and bin/index). */
 export const CLI_MODULE_VERBS = [
   "cache",
+  "check",
   "capacity-backfill",
   "capacity-show",
   "codebase-default-extractor",
@@ -48,6 +49,8 @@ export const CLI_MODULE_VERBS = [
   "pr-monitor",
   "pr-protected-issues",
   "pr-wait-mergeable",
+  "preflight-cache",
+  "preflight-gh",
   "probe-session",
   "release",
   "release-e2e",

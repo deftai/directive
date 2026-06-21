@@ -319,10 +319,11 @@ tasks:
   check:
     desc: "Run the context-appropriate pre-commit gate: full framework self-check in this repo, consumer-safe gate from vendored installs (#1519)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: verify:_ts-build
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/_project_context.py" --dispatch-task-check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"
+      # Oracle/fallback (parity): scripts/_project_context.py --dispatch-task-check (#1854 s5).
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"
 
   check:framework-source:
     desc: "Run all framework source-repo pre-commit checks explicitly (skips @pytest.mark.slow tests via pyproject addopts -- run `task check:slow` for the slow lane, #975)."

@@ -71,11 +71,13 @@ class TestTaskCheckAggregate:
             return body[start.end() :]
         return body[start.end() : start.end() + next_task.start()]
 
-    def test_check_target_dispatches_through_project_context(self):
+    def test_check_target_dispatches_through_ts_orchestrator(self):
+        """Wave 8.6 s5 (#1854): task check now invokes the TS orchestrator."""
         body = self.TASKFILE.read_text(encoding="utf-8")
         assert "check:framework-source:" in body
         assert "check:consumer:" in body
-        assert "--dispatch-task-check" in body
+        # Wiring flipped from _project_context.py --dispatch-task-check to TS
+        assert "bin.js\" check --framework-root" in body
 
     def test_consumer_check_does_not_depend_on_framework_self_tests(self):
         body = self.TASKFILE.read_text(encoding="utf-8")
