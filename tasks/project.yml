@@ -14,7 +14,7 @@ tasks:
   render:
     desc: Regenerate PROJECT-DEFINITION.vbrief.json items registry from lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/project_render.py" "{{.USER_WORKING_DIR}}/vbrief"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" project-render "{{.USER_WORKING_DIR}}/vbrief"

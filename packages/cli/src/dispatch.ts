@@ -104,7 +104,11 @@ export const CORE_MODULE_VERBS = [
   "framework-commands",
   "pack-render",
   "packs-slice",
+  "prd-render",
+  "project-render",
   "roadmap-render",
+  "spec-render",
+  "spec-validate",
   "code-structure-validate",
   "pack-migrate-skills",
   "pack-migrate-rules",
@@ -139,6 +143,10 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "triage:status": "triage-actions",
   "session:start": "framework-commands",
   "toolchain:check": "toolchain-check",
+  "spec:validate": "spec-validate",
+  "spec:render": "spec-render",
+  "prd:render": "prd-render",
+  "project:render": "project-render",
   doctor: "doctor",
   build: "framework-commands",
 };
@@ -373,6 +381,22 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     case "roadmap-render": {
       const { main } = await import("../../core/dist/render/roadmap-render.js");
       return (argv) => main(argv);
+    }
+    case "spec-validate": {
+      const { runSpecValidateCli } = await import("./render-cli/spec-validate-cli.js");
+      return (argv) => runSpecValidateCli(argv);
+    }
+    case "spec-render": {
+      const { runSpecRenderCli } = await import("./render-cli/spec-render-cli.js");
+      return (argv) => runSpecRenderCli(argv);
+    }
+    case "prd-render": {
+      const { runPrdRenderCli } = await import("./render-cli/prd-render-cli.js");
+      return (argv) => runPrdRenderCli(argv);
+    }
+    case "project-render": {
+      const { runProjectRenderCli } = await import("./render-cli/project-render-cli.js");
+      return (argv) => runProjectRenderCli(argv);
     }
     case "code-structure-validate": {
       const { evaluateCodeStructure } = await import("@deftai/core/verify-source");
