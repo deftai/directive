@@ -88,7 +88,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-retarget-cachescmtriage-integration-e2e-tests-at-ts-entrypoi.vbrief.json",
+        "uri": "completed/2026-06-21-retarget-cachescmtriage-integration-e2e-tests-at-ts-entrypoi.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Retarget cache/scm/triage integration e2e tests at TS entrypoints",
         "TrustLevel": "internal"

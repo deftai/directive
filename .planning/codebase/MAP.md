@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: 4850b275a0cec5b75bc2c779744afa4d966d61a21693eaf5686d83e278f398a8 -->
-<!-- Source digest sha256: 257434d13c892b97f9083ebb34796118c7c306865bf1c99c43fd15738f8f96fc -->
+<!-- Artifact sha256: 4b026ca6a67cbe5ebf2658176b1e6d3c5ef6d8f7cfe5004f286a4af924bac146 -->
+<!-- Source digest sha256: a1b557ec2e8ca9d1c3fe2dd0977156bc540bf58069afdf86177a17d00a538963 -->
 
 # Codebase MAP
 
@@ -14,7 +14,7 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `257434d13c892b97f9083ebb34796118c7c306865bf1c99c43fd15738f8f96fc` |
+| Source digest | `a1b557ec2e8ca9d1c3fe2dd0977156bc540bf58069afdf86177a17d00a538963` |
 
 ## Modules
 
@@ -22,10 +22,10 @@
 | --- | --- | --- | --- | ---: |
 | `framework-content` | Framework Content | Agent-consumed standards, strategies, skills, templates, and documentation. | `AGENTS.md`, `SKILL.md`, `README.md`, `QUICK-START.md`, ... | 270 |
 | `python-tooling` | Python Tooling | Framework CLI helpers, validators, lifecycle tools, and automation scripts. | `run`, `run.py`, `run.bat`, `scripts/**/*.py` | 163 |
-| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 985 |
+| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1014 |
 | `task-runner` | Task Runner | Taskfile entry points that expose framework commands in source and consumer installs. | `Taskfile.yml`, `tasks/**/*.yml` | 47 |
 | `go-installer` | Go Installer | Standalone installer binary for end-user and maintainer installs. | `go.mod`, `cmd/deft-install/**/*.go` | 27 |
-| `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 737 |
+| `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 744 |
 | `content-packs` | Content Packs | Curated, sliceable agent memory packs rendered and checked through the packs task namespace. | `packs/**/*.md`, `packs/**/*.json` | 6 |
 | `ci-release-automation` | CI and Release Automation | Repository automation for branch policy, hooks, GitHub Actions, PR readiness, and release publication. | `.github/**/*.yml`, `.github/**/*.yaml`, `.githooks/*` | 6 |
 | `test-suite` | Test Suite | CLI, content, integration, and regression tests for framework behavior. | `tests/**/*.py`, `tests/**/*.json` | 339 |
@@ -73,6 +73,7 @@
 | `packages/core/src/branch/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/cache/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/capacity/index.ts` | `typescript-engine` | heuristic |
+| `packages/core/src/check/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/codebase/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/doctor/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/encoding/index.ts` | `typescript-engine` | heuristic |
@@ -88,6 +89,8 @@
 | `packages/core/src/pr-monitor/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/pr-protected-issues/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/pr-wait-mergeable/index.ts` | `typescript-engine` | heuristic |
+| `packages/core/src/preflight-cache/index.ts` | `typescript-engine` | heuristic |
+| `packages/core/src/preflight-gh/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/preflight/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/release-e2e/index.ts` | `typescript-engine` | heuristic |
 | `packages/core/src/release-publish/index.ts` | `typescript-engine` | heuristic |
@@ -133,11 +136,11 @@
 | Language | Files |
 | --- | ---: |
 | Go | 26 |
-| JSON | 794 |
+| JSON | 801 |
 | Markdown | 273 |
 | Other | 5 |
 | Python | 455 |
-| TypeScript | 974 |
+| TypeScript | 1003 |
 | YAML | 53 |
 
 ## Degraded Signals
