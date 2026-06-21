@@ -481,7 +481,11 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
 
   try {
     const handler = await loadHandler(canonical, io);
-    return await invokeHandler(handler, rest);
+    const handlerArgv =
+      canonical === "framework-commands" && verb !== undefined && verb !== canonical
+        ? [verb, ...rest]
+        : rest;
+    return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     io.writeErr(`deft-ts: ${message}\n`);

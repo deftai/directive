@@ -9,4 +9,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/toolchain-check.py"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" toolchain:check

@@ -42,7 +42,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_check_closing_keywords.py" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pr-closing-keywords {{.CLI_ARGS}}
 
   # pr:merge-ready -- programmatic Greptile-body verdict gate. Closes the
   # SUCCESS-with-findings blind spot in the Phase 5 -> 6 merge-readiness
