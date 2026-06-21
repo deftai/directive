@@ -58,6 +58,7 @@ export default defineConfig({
       "@deftai/core/packs": sub("core", "packs"),
       "@deftai/core/swarm": sub("core", "swarm"),
       "@deftai/core/platform": sub("core", "platform"),
+      "@deftai/core/ts-check-lane": sub("core", "ts-check-lane"),
       "@deftai/core": src("core"),
     },
   },

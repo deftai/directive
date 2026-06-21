@@ -177,6 +177,10 @@
     "./preflight-cache": {
       "types": "./dist/preflight-cache/index.d.ts",
       "default": "./dist/preflight-cache/index.js"
+    },
+    "./ts-check-lane": {
+      "types": "./dist/ts-check-lane/index.d.ts",
+      "default": "./dist/ts-check-lane/index.js"
     }
   },
   "dependencies": {

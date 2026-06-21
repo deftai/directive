@@ -41,7 +41,7 @@ tasks:
     desc: "Run the TS lane (lint+build+test) when a Node toolchain is present; skip with a notice otherwise (#1530 local-gate<->CI parity, #1790)."
     dir: '{{.DEFT_ROOT}}'
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/ts_check_lane.py" --project-root "{{.DEFT_ROOT}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" ts-check-lane --project-root "{{.DEFT_ROOT}}"
 
   encoding:
     desc: "Run the ported verify:encoding gate (TS @deftai/core port, #1718)"
