@@ -92,6 +92,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed -- Twelve high-severity CodeQL `js/polynomial-redos` alerts on master (plus one URL-substring sanitization finding) blocked unrelated PRs via diff-baseline mis-attribution. The flagged cache, scope, doctor, pr-merge-readiness, scm, slice, and triage modules now use linear scanners with byte-identical golden parity. Refs #1810 #1530.
 - **Cache quarantine scanner shell-vector detection is now ReDoS-safe (#1811 follow-up)** -- The `BODY_VECTOR_RE` regex in the cache quarantine scanner triggered a CodeQL `js/polynomial-redos` alert that the #1811 cleanup missed (and that mis-attributed to an unrelated PR). It is replaced with a single-pass linear recognizer that preserves byte-identical match semantics for the three shell-injection vectors (`curl|wget|fetch ... | sh`, `base64 -d/--decode/-D`, and `eval` delimiters), so scanner behavior and cache parity are unchanged. Refs #1811 #1530.
 
+### Changed
+- **Wave 8.6 verify.yml cluster now routes through the TypeScript engine (#1854 s3)** -- `task verify:stubs`, `verify:links`, `verify:rule-ownership`, `verify:scm-boundary`, `verify:capacity`, `verify:session-ritual`, `verify-strategy-output`, and `verify:no-task-runtime` invoke `deft-ts` via `packages/cli/dist/bin.js` instead of `uv run python`, with Python scripts kept as parity oracles. `verify:destructive-gh-verbs` and `verify:cache-fresh` remain on Python until their core modules land. Refs #1854 #1530.
+
 ### Removed
 
 ## [0.52.0] - 2026-06-18

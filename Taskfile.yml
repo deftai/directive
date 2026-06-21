@@ -390,10 +390,13 @@ tasks:
   verify-strategy-output:
     desc: "Deterministic v0.20 strategy output shape gate (#1166 s2). Fails on non-date-prefixed vBRIEFs in lifecycle dirs, missing PROJECT-DEFINITION.vbrief.json, or legacy specification.vbrief.json in user projects."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: verify:_ts-build
+        vars:
+          DEFT_ROOT: "{{.TASKFILE_DIR}}"
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/validate_strategy_output.py" --project-root "{{.USER_WORKING_DIR}}"
+      # Oracle/fallback (parity): scripts/validate_strategy_output.py (#1854 s3).
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" validate-strategy-output --project-root "{{.USER_WORKING_DIR}}"
 
   # Pack-projection drift gate (#1294 / #1283, ADR-001). User-facing alias for
   # `packs:verify-drift`, defined at the root Taskfile so it carries the
@@ -411,10 +414,13 @@ tasks:
 
   verify:no-task-runtime:
     desc: "Fail when runtime Python code hard-depends on go-task (#1659)."
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: verify:_ts-build
+        vars:
+          DEFT_ROOT: "{{.TASKFILE_DIR}}"
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/verify_no_task_runtime.py"
+      # Oracle/fallback (parity): scripts/verify_no_task_runtime.py (#1854 s3).
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" verify-no-task-runtime
 
   # `task check:slow` runs the @pytest.mark.slow lane that the default
   # `task check` skips (#975). The slow lane is dominated by the

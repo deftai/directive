@@ -13,24 +13,27 @@ tasks:
 
   stubs:
     desc: Scan source files for stub patterns (TODO, FIXME, HACK, return null, bare pass)
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify-stubs.py"
+      # Oracle/fallback (parity): scripts/verify-stubs.py (#1828 Wave 8 / #1854 s3).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-stubs
 
   links:
     desc: Validate internal links in markdown files
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/validate-links.py"
+      # Oracle/fallback (parity): scripts/validate-links.py (#1828 Wave 8 / #1854 s3).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" validate-links
 
   rule-ownership:
     desc: "Verify the Rule Ownership Map (conventions/rule-ownership.json) is in sync with its owner files (#635)"
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/rule_ownership_lint.py" --root "{{.DEFT_ROOT}}"
+      # Oracle/fallback (parity): scripts/rule_ownership_lint.py (#1828 Wave 8 / #1854 s3).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" rule-ownership-lint --root "{{.DEFT_ROOT}}"
 
   branch:
     desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
@@ -126,11 +129,12 @@ tasks:
   session-ritual:
     desc: "Fail-closed session ritual verifier (#1348). Flags: --tier quick|gated / --json. Set DEFT_SESSION_RITUAL_SKIP=1 for headless workers and CI."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # No sources/generates: this gate is time-, HEAD-, and worktree-sensitive.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_session_ritual.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_session_ritual.py (#1828 Wave 8 / #1854 s3).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-session-ritual --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   tools:
     desc: "Detect required Deft host tools and print install or manual guidance (#1187). Flags: --install / --yes / --json"
@@ -144,14 +148,15 @@ tasks:
   scm-boundary:
     desc: "Detection-bound gate against raw `gh` / `ghx` subprocess calls outside `scripts/scm.py` (#1145 / N5). Scans verb-layer Python files (`scripts/triage_*.py`, `scripts/scope_*.py`, `scripts/slice_*.py`, `scripts/_triage_*.py`, `scripts/_scope_*.py`, `scripts/resume_conditions.py`, `scripts/issue_ingest.py`) and fails loud when any of them invoke `gh` directly instead of going through `scm.call(source, verb, args)`. Three-state exit (0 clean / 1 violations / 2 config error). Document an exception via `--allow-list <path>` (file with newline-separated glob patterns)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (`--allow-list <path>` / `--quiet`) that go-task's incremental-build
     # cache would silently swallow.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_scm_boundary.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_scm_boundary.py (#1828 Wave 8 / #1854 s3).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-scm-boundary --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   story-ready:
     desc: "Deterministic story-start Gate 0 (#1378 Story C). Inspects working-tree cleanliness, the target vBRIEF lifecycle (active/ + plan.status==running), and the dispatch envelope's `## Allocation context` consent token (Story A schema). Three-state exit (0 ready / 1 not ready / 2 config error). -- task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>] [--allow-dirty] [--json]"
@@ -195,8 +200,8 @@ tasks:
   capacity:
     desc: "Three-state ADVISORY capacity gate (#1419 Slice 4). Reports trailing-window target-vs-actual bucket mix from plan.policy.capacityAllocation; exits 0 in the default advise posture (and on insufficient sample / unconfigured policy), 1 only under an explicit enforce posture with a sampled deficit, 2 on config error. DELIBERATELY NOT in the `task check` aggregate -- capacity must never fail-closed on the framework tree."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--project-root / --quiet) that go-task's incremental-build cache would
@@ -204,7 +209,8 @@ tasks:
     # from the `task check` deps so a capacity deficit cannot wedge the
     # framework's own self-check (advise-mode discipline, #1419).
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_capacity.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_capacity.py (#1828 Wave 8 / #1854 s3).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-capacity --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   judgment-gates:
     desc: "Three-state ADVISORY judgment-gate engine (#1419 Slice 3). Evaluates a candidate change (diff paths / labels / body) against plan.policy.judgmentGates + four default-on universal safety gates (secrets / infra / AGENTS.md+skills / installer). Advisory by default (always exits 0); opt-in --enforce fails closed (exit 1) when a mechanical block-tier gate fires without a recorded clearance; exit 2 on config error. -- task verify:judgment-gates [-- --base-ref <ref>] [--path P] [--label L] [--enforce] [--json]. DELIBERATELY NOT in the `task check` aggregate -- judgment gates must never fail-closed on the framework tree (advise -> observe -> block rollout, #1419)."

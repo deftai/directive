@@ -83,6 +83,13 @@ export const CLI_MODULE_VERBS = [
   "verify-investigation",
   "verify-judgment-gates",
   "verify-no-task-runtime",
+  "validate-links",
+  "validate-strategy-output",
+  "verify-capacity",
+  "verify-scm-boundary",
+  "verify-session-ritual",
+  "verify-stubs",
+  "rule-ownership-lint",
   "verify-story-ready",
   "verify-tools",
   "verify-wip-cap",
@@ -132,6 +139,16 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:tools": "verify-tools",
   "verify:investigation": "verify-investigation",
   "verify:judgment-gates": "verify-judgment-gates",
+  "verify:stubs": "verify-stubs",
+  "verify:links": "validate-links",
+  "validate:links": "validate-links",
+  "verify:rule-ownership": "rule-ownership-lint",
+  "rule:ownership-lint": "rule-ownership-lint",
+  "verify:scm-boundary": "verify-scm-boundary",
+  "verify:capacity": "verify-capacity",
+  "verify:session-ritual": "verify-session-ritual",
+  "verify-strategy-output": "validate-strategy-output",
+  "validate:strategy-output": "validate-strategy-output",
   "verify:codebase-map-fresh": "codebase-map-fresh",
   "codebase:map": "codebase-map",
   "triage:welcome": "triage-welcome",
@@ -149,6 +166,16 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "project:render": "project-render",
   doctor: "doctor",
   build: "framework-commands",
+};
+
+/** CLI modules living under verify-source-cli/ or content-validate-cli/ subdirs. */
+const SUBDIR_CLI_STEMS: Readonly<Record<string, string>> = {
+  "verify-stubs": "verify-source-cli/verify-stubs",
+  "rule-ownership-lint": "verify-source-cli/rule-ownership-lint",
+  "verify-scm-boundary": "verify-source-cli/verify-scm-boundary",
+  "validate-links": "content-validate-cli/validate-links",
+  "verify-capacity": "content-validate-cli/verify-capacity",
+  "validate-strategy-output": "content-validate-cli/validate-strategy-output",
 };
 
 const WRAPPER_CLI_STEMS = new Set<string>([
@@ -241,7 +268,9 @@ async function loadCliModuleHandler(stem: string, io: DispatchIo): Promise<Comma
   if (WRAPPER_CLI_STEMS.has(stem)) {
     return loadWrapperCliHandler(stem, io);
   }
-  const mod = (await import(`./${stem}.js`)) as Record<string, unknown>;
+  const subdir = SUBDIR_CLI_STEMS[stem];
+  const modulePath = subdir !== undefined ? `./${subdir}.js` : `./${stem}.js`;
+  const mod = (await import(modulePath)) as Record<string, unknown>;
   const handler = resolveHandler(mod);
   if (handler === null) {
     throw new Error(`module ${stem} has no command handler export`);
