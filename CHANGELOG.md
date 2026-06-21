@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Retarget verify/doctor/policy/session CLI tests at the deft-ts dispatcher (#1838 s5)** -- Added `packages/cli/src/gates-cli/` vitest specs that invoke `node packages/cli/dist/bin.js` for consumer-critical gate verbs (doctor, policy, verify-*, session:start, framework-commands aliases) with a per-file coverage map recorded in the PR body; Python pytest suites remain unchanged. Refs #1838 #1530.
+
 ### Changed
 - **Planned Wave 8.5 -- maintainer test-suite conversion to vitest (#1838)** -- Decomposed the content/CLI/integration pytest conversion (~234 files) into 8 swarm-ready story vBRIEFs and decoupled it from the destructive cutover: the test port is additive and no longer chained to #1731's bake window. #1731 shrinks to its irreversible delete-core (delete engine, retire parity harnesses, pytest teardown). Refs #1838 #1530.
 - **scm/cache/policy and remaining live gates now route through the TS engine (#1828 s6)** -- The scm stub, unified cache, typed policy surface, pack slice/render, roadmap render, codebase validators, and capacity show/backfill tasks now invoke `deft-ts` via `packages/cli/dist/bin.js` instead of `uv run python`, with Python scripts kept in-tree as parity oracles. Refs #1828 #1530.
