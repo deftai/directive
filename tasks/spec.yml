@@ -11,11 +11,18 @@ vars:
 # on Windows under `uv --project "{{.DEFT_ROOT}}" run python` (#566).
 
 tasks:
+  _ts-build:
+    internal: true
+    desc: "Build @deftai/cli dist/ before TS-backed render gates run (#1854 s2)."
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - pnpm run build
+
   validate:
     desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" spec-validate "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
 
@@ -23,7 +30,7 @@ tasks:
     desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" spec-render "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
 

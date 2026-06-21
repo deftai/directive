@@ -11,10 +11,17 @@ vars:
 # match the convention used by roadmap:render / spec:render / migrate:vbrief.
 
 tasks:
+  _ts-build:
+    internal: true
+    desc: "Build @deftai/cli dist/ before TS-backed render gates run (#1854 s2)."
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - pnpm run build
+
   render:
     desc: Regenerate PROJECT-DEFINITION.vbrief.json items registry from lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" project-render "{{.USER_WORKING_DIR}}/vbrief"
