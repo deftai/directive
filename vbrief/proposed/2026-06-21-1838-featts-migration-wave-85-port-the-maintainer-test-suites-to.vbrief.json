@@ -58,7 +58,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-retarget-vbriefscopeissuereconcile-cli-tests-at-the-deft-ts.vbrief.json",
+        "uri": "completed/2026-06-21-retarget-vbriefscopeissuereconcile-cli-tests-at-the-deft-ts.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Retarget vbrief/scope/issue/reconcile CLI tests at the deft-ts dispatcher",
         "TrustLevel": "internal"
