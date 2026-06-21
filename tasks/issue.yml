@@ -21,9 +21,9 @@ tasks:
   _ensure-ts:
     internal: true
     desc: "Build the TS engine before issue gates (#1828 s4)"
-    dir: '{{.DEFT_ROOT}}'
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - pnpm run build
+      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   ingest:
     desc: "Ingest GitHub issues as scope vBRIEFs (single <N> or --all [--label L] [--status S] [--dry-run])"

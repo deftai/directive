@@ -19,9 +19,9 @@ tasks:
   _ensure-ts:
     internal: true
     desc: "Build the TS engine before reconcile gates (#1828 s4)"
-    dir: '{{.DEFT_ROOT}}'
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - pnpm run build
+      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   issues:
     desc: "Reconcile GitHub issues against vBRIEF references -- report linked, unlinked, and resolved"

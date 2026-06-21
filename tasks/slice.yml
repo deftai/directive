@@ -46,9 +46,9 @@ tasks:
   _ensure-ts:
     internal: true
     desc: "Build the TS engine before slice gates (#1828 s4)"
-    dir: '{{.DEFT_ROOT}}'
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - pnpm run build
+      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   record-existing:
     desc: "Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). Windows note (#1231): CLI_ARGS is forwarded bare to argparse so values containing spaces (e.g. --notes \"A note with spaces\") may be re-split by the shell -- prefer hyphenated single-token values like --notes=backfill-after-N7. -- task slice:record-existing -- --umbrella=N --children=A,B,C [--wave-1=A,B] [--wave-2=C] [--actor=manual:operator] [--expected-close-signal=all-children-merged] [--sliced-at=ISO] [--notes=TEXT] [--dry-run] [--force] [--skip-validation] [--repo OWNER/NAME]"
