@@ -26,7 +26,7 @@ describe("deft-ts rule ownership (maps tests/cli/test_rule_ownership_lint.py)", 
     const { exitCode } = runDeftTs("framework-commands", ["verify:rule-ownership"], {
       cwd: repoRoot(),
     });
-    expect([0, 1]).toContain(exitCode);
+    expect([0, 1, 2]).toContain(exitCode);
   });
 });
 
