@@ -1,0 +1,87 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json"
+  },
+  "plan": {
+    "id": "1854-s4-scope-changelog-arch",
+    "title": "Wire/port + flip scope:undo, scope:demote, scope:decompose, changelog:resolve, architecture:sor",
+    "status": "running",
+    "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
+    "narratives": {
+      "Description": "This story finishes the lower-volume Bucket-B entrypoints that live in their own Taskfiles: scope_undo and scope_demote (core/src/scope/main.ts exists, so wire), resolve_changelog_unreleased (core/src/platform exists, so wire), and the two that need a genuine TS port (scope_decompose and preflight_architecture_sor have no core module). It exclusively owns tasks/scope.yml, tasks/scope-undo.yml, tasks/changelog.yml, and tasks/architecture.yml. It is independently buildable but carries real porting work, so it is the heaviest non-keystone story.",
+      "ImplementationPlan": "1. Wire scope-undo, scope-demote, changelog-resolve-unreleased verbs delegating to existing core modules; flip tasks/scope-undo.yml, the scope_demote line in tasks/scope.yml, and tasks/changelog.yml. 2. Port scope_decompose and preflight_architecture_sor to new TS core modules (packages/core/src/scope/decompose.ts, packages/core/src/architecture/sor-preflight.ts) reproducing the Python behavior including historical edge cases, expose as verbs, and flip tasks/scope.yml (decompose line) and tasks/architecture.yml. 3. Add focused vitest unit tests for the two new ports and a CHANGELOG entry; verify the scope-lifecycle-parity harness stays CLEAN.",
+      "UserStory": "As a deft maintainer, I want scope undo/demote/decompose, changelog resolution, and the architecture SoR preflight to run on TS, so that their Python scripts become unreferenced before the #1731 delete.",
+      "Traces": "#1854, #1530"
+    },
+    "items": [
+      {
+        "id": "1854-s4-scope-changelog-arch-a1",
+        "title": "Given `task scope:undo`, `task scope:demote`, and `task scope:decompose`, when each runs, then it invokes a bin.js verb and not `uv run python`.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task scope:undo`, `task scope:demote`, and `task scope:decompose`, when each runs, then it invokes a bin.js verb and not `uv run python`.",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s4-scope-changelog-arch-a2",
+        "title": "Given the newly ported scope-decompose and architecture-sor TS modules, when their vitest suites run, then they pass including non-happy-path fixtures mirrored from the Python tests.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the newly ported scope-decompose and architecture-sor TS modules, when their vitest suites run, then they pass including non-happy-path fixtures mirrored from the Python tests.",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s4-scope-changelog-arch-a3",
+        "title": "Given `task changelog:resolve-unreleased` and `task architecture:preflight-sor`, when each runs, then it invokes a bin.js verb; and `grep -rE 'uv .*run python' tasks/scope.yml tasks/scope-undo.yml tasks/changelog.yml tasks/architecture.yml` returns no matches.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task changelog:resolve-unreleased` and `task architecture:preflight-sor`, when each runs, then it invokes a bin.js verb; and `grep -rE 'uv .*run python' tasks/scope.yml tasks/scope-undo.yml tasks/changelog.yml tasks/architecture.yml` returns no matches.",
+          "Traces": "#1854, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/scope",
+          "packages/core/src/architecture",
+          "packages/cli/src/scope-cli",
+          "tasks/scope.yml",
+          "tasks/scope-undo.yml",
+          "tasks/changelog.yml",
+          "tasks/architecture.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task ts:scope-lifecycle-parity",
+          "task ts:check-lane"
+        ],
+        "expected_outputs": [
+          "scope/changelog/architecture entrypoints on TS",
+          "2 new ports with vitest coverage"
+        ],
+        "depends_on": [],
+        "conflict_group": "dispatch-scope",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "claude-4.6-sonnet-medium-thinking"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1854",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-21T16:34:54Z"
+  }
+}

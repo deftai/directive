@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json"
+  },
+  "plan": {
+    "id": "1854-s3-verify-gates",
+    "title": "Wire + flip every remaining Python gate in tasks/verify.yml + the two root-Taskfile gates",
+    "status": "running",
+    "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
+    "narratives": {
+      "Description": "tasks/verify.yml is the single largest cluster of unflipped live-Python gates (verify-stubs, validate-links, rule-ownership-lint, verify_scm_boundary, verify_capacity, verify_session_ritual, preflight_gh self-test, preflight_cache), and Taskfile.yml carries two more (validate_strategy_output, verify_no_task_runtime). Their TS modules exist under packages/core/src/{verify-source,validate-content,session,verify-env}. This story exposes the missing verbs and flips the gate cmds. It exclusively owns tasks/verify.yml and the two named root-Taskfile gate lines, so it is conflict-isolated from the other stories except the additive dispatch switch.",
+      "ImplementationPlan": "1. For each gate lacking a verb (verify-stubs, validate-links, rule-ownership-lint, verify-scm-boundary, verify-capacity, verify-session-ritual, validate-strategy, plus preflight-gh self-test and preflight-cache if a core module exists; otherwise note in the PR which still need a port), add a dispatch.ts case delegating to the existing core module. 2. Repoint the cmds in tasks/verify.yml and the validate_strategy_output / verify_no_task_runtime lines in Taskfile.yml to bin.js verbs. 3. Run task verify:scm-boundary, task verify:encoding, and the relevant parity harnesses (verify-source-parity, validate-content-parity, session-parity, verify-env-parity) to confirm CLEAN, and add a CHANGELOG entry.",
+      "UserStory": "As a deft maintainer, I want all verify.yml gates to execute on the TS dispatcher, so that the gate-suite Python scripts become unreferenced before the #1731 delete.",
+      "Traces": "#1854, #1530"
+    },
+    "items": [
+      {
+        "id": "1854-s3-verify-gates-a1",
+        "title": "Given `task verify:scm-boundary`, `task verify:capacity`, `task verify:session-ritual`, `task verify-stubs`, `task validate:links`, and `task rule:ownership-lint`, when each runs, then it invokes a bin.js verb and not `uv run python`.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task verify:scm-boundary`, `task verify:capacity`, `task verify:session-ritual`, `task verify-stubs`, `task validate:links`, and `task rule:ownership-lint`, when each runs, then it invokes a bin.js verb and not `uv run python`.",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s3-verify-gates-a2",
+        "title": "Given the parity harnesses verify-source-parity, validate-content-parity, session-parity, and verify-env-parity, when task ts:parity-all runs, then all remain CLEAN.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the parity harnesses verify-source-parity, validate-content-parity, session-parity, and verify-env-parity, when task ts:parity-all runs, then all remain CLEAN.",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s3-verify-gates-a3",
+        "title": "Given `grep -rE 'uv .*run python' tasks/verify.yml`, when run, then it returns no matches.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `grep -rE 'uv .*run python' tasks/verify.yml`, when run, then it returns no matches.",
+          "Traces": "#1854, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/verify-source-cli",
+          "packages/cli/src/content-validate-cli",
+          "tasks/verify.yml",
+          "Taskfile.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task ts:parity-all",
+          "task verify:scm-boundary"
+        ],
+        "expected_outputs": [
+          "verify.yml fully TS",
+          "all relevant parity harnesses CLEAN"
+        ],
+        "depends_on": [],
+        "conflict_group": "dispatch-verify",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "composer-2.5-fast"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1854",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-21T16:34:53Z"
+  }
+}

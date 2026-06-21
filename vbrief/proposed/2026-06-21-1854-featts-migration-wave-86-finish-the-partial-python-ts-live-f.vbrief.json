@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1854"
+  },
+  "plan": {
+    "title": "feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1854",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545). Sibling/predecessor of the #1731 delete-core.\n\n## Why this exists (the finding)\n\nWave 8 (#1828) was scoped as \"repoint the live gates to TS, keep Python as oracle/fallback.\" In practice the flip was **partial**: it covered the high-traffic consumer gate surface (most `verify:*`, `scope:*` promote/activate/lifecycle, `triage:*`, `pr:*`, `scm`, `cache`, `policy`, `packs`, `codebase`, `vbrief:*`, `roadmap`, `issue:ingest`) but left **~29 live Python entrypoints** still wired into the `task` surface.\n\nMost consequentially, **`task check` itself is still dispatched by Python** (`scripts/_project_context.py --dispatch-task-check`), and several gates it runs (`verify:scm-boundary`, `verify:session-ritual`, `verify:capacity`, `validate-links`, `verify-stubs`, `rule-ownership`, `validate-strategy`) plus `session:start`, `spec:*`, `prd:render`, `project:render`, `scope:undo/demote/decompose`, `changelog`, `architecture:*` still execute `uv run python scripts/*.py`.\n\n**Consequence:** the #1731 delete-core precondition (\"remove *now-unreferenced* `scripts/*.py`\") is not met. Deleting Python today would red `task check` and the listed verbs. This wave finishes the flip so #1731 becomes the mechanical, safe delete it is described as.\n\nBake status at discovery (on `feat/1731-wave9-python-delete`): `ts:parity-all` 44/44 CLEAN (cache-off), pytest 8771 passed, live gate stack green. The TS modules already exist and are parity-proven for most of the remainder — the gap is **CLI exposure + Taskfile repoint**, not new ports.\n\n## What to build\n\nFinish the Python→TS live flip so that **zero `uv run python scripts/*.py` entrypoints remain on the live `task` surface** (parity harnesses, pytest, and accepted-non-ports excepted — those are handled by #1731). After this wave, `task check` runs entirely on the TS dispatcher.\n\n## Classification of the ~29 live entrypoints\n\n**Bucket A — flip-only (TS verb already exists, just repoint the Taskfile line):**\n`session:start` (session:start), `issue:emit` (issue-emit), `pr:check-closing-keywords` (pr-closing-keywords), `swarm:readiness` (swarm-readiness), `toolchain:check` (toolchain:check), `verify:no-task-runtime` (verify-no-task-runtime).\n\n**Bucket B1 — wire+flip (parity-proven TS core module exists; add a dispatcher verb, then repoint):**\n`spec:validate` / `spec:render` (core/render/spec-*.ts), `prd:render` (core/render/prd-render.ts), `project:render` (core/render/project-render.ts), `verify:scm-boundary` (core/verify-source/python-call-scan.ts), `verify:capacity` (core/validate-content/verify-capacity.ts), `verify:session-ritual` (core/session, session-parity), `validate-strategy` (core/validate-content/validate-strategy-output.ts), `validate-links` (core/validate-content/validate-links.ts), `verify-stubs` (core/verify-source), `rule-ownership-lint` (core/verify-source).\n\n**Bucket B2 — audit-then-port (only surfaced in coverage-maps; confirm whether a TS module exists, port if not):**\n`preflight:cache`, `preflight:gh --self-test`, `preflight:architecture-sor`, `scope:undo`, `scope:demote`, `scope:decompose`, `changelog:resolve-unreleased`.\n\n**Keystone — the `task check` orchestrator:**\n`scripts/_project_context.py --dispatch-task-check` has no TS module. Needs a genuine TS port (`deft-ts check` / a dispatch module) so `task check` no longer shells Python. This is the highest-risk, must-land-last item.\n\n**Bucket C — accepted non-ports (disposition decision, NOT a 1:1 port; owned/closed-out by #1731's teardown):**\n`build_dist`, `ci_local`, `setup_ghx` (build/packaging), `migrate_vbrief` + `migrate_preflight`, `relocate` + `_relocate_*` (pre-v0.20 / back-compat), `ts_check_lane` (TS-lane runner). Out of scope here except to confirm none block the delete.\n\n## Acceptance criteria\n\n- [ ] Every Bucket A entrypoint repointed to its existing TS dispatcher verb; Taskfile lines no longer shell `uv run python`.\n- [ ] Every Bucket B1 module exposed as a dispatcher verb and its Taskfile line flipped; parity harness still CLEAN.\n- [ ] Every Bucket B2 entrypoint audited; ported + wired where no TS module exists; Taskfile line flipped.\n- [ ] `task check` runs end-to-end on the TS dispatcher (no `_project_context.py --dispatch-task-check`).\n- [ ] `grep -rE 'uv .*run python .*scripts/' Taskfile.yml tasks/*.yml` returns **only** parity-harness, pytest, and Bucket-C lines.\n- [ ] `ts:parity-all` stays CLEAN and `task check` stays green at every merge (strangler-fig; no big-bang).\n\n## Standing invariants (inherited from #1731 / #1530 Part 1)\n\n- The Python suite remains the parity oracle and runs wholesale until #1731 deletes it.\n- `task check` stays green at every step.\n- The parity gate runs cache-off.\n- No Python module is deleted in this wave — this wave only flips live execution to TS. Deletion is #1731.\n- Go installer untouched (its fate is owned by #1669 Wave 0).\n\n## Type\n\nfeat\n",
+      "Labels": "enhancement"
+    },
+    "items": [
+      {
+        "title": "Every Bucket A entrypoint repointed to its existing TS dispatcher verb; Taskfile lines no longer shell .",
+        "status": "proposed"
+      },
+      {
+        "title": "Every Bucket B1 module exposed as a dispatcher verb and its Taskfile line flipped; parity harness still CLEAN.",
+        "status": "proposed"
+      },
+      {
+        "title": "Every Bucket B2 entrypoint audited; ported + wired where no TS module exists; Taskfile line flipped.",
+        "status": "proposed"
+      },
+      {
+        "title": "runs end-to-end on the TS dispatcher (no ).",
+        "status": "proposed"
+      },
+      {
+        "title": "returns **only** parity-harness, pytest, and Bucket-C lines.",
+        "status": "proposed"
+      },
+      {
+        "title": "stays CLEAN and  stays green at every merge (strangler-fig; no big-bang).",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1854",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)"
+      },
+      {
+        "uri": "active/2026-06-21-flip-the-5-bucket-a-entrypoints-to-their-existing-ts-verbs.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Flip the 5 Bucket-A entrypoints to their existing TS verbs",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "active/2026-06-21-wire-flip-the-render-family-specvalidate-specrender-prdrende.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Wire + flip the render family (spec:validate, spec:render, prd:render, project:render)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "active/2026-06-21-wire-flip-every-remaining-python-gate-in-tasksverifyyml-the.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Wire + flip every remaining Python gate in tasks/verify.yml + the two root-Taskfile gates",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "active/2026-06-21-wireport-flip-scopeundo-scopedemote-scopedecompose-changelog.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Wire/port + flip scope:undo, scope:demote, scope:decompose, changelog:resolve, architecture:sor",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-keystone-sequential-port-the-task-check-orchestrator-to-ts.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Keystone (sequential): port the task check orchestrator to TS",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

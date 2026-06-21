@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json"
+  },
+  "plan": {
+    "id": "1854-s1-bucketA-flip",
+    "title": "Flip the 5 Bucket-A entrypoints to their existing TS verbs",
+    "status": "running",
+    "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
+    "narratives": {
+      "Description": "Five live task entrypoints already have a registered TS dispatcher verb but their Taskfile lines still shell `uv run python scripts/*.py`. This story repoints those lines to `node {{.DEFT_ROOT}}/packages/cli/dist/bin.js <verb>` so they execute TS, with no new TS code required. It is independently buildable because each owned Taskfile is touched by no other Wave 8.6 story, and the verbs (session:start, issue-emit, pr-closing-keywords, swarm-readiness, toolchain:check) are already exposed and parity-proven.",
+      "ImplementationPlan": "1. In tasks/session.yml (session_start.py -> session:start), tasks/issue.yml (issue_emit.py -> issue-emit), tasks/pr.yml (pr_check_closing_keywords.py -> pr-closing-keywords), tasks/swarm.yml (swarm_readiness.py -> swarm-readiness), and tasks/toolchain.yml (toolchain-check.py -> toolchain:check), replace each `uv --project ... run python .../scripts/<name>.py <args>` cmd with `node {{.DEFT_ROOT}}/packages/cli/dist/bin.js <verb> <args>`, preserving CLI_ARGS/USER_WORKING_DIR templating and deps. 2. Verify each flip by running `task session:start` and `task swarm:readiness -- --help` against packages/cli/dist/bin.js output and confirming `task ts:parity-all` stays CLEAN. 3. Add a CHANGELOG [Unreleased] entry referencing #1854.",
+      "UserStory": "As a deft maintainer, I want the already-ported session/issue/pr/swarm/toolchain task entrypoints to run on the TS dispatcher, so that the Python copies become unreferenced and deletable in #1731.",
+      "Traces": "#1854, #1530"
+    },
+    "items": [
+      {
+        "id": "1854-s1-bucketA-flip-a1",
+        "title": "Given `task session:start`, when it runs, then it invokes `node .../dist/bin.js session:start` (no `uv run python session_start.py`) and records the ritual state identically.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task session:start`, when it runs, then it invokes `node .../dist/bin.js session:start` (no `uv run python session_start.py`) and records the ritual state identically.",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s1-bucketA-flip-a2",
+        "title": "Given `task issue:emit`, `task pr:check-closing-keywords`, `task swarm:readiness`, and `task toolchain:check`, when each runs, then it invokes the corresponding bin.js verb and produces output matching the prior Python behavior.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task issue:emit`, `task pr:check-closing-keywords`, `task swarm:readiness`, and `task toolchain:check`, when each runs, then it invokes the corresponding bin.js verb and produces output matching the prior Python behavior.",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s1-bucketA-flip-a3",
+        "title": "Given `grep -rE 'uv .*run python .*scripts/(session_start|issue_emit|pr_check_closing_keywords|swarm_readiness|toolchain-check)\\.py' tasks/`, when run, then it returns no matches.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `grep -rE 'uv .*run python .*scripts/(session_start|issue_emit|pr_check_closing_keywords|swarm_readiness|toolchain-check)\\.py' tasks/`, when run, then it returns no matches.",
+          "Traces": "#1854, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/session.yml",
+          "tasks/issue.yml",
+          "tasks/pr.yml",
+          "tasks/swarm.yml",
+          "tasks/toolchain.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task session:start",
+          "task ts:parity-all"
+        ],
+        "expected_outputs": [
+          "Flipped task entrypoints invoking bin.js verbs",
+          "ts:parity-all still CLEAN"
+        ],
+        "depends_on": [],
+        "conflict_group": "taskfiles-A",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "composer-2.5-fast"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1854",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-21T16:34:52Z"
+  }
+}

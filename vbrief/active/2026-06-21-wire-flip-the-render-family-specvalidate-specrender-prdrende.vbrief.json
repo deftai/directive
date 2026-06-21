@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json"
+  },
+  "plan": {
+    "id": "1854-s2-render-family",
+    "title": "Wire + flip the render family (spec:validate, spec:render, prd:render, project:render)",
+    "status": "running",
+    "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
+    "narratives": {
+      "Description": "The spec/PRD/project render and spec validate gates have parity-proven TS core modules (packages/core/src/render/spec-validate.ts, spec-render.ts, prd-render.ts, project-render.ts) but no dispatcher verb, so tasks/spec.yml, tasks/prd.yml, and tasks/project.yml still shell Python. This story exposes each module as a dispatcher verb and repoints the three owned Taskfiles. It is independently buildable: it owns those three Taskfiles exclusively and adds isolated case blocks to the dispatch switch.",
+      "ImplementationPlan": "1. Add `spec-validate`, `spec-render`, `prd-render`, `project-render` cases (plus colon aliases where the task uses them) to packages/cli/src/dispatch.ts, each delegating to the existing core/render module via a thin CLI wrapper under packages/cli/src/render-cli/. 2. Repoint tasks/spec.yml, tasks/prd.yml, tasks/project.yml cmds from `uv run python scripts/{spec_validate,spec_render,prd_render,project_render}.py` to the new `node .../bin.js <verb>` forms, preserving argument order/paths. 3. Run task ts:render-parity to confirm byte-identical output and add a CHANGELOG entry.",
+      "UserStory": "As a deft maintainer, I want spec/PRD/project rendering to run through the TS dispatcher, so that the render Python scripts become unreferenced ahead of the #1731 delete.",
+      "Traces": "#1854, #1530"
+    },
+    "items": [
+      {
+        "id": "1854-s2-render-family-a1",
+        "title": "Given the dispatcher, when `node .../bin.js spec-render <spec> <out>` runs, then it produces a SPECIFICATION.md byte-identical to the Python spec_render.py output (asserted by ts:render-parity remaining CLEAN).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the dispatcher, when `node .../bin.js spec-render <spec> <out>` runs, then it produces a SPECIFICATION.md byte-identical to the Python spec_render.py output (asserted by ts:render-parity remaining CLEAN).",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s2-render-family-a2",
+        "title": "Given `task spec:validate`, `task prd:render`, and `task project:render`, when each runs, then it invokes the new bin.js verb and not `uv run python`.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task spec:validate`, `task prd:render`, and `task project:render`, when each runs, then it invokes the new bin.js verb and not `uv run python`.",
+          "Traces": "#1854, #1530"
+        }
+      },
+      {
+        "id": "1854-s2-render-family-a3",
+        "title": "Given `grep -rE 'uv .*run python .*scripts/(spec_validate|spec_render|prd_render|project_render)\\.py' tasks/`, when run, then it returns no matches.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `grep -rE 'uv .*run python .*scripts/(spec_validate|spec_render|prd_render|project_render)\\.py' tasks/`, when run, then it returns no matches.",
+          "Traces": "#1854, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/render-cli",
+          "tasks/spec.yml",
+          "tasks/prd.yml",
+          "tasks/project.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task ts:render-parity",
+          "task ts:check-lane"
+        ],
+        "expected_outputs": [
+          "4 new render dispatcher verbs",
+          "Flipped spec/prd/project Taskfiles",
+          "ts:render-parity CLEAN"
+        ],
+        "depends_on": [],
+        "conflict_group": "dispatch-render",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "composer-2.5-fast"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1854",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-21T16:34:52Z"
+  }
+}

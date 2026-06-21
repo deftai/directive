@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json"
+  },
+  "plan": {
+    "id": "1854-s5-check-orchestrator",
+    "title": "Keystone (sequential): port the task check orchestrator to TS",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1854-featts-migration-wave-86-finish-the-partial-python-ts-live-f.vbrief.json",
+    "narratives": {
+      "Description": "The keystone: task check is dispatched by scripts/_project_context.py --dispatch-task-check, which has no TS module. Until it is ported, deleting Python breaks the primary pre-commit gate. This story ports the check orchestrator to a TS module (deft-ts check) and repoints the root Taskfile check target. It must land last because its TS replacement invokes the gate verbs that s1-s4 expose; running it earlier would call verbs that do not yet exist.",
+      "ImplementationPlan": "1. Read scripts/_project_context.py to enumerate the exact gate sequence, context-detection (framework vs vendored install), and exit semantics it implements for --dispatch-task-check. 2. Port it to packages/core/src/check/orchestrator.ts plus a `check` dispatcher verb that runs the same ordered gate list through the TS verbs, preserving the framework-source vs consumer split (#1519) and three-state exit. 3. Repoint the Taskfile.yml check target from `uv run python _project_context.py --dispatch-task-check` to `node .../bin.js check`; run the full task check and confirm green parity with the prior Python-dispatched run; add vitest coverage and a CHANGELOG entry.",
+      "UserStory": "As a deft maintainer, I want task check itself to run on the TS dispatcher, so that no live gate depends on Python and the #1731 delete becomes a mechanical removal.",
+      "Traces": "#1854, #1530, #1519"
+    },
+    "items": [
+      {
+        "id": "1854-s5-check-orchestrator-a1",
+        "title": "Given `task check` on a feature branch, when it runs, then it invokes `node .../bin.js check` (no _project_context.py --dispatch-task-check) and exercises the same ordered gate set with identical pass/fail outcomes.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task check` on a feature branch, when it runs, then it invokes `node .../bin.js check` (no _project_context.py --dispatch-task-check) and exercises the same ordered gate set with identical pass/fail outcomes.",
+          "Traces": "#1854, #1530, #1519"
+        }
+      },
+      {
+        "id": "1854-s5-check-orchestrator-a2",
+        "title": "Given the framework-source vs vendored-consumer contexts (#1519), when task check runs in each, then it selects the correct gate set as the Python orchestrator did.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the framework-source vs vendored-consumer contexts (#1519), when task check runs in each, then it selects the correct gate set as the Python orchestrator did.",
+          "Traces": "#1854, #1530, #1519"
+        }
+      },
+      {
+        "id": "1854-s5-check-orchestrator-a3",
+        "title": "Given `grep -rE 'uv .*run python .*_project_context.py' Taskfile.yml`, when run, then it returns no live --dispatch-task-check match.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `grep -rE 'uv .*run python .*_project_context.py' Taskfile.yml`, when run, then it returns no live --dispatch-task-check match.",
+          "Traces": "#1854, #1530, #1519"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/core/src/check",
+          "Taskfile.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "task ts:parity-all"
+        ],
+        "expected_outputs": [
+          "TS check orchestrator",
+          "task check fully TS-dispatched and green"
+        ],
+        "depends_on": [
+          "1854-s1-bucketA-flip",
+          "1854-s2-render-family",
+          "1854-s3-verify-gates",
+          "1854-s4-scope-changelog-arch"
+        ],
+        "conflict_group": "dispatch-check",
+        "size": "XL",
+        "file_scope_confidence": "medium",
+        "model_tier": "claude-4.6-sonnet-medium-thinking"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1854",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}
