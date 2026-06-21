@@ -56,7 +56,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-enforce-node-as-a-required-consumer-runtime-in-doctortoolcha.vbrief.json",
+        "uri": "completed/2026-06-21-enforce-node-as-a-required-consumer-runtime-in-doctortoolcha.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Enforce Node as a required consumer runtime in doctor/toolchain",
         "TrustLevel": "internal"

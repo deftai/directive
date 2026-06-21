@@ -1,4 +1,5 @@
 import * as childProcess from "node:child_process";
+import { nodeRuntimeRemediationLines } from "./node-runtime.js";
 
 export interface ToolCheck {
   readonly name: string;
@@ -10,6 +11,8 @@ export const TOOLS: readonly ToolCheck[] = [
   { name: "uv", command: ["uv", "--version"] },
   { name: "git", command: ["git", "--version"] },
   { name: "gh", command: ["gh", "--version"] },
+  { name: "node", command: ["node", "--version"] },
+  { name: "pnpm", command: ["pnpm", "--version"] },
 ];
 
 export type CommandRunner = (
@@ -90,6 +93,7 @@ export function runToolchainCheck(
   lines.push("");
   if (failed.length > 0) {
     lines.push(`Missing tools: ${failed.join(", ")}`);
+    lines.push(...nodeRuntimeRemediationLines(failed));
     return { lines, exitCode: 1 };
   }
   lines.push("All required tools available");

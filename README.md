@@ -70,6 +70,8 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, vendors the deft framework payload into `.deft/core/` (as of v0.39.2 a git-free deposit with no nested `.git` of its own; older installs and manual `git clone` origins instead carry a framework clone that keeps its own `.git`), wires it into your project's `AGENTS.md`, and creates your user config directory. Either layout is upgraded in place by `deft-install --upgrade`, which auto-detects the payload and never runs git against your own repository.
 
+**Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./UPGRADING.md#node-runtime-1828--1530) for details.
+
 On startup, `deft-install` checks the latest GitHub release and warns if the downloaded binary on disk is stale before it changes your project. Offline and CI runs can skip that check with `--no-update-check` or `DEFT_NO_UPDATE_CHECK=1`.
 
 #### Agent / headless one-liner (fetch the release binary and run)

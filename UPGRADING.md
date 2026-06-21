@@ -75,6 +75,16 @@ All documentation (README, AGENTS.md, this file, `deft-directive-sync` skill) no
 
 ---
 
+## Node runtime (#1828 / #1530)
+
+After Wave 8, live deft gates run through the TypeScript engine. **Node.js and pnpm are required consumer runtimes** alongside Python (`uv`) — not optional extras for framework contributors only.
+
+- Install **Node 20+** (the framework pins `.nvmrc`; currently Node 24).
+- Enable pnpm via Corepack: `corepack enable && corepack prepare pnpm@latest --activate`
+- Verify from your project root: `task toolchain:check` (or `deft toolchain:check`). When Node or pnpm is missing, the check exits non-zero and prints an actionable remediation line instead of failing later with an opaque stack trace.
+
+---
+
 ---
 
 <!-- 1046-prb: From v0.27.x -> v0.28 install-manifest transition BEGIN -->

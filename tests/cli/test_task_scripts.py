@@ -126,6 +126,16 @@ class TestToolchainCheck:
         result = run_script("toolchain-check.py", env=env)
         assert "NOT FOUND" in result.stdout
 
+    def test_missing_node_emits_remediation(self, tmp_path):
+        """When node or pnpm is missing, script prints actionable remediation."""
+        empty_bin = tmp_path / "empty_bin"
+        empty_bin.mkdir()
+        env = {"PATH": str(empty_bin), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")}
+        result = run_script("toolchain-check.py", env=env)
+        assert result.returncode == 1
+        assert "Node.js and pnpm are required for TS-backed deft gates" in result.stdout
+        assert "UPGRADING.md" in result.stdout
+
     def test_timeout_parameter_present_in_source(self):
         """Script source contains a timeout= parameter for subprocess calls."""
         script = REPO_ROOT / "scripts" / "toolchain-check.py"

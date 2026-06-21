@@ -1,4 +1,4 @@
-"""Verify required source-repo toolchain is installed (go, uv, git, gh)."""
+"""Verify required source-repo toolchain is installed (go, uv, git, gh, node, pnpm)."""
 
 import subprocess
 import sys
@@ -8,7 +8,16 @@ TOOLS = [
     ("uv", ["uv", "--version"]),
     ("git", ["git", "--version"]),
     ("gh", ["gh", "--version"]),
+    ("node", ["node", "--version"]),
+    ("pnpm", ["pnpm", "--version"]),
 ]
+
+NODE_RUNTIME_TOOLS = frozenset({"node", "pnpm"})
+NODE_RUNTIME_REMEDIATION = (
+    "Node.js and pnpm are required for TS-backed deft gates. Install Node 20+ "
+    "(see .nvmrc), then run: corepack enable && corepack prepare pnpm@latest "
+    "--activate. See UPGRADING.md § Node runtime."
+)
 
 
 def main() -> int:
@@ -32,6 +41,8 @@ def main() -> int:
     print()
     if failed:
         print(f"Missing tools: {', '.join(failed)}")
+        if any(name in NODE_RUNTIME_TOOLS for name in failed):
+            print(NODE_RUNTIME_REMEDIATION)
         return 1
     print("All required tools available")
     return 0

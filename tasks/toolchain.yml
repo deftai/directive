@@ -5,7 +5,7 @@ vars:
 
 tasks:
   check:
-    desc: Verify required toolchain is installed (go, uv, task, git, gh)
+    desc: Verify required toolchain is installed (go, uv, git, gh, node, pnpm)
     env:
       PYTHONUTF8: "1"
     cmds:

@@ -6,7 +6,7 @@
   "plan": {
     "id": "1828-s1-node-runtime-enforcement",
     "title": "Enforce Node as a required consumer runtime in doctor/toolchain",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
     "narratives": {
       "Description": "Make Node/pnpm a required runtime once live gates are TS-backed. Today consumers require Python (uv) and the TS lane is guarded/optional. Update doctor and toolchain:check to detect a missing Node toolchain and fail with a clear, actionable message rather than a stack trace, and document the new requirement in install/upgrade surfaces. Prerequisite, runnable in parallel with s0.",
@@ -64,7 +64,9 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-21T01:34:35Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -73,6 +75,7 @@
         "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-21T01:34:35Z"
   }
 }
