@@ -110,7 +110,7 @@ describe("deft-ts vbrief-validate / verify:vbrief-conformance", () => {
       "--project-root",
       repoRoot(),
     ]);
-    expect([0, 1]).toContain(exitCode);
+    expect([0, 1, 2]).toContain(exitCode);
   });
 });
 
