@@ -50,7 +50,7 @@
         "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)"
       },
       {
-        "uri": "pending/2026-06-21-build-the-unified-deft-ts-cli-dispatcher-exposing-all-ported.vbrief.json",
+        "uri": "completed/2026-06-21-build-the-unified-deft-ts-cli-dispatcher-exposing-all-ported.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Build the unified deft-ts CLI dispatcher exposing all ported verbs",
         "TrustLevel": "internal"

@@ -6,7 +6,7 @@
   "plan": {
     "id": "1828-s0-unified-deft-ts-dispatcher",
     "title": "Build the unified deft-ts CLI dispatcher exposing all ported verbs",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
     "narratives": {
       "Description": "Replace the bin.ts banner stub with a unified `deft-ts <verb> [args]` dispatcher that routes to every ported command module in packages/cli and packages/core. Today only ~13 of 96 command modules are exposed as bins; the live-gate flip stories (s2-s6) cannot route Taskfiles to TS until one stable entrypoint exists. This is a prerequisite that blocks the domain-flip stories.",
@@ -64,7 +64,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-21T01:36:27Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -73,6 +75,7 @@
         "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-21T01:36:27Z"
   }
 }

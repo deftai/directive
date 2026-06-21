@@ -1,4 +1,5 @@
 #!/usr/bin/env node
-import { banner } from "./index.js";
+import { dispatch } from "./dispatch.js";
 
-console.log(banner());
+const code = await dispatch(process.argv.slice(2));
+process.exit(code);
