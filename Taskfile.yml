@@ -609,37 +609,31 @@ tasks:
   # Refs #74, #233, #642, #635, #709, #710, #716, #718.
   release:
     desc: "Automate the v0.X.Y release flow (#74) -- task release -- <version> [--dry-run] [--skip-tag] [--skip-release] [--no-draft]"
+    deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      # `--project` pins uv to the framework root so ancestor pyproject.toml
-      # files cannot hijack the resolver via uv's upward walk (#1011).
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release.py" {{.CLI_ARGS}}
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release {{.CLI_ARGS}}
 
   release:publish:
     desc: "Flip a draft GitHub release to public (#716) -- task release:publish -- <version> [--dry-run] [--repo OWNER/REPO]"
+    deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release_publish.py" {{.CLI_ARGS}}
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release-publish {{.CLI_ARGS}}
 
   release:rollback:
     desc: "State-aware release unwind (#716) -- task release:rollback -- <version> [--dry-run] [--allow-low-downloads N] [--allow-data-loss] [--force-strict-0]"
+    deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release_rollback.py" {{.CLI_ARGS}}
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release-rollback {{.CLI_ARGS}}
 
   release:e2e:
     desc: "End-to-end release rehearsal against an auto-created+destroyed temp repo (#716) -- task release:e2e [-- --dry-run] [--owner OWNER] [--keep-repo]"
+    deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release_e2e.py" {{.CLI_ARGS}}
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release-e2e {{.CLI_ARGS}}
 
   # ------------------------------------------------------------------
   # Triage v1 user-facing alias tasks (#845, #913).

@@ -21,11 +21,10 @@ vars:
 tasks:
   check-protected-issues:
     desc: "Verify NO protected (umbrella / staying-OPEN) issue is GitHub-side linked to a PR before squash merge (#701)"
+    deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_check_protected_issues.py" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pr-protected-issues {{.CLI_ARGS}}
 
   # pr:check-closing-keywords -- Layer 0 (prevention) closing-keyword
   # negation-context lint introduced by #737. Refuses to push when the
@@ -56,11 +55,10 @@ tasks:
   # Companion test:   tests/cli/test_pr_merge_readiness.py
   merge-ready:
     desc: "Verify a PR's Greptile review body satisfies the merge exit condition (confidence >3, no P0/P1, HEAD-SHA fresh, not errored)"
+    deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_merge_readiness.py" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pr-merge-readiness {{.CLI_ARGS}}
 
   # pr:wait-mergeable-and-merge -- cascade automation surface (#1369).
   # Wraps scripts/pr_wait_mergeable.py which composes the resilient
@@ -84,8 +82,7 @@ tasks:
   # Companion test:   tests/cli/test_pr_wait_mergeable.py
   wait-mergeable-and-merge:
     desc: "Wait until PR is mergeable (resilient cascade, #1368) and squash-merge with admin (#1369); Layer-3 protected-issue check (#701) chains before any merge call"
+    deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_wait_mergeable.py" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pr-wait-mergeable {{.CLI_ARGS}}
