@@ -69,6 +69,11 @@ export function routingSetMain(argv: string[] = process.argv.slice(2)): number {
   }
 
   if (harnessDefault) {
+    if (model !== null) {
+      process.stderr.write(
+        `Warning: --model '${model}' is ignored because --harness-default was also passed.\n`,
+      );
+    }
     model = null;
   } else if (HARNESS_BOUND_PROVIDERS.has(resolvedProvider)) {
     process.stderr.write(

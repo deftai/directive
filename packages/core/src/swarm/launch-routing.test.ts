@@ -124,4 +124,29 @@ describe("swarmLaunch route-file integration (#1739)", () => {
     expect(manifest[0]?.worker_role).toBe("leaf-implementation");
     expect("subagent_backend" in (manifest[0] ?? {})).toBe(false);
   });
+
+  it("fails loud (exit 2) when the gated role's decision object is malformed", () => {
+    const project = mkdtempSync(join(tmpdir(), "launch-route-"));
+    cleanups.push(project);
+    writeReadyStory(project, "story-a", 8801);
+    const routePath = join(project, "routing.local.json");
+    writeFileSync(
+      routePath,
+      JSON.stringify({ cursor: { "leaf-implementation": "not-an-object" } }),
+    );
+    process.env.DEFT_ROUTING_PATH = routePath;
+
+    const result = swarmLaunch({
+      stories: ["8801"],
+      projectRoot: project,
+      autonomous: true,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["cursor-cloud", "gh-cli"],
+    });
+
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain("routing gate misconfigured");
+    expect(result.stdout).toBe("");
+  });
 });

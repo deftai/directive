@@ -96,6 +96,39 @@ describe("routing-set + routing-verify CLIs", () => {
     ).toBe(2);
   });
 
+  it("set ignores --model when --harness-default is also passed (exit 0, records default)", () => {
+    const dir = freshRoute();
+    expect(
+      routingSetMain([
+        "--provider",
+        "cursor",
+        "--role",
+        "leaf-implementation",
+        "--model",
+        "composer-2.5-fast",
+        "--harness-default",
+        "--project-root",
+        dir,
+      ]),
+    ).toBe(0);
+    const path = resolveRoutingPath(dir, process.env);
+    expect(loadRoutingFile(path).data?.cursor?.["leaf-implementation"]?.model).toBeNull();
+  });
+
+  it("verify rejects an unknown --roles entry (exit 2)", () => {
+    const dir = freshRoute();
+    expect(
+      routingVerifyMain([
+        "--project-root",
+        dir,
+        "--provider",
+        "cursor",
+        "--roles",
+        "leaf-implemenation",
+      ]),
+    ).toBe(2);
+  });
+
   it("verify --advise never blocks on undecided (exit 0)", () => {
     const dir = freshRoute();
     expect(routingVerifyMain(["--project-root", dir, "--provider", "cursor", "--advise"])).toBe(0);

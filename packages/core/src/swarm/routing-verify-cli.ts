@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
+import { EXIT_CONFIG_ERROR } from "./constants.js";
+import { SWARM_WORKER_ROLES } from "./routing.js";
 import { verifyRouting } from "./routing-verify.js";
 
 export function routingVerifyMain(argv: string[] = process.argv.slice(2)): number {
@@ -24,6 +26,14 @@ export function routingVerifyMain(argv: string[] = process.argv.slice(2)): numbe
         }
       }
       i += 1;
+    }
+  }
+  for (const role of roles) {
+    if (!(SWARM_WORKER_ROLES as readonly string[]).includes(role)) {
+      process.stderr.write(
+        `Error: unknown role '${role}' (one of: ${SWARM_WORKER_ROLES.join(", ")}).\n`,
+      );
+      return EXIT_CONFIG_ERROR;
     }
   }
   const result = verifyRouting({

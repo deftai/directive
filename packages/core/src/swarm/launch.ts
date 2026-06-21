@@ -678,7 +678,18 @@ export function swarmLaunch(args: LaunchArgs): {
   if (routingFile !== null) {
     routingProvider = dispatchProviderFromRuntime(runtimeMode);
     const route = resolveModelRoute(routingFile, routingProvider, LEAF_CODING_WORKER_ROLE);
-    if (route.decided && route.source !== "invalid") {
+    // A malformed decision object must fail loud here: the legacy backend gate
+    // was already bypassed above (routingFile !== null), so silently continuing
+    // would emit an exit-0 manifest with no model and no error to follow. Match
+    // verify:routing, which treats the same state as a config error (#1739).
+    if (route.source === "invalid") {
+      return {
+        exitCode: EXIT_CONFIG_ERROR,
+        stdout: "",
+        stderr: `Error: routing gate misconfigured: ${route.error ?? "invalid routing decision"}\n`,
+      };
+    }
+    if (route.decided) {
       resolvedModel = route.model;
       modelSource = route.source;
     }
