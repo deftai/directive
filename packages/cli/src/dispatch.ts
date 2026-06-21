@@ -110,6 +110,8 @@ export const CORE_MODULE_VERBS = [
   "swarm-launch",
   "swarm-complete-cohort",
   "swarm-readiness",
+  "swarm-routing-verify",
+  "swarm-routing-set",
   "swarm-verify-review-clean",
   "swarm-worktrees",
   "framework-commands",
@@ -394,6 +396,14 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     case "swarm-readiness": {
       const { readinessMain } = await import("../../core/dist/swarm/readiness-cli.js");
       return readinessMain;
+    }
+    case "swarm-routing-verify": {
+      const { routingVerifyMain } = await import("../../core/dist/swarm/routing-verify-cli.js");
+      return routingVerifyMain;
+    }
+    case "swarm-routing-set": {
+      const { routingSetMain } = await import("../../core/dist/swarm/routing-set-cli.js");
+      return routingSetMain;
     }
     case "swarm-verify-review-clean": {
       const { verifyReviewCleanMain } = await import(

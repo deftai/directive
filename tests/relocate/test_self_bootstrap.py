@@ -421,6 +421,7 @@ class TestGitignoreHealBlanket:
             ".deft-cache/\n"
             ".deft/ritual-state.json  # local ritual state\n"
             ".deft/last-session.json\n"
+            ".deft/routing.local.json\n"
             "vbrief/.eval/candidates.jsonl  # added manually\n"
             "vbrief/.eval/summary-history.jsonl\n"
             "vbrief/.eval/scope-lifecycle.jsonl\n"

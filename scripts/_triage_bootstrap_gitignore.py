@@ -80,6 +80,10 @@ GITIGNORE_LINE: str = ".deft-cache/"
 GITIGNORE_DEFT_RUNTIME_SENTINELS: tuple[str, ...] = (
     ".deft/ritual-state.json",
     ".deft/last-session.json",
+    # Operator coding sub-agent model routing per #1739 -- per-machine,
+    # per-project, never committed. The framework payload at .deft/core/
+    # stays trackable, so this entry MUST stay file-specific.
+    ".deft/routing.local.json",
 )
 
 #: Canonical selective gitignore lines for the #1144 hybrid policy.

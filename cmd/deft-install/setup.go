@@ -229,6 +229,10 @@ var canonicalGitignoreLines = []string{
 	// GITIGNORE_DEFT_RUNTIME_SENTINELS in scripts/_triage_bootstrap_gitignore.py.
 	".deft/ritual-state.json",
 	".deft/last-session.json",
+	// Operator coding sub-agent model routing (#1739): per-machine,
+	// per-project, never committed. MUST stay file-specific so the
+	// trackable .deft/core/ framework payload is unaffected.
+	".deft/routing.local.json",
 	// Selective vbrief/.eval/* entries -- MUST equal GITIGNORE_EVAL_ENTRIES in
 	// scripts/_triage_bootstrap_gitignore.py, in the same order (parity test
 	// TestCanonicalGitignoreEvalEntriesMatchPythonSource pins this).

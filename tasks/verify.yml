@@ -49,6 +49,15 @@ tasks:
       # the full enforcement -- the flag is a no-op when the file exists.
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:branch --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition
 
+  routing:
+    desc: "Operator coding sub-agent model routing gate (#1739). Pre-dispatch (default): fails when a dispatched worker role has no decision in .deft/routing.local.json. Pass --advise for the non-blocking session-start disclosure; --roles a,b to widen the gated set; --provider to override the runtime."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
+    cmds:
+      # Bare CLI_ARGS per the verify:encoding convention -- go-task shell-escapes pass-through args.
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" swarm-routing-verify --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   hooks-installed:
     desc: "Assert the deft git hooks are installed AND functional -- core.hooksPath set, hooks dir + pre-commit/pre-push present, and the gate scripts resolve in this layout (own-repo or vendored). Fails loud on the #1463 false-green (wired but non-functional). Run `task setup` / re-run the installer if this fails (#747, #1463)."
     dir: '{{.USER_WORKING_DIR}}'

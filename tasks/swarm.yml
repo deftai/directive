@@ -34,6 +34,18 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" swarm-launch {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
+  # swarm:routing-set -- record an operator coding sub-agent model decision
+  # (#1739) into the gitignored, per-machine .deft/routing.local.json keyed by
+  # (dispatch_provider, worker_role). Supersedes the swarmSubagentBackend enum
+  # (#1531 / #1735): the resolved model is threaded into the launch manifest
+  # (resolved_model / model_source) so dispatch can actually honor it.
+  routing-set:
+    desc: "Record an operator coding sub-agent model decision (#1739): --role <role> (--model <slug> | --harness-default) [--provider <p>]. Writes the gitignored, per-machine .deft/routing.local.json."
+    deps: [":ts:build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" swarm-routing-set {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
   # swarm:verify-review-clean -- cohort-level CLEAN verification gate (#1364).
   # Mandate the monitor invokes this after Phase 6 pollers report and BEFORE
   # the Phase 5 -> 6 merge discussion. Re-uses the Greptile rolling-summary

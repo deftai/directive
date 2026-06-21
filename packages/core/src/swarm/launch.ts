@@ -15,6 +15,12 @@ import {
   LEAF_CODING_WORKER_ROLE,
 } from "./constants.js";
 import { readinessReport } from "./readiness.js";
+import {
+  dispatchProviderFromRuntime,
+  loadRoutingFile,
+  resolveModelRoute,
+  resolveRoutingPath,
+} from "./routing.js";
 import { dispatchProviderFor, enforceSubagentBackendPolicy } from "./subagent-backend.js";
 import { resolveWorktreeMap, type WorktreeRecord } from "./worktrees.js";
 
@@ -403,6 +409,8 @@ export function buildManifest(
     subagentBackend?: string | null;
     dispatchProvider?: string | null;
     workerRole?: string | null;
+    resolvedModel?: string | null;
+    modelSource?: string | null;
     runtimeMode?: string | null;
     githubAuthMode?: string | null;
   },
@@ -444,6 +452,10 @@ export function buildManifest(
     }
     if (options.workerRole !== undefined && options.workerRole !== null) {
       entry.worker_role = options.workerRole;
+    }
+    if (options.modelSource !== undefined && options.modelSource !== null) {
+      entry.resolved_model = options.resolvedModel ?? null;
+      entry.model_source = options.modelSource;
     }
     if (options.runtimeMode !== undefined && options.runtimeMode !== null) {
       entry.runtime_mode = options.runtimeMode;
@@ -583,9 +595,23 @@ export function swarmLaunch(args: LaunchArgs): {
     };
   }
 
-  const { backend, error: backendError } = enforceSubagentBackendPolicy(projectRoot);
-  if (backendError !== null) {
-    return { exitCode: EXIT_GATE_FAILED, stdout: "", stderr: `Error: ${backendError}\n` };
+  const routingPath = resolveRoutingPath(projectRoot);
+  const { data: routingFile, error: routingError } = loadRoutingFile(routingPath);
+  if (routingError !== null) {
+    return { exitCode: EXIT_CONFIG_ERROR, stdout: "", stderr: `Error: ${routingError}\n` };
+  }
+
+  // When an operator route file (#1739) is present it is authoritative for
+  // model selection, so the legacy swarmSubagentBackend enum gate (#1531 /
+  // #1735) only runs as the fallback when no route file exists.
+  let backend: ReturnType<typeof enforceSubagentBackendPolicy>["backend"] = null;
+  if (routingFile === null) {
+    const { backend: resolvedBackend, error: backendError } =
+      enforceSubagentBackendPolicy(projectRoot);
+    if (backendError !== null) {
+      return { exitCode: EXIT_GATE_FAILED, stdout: "", stderr: `Error: ${backendError}\n` };
+    }
+    backend = resolvedBackend;
   }
 
   const ordered = orderCohort(resolved, projectRoot);
@@ -646,6 +672,26 @@ export function swarmLaunch(args: LaunchArgs): {
     return { exitCode: EXIT_CONFIG_ERROR, stdout: "", stderr: `Error: ${String(exc)}\n` };
   }
 
+  let resolvedModel: string | null = null;
+  let modelSource: string | null = null;
+  let routingProvider: string | null = null;
+  if (routingFile !== null) {
+    routingProvider = dispatchProviderFromRuntime(runtimeMode);
+    const route = resolveModelRoute(routingFile, routingProvider, LEAF_CODING_WORKER_ROLE);
+    if (route.decided && route.source !== "invalid") {
+      resolvedModel = route.model;
+      modelSource = route.source;
+    }
+  }
+
+  const dispatchProviderValue =
+    routingFile !== null
+      ? routingProvider
+      : backend !== null
+        ? dispatchProviderFor(backend.backend_id)
+        : null;
+  const workerRoleValue = routingFile !== null || backend !== null ? LEAF_CODING_WORKER_ROLE : null;
+
   const manifest = buildManifest(ordered, {
     projectRoot,
     group: args.group ?? null,
@@ -656,8 +702,10 @@ export function swarmLaunch(args: LaunchArgs): {
     operatorApprovalEvidence: operatorApproval,
     gateClearances,
     subagentBackend: backend?.backend_id ?? null,
-    dispatchProvider: backend !== null ? dispatchProviderFor(backend.backend_id) : null,
-    workerRole: backend !== null ? LEAF_CODING_WORKER_ROLE : null,
+    dispatchProvider: dispatchProviderValue,
+    workerRole: workerRoleValue,
+    resolvedModel,
+    modelSource,
     runtimeMode,
     githubAuthMode,
   });

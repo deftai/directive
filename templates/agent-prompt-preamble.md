@@ -60,7 +60,11 @@ When present, the section documents these fields in order:
 - `dispatch_provider`: the runtime primitive that launched this worker -- e.g. `spawn_subagent`, `start_agent`, `cursor-composer`, `cursor-cloud-agent`, or a future adapter id. Names the harness surface, not the model.
 - `worker_role`: the role boundary for this dispatch -- one of `leaf-implementation`, `orchestrator`, `review-monitor`, or `merge-release` (stable ids from `scripts/policy.py` `SWARM_WORKER_ROLES`). Tells the worker which preamble rules and skill surfaces apply.
 - `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (e.g. `composer`, `grok-build`, `cursor-cloud`) | null -- which catalogued coding backend the operator selected for this role.
-- `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route.
+- `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route. The canonical handle is the gitignored, per-machine `.deft/routing.local.json` (#1739), keyed by `(dispatch_provider, worker_role)`; set decisions with `task swarm:routing-set -- --role <role> (--model <slug> | --harness-default)`.
+- `resolved_model` (#1739): the concrete model slug the operator pinned for this `(provider, role)` | null for an explicit harness default. Resolved from `.deft/routing.local.json` and stamped into the `task swarm:launch` manifest. **This is the field the dispatch primitive must actually honor** -- see the threading rule below.
+- `model_source` (#1739): provenance of `resolved_model` -- e.g. `cursor-route`, `harness-default explicit`. Lets a postmortem tell a pinned model from a harness default.
+
+! THREADING RULE (#1739): when `resolved_model` is non-null, the orchestrator MUST pass it as the model argument of the actual dispatch primitive (e.g. the Task tool's `model` parameter for a Cursor sub-agent). Stamping the manifest is PREP; the dispatch is agent-driven, so a recorded model that is never passed into the spawn call is the exact bug #1739 closes. For harness-bound providers (e.g. `grok`) the model is chosen by the harness; only `mode: harness-default` is recordable and `resolved_model` stays null.
 
 Populate `selected_backend` OR `routing_policy` (or both when the operator sets a default backend and also maintains a routing file). Nullability by role:
 
@@ -77,20 +81,24 @@ Populate `selected_backend` OR `routing_policy` (or both when the operator sets 
 **Audit visibility:** review cycles and postmortems MUST be able to reconstruct which backend and role produced a change without inferring it from harness-specific prose.
 
 - ! Dispatchers MUST populate `## Worker metadata` in the dispatch envelope whenever backend routing is intentional (headless `task swarm:launch`, monitor dispatch, or manual orchestrator spawn).
-- ! Workers MUST echo `dispatch_provider`, `worker_role`, and `selected_backend` or `routing_policy` in the final status message per §11 (e.g. `DONE: ... (commit <sha>, PR #N, role leaf-implementation, backend composer)`). Omitting backend/role from the terminal message when metadata was present in the envelope is a hard `⊗`.
+- ! Workers MUST echo `dispatch_provider`, `worker_role`, and `selected_backend` or `routing_policy` (plus `resolved_model` when set, #1739) in the final status message per §11 (e.g. `DONE: ... (commit <sha>, PR #N, role leaf-implementation, model composer-2.5-fast via cursor-route)`). Omitting backend/role/model from the terminal message when metadata was present in the envelope is a hard `⊗`.
 
 Worked example (a tiered leaf worker on Composer):
 
 ```markdown
 ## Worker metadata
 
-- dispatch_provider: spawn_subagent
+- dispatch_provider: cursor-cloud
 - worker_role: leaf-implementation
-- selected_backend: composer
-- routing_policy: null
+- selected_backend: null
+- routing_policy: .deft/routing.local.json
+- resolved_model: composer-2.5-fast
+- model_source: cursor-route
 ```
 
-Reference: `plan.policy.swarmSubagentBackend` (#1531a), `task policy:subagent-backends`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
+! Pre-dispatch gate (#1739): run `task verify:routing` before spawning a cohort -- it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. Session start runs `task verify:routing -- --advise` (non-blocking disclosure).
+
+Reference: `.deft/routing.local.json` + `task swarm:routing-set` + `task verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `scripts/policy.py` `SWARM_WORKER_ROLES`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
 
 ## 2.7 Runtime and GitHub auth mode (#1557)
 
