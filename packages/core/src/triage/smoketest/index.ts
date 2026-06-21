@@ -306,7 +306,7 @@ export function runSmoketest(
 import json, sys
 from pathlib import Path
 sys.path.insert(0, ${JSON.stringify(deps.scriptsDir)})
-from triage_smoketest import AssertLog, TOTAL_STAGES, STAGE_LABELS, FIXTURE_REPO
+from triage_smoketest import AssertLog, TOTAL_STAGES, STAGE_LABELS
 import _triage_smoketest_stages as stages
 
 payload = json.loads(sys.stdin.read())

@@ -25,8 +25,9 @@ tasks:
   smoketest:
     desc: "Run the N6 (#1146) end-to-end smoketest against the hermetic 20-issue fixture. Exits 0 on PASS / 1 on first failure. -- task triage:smoketest [-- --verbose] [--keep-tempdir] [--cache-only]"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     env:
-      PYTHONUTF8: "1"
+      DEFT_ROOT: '{{.DEFT_ROOT}}'
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_smoketest.py" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-smoketest {{.CLI_ARGS}}

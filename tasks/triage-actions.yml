@@ -32,71 +32,63 @@ tasks:
   accept:
     desc: "Accept an issue for triage. Records an audit entry. (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" accept {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions accept {{.CLI_ARGS}}
 
   reject:
     desc: "Reject an issue. Closes upstream via gh + applies triage-rejected label; rolls audit back on gh failure. (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reject {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions reject {{.CLI_ARGS}}
 
   defer:
     desc: "Defer an issue. Records an audit entry. (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" defer {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions defer {{.CLI_ARGS}}
 
   needs-ac:
     desc: "Mark an issue as needing acceptance criteria + post AC-request comment upstream. (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" needs-ac {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions needs-ac {{.CLI_ARGS}}
 
   mark-duplicate:
     desc: "Link an issue as a duplicate of another (validated against Story 1 cache). (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" mark-duplicate {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions mark-duplicate {{.CLI_ARGS}}
 
   status:
     desc: "Print the latest triage decision for an issue. Read-only. (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" status {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions status {{.CLI_ARGS}}
 
   reset:
     desc: "Reset an issue's triage state. Appends a reset audit entry referencing prior; does NOT delete history. (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reset {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions reset {{.CLI_ARGS}}
 
   history:
     desc: "Print the full triage timeline for an issue, ordered by timestamp. Read-only. (#845 Story 3)"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" history {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-actions history {{.CLI_ARGS}}

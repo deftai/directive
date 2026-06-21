@@ -30,20 +30,14 @@ vars:
   # joinPath idiom mirrors the existing convention documented in the root
   # Taskfile.yml header (#566): `{{.TASKFILE_DIR}}/..` evaluated by go-task's
   # eager templating yields a native-separator absolute path that
-  # `uv --project "{{.DEFT_ROOT}}" run python` can open on Windows / macOS / Linux.
+  # `node .../bin.js` can open on Windows / macOS / Linux.
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
   bootstrap:
     desc: "Idempotent triage v1 installer (#845): populate cache, backfill audit log, ensure gitignore for .deft-cache/ and vbrief/.eval/. Re-runnable; per-step progress on stderr; cache:fetch-all wall-clock cap (#952). -- task triage:bootstrap [-- --repo OWNER/NAME] [--limit N] [--state open|closed|all] [--fetch-timeout-s N] [--quiet] [--json]"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      # PYTHONUTF8=1 is set at the root Taskfile.yml level (#540) and
-      # propagates here via go-task's include semantics; this belt-and-
-      # suspenders re-declaration keeps the fragment runnable directly via
-      # `task --taskfile tasks/triage-bootstrap.yml bootstrap` without
-      # inheriting from a parent.
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_bootstrap.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-bootstrap --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

@@ -24,9 +24,9 @@ tasks:
   welcome:
     desc: "Run the 6-phase onboarding ritual (N3 / #1143): detect prior state, prompt subscription scope, run triage:bootstrap, prompt wipCap, offer WIP relief, print triage:summary. Idempotent; re-run resumes cleanly. -- task triage:welcome -- [--no-subprocess]"
     internal: true
+    deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     env:
-      PYTHONUTF8: "1"
       DEFT_TASK_PREFIX: '{{.DEFT_TASK_PREFIX | default ""}}'
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_welcome.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-welcome --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
