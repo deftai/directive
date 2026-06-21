@@ -24,7 +24,7 @@ describe("test_taskfile_caching.py", () => {
   describe("architecture.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/architecture.yml",
+        join(repoRoot(), "tasks/architecture.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -46,7 +46,7 @@ describe("test_taskfile_caching.py", () => {
   describe("cache.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/cache.yml",
+        join(repoRoot(), "tasks/cache.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -68,7 +68,7 @@ describe("test_taskfile_caching.py", () => {
   describe("capacity.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/capacity.yml",
+        join(repoRoot(), "tasks/capacity.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -90,7 +90,7 @@ describe("test_taskfile_caching.py", () => {
   describe("change.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/change.yml",
+        join(repoRoot(), "tasks/change.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -112,7 +112,7 @@ describe("test_taskfile_caching.py", () => {
   describe("changelog.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/changelog.yml",
+        join(repoRoot(), "tasks/changelog.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -134,7 +134,7 @@ describe("test_taskfile_caching.py", () => {
   describe("ci.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/ci.yml",
+        join(repoRoot(), "tasks/ci.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -156,7 +156,7 @@ describe("test_taskfile_caching.py", () => {
   describe("codebase.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/codebase.yml",
+        join(repoRoot(), "tasks/codebase.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -178,7 +178,7 @@ describe("test_taskfile_caching.py", () => {
   describe("commit.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/commit.yml",
+        join(repoRoot(), "tasks/commit.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -200,7 +200,7 @@ describe("test_taskfile_caching.py", () => {
   describe("core.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/core.yml",
+        join(repoRoot(), "tasks/core.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -222,7 +222,7 @@ describe("test_taskfile_caching.py", () => {
   describe("deployments.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/deployments.yml",
+        join(repoRoot(), "tasks/deployments.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -244,7 +244,7 @@ describe("test_taskfile_caching.py", () => {
   describe("framework.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/framework.yml",
+        join(repoRoot(), "tasks/framework.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -266,7 +266,7 @@ describe("test_taskfile_caching.py", () => {
   describe("install.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/install.yml",
+        join(repoRoot(), "tasks/install.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -288,7 +288,7 @@ describe("test_taskfile_caching.py", () => {
   describe("issue.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/issue.yml",
+        join(repoRoot(), "tasks/issue.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -310,7 +310,7 @@ describe("test_taskfile_caching.py", () => {
   describe("migrate.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/migrate.yml",
+        join(repoRoot(), "tasks/migrate.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -332,7 +332,7 @@ describe("test_taskfile_caching.py", () => {
   describe("packs.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/packs.yml",
+        join(repoRoot(), "tasks/packs.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -354,7 +354,7 @@ describe("test_taskfile_caching.py", () => {
   describe("policy.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/policy.yml",
+        join(repoRoot(), "tasks/policy.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -376,7 +376,7 @@ describe("test_taskfile_caching.py", () => {
   describe("pr.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/pr.yml",
+        join(repoRoot(), "tasks/pr.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -398,7 +398,7 @@ describe("test_taskfile_caching.py", () => {
   describe("prd.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/prd.yml",
+        join(repoRoot(), "tasks/prd.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -420,7 +420,7 @@ describe("test_taskfile_caching.py", () => {
   describe("project.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/project.yml",
+        join(repoRoot(), "tasks/project.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -442,7 +442,7 @@ describe("test_taskfile_caching.py", () => {
   describe("reconcile.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/reconcile.yml",
+        join(repoRoot(), "tasks/reconcile.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -464,7 +464,7 @@ describe("test_taskfile_caching.py", () => {
   describe("relocate.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/relocate.yml",
+        join(repoRoot(), "tasks/relocate.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -486,7 +486,7 @@ describe("test_taskfile_caching.py", () => {
   describe("roadmap.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/roadmap.yml",
+        join(repoRoot(), "tasks/roadmap.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -508,7 +508,7 @@ describe("test_taskfile_caching.py", () => {
   describe("scm.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/scm.yml",
+        join(repoRoot(), "tasks/scm.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -530,7 +530,7 @@ describe("test_taskfile_caching.py", () => {
   describe("scope-undo.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/scope-undo.yml",
+        join(repoRoot(), "tasks/scope-undo.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -552,7 +552,7 @@ describe("test_taskfile_caching.py", () => {
   describe("scope.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/scope.yml",
+        join(repoRoot(), "tasks/scope.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -574,7 +574,7 @@ describe("test_taskfile_caching.py", () => {
   describe("session.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/session.yml",
+        join(repoRoot(), "tasks/session.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -596,7 +596,7 @@ describe("test_taskfile_caching.py", () => {
   describe("setup.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/setup.yml",
+        join(repoRoot(), "tasks/setup.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -618,7 +618,7 @@ describe("test_taskfile_caching.py", () => {
   describe("slice.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/slice.yml",
+        join(repoRoot(), "tasks/slice.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -640,7 +640,7 @@ describe("test_taskfile_caching.py", () => {
   describe("spec.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/spec.yml",
+        join(repoRoot(), "tasks/spec.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -662,7 +662,7 @@ describe("test_taskfile_caching.py", () => {
   describe("swarm.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/swarm.yml",
+        join(repoRoot(), "tasks/swarm.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -684,7 +684,7 @@ describe("test_taskfile_caching.py", () => {
   describe("toolchain.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/toolchain.yml",
+        join(repoRoot(), "tasks/toolchain.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -706,7 +706,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-actions.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-actions.yml",
+        join(repoRoot(), "tasks/triage-actions.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -728,7 +728,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-bootstrap.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-bootstrap.yml",
+        join(repoRoot(), "tasks/triage-bootstrap.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -750,7 +750,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-bulk.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-bulk.yml",
+        join(repoRoot(), "tasks/triage-bulk.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -772,7 +772,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-classify.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-classify.yml",
+        join(repoRoot(), "tasks/triage-classify.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -794,7 +794,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-queue.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-queue.yml",
+        join(repoRoot(), "tasks/triage-queue.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -816,7 +816,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-reconcile.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-reconcile.yml",
+        join(repoRoot(), "tasks/triage-reconcile.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -838,7 +838,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-scope-drift.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-scope-drift.yml",
+        join(repoRoot(), "tasks/triage-scope-drift.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -860,7 +860,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-scope.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-scope.yml",
+        join(repoRoot(), "tasks/triage-scope.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -882,7 +882,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-smoketest.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-smoketest.yml",
+        join(repoRoot(), "tasks/triage-smoketest.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -904,7 +904,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-subscribe.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-subscribe.yml",
+        join(repoRoot(), "tasks/triage-subscribe.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -926,7 +926,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-summary.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-summary.yml",
+        join(repoRoot(), "tasks/triage-summary.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -948,7 +948,7 @@ describe("test_taskfile_caching.py", () => {
   describe("triage-welcome.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/triage-welcome.yml",
+        join(repoRoot(), "tasks/triage-welcome.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -970,7 +970,7 @@ describe("test_taskfile_caching.py", () => {
   describe("ts.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/ts.yml",
+        join(repoRoot(), "tasks/ts.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -992,7 +992,7 @@ describe("test_taskfile_caching.py", () => {
   describe("vbrief.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/vbrief.yml",
+        join(repoRoot(), "tasks/vbrief.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
@@ -1014,7 +1014,7 @@ describe("test_taskfile_caching.py", () => {
   describe("verify.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(
-        "/home/msadams/repos/deft/directive/.deft-scratch/worktrees/1838-s2-content-standards/tasks/verify.yml",
+        join(repoRoot(), "tasks/verify.yml"),
         { encoding: "utf8" },
       );
       const offenders: string[] = [];
