@@ -185,6 +185,14 @@ _EXCLUDED_EXACT_PATHS = frozenset(
         # the `meta/lessons.md` carve-out shape (historical content that
         # quotes pre-flip surfaces verbatim).
         "docs/smoke-2026-05-10-v0.27.1-relocator-dogfood.md",
+        # #1838 s1 (Wave 8.5): the vitest port of
+        # tests/content/test_main_md_preamble.py asserts the preamble gate
+        # instruction for BOTH canonical (`.deft/core/run`) and legacy
+        # redirect-stub (`deft/run`) surfaces. The legacy token is a
+        # load-bearing test constant -- the spec verifies that redirect-stub
+        # SKILL.md files still carry the legacy `python3 deft/run gate` line.
+        # Mirrors the rationale for the redirect-stub carve-out below.
+        "packages/core/src/content-contracts/skills/main_md_preamble.test.ts",
     }
 )
 
