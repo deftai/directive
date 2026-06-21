@@ -126,11 +126,6 @@ function resolveRepo(
 // Cache scanning helpers
 // ---------------------------------------------------------------------------
 
-interface MetaEntry {
-  readonly path: string;
-  readonly fetchedAt: Date | null;
-}
-
 function iterMetaPaths(cacheRoot: string, source: string, repo: string): string[] {
   if (!repo.includes("/")) return [];
   const [owner, name] = repo.split("/", 2) as [string, string];
