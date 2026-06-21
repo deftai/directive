@@ -6,7 +6,7 @@
   "plan": {
     "id": "1838-s6-cli-render-mapping-tests",
     "title": "Retarget pack/spec/render/codebase CLI tests at the deft-ts dispatcher",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
     "narratives": {
       "Description": "Retarget the tests/cli tests for the pack, spec, project, roadmap, framework-commands, codebase, and capacity surfaces from the python CLI at the deft-ts dispatcher. Each test is audited against the TS module's existing unit tests, and only genuinely missing render or mapping behavior becomes a new vitest spec.",
@@ -64,7 +64,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-21T12:25:02Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -73,6 +75,7 @@
         "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-21T12:25:02Z"
   }
 }

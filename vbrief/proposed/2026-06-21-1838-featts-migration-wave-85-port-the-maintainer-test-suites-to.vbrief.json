@@ -76,7 +76,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-retarget-packspecrendercodebase-cli-tests-at-the-deft-ts-dis.vbrief.json",
+        "uri": "completed/2026-06-21-retarget-packspecrendercodebase-cli-tests-at-the-deft-ts-dis.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Retarget pack/spec/render/codebase CLI tests at the deft-ts dispatcher",
         "TrustLevel": "internal"
