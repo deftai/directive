@@ -139,4 +139,16 @@ describe("dispatchTaskCheck", () => {
     const code = dispatchTaskCheck("/root", "/root", { spawnFn });
     expect(code).toBe(42);
   });
+
+  it("uses the real defaultSpawn path when no spawnFn is provided (taskBin not found = error path)", () => {
+    // When no spawnFn seam is given, dispatchTaskCheck calls the internal
+    // defaultSpawn which wraps spawnSync. Using a non-existent binary causes
+    // spawnSync to populate result.error (ENOENT), which maps to exit 2.
+    const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = dispatchTaskCheck("/tmp/fake-fw", "/tmp/fake-fw", {
+      taskBin: "/absolutely-nonexistent-binary-that-cannot-exist",
+    });
+    expect(code).toBe(2);
+    errWrite.mockRestore();
+  });
 });

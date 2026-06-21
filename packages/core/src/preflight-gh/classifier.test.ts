@@ -171,6 +171,42 @@ describe("runSelfTest", () => {
     const [, msg] = runSelfTest();
     expect(msg).toContain(`${SELF_TEST_CASES.length}/${SELF_TEST_CASES.length}`);
   });
+
+  it("returns exit 2 and reports disagreement when a fixture mismatches", () => {
+    // Inject a contrived fixture: the classifier ALLOWS this command, but we
+    // assert it is "delete_repo" -- forces the failure path.
+    const contrived = [["gh pr merge 123 --squash", "delete_repo"]] as const;
+    const [code, msg] = runSelfTest(contrived);
+    expect(code).toBe(2);
+    expect(msg).toContain("❌");
+    expect(msg).toContain("classifier disagreement");
+    expect(msg).toContain("1/1");
+    expect(msg).toContain("✗");
+  });
+
+  it("accepts explicit fixture table for hermetic testing", () => {
+    // All-pass with a single known-good fixture pair
+    const fixture = [["gh repo delete deftai/directive", "delete_repo"]] as const;
+    const [code, msg] = runSelfTest(fixture);
+    expect(code).toBe(0);
+    expect(msg).toContain("1/1");
+  });
+});
+
+describe("classifyCommand -- ghx prefix", () => {
+  it("treats ghx as a gh alias (delete_repo)", () => {
+    const v = classifyCommand("ghx repo delete owner/repo");
+    expect(v.allowed).toBe(false);
+    expect(v.category).toBe("delete_repo");
+  });
+});
+
+describe("classifyCommand -- force_push_default with refs/heads/ notation", () => {
+  it("detects force-push to refs/heads/master", () => {
+    const v = classifyCommand("git push --force origin HEAD:refs/heads/master");
+    expect(v.allowed).toBe(false);
+    expect(v.category).toBe("force_push_default");
+  });
 });
 
 describe("ENV_BYPASS integration (evaluateCommand)", () => {
@@ -199,5 +235,12 @@ describe("ENV_BYPASS integration (evaluateCommand)", () => {
     const { evaluateCommand } = await import("./classifier.js");
     const [code] = evaluateCommand("gh repo delete owner/repo");
     expect(code).toBe(0);
+  });
+
+  it("returns exit 0 with allowed-message for a non-destructive command", async () => {
+    const { evaluateCommand } = await import("./classifier.js");
+    const [code, msg] = evaluateCommand("gh pr merge 123 --squash");
+    expect(code).toBe(0);
+    expect(msg).toContain("not destructive");
   });
 });

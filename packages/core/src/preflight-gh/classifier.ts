@@ -428,12 +428,16 @@ export const SELF_TEST_CASES: readonly Fixture[] = [
 /**
  * Run every self-test fixture through the classifier.
  *
+ * @param fixtures - Optional override fixture table (defaults to SELF_TEST_CASES).
+ *   Inject a contrived table in tests to exercise the failure-path branch.
+ *
  * Returns `[exitCode, message]`. Exit 0 = all pass; exit 2 = disagreement
  * (config error / classifier drift) -- mirrors `preflight_gh.py::run_self_test`.
  */
-export function runSelfTest(): [number, string] {
+export function runSelfTest(fixtures?: readonly Fixture[]): [number, string] {
+  const cases = fixtures ?? SELF_TEST_CASES;
   const failures: string[] = [];
-  for (const [command, expected] of SELF_TEST_CASES) {
+  for (const [command, expected] of cases) {
     const verdict = classifyCommand(command);
     const observed = verdict.allowed ? null : verdict.category;
     if (observed !== expected) {
@@ -446,13 +450,13 @@ export function runSelfTest(): [number, string] {
     return [
       2,
       [
-        `❌ deft destructive-gh-verb gate (self-test): classifier disagreement on ${failures.length}/${SELF_TEST_CASES.length} fixture(s).`,
+        `❌ deft destructive-gh-verb gate (self-test): classifier disagreement on ${failures.length}/${cases.length} fixture(s).`,
         ...failures,
       ].join(os.EOL),
     ];
   }
   return [
     0,
-    `✓ deft destructive-gh-verb gate (self-test): ${SELF_TEST_CASES.length}/${SELF_TEST_CASES.length} fixtures classified as expected.`,
+    `✓ deft destructive-gh-verb gate (self-test): ${cases.length}/${cases.length} fixtures classified as expected.`,
   ];
 }
