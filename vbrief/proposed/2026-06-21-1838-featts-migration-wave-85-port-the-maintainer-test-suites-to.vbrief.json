@@ -70,7 +70,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-retarget-verifydoctorpolicysession-cli-tests-at-the-deft-ts.vbrief.json",
+        "uri": "completed/2026-06-21-retarget-verifydoctorpolicysession-cli-tests-at-the-deft-ts.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Retarget verify/doctor/policy/session CLI tests at the deft-ts dispatcher",
         "TrustLevel": "internal"
