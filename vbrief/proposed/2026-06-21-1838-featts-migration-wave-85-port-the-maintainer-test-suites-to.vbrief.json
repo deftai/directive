@@ -64,7 +64,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-21-retarget-prswarmrelease-cli-tests-at-the-deft-ts-dispatcher.vbrief.json",
+        "uri": "completed/2026-06-21-retarget-prswarmrelease-cli-tests-at-the-deft-ts-dispatcher.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Retarget pr/swarm/release CLI tests at the deft-ts dispatcher",
         "TrustLevel": "internal"

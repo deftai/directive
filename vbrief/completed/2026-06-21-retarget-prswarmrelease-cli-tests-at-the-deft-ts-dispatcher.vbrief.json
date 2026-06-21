@@ -6,7 +6,7 @@
   "plan": {
     "id": "1838-s4-cli-pr-swarm-release-tests",
     "title": "Retarget pr/swarm/release CLI tests at the deft-ts dispatcher",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
     "narratives": {
       "Description": "Retarget the tests/cli tests for the pr, swarm, release, subagent-monitor, probe, and resolve command surfaces from the python CLI at the deft-ts dispatcher. The release and pr clusters are the largest here, so each test is audited against the TS module's existing unit tests and only missing argument-surface behavior becomes a new vitest spec.",
@@ -64,7 +64,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-21T12:21:16Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -74,6 +76,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-21T12:13:17Z"
+    "updated": "2026-06-21T12:21:16Z"
   }
 }
