@@ -52,7 +52,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-port-content-standardssecuritytaskfileschema-contract-tests.vbrief.json",
+        "uri": "completed/2026-06-21-port-content-standardssecuritytaskfileschema-contract-tests.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port content standards/security/taskfile/schema contract tests to vitest",
         "TrustLevel": "internal"

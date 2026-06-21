@@ -6,7 +6,7 @@
   "plan": {
     "id": "1838-s2-content-standards-schema-contracts",
     "title": "Port content standards/security/taskfile/schema contract tests to vitest",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1838-featts-migration-wave-85-port-the-maintainer-test-suites-to.vbrief.json",
     "narratives": {
       "Description": "Port the remaining tests/content artifact tests covering coding standards, security/patterns rules, taskfile structure, and the vBRIEF/strategy/allocation JSON schemas from pytest to vitest. Most are Bucket-A mechanical file-and-assert conversions, while a small Bucket-B minority (for example test_code_structure_profile) import a python module for a constant and must be retargeted at the TS module's exported equivalent instead of translated blindly.",
@@ -64,7 +64,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-21T12:38:33Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -73,6 +75,7 @@
         "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-21T12:38:33Z"
   }
 }
