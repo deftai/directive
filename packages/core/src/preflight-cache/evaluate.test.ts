@@ -251,3 +251,60 @@ describe("evaluate -- audit log state messages", () => {
     expect(result.message).toContain("actively triaging");
   });
 });
+
+describe("evaluate -- correctness edge cases", () => {
+  it("repoPattern in scope rule filters out non-matching repos", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 10, repo: "other/project", decision: "accept", ts: "2026-01-01T00:00:00Z" },
+    ]);
+    writeCacheEntry(root, "owner/repo", 10, nowMinus(1).toISOString(), {
+      labels: [],
+      repository: { full_name: "owner/repo" },
+    });
+    const projectDef = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+    writeFileSync(
+      projectDef,
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: { policy: { triageScope: [{ repoPattern: "^owner/" }] } },
+      }),
+      "utf8",
+    );
+
+    const result = evaluate(root, {
+      repo: "owner/repo",
+      allowMissingBootstrap: true,
+      nowFn: () => new Date(),
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("non-numeric DEFT_CACHE_MAX_AGE_HOURS falls back to default and does not disable staleness check", () => {
+    const prevVal = process.env.DEFT_CACHE_MAX_AGE_HOURS;
+    process.env.DEFT_CACHE_MAX_AGE_HOURS = "notanumber";
+    try {
+      const root = setupProjectRoot();
+      writeCandidates(root, [
+        { issue: 1, repo: "owner/repo", decision: "accept", ts: "2026-01-01T00:00:00Z" },
+      ]);
+      // Write a cache entry that is 200h old (exceeds any reasonable default)
+      writeCacheEntry(root, "owner/repo", 1, nowMinus(200).toISOString());
+
+      const result = evaluate(root, {
+        repo: "owner/repo",
+        allowMissingBootstrap: true,
+        nowFn: () => new Date(),
+      });
+      // Should fail because cache is stale (200h > default ~24h), not silently pass due to NaN
+      expect(result.code).toBe(1);
+      expect(result.message).toContain("h old");
+    } finally {
+      if (prevVal === undefined) {
+        delete process.env.DEFT_CACHE_MAX_AGE_HOURS;
+      } else {
+        process.env.DEFT_CACHE_MAX_AGE_HOURS = prevVal;
+      }
+    }
+  });
+});

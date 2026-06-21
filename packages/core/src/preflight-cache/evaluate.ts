@@ -226,6 +226,16 @@ function ruleMatchesIssue(rule: ScopeRule, rawIssue: Record<string, unknown>): b
     );
     if (issueRepo !== rule.repo) return false;
   }
+  if (rule.repoPattern !== undefined) {
+    const issueRepo = String(
+      (rawIssue.repository as Record<string, unknown> | undefined)?.full_name ?? "",
+    );
+    try {
+      if (!new RegExp(rule.repoPattern).test(issueRepo)) return false;
+    } catch {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -322,9 +332,10 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
   const nowFn = options.nowFn ?? (() => new Date());
 
   const envMaxAge = process.env[ENV_MAX_AGE_HOURS];
+  const envMaxAgeParsed = envMaxAge !== undefined ? Number.parseInt(envMaxAge, 10) : null;
   const maxAgeHours =
     options.maxAgeHours ??
-    (envMaxAge !== undefined ? Number.parseInt(envMaxAge, 10) : null) ??
+    (envMaxAgeParsed !== null && !Number.isNaN(envMaxAgeParsed) ? envMaxAgeParsed : null) ??
     DEFAULT_MAX_AGE_HOURS;
 
   const cacheRoot = join(projectRoot, CACHE_DIR_NAME);
