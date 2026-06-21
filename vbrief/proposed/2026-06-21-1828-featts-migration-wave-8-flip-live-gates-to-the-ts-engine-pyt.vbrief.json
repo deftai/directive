@@ -1,0 +1,99 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1828"
+  },
+  "plan": {
+    "title": "feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1828",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2). Precedes the delete/cutover #1731 (this wave is added as a blocker of #1731).\n\n## Why this wave exists\n\nAll Python->TS ports (Waves 1-7) are complete and parity-proven, but the **live execution path is still Python**: the Taskfiles invoke `scripts/*.py` at ~160 sites across 104 distinct scripts (e.g. `verify:branch` still runs `uv run python scripts/preflight_branch.py`). The TS engine runs in **shadow** -- built and byte-identical via the golden-diff harnesses, but not yet wired into what `task`/`deft` actually executes.\n\n#1731 (delete) assumes this flip has happened (\"CI usage\") but never scoped it as its own bake-able step. Wave 8 is that missing middle step: **repoint the live gates to the TS engine while keeping Python in-tree as oracle + fallback, then bake for 2-3 releases before any deletion.** This avoids a big-bang flip+delete that would remove the parity oracle and the field fallback in a single motion while TS branch coverage sits right at the 85% floor.\n\n## What to build\n\nFlip every live gate/verb from `uv run python scripts/X.py` to the ported TS engine, additively and domain-by-domain, with the golden-diff parity harness as the equivalence gate. No Python is deleted in this wave.\n\n## Decision recorded (operator, 2026-06-20)\n\n**Node/pnpm becomes a required consumer runtime.** Today consumers require Python (`uv`) and the TS lane is guarded/optional (`ts:check-lane` skips when Node is absent). After this wave the live gates are TS-backed, so Node is mandatory. `doctor`/`toolchain:check` must fail with a clear, actionable message when Node is absent (not a stack trace).\n\n## Acceptance criteria\n\n- [ ] A unified `deft-ts <verb> [args]` dispatcher exists (today `bin.ts` is a banner stub and only ~13 of 96 command modules are exposed as bins)\n- [ ] `doctor`/`toolchain:check` enforce Node presence with an actionable error\n- [ ] Every live `task` gate routes to the TS engine; `scripts/*.py` remain in-tree as oracle/fallback\n- [ ] Each flipped gate's `task <gate>` output is byte-identical to the Python original (parity harness green, cache-off)\n- [ ] `task check` (framework-source + consumer) stays green at every merge\n- [ ] After all flips merge, a 2-3 release bake window elapses before #1731 (delete) proceeds\n\n## Proposed stories (decomposed separately)\n\n- **8.0** Unified `deft-ts` dispatcher + expose all 96 verbs (prerequisite, blocks the rest)\n- **8.1** Consumer Node-runtime enforcement in `doctor`/`toolchain:check` + install/upgrade docs (prerequisite, parallel with 8.0)\n- **8.2** Flip verify/preflight gates (the consumer-critical `check:consumer` set first)\n- **8.3** Flip triage surface (`triage_*` -- largest cluster)\n- **8.4** Flip scope/vbrief lifecycle (`scope_lifecycle`, `vbrief_*`, `slice_*`, `issue_ingest`, `reconcile_*`)\n- **8.5** Flip pr/swarm/release (`pr_*`, `swarm_*`, `release*`, `resolve_*`)\n- **8.6** Flip scm/cache/policy/misc (`scm`, `cache`, `policy_set`, `pack_render`, `roadmap_render`, `github_body`)\n\n## Standing invariants (inherited from #1731)\n\n- The Python suite remains the **parity oracle** and runs wholesale until deleted (Wave 9 / #1731).\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n\n## Type\n\nfeat (umbrella)",
+      "Labels": "process, runtime-portability, ts-migration"
+    },
+    "items": [
+      {
+        "title": "A unified  dispatcher exists (today  is a banner stub and only ~13 of 96 command modules are exposed as bins)",
+        "status": "proposed"
+      },
+      {
+        "title": "/ enforce Node presence with an actionable error",
+        "status": "proposed"
+      },
+      {
+        "title": "Every live  gate routes to the TS engine;  remain in-tree as oracle/fallback",
+        "status": "proposed"
+      },
+      {
+        "title": "Each flipped gate's  output is byte-identical to the Python original (parity harness green, cache-off)",
+        "status": "proposed"
+      },
+      {
+        "title": "(framework-source + consumer) stays green at every merge",
+        "status": "proposed"
+      },
+      {
+        "title": "After all flips merge, a 2-3 release bake window elapses before #1731 (delete) proceeds",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "process",
+      "runtime-portability",
+      "ts-migration"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)"
+      },
+      {
+        "uri": "pending/2026-06-21-build-the-unified-deft-ts-cli-dispatcher-exposing-all-ported.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Build the unified deft-ts CLI dispatcher exposing all ported verbs",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-enforce-node-as-a-required-consumer-runtime-in-doctortoolcha.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Enforce Node as a required consumer runtime in doctor/toolchain",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-flip-verifypreflight-gates-to-the-ts-engine-consumer-critica.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Flip verify/preflight gates to the TS engine (consumer-critical set first)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-flip-the-triage-task-surface-to-the-ts-engine.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Flip the triage task surface to the TS engine",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-flip-scopevbrief-lifecycle-gates-to-the-ts-engine.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Flip scope/vbrief lifecycle gates to the TS engine",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-flip-prswarmrelease-gates-to-the-ts-engine.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Flip pr/swarm/release gates to the TS engine",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-21-flip-scmcachepolicy-and-remaining-gates-to-the-ts-engine.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Flip scm/cache/policy and remaining gates to the TS engine",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

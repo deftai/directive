@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1828-s0-unified-deft-ts-dispatcher",
+    "title": "Build the unified deft-ts CLI dispatcher exposing all ported verbs",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
+    "narratives": {
+      "Description": "Replace the bin.ts banner stub with a unified `deft-ts <verb> [args]` dispatcher that routes to every ported command module in packages/cli and packages/core. Today only ~13 of 96 command modules are exposed as bins; the live-gate flip stories (s2-s6) cannot route Taskfiles to TS until one stable entrypoint exists. This is a prerequisite that blocks the domain-flip stories.",
+      "ImplementationPlan": "1. Replace packages/cli/src/bin.ts with a subcommand dispatcher that maps verb names to the existing command-module main() handlers, forwarding argv and exit codes unchanged. 2. Register the full verb table covering all 96 ported modules; expose `deft-ts --help` listing the verbs. 3. Keep per-command bins working for back-compat. 4. Add unit tests for verb routing, unknown-verb error, and exit-code passthrough; ensure `task ts:build` and `task ts:lint` stay green.",
+      "UserStory": "As a maintainer flipping live gates to TS, I want one stable `deft-ts <verb>` entrypoint, so that Taskfile gates can route to the TS engine through a single binary instead of 96 separate bins.",
+      "Traces": "#1828, #1530"
+    },
+    "items": [
+      {
+        "id": "1828-s0-unified-deft-ts-dispatcher-a1",
+        "title": "Given a known verb name and args, when `deft-ts <verb> [args]` runs, then it routes to that command module and exits with the same code the module's main() returns.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a known verb name and args, when `deft-ts <verb> [args]` runs, then it routes to that command module and exits with the same code the module's main() returns.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s0-unified-deft-ts-dispatcher-a2",
+        "title": "Given an unknown verb, when `deft-ts <verb>` runs, then it prints an error naming the verb and exits non-zero.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an unknown verb, when `deft-ts <verb>` runs, then it prints an error naming the verb and exits non-zero.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s0-unified-deft-ts-dispatcher-a3",
+        "title": "Given `deft-ts --help`, when it runs, then it prints the full list of registered verbs.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `deft-ts --help`, when it runs, then it prints the full list of registered verbs.",
+          "Traces": "#1828, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/bin.ts",
+          "packages/cli/src/dispatch.ts"
+        ],
+        "verify_commands": [
+          "task ts:build",
+          "task ts:test"
+        ],
+        "expected_outputs": [
+          "deft-ts dispatcher routes all registered verbs"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-cli-dispatch",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

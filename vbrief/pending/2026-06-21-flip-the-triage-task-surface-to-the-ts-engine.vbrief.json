@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1828-s3-flip-triage-surface",
+    "title": "Flip the triage task surface to the TS engine",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
+    "narratives": {
+      "Description": "Repoint the triage_* gates (actions, queue, classify, welcome, scope, scope-drift, reconcile, summary, subscribe, bulk, bootstrap, refresh, smoketest) from Python to the deft-ts dispatcher, keeping Python in-tree as oracle. This is the largest single cluster of live python invocations.",
+      "ImplementationPlan": "1. In the tasks/triage-*.yml files, replace python invocations with deft-ts verb calls for each triage gate. 2. Keep scripts/triage_*.py in-tree. 3. Confirm byte-identical output vs the Python oracle via the existing triage parity harnesses cache-off and that the triage smoketest stays green.",
+      "UserStory": "As an operator, I want the triage verbs executing on the TS engine, so that the queue, classification, and welcome surfaces behave identically to Python.",
+      "Traces": "#1828, #1530"
+    },
+    "items": [
+      {
+        "id": "1828-s3-flip-triage-surface-a1",
+        "title": "Given the flipped triage gates, when each `task triage:*` runs, then its output is byte-identical to the Python oracle cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flipped triage gates, when each `task triage:*` runs, then its output is byte-identical to the Python oracle cache-off.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s3-flip-triage-surface-a2",
+        "title": "Given the flip, when `task triage:smoketest` runs, then it passes routing through the TS engine.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flip, when `task triage:smoketest` runs, then it passes routing through the TS engine.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s3-flip-triage-surface-a3",
+        "title": "Given the flip, when scripts/triage_*.py are inspected, then they remain present in-tree as oracle.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flip, when scripts/triage_*.py are inspected, then they remain present in-tree as oracle.",
+          "Traces": "#1828, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/triage-actions.yml",
+          "tasks/triage-queue.yml",
+          "tasks/triage-classify.yml",
+          "tasks/triage-welcome.yml",
+          "tasks/triage-scope.yml",
+          "tasks/triage-scope-drift.yml",
+          "tasks/triage-reconcile.yml",
+          "tasks/triage-summary.yml",
+          "tasks/triage-subscribe.yml",
+          "tasks/triage-bulk.yml",
+          "tasks/triage-bootstrap.yml",
+          "tasks/triage-smoketest.yml"
+        ],
+        "verify_commands": [
+          "task ts:parity-all",
+          "task triage:smoketest"
+        ],
+        "expected_outputs": [
+          "triage gates route to TS, parity CLEAN"
+        ],
+        "depends_on": [
+          "1828-s0-unified-deft-ts-dispatcher"
+        ],
+        "conflict_group": "taskfile-triage",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1828-s2-flip-verify-preflight-gates",
+    "title": "Flip verify/preflight gates to the TS engine (consumer-critical set first)",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
+    "narratives": {
+      "Description": "Repoint the consumer-critical verify/preflight gates from `uv run python scripts/*.py` to the deft-ts dispatcher, keeping the Python scripts in-tree as oracle/fallback. Covers verify:branch, verify:encoding, vbrief:validate, story-ready, cache-fresh and the rest of the check:consumer set so consumers run the TS engine for the gates they depend on most.",
+      "ImplementationPlan": "1. In tasks/verify.yml and tasks/vbrief.yml, replace the python invocations for the verify/preflight gates with deft-ts verb calls. 2. Keep scripts/*.py in-tree untouched. 3. Confirm each flipped gate's output is byte-identical to the Python oracle via the existing parity harness (cache-off) and that `task check:consumer` plus `task check:framework-source` stay green.",
+      "UserStory": "As a consumer, I want the verify/preflight gates executing on the TS engine, so that the gates I rely on most run identically to the Python implementation they replace.",
+      "Traces": "#1828, #1530"
+    },
+    "items": [
+      {
+        "id": "1828-s2-flip-verify-preflight-gates-a1",
+        "title": "Given the flipped verify/preflight gates, when each `task verify:*` / preflight gate runs, then its output is byte-identical to the Python oracle cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flipped verify/preflight gates, when each `task verify:*` / preflight gate runs, then its output is byte-identical to the Python oracle cache-off.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s2-flip-verify-preflight-gates-a2",
+        "title": "Given the flip, when `task check:consumer` runs, then it passes routing through the TS engine.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flip, when `task check:consumer` runs, then it passes routing through the TS engine.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s2-flip-verify-preflight-gates-a3",
+        "title": "Given the flip, when the Python scripts are inspected, then they remain present in-tree as oracle/fallback.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flip, when the Python scripts are inspected, then they remain present in-tree as oracle/fallback.",
+          "Traces": "#1828, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/verify.yml",
+          "tasks/vbrief.yml"
+        ],
+        "verify_commands": [
+          "task ts:parity-all",
+          "task check:consumer"
+        ],
+        "expected_outputs": [
+          "verify/preflight gates route to TS, parity CLEAN"
+        ],
+        "depends_on": [
+          "1828-s0-unified-deft-ts-dispatcher"
+        ],
+        "conflict_group": "taskfile-verify",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

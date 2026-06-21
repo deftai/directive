@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 7 decomposed from proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1828-s6-flip-scm-cache-policy-misc",
+    "title": "Flip scm/cache/policy and remaining gates to the TS engine",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
+    "narratives": {
+      "Description": "Repoint the remaining live gates (scm, cache, policy_set, pack_render, roadmap_render, github_body, validate_strategy_output, codebase/capacity validators) from Python to the deft-ts dispatcher, keeping Python in-tree as oracle. This story closes out the long tail so no live `task` gate still invokes Python.",
+      "ImplementationPlan": "1. In tasks/scm.yml, tasks/cache.yml, tasks/policy.yml, tasks/packs.yml, tasks/roadmap.yml, tasks/codebase.yml, and tasks/capacity.yml, replace each `uv run python scripts/<name>.py` invocation with the corresponding deft-ts verb call, leaving the scripts on disk as oracle. 2. Run the existing scm/cache/policy parity harnesses (task ts:parity-all) cache-off to confirm byte-identical output against the Python oracle. 3. Grep the Taskfiles to confirm no live (non-parity-oracle) gate still calls `uv run python`, and confirm `task check:framework-source` stays green as the verification evidence.",
+      "UserStory": "As a maintainer, I want the remaining scm/cache/policy gates executing on the TS engine, so that after this story no live task gate still invokes Python.",
+      "Traces": "#1828, #1530"
+    },
+    "items": [
+      {
+        "id": "1828-s6-flip-scm-cache-policy-misc-a1",
+        "title": "Given the flipped scm/cache/policy/misc gates, when each task runs, then its output is byte-identical to the Python oracle cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flipped scm/cache/policy/misc gates, when each task runs, then its output is byte-identical to the Python oracle cache-off.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s6-flip-scm-cache-policy-misc-a2",
+        "title": "Given the completed flip, when the Taskfiles are scanned, then no live (non-parity-oracle) gate invokes `uv run python`.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the completed flip, when the Taskfiles are scanned, then no live (non-parity-oracle) gate invokes `uv run python`.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s6-flip-scm-cache-policy-misc-a3",
+        "title": "Given the flip, when the remaining python scripts are inspected, then they remain present in-tree as oracle.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flip, when the remaining python scripts are inspected, then they remain present in-tree as oracle.",
+          "Traces": "#1828, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/scm.yml",
+          "tasks/cache.yml",
+          "tasks/policy.yml",
+          "tasks/packs.yml",
+          "tasks/roadmap.yml",
+          "tasks/codebase.yml",
+          "tasks/capacity.yml"
+        ],
+        "verify_commands": [
+          "task ts:parity-all",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "all remaining gates route to TS, parity CLEAN"
+        ],
+        "depends_on": [
+          "1828-s0-unified-deft-ts-dispatcher"
+        ],
+        "conflict_group": "taskfile-scm-misc",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

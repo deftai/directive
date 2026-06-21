@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1828-s1-node-runtime-enforcement",
+    "title": "Enforce Node as a required consumer runtime in doctor/toolchain",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
+    "narratives": {
+      "Description": "Make Node/pnpm a required runtime once live gates are TS-backed. Today consumers require Python (uv) and the TS lane is guarded/optional. Update doctor and toolchain:check to detect a missing Node toolchain and fail with a clear, actionable message rather than a stack trace, and document the new requirement in install/upgrade surfaces. Prerequisite, runnable in parallel with s0.",
+      "ImplementationPlan": "1. Extend the TS doctor module (packages/core/src/doctor) to probe for a Node runtime and emit an actionable remediation line when absent. 2. Wire the same probe into toolchain:check guidance. 3. Update install/upgrade docs to state Node is required for TS-backed gates. 4. Add unit tests for the present-Node and absent-Node branches asserting the exit code and the remediation message.",
+      "UserStory": "As a consumer running deft after the flip, I want a clear error when Node is missing, so that I know to install the now-required Node runtime instead of hitting an opaque failure.",
+      "Traces": "#1828, #1530"
+    },
+    "items": [
+      {
+        "id": "1828-s1-node-runtime-enforcement-a1",
+        "title": "Given a host without a Node runtime, when doctor runs, then it reports the missing-Node condition with an actionable remediation line and exits non-zero.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a host without a Node runtime, when doctor runs, then it reports the missing-Node condition with an actionable remediation line and exits non-zero.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s1-node-runtime-enforcement-a2",
+        "title": "Given a host with a Node runtime, when doctor runs, then the Node check passes and does not change unrelated doctor output.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a host with a Node runtime, when doctor runs, then the Node check passes and does not change unrelated doctor output.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s1-node-runtime-enforcement-a3",
+        "title": "Given the install/upgrade docs, when read, then they state that Node is a required runtime for TS-backed gates.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the install/upgrade docs, when read, then they state that Node is a required runtime for TS-backed gates.",
+          "Traces": "#1828, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/",
+          "tasks/toolchain.yml"
+        ],
+        "verify_commands": [
+          "task ts:test",
+          "task ts:doctor-parity"
+        ],
+        "expected_outputs": [
+          "doctor reports missing Node with remediation"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-doctor-toolchain",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

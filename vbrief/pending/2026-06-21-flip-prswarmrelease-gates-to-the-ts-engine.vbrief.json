@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1828-s5-flip-pr-swarm-release",
+    "title": "Flip pr/swarm/release gates to the TS engine",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
+    "narratives": {
+      "Description": "Repoint the pr_*, swarm_*, release*, and resolve_* gates from Python to the deft-ts dispatcher, keeping Python in-tree as oracle. Covers pr_wait_mergeable, pr_merge_readiness, pr_check_protected_issues, swarm_launch, swarm_complete_cohort, swarm_verify_review_clean, release/release_publish/release_rollback/release_e2e, resolve_version, resolve_changelog_unreleased.",
+      "ImplementationPlan": "1. In tasks/pr.yml, tasks/swarm.yml, and the release verbs defined in the root Taskfile.yml, replace each `uv run python scripts/<name>.py` invocation with the corresponding deft-ts verb call, leaving the scripts on disk. 2. Run the existing pr/swarm/release parity harnesses (task ts:parity-all) cache-off to confirm byte-identical output against the Python oracle. 3. Exercise the protected-issue check and a release dry-run through the flipped gates and confirm `task check:framework-source` stays green as the verification evidence; release-publish/rollback verbs are exercised in dry-run/parity mode only.",
+      "UserStory": "As an orchestrator, I want the pr/swarm/release verbs executing on the TS engine, so that cascade automation and release tooling behave identically to Python.",
+      "Traces": "#1828, #1530"
+    },
+    "items": [
+      {
+        "id": "1828-s5-flip-pr-swarm-release-a1",
+        "title": "Given the flipped pr/swarm/release gates, when each task runs, then its output is byte-identical to the Python oracle cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flipped pr/swarm/release gates, when each task runs, then its output is byte-identical to the Python oracle cache-off.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s5-flip-pr-swarm-release-a2",
+        "title": "Given a protected-issue check, when run through the TS engine, then it returns the same escalation exit as the Python path.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a protected-issue check, when run through the TS engine, then it returns the same escalation exit as the Python path.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s5-flip-pr-swarm-release-a3",
+        "title": "Given the flip, when the python pr/swarm/release scripts are inspected, then they remain present in-tree as oracle.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flip, when the python pr/swarm/release scripts are inspected, then they remain present in-tree as oracle.",
+          "Traces": "#1828, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/pr.yml",
+          "tasks/swarm.yml",
+          "Taskfile.yml"
+        ],
+        "verify_commands": [
+          "task ts:parity-all"
+        ],
+        "expected_outputs": [
+          "pr/swarm/release gates route to TS, parity CLEAN"
+        ],
+        "depends_on": [
+          "1828-s0-unified-deft-ts-dispatcher"
+        ],
+        "conflict_group": "taskfile-pr-release",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

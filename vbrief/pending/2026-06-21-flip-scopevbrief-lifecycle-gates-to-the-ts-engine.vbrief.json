@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1828-s4-flip-scope-vbrief-lifecycle",
+    "title": "Flip scope/vbrief lifecycle gates to the TS engine",
+    "status": "pending",
+    "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
+    "narratives": {
+      "Description": "Repoint the scope and vbrief lifecycle gates (scope_lifecycle, vbrief_activate, slice_record_existing, issue_ingest, reconcile_issues, vbrief_reconcile_*) from Python to the deft-ts dispatcher. The python scripts stay in-tree as the parity oracle and field fallback so no lifecycle behavior is removed in this wave.",
+      "ImplementationPlan": "1. In tasks/scope.yml, tasks/slice.yml, tasks/issue.yml, and tasks/reconcile.yml, replace each `uv run python scripts/<name>.py` invocation with the corresponding deft-ts verb call, leaving the scripts on disk. 2. Run the existing per-module parity harnesses (task ts:parity-all) cache-off to confirm byte-identical output against the Python oracle. 3. Exercise a promote/activate/complete sequence through the flipped gates and confirm `task check:framework-source` stays green as the verification evidence.",
+      "UserStory": "As a maintainer, I want the scope/vbrief lifecycle verbs executing on the TS engine, so that promote/activate/complete and intake behave identically to Python.",
+      "Traces": "#1828, #1530"
+    },
+    "items": [
+      {
+        "id": "1828-s4-flip-scope-vbrief-lifecycle-a1",
+        "title": "Given the flipped lifecycle gates, when each scope/vbrief lifecycle task runs, then its output is byte-identical to the Python oracle cache-off.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flipped lifecycle gates, when each scope/vbrief lifecycle task runs, then its output is byte-identical to the Python oracle cache-off.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s4-flip-scope-vbrief-lifecycle-a2",
+        "title": "Given a scope promote/activate/complete sequence, when run through the TS engine, then the vBRIEF lands in the same lifecycle folder as the Python path.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a scope promote/activate/complete sequence, when run through the TS engine, then the vBRIEF lands in the same lifecycle folder as the Python path.",
+          "Traces": "#1828, #1530"
+        }
+      },
+      {
+        "id": "1828-s4-flip-scope-vbrief-lifecycle-a3",
+        "title": "Given the flip, when the python lifecycle scripts are inspected, then they remain present in-tree as oracle.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the flip, when the python lifecycle scripts are inspected, then they remain present in-tree as oracle.",
+          "Traces": "#1828, #1530"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/scope.yml",
+          "tasks/slice.yml",
+          "tasks/issue.yml",
+          "tasks/reconcile.yml"
+        ],
+        "verify_commands": [
+          "task ts:parity-all"
+        ],
+        "expected_outputs": [
+          "lifecycle gates route to TS, parity CLEAN"
+        ],
+        "depends_on": [
+          "1828-s0-unified-deft-ts-dispatcher"
+        ],
+        "conflict_group": "taskfile-lifecycle",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1828",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}
