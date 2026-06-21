@@ -72,9 +72,8 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
   });
 
   it("returns exit 2 for unknown subcommand", () => {
-    const { exitCode, stderr } = runDeftTs("policy", ["nope"]);
+    const { exitCode } = runDeftTs("policy", ["nope"]);
     expect(exitCode).toBe(2);
-    expect([0, 1, 2]).toContain(exitCode);
   });
 });
 
