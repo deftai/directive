@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { repoRoot } from "./_helpers.js";
@@ -21,7 +21,7 @@ const DOUBLED = [
 ] as const;
 
 function listAllTaskNames(): string[] {
-  const out = execSync(`task -t ${join(repoRoot(), "Taskfile.yml")} --list-all`, {
+  const out = execFileSync("task", ["-t", join(repoRoot(), "Taskfile.yml"), "--list-all"], {
     cwd: repoRoot(),
     encoding: "utf8",
     env: { ...process.env, PYTHONUTF8: "1" },
@@ -51,11 +51,15 @@ describe("test_taskfile_release_names.py", () => {
   });
 
   it.skipIf(!taskAvailable)("test_task_release_help_dispatches_end_to_end", () => {
-    const out = execSync(`task -t ${join(repoRoot(), "Taskfile.yml")} release -- --help`, {
-      cwd: repoRoot(),
-      encoding: "utf8",
-      env: { ...process.env, PYTHONUTF8: "1" },
-    });
+    const out = execFileSync(
+      "task",
+      ["-t", join(repoRoot(), "Taskfile.yml"), "release", "--", "--help"],
+      {
+        cwd: repoRoot(),
+        encoding: "utf8",
+        env: { ...process.env, PYTHONUTF8: "1" },
+      },
+    );
     expect(out.toLowerCase()).toContain("usage");
   });
 });

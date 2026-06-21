@@ -59,7 +59,7 @@ describe("test_security_extensions.py", () => {
     }
     expect(section).toContain("- ! ");
     expect(section).toContain("- ⊗ ");
-    expect(section.includes("Cartagena") || section.includes("https://arxiv.org/abs/")).toBe(true);
+    expect(section.includes("Cartagena") || /https:\/\/arxiv\.org\/abs\//.test(section)).toBe(true);
   });
 
   it("test_destructive_op_guardrails_section_present", () => {
