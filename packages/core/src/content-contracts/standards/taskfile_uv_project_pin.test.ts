@@ -1,5 +1,5 @@
-import { join } from "node:path";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { readText, repoRoot } from "./_helpers.js";
 
@@ -8,10 +8,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   const PINNED = /uv\s+--project\s+"[^"]+"\s+run\b/;
   describe("architecture.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/architecture.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/architecture.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -22,10 +19,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("cache.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/cache.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/cache.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -36,10 +30,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("capacity.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/capacity.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/capacity.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -50,10 +41,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("change.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/change.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/change.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -64,10 +52,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("changelog.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/changelog.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/changelog.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -78,10 +63,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("ci.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/ci.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/ci.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -92,10 +74,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("codebase.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/codebase.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/codebase.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -106,10 +85,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("commit.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/commit.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/commit.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -120,10 +96,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("core.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/core.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/core.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -134,10 +107,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("deployments.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/deployments.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/deployments.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -148,10 +118,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("framework.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/framework.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/framework.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -162,10 +129,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("install.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/install.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/install.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -176,10 +140,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("issue.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/issue.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/issue.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -190,10 +151,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("migrate.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/migrate.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/migrate.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -204,10 +162,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("packs.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/packs.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/packs.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -218,10 +173,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("policy.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/policy.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/policy.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -232,10 +184,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("pr.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/pr.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/pr.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -246,10 +195,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("prd.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/prd.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/prd.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -260,10 +206,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("project.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/project.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/project.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -274,10 +217,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("reconcile.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/reconcile.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/reconcile.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -288,10 +228,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("relocate.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/relocate.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/relocate.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -302,10 +239,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("roadmap.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/roadmap.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/roadmap.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -316,10 +250,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("scm.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/scm.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/scm.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -330,10 +261,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("scope-undo.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/scope-undo.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/scope-undo.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -344,10 +272,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("scope.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/scope.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/scope.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -358,10 +283,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("session.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/session.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/session.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -372,10 +294,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("setup.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/setup.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/setup.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -386,10 +305,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("slice.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/slice.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/slice.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -400,10 +316,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("spec.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/spec.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/spec.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -414,10 +327,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("swarm.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/swarm.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/swarm.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -428,10 +338,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("toolchain.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/toolchain.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/toolchain.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -442,10 +349,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-actions.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-actions.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-actions.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -456,10 +360,9 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-bootstrap.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-bootstrap.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-bootstrap.yml"), {
+        encoding: "utf8",
+      });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -470,10 +373,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-bulk.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-bulk.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-bulk.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -484,10 +384,9 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-classify.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-classify.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-classify.yml"), {
+        encoding: "utf8",
+      });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -498,10 +397,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-queue.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-queue.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-queue.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -512,10 +408,9 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-reconcile.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-reconcile.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-reconcile.yml"), {
+        encoding: "utf8",
+      });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -526,10 +421,9 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-scope-drift.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-scope-drift.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-scope-drift.yml"), {
+        encoding: "utf8",
+      });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -540,10 +434,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-scope.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-scope.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-scope.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -554,10 +445,9 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-smoketest.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-smoketest.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-smoketest.yml"), {
+        encoding: "utf8",
+      });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -568,10 +458,9 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-subscribe.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-subscribe.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-subscribe.yml"), {
+        encoding: "utf8",
+      });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -582,10 +471,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-summary.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-summary.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-summary.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -596,10 +482,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("triage-welcome.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/triage-welcome.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/triage-welcome.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -610,10 +493,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("ts.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/ts.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/ts.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -624,10 +504,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("vbrief.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/vbrief.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/vbrief.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
@@ -638,10 +515,7 @@ describe("test_taskfile_uv_project_pin.py", () => {
   });
   describe("verify.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(
-        join(repoRoot(), "tasks/verify.yml"),
-        { encoding: "utf8" },
-      );
+      const text = readFileSync(join(repoRoot(), "tasks/verify.yml"), { encoding: "utf8" });
       const offenders: string[] = [];
       for (const line of text.split("\n")) {
         if (line.trimStart().startsWith("#")) continue;
