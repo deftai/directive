@@ -6,7 +6,7 @@
   "plan": {
     "id": "1828-s2-flip-verify-preflight-gates",
     "title": "Flip verify/preflight gates to the TS engine (consumer-critical set first)",
-    "status": "pending",
+    "status": "completed",
     "planRef": "proposed/2026-06-21-1828-featts-migration-wave-8-flip-live-gates-to-the-ts-engine-pyt.vbrief.json",
     "narratives": {
       "Description": "Repoint the consumer-critical verify/preflight gates from `uv run python scripts/*.py` to the deft-ts dispatcher, keeping the Python scripts in-tree as oracle/fallback. Covers verify:branch, verify:encoding, vbrief:validate, story-ready, cache-fresh and the rest of the check:consumer set so consumers run the TS engine for the gates they depend on most.",
@@ -66,7 +66,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-21T01:50:09Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -75,6 +77,7 @@
         "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-21T01:50:09Z"
   }
 }

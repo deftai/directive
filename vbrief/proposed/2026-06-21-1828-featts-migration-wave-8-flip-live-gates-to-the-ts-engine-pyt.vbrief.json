@@ -62,7 +62,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-flip-verifypreflight-gates-to-the-ts-engine-consumer-critica.vbrief.json",
+        "uri": "completed/2026-06-21-flip-verifypreflight-gates-to-the-ts-engine-consumer-critica.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Flip verify/preflight gates to the TS engine (consumer-critical set first)",
         "TrustLevel": "internal"

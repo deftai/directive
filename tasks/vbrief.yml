@@ -4,13 +4,21 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
+  _ts-build:
+    internal: true
+    desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - pnpm run build
+
   validate:
     desc: Validate vBRIEF lifecycle folder structure and cross-file consistency
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_validate.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"
+      # Oracle/fallback (parity): scripts/vbrief_validate.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief:validate --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"
 
   preflight:
     # Implementation-intent preflight wrapper (#810 / PR #812 fixup;
@@ -63,16 +71,11 @@ tasks:
     # {{.CLI_ARGS}} and a cached cmds skip would silently swallow it.
     desc: "Preflight an implementation-intent gate (#810): exits 0 only when vBRIEF is in vbrief/active/ AND plan.status == 'running'. Fails closed (#1046 PR-C / #1047) if the wrapped script cannot be resolved."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      # Two-step fail-closed invocation. Step 1 resolves the path; on
-      # non-zero exit (no candidate resolves) the ``||`` short-circuits
-      # and the whole ``sh:`` block exits with the resolver's code (2).
-      # Step 2 only fires when Step 1 produced a usable absolute path.
-      - |
-        resolved=$(uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/_resolve_preflight_path.py" --project-root "{{.USER_WORKING_DIR}}") || exit $?
-        uv --project "{{.DEFT_ROOT}}" run python "$resolved" --project-root "{{.USER_WORKING_DIR}}" --vbrief-path {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/preflight_implementation.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief:preflight --vbrief-path {{.CLI_ARGS}}
 
   reconcile:graph:
     # Cascade-unblock walker (#1287). Walks vbrief/proposed/, resolves each
@@ -96,10 +99,11 @@ tasks:
     # track, so a cached skip would silently swallow real promotions.
     desc: "Reconcile dep graph: promote proposed/ vBRIEFs whose swarm.depends_on[] all resolve to completed/ or cancelled/ (#1287). Flags: --force --dry-run --json."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_graph.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/vbrief_reconcile_graph.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief-reconcile graph --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   reconcile:labels:
     # SCM label reconciliation (#1288). Walks vbrief/proposed/ + pending/ +
@@ -126,10 +130,11 @@ tasks:
     # swallow real label changes.
     desc: "Reconcile SCM labels to mirror vBRIEF state: status:blocked / epic+status:tracker / rfc (#1288). Routes through scripts/scm.py. Flags: --repo --dry-run --json."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_labels.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/vbrief_reconcile_labels.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief-reconcile labels --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   reconcile:umbrellas:
     # Umbrella current-shape auto-update (#1289). Walks every kind=epic
@@ -160,10 +165,11 @@ tasks:
     # swallow real comment updates.
     desc: "Reconcile epic umbrella current-shape comments to vBRIEF state per AGENTS.md #1152: edit in place (preserve permalink). Routes through scripts/scm.py. Flags: --repo --dry-run --json."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_reconcile_umbrellas.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/vbrief_reconcile_umbrellas.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief-reconcile umbrellas --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   activate:
     # Implementation-intent activation gate companion (#810). Idempotent:
@@ -193,7 +199,8 @@ tasks:
     # {{.CLI_ARGS}} and a cached cmds skip would silently swallow it.
     desc: "Activate a vBRIEF: pending/ -> active/ (status: running). Idempotent. (#810)"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/vbrief_activate.py" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/vbrief_activate.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief:activate {{.CLI_ARGS}}

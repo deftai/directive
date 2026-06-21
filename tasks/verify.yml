@@ -4,6 +4,13 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
+  _ts-build:
+    internal: true
+    desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - pnpm run build
+
   stubs:
     desc: Scan source files for stub patterns (TODO, FIXME, HACK, return null, bare pass)
     env:
@@ -28,31 +35,33 @@ tasks:
   branch:
     desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
+      # Oracle/fallback (parity): scripts/preflight_branch.py (#1828 Wave 8).
       # `--allow-missing-project-definition` keeps the framework's own check
       # green for fresh checkouts that have not yet run `task setup` (the
       # bootstrap fallback path documented in #746 acceptance criterion E).
       # Production projects with PROJECT-DEFINITION present will still get
       # the full enforcement -- the flag is a no-op when the file exists.
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_branch.py" --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:branch --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition
 
   hooks-installed:
     desc: "Assert the deft git hooks are installed AND functional -- core.hooksPath set, hooks dir + pre-commit/pre-push present, and the gate scripts resolve in this layout (own-repo or vendored). Fails loud on the #1463 false-green (wired but non-functional). Run `task setup` / re-run the installer if this fails (#747, #1463)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # No sources:/generates: -- a cached cmds skip would mask a hooks dir /
     # gate-script that was deleted after the last run.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_hooks_installed.py" --project-root "{{.USER_WORKING_DIR}}"
+      # Oracle/fallback (parity): scripts/verify_hooks_installed.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:hooks-installed --project-root "{{.USER_WORKING_DIR}}"
 
   encoding:
     desc: "Detect PS 5.1 non-ASCII round-trip corruption (#798). Scans tracked text files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM. Defaults to --all; pass --staged for the pre-commit invocation."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
     # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
     # silently swallowed by go-task's incremental-build cache. The same
@@ -60,19 +69,21 @@ tasks:
     # (#702) applies here -- the gate accepts recovery flags that the cache
     # layer would otherwise discard.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_encoding.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_encoding.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:encoding --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   vbrief-conformance:
     desc: "Detect bare non-conformant vBRIEF keys (#1620). Scans tracked vbrief/**/*.vbrief.json and flags any document/plan/item key that is not 0.6 spec-core, x-directive/-namespaced, or x-vbrief/-namespaced. plan.policy + plan.completedNote carry a TEMPORARY allow-list pending vBRIEF #12. Defaults to --all; pass --staged for the pre-commit invocation."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
     # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
     # silently swallowed by go-task's incremental-build cache (same rationale
     # as verify:encoding above).
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_vbrief_conformance.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_vbrief_conformance.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief-validate conformance --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   destructive-gh-verbs:
     desc: "Detection-bound gate for destructive gh verbs (#1019). Runs scripts/preflight_gh.py --self-test so the fixture-vs-classifier contract fails CI on drift. Override via DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 (per-shell emergency bypass)."
@@ -114,10 +125,11 @@ tasks:
   tools:
     desc: "Detect required Deft host tools and print install or manual guidance (#1187). Flags: --install / --yes / --json"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_tools.py" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_tools.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:tools {{.CLI_ARGS}}
 
   scm-boundary:
     desc: "Detection-bound gate against raw `gh` / `ghx` subprocess calls outside `scripts/scm.py` (#1145 / N5). Scans verb-layer Python files (`scripts/triage_*.py`, `scripts/scope_*.py`, `scripts/slice_*.py`, `scripts/_triage_*.py`, `scripts/_scope_*.py`, `scripts/resume_conditions.py`, `scripts/issue_ingest.py`) and fails loud when any of them invoke `gh` directly instead of going through `scm.call(source, verb, args)`. Three-state exit (0 clean / 1 violations / 2 config error). Document an exception via `--allow-list <path>` (file with newline-separated glob patterns)."
@@ -134,8 +146,8 @@ tasks:
   story-ready:
     desc: "Deterministic story-start Gate 0 (#1378 Story C). Inspects working-tree cleanliness, the target vBRIEF lifecycle (active/ + plan.status==running), and the dispatch envelope's `## Allocation context` consent token (Story A schema). Three-state exit (0 ready / 1 not ready / 2 config error). -- task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>] [--allow-dirty] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--vbrief-path / --allocation-context / --allow-dirty / --json) that
@@ -144,19 +156,21 @@ tasks:
     # dispatch gate that requires a concrete --vbrief-path, which a generic
     # `task check` run has no way to supply.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_story_start.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/preflight_story_start.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:story-ready --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   investigation:
     desc: "Validate a forensic investigation ledger (#1621). Promotes the forensic-research validator into a deterministic gate: the close check before Wave 5 / any causal chat. Three-state exit (0 close-ready / 1 hard failures / 2 config error). Intentionally NOT in the `task check` aggregate -- it requires a concrete --ledger path. -- task verify:investigation -- --ledger .tmp/investigations/<id>/investigation.vbrief.json [--json]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--ledger / --json) that go-task's incremental-build cache would
     # silently swallow.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_investigation.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_investigation.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:investigation --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   architecture-sor:
     desc: "Diff-time system-of-record architecture gate. Scans stateful persistence signals and requires a matching architecture.systemOfRecord record. Example: task verify:architecture-sor -- --base-ref origin/main [--story-path <path>]"
@@ -185,8 +199,8 @@ tasks:
   judgment-gates:
     desc: "Three-state ADVISORY judgment-gate engine (#1419 Slice 3). Evaluates a candidate change (diff paths / labels / body) against plan.policy.judgmentGates + four default-on universal safety gates (secrets / infra / AGENTS.md+skills / installer). Advisory by default (always exits 0); opt-in --enforce fails closed (exit 1) when a mechanical block-tier gate fires without a recorded clearance; exit 2 on config error. -- task verify:judgment-gates [-- --base-ref <ref>] [--path P] [--label L] [--enforce] [--json]. DELIBERATELY NOT in the `task check` aggregate -- judgment gates must never fail-closed on the framework tree (advise -> observe -> block rollout, #1419)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--base-ref / --path / --label / --body / --state / --enforce / --json /
@@ -196,13 +210,14 @@ tasks:
     # directive-side invocation never passes --enforce, so the gate stays
     # advisory on the framework's own tree (advise-mode discipline, #1419).
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_judgment_gates.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/verify_judgment_gates.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:judgment-gates --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   wip-cap:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - _ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` /
     # `generates:` because the gate forwards user-facing flags via
     # {{.CLI_ARGS}} (--allow-over-cap / --quiet) that go-task's
@@ -214,4 +229,5 @@ tasks:
     # OFF so a stale-branch / --force-merge over-cap state fails their
     # `task check` loudly.
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_wip_cap.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Oracle/fallback (parity): scripts/preflight_wip_cap.py (#1828 Wave 8).
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:wip-cap --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

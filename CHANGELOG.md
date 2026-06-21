@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Verify and preflight gates now run on the TypeScript engine (#1828 s2)** -- Consumer-critical `task verify:*` and `task vbrief:*` preflight gates in `tasks/verify.yml` and `tasks/vbrief.yml` route through the unified `deft-ts` dispatcher (`packages/cli/dist/bin.js`) with `ts:build` as a dependency so a clean checkout self-builds first. Python scripts remain in-tree as parity oracles; gates without a TS port yet (including `verify:cache-fresh`, session ritual, scm-boundary, and architecture-sor) still invoke Python until their Wave 8 follow-ups land. Refs #1828 #1530.
+
 ### Fixed
 - **Closed a command-injection risk in the TypeScript version resolver (#1824)** -- The remote-tag lookup now rejects remote names that begin with `-` and passes the `--` end-of-options separator to git, so a crafted remote can no longer be smuggled in as a git option to execute an arbitrary command. Behavior is unchanged for all real remotes; this clears the `js/second-order-command-line-injection` CodeQL alert from the #1787 platform-utilities port. Refs #1824 #1787 #1530.
 - **Hardened a ReDoS-prone regex in the TypeScript swarm launcher (#1822)** -- The swarm cohort branch-name sanitizer no longer uses a backtracking regex to strip leading/trailing separators, so pathological story IDs (long runs of `-`/`.`) can't cause slow processing. Branch names are unchanged for all normal inputs; this clears the `js/polynomial-redos` CodeQL alert introduced by the #1788 swarm-verbs port. Refs #1822 #1788 #1530.
