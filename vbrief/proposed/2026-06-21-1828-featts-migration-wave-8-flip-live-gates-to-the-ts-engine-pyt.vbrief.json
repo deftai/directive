@@ -74,7 +74,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-21-flip-scopevbrief-lifecycle-gates-to-the-ts-engine.vbrief.json",
+        "uri": "completed/2026-06-21-flip-scopevbrief-lifecycle-gates-to-the-ts-engine.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Flip scope/vbrief lifecycle gates to the TS engine",
         "TrustLevel": "internal"
