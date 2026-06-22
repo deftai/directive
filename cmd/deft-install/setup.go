@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deftai/directive/templates"
+	"github.com/deftai/directive/content/templates"
 )
 
 // bareSemverPattern matches a bare `X.Y.Z[-pre][+build]` semver triple (no

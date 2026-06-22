@@ -571,8 +571,9 @@ func repoRootFromDeftInstall(t *testing.T) string {
 }
 
 // TestWriteAgentsMD_MatchesTemplateFixture asserts that the AGENTS.md the
-// installer writes is byte-identical to templates/agents-entry.md at the repo
-// root. This ties cmd/deft-install to the canonical template so the installer,
+// installer writes is byte-identical to content/templates/agents-entry.md
+// (relocated under content/ by the #1875 move). This ties cmd/deft-install to
+// the canonical template so the installer,
 // task agents:init, and QUICK-START.md all produce byte-identical output for
 // the same template revision (closes #636).
 func TestWriteAgentsMD_MatchesTemplateFixture(t *testing.T) {
@@ -588,7 +589,7 @@ func TestWriteAgentsMD_MatchesTemplateFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	templatePath := filepath.Join(repoRootFromDeftInstall(t), "templates", "agents-entry.md")
+	templatePath := filepath.Join(repoRootFromDeftInstall(t), "content", "templates", "agents-entry.md")
 	template, err := os.ReadFile(templatePath)
 	if err != nil {
 		t.Fatalf("could not read %s: %v", templatePath, err)
@@ -605,7 +606,7 @@ func TestWriteAgentsMD_MatchesTemplateFixture(t *testing.T) {
 // was re-introduced alongside it). This is the cmd-level mirror of the drift
 // test in templates/embed_test.go (closes #636).
 func TestAgentsMDEntrySourcedFromTemplate(t *testing.T) {
-	templatePath := filepath.Join(repoRootFromDeftInstall(t), "templates", "agents-entry.md")
+	templatePath := filepath.Join(repoRootFromDeftInstall(t), "content", "templates", "agents-entry.md")
 	template, err := os.ReadFile(templatePath)
 	if err != nil {
 		t.Fatalf("could not read %s: %v", templatePath, err)

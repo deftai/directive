@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { contentRoot } from "../content-root.js";
 import { AGENTS_MANAGED_CLOSE } from "./constants.js";
 import { resolveDefaultFrameworkRoot } from "./paths.js";
 
@@ -25,7 +26,12 @@ function readAgentsTemplate(seams: AgentsMdSeams = {}): string | null {
   if (seams.readTemplate) {
     return seams.readTemplate();
   }
-  const candidate = join(frameworkRoot(seams), "templates", "agents-entry.md");
+  // #1875: the AGENTS.md template moved under content/ in the source repo
+  // (content/templates/agents-entry.md) but the C1 flatten deposits it at
+  // templates/agents-entry.md in a consumer install. Resolve via contentRoot so
+  // the same lookup works in both contexts (mirrors scripts/_agents_md.py
+  // _agents_template_path, which uses content_root(framework_root())).
+  const candidate = join(contentRoot(frameworkRoot(seams)), "templates", "agents-entry.md");
   try {
     if (!existsSync(candidate)) {
       return null;

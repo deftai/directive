@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentRoot } from "../content-root.js";
 import { AGENTS_MANAGED_CLOSE, AGENTS_MANAGED_OPEN_V3_LITERAL } from "./constants.js";
 import { findManagedOpenMarker } from "./linear-scan.js";
 
@@ -30,7 +31,13 @@ export function frameworkRoot(seams: AgentsMdSeams = {}): string {
   if (envRoot) return resolve(envRoot);
   let dir = dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 8; i += 1) {
-    if (existsSync(join(dir, "templates", "agents-entry.md"))) return dir;
+    // #1875: templates/ moved under content/ in the source repo; the C1 flatten
+    // deposits it at templates/ in a consumer install. Accept either layout.
+    if (
+      existsSync(join(dir, "content", "templates", "agents-entry.md")) ||
+      existsSync(join(dir, "templates", "agents-entry.md"))
+    )
+      return dir;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
@@ -39,7 +46,10 @@ export function frameworkRoot(seams: AgentsMdSeams = {}): string {
 }
 
 function agentsTemplatePath(seams: AgentsMdSeams = {}): string {
-  return join(frameworkRoot(seams), "templates", "agents-entry.md");
+  // #1875: resolve through contentRoot so the template is found in both the
+  // source checkout (content/templates/agents-entry.md) and the flattened
+  // consumer deposit (templates/agents-entry.md). Mirrors scripts/_agents_md.py.
+  return join(contentRoot(frameworkRoot(seams)), "templates", "agents-entry.md");
 }
 
 function readAgentsTemplate(seams: AgentsMdSeams = {}): string | null {

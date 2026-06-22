@@ -458,6 +458,21 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 			continue
 		}
 
+		// C1 flatten (#1875): the GitHub SOURCE tarball carries every shippable
+		// framework asset under a repo-relative `content/` root, but the consumer
+		// deposit layout (.deft/core/<x>) MUST stay byte-stable with the pre-move
+		// tree. Strip a leading repo-relative `content/` component so a source
+		// entry `<wrapper>/content/coding/coding.md` deposits at
+		// `.deft/core/coding/coding.md`. This mirrors
+		// build_dist.py::_flatten_content_prefix, the release-archive flatten
+		// point; the Go installer downloads the SOURCE tarball
+		// (deftTarballAPIBase) -- a SEPARATE deposit path the release flatten
+		// does not cover -- so the same flatten is applied here. The exclude
+		// check above runs on the ORIGINAL repo-relative path (matching
+		// build_dist, which excludes before flattening).
+		parts = flattenContentParts(parts)
+		name = strings.Join(parts, "/")
+
 		// filepath.Join cleans its result, so target is already lexically clean;
 		// validate THAT exact value (not a separate filepath.Clean copy) so the
 		// checked path is the one that flows into the MkdirAll / OpenFile sinks
@@ -529,6 +544,31 @@ func tarPathExcluded(parts []string) bool {
 		}
 	}
 	return false
+}
+
+// contentPrefixComponent is the repo-relative directory the #1875 move gathered
+// every shippable framework asset under. extractCoreTarball strips it from the
+// deposit path (the C1 flatten) so the consumer .deft/core/ layout is byte-stable
+// with the pre-move tree. Mirrors build_dist.py CONTENT_PREFIX ("content/").
+const contentPrefixComponent = "content"
+
+// flattenContentParts strips a leading repo-relative `content` component from a
+// split tarball entry path (parts[0] is the GitHub `<owner>-<repo>-<sha>`
+// wrapper dir, parts[1:] is the repo-relative path). A source entry
+// `<wrapper>/content/coding/coding.md` flattens to `<wrapper>/coding/coding.md`;
+// entries not under `content/` (root harness files like main.md, engine dirs
+// like scripts/) pass through unchanged. Only the FIRST repo-relative component
+// is considered, so a nested `content` directory elsewhere in the tree is never
+// stripped. Mirrors build_dist.py::_flatten_content_prefix so the source-tarball
+// deposit and the release-archive deposit produce the identical flattened layout.
+func flattenContentParts(parts []string) []string {
+	if len(parts) >= 2 && parts[1] == contentPrefixComponent {
+		flattened := make([]string, 0, len(parts)-1)
+		flattened = append(flattened, parts[0])
+		flattened = append(flattened, parts[2:]...)
+		return flattened
+	}
+	return parts
 }
 
 func fileModeFromTar(mode int64) os.FileMode {

@@ -153,6 +153,107 @@ func TestExtractCoreTarball_ExcludesGitAndExtractsTree(t *testing.T) {
 	}
 }
 
+// TestExtractCoreTarball_FlattensContentPrefix asserts the C1 flatten (#1875):
+// the GitHub source tarball carries shippable assets under a repo-relative
+// `content/` root, and extractCoreTarball MUST strip that prefix so the consumer
+// deposit (.deft/core/<x>) stays byte-stable with the pre-move layout. Root
+// harness-entry files (main.md / AGENTS.md / SKILL.md / REFERENCES.md) and engine
+// dirs (scripts/) stay where they are. This mirrors
+// build_dist.py::_flatten_content_prefix for the SEPARATE source-tarball deposit
+// path the release-archive flatten does not cover.
+func TestExtractCoreTarball_FlattensContentPrefix(t *testing.T) {
+	tarball := makeCoreTarball(t, "deftai-directive-def5678", map[string]string{
+		// content-bucket assets: the `content/` prefix MUST be stripped.
+		"content/coding/coding.md":               "coding body",
+		"content/skills/deft/SKILL.md":           "skill body",
+		"content/main.md.notroot/placeholder.md": "nested",
+		"content/glossary.md":                    "glossary body",
+		"content/templates/agents-entry.md":      "agents entry",
+		// root harness-entry file: stays at root (NOT under content/).
+		"main.md":  "main body",
+		"SKILL.md": "root skill",
+		// engine dir: non-content, passes through unchanged.
+		"scripts/doctor.py": "print('hi')",
+		// repo-dev dir that also has a content/ sibling: the root copy stays put,
+		// the content/ copy flattens and merges (disjoint filenames in practice).
+		"docs/repo-dev-only.md":           "repo dev",
+		"content/docs/getting-started.md": "shipped doc",
+	})
+	dest := t.TempDir()
+	root, err := extractCoreTarball(tarball, dest)
+	if err != nil {
+		t.Fatalf("extract: %v", err)
+	}
+
+	// content/<x> MUST deposit at <x> (prefix stripped).
+	flattenedPresent := []string{
+		filepath.Join(root, "coding", "coding.md"),
+		filepath.Join(root, "skills", "deft", "SKILL.md"),
+		filepath.Join(root, "glossary.md"),
+		filepath.Join(root, "templates", "agents-entry.md"),
+		filepath.Join(root, "docs", "getting-started.md"),
+		filepath.Join(root, "main.md.notroot", "placeholder.md"),
+	}
+	for _, path := range flattenedPresent {
+		if _, err := os.Stat(path); err != nil {
+			t.Errorf("flattened content asset missing at %s: %v", path, err)
+		}
+	}
+
+	// No `content/` directory may survive in the deposit.
+	if _, err := os.Stat(filepath.Join(root, "content")); !os.IsNotExist(err) {
+		t.Errorf("content/ prefix survived the deposit but MUST be flattened (err=%v)", err)
+	}
+
+	// Root harness-entry files and engine/repo-dev dirs stay where they are.
+	unchanged := []string{
+		filepath.Join(root, "main.md"),
+		filepath.Join(root, "SKILL.md"),
+		filepath.Join(root, "scripts", "doctor.py"),
+		filepath.Join(root, "docs", "repo-dev-only.md"),
+	}
+	for _, path := range unchanged {
+		if _, err := os.Stat(path); err != nil {
+			t.Errorf("non-content path missing at %s: %v", path, err)
+		}
+	}
+
+	// Byte-stability spot-check: the flattened file carries the source content.
+	got, err := os.ReadFile(filepath.Join(root, "coding", "coding.md"))
+	if err != nil {
+		t.Fatalf("read flattened coding.md: %v", err)
+	}
+	if string(got) != "coding body" {
+		t.Errorf("flattened coding.md content = %q, want %q", got, "coding body")
+	}
+}
+
+// TestFlattenContentParts unit-tests the leading-`content`-component strip in
+// isolation: only the first repo-relative component is stripped, nested
+// `content` dirs are preserved, and non-content paths pass through unchanged.
+func TestFlattenContentParts(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []string
+		want []string
+	}{
+		{"strips leading content", []string{"wrap", "content", "coding", "coding.md"}, []string{"wrap", "coding", "coding.md"}},
+		{"bare content dir collapses to wrapper", []string{"wrap", "content"}, []string{"wrap"}},
+		{"root harness file unchanged", []string{"wrap", "main.md"}, []string{"wrap", "main.md"}},
+		{"engine dir unchanged", []string{"wrap", "scripts", "doctor.py"}, []string{"wrap", "scripts", "doctor.py"}},
+		{"nested content NOT stripped", []string{"wrap", "scripts", "content", "x.py"}, []string{"wrap", "scripts", "content", "x.py"}},
+		{"wrapper only unchanged", []string{"wrap"}, []string{"wrap"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := flattenContentParts(tc.in)
+			if strings.Join(got, "/") != strings.Join(tc.want, "/") {
+				t.Errorf("flattenContentParts(%v) = %v, want %v", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
 // makeCoreTarballWithPaxHeader writes a gzipped tar fixture whose FIRST entry
 // is a `pax_global_header` global-PAX record (exactly how GitHub source
 // tarballs lead off), followed by the usual single wrapper directory and its

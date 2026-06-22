@@ -541,25 +541,27 @@ class TestAgentsBootstrap:
 
     def test_template_is_single_source_for_go_installer(self):
         """cmd/deft-install/setup.go must source agentsMDEntry from the
-        templates package (//go:embed templates/agents-entry.md) rather than
-        a hardcoded raw string literal (#636).
+        templates package (//go:embed content/templates/agents-entry.md) rather
+        than a hardcoded raw string literal (#636). The #1875 move relocated the
+        templates package under content/, so the import path is now
+        github.com/deftai/directive/content/templates.
 
         If this test fails, the installer has grown a second hardcoded copy
         of the AGENTS.md body and the single-source-of-truth contract is
         broken. To repair: remove the hardcoded copy and rely on the embed
-        in templates/embed.go.
+        in content/templates/embed.go.
         """
         setup_go = (REPO_ROOT / "cmd" / "deft-install" / "setup.go").read_text(encoding="utf-8")
         assert "templates.AgentsEntry" in setup_go, (
             "cmd/deft-install/setup.go must reference templates.AgentsEntry "
-            "(sourced via //go:embed from templates/agents-entry.md) so that "
-            "editing the template alone is sufficient to change what the "
+            "(sourced via //go:embed from content/templates/agents-entry.md) so "
+            "that editing the template alone is sufficient to change what the "
             "installer writes (#636)."
         )
-        assert "github.com/deftai/directive/templates" in setup_go, (
+        assert "github.com/deftai/directive/content/templates" in setup_go, (
             "cmd/deft-install/setup.go must import the templates package "
-            "(github.com/deftai/directive/templates) to consume the embedded "
-            "agents-entry.md (#636)."
+            "(github.com/deftai/directive/content/templates after the #1875 "
+            "content/ move) to consume the embedded agents-entry.md (#636)."
         )
         # Guard against reintroduction of the backtick raw-string literal
         # that previously held the hardcoded AGENTS.md body.
