@@ -16,14 +16,22 @@ export function callMain(
   const stderrChunks: string[] = [];
   const prevStdout = process.stdout.write.bind(process.stdout);
   const prevStderr = process.stderr.write.bind(process.stderr);
-  process.stdout.write = ((chunk: string | Uint8Array) => {
-    stdoutChunks.push(String(chunk));
-    return true;
-  }) as typeof process.stdout.write;
-  process.stderr.write = ((chunk: string | Uint8Array) => {
-    stderrChunks.push(String(chunk));
-    return true;
-  }) as typeof process.stderr.write;
+  const captureWrite =
+    (chunks: string[]) =>
+    (
+      chunk: string | Uint8Array,
+      encoding?: BufferEncoding | ((err?: Error | null) => void),
+      callback?: (err?: Error | null) => void,
+    ): boolean => {
+      chunks.push(String(chunk));
+      const cb = typeof encoding === "function" ? encoding : callback;
+      if (typeof cb === "function") {
+        cb();
+      }
+      return true;
+    };
+  process.stdout.write = captureWrite(stdoutChunks) as typeof process.stdout.write;
+  process.stderr.write = captureWrite(stderrChunks) as typeof process.stderr.write;
 
   try {
     const exitCode = mainFn(argv);

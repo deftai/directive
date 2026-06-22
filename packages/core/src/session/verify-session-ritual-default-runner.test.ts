@@ -1,11 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { GitRunner } from "./git.js";
+import { defaultGitRunner } from "./git.js";
 import {
   newRitualStatePayload,
+  readRitualState,
   ritualStep,
   verifySessionRitual,
   writeRitualState,
@@ -48,15 +50,36 @@ function initRepo(): { root: string; head: string } {
   return { root, head };
 }
 
-function fakeGit(head: string, worktree: string): GitRunner {
-  return (_r, args) => {
+function runGitCapture(
+  root: string,
+  args: readonly string[],
+): { code: number; stdout: string; stderr: string } {
+  try {
+    const stdout = execFileSync("git", [...args], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return { code: 0, stdout: stdout.trim(), stderr: "" };
+  } catch (err) {
+    const failure = err as { status?: number; stdout?: string; stderr?: string };
+    return {
+      code: typeof failure.status === "number" ? failure.status : 1,
+      stdout: (failure.stdout ?? "").trim(),
+      stderr: (failure.stderr ?? "").trim(),
+    };
+  }
+}
+
+function repoGitRunner(root: string, head: string, worktree: string): GitRunner {
+  return (_projectRoot, args) => {
     if (args[0] === "rev-parse" && args[1] === "--verify" && args[2] === "HEAD") {
       return { code: 0, stdout: head, stderr: "" };
     }
     if (args[0] === "rev-parse" && args[1] === "--show-toplevel") {
       return { code: 0, stdout: worktree, stderr: "" };
     }
-    return { code: 0, stdout: "", stderr: "" };
+    return runGitCapture(root, args);
   };
 }
 
@@ -125,23 +148,22 @@ describe("verifySessionRitual gated tier via defaultRitualRunner", () => {
       now,
       bypass: false,
       envSkip: "",
-      runGit: fakeGit(head, resolve(root)),
+      runGit: repoGitRunner(root, head, resolve(root)),
     });
     expect(result.code).toBe(0);
-    const state = JSON.parse(readFileSync(join(root, ".deft", "ritual-state.json"), "utf8")) as {
-      gated_steps: {
-        doctor: { ok: boolean };
-        cache_fresh: { ok: boolean; command: string[] };
-      };
-    };
-    expect(state.gated_steps.doctor.ok).toBe(true);
-    expect(state.gated_steps.cache_fresh.ok).toBe(true);
-    expect(state.gated_steps.cache_fresh.command).toEqual(["verify:cache-fresh"]);
+    const [state] = readRitualState(root);
+    expect(state).not.toBeNull();
+    expect(state?.gatedSteps.doctor?.ok).toBe(true);
+    expect(state?.gatedSteps.cache_fresh?.ok).toBe(true);
+    expect(state?.gatedSteps.cache_fresh?.command).toEqual(["verify:cache-fresh"]);
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("defaultRitualRunner invokes doctor and records the step outcome", () => {
-    const { root } = initRepo();
+  it("defaultRitualRunner invokes doctor on a real repo", () => {
+    const { root, head } = initRepo();
+    const headResult = defaultGitRunner(root, ["rev-parse", "--verify", "HEAD"]);
+    expect(headResult.code).toBe(0);
+    expect(headResult.stdout).toBe(head);
     const doctor = defaultRitualRunner(["doctor"], root);
     expect(doctor.code).toBeGreaterThanOrEqual(0);
     expect(`${doctor.stdout}${doctor.stderr}`).toMatch(/doctor|Deft|agents-md/i);
