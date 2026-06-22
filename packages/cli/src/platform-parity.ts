@@ -7,7 +7,7 @@
  * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -120,7 +120,13 @@ function buildConflictChangelog(): string {
 }
 
 function readTemplate(deftRoot: string): string {
-  return readFileSync(join(deftRoot, "templates", "agents-entry.md"), "utf8");
+  // #1875: the AGENTS.md template moved under content/ in the source repo
+  // (content/templates/agents-entry.md). Prefer that location and fall back to
+  // the flattened layout (templates/agents-entry.md) so the harness resolves in
+  // both a source checkout and a flattened consumer deposit.
+  const contentCandidate = join(deftRoot, "content", "templates", "agents-entry.md");
+  const flatCandidate = join(deftRoot, "templates", "agents-entry.md");
+  return readFileSync(existsSync(contentCandidate) ? contentCandidate : flatCandidate, "utf8");
 }
 
 export const PARITY_CASES: readonly ParityCase[] = [
