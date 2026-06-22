@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -54,21 +54,15 @@ function runGitCapture(
   root: string,
   args: readonly string[],
 ): { code: number; stdout: string; stderr: string } {
-  try {
-    const stdout = execFileSync("git", [...args], {
-      cwd: root,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return { code: 0, stdout: stdout.trim(), stderr: "" };
-  } catch (err) {
-    const failure = err as { status?: number; stdout?: string; stderr?: string };
-    return {
-      code: typeof failure.status === "number" ? failure.status : 1,
-      stdout: (failure.stdout ?? "").trim(),
-      stderr: (failure.stderr ?? "").trim(),
-    };
-  }
+  const result = spawnSync("git", [...args], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  return {
+    code: result.status ?? 1,
+    stdout: (result.stdout ?? "").trim(),
+    stderr: (result.stderr ?? "").trim(),
+  };
 }
 
 function repoGitRunner(root: string, head: string, worktree: string): GitRunner {
