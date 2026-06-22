@@ -348,6 +348,7 @@ func pruneVendoredTSTests(w *Wizard, projectDir string) (int, error) {
 	}
 
 	removed := 0
+	var removeErrs []error
 	walkErr := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -364,13 +365,17 @@ func pruneVendoredTSTests(w *Wizard, projectDir string) (int, error) {
 			return nil
 		}
 		if rmErr := os.Remove(path); rmErr != nil {
-			return fmt.Errorf("could not remove %s: %w", path, rmErr)
+			removeErrs = append(removeErrs, fmt.Errorf("could not remove %s: %w", path, rmErr))
+			return nil
 		}
 		removed++
 		return nil
 	})
 	if walkErr != nil {
 		return removed, fmt.Errorf("could not prune vendored TypeScript test files under %s: %w", vendoredTSPackagesRelPath, walkErr)
+	}
+	if len(removeErrs) > 0 {
+		return removed, fmt.Errorf("could not prune vendored TypeScript test files under %s: %w", vendoredTSPackagesRelPath, errors.Join(removeErrs...))
 	}
 	if removed > 0 {
 		w.printf("Removed %d vendored TypeScript test file(s) under %s from the consumer deposit (#1878).\n", removed, vendoredTSPackagesRelPath)

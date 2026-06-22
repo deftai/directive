@@ -108,8 +108,6 @@ This manual exclude is harmless to keep, but it becomes unnecessary once the ins
 
 ---
 
----
-
 <!-- 1046-prb: From v0.27.x -> v0.28 install-manifest transition BEGIN -->
 ## From v0.27.x -> v0.28 (canonical install manifest at `<install>/VERSION`)
 
