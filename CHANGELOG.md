@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Vitest-based consumer projects no longer get red CI when upgrading to v0.53.x (#1878)** -- The vendored framework engine's own TypeScript test files (`*.test.*` / `*.spec.*` under `.deft/core/packages/`) were being discovered by a consumer's vitest run and failing CI (unresolved `@deftai/core` imports plus parity assertion failures). The installer now prunes those vendored test files from the `.deft/core/` deposit on every install and upgrade, and the release archive omits them too, so the consumer's vitest no longer discovers framework tests. Mirrors the existing Python self-test prune (#1474). Refs #1878.
 
 ### Removed
 

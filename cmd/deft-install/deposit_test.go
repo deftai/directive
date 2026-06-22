@@ -740,6 +740,161 @@ func TestDepositNeutralization_PrunesFrameworkTests(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Vendored TypeScript test-file pruning (#1878)
+// ---------------------------------------------------------------------------
+
+// TestPruneVendoredTSTests_RemovesTestFilesKeepsSources pins #1878 acceptance:
+// vitest-discoverable test SOURCE files under .deft/core/packages/ are removed
+// from the consumer deposit while the non-test engine sources survive.
+func TestPruneVendoredTSTests_RemovesTestFilesKeepsSources(t *testing.T) {
+	tmp := t.TempDir()
+	cliDir := filepath.Join(tmp, filepath.FromSlash(".deft/core/packages/cli"))
+	if err := os.MkdirAll(cliDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A vitest-discoverable test file MUST be removed; its non-test sibling
+	// (same stem, no .test infix) MUST survive.
+	testFile := filepath.Join(cliDir, "foo.test.ts")
+	srcFile := filepath.Join(cliDir, "foo.ts")
+	if err := os.WriteFile(testFile, []byte("import './foo';\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(srcFile, []byte("export const foo = 1;\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	removed, err := pruneVendoredTSTests(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 1 {
+		t.Errorf("expected removed=1, got %d", removed)
+	}
+	if pathExists(testFile) {
+		t.Errorf("%s must be pruned from the consumer deposit", testFile)
+	}
+	if !pathExists(srcFile) {
+		t.Errorf("non-test engine source %s must be preserved", srcFile)
+	}
+}
+
+// TestPruneVendoredTSTests_SpecAndNestedExtensions covers the *.spec.* form, a
+// nested package path, and the broader extension set (tsx/js/mjs) so the glob's
+// breadth is pinned, while a plain .ts and a fixture that merely contains
+// "test" in its stem (without the .test infix) survive.
+func TestPruneVendoredTSTests_SpecAndNestedExtensions(t *testing.T) {
+	tmp := t.TempDir()
+	base := filepath.Join(tmp, filepath.FromSlash(".deft/core/packages"))
+	nested := filepath.Join(base, "core", "src", "deep")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	removeMe := []string{
+		filepath.Join(base, "core", "bar.spec.ts"),
+		filepath.Join(nested, "baz.test.tsx"),
+		filepath.Join(nested, "qux.spec.mjs"),
+		filepath.Join(nested, "zed.test.js"),
+	}
+	keepMe := []string{
+		filepath.Join(base, "core", "index.ts"),
+		filepath.Join(nested, "helper.ts"),
+		// "testdata"-style stem: contains the word but not the .test infix.
+		filepath.Join(nested, "tester.ts"),
+	}
+	for _, p := range append(append([]string{}, removeMe...), keepMe...) {
+		if err := os.WriteFile(p, []byte("// content\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	removed, err := pruneVendoredTSTests(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != len(removeMe) {
+		t.Errorf("expected removed=%d, got %d", len(removeMe), removed)
+	}
+	for _, p := range removeMe {
+		if pathExists(p) {
+			t.Errorf("expected %s to be pruned", p)
+		}
+	}
+	for _, p := range keepMe {
+		if !pathExists(p) {
+			t.Errorf("expected non-test source %s to survive", p)
+		}
+	}
+}
+
+// TestPruneVendoredTSTests_NoOpWhenAbsent: a consumer with no vendored
+// packages/ dir is a clean no-op (no error, removed=0).
+func TestPruneVendoredTSTests_NoOpWhenAbsent(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, filepath.FromSlash(".deft/core")), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := pruneVendoredTSTests(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatalf("absent packages/ dir must not error: %v", err)
+	}
+	if removed != 0 {
+		t.Errorf("expected removed=0 when there is no vendored packages/ dir, got %d", removed)
+	}
+}
+
+// TestPruneVendoredTSTests_LeavesRegularFile: a regular file at the packages/
+// path (not a directory) is not the vendored engine workspace and must be left.
+func TestPruneVendoredTSTests_LeavesRegularFile(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, filepath.FromSlash(vendoredTSPackagesRelPath))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("not a dir\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := pruneVendoredTSTests(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 0 {
+		t.Errorf("a regular file at the packages/ path must NOT be walked, got removed=%d", removed)
+	}
+	if !pathExists(path) {
+		t.Error("the regular file at the packages/ path must be left intact")
+	}
+}
+
+// TestDepositNeutralization_PrunesVendoredTSTests pins #1878 at the integration
+// boundary: the full neutralization deposit prunes vendored TS test files while
+// leaving non-test engine sources intact.
+func TestDepositNeutralization_PrunesVendoredTSTests(t *testing.T) {
+	tmp := t.TempDir()
+	cliDir := filepath.Join(tmp, filepath.FromSlash(".deft/core/packages/cli/src"))
+	if err := os.MkdirAll(cliDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	testFile := filepath.Join(cliDir, "bin.test.ts")
+	srcFile := filepath.Join(cliDir, "bin.ts")
+	if err := os.WriteFile(testFile, []byte("// vitest\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(srcFile, []byte("// engine source\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	depositNeutralization(newDepositWizard(), tmp)
+
+	if pathExists(testFile) {
+		t.Errorf("depositNeutralization must prune vendored TS test file %s (#1878)", testFile)
+	}
+	if !pathExists(srcFile) {
+		t.Error("depositNeutralization must NOT remove non-test engine sources")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // deft-core-guard refresh-on-upgrade + .githooks/ classification (#1478)
 // ---------------------------------------------------------------------------
 
