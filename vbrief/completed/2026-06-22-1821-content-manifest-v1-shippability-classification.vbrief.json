@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1821 (content-manifest v1 + verify:content-manifest gate -- Wave-1 shippability classification); first input to #1669 Wave 1 (distributable Deft).",
+    "created": "2026-06-22T14:40:00Z",
+    "updated": "2026-06-22T14:40:00Z"
+  },
+  "plan": {
+    "id": "1821-content-manifest-v1",
+    "title": "Content-manifest v1 + verify:content-manifest gate -- Wave-1 shippability classification",
+    "status": "completed",
+    "narratives": {
+      "Description": "Re-scoped from a Wave-2 installer denylist patch into the Wave-1 shippability audit for #1669. Classify EVERY top-level repository entry (every directory and file) into one of four buckets -- content (ships to consumers), engine (executable enforcement code), harness (repo-dev tooling that supports the engine), repo-dev (maintainer-only artifacts that never ship) -- in a structured data file conventions/content-manifest.json. Pair it with a deterministic gate (verify:content-manifest) that fails CI when a top-level entry is unclassified, when a classified entry no longer exists, or when a bucket value is invalid. This converts the brittle installer denylist into an allowlist-by-classification and is the prerequisite audit that #1875 (the content/ move) consumes.",
+      "ImplementationPlan": "1) Author conventions/content-manifest.json: schema {version, description, buckets[], entries[]} where each entry is {path, bucket, note, straddle?}. Enumerate every top-level entry under git control (directories + files); apply the C3 straddle policy for mixed-content entries. 2) Implement the gate TS-native in packages/core/src/content-manifest/ exporting evaluateContentManifest() with three-state exit (0 clean / 1 drift / 2 config error), mirroring evaluateRuleOwnership. Drift = unclassified top-level entry, classified-but-missing path, invalid bucket, or duplicate path. 3) Add CLI wrapper packages/cli/src/verify-content-manifest.ts + register in dispatch.ts (CLI_MODULE_VERBS + verify:content-manifest alias). 4) Add tasks/verify.yml content-manifest target + wire into check:framework-source. 5) Tests: core unit (vitest) covering all three exit states + straddle handling, plus a self-test that the real manifest is clean against the real tree. No Python oracle -- new gate is TS-native per the #1669 direction (Python is being phased out; the parity discipline applies to ported gates, not net-new ones).",
+      "UserStory": "As a deft maintainer preparing the engine/content split (#1669), I want a structured, gate-enforced classification of every top-level repo entry so that the content/ move (#1875) has an authoritative source of truth for what ships, and so future top-level additions cannot silently drift into (or out of) the consumer deposit without a CI failure forcing a classification decision."
+    },
+    "items": [
+      {
+        "title": "Author conventions/content-manifest.json classifying every top-level entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Every top-level git-tracked entry (dir or file) appears exactly once with a valid bucket (content|engine|harness|repo-dev) and a note; straddle entries carry a straddle policy note."
+        }
+      },
+      {
+        "title": "Implement evaluateContentManifest gate (TS core) with three-state exit",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "packages/core/src/content-manifest/ exports evaluateContentManifest(); exits 0 clean / 1 drift / 2 config error; drift detects unclassified entries, missing paths, invalid buckets, duplicates."
+        }
+      },
+      {
+        "title": "Add CLI wrapper + dispatch registration + Taskfile target",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "node packages/cli/dist/bin.js verify-content-manifest works; verify:content-manifest alias resolves; tasks/verify.yml target exists and is wired into check:framework-source."
+        }
+      },
+      {
+        "title": "Tests (vitest) covering all states + real-tree self-test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Unit tests cover clean/drift/config-error and straddle handling; a self-test asserts the committed manifest is clean against the real top-level tree; task check passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1821",
+        "epic": "#1669",
+        "wave": "1"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "depends_on": []
+      },
+      "completedAt": "2026-06-22T14:56:07Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1821",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1821: Content-manifest v1 + verify:content-manifest gate -- Wave-1 shippability classification"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1669: epic: distributable Deft -- npm/pip CLI, unified deft surface, external workspace mode"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1875",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1875: Execute the content/ move -- manifest-driven relocation (Wave-1 Story 2, depends on #1821)"
+      }
+    ],
+    "updated": "2026-06-22T14:56:07Z"
+  }
+}

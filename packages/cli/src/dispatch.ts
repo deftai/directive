@@ -90,6 +90,7 @@ export const CLI_MODULE_VERBS = [
   "validate-links",
   "validate-strategy-output",
   "verify-capacity",
+  "verify-content-manifest",
   "verify-scm-boundary",
   "verify-session-ritual",
   "verify-stubs",
@@ -155,6 +156,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "validate:links": "validate-links",
   "verify:rule-ownership": "rule-ownership-lint",
   "rule:ownership-lint": "rule-ownership-lint",
+  "verify:content-manifest": "verify-content-manifest",
   "verify:scm-boundary": "verify-scm-boundary",
   "verify:capacity": "verify-capacity",
   "verify:session-ritual": "verify-session-ritual",
@@ -184,6 +186,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
 const SUBDIR_CLI_STEMS: Readonly<Record<string, string>> = {
   "verify-stubs": "verify-source-cli/verify-stubs",
   "rule-ownership-lint": "verify-source-cli/rule-ownership-lint",
+  "verify-content-manifest": "verify-source-cli/verify-content-manifest",
   "verify-scm-boundary": "verify-source-cli/verify-scm-boundary",
   "validate-links": "content-validate-cli/validate-links",
   "verify-capacity": "content-validate-cli/verify-capacity",

@@ -336,6 +336,7 @@ tasks:
       - verify:stubs
       - verify:links
       - verify:rule-ownership
+      - verify:content-manifest
       - verify:branch
       - verify:encoding
       - verify:vbrief-conformance

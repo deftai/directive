@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New `task verify:content-manifest` gate classifies every git-tracked top-level repository entry into one of four buckets (content, engine, harness, repo-dev) via `conventions/content-manifest.json`, and fails CI when a top-level entry is unclassified, a classified path goes stale, a bucket is invalid, or a path is duplicated. This is the Wave-1 shippability audit that turns the brittle installer denylist into an allowlist-by-classification, giving the engine/content split an authoritative source of truth. Refs #1821, #1669.
+
 ### Changed
 
 ### Fixed

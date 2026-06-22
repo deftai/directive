@@ -35,6 +35,16 @@ tasks:
       # Oracle/fallback (parity): scripts/rule_ownership_lint.py (#1828 Wave 8 / #1854 s3).
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" rule-ownership-lint --root "{{.DEFT_ROOT}}"
 
+  content-manifest:
+    desc: "Verify the Content Manifest (conventions/content-manifest.json) classifies every git-tracked top-level entry (#1821). Fails on an unclassified entry, a stale classified path, an invalid bucket, or a duplicate path. Wave-1 shippability audit for the engine/content split (#1669)."
+    deps:
+      - _ts-build
+    # Framework-source-only gate: it classifies THIS repo's top-level tree, so it
+    # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer install has no
+    # content/ + engine/ top-level split to audit. Mirrors verify:rule-ownership.
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-content-manifest --project-root "{{.DEFT_ROOT}}"
+
   branch:
     desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
     dir: '{{.USER_WORKING_DIR}}'
