@@ -17,28 +17,28 @@
     "items": [
       {
         "title": "Encode doctrine in agent-prompt-preamble.md §9",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Three rules appear as !/⊗ directives in/near §9 Sub-agent spawn rules; unit-of-work boundary (drive-to merge-ready vs stop-at pr-open) is explicit."
         }
       },
       {
         "title": "Update pack source + render swarm and review-cycle skills",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "skills-pack-0.1.json updated; task packs:render regenerates SKILL.md files with worker-owns-lifecycle (swarm Phase 5→6) and background-dispatch generalization (review-cycle Approach 1)."
         }
       },
       {
         "title": "Extend AGENTS.md #954 + CHANGELOG entry",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "AGENTS.md Multi-agent orchestration discipline carries the three rules; CHANGELOG [Unreleased] entry references #1880 and notes #1877 gate split."
         }
       },
       {
         "title": "Gates, PR, review cycle to merge-ready",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "task check passes; pre-PR loop clean; PR opened on fix/1880-orchestration-dispatch-doctrine; Greptile merge-ready (confidence >3, zero P0/P1, SHA match); NOT merged."
         }
