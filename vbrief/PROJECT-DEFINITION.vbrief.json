@@ -11034,7 +11034,7 @@
           }
         ]
       },
-      "allowDirectCommitsToMaster": true
+      "allowDirectCommitsToMaster": false
     },
     "updated": "2026-06-12T20:26:00Z"
   }
