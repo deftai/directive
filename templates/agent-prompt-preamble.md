@@ -298,6 +298,31 @@ If you (the worker) need to spawn a sub-agent yourself:
 - Coordinate shared append-only files (CHANGELOG, lessons.md) with explicit ownership at dispatch time.
 - Sub-agents inherit the parent worker's credential policy: when the parent dispatch is `github_auth_mode: injected-token`, children MUST use the injected token; when `host-gh`, children inherit the same host-gh authorisation. They MUST NOT mint or fall back to a different credential mode than the parent envelope specifies. Identity separation per §8 cascades through the spawn tree.
 
+### Orchestrator dispatch doctrine (#1880)
+
+These rules bind **orchestrators** dispatching implementation, fix, or review-cycle workers (not only workers spawning their own children). Root cause: the 2026-06-22 #1878 session split implementation and review across separate leaf dispatches and blocked the parent conversation on long-running workers.
+
+**Worker-owns-lifecycle (Gap C):**
+
+- ! When dispatching an implementation worker, the dispatch envelope MUST declare the unit-of-work boundary explicitly: `stop-at: pr-open` (worker opens PR and exits) OR `drive-to: merge-ready` (worker owns PR + Greptile review cycle + fix batches through merge-ready as ONE unit of work, spawning its own review poller per `skills/deft-directive-review-cycle/SKILL.md` monitoring tiers). Default for story implementation dispatches is `drive-to: merge-ready`.
+- ! Workers scoped `drive-to: merge-ready` MUST drive to merge-ready in their own tool loop — pre-PR, push, PR open, review-cycle poll/fix loop, and the #1259 Step 6 fail-closed exit — without handing back at PR-open for the orchestrator to re-dispatch separate leaf agents for review or fixes.
+- ⊗ Re-dispatch a separate review-monitor or fix agent after an implementation worker exits at PR-open when the original envelope scoped `drive-to: merge-ready` — that split recreates cross-agent state-handoff hazards and terminal lifecycle gaps (#1878 / Gap C).
+
+**Background / independent dispatch (Gap D):**
+
+- ! Long-running workers (expected >~3 min: implementation, fix batches, review-cycle owners, pollers) MUST be dispatched independently / in the background so the parent conversation channel stays interactive and the orchestrator is notified on completion (`DONE` / `BLOCKED` / `FAILED` per §11).
+- ! On Cursor, background dispatch means the Task tool's background path (`run_in_background: true` on the Task invocation) — NOT blocking the orchestrator's turn for the worker's full wall-clock.
+- ⊗ Foreground/blocking dispatch for long-running implementation, fix, or review-cycle workers when a background/independent dispatch primitive is available — blocking locks the conversation and prevents user steerability (#1878 / Gap D).
+- ~ Foreground dispatch is reserved for short tasks (<~3 min): quick probes, single-command checks, terse status reads.
+
+**Deliberate model routing before ANY dispatch (doctrine; enforcement #1877):**
+
+- ! Before dispatching ANY sub-agent (cohort OR single), the orchestrator MUST make a deliberate per-`worker_role` model-routing decision — consult `task verify:routing` / `task swarm:routing-set`, populate `## Worker metadata` per §2.6, and pass `resolved_model` into the actual dispatch primitive when non-null. Never silently inherit the parent orchestrator's model.
+- ⊗ Dispatch a worker without a recorded routing decision for its `(dispatch_provider, worker_role)` pair when backend routing applies — silent inheritance of the parent model is forbidden.
+- ~ Deterministic gate enforcement for undecided routes is tracked in #1877; this subsection is the behavioral rule only.
+
+Reference: issue #1880 (doctrine), #1877 (gate enforcement), #954 (multi-agent discipline). Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 3 dispatch + Phase 5→6, `skills/deft-directive-review-cycle/SKILL.md` Review Monitoring.
+
 ## 10. Dispatcher lifecycle hygiene -- workers are all-or-nothing
 
 If your dispatch envelope contains a "pause for user approval" step in the middle of the worker's scope, REWRITE IT into two dispatches:

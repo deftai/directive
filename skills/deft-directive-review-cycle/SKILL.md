@@ -187,6 +187,11 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ⊗ Treat a stall as silent -- if the elapsed clock crosses the 10-minute threshold the agent MUST surface the menu, even if the agent is mid-poll. Continuing to poll past the threshold without user input is forbidden.
 
 ### Review Monitoring
+! **Background / independent dispatch (#1880 Gap D):** Long-running review-cycle owners and pollers (>~3 min) MUST be dispatched independently / in the background so the parent conversation stays interactive. On Cursor, use the Task tool background path (`run_in_background: true`). This generalizes the Approach-1 sub-agent monitor rule to implementation and fix workers as well — foreground dispatch is reserved for short tasks. The parent receives completion via `DONE` / `BLOCKED` / `FAILED` per `templates/agent-prompt-preamble.md` §11.
+
+! **Worker-owns-lifecycle (#1880 Gap C):** When this skill runs as part of an implementation worker scoped `drive-to: merge-ready`, the worker owns the full review/fix loop through merge-ready in its own tool loop — do NOT exit at PR-open expecting the orchestrator to spawn a separate review leaf.
+
+
 
 ! Select the monitoring approach based on runtime capability detection (the matrix in `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1, extended per #1342 slices 1-2 for `spawn_subagent` / "grok-build" as a first-class tier). Probe the environment (tool set + env vars) to obtain the stable platform descriptor (`grok-build`, `warp-orchestrated`, `warp-interactive`, etc.) from the launch adapter / `get_platform_capabilities` and map the descriptor to the appropriate tier + dispatch primitive (start_agent or spawn_subagent). The descriptor (not hard-coded tool presence) is the single source of truth for both launch and review monitoring.
 
@@ -199,6 +204,8 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 vBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
 **Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
+
+! **Background dispatch (#1880):** Spawn the review-monitor sub-agent via the matching primitive IN THE BACKGROUND (Cursor: Task `run_in_background: true`; Grok Build: `spawn_subagent` with parent yielding). The parent MUST remain interactive while the poller runs.
 
 ! When the platform descriptor indicates Tier 1 (sub-agent support), spawn a review-monitor sub-agent using the primitive matching the descriptor:
 

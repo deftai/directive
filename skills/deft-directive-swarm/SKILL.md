@@ -446,6 +446,19 @@ Cross-references: `scripts/platform_capabilities.py` (#1557a), `scripts/github_a
 
 Cross-references: `scripts/policy.py` (`KNOWN_SUBAGENT_BACKEND_IDS`, `SWARM_WORKER_ROLES`), `templates/agent-prompt-preamble.md` (dispatch envelope metadata), `docs/the-harness-is-everything.md` (orchestrator -> commodity-coder layering). Refs #1531.
 
+
+### Orchestrator dispatch doctrine (#1880)
+
+! **Deliberate model routing before ANY dispatch:** Before launching ANY worker in this phase (cohort OR solo), run `task verify:routing` and resolve each `(dispatch_provider, worker_role)` via `task swarm:routing-set` / `.deft/routing.local.json`. Populate `## Worker metadata` per `templates/agent-prompt-preamble.md` §2.6 and pass `resolved_model` into the actual dispatch primitive when non-null. Never silently inherit the monitor's model. Deterministic gate enforcement is #1877; this rule is behavioral doctrine (#1880).
+
+! **Worker-owns-lifecycle (Gap C):** Every implementation-worker dispatch prompt MUST declare the unit-of-work boundary: `stop-at: pr-open` OR `drive-to: merge-ready` (default for story vBRIEF work). Workers scoped `drive-to: merge-ready` own pre-PR, push, PR open, Greptile review-cycle poll/fix, and the #1259 Step 6 fail-closed exit as ONE dispatch — they spawn their own review poller per `skills/deft-directive-review-cycle/SKILL.md` monitoring tiers. The monitor MUST NOT plan a separate post-PR review leaf for a worker already scoped merge-ready.
+
+! **Background / independent dispatch (Gap D):** Dispatch implementation, fix, and review-cycle workers independently / in the background when the platform supports it. On Cursor, use the Task tool background path (`run_in_background: true`) so the monitor conversation stays interactive. Foreground dispatch is for short tasks (<~3 min) only.
+
+⊗ Hand back at PR-open and re-dispatch separate review-monitor or fix leaf agents for a worker whose envelope scoped `drive-to: merge-ready` (#1880 Gap C).
+
+⊗ Foreground/blocking dispatch for long-running implementation, fix, or review-cycle workers when background dispatch is available (#1880 Gap D).
+
 ### Step 2a: Orchestrated Launch (start_agent available)
 
 ! When `start_agent` is detected in the tool set, use it directly to launch each agent.
@@ -579,7 +592,7 @@ For each agent's PR:
 1. ! Check that Greptile has reviewed the latest commit (compare "Last reviewed commit" SHA to branch HEAD)
 2. ! Verify Greptile confidence score > 3
 3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
-4. ! If the agent did not complete its review cycle, the monitor runs it per `skills/deft-directive-review-cycle/SKILL.md`
+4. ! **Worker-owns-lifecycle fallback (#1880):** Prefer workers scoped `drive-to: merge-ready` so this step is rare. When a worker exits at PR-open without reaching merge-ready, the monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner — but MUST NOT split review polling and fix batches across separate leaf agents for the same PR (#727 + #1880 Gap C).
 
 ### Complete vBRIEFs
 

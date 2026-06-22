@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `task verify:content-manifest` gate classifies every git-tracked top-level repository entry into one of four buckets (content, engine, harness, repo-dev) via `conventions/content-manifest.json`, and fails CI when a top-level entry is unclassified, a classified path goes stale, a bucket is invalid, or a path is duplicated. This is the Wave-1 shippability audit that turns the brittle installer denylist into an allowlist-by-classification, giving the engine/content split an authoritative source of truth. Refs #1821, #1669.
 
 ### Changed
+- **Orchestrators now have explicit dispatch doctrine for worker lifecycle, background launch, and model routing (#1880)** -- The canonical preamble, swarm, and review-cycle skills encode three rules from the #1878 session: implementation workers default to owning PR through merge-ready as one unit of work (not hand back at PR-open for separate review agents), long-running workers must launch in the background (Cursor Task `run_in_background: true`) so the conversation stays interactive, and every dispatch requires a deliberate per-role model routing decision via `task verify:routing` / `task swarm:routing-set` rather than silently inheriting the parent model. Deterministic gate enforcement for undecided routes remains tracked under #1877. Ships in v0.53.2. Refs #1880, #1877.
 
 ### Fixed
 
