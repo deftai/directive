@@ -1,34 +1,12 @@
 /** Port of scripts/pack_render.py — content-pack projection renderer (#1294, #1295). */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentRoot } from "../content-root.js";
 
 export function resolveRepoRoot(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-}
-
-/**
- * Resolve the shippable-content root across both contexts (#1875 C1; mirrors
- * scripts/_content_root.py::content_root). The content/ move relocated every
- * shippable pack source + projection target under a single content/ root in the
- * SOURCE repo; the C1 flatten strips that prefix in a CONSUMER deposit. Probe
- * for content/: return <root>/content when it exists (source), else <root>
- * (consumer). Pack sources and document projection targets resolve off this
- * root so the renderer + drift gate work in both contexts unchanged. The lessons
- * collection output (meta/lessons.md) stays repo-root-resident -- it is a
- * repo-dev convenience projection, not shippable content.
- */
-export function contentRoot(repoRoot: string): string {
-  const candidate = join(repoRoot, "content");
-  try {
-    if (statSync(candidate).isDirectory()) {
-      return candidate;
-    }
-  } catch {
-    // No content/ dir -> consumer (flattened) deposit; fall through.
-  }
-  return repoRoot;
 }
 
 const REPO_ROOT = resolveRepoRoot();

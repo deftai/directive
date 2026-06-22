@@ -18,7 +18,7 @@ export function repoRoot(): string {
  * so the SOURCE layout resolves, then fall back to the repo root so root-resident
  * entries (harness-entry main.md/AGENTS.md, repo-dev tests/, README.md, etc.)
  * and the flattened consumer layout both still resolve. Mirrors
- * scripts/_content_root.py + pack-render.ts::contentRoot.
+ * scripts/_content_root.py + content-root.ts::contentRoot.
  */
 export function resolveContentPath(relPath: string): string {
   const root = repoRoot();

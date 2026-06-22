@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "refactor(packs): pack-render.ts duplicates contentRoot instead of importing canonical content-root module",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "refactor(packs): pack-render.ts duplicates contentRoot instead of importing canonical content-root module",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1894",
@@ -30,6 +30,10 @@
         "title": "Issue #1875"
       }
     ],
-    "updated": "2026-06-22T23:36:09Z"
+    "updated": "2026-06-22T23:40:04Z",
+    "metadata": {
+      "completedAt": "2026-06-22T23:40:04Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
