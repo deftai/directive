@@ -141,6 +141,24 @@ def fake_project(tmp_path: Path) -> Path:
     (root / "secret.txt").write_text("top-secret\n", encoding="utf-8")
     (root / "secrets").mkdir()
     (root / "secrets" / "key.txt").write_text("api-key\n", encoding="utf-8")
+    # Vendored TypeScript engine workspace (#1878): the engine's own test
+    # SOURCE files must be excluded from the artifact while non-test sources
+    # are retained. A non-test file whose stem merely contains "test"
+    # (tester.ts) must NOT be pruned -- only the .test/.spec infix matches.
+    (root / "packages" / "core" / "src").mkdir(parents=True)
+    (root / "packages" / "core" / "src" / "index.ts").write_text(
+        "export const x = 1;\n", encoding="utf-8"
+    )
+    (root / "packages" / "core" / "src" / "index.test.ts").write_text(
+        "import './index';\n", encoding="utf-8"
+    )
+    (root / "packages" / "core" / "src" / "deep").mkdir(parents=True)
+    (root / "packages" / "core" / "src" / "deep" / "util.spec.tsx").write_text(
+        "// spec\n", encoding="utf-8"
+    )
+    (root / "packages" / "core" / "src" / "deep" / "tester.ts").write_text(
+        "// not a test file\n", encoding="utf-8"
+    )
     return root
 
 
@@ -444,6 +462,58 @@ class TestExcludeExtra:
         assert _has_path_component(members, "secrets"), (
             "Empty --exclude-extra unexpectedly pruned secrets/."
         )
+
+
+# ---------------------------------------------------------------------------
+# Vendored TypeScript engine test-file exclusion (#1878)
+# ---------------------------------------------------------------------------
+
+
+class TestVendoredTSTestExclusion:
+    """The dist artifact ships the TS engine sources under packages/ but MUST
+    NOT ship the engine's own *.test.* / *.spec.* files, so a vitest-based
+    consumer extracting the payload never discovers and fails on framework
+    tests. Mirrors the installer-side prune (pruneVendoredTSTests in
+    cmd/deft-install/deposit.go). Non-test engine sources are retained."""
+
+    def test_packages_test_files_excluded(self, fake_project: Path):
+        artifact = build_dist.build(fake_project, "0.53.2", "tar")
+        members = _list_archive_paths(artifact, "tar")
+        for excluded in (
+            "deft/packages/core/src/index.test.ts",
+            "deft/packages/core/src/deep/util.spec.tsx",
+        ):
+            assert excluded not in members, (
+                f"vendored TS test file {excluded!r} leaked into the artifact "
+                f"(#1878). packages members: "
+                f"{[m for m in members if m.startswith('deft/packages/')]}"
+            )
+
+    def test_packages_non_test_sources_retained(self, fake_project: Path):
+        artifact = build_dist.build(fake_project, "0.53.2", "tar")
+        members = _list_archive_paths(artifact, "tar")
+        for kept in (
+            "deft/packages/core/src/index.ts",
+            "deft/packages/core/src/deep/tester.ts",
+        ):
+            assert kept in members, (
+                f"non-test engine source {kept!r} must be retained in the "
+                f"artifact. packages members: "
+                f"{[m for m in members if m.startswith('deft/packages/')]}"
+            )
+
+    def test_is_vendored_ts_test_helper(self):
+        # Under packages/ + test glob -> True.
+        assert build_dist._is_vendored_ts_test("packages/cli/foo.test.ts")
+        assert build_dist._is_vendored_ts_test("packages/core/src/a.spec.tsx")
+        assert build_dist._is_vendored_ts_test("packages/core/b.test.mjs")
+        assert build_dist._is_vendored_ts_test("packages/core/c.spec.cts")
+        # Under packages/ but not a test file -> False.
+        assert not build_dist._is_vendored_ts_test("packages/core/src/index.ts")
+        assert not build_dist._is_vendored_ts_test("packages/core/tester.ts")
+        # Test glob but NOT under packages/ -> False (only the engine is pruned).
+        assert not build_dist._is_vendored_ts_test("scripts/foo.test.ts")
+        assert not build_dist._is_vendored_ts_test("tests/bar.spec.ts")
 
 
 # ---------------------------------------------------------------------------

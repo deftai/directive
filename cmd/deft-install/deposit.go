@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -43,6 +44,28 @@ const (
 // executed) in a consumer project. The canonical .deft/core/ layout is assumed,
 // mirroring coreGlob.
 const frameworkSelfTestRelPath = ".deft/core/tests"
+
+// vendoredTSPackagesRelPath is the vendored TypeScript engine workspace as
+// deposited into a consumer install at .deft/core/packages/{cli,core}/. v0.53.x
+// vendors the engine sources INCLUDING the framework's own *.test.ts / *.spec.ts
+// files. A consumer whose own test runner is vitest discovers those vendored
+// test files via the default include glob (**/*.{test,spec}.?(c|m)[jt]s?(x)) and
+// fails CI -- the tests import the @deftai/core workspace package which does not
+// resolve in the consumer's context (ERR_MODULE_NOT_FOUND), plus parity
+// assertion failures (#1878). pruneVendoredTSTests removes only the
+// vitest-discoverable test SOURCE files from the consumer deposit so the
+// framework's own tests are never discovered/executed in a consumer project,
+// while leaving the non-test engine sources intact. It is the TS-side companion
+// to pruneFrameworkSelfTests (#1474, which prunes the Python self-test suite).
+const vendoredTSPackagesRelPath = ".deft/core/packages"
+
+// vendoredTSTestFileRe matches a basename that vitest's default include glob
+// (**/*.{test,spec}.?(c|m)[jt]s?(x)) would discover as a test file:
+// *.test.{ts,tsx,js,jsx,cts,mts,cjs,mjs} and the *.spec.* equivalents,
+// case-insensitively. It is compiled once at package scope. Only files whose
+// basename matches are pruned; non-test engine sources (e.g. index.ts) are left
+// untouched (#1878).
+var vendoredTSTestFileRe = regexp.MustCompile(`(?i)\.(test|spec)\.(c|m)?[jt]sx?$`)
 
 // installerManagedMatcher classifies a single repo-relative (POSIX-separated)
 // changed path as installer-managed -- i.e. deposited and maintained by
@@ -263,6 +286,9 @@ func depositNeutralization(w *Wizard, projectDir string) {
 	if _, err := pruneFrameworkSelfTests(w, projectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not prune framework self-tests: %v\n", err)
 	}
+	if _, err := pruneVendoredTSTests(w, projectDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not prune vendored TypeScript test files: %v\n", err)
+	}
 }
 
 // pruneFrameworkSelfTests removes the vendored framework self-test suite
@@ -292,6 +318,69 @@ func pruneFrameworkSelfTests(w *Wizard, projectDir string) (bool, error) {
 	}
 	w.printf("Removed vendored framework self-tests (%s) from the consumer deposit (#1474).\n", frameworkSelfTestRelPath)
 	return true, nil
+}
+
+// pruneVendoredTSTests removes the vendored TypeScript engine's own
+// vitest-discoverable test SOURCE files (*.test.* / *.spec.*) from the consumer
+// deposit at .deft/core/packages/ so a consumer whose own test runner is vitest
+// never discovers and fails on the framework's tests (#1878). It walks the
+// vendored packages tree and removes every regular FILE whose basename matches
+// vendoredTSTestFileRe; non-test engine sources are left intact. It runs on
+// every install (fresh + upgrade + re-vendor), after the payload deposit, so a
+// re-vendored tree is re-pruned. An absent packages/ dir is a clean no-op
+// (0, nil). Returns the count of removed files. Best-effort by contract: the
+// caller treats a removal failure as non-fatal, mirroring pruneFrameworkSelfTests
+// and depositNeutralization. The canonical .deft/core/ layout is assumed,
+// matching the rest of this neutralization deposit (coreGlob).
+func pruneVendoredTSTests(w *Wizard, projectDir string) (int, error) {
+	root := filepath.Join(projectDir, filepath.FromSlash(vendoredTSPackagesRelPath))
+	info, err := os.Stat(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("could not stat %s: %w", vendoredTSPackagesRelPath, err)
+	}
+	if !info.IsDir() {
+		// A regular file at the packages/ path is not the vendored engine
+		// workspace; leave it.
+		return 0, nil
+	}
+
+	removed := 0
+	var removeErrs []error
+	walkErr := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		// Only remove regular test SOURCE files; skip symlinks and other
+		// irregular entries so the prune never follows a link out of the tree.
+		if !d.Type().IsRegular() {
+			return nil
+		}
+		if !vendoredTSTestFileRe.MatchString(d.Name()) {
+			return nil
+		}
+		if rmErr := os.Remove(path); rmErr != nil {
+			removeErrs = append(removeErrs, fmt.Errorf("could not remove %s: %w", path, rmErr))
+			return nil
+		}
+		removed++
+		return nil
+	})
+	if walkErr != nil {
+		return removed, fmt.Errorf("could not prune vendored TypeScript test files under %s: %w", vendoredTSPackagesRelPath, walkErr)
+	}
+	if len(removeErrs) > 0 {
+		return removed, fmt.Errorf("could not prune vendored TypeScript test files under %s: %w", vendoredTSPackagesRelPath, errors.Join(removeErrs...))
+	}
+	if removed > 0 {
+		w.printf("Removed %d vendored TypeScript test file(s) under %s from the consumer deposit (#1878).\n", removed, vendoredTSPackagesRelPath)
+	}
+	return removed, nil
 }
 
 // EnsureGitattributes appends the linguist generated/vendored markers for

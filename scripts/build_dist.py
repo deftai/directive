@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import tarfile
 import zipfile
@@ -110,6 +111,16 @@ EXIT_OK = 0
 EXIT_RUNTIME_ERROR = 1
 EXIT_CONFIG_ERROR = 2
 
+# Vendored TypeScript engine test-file exclusion (#1878). The dist artifact
+# ships the TypeScript engine sources under packages/{cli,core}/. The engine's
+# own *.test.* / *.spec.* files would be discovered by a vitest-based consumer's
+# default include glob (**/*.{test,spec}.?(c|m)[jt]s?(x)) and fail their CI, so
+# they are excluded from the produced artifact -- keeping the tarball/zip
+# consistent with the installer-side prune (pruneVendoredTSTests in
+# cmd/deft-install/deposit.go). Only test SOURCE files are dropped; non-test
+# engine sources (e.g. index.ts) are retained.
+_VENDORED_TS_TEST_RE = re.compile(r"(?i)\.(test|spec)\.(c|m)?[jt]sx?$")
+
 # Archive root directory inside the produced artifact. Consumers extracting
 # the tarball / zip get a single top-level ``deft/`` directory rather than
 # a sea of top-level files, matching the previous tar(1) behaviour where
@@ -150,6 +161,10 @@ def _iter_source_files(
        path starts with an entry in ``excluded_prefixes`` are dropped, keeping
        consumer archives free of source-repo forensic history while preserving
        runtime siblings such as ``vbrief/schemas/**``.
+    4. Vendored TS test-file pruning -- files under ``packages/`` whose basename
+       matches the vitest test glob (``*.test.*`` / ``*.spec.*``) are dropped so
+       a vitest-based consumer never discovers the framework's own tests, while
+       non-test engine sources are retained (#1878).
     """
     entries: list[tuple[Path, str]] = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -184,6 +199,11 @@ def _iter_source_files(
             rel_posix = rel.as_posix()
             if _matches_excluded_prefix(rel_posix, excluded_prefixes):
                 continue
+            if _is_vendored_ts_test(rel_posix):
+                # Drop the vendored TS engine's own test files so a
+                # vitest-based consumer does not discover and fail on them,
+                # mirroring the installer-side prune (#1878).
+                continue
             entries.append((abs_path, rel_posix))
     return entries
 
@@ -191,6 +211,21 @@ def _iter_source_files(
 def _matches_excluded_prefix(rel_posix: str, prefixes: tuple[str, ...]) -> bool:
     """Return True when ``rel_posix`` is at or below an excluded path prefix."""
     return any(rel_posix == prefix or rel_posix.startswith(f"{prefix}/") for prefix in prefixes)
+
+
+def _is_vendored_ts_test(rel_posix: str) -> bool:
+    """Return True for a vendored TypeScript engine test SOURCE file (#1878).
+
+    True only when the repo-relative POSIX path is under ``packages/`` AND its
+    basename matches the vitest-discoverable test glob (``*.test.*`` /
+    ``*.spec.*`` with a ``[jt]s``/``x``/``c``/``m`` extension). Non-test engine
+    sources under ``packages/`` (e.g. ``packages/core/src/index.ts``) return
+    False so only the framework's own tests are dropped from the artifact.
+    """
+    if rel_posix != "packages" and not rel_posix.startswith("packages/"):
+        return False
+    basename = rel_posix.rsplit("/", 1)[-1]
+    return _VENDORED_TS_TEST_RE.search(basename) is not None
 
 
 # ---- Archive writers --------------------------------------------------------

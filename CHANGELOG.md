@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Orchestrators now have explicit dispatch doctrine for worker lifecycle, background launch, and model routing (#1880)** -- The canonical preamble, swarm, and review-cycle skills encode three rules from the #1878 session: implementation workers default to owning PR through merge-ready as one unit of work (not hand back at PR-open for separate review agents), long-running workers must launch in the background (Cursor Task `run_in_background: true`) so the conversation stays interactive, and every dispatch requires a deliberate per-role model routing decision via `task verify:routing` / `task swarm:routing-set` rather than silently inheriting the parent model. Deterministic gate enforcement for undecided routes remains tracked under #1877. Ships in v0.53.2. Refs #1880, #1877.
 
 ### Fixed
+- **Vitest-based consumer projects no longer get red CI when upgrading to v0.53.x (#1878)** -- The vendored framework engine's own TypeScript test files (`*.test.*` / `*.spec.*` under `.deft/core/packages/`) were being discovered by a consumer's vitest run and failing CI (unresolved `@deftai/core` imports plus parity assertion failures). The installer now prunes those vendored test files from the `.deft/core/` deposit on every install and upgrade, and the release archive omits them too, so the consumer's vitest no longer discovers framework tests. Mirrors the existing Python self-test prune (#1474). Refs #1878.
 
 ### Removed
 

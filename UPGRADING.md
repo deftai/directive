@@ -85,6 +85,27 @@ After Wave 8, live deft gates run through the TypeScript engine. **Node.js and p
 
 ---
 
+## From v0.53.0–v0.53.1 → v0.53.2 (vitest no longer discovers vendored framework tests, #1878)
+
+- **Applies when:** your project uses **vitest** AND you upgraded to v0.53.0 or v0.53.1, whose deposit vendored the TypeScript engine under `.deft/core/packages/` **including** the framework's own `*.test.ts` / `*.spec.ts` files. Detection: your vitest run discovers ~80+ files under `.deft/core/packages/` via its default include glob (`**/*.{test,spec}.?(c|m)[jt]s?(x)`) and CI fails with `ERR_MODULE_NOT_FOUND` for `@deftai/core` plus framework parity assertion failures. Projects that do not use vitest (or that already exclude `.deft/core/**`) are unaffected.
+- **Safe to auto-run:** Yes. The installer now prunes the vendored `*.test.*` / `*.spec.*` files from the `.deft/core/packages/` deposit on every install and upgrade (and the release archive omits them too), leaving no framework test files for your vitest to discover. The prune touches only the framework's own test SOURCE files; non-test engine sources are left intact. No operator action is required once you are on v0.53.2+.
+- **Restart required:** No -- the prune is a filesystem change to the vendored deposit; the agent's in-memory context does not depend on it.
+- **Commands:**
+  - `deft-install --yes --upgrade --repo-root . --json` (refreshes the `.deft/core/` deposit; the prune runs automatically as part of the install)
+  - Interim manual workaround **only if you are mid-upgrade on a still-red v0.53.0/v0.53.1 PR**: add `.deft/core/**` to your vitest config's `test.exclude` (and `coverage.exclude`) so vitest skips the vendored payload, then re-run CI:
+
+```ts
+// vitest.config.ts
+export default defineConfig({
+  test: {
+    exclude: ['**/node_modules/**', '.deft/core/**'],
+    coverage: { exclude: ['.deft/core/**'] },
+  },
+});
+```
+
+This manual exclude is harmless to keep, but it becomes unnecessary once the installer prune lands in your deposit. Note: the deft-core-guard workflow (#1430) refuses a PR that mixes a `.deft/core/**` change with your own files, so apply the vitest-config exclude in a **separate** PR from the framework deposit.
+
 ---
 
 <!-- 1046-prb: From v0.27.x -> v0.28 install-manifest transition BEGIN -->

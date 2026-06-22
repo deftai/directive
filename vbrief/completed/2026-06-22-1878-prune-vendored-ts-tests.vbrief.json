@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1878 (upgrade-blocker: vendored .deft/core/packages/**/*.test.ts break consumer vitest). Near-term deposit-hygiene hotfix, decoupled from the #1669 engine/content-split waves.",
+    "created": "2026-06-22T16:45:00Z",
+    "updated": "2026-06-22T16:45:00Z"
+  },
+  "plan": {
+    "id": "1878-prune-vendored-ts-tests",
+    "title": "Prune vendored TypeScript test files from the consumer .deft/core deposit",
+    "status": "completed",
+    "narratives": {
+      "Description": "v0.53.x vendors the new TypeScript engine under .deft/core/packages/{cli,core}/ INCLUDING *.test.ts files. A consumer whose own test runner is vitest discovers ~84 vendored framework test files (default include glob) and fails CI: the tests import the @deftai/core workspace package which does not resolve in the consumer's context (ERR_MODULE_NOT_FOUND), plus 2 parity assertion failures. The installer-shipped deft-core-guard workflow (no-mixed-core-and-app, #1430) refuses a consumer-side vitest.config.ts exclude in the same PR as the framework deposit, forcing a confusing two-PR dance. This is an adoption/upgrade blocker hit by deftai/cartograph (tracked downstream as deftai/cartograph#69). The framework's own Python self-test suite is already pruned from the deposit (#1474, .deft/core/tests); the new TS test files are not. This story extends that prune to the vitest-discoverable test files under .deft/core/packages/. It is a near-term deposit-hygiene hotfix (target v0.53.2); the durable structural fix (manifest-driven deposit + de-vendored engine from npm) is owned by #1669 Wave 1/2 and is explicitly NOT a dependency of this hotfix.",
+      "ImplementationPlan": "1) deposit.go: add pruneVendoredTSTests(w, projectDir) sibling to pruneFrameworkSelfTests, called from depositNeutralization after the self-test prune. Walk .deft/core/packages/ and remove every file whose basename matches the vitest-discoverable test glob (*.test.ts/tsx/js/mjs/cts/mts and *.spec.* equivalents). Best-effort (log warning, never abort), idempotent, runs on fresh + upgrade + re-vendor. Absent packages/ dir is a clean no-op. Only test SOURCE files are removed (importers); non-test engine sources remain but are no longer vitest-discovered. 2) build_dist.py: drop the same test files from the produced dist artifact so the tarball/zip is consistent with the installer deposit (extend the path filter with a name-suffix test for the test glob under packages/). 3) Regression tests: cmd/deft-install/deposit_test.go -- assert a seeded .deft/core/packages/<pkg>/foo.test.ts is removed by depositNeutralization and a non-test .ts sibling survives; scripts test for build_dist that a packages/**/*.test.ts is excluded from the artifact. 4) CHANGELOG [Unreleased] entry (user-visible: vitest-based consumers no longer get red CI on the v0.53.x upgrade). 5) UPGRADING.md note for consumers already on a broken upgrade PR (manual .deft/core/** vitest exclude as the interim, fixed automatically going forward).",
+      "UserStory": "As a vitest-based consumer upgrading Deft to v0.53.x, I want the vendored framework's own TypeScript test files to be excluded from my .deft/core/ deposit so that my vitest run does not discover and fail on framework tests, and my framework-upgrade PR can go green without a confusing two-PR exclude dance."
+    },
+    "items": [
+      {
+        "title": "deposit.go: pruneVendoredTSTests removes vitest-discoverable test files under .deft/core/packages/",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "depositNeutralization prunes every *.test.* / *.spec.* file under .deft/core/packages/ on fresh + upgrade + re-vendor; absent dir is a no-op; non-test .ts sources survive; best-effort (warning, non-fatal)."
+        }
+      },
+      {
+        "title": "build_dist.py: exclude packages test files from the dist artifact",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "The produced dist artifact contains zero packages/**/*.test.* files; non-test engine sources are retained."
+        }
+      },
+      {
+        "title": "Regression tests (Go deposit_test + build_dist test)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Go test asserts seeded packages test file removed + non-test sibling kept; build_dist test asserts the test glob is excluded; task check passes."
+        }
+      },
+      {
+        "title": "CHANGELOG [Unreleased] + UPGRADING.md consumer note",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "CHANGELOG entry describes the user-visible upgrade fix with #1878 ref; UPGRADING.md documents the interim manual exclude for consumers mid-upgrade."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1878",
+        "related_epic": "#1669",
+        "downstream": "deftai/cartograph#69"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "depends_on": []
+      },
+      "completedAt": "2026-06-22T17:08:36Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1878",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1878: Upgrade to v0.53.x breaks consumer CI: vendored .deft/core/packages/*.test.ts discovered by consumer vitest"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1669: epic distributable Deft (engine/content split) -- owns the durable structural fix; NOT a dependency of this hotfix"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1474",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1474: prune framework self-tests from consumer deposit (the precedent this story extends to TS test files)"
+      }
+    ],
+    "updated": "2026-06-22T17:08:36Z"
+  }
+}
