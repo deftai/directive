@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -50,31 +50,8 @@ function initRepo(): { root: string; head: string } {
   return { root, head };
 }
 
-function runGitCapture(
-  root: string,
-  args: readonly string[],
-): { code: number; stdout: string; stderr: string } {
-  const result = spawnSync("git", [...args], {
-    cwd: root,
-    encoding: "utf8",
-  });
-  return {
-    code: result.status ?? 1,
-    stdout: (result.stdout ?? "").trim(),
-    stderr: (result.stderr ?? "").trim(),
-  };
-}
-
-function repoGitRunner(root: string, head: string, worktree: string): GitRunner {
-  return (_projectRoot, args) => {
-    if (args[0] === "rev-parse" && args[1] === "--verify" && args[2] === "HEAD") {
-      return { code: 0, stdout: head, stderr: "" };
-    }
-    if (args[0] === "rev-parse" && args[1] === "--show-toplevel") {
-      return { code: 0, stdout: worktree, stderr: "" };
-    }
-    return runGitCapture(root, args);
-  };
+function repoGitRunner(root: string): GitRunner {
+  return (projectRoot, args) => defaultGitRunner(projectRoot ?? root, args);
 }
 
 describe("defaultRitualRunner", () => {
@@ -142,7 +119,7 @@ describe("verifySessionRitual gated tier via defaultRitualRunner", () => {
       now,
       bypass: false,
       envSkip: "",
-      runGit: repoGitRunner(root, head, resolve(root)),
+      runGit: repoGitRunner(root),
     });
     expect(result.code).toBe(0);
     const [state] = readRitualState(root);
