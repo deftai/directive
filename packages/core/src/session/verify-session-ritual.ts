@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
 import { defaultGitRunner, type GitRunner, gitHead, worktreePath } from "./git.js";
 import { pythonJsonDump } from "./json.js";
+import { defaultRitualRunner } from "./ritual-entrypoint.js";
 import {
   type RitualState,
   readRitualState,
@@ -13,8 +14,10 @@ import { GATED_STEPS, QUICK_STEPS } from "./session-start.js";
 import { resolveSessionRitualStalenessHours } from "./staleness.js";
 
 export const ENV_SKIP = "DEFT_SESSION_RITUAL_SKIP";
-export const ENTRYPOINT_TIMEOUT_SECONDS = 300;
-export const ENTRYPOINT_TIMEOUT_EXIT_CODE = 124;
+export {
+  ENTRYPOINT_TIMEOUT_EXIT_CODE,
+  ENTRYPOINT_TIMEOUT_SECONDS,
+} from "./ritual-entrypoint.js";
 
 export const GATED_ENTRYPOINT_COMMANDS: Readonly<Record<string, readonly string[]>> = {
   doctor: ["doctor"],
@@ -211,7 +214,7 @@ export function verifySessionRitual(
     const payload = { ...state.raw };
     const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
     payload.gated_steps = gated;
-    const runCmd = options.runner ?? defaultRunner;
+    const runCmd = options.runner ?? defaultRitualRunner;
     for (const stepName of GATED_STEPS) {
       const step = gated[stepName];
       if (step?.deferred_reason) continue;
@@ -259,18 +262,6 @@ export function verifySessionRitual(
     };
   }
   return { code, message, tier, statePath, bypassed: false, wouldFailCode: null };
-}
-
-function defaultRunner(
-  command: readonly string[],
-  _projectRoot: string,
-): {
-  code: number;
-  stdout: string;
-  stderr: string;
-} {
-  const label = command[0] ?? "entrypoint";
-  return { code: 2, stdout: "", stderr: `unknown session ritual command: ${label}` };
 }
 
 export function emitVerifyJson(result: VerifyResult): string {

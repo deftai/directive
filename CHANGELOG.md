@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **All shippable framework content now lives under a single `content/` root (#1875)** -- Maintainers working in the framework repo will find every shippable asset (skills, templates, packs, languages, strategies, coding/scm/verification guides, and more) relocated under `content/`, with engine code, harness config, and repo-development files staying at the root. The `verify:content-manifest` gate now enforces this as a location invariant rather than a flat top-level classification. This is purely a source-repo reorganization: the consumer-facing `.deft/core/` deposit, AGENTS.md routing, and skill pointers are byte-for-byte unchanged because both packaging paths flatten the `content/` prefix away -- the release-archive build and the `deft-install` bootstrap binary (which deposits straight from the GitHub source tarball) now apply the same flatten, so a fresh install or upgrade lands `.deft/core/coding/...` rather than `.deft/core/content/coding/...`. Refs #1875, #1669.
 
 ### Fixed
+- **Gated session-ritual verifier now runs doctor and cache-fresh in-process (#1884)** -- `deft verify:session-ritual --tier=gated` no longer fails with "unknown session ritual command: doctor" on a fresh session-start state; the TS port wires the default gated runner to the in-process doctor and cache-fresh entrypoints (with bootstrap-tolerant cache-fresh), unblocking step 0 of the pre-dispatch gate stack. Closes #1884.
 
 ### Removed
 

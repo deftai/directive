@@ -167,12 +167,6 @@ function runTsVerify(fixture: Fixture, scenario: ParityCase): Capture {
   };
 }
 
-const mockGatedRunner = (): ParityCase["runner"] => () => ({
-  code: 0,
-  stdout: "OK",
-  stderr: "",
-});
-
 export const PARITY_CASES: readonly ParityCase[] = [
   {
     name: "quick-tier",
@@ -195,7 +189,6 @@ export const PARITY_CASES: readonly ParityCase[] = [
     tier: "gated",
     bypass: false,
     nowIso: FIXED_NOW,
-    runner: mockGatedRunner(),
   },
   {
     name: "stale-expiry",
