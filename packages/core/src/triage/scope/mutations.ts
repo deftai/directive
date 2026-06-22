@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { GH_MAX_BUFFER } from "../../subprocess/max-buffer.js";
+import { SUBPROCESS_MAX_BUFFER } from "../../subprocess/max-buffer.js";
 import { collectMilestoneSubscribedNames, rulesRequestIsOpen } from "./milestone.js";
 import { addIgnore, subscribe } from "./mutations-core.js";
 import { resolveScopeIgnores, resolveScopeRules } from "./resolve.js";
@@ -180,7 +180,7 @@ function fetchNamesViaGh(binary: string, path: string, nameField: string): Set<s
     proc = spawnSync(binary, ["api", "--paginate", path], {
       encoding: "utf8",
       timeout: 30_000,
-      maxBuffer: GH_MAX_BUFFER,
+      maxBuffer: SUBPROCESS_MAX_BUFFER,
     });
   } catch {
     throw new Error(`\`${binary} api ${path}\` timed out after 30s -- check your network.`);
@@ -200,7 +200,7 @@ function fetchNamesViaGh(binary: string, path: string, nameField: string): Set<s
   if (proc.status !== 0) {
     const errText =
       String(proc.stderr ?? proc.stdout ?? "").trim() || (proc.error ? proc.error.message : "");
-    throw new Error(`\`${binary} api ${path}\` failed (exit ${proc.status}): ${errText}`);
+    throw new Error(`\`${binary} api ${path}\` failed (exit ${proc.status ?? 1}): ${errText}`);
   }
   return parseGhPaginatedNames(String(proc.stdout ?? ""), nameField);
 }

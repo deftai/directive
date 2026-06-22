@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { GH_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import type { SpawnResult } from "./types.js";
 
 export function defaultWhich(name: string): string | null {
@@ -25,7 +25,7 @@ export function spawnText(
     env: options.env ?? process.env,
     encoding: "utf8",
     timeout: options.timeoutMs,
-    maxBuffer: GH_MAX_BUFFER,
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
     stdio: ["ignore", "pipe", "pipe"],
   });
   let status = result.status;

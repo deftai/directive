@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GH_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveBinary } from "./binary.js";
 import { pyRepr } from "./py-format.js";
 
@@ -69,7 +69,7 @@ export function runGhApi(
     encoding: "utf8",
     timeout: timeoutMs,
     env: process.env,
-    maxBuffer: GH_MAX_BUFFER,
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
     stdio: ["ignore", "pipe", "pipe"],
   });
   let stderr = typeof result.stderr === "string" ? result.stderr : "";

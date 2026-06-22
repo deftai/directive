@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveBinary } from "../scm/binary.js";
-import { GH_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import type { SubprocessTriple } from "./types.js";
 
 export interface CaptureExecResult {
@@ -21,7 +21,7 @@ export function captureExec(
     encoding: "utf8",
     timeout: timeoutMs,
     stdio: ["ignore", "pipe", "pipe"],
-    maxBuffer: GH_MAX_BUFFER,
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
     env: process.env,
   });
 

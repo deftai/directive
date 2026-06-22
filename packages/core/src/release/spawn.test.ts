@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { GH_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { spawnText } from "./spawn.js";
 
 describe("spawnText maxBuffer (#1867)", () => {
   it("uses a multi-megabyte ceiling, well above Node's 1 MB default", () => {
     // Regression guard for the constant the helper relies on.
-    expect(GH_MAX_BUFFER).toBeGreaterThan(1024 * 1024);
+    expect(SUBPROCESS_MAX_BUFFER).toBeGreaterThan(1024 * 1024);
   });
 
   it("captures stdout larger than Node's 1 MB default without failing", () => {
     // 2 MB overflows the 1 MB default that caused the empty-error publish
-    // failure; with GH_MAX_BUFFER applied the capture must succeed cleanly.
+    // failure; with SUBPROCESS_MAX_BUFFER applied the capture must succeed cleanly.
     const bytes = 2 * 1024 * 1024;
     const result = spawnText(process.execPath, [
       "-e",

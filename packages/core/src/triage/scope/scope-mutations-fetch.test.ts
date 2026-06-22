@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GH_MAX_BUFFER } from "../../subprocess/max-buffer.js";
+import { SUBPROCESS_MAX_BUFFER } from "../../subprocess/max-buffer.js";
 import { runCliCapture } from "./cli.js";
 import { coveragePath, writeCoverageDenominator } from "./coverage.js";
 import { fetchUpstreamLabelsAndMilestones } from "./mutations.js";
@@ -125,7 +125,7 @@ describe("mutations gh fetch branches", () => {
     );
   });
 
-  it("passes GH_MAX_BUFFER so --paginate responses over 1 MB do not overflow (#1867)", () => {
+  it("passes SUBPROCESS_MAX_BUFFER so --paginate responses over 1 MB do not overflow (#1867)", () => {
     mockedSpawn.mockReturnValue({
       status: 0,
       stdout: "[]",
@@ -136,7 +136,7 @@ describe("mutations gh fetch branches", () => {
     } as ReturnType<typeof spawnSync>);
     fetchUpstreamLabelsAndMilestones("o/r", "gh");
     const options = mockedSpawn.mock.calls[0]?.[2] as { maxBuffer?: number } | undefined;
-    expect(options?.maxBuffer).toBe(GH_MAX_BUFFER);
+    expect(options?.maxBuffer).toBe(SUBPROCESS_MAX_BUFFER);
   });
 
   it("surfaces a non-empty message when the spawn errors with empty stderr (#1867)", () => {
