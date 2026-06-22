@@ -128,8 +128,8 @@ def test_readme_has_branch_policy_section():
 
 
 def test_schema_declares_policy_definition():
-    text = _read("vbrief/schemas/vbrief-core.schema.json")
-    assert "\"Policy\":" in text
-    assert "\"allowDirectCommitsToMaster\":" in text
+    text = _read("content/vbrief/schemas/vbrief-core.schema.json")
+    assert '"Policy":' in text
+    assert '"allowDirectCommitsToMaster":' in text
     # Policy is referenced from the Plan definition.
     assert '"$ref": "#/$defs/Policy"' in text

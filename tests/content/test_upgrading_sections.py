@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_UPGRADING = _REPO_ROOT / "UPGRADING.md"
+_UPGRADING = _REPO_ROOT / "content/UPGRADING.md"
 
 _REQUIRED_FIELDS = (
     "Applies when",

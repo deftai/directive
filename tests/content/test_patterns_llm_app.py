@@ -21,10 +21,10 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-PATTERNS_LLM_APP = _REPO_ROOT / "patterns" / "llm-app.md"
+PATTERNS_LLM_APP = _REPO_ROOT / "content/patterns/llm-app.md"
 REFERENCES_MD = _REPO_ROOT / "REFERENCES.md"
-CODING_CODING_MD = _REPO_ROOT / "coding" / "coding.md"
-TOOLS_TELEMETRY_MD = _REPO_ROOT / "tools" / "telemetry.md"
+CODING_CODING_MD = _REPO_ROOT / "content/coding/coding.md"
+TOOLS_TELEMETRY_MD = _REPO_ROOT / "content/tools/telemetry.md"
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"
 

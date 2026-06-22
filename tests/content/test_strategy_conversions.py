@@ -29,7 +29,7 @@ def _read(relpath: str) -> str:
 class TestResearchVBRIEF:
     """research.md must reference vBRIEF output, not hand-authored .md."""
 
-    _text = _read("strategies/research.md")
+    _text = _read("content/strategies/research.md")
 
     def test_references_vbrief_proposed_path(self) -> None:
         assert "vbrief/proposed/" in self._text, (
@@ -64,7 +64,7 @@ class TestResearchVBRIEF:
 class TestMapVBRIEF:
     """map.md must reference vBRIEF output, not .planning/codebase/ .md files."""
 
-    _text = _read("strategies/map.md")
+    _text = _read("content/strategies/map.md")
 
     def test_references_vbrief_proposed_path(self) -> None:
         assert "vbrief/proposed/" in self._text, (
@@ -109,7 +109,7 @@ class TestMapVBRIEF:
 class TestRoadmapRedirect:
     """roadmap.md must be a superseded redirect to refinement skill."""
 
-    _text = _read("strategies/roadmap.md")
+    _text = _read("content/strategies/roadmap.md")
 
     def test_contains_superseded(self) -> None:
         assert "superseded" in self._text.lower(), (

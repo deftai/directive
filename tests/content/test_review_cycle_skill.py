@@ -26,7 +26,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_REVIEW_CYCLE_PATH = "skills/deft-directive-review-cycle/SKILL.md"
+_REVIEW_CYCLE_PATH = "content/skills/deft-directive-review-cycle/SKILL.md"
 
 
 def _read_skill() -> str:

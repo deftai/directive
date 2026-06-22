@@ -83,6 +83,7 @@ from typing import IO
 # ``python scripts/relocate.py`` from a Taskfile or webinstaller bootstrap.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _content_root import content_root  # noqa: E402
 from _relocate_snapshot import (  # noqa: E402  -- intentional sys.path tweak
     SnapshotError,
     create_snapshot as _create_snapshot,
@@ -483,7 +484,7 @@ def _default_subprocess_runner(argv: list[str]) -> int:
 
 def render_managed_section(framework_source: Path) -> str:
     """Return the rendered managed-section block from the framework template."""
-    template_path = framework_source / "templates" / "agents-entry.md"
+    template_path = content_root(framework_source) / "templates" / "agents-entry.md"
     if not template_path.is_file():
         raise RelocateError(
             f"framework source missing AGENTS.md template at {template_path}",

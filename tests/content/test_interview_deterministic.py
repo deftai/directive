@@ -26,8 +26,8 @@ import pytest
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_INTERVIEW_PATH = "skills/deft-directive-interview/SKILL.md"
-_AGENTS_POINTER_PATH = ".agents/skills/deft-directive-interview/SKILL.md"
+_INTERVIEW_PATH = "content/skills/deft-directive-interview/SKILL.md"
+_AGENTS_POINTER_PATH = "content/.agents/skills/deft-directive-interview/SKILL.md"
 
 # Canonical legend text required under every deterministic question.
 _CANONICAL_LEGEND = "Enter confirm / b back / 0 discuss"

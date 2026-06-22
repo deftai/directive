@@ -137,7 +137,7 @@ _STRATEGY_INDEX_CHECK = "test_contracts.strategy_index_links_resolve"
 
 def _strategy_index_params() -> list:
     xfail = _xfail_files(_STRATEGY_INDEX_CHECK)
-    strategy_readme = _REPO_ROOT / "strategies/README.md"
+    strategy_readme = _REPO_ROOT / "content/strategies/README.md"
     params = []
     for target, resolved in _internal_links(strategy_readme):
         # Use the filename as the key for xfail lookup
@@ -213,7 +213,5 @@ def test_see_also_links_resolve(source_rel: str, raw_target: str, resolved_str: 
 
 def test_discuss_in_strategy_index() -> None:
     """strategies/discuss.md must be listed in the strategies/README.md table."""
-    readme = (_REPO_ROOT / "strategies/README.md").read_text(encoding="utf-8")
-    assert "discuss.md" in readme, (
-        "strategies/discuss.md is not referenced in strategies/README.md"
-    )
+    readme = (_REPO_ROOT / "content/strategies/README.md").read_text(encoding="utf-8")
+    assert "discuss.md" in readme, "strategies/discuss.md is not referenced in strategies/README.md"

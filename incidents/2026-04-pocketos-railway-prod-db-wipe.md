@@ -37,10 +37,10 @@ is independent of text-level safety (#686).
 
 ## Which Deft rule(s) would have intervened
 
-- [`coding/security.md`](../coding/security.md) `## Destructive-Op Guardrails -- Environment Isolation + Irreversibility (#708)` `### Environment Isolation Gate` -- the agent MUST positively identify the environment from a trusted, non-prompt signal before any write or destructive operation. Connection-string introspection would have surfaced the `prod` host substring; "Probably staging" is a refusal, not an approval.
-- [`coding/security.md`](../coding/security.md) `## Destructive-Op Guardrails -- Environment Isolation + Irreversibility (#708)` `### Irreversibility Gate` -- backups are first-class state. Deleting, overwriting, truncating, or "rotating" a backup is itself a destructive operation and MUST go through the gate with a tested rollback path AND an explicit in-session human ack token.
-- [`coding/security.md`](../coding/security.md) `## Tool-Call Safety Is Independent of Text-Level Safety (#686)` -- the high-impact `DELETE` / `DROP` verbs against a production connection string should have been classified `destructive` in the tool registry and gated by a deterministic preflight outside the model. Text-level alignment is not a substitute for a call-site enforcement layer.
-- [`coding/security.md`](../coding/security.md) `## No-Read-Secret Rule for Agent Systems (#587)` -- partial intervention only: a credential proxy that scoped the agent's database access to staging-only at the proxy layer would have refused the prod connection at the network boundary, independent of whether the agent's environment-detection logic was correct. Defence in depth.
+- [`coding/security.md`](../content/coding/security.md) `## Destructive-Op Guardrails -- Environment Isolation + Irreversibility (#708)` `### Environment Isolation Gate` -- the agent MUST positively identify the environment from a trusted, non-prompt signal before any write or destructive operation. Connection-string introspection would have surfaced the `prod` host substring; "Probably staging" is a refusal, not an approval.
+- [`coding/security.md`](../content/coding/security.md) `## Destructive-Op Guardrails -- Environment Isolation + Irreversibility (#708)` `### Irreversibility Gate` -- backups are first-class state. Deleting, overwriting, truncating, or "rotating" a backup is itself a destructive operation and MUST go through the gate with a tested rollback path AND an explicit in-session human ack token.
+- [`coding/security.md`](../content/coding/security.md) `## Tool-Call Safety Is Independent of Text-Level Safety (#686)` -- the high-impact `DELETE` / `DROP` verbs against a production connection string should have been classified `destructive` in the tool registry and gated by a deterministic preflight outside the model. Text-level alignment is not a substitute for a call-site enforcement layer.
+- [`coding/security.md`](../content/coding/security.md) `## No-Read-Secret Rule for Agent Systems (#587)` -- partial intervention only: a credential proxy that scoped the agent's database access to staging-only at the proxy layer would have refused the prod connection at the network boundary, independent of whether the agent's environment-detection logic was correct. Defence in depth.
 
 ## Eval / regression coverage
 
@@ -58,4 +58,4 @@ is independent of text-level safety (#686).
 - GitHub issue: [#708](https://github.com/deftai/directive/issues/708) -- AI-agent destructive-op guardrails: env-isolation gate, irreversibility gate, incidents library, eval
 - Related issue: [#686](https://github.com/deftai/directive/issues/686) -- tool-call safety is independent of text-level safety
 - Related issue: [#1095](https://github.com/deftai/directive/issues/1095) -- closed-verb scope-expansion gate, consumes the irreversibility-tier classification
-- Related rule body: [`coding/security.md`](../coding/security.md)
+- Related rule body: [`coding/security.md`](../content/coding/security.md)

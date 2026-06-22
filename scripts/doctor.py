@@ -1226,9 +1226,14 @@ def _now_utc() -> datetime:
     return datetime.now(UTC)
 
 
+# Post-#1875 content/ move: these framework-internal markers now live under
+# content/ in the SOURCE repo. They identify a deft source checkout (a consumer
+# would never reproduce them); the C1 flatten means a consumer deposit has no
+# content/ dir, so the absence of content/ here is itself consistent with the
+# "not a source checkout" branch.
 _DEFT_REPO_POSITIVE_MARKERS = (
-    Path("templates") / "agents-entry.md",
-    Path("skills") / "deft-directive-build" / "SKILL.md",
+    Path("content") / "templates" / "agents-entry.md",
+    Path("content") / "skills" / "deft-directive-build" / "SKILL.md",
 )
 
 
@@ -1939,18 +1944,28 @@ def cmd_doctor(args: list[str]):
     # seven canonical framework subdirectories on every `run doctor` / `task doctor`
     # invocation (Greptile framework-layout issue on 7a0606c).
     framework_root = get_script_dir().parent
+    # Post-#1875 content/ move: shippable content dirs live under content/ in
+    # the SOURCE repo and are flattened back to the framework root in a CONSUMER
+    # deposit (C1). ``content_root`` resolves both contexts; engine/lifecycle
+    # dirs (tasks/, scripts/, vbrief/) always stay at the framework root.
+    scripts_dir = get_script_dir()
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from _content_root import content_root  # noqa: PLC0415
+
+    content_base = content_root(framework_root)
     expected_dirs = [
-        "languages",
-        "strategies",
-        "skills",
-        "templates",
-        "tasks",
-        "scripts",
-        "vbrief",
+        ("languages", content_base),
+        ("strategies", content_base),
+        ("skills", content_base),
+        ("templates", content_base),
+        ("tasks", framework_root),
+        ("scripts", framework_root),
+        ("vbrief", framework_root),
     ]
 
-    for dir_name in expected_dirs:
-        dir_path = framework_root / dir_name
+    for dir_name, base in expected_dirs:
+        dir_path = base / dir_name
         if dir_path.is_dir():
             _emit_success(f"Directory: {dir_name}/")
         else:

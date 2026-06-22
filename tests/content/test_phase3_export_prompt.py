@@ -23,7 +23,7 @@ def _read(relpath: str) -> str:
 
 
 class TestSpeckitArtifactsSummary3c:
-    _text = _read("strategies/speckit.md")
+    _text = _read("content/strategies/speckit.md")
 
     def test_artifacts_summary_has_3b_spec_render(self) -> None:
         # Post s5 migration + v0.20 contract: strategies SHOULD omit writing real SPECIFICATION.md.
@@ -44,7 +44,7 @@ class TestSpeckitArtifactsSummary3c:
 
 
 class TestSetupSkillExportPrompt:
-    _text = _read("skills/deft-directive-setup/SKILL.md")
+    _text = _read("content/skills/deft-directive-setup/SKILL.md")
 
     def test_prompt_asks_for_prd_or_specification(self) -> None:
         assert re.search(

@@ -25,7 +25,7 @@ _RELEASE_ASSETS = (
     "install-windows-amd64.exe",
 )
 
-_DOC_FILES = ("README.md", "QUICK-START.md")
+_DOC_FILES = ("README.md", "content/QUICK-START.md")
 
 
 def _doc(name: str) -> str:

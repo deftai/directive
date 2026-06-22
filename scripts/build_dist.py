@@ -128,6 +128,26 @@ _VENDORED_TS_TEST_RE = re.compile(r"(?i)\.(test|spec)\.(c|m)?[jt]sx?$")
 # current directory but most tools display as ``./<name>``.
 ARCHIVE_ROOT = "deft"
 
+# C1 flatten (#1875 / #1669 Wave-1 LockedDecisions). The #1875 move relocated
+# every shippable asset under a single ``content/`` root in the SOURCE repo.
+# The consumer-facing deposit layout (``.deft/core/<x>``) MUST stay byte-stable,
+# so the archive strips the ``content/`` prefix when packaging: a source file at
+# ``content/coding/coding.md`` ships as ``deft/coding/coding.md`` and deposits to
+# ``.deft/core/coding/coding.md`` exactly as before the move. Non-content entries
+# (engine / harness / repo-dev) and the named root harness-entry files
+# (AGENTS.md / main.md / SKILL.md / REFERENCES.md) are unaffected. This is the
+# single flatten point -- the Go installer (cmd/deft-install) needs no change.
+CONTENT_PREFIX = "content/"
+
+
+def _flatten_content_prefix(rel_posix: str) -> str:
+    """Strip the leading ``content/`` prefix so the deposit stays byte-stable."""
+    if rel_posix == "content":
+        return rel_posix
+    if rel_posix.startswith(CONTENT_PREFIX):
+        return rel_posix[len(CONTENT_PREFIX) :]
+    return rel_posix
+
 
 # ---- Path filtering ---------------------------------------------------------
 
@@ -204,7 +224,8 @@ def _iter_source_files(
                 # vitest-based consumer does not discover and fail on them,
                 # mirroring the installer-side prune (#1878).
                 continue
-            entries.append((abs_path, rel_posix))
+            # C1 flatten: ship content/<x> as <x> so the deposit is byte-stable.
+            entries.append((abs_path, _flatten_content_prefix(rel_posix)))
     return entries
 
 

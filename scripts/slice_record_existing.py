@@ -80,14 +80,13 @@ from pathlib import Path
 # Make sibling helpers importable when run as __main__.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import scm  # noqa: E402
 import slice_record  # noqa: E402
 from _project_context import (  # noqa: E402
     resolve_project_repo,
     resolve_project_root,
 )
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
-
-import scm  # noqa: E402
 
 reconfigure_stdio()
 

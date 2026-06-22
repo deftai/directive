@@ -44,8 +44,8 @@ import pytest
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_SWARM_PATH = "skills/deft-directive-swarm/SKILL.md"
-_SETUP_PATH = "skills/deft-directive-setup/SKILL.md"
+_SWARM_PATH = "content/skills/deft-directive-swarm/SKILL.md"
+_SETUP_PATH = "content/skills/deft-directive-setup/SKILL.md"
 
 
 def _read_skill(rel_path: str) -> str:

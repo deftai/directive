@@ -42,7 +42,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RELEASE_YML = REPO_ROOT / ".github" / "workflows" / "release.yml"
-RELEASE_SKILL = REPO_ROOT / "skills" / "deft-directive-release" / "SKILL.md"
+RELEASE_SKILL = REPO_ROOT / "content/skills/deft-directive-release/SKILL.md"
 RELEASING_DOC = REPO_ROOT / "docs" / "RELEASING.md"
 
 

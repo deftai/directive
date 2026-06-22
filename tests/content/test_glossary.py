@@ -40,12 +40,12 @@ def _read(relpath: str) -> str:
 
 class TestGlossaryFile:
     def test_glossary_exists(self) -> None:
-        assert (_REPO_ROOT / "glossary.md").is_file(), (
-            "glossary.md must exist at the repo root (#457)"
-        )
+        assert (
+            _REPO_ROOT / "content/glossary.md"
+        ).is_file(), "glossary.md must exist at the repo root (#457)"
 
     def test_glossary_under_150_lines(self) -> None:
-        content = _read("glossary.md")
+        content = _read("content/glossary.md")
         line_count = len(content.splitlines())
         assert line_count < 150, (
             f"glossary.md must stay under 150 lines (#457); "
@@ -53,10 +53,10 @@ class TestGlossaryFile:
         )
 
     def test_glossary_has_rfc2119_legend(self) -> None:
-        content = _read("glossary.md")
-        assert "RFC2119" in content or "RFC 2119" in content, (
-            "glossary.md must declare its RFC2119 legend (#457)"
-        )
+        content = _read("content/glossary.md")
+        assert (
+            "RFC2119" in content or "RFC 2119" in content
+        ), "glossary.md must declare its RFC2119 legend (#457)"
         # Legend symbols
         assert "!=MUST" in content, "glossary.md legend must include !=MUST"
         assert "\u2297=MUST NOT" in content, (
@@ -65,7 +65,7 @@ class TestGlossaryFile:
 
 
 class TestGlossaryTerms:
-    _text = _read("glossary.md")
+    _text = _read("content/glossary.md")
 
     def test_all_13_terms_present(self) -> None:
         missing = [t for t in REQUIRED_TERMS if f"**{t}**" not in self._text]
@@ -98,10 +98,8 @@ class TestGlossaryTerms:
 
 class TestGlossaryCrossReferences:
     def test_vbrief_md_links_to_glossary(self) -> None:
-        content = _read("vbrief/vbrief.md")
-        assert "glossary.md" in content, (
-            "vbrief/vbrief.md must cross-link to glossary.md (#457)"
-        )
+        content = _read("content/vbrief/vbrief.md")
+        assert "glossary.md" in content, "vbrief/vbrief.md must cross-link to glossary.md (#457)"
 
     def test_readme_links_to_glossary(self) -> None:
         content = _read("README.md")
@@ -110,7 +108,7 @@ class TestGlossaryCrossReferences:
         )
 
     def test_upgrading_md_links_to_glossary(self) -> None:
-        content = _read("UPGRADING.md")
-        assert "glossary.md" in content, (
-            "UPGRADING.md v0.20 section must reference glossary.md (#457)"
-        )
+        content = _read("content/UPGRADING.md")
+        assert (
+            "glossary.md" in content
+        ), "UPGRADING.md v0.20 section must reference glossary.md (#457)"

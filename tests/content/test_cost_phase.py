@@ -33,10 +33,10 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # Constants
 # ---------------------------------------------------------------------------
 
-_COST_SKILL_PATH = "skills/deft-directive-cost/SKILL.md"
-_BUILD_SKILL_PATH = "skills/deft-directive-build/SKILL.md"
-_COST_TEMPLATE_PATH = "templates/COST-ESTIMATE.md"
-_COST_MODELS_PATH = "references/cost-models.md"
+_COST_SKILL_PATH = "content/skills/deft-directive-cost/SKILL.md"
+_BUILD_SKILL_PATH = "content/skills/deft-directive-build/SKILL.md"
+_COST_TEMPLATE_PATH = "content/templates/COST-ESTIMATE.md"
+_COST_MODELS_PATH = "content/references/cost-models.md"
 
 _RFC2119_LEGEND = "!=MUST, ~=SHOULD"
 

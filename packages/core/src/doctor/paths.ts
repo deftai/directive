@@ -42,7 +42,13 @@ export function resolveDefaultFrameworkRoot(): string {
   }
   let dir = dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 8; i += 1) {
-    if (existsSync(join(dir, "main.md")) && existsSync(join(dir, "templates", "agents-entry.md"))) {
+    // #1875: templates/ moved under content/ in the source repo; main.md stays
+    // at root. Accept either layout (source checkout vs flattened deposit).
+    if (
+      existsSync(join(dir, "main.md")) &&
+      (existsSync(join(dir, "content", "templates", "agents-entry.md")) ||
+        existsSync(join(dir, "templates", "agents-entry.md")))
+    ) {
       return dir;
     }
     const parent = dirname(dir);

@@ -412,16 +412,16 @@ describe("test_standards.py", () => {
     expect(readText("conventions/vbrief-filenames.md").toLowerCase()).not.toContain("core/user.md");
   });
   it("core/glossary.md no deprecated user path", () => {
-    expect(readText("core/glossary.md").toLowerCase()).not.toContain("core/user.md");
+    expect(readText("glossary.md").toLowerCase()).not.toContain("core/user.md");
   });
   it("core/project.md no deprecated user path", () => {
-    expect(readText("core/project.md").toLowerCase()).not.toContain("core/user.md");
+    expect(readText("meta/project.md").toLowerCase()).not.toContain("core/user.md");
   });
   it("core/ralph.md no deprecated user path", () => {
-    expect(readText("core/ralph.md").toLowerCase()).not.toContain("core/user.md");
+    expect(readText("meta/ralph.md").toLowerCase()).not.toContain("core/user.md");
   });
   it("core/versioning.md no deprecated user path", () => {
-    expect(readText("core/versioning.md").toLowerCase()).not.toContain("core/user.md");
+    expect(readText("meta/versioning.md").toLowerCase()).not.toContain("core/user.md");
   });
   it("deployments/README.md no deprecated user path", () => {
     expect(readText("deployments/README.md").toLowerCase()).not.toContain("core/user.md");
@@ -2663,16 +2663,16 @@ describe("test_standards.py", () => {
     expect(readText("conventions/vbrief-filenames.md").toLowerCase()).not.toContain("warping");
   });
   it("core/glossary.md no warping", () => {
-    expect(readText("core/glossary.md").toLowerCase()).not.toContain("warping");
+    expect(readText("glossary.md").toLowerCase()).not.toContain("warping");
   });
   it("core/project.md no warping", () => {
-    expect(readText("core/project.md").toLowerCase()).not.toContain("warping");
+    expect(readText("meta/project.md").toLowerCase()).not.toContain("warping");
   });
   it("core/ralph.md no warping", () => {
-    expect(readText("core/ralph.md").toLowerCase()).not.toContain("warping");
+    expect(readText("meta/ralph.md").toLowerCase()).not.toContain("warping");
   });
   it("core/versioning.md no warping", () => {
-    expect(readText("core/versioning.md").toLowerCase()).not.toContain("warping");
+    expect(readText("meta/versioning.md").toLowerCase()).not.toContain("warping");
   });
   it("deployments/README.md no warping", () => {
     expect(readText("deployments/README.md").toLowerCase()).not.toContain("warping");

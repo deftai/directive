@@ -7,11 +7,11 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 _ISSUE_CREATION_SKILLS = (
-    "skills/deft-directive-triage/SKILL.md",
-    "skills/deft-directive-refinement/SKILL.md",
-    "skills/deft-directive-gh-slice/SKILL.md",
-    "skills/deft-directive-gh-arch/SKILL.md",
-    "skills/deft-directive-article-review/SKILL.md",
+    "content/skills/deft-directive-triage/SKILL.md",
+    "content/skills/deft-directive-refinement/SKILL.md",
+    "content/skills/deft-directive-gh-slice/SKILL.md",
+    "content/skills/deft-directive-gh-arch/SKILL.md",
+    "content/skills/deft-directive-article-review/SKILL.md",
 )
 
 
@@ -74,7 +74,7 @@ def test_issue_creation_guidance_forbids_ad_hoc_labels() -> None:
 
 def test_triage_skill_documents_label_hygiene_rationale() -> None:
     """Triage skill should explain why unlabeled issues matter."""
-    text = _read("skills/deft-directive-triage/SKILL.md").lower()
+    text = _read("content/skills/deft-directive-triage/SKILL.md").lower()
     for phrase in (
         "triage queue ranking",
         "issue gauges",

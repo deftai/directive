@@ -8,8 +8,29 @@ export function repoRoot(): string {
   return resolve(here, "../../../../../");
 }
 
+/**
+ * Resolve a repo-root-relative content path across both contexts (#1875 C1).
+ *
+ * The content/ move relocated every shippable asset under a single content/
+ * root in the SOURCE repo; the C1 flatten strips that prefix in a CONSUMER
+ * deposit. These content-contract tests address content by its consumer-relative
+ * path (e.g. `coding/coding.md`, `strategies/README.md`). Probe content/ first
+ * so the SOURCE layout resolves, then fall back to the repo root so root-resident
+ * entries (harness-entry main.md/AGENTS.md, repo-dev tests/, README.md, etc.)
+ * and the flattened consumer layout both still resolve. Mirrors
+ * scripts/_content_root.py + pack-render.ts::contentRoot.
+ */
+export function resolveContentPath(relPath: string): string {
+  const root = repoRoot();
+  const underContent = join(root, "content", relPath);
+  if (existsSync(underContent)) {
+    return underContent;
+  }
+  return join(root, relPath);
+}
+
 export function readText(relPath: string): string {
-  return readFileSync(join(repoRoot(), relPath), { encoding: "utf8" });
+  return readFileSync(resolveContentPath(relPath), { encoding: "utf8" });
 }
 
 export function readAbs(absPath: string): string {
@@ -17,7 +38,7 @@ export function readAbs(absPath: string): string {
 }
 
 export function pathExists(relPath: string): boolean {
-  return existsSync(join(repoRoot(), relPath));
+  return existsSync(resolveContentPath(relPath));
 }
 
 export interface KnownFailure {
@@ -112,7 +133,7 @@ export function allMdFiles(excludeTrees: string[] = []): string[] {
 }
 
 export function mdFilesInDir(dirname: string): string[] {
-  const dir = join(repoRoot(), dirname);
+  const dir = resolveContentPath(dirname);
   if (!existsSync(dir)) {
     return [];
   }
@@ -150,8 +171,7 @@ export function locateSection(text: string, heading: string): number {
 const LINK_RE = /\[[^\]]*\]\(([^)]+)\)/g;
 
 export function internalLinks(relPath: string): Array<{ target: string; resolved: string }> {
-  const root = repoRoot();
-  const filePath = join(root, relPath);
+  const filePath = resolveContentPath(relPath);
   const text = readAbs(filePath);
   const parent = dirname(filePath);
   const results: Array<{ target: string; resolved: string }> = [];
@@ -236,7 +256,7 @@ export function loadJson(relPath: string): unknown {
 
 export function isDir(relPath: string): boolean {
   try {
-    return statSync(join(repoRoot(), relPath)).isDirectory();
+    return statSync(resolveContentPath(relPath)).isDirectory();
   } catch {
     return false;
   }
@@ -244,7 +264,7 @@ export function isDir(relPath: string): boolean {
 
 export function isFile(relPath: string): boolean {
   try {
-    return statSync(join(repoRoot(), relPath)).isFile();
+    return statSync(resolveContentPath(relPath)).isFile();
   } catch {
     return false;
   }

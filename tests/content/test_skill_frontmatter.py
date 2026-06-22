@@ -193,7 +193,7 @@ def test_skill_frontmatter_discovery_found_files() -> None:
 # #1518: Composer skill-porting reference contract
 # ---------------------------------------------------------------------------
 
-_COMPOSER_PORTING_REF = REPO_ROOT / "references" / "composer-skill-porting.md"
+_COMPOSER_PORTING_REF = REPO_ROOT / "content/references/composer-skill-porting.md"
 
 _REQUIRED_PORTING_MARKERS: tuple[str, ...] = (
     "Negative Triggers",

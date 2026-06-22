@@ -15,6 +15,11 @@ if str(_SCRIPTS) not in sys.path:
 
 import codebase_default_extractor as extractor  # noqa: E402
 import codebase_provider as provider  # noqa: E402
+from _content_root import content_root  # noqa: E402
+
+# Post-#1875: shippable schemas live under content/ in the source repo; resolve
+# the published schema path against the content root (matches the provider).
+_CONTENT_ROOT = content_root(_REPO_ROOT)
 
 
 def _valid_artifact() -> dict:
@@ -132,7 +137,7 @@ def test_validate_provider_artifact_rejects_module_field_type_mismatch() -> None
 
 
 def test_codebase_map_schema_and_golden_fixture_are_published() -> None:
-    schema_path = _REPO_ROOT / provider.CODEBASE_MAP_SCHEMA_PATH
+    schema_path = _CONTENT_ROOT / provider.CODEBASE_MAP_SCHEMA_PATH
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     assert schema["$id"].endswith("codebase-map.v1.schema.json")
     assert schema["required"] == [
@@ -162,7 +167,7 @@ def test_validate_provider_artifact_uses_published_schema(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     schema = json.loads(
-        (_REPO_ROOT / provider.CODEBASE_MAP_SCHEMA_PATH).read_text(encoding="utf-8")
+        (_CONTENT_ROOT / provider.CODEBASE_MAP_SCHEMA_PATH).read_text(encoding="utf-8")
     )
     schema["required"].append("schemaOnly")
     monkeypatch.setattr(provider, "_load_codebase_map_schema", lambda: schema)

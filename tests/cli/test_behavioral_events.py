@@ -128,14 +128,9 @@ class TestRegistry:
         per #709 / #710). Behavioral entries MUST carry
         ``category: "behavioral"`` and the 4 expected names must match."""
         registry = json.loads(
-            (REPO_ROOT / "events" / "registry.json").read_text(
-                encoding="utf-8"
-            )
+            (REPO_ROOT / "content/events/registry.json").read_text(encoding="utf-8")
         )
-        behavioral = [
-            e for e in registry["events"]
-            if e.get("category") == "behavioral"
-        ]
+        behavioral = [e for e in registry["events"] if e.get("category") == "behavioral"]
         names = {e["name"] for e in behavioral}
         assert names == EXPECTED_BEHAVIORAL_NAMES, (
             f"registry.json behavioral names mismatch: extra={names - EXPECTED_BEHAVIORAL_NAMES}, "
@@ -159,9 +154,7 @@ class TestRegistry:
         (detection-bound, behavioral). Future categories are additive
         enum extensions per #710."""
         schema = json.loads(
-            (REPO_ROOT / "events" / "registry.schema.json").read_text(
-                encoding="utf-8"
-            )
+            (REPO_ROOT / "content/events/registry.schema.json").read_text(encoding="utf-8")
         )
         event_def = schema["$defs"]["Event"]
         assert "category" in event_def["required"], (
@@ -182,9 +175,7 @@ class TestUnifiedRegistry:
         future entry that forgets the field or uses a stale value
         outside the schema enum."""
         registry = json.loads(
-            (REPO_ROOT / "events" / "registry.json").read_text(
-                encoding="utf-8"
-            )
+            (REPO_ROOT / "content/events/registry.json").read_text(encoding="utf-8")
         )
         valid_categories = {"detection-bound", "behavioral"}
         for event in registry["events"]:
@@ -208,17 +199,10 @@ class TestUnifiedRegistry:
         Guards against a behavioral entry that drifts back into
         detection-bound shape."""
         registry = json.loads(
-            (REPO_ROOT / "events" / "registry.json").read_text(
-                encoding="utf-8"
-            )
+            (REPO_ROOT / "content/events/registry.json").read_text(encoding="utf-8")
         )
-        behavioral = [
-            e for e in registry["events"]
-            if e.get("category") == "behavioral"
-        ]
-        assert len(behavioral) == 4, (
-            f"Expected 4 behavioral events, found {len(behavioral)}"
-        )
+        behavioral = [e for e in registry["events"] if e.get("category") == "behavioral"]
+        assert len(behavioral) == 4, f"Expected 4 behavioral events, found {len(behavioral)}"
         for event in behavioral:
             name = event["name"]
             assert name in EXPECTED_BEHAVIORAL_NAMES, (
@@ -644,7 +628,7 @@ class TestSkillReferences:
     def test_event_name_referenced_in_consuming_skill(
         self, skill_path: str, event_name: str
     ) -> None:
-        body = (REPO_ROOT / skill_path).read_text(encoding="utf-8")
+        body = (REPO_ROOT / "content" / skill_path).read_text(encoding="utf-8")
         assert event_name in body, (
             f"{skill_path} MUST reference {event_name!r} by name "
             "(acceptance criterion 4 in vbrief/proposed/"

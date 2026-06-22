@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
-SKILLS_DIR = REPO_ROOT / "skills"
+SKILLS_DIR = REPO_ROOT / "content/skills"
 
 
 # ---------------------------------------------------------------------------

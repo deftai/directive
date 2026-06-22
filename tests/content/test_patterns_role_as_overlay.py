@@ -20,7 +20,7 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-PATTERNS_ROLE_AS_OVERLAY = _REPO_ROOT / "patterns" / "role-as-overlay.md"
+PATTERNS_ROLE_AS_OVERLAY = _REPO_ROOT / "content/patterns/role-as-overlay.md"
 REFERENCES_MD = _REPO_ROOT / "REFERENCES.md"
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"
@@ -261,7 +261,7 @@ def test_references_md_role_as_overlay_under_llm_applications_section() -> None:
     after_section = text[section_idx:]
     # The entry should appear within ~2 KB of the section anchor; if it
     # appears much later it has drifted to a different section.
-    role_idx = after_section.find("patterns/role-as-overlay.md")
+    role_idx = after_section.find("content/patterns/role-as-overlay.md")
     assert 0 <= role_idx < 4096, (
         "REFERENCES.md: patterns/role-as-overlay.md lazy-load entry MUST "
         "live under '### When Building LLM Applications' (alongside "

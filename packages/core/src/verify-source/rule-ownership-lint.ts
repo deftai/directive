@@ -5,7 +5,7 @@ export const EXIT_OK = 0;
 export const EXIT_DRIFT = 1;
 export const EXIT_CONFIG_ERROR = 2;
 
-export const DEFAULT_MAP_PATH = "conventions/rule-ownership.json";
+export const DEFAULT_MAP_PATH = "content/conventions/rule-ownership.json";
 
 export const VALID_AUTHORITIES = new Set([
   "MUST",

@@ -38,11 +38,11 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 > **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
 
-> **🔄 Upgrading from a previous version?** Read [UPGRADING.md](./UPGRADING.md) before proceeding. **Agents:** ! Read [UPGRADING.md](./UPGRADING.md) on the first session after a framework update.
+> **🔄 Upgrading from a previous version?** Read [UPGRADING.md](./content/UPGRADING.md) before proceeding. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
 >
-> **Canonical path (Epic-5/6 #1339 #1340, #1409):** The published installer binary is the single deterministic entrypoint for install and update. For an existing install, the **canonical headless upgrade command** is `deft-install --yes --upgrade --repo-root . --json` — run it from your project root to force-refresh the framework payload, manifest, and AGENTS.md in one shot (drop `--json` for human-readable output). **Layout-aware & git-safe (#1428, #1425):** the upgrade auto-detects which of the two on-disk payload layouts you have — a **vendored** `.deft/core/` (a git-free payload with no nested `.git` of its own; produced by the webinstaller and, as of v0.39.2, by fresh binary-installer installs) or a **clone** payload (a framework checkout that carries its own `.git`, from older installs or a manual `git clone` origin) — and refreshes accordingly: a vendored payload via a git-free tarball file-swap (atomic, with a timestamped backup), a clone via a clone-to-vendored migration. In every case it **never runs git against your own repository**. At the end of a successful run the installer invokes `scripts/doctor.py --session --json`; the doctor reads the `<install>/VERSION` manifest and recommends that exact command when the payload is stale. Legacy paths are **back-compat only**: `task upgrade` / `run upgrade` are metadata-only acknowledgment (they do NOT replace the payload), and submodule updates / legacy doctor surfaces are de-emphasized. See the installer-doctor handoff in the linked epics and [UPGRADING.md](./UPGRADING.md).
+> **Canonical path (Epic-5/6 #1339 #1340, #1409):** The published installer binary is the single deterministic entrypoint for install and update. For an existing install, the **canonical headless upgrade command** is `deft-install --yes --upgrade --repo-root . --json` — run it from your project root to force-refresh the framework payload, manifest, and AGENTS.md in one shot (drop `--json` for human-readable output). **Layout-aware & git-safe (#1428, #1425):** the upgrade auto-detects which of the two on-disk payload layouts you have — a **vendored** `.deft/core/` (a git-free payload with no nested `.git` of its own; produced by the webinstaller and, as of v0.39.2, by fresh binary-installer installs) or a **clone** payload (a framework checkout that carries its own `.git`, from older installs or a manual `git clone` origin) — and refreshes accordingly: a vendored payload via a git-free tarball file-swap (atomic, with a timestamped backup), a clone via a clone-to-vendored migration. In every case it **never runs git against your own repository**. At the end of a successful run the installer invokes `scripts/doctor.py --session --json`; the doctor reads the `<install>/VERSION` manifest and recommends that exact command when the payload is stale. Legacy paths are **back-compat only**: `task upgrade` / `run upgrade` are metadata-only acknowledgment (they do NOT replace the payload), and submodule updates / legacy doctor surfaces are de-emphasized. See the installer-doctor handoff in the linked epics and [UPGRADING.md](./content/UPGRADING.md).
 
-> **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
+> **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
 
 ### 1. Install Deft
 
@@ -70,7 +70,7 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, vendors the deft framework payload into `.deft/core/` (as of v0.39.2 a git-free deposit with no nested `.git` of its own; older installs and manual `git clone` origins instead carry a framework clone that keeps its own `.git`), wires it into your project's `AGENTS.md`, and creates your user config directory. Either layout is upgraded in place by `deft-install --upgrade`, which auto-detects the payload and never runs git against your own repository.
 
-**Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./UPGRADING.md#node-runtime-1828--1530) for details.
+**Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
 
 On startup, `deft-install` checks the latest GitHub release and warns if the downloaded binary on disk is stale before it changes your project. Offline and CI runs can skip that check with `--no-update-check` or `DEFT_NO_UPDATE_CHECK=1`.
 
@@ -168,17 +168,17 @@ task triage:bootstrap -- --limit 50 --state open
 
 Why scoped flags? An unbounded populate against a real-sized backlog can drain the shared GitHub GraphQL bucket (see [#976](https://github.com/deftai/directive/issues/976)); the `--limit` / `--state` / `--batch-size` / `--delay-ms` surface keeps the populate inside the REST budget with batched delays. The cache (`task cache:fetch-all`) is REST-backed and reproducible across re-runs — no live `gh issue view` per decision.
 
-Full walkthrough — including the three-tier model (cache → audit log → accepted backlog), the action menu, and how to re-enter triage on subsequent passes — lives in [`docs/getting-started.md` § Working an existing backlog](./docs/getting-started.md#working-an-existing-backlog). The verb-to-outcome reference for every `task triage:*` and `task cache:*` command is in [`commands.md`](./commands.md#backlog-triage--cache-tasks).
+Full walkthrough — including the three-tier model (cache → audit log → accepted backlog), the action menu, and how to re-enter triage on subsequent passes — lives in [`docs/getting-started.md` § Working an existing backlog](./content/docs/getting-started.md#working-an-existing-backlog). The verb-to-outcome reference for every `task triage:*` and `task cache:*` command is in [`commands.md`](./content/commands.md#backlog-triage--cache-tasks).
 
 ### 6. Feature slicing (breaking a plan into parallel-grabbable issues)
 
-When a spec, PRD, or plan is ready to hand off — especially to multiple agents or collaborators working in parallel — slice it into **tracer-bullet vertical slices**. Trigger the workflow with words like **"slice this into tickets"** or **"break this into GitHub issues"** (the [`deft-directive-gh-slice`](./skills/deft-directive-gh-slice/SKILL.md) skill).
+When a spec, PRD, or plan is ready to hand off — especially to multiple agents or collaborators working in parallel — slice it into **tracer-bullet vertical slices**. Trigger the workflow with words like **"slice this into tickets"** or **"break this into GitHub issues"** (the [`deft-directive-gh-slice`](./content/skills/deft-directive-gh-slice/SKILL.md) skill).
 
 - **Vertical, not horizontal** — each slice cuts a narrow but *complete* path through every layer (schema → API → UI → tests) so it is independently demoable. "Implement all the data models" is a horizontal slice and an anti-pattern.
 - **AFK vs HITL** — each slice is tagged AFK (mergeable with no human interaction — preferred) or HITL (needs a decision/review first), and declares what blocks it so issues are filed in dependency order.
 - **Durable cohorts** — when a plan slices into an umbrella + child issues, the cohort is recorded in `vbrief/.eval/slices.jsonl` (tracked in git, with per-child wave numbers). This lets `task triage:audit --orphans | --slice-stalled | --slice-coverage` detect children stranded when an umbrella closes early, stalled siblings, and per-umbrella completion. Hand-filed cohorts are backfilled with `task slice:record-existing`; list recorded cohorts with `task slice:list`.
 
-Slices become GitHub issues, which triage into vBRIEFs, which flow through the `proposed/ → pending/ → active/ → completed/` lifecycle and can be allocated to parallel agents (the [`deft-directive-swarm`](./skills/deft-directive-swarm/SKILL.md) skill). Architectural refactors follow the same slicing path via [`deft-directive-gh-arch`](./skills/deft-directive-gh-arch/SKILL.md).
+Slices become GitHub issues, which triage into vBRIEFs, which flow through the `proposed/ → pending/ → active/ → completed/` lifecycle and can be allocated to parallel agents (the [`deft-directive-swarm`](./content/skills/deft-directive-swarm/SKILL.md) skill). Architectural refactors follow the same slicing path via [`deft-directive-gh-arch`](./content/skills/deft-directive-gh-arch/SKILL.md).
 
 ## 🪜 Layered Architecture (at a glance)
 
@@ -222,7 +222,7 @@ Reconfigure via deterministic tasks (audited to `meta/policy-changes.log`):
 
 Emergency bypass: set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the current shell. The legacy `Allow direct commits to master:` narrative key is recognised at read time with a deprecation warning and is migrated to the typed surface on the next `task policy:*` write.
 
-See [`glossary.md`](./glossary.md) (Branch-protection policy / Policy audit log entries) for the canonical vocabulary and `skills/deft-directive-setup/SKILL.md` Phase 2 Step 9 for the interview disclosure copy.
+See [`glossary.md`](./content/glossary.md) (Branch-protection policy / Policy audit log entries) for the canonical vocabulary and `skills/deft-directive-setup/SKILL.md` Phase 2 Step 9 for the interview disclosure copy.
 
 ## 🔒 Security
 
@@ -244,7 +244,7 @@ task packs:slice lessons -- --list        # list the named slices a pack exposes
 task packs:slice lessons by-tag -- --tag testing   # load just that slice (add --json for structured output)
 ```
 
-Slices are addressed by a **stable, versioned slice name** (e.g. `recent`, `by-tag`, `by-trigger`, `by-tier`) — never a JSONPath — and read the canonical pack source directly, so a slice never drifts from what an agent sees. New packs and slices appear automatically in `--list-packs` / `--list` with no rewiring. See [`strategies/README.md`](./strategies/README.md) and the pack sources under `packs/` for details.
+Slices are addressed by a **stable, versioned slice name** (e.g. `recent`, `by-tag`, `by-trigger`, `by-tier`) — never a JSONPath — and read the canonical pack source directly, so a slice never drifts from what an agent sees. New packs and slices appear automatically in `--list-packs` / `--list` with no rewiring. See [`strategies/README.md`](./content/strategies/README.md) and the pack sources under `packs/` for details.
 
 ## 📚 Learn More
 
@@ -252,11 +252,11 @@ Slices are addressed by a **stable, versioned slice name** (e.g. `recent`, `by-t
 - **[docs/CONCEPTS.md](./docs/CONCEPTS.md)** — Current operating concepts: vBRIEF source of truth, deterministic gates, cache-backed triage, lifecycle folders, and projections
 - **[docs/FILES.md](./docs/FILES.md)** — Current directory tree, task includes, skills, vBRIEF state, and consumer artifact locations
 - **[docs/RELEASING.md](./docs/RELEASING.md)** — Release & smoke-test workflow
-- **[docs/BROWNFIELD.md](./docs/BROWNFIELD.md)** — Brownfield adoption (pre-v0.20 → vBRIEF migration)
+- **[docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md)** — Brownfield adoption (pre-v0.20 → vBRIEF migration)
 - **[docs/security.md](./docs/security.md)** — Security posture, audit baseline, cadence, vulnerability-reporting flow
 - **[main.md](./main.md)** — Comprehensive AI guidelines (general behavior layer)
-- **[commands.md](./commands.md)** — Taskfile-first command lifecycle with compatibility `run` surfaces
-- **[glossary.md](./glossary.md)** — Canonical v0.20 vocabulary
+- **[commands.md](./content/commands.md)** — Taskfile-first command lifecycle with compatibility `run` surfaces
+- **[glossary.md](./content/glossary.md)** — Canonical v0.20 vocabulary
 
 ## 🎓 Philosophy
 
@@ -274,4 +274,4 @@ Deft embodies:
 ---
 
 Copyright © 2025-2026 Jonathan "visionik" Taylor — https://deft.md
-Licensed under the [MIT License](./LICENSE.md)
+Licensed under the [MIT License](./content/LICENSE.md)

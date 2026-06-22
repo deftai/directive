@@ -56,12 +56,11 @@ from typing import Protocol
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import scm  # noqa: E402
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 from swarm_readiness import _all_scope_ids, _as_str_list  # noqa: E402
 from triage_reconcile import _extract_issue_ref  # noqa: E402
 from vbrief_reconcile_graph import _dep_resolved  # noqa: E402
-
-import scm  # noqa: E402
 
 reconfigure_stdio()
 

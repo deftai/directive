@@ -30,8 +30,8 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_BUILD_PATH = "skills/deft-directive-build/SKILL.md"
-_SWARM_PATH = "skills/deft-directive-swarm/SKILL.md"
+_BUILD_PATH = "content/skills/deft-directive-build/SKILL.md"
+_SWARM_PATH = "content/skills/deft-directive-swarm/SKILL.md"
 
 
 def _read(rel_path: str) -> str:

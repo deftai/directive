@@ -23,24 +23,24 @@ from __future__ import annotations
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "deterministic-questions.md"
+CONTRACT_PATH = REPO_ROOT / "content/contracts/deterministic-questions.md"
 
 # Skills that own a Discuss/Back cross-reference under #767. Interview and
 # build are EXCLUDED on purpose -- those are owned by Agents 2 and 3.
 AFFECTED_SKILLS = (
-    "skills/deft-directive-swarm/SKILL.md",
-    "skills/deft-directive-setup/SKILL.md",
-    "skills/deft-directive-refinement/SKILL.md",
-    "skills/deft-directive-pre-pr/SKILL.md",
-    "skills/deft-directive-review-cycle/SKILL.md",
-    "skills/deft-directive-release/SKILL.md",
+    "content/skills/deft-directive-swarm/SKILL.md",
+    "content/skills/deft-directive-setup/SKILL.md",
+    "content/skills/deft-directive-refinement/SKILL.md",
+    "content/skills/deft-directive-pre-pr/SKILL.md",
+    "content/skills/deft-directive-review-cycle/SKILL.md",
+    "content/skills/deft-directive-release/SKILL.md",
 )
 
 HOST_PORTABLE_SKILLS = (
-    "skills/deft-directive-triage/SKILL.md",
-    "skills/deft-directive-refinement/SKILL.md",
-    "skills/deft-directive-swarm/SKILL.md",
-    "skills/deft-directive-setup/SKILL.md",
+    "content/skills/deft-directive-triage/SKILL.md",
+    "content/skills/deft-directive-refinement/SKILL.md",
+    "content/skills/deft-directive-swarm/SKILL.md",
+    "content/skills/deft-directive-setup/SKILL.md",
 )
 
 
@@ -127,9 +127,7 @@ def test_host_portable_skills_pin_visible_number_mapping():
 
 
 def test_setup_skill_forbids_alphabetic_host_affordance_inference():
-    text = (
-        REPO_ROOT / "skills" / "deft-directive-setup" / "SKILL.md"
-    ).read_text(encoding="utf-8")
+    text = (REPO_ROOT / "content/skills/deft-directive-setup/SKILL.md").read_text(encoding="utf-8")
     assert "alphabetic affordances" in text
     assert "Infer deterministic answers from host-added letters" in text
 
@@ -160,7 +158,7 @@ def test_each_affected_skill_documents_discuss_back():
 
 
 def test_glossary_has_deterministic_mode_entry():
-    glossary = (REPO_ROOT / "glossary.md").read_text(encoding="utf-8")
+    glossary = (REPO_ROOT / "content/glossary.md").read_text(encoding="utf-8")
     assert "**Deterministic mode**" in glossary
     assert "contracts/deterministic-questions.md" in glossary
     assert "#767" in glossary
@@ -168,7 +166,7 @@ def test_glossary_has_deterministic_mode_entry():
 
 def test_glossary_has_branch_protection_policy_entry():
     """Companion glossary entry for #746 / #747 lands alongside #767."""
-    glossary = (REPO_ROOT / "glossary.md").read_text(encoding="utf-8")
+    glossary = (REPO_ROOT / "content/glossary.md").read_text(encoding="utf-8")
     assert "**Branch-protection policy**" in glossary
     assert "allowDirectCommitsToMaster" in glossary
     assert "#746" in glossary
@@ -177,7 +175,7 @@ def test_glossary_has_branch_protection_policy_entry():
 
 def test_review_cycle_documents_stall_rubric():
     """Issue #564 -- Stall Detection Rubric subsection lives under Step 4."""
-    text = (REPO_ROOT / "skills" / "deft-directive-review-cycle" / "SKILL.md").read_text(
+    text = (REPO_ROOT / "content/skills/deft-directive-review-cycle/SKILL.md").read_text(
         encoding="utf-8"
     )
     assert "Stall Detection Rubric" in text

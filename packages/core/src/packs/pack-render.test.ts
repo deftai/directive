@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { contentRoot } from "../content-root.js";
 import {
   checkDrift,
   collectTargets,
@@ -17,9 +18,13 @@ import {
 } from "./pack-render.js";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
-const REAL_SOURCE = join(REPO_ROOT, "packs", "lessons", "lessons-pack-0.1.json");
+// #1875: pack sources + skill projections are shippable content (content/ in
+// source, flattened in a consumer deposit). The lessons output (meta/lessons.md)
+// is a repo-root-resident projection and stays at REPO_ROOT.
+const CONTENT_ROOT = contentRoot(REPO_ROOT);
+const REAL_SOURCE = join(CONTENT_ROOT, "packs", "lessons", "lessons-pack-0.1.json");
 const REAL_OUTPUT = join(REPO_ROOT, "meta", "lessons.md");
-const REAL_SKILLS_SOURCE = join(REPO_ROOT, "packs", "skills", "skills-pack-0.1.json");
+const REAL_SKILLS_SOURCE = join(CONTENT_ROOT, "packs", "skills", "skills-pack-0.1.json");
 const PROOF_SKILL_PATH = "skills/deft-directive-cost/SKILL.md";
 
 describe("packRender.render", () => {
@@ -120,7 +125,7 @@ describe("packRender document modes", () => {
     const proof = skills.find((entry) => entry.path === PROOF_SKILL_PATH);
     expect(proof).toBeDefined();
     const rendered = renderSkillDocument(proof as Record<string, unknown>, cfg);
-    const committed = readFileSync(join(REPO_ROOT, PROOF_SKILL_PATH), "utf8");
+    const committed = readFileSync(join(CONTENT_ROOT, PROOF_SKILL_PATH), "utf8");
     expect(rendered).toBe(committed);
   });
 

@@ -4,7 +4,7 @@ import {
   DEPRECATED_SKILL_REDIRECT_STUBS,
   readRepoFile,
   repoFileExists,
-  repoPath,
+  resolveRepoPath,
 } from "./helpers.js";
 
 /** Port of tests/content/test_deprecated_skill_redirects.py (#1838 #1530) */
@@ -49,7 +49,7 @@ describe("test_deprecated_skill_redirects", () => {
   it("no_extra_bare_deft_redirect_stubs", () => {
     const known = new Set(DEPRECATED_SKILL_REDIRECT_STUBS);
     const found = new Set(
-      readdirSync(repoPath("skills"), { withFileTypes: true })
+      readdirSync(resolveRepoPath("skills"), { withFileTypes: true })
         .filter(
           (d) =>
             d.isDirectory() && d.name.startsWith("deft-") && !d.name.startsWith("deft-directive-"),

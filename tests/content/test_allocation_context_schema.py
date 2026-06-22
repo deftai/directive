@@ -20,7 +20,7 @@ import re
 import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-TEMPLATE = REPO_ROOT / "templates" / "agent-prompt-preamble.md"
+TEMPLATE = REPO_ROOT / "content/templates/agent-prompt-preamble.md"
 
 # The five canonical fields, in their frozen order. Story B / Story C read
 # these names verbatim; renaming one here is a breaking change to the cohort.

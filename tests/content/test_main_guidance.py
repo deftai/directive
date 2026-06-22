@@ -28,7 +28,7 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 MAIN_MD = REPO_ROOT / "main.md"
-PREAMBLE = REPO_ROOT / "templates" / "agent-prompt-preamble.md"
+PREAMBLE = REPO_ROOT / "content/templates/agent-prompt-preamble.md"
 
 # Single source of truth for the Cancellation Attribution section slice in
 # both files. ``\Z`` terminates the lookahead on end-of-file so the last

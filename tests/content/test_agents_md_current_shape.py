@@ -20,8 +20,8 @@ import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 AGENTS_MD = REPO_ROOT / "AGENTS.md"
-GH_SLICE_SKILL = REPO_ROOT / "skills" / "deft-directive-gh-slice" / "SKILL.md"
-REFINEMENT_SKILL = REPO_ROOT / "skills" / "deft-directive-refinement" / "SKILL.md"
+GH_SLICE_SKILL = REPO_ROOT / "content/skills/deft-directive-gh-slice/SKILL.md"
+REFINEMENT_SKILL = REPO_ROOT / "content/skills/deft-directive-refinement/SKILL.md"
 
 
 @pytest.fixture(scope="module")

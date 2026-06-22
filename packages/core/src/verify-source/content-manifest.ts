@@ -1,21 +1,32 @@
 /**
- * content-manifest.ts -- deterministic gate for the content manifest (#1821).
+ * content-manifest.ts -- deterministic gate for the content manifest (#1821 / #1875).
  *
- * Validates that conventions/content-manifest.json classifies EVERY git-tracked
- * top-level repository entry into exactly one bucket, and that no classified
- * entry has gone stale. This is the Wave-1 shippability audit for the
- * engine/content split (#1669): it converts the brittle installer denylist
- * into an allowlist-by-classification and is the authoritative input the
- * content/ move (#1875) consumes.
+ * Since the #1875 content/ move this gate enforces a LOCATION INVARIANT over
+ * conventions/content-manifest.json rather than a "classify every top-level
+ * entry" completeness check:
+ *
+ *   1. Every manifest entry with `bucket: content` MUST have a path under
+ *      `content/` -- EXCEPT the named harness-entry exceptions
+ *      (`harnessEntry: true`, e.g. AGENTS.md / main.md / SKILL.md) which are
+ *      content-classified but root-resident per #1669 Wave-1 D2.
+ *   2. No entry with a non-`content` bucket may live under `content/`.
+ *   3. Every git-tracked path directly under `content/` MUST correspond to a
+ *      `content` manifest entry (no unclassified content; no stale content
+ *      entry pointing at a path that is no longer a content/ child).
+ *
+ * The manifest now physically lives at content/conventions/content-manifest.json
+ * (the conventions/ directory moved under content/ in #1875). The C1 flatten
+ * deposits `content/<x>` to `.deft/core/<x>`, so the consumer-facing layout is
+ * unchanged; this gate guards the SOURCE-repo invariant.
  *
  * Authored TS-native (no Python oracle): the #1828 parity discipline applies to
  * PORTED gates; this is a net-new gate created after the migration, so the TS
  * engine is the single source of truth (the #1669 direction phases Python out).
  *
  * Exit codes (three-state, mirrors rule-ownership-lint):
- *   0 -- clean: every top-level entry classified, no stale rows.
- *   1 -- drift: an unclassified top-level entry, or a classified path that is
- *        no longer a top-level tracked entry.
+ *   0 -- clean: the location invariant holds.
+ *   1 -- drift: a content entry not under content/, a non-content entry under
+ *        content/, an unclassified content/ child, or a stale content entry.
  *   2 -- config error: manifest missing / malformed / structurally invalid, or
  *        `git ls-files` could not be run.
  */
@@ -28,7 +39,9 @@ const EXIT_OK = 0;
 const EXIT_DRIFT = 1;
 const EXIT_CONFIG_ERROR = 2;
 
-export const DEFAULT_MANIFEST_PATH = "conventions/content-manifest.json";
+export const DEFAULT_MANIFEST_PATH = "content/conventions/content-manifest.json";
+export const CONTENT_ROOT = "content";
+export const CONTENT_PREFIX = "content/";
 
 export const REQUIRED_ENTRY_FIELDS = ["path", "bucket", "note"] as const;
 export const REQUIRED_BUCKET_FIELDS = ["id", "label", "description"] as const;
@@ -44,6 +57,13 @@ export interface ManifestEntry {
   readonly bucket: string;
   readonly note: string;
   readonly straddle?: boolean;
+  /**
+   * When true, a `content`-bucket entry is a named harness-entry exception that
+   * is content-classified but intentionally root-resident (AGENTS.md / main.md /
+   * SKILL.md per #1669 Wave-1 D2). The location invariant exempts these from the
+   * "must live under content/" rule (#1875).
+   */
+  readonly harnessEntry?: boolean;
 }
 
 export interface ContentManifest {
@@ -57,8 +77,9 @@ export interface ContentManifest {
  *
  * Throws on any structural problem (missing file, malformed JSON, missing
  * required fields, invalid bucket reference, duplicate bucket id, duplicate
- * entry path) -- the caller maps a throw to exit 2 (config error). Tree-vs-
- * manifest divergence is NOT checked here; that is :func:`lintManifest` (drift).
+ * entry path, non-boolean `straddle`/`harnessEntry`) -- the caller maps a throw
+ * to exit 2 (config error). The location invariant is NOT checked here; that is
+ * :func:`lintManifest` (drift).
  */
 export function loadManifest(manifestPath: string): ContentManifest {
   if (!existsSync(manifestPath)) {
@@ -142,12 +163,22 @@ export function loadManifest(manifestPath: string): ContentManifest {
         `Content manifest entry '${String(rec.path)}' field 'straddle' must be a boolean when present.`,
       );
     }
+    if ("harnessEntry" in rec && typeof rec.harnessEntry !== "boolean") {
+      throw new Error(
+        `Content manifest entry '${String(rec.path)}' field 'harnessEntry' must be a boolean when present.`,
+      );
+    }
     const entryPath = rec.path as string;
     const entryBucket = rec.bucket as string;
     if (!bucketIds.has(entryBucket)) {
       const sorted = [...bucketIds].sort();
       throw new Error(
         `Content manifest entry '${entryPath}' references unknown bucket '${entryBucket}'; expected one of ${JSON.stringify(sorted)}.`,
+      );
+    }
+    if (rec.harnessEntry === true && entryBucket !== "content") {
+      throw new Error(
+        `Content manifest entry '${entryPath}' sets harnessEntry:true but bucket is '${entryBucket}'; only 'content' entries may be harness-entry exceptions.`,
       );
     }
     if (seenPaths.has(entryPath)) {
@@ -164,17 +195,34 @@ export function loadManifest(manifestPath: string): ContentManifest {
 }
 
 /**
- * Return the sorted, de-duplicated set of git-tracked top-level entries.
- *
- * Uses `git ls-files` (tracked truth) reduced to first path components, so
- * untracked caches (.venv, node_modules, __pycache__, dist, ...) are excluded
- * automatically -- only entries under version control require classification.
- * Throws on git failure (caller maps to exit 2).
+ * Reduce a git-tracked path under content/ to its immediate content/ child.
+ * `content/skills/foo.md` -> `content/skills`; `content/LICENSE.md` ->
+ * `content/LICENSE.md`. Returns null for paths not under content/.
  */
-export function listTrackedTopLevel(root: string): string[] {
+function toContentChild(trackedPath: string): string | null {
+  if (!trackedPath.startsWith(CONTENT_PREFIX)) {
+    return null;
+  }
+  const rest = trackedPath.slice(CONTENT_PREFIX.length);
+  const first = rest.split("/")[0];
+  if (first === undefined || first.length === 0) {
+    return null;
+  }
+  return `${CONTENT_PREFIX}${first}`;
+}
+
+/**
+ * Return the sorted, de-duplicated set of git-tracked immediate children of
+ * `content/` (e.g. `content/skills`, `content/LICENSE.md`).
+ *
+ * Uses `git ls-files content` (tracked truth), so untracked caches are excluded
+ * automatically. Throws on git failure (caller maps to exit 2). An empty result
+ * (no content/ tree yet) is returned as `[]`, not an error.
+ */
+export function listTrackedContentChildren(root: string): string[] {
   let stdout: string;
   try {
-    stdout = execFileSync("git", ["ls-files"], {
+    stdout = execFileSync("git", ["ls-files", "--", CONTENT_ROOT], {
       cwd: root,
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
@@ -189,39 +237,72 @@ export function listTrackedTopLevel(root: string): string[] {
     if (trimmed.length === 0) {
       continue;
     }
-    const top = trimmed.split("/")[0];
-    if (top !== undefined && top.length > 0) {
-      set.add(top);
+    const child = toContentChild(trimmed);
+    if (child !== null) {
+      set.add(child);
     }
   }
   return [...set].sort();
 }
 
 /**
- * Compare the manifest's classified paths against the actual top-level tree.
+ * Enforce the #1875 location invariant against the actual content/ tree.
  *
  * Returns drift diagnostics (one per divergence). An empty array means clean.
  */
 export function lintManifest(
   manifest: ContentManifest,
-  topLevel: readonly string[],
+  contentChildren: readonly string[],
   manifestLabel: string = DEFAULT_MANIFEST_PATH,
 ): string[] {
   const diagnostics: string[] = [];
-  const classified = new Set(manifest.entries.map((e) => e.path));
-  const tracked = new Set(topLevel);
+  const tracked = new Set(contentChildren);
 
-  for (const entry of topLevel) {
-    if (!classified.has(entry)) {
+  // Rule 1 + 2: per-entry location checks.
+  const classifiedChildren = new Set<string>();
+  for (const entry of manifest.entries) {
+    const underContent = entry.path === CONTENT_ROOT || entry.path.startsWith(CONTENT_PREFIX);
+    if (entry.bucket === "content") {
+      if (entry.harnessEntry === true) {
+        // Harness-entry exception: must stay at the repo root, not under content/.
+        if (underContent) {
+          diagnostics.push(
+            `harness-entry exception '${entry.path}' must stay at the repo root, not under content/ -- drop the content/ prefix or unset harnessEntry.`,
+          );
+        }
+        continue;
+      }
+      if (!entry.path.startsWith(CONTENT_PREFIX)) {
+        diagnostics.push(
+          `content entry '${entry.path}' must live under content/ (or be marked harnessEntry:true if it is a named root harness-entry) -- move it under content/ or fix the manifest path.`,
+        );
+        continue;
+      }
+      // Track the immediate content/ child this entry classifies.
+      const child = toContentChild(entry.path);
+      if (child !== null && child === entry.path) {
+        classifiedChildren.add(entry.path);
+      }
+    } else if (underContent) {
       diagnostics.push(
-        `unclassified top-level entry '${entry}' -- add a row to ${manifestLabel} assigning it a bucket (content|engine|harness|repo-dev).`,
+        `non-content entry '${entry.path}' (bucket '${entry.bucket}') must not live under content/ -- only content-bucket entries belong under content/.`,
       );
     }
   }
-  for (const entry of manifest.entries) {
-    if (!tracked.has(entry.path)) {
+
+  // Rule 3a: every git-tracked content/ child has a content entry.
+  for (const child of contentChildren) {
+    if (!classifiedChildren.has(child)) {
       diagnostics.push(
-        `stale classified entry '${entry.path}' -- it is no longer a git-tracked top-level entry; remove the row or fix the path.`,
+        `unclassified content/ child '${child}' -- add a content-bucket row to ${manifestLabel} for it.`,
+      );
+    }
+  }
+  // Rule 3b: no stale content entry pointing at a non-existent content/ child.
+  for (const entry of classifiedChildren) {
+    if (!tracked.has(entry)) {
+      diagnostics.push(
+        `stale content entry '${entry}' -- it is no longer a git-tracked content/ child; remove the row or fix the path.`,
       );
     }
   }
@@ -237,13 +318,13 @@ export interface ContentManifestResult {
 export interface ContentManifestOptions {
   readonly manifestPath?: string;
   readonly root?: string;
-  /** Test seam: inject the top-level entry set instead of running `git ls-files`. */
-  readonly topLevelEntries?: readonly string[];
+  /** Test seam: inject the content/ child set instead of running `git ls-files`. */
+  readonly contentChildren?: readonly string[];
 }
 
 /**
  * Evaluate the content-manifest gate. Pure-ish: side effects limited to reading
- * the manifest and (unless `topLevelEntries` is injected) spawning `git ls-files`.
+ * the manifest and (unless `contentChildren` is injected) spawning `git ls-files`.
  */
 export function evaluateContentManifest(
   projectRoot: string,
@@ -254,13 +335,13 @@ export function evaluateContentManifest(
 
   try {
     const manifest = loadManifest(manifestPath);
-    const topLevel = options.topLevelEntries ?? listTrackedTopLevel(root);
+    const contentChildren = options.contentChildren ?? listTrackedContentChildren(root);
     // Forward the resolved manifest location so drift diagnostics point at the
     // manifest actually in use, not the hardcoded default (a custom manifestPath
     // would otherwise be mis-reported in CI output).
     const relLabel = relative(root, manifestPath);
     const manifestLabel = relLabel && !relLabel.startsWith("..") ? relLabel : manifestPath;
-    const diagnostics = lintManifest(manifest, [...topLevel], manifestLabel);
+    const diagnostics = lintManifest(manifest, [...contentChildren], manifestLabel);
     if (diagnostics.length > 0) {
       const lines = [
         `FAIL: content manifest drift detected in ${diagnostics.length} entr(y/ies):`,
@@ -268,9 +349,10 @@ export function evaluateContentManifest(
       ];
       return { code: EXIT_DRIFT, message: lines.join("\n"), stream: "stderr" };
     }
+    const contentEntries = manifest.entries.filter((e) => e.bucket === "content").length;
     return {
       code: EXIT_OK,
-      message: `OK: content manifest clean -- ${manifest.entries.length} top-level entr(y/ies) classified across ${manifest.buckets.length} bucket(s) (root=${root}).`,
+      message: `OK: content manifest location invariant holds -- ${contentChildren.length} content/ child(ren) classified, ${contentEntries} content entr(y/ies) total (root=${root}).`,
       stream: "stdout",
     };
   } catch (err) {

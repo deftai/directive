@@ -159,5 +159,5 @@ The privacy NFR is verified at three layers:
   `.deft-cache/`.
 - `scripts/triage_bootstrap.py` — the idempotent installer that adds
   `.deft-cache/` to `.gitignore` on first run.
-- [UPGRADING.md](../UPGRADING.md) — Migration to triage v1 section that
+- [UPGRADING.md](../content/UPGRADING.md) — Migration to triage v1 section that
   cross-links to this NFR.

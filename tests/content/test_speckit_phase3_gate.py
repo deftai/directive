@@ -22,7 +22,7 @@ def _read(relpath: str) -> str:
 
 
 class TestSpeckitPhase3TransitionGate:
-    _text = _read("strategies/speckit.md")
+    _text = _read("content/strategies/speckit.md")
 
     def test_post_phase_3_is_numbered_transition_gate(self) -> None:
         assert "### Post-Phase 3 Transition Gate" in self._text, (
@@ -57,7 +57,7 @@ class TestSpeckitPhase3TransitionGate:
 
 
 class TestSetupSkillPhase3RenderBoundary:
-    _text = _read("skills/deft-directive-setup/SKILL.md")
+    _text = _read("content/skills/deft-directive-setup/SKILL.md")
 
     def test_end_of_phase_3_export_prompt_exists(self) -> None:
         assert "End-of-Phase-3 Export Prompt" in self._text, (

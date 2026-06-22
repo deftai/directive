@@ -27,8 +27,8 @@ sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 import pack_migrate_patterns  # type: ignore[import-not-found]  # noqa: E402
 
-_REAL_SOURCE = _REPO_ROOT / "packs" / "patterns" / "patterns-pack-0.1.json"
-_REAL_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "patterns-pack.schema.json"
+_REAL_SOURCE = _REPO_ROOT / "content/packs/patterns/patterns-pack-0.1.json"
+_REAL_SCHEMA = _REPO_ROOT / "content/vbrief/schemas/patterns-pack.schema.json"
 _PROOF_PATTERN = "patterns/multi-agent.md"
 
 FIXTURE_MULTI_AGENT_MD = """# Multi-agent identity separation pattern

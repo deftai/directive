@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentRoot } from "../content-root.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
 
 /** Sentinel used by SKILL.md redirect stubs. */
@@ -13,7 +14,9 @@ let registryCache: Record<string, unknown> | null = null;
 
 function defaultRegistryPath(): string {
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-  return join(repoRoot, "events", "registry.json");
+  // #1875: the event registry is shippable content (content/events/ in source,
+  // flattened to events/ in a consumer deposit).
+  return join(contentRoot(repoRoot), "events", "registry.json");
 }
 
 export class EventEmissionError extends Error {
@@ -152,7 +155,9 @@ export function detectAgentsMdStale(
     if (slug === undefined) {
       continue;
     }
-    const candidate = join(framework, "skills", slug, "SKILL.md");
+    // #1875: skills are shippable content (content/skills/ in source, flattened
+    // to skills/ in a consumer deposit).
+    const candidate = join(contentRoot(framework), "skills", slug, "SKILL.md");
     if (!existsSync(candidate)) {
       missingPaths.push(token);
       continue;

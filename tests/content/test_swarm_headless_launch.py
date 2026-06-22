@@ -32,7 +32,7 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_SWARM_PATH = "skills/deft-directive-swarm/SKILL.md"
+_SWARM_PATH = "content/skills/deft-directive-swarm/SKILL.md"
 _AGENTS_PATH = "AGENTS.md"
 
 

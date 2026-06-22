@@ -53,24 +53,26 @@ _XFAIL_FILES: set[str] = _load_xfail_files()
 # Required top-level directories
 # ---------------------------------------------------------------------------
 
+# Post-#1875 content/ move: shippable content dirs live under content/; the
+# repo-dev dirs (history/, vbrief/ lifecycle) stay at root. core/ was
+# redistributed into content/meta/ and no longer exists.
 REQUIRED_DIRS = [
-    "coding",
-    "context",
-    "contracts",
-    "core",
-    "deployments",
+    "content/coding",
+    "content/context",
+    "content/contracts",
+    "content/deployments",
+    "content/interfaces",
+    "content/languages",
+    "content/meta",
+    "content/resilience",
+    "content/scm",
+    "content/strategies",
+    "content/swarm",
+    "content/templates",
+    "content/tools",
+    "content/verification",
     "history",
-    "interfaces",
-    "languages",
-    "meta",
-    "resilience",
-    "scm",
-    "strategies",
-    "swarm",
-    "templates",
-    "tools",
     "vbrief",
-    "verification",
 ]
 
 
@@ -85,12 +87,12 @@ def test_required_directory_exists(dirname: str) -> None:
 # ---------------------------------------------------------------------------
 
 REQUIRED_ROOT_FILES = [
-    "commands.md",
+    "content/commands.md",
     "main.md",
     "README.md",
     "REFERENCES.md",
     "CHANGELOG.md",
-    "LICENSE.md",
+    "content/LICENSE.md",
     "Taskfile.yml",
     "run",
     "run.bat",
@@ -114,7 +116,7 @@ def _parse_strategy_filenames() -> list[str]:
     and plain entries            name.md
     by scanning only the first pipe-delimited cell of each table row.
     """
-    readme_path = _REPO_ROOT / "strategies/README.md"
+    readme_path = _REPO_ROOT / "content/strategies/README.md"
     readme = readme_path.read_text(encoding="utf-8")
     seen: set[str] = set()
     result: list[str] = []
@@ -161,7 +163,7 @@ def _strategy_params() -> list:
 @pytest.mark.parametrize("filename", _strategy_params())
 def test_strategy_file_exists(filename: str) -> None:
     """Every strategy listed in strategies/README.md must exist on disk."""
-    target = _REPO_ROOT / "strategies" / filename
+    target = _REPO_ROOT / "content/strategies" / filename
     assert target.exists(), f"Strategy file missing: strategies/{filename}"
 
 
@@ -171,27 +173,27 @@ def test_strategy_file_exists(filename: str) -> None:
 
 def test_bdd_strategy_exists() -> None:
     """strategies/bdd.md must exist (t2.7.8, #81)."""
-    assert (_REPO_ROOT / "strategies" / "bdd.md").exists(), (
-        "strategies/bdd.md missing — required by t2.7.8"
-    )
+    assert (
+        _REPO_ROOT / "content/strategies/bdd.md"
+    ).exists(), "strategies/bdd.md missing — required by t2.7.8"
 
 
 def test_rapid_strategy_exists() -> None:
     """strategies/rapid.md must exist (t2.8.5, roadmap)."""
-    assert (_REPO_ROOT / "strategies" / "rapid.md").exists(), (
-        "strategies/rapid.md missing — required by t2.8.5"
-    )
+    assert (
+        _REPO_ROOT / "content/strategies/rapid.md"
+    ).exists(), "strategies/rapid.md missing — required by t2.8.5"
 
 
 def test_enterprise_strategy_exists() -> None:
     """strategies/enterprise.md must exist (t2.8.5, roadmap)."""
-    assert (_REPO_ROOT / "strategies" / "enterprise.md").exists(), (
-        "strategies/enterprise.md missing — required by t2.8.5"
-    )
+    assert (
+        _REPO_ROOT / "content/strategies/enterprise.md"
+    ).exists(), "strategies/enterprise.md missing — required by t2.8.5"
 
 
 def test_getting_started_exists() -> None:
     """docs/getting-started.md must exist (t2.8.6, #112)."""
-    assert (_REPO_ROOT / "docs" / "getting-started.md").exists(), (
-        "docs/getting-started.md missing — required by t2.8.6"
-    )
+    assert (
+        _REPO_ROOT / "content/docs/getting-started.md"
+    ).exists(), "docs/getting-started.md missing — required by t2.8.6"

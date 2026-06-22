@@ -38,7 +38,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 from migrate_vbrief import migrate  # noqa: E402
 
-SCHEMA_PATH = REPO_ROOT / "vbrief" / "schemas" / "vbrief-core.schema.json"
+SCHEMA_PATH = REPO_ROOT / "content/vbrief/schemas/vbrief-core.schema.json"
 LEGACY_ORIGIN_TYPE_RE = re.compile(r'"type"\s*:\s*"github-issue"')
 
 # A ``spec_vbrief.repository`` hint is the simplest way to let the migrator

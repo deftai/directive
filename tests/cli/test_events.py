@@ -32,7 +32,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-EVENTS_DIR = REPO_ROOT / "events"
+EVENTS_DIR = REPO_ROOT / "content/events"
 
 # Add scripts/ to sys.path so the test file can import the helpers under test
 # the same way the migrator and validator scripts do (sys.path.insert at

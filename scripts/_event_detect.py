@@ -30,13 +30,19 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _content_root import content_root  # noqa: E402
+
 # Path to the registry, resolved relative to this file so tests and direct
-# script invocations both find it without depending on cwd.
-_REGISTRY_PATH = Path(__file__).resolve().parent.parent / "events" / "registry.json"
+# script invocations both find it without depending on cwd. ``events/`` moved
+# under content/ in the #1875 C1 flatten; resolve both source + consumer layouts.
+_REGISTRY_PATH = content_root(Path(__file__).resolve().parent.parent) / "events" / "registry.json"
 
 # Sentinel used by SKILL.md redirect stubs (see QUICK-START.md Step 2b and
 # tests/content/test_deprecated_skill_redirects.py). Kept in sync with the
@@ -214,7 +220,7 @@ def detect_agents_md_stale(
             continue
         seen.add(token)
         slug = match.group("slug")
-        candidate = framework / "skills" / slug / "SKILL.md"
+        candidate = content_root(framework) / "skills" / slug / "SKILL.md"
         if not candidate.is_file():
             missing_paths.append(token)
             continue

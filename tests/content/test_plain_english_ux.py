@@ -19,9 +19,9 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_INTERVIEW_SKILL = _REPO_ROOT / "skills" / "deft-directive-interview" / "SKILL.md"
-_INTERVIEW_STRATEGY = _REPO_ROOT / "strategies" / "interview.md"
-_UX_DOC = _REPO_ROOT / "references" / "plain-english-ux.md"
+_INTERVIEW_SKILL = _REPO_ROOT / "content/skills/deft-directive-interview/SKILL.md"
+_INTERVIEW_STRATEGY = _REPO_ROOT / "content/strategies/interview.md"
+_UX_DOC = _REPO_ROOT / "content/references/plain-english-ux.md"
 
 
 @pytest.fixture(scope="module")

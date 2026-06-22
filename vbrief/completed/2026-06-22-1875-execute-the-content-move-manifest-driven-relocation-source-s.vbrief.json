@@ -1,0 +1,58 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1875"
+  },
+  "plan": {
+    "title": "Execute the content/ move — manifest-driven relocation + source-side cross-reference rewrite",
+    "status": "completed",
+    "narratives": {
+      "Description": "Execute the content/ move — manifest-driven relocation + source-side cross-reference rewrite",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1875",
+      "Overview": "**Parent:** #1669 (consumption-model umbrella) · **Wave 1** · **Depends on:** #1821 (content-manifest v1 + gate)\n\n## User story\n\nAs a Deft maintainer, I want all shippable content relocated under a single `content/` root with every internal reference rewritten atomically, so that the npm engine/content split and the location-invariant deposit work without a maintained denylist.\n\n## Description\n\nOne atomic PR that relocates every entry the #1821 manifest buckets as `content` into `content/` (flatten-preserving the existing internal structure, per #1669 Wave-1 C1), executes the locked C3 splits/promotions, deletes `home/`, redistributes `core/` into `content/meta/` (dedup `glossary.md`), and rewrites all source-side references.\n\nBecause **C1 = flatten deposit** (`content/<x>` → `.deft/core/<x>`), the consumer-facing `.deft/core/` layout, the AGENTS.md managed-section routing, and the `.agents/skills/*` pointers are **unchanged** — the rewrite is **source-repo-only**.\n\n## Implementation plan\n\n1. **Manifest-driven move script** — reads `conventions/content-manifest.json`; `git mv` each `content`-bucket entry into `content/`; apply the C3 splits for `vbrief/` / `meta/` / `incidents/`; promote the 3 `docs/` guides (`BROWNFIELD.md`, `getting-started.md`, `good-agents-md.md`); delete `home/`; redistribute `core/` (4 md) into `content/meta/` and dedupe root `glossary.md` vs `core/glossary.md`; move root `commands.md` / `glossary.md` into `content/`.\n2. **Source-side reference rewrite** — internal markdown links across moved files, `templates/agents-entry.md`, `REFERENCES.md`, and repoint any engine/scripts/tests that read content by repo-root path (e.g. `packs:render`, lazy-load routing, content-contract tests).\n3. **Validate** — `verify:content-manifest` (location invariant now active), `verify:links`, `task check` green; confirm `agents:refresh` output and the flatten deposit are byte-stable consumer-side.\n\n## Acceptance criteria\n\n- [ ] Every `content`-bucket entry lives under `content/`; nothing else does (`verify:content-manifest` exits 0).\n- [ ] `verify:links` passes with zero broken references.\n- [ ] `home/` is removed; `core/` files relocated; root `commands.md` / `glossary.md` moved; the `vbrief/` / `meta/` / `incidents/` splits applied exactly as locked in #1669 Wave-1 C3.\n- [ ] Consumer-facing `.deft/core/` deposit + AGENTS.md managed-section routing are unchanged (flatten verified — consumer-side diff is empty).\n- [ ] `task check` passes fully.\n\n## Swarm metadata\n\n- **file_scope:** repo-wide (inherent to an atomic move)\n- **readiness:** sequential · **parallel_safe:** false · **conflict_group:** `wave1-content-move`\n- **verify_commands:** `task verify:content-manifest`, `task verify:links`, `task check`\n- **depends_on:** #1821\n- **size:** L · **file_scope_confidence:** high (the manifest makes the scope deterministic) · **model_tier:** strong\n\n## Notes\n\n- No resolver work here — C1 flatten keeps existing `.deft/core/` resolution working untouched; the resolver-reads-from-npm-package work is Wave 2 (#11).\n- This story is sequential by construction; it owns the tree for one PR and is not eligible for concurrent swarm allocation.\n\nRefs #1669 (Wave-1 LockedDecisions), #1821.\n",
+      "Labels": "enhancement"
+    },
+    "items": [
+      {
+        "title": "Every -bucket entry lives under ; nothing else does ( exits 0).",
+        "status": "proposed"
+      },
+      {
+        "title": "passes with zero broken references.",
+        "status": "proposed"
+      },
+      {
+        "title": "is removed;  files relocated; root  /  moved; the  /  /  splits applied exactly as locked in #1669 Wave-1 C3.",
+        "status": "proposed"
+      },
+      {
+        "title": "Consumer-facing  deposit + AGENTS.md managed-section routing are unchanged (flatten verified — consumer-side diff is empty).",
+        "status": "proposed"
+      },
+      {
+        "title": "passes fully.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1875",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1875: Execute the content/ move — manifest-driven relocation + source-side cross-reference rewrite"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1669"
+      }
+    ],
+    "updated": "2026-06-22T21:19:44Z",
+    "metadata": {
+      "completedAt": "2026-06-22T21:19:44Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

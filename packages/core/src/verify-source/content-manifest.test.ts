@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   evaluateContentManifest,
   lintManifest,
-  listTrackedTopLevel,
+  listTrackedContentChildren,
   loadManifest,
 } from "./content-manifest.js";
 
@@ -13,7 +13,7 @@ const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
 
 function makeManifest(entries: Array<Record<string, unknown>>): string {
   return JSON.stringify({
-    version: 1,
+    version: 2,
     buckets: [
       { id: "content", label: "Content", description: "ships" },
       { id: "engine", label: "Engine", description: "runtime" },
@@ -24,7 +24,7 @@ function makeManifest(entries: Array<Record<string, unknown>>): string {
   });
 }
 
-describe("evaluateContentManifest", () => {
+describe("evaluateContentManifest (location invariant, #1875)", () => {
   let root: string | undefined;
 
   afterEach(() => {
@@ -34,30 +34,31 @@ describe("evaluateContentManifest", () => {
     }
   });
 
-  it("exits 0 when every top-level entry is classified", () => {
+  it("exits 0 when the location invariant holds (content under content/, harness exception at root)", () => {
     root = mkdtempSync(join(tmpdir(), "cm-clean-"));
     const manifestPath = join(root, "manifest.json");
     writeFileSync(
       manifestPath,
       makeManifest([
-        { path: "skills", bucket: "content", note: "skills" },
+        { path: "content/skills", bucket: "content", note: "skills" },
+        { path: "content/LICENSE.md", bucket: "content", note: "license", straddle: true },
+        { path: "AGENTS.md", bucket: "content", note: "harness", harnessEntry: true },
         { path: "packages", bucket: "engine", note: "engine" },
-        { path: "tests", bucket: "harness", note: "tests", straddle: false },
       ]),
       "utf8",
     );
     const result = evaluateContentManifest(root, {
       manifestPath,
       root,
-      topLevelEntries: ["packages", "skills", "tests"],
+      contentChildren: ["content/LICENSE.md", "content/skills"],
     });
     expect(result.code).toBe(0);
-    expect(result.message).toContain("clean");
-    expect(result.message).toContain("3 top-level");
+    expect(result.message).toContain("location invariant holds");
+    expect(result.message).toContain("2 content/ child(ren)");
   });
 
-  it("exits 1 on an unclassified top-level entry", () => {
-    root = mkdtempSync(join(tmpdir(), "cm-unclassified-"));
+  it("exits 1 on a content entry that is NOT under content/", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-notcontent-"));
     const manifestPath = join(root, "manifest.json");
     writeFileSync(
       manifestPath,
@@ -67,30 +68,109 @@ describe("evaluateContentManifest", () => {
     const result = evaluateContentManifest(root, {
       manifestPath,
       root,
-      topLevelEntries: ["skills", "brand-new-dir"],
+      contentChildren: [],
     });
     expect(result.code).toBe(1);
-    expect(result.message).toContain("unclassified top-level entry 'brand-new-dir'");
+    expect(result.message).toContain("content entry 'skills' must live under content/");
   });
 
-  it("exits 1 on a stale classified entry", () => {
-    root = mkdtempSync(join(tmpdir(), "cm-stale-"));
+  it("exits 1 on a non-content entry that lives UNDER content/", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-noncontent-under-"));
     const manifestPath = join(root, "manifest.json");
     writeFileSync(
       manifestPath,
       makeManifest([
-        { path: "skills", bucket: "content", note: "skills" },
-        { path: "deleted-dir", bucket: "content", note: "gone" },
+        { path: "content/skills", bucket: "content", note: "skills" },
+        { path: "content/packages", bucket: "engine", note: "misplaced engine" },
       ]),
       "utf8",
     );
     const result = evaluateContentManifest(root, {
       manifestPath,
       root,
-      topLevelEntries: ["skills"],
+      contentChildren: ["content/skills"],
     });
     expect(result.code).toBe(1);
-    expect(result.message).toContain("stale classified entry 'deleted-dir'");
+    expect(result.message).toContain("non-content entry 'content/packages'");
+    expect(result.message).toContain("must not live under content/");
+  });
+
+  it("exits 1 on an unclassified content/ child", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-unclassified-"));
+    const manifestPath = join(root, "manifest.json");
+    writeFileSync(
+      manifestPath,
+      makeManifest([{ path: "content/skills", bucket: "content", note: "skills" }]),
+      "utf8",
+    );
+    const result = evaluateContentManifest(root, {
+      manifestPath,
+      root,
+      contentChildren: ["content/skills", "content/brand-new-dir"],
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("unclassified content/ child 'content/brand-new-dir'");
+  });
+
+  it("exits 1 on a stale content entry pointing at a removed content/ child", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-stale-"));
+    const manifestPath = join(root, "manifest.json");
+    writeFileSync(
+      manifestPath,
+      makeManifest([
+        { path: "content/skills", bucket: "content", note: "skills" },
+        { path: "content/gone", bucket: "content", note: "removed" },
+      ]),
+      "utf8",
+    );
+    const result = evaluateContentManifest(root, {
+      manifestPath,
+      root,
+      contentChildren: ["content/skills"],
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("stale content entry 'content/gone'");
+  });
+
+  it("treats harness-entry exceptions as clean even with no content/ child for them", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-harness-"));
+    const manifestPath = join(root, "manifest.json");
+    writeFileSync(
+      manifestPath,
+      makeManifest([
+        { path: "AGENTS.md", bucket: "content", note: "harness", harnessEntry: true },
+        { path: "main.md", bucket: "content", note: "harness", harnessEntry: true },
+        { path: "SKILL.md", bucket: "content", note: "harness", harnessEntry: true },
+        { path: "content/skills", bucket: "content", note: "skills" },
+      ]),
+      "utf8",
+    );
+    const result = evaluateContentManifest(root, {
+      manifestPath,
+      root,
+      contentChildren: ["content/skills"],
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("exits 1 when a harness-entry exception is (wrongly) placed under content/", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-harness-under-"));
+    const manifestPath = join(root, "manifest.json");
+    writeFileSync(
+      manifestPath,
+      makeManifest([
+        { path: "content/AGENTS.md", bucket: "content", note: "harness", harnessEntry: true },
+        { path: "content/skills", bucket: "content", note: "skills" },
+      ]),
+      "utf8",
+    );
+    const result = evaluateContentManifest(root, {
+      manifestPath,
+      root,
+      contentChildren: ["content/skills", "content/AGENTS.md"],
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("harness-entry exception 'content/AGENTS.md'");
   });
 
   it("exits 2 when the manifest is missing", () => {
@@ -98,7 +178,7 @@ describe("evaluateContentManifest", () => {
     const result = evaluateContentManifest(root, {
       manifestPath: join(root, "nope.json"),
       root,
-      topLevelEntries: ["skills"],
+      contentChildren: ["content/skills"],
     });
     expect(result.code).toBe(2);
     expect(result.message).toContain("not found");
@@ -109,13 +189,13 @@ describe("evaluateContentManifest", () => {
     const manifestPath = join(root, "manifest.json");
     writeFileSync(
       manifestPath,
-      makeManifest([{ path: "skills", bucket: "nonsense", note: "x" }]),
+      makeManifest([{ path: "content/skills", bucket: "nonsense", note: "x" }]),
       "utf8",
     );
     const result = evaluateContentManifest(root, {
       manifestPath,
       root,
-      topLevelEntries: ["skills"],
+      contentChildren: ["content/skills"],
     });
     expect(result.code).toBe(2);
     expect(result.message).toContain("unknown bucket 'nonsense'");
@@ -142,7 +222,11 @@ describe("loadManifest", () => {
   it("throws on a missing required entry field", () => {
     root = mkdtempSync(join(tmpdir(), "cm-field-"));
     const manifestPath = join(root, "manifest.json");
-    writeFileSync(manifestPath, makeManifest([{ path: "skills", bucket: "content" }]), "utf8");
+    writeFileSync(
+      manifestPath,
+      makeManifest([{ path: "content/skills", bucket: "content" }]),
+      "utf8",
+    );
     expect(() => loadManifest(manifestPath)).toThrow(/field 'note'/);
   });
 
@@ -152,8 +236,8 @@ describe("loadManifest", () => {
     writeFileSync(
       manifestPath,
       makeManifest([
-        { path: "skills", bucket: "content", note: "a" },
-        { path: "skills", bucket: "engine", note: "b" },
+        { path: "content/skills", bucket: "content", note: "a" },
+        { path: "content/skills", bucket: "engine", note: "b" },
       ]),
       "utf8",
     );
@@ -165,10 +249,32 @@ describe("loadManifest", () => {
     const manifestPath = join(root, "manifest.json");
     writeFileSync(
       manifestPath,
-      makeManifest([{ path: "skills", bucket: "content", note: "a", straddle: "yes" }]),
+      makeManifest([{ path: "content/skills", bucket: "content", note: "a", straddle: "yes" }]),
       "utf8",
     );
     expect(() => loadManifest(manifestPath)).toThrow(/'straddle' must be a boolean/);
+  });
+
+  it("throws when harnessEntry is not a boolean", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-harnessentry-"));
+    const manifestPath = join(root, "manifest.json");
+    writeFileSync(
+      manifestPath,
+      makeManifest([{ path: "AGENTS.md", bucket: "content", note: "a", harnessEntry: "yes" }]),
+      "utf8",
+    );
+    expect(() => loadManifest(manifestPath)).toThrow(/'harnessEntry' must be a boolean/);
+  });
+
+  it("throws when harnessEntry is set on a non-content entry", () => {
+    root = mkdtempSync(join(tmpdir(), "cm-harnessentry-bucket-"));
+    const manifestPath = join(root, "manifest.json");
+    writeFileSync(
+      manifestPath,
+      makeManifest([{ path: "Taskfile.yml", bucket: "engine", note: "a", harnessEntry: true }]),
+      "utf8",
+    );
+    expect(() => loadManifest(manifestPath)).toThrow(/only 'content' entries may be harness-entry/);
   });
 
   it("throws when the top-level payload is not an object", () => {
@@ -233,7 +339,7 @@ describe("loadManifest", () => {
   });
 });
 
-describe("listTrackedTopLevel", () => {
+describe("listTrackedContentChildren", () => {
   let root: string | undefined;
 
   afterEach(() => {
@@ -245,25 +351,25 @@ describe("listTrackedTopLevel", () => {
 
   it("throws when run outside a git repository", () => {
     root = mkdtempSync(join(tmpdir(), "cm-nogit-"));
-    expect(() => listTrackedTopLevel(root as string)).toThrow(/git ls-files failed/);
+    expect(() => listTrackedContentChildren(root as string)).toThrow(/git ls-files failed/);
   });
 });
 
 describe("lintManifest", () => {
-  it("returns [] when manifest and tree agree", () => {
+  it("returns [] when the location invariant holds", () => {
     const manifest = {
-      version: 1,
+      version: 2,
       buckets: [{ id: "content", label: "Content", description: "d" }],
-      entries: [{ path: "skills", bucket: "content", note: "n" }],
+      entries: [{ path: "content/skills", bucket: "content", note: "n" }],
     };
-    expect(lintManifest(manifest, ["skills"])).toEqual([]);
+    expect(lintManifest(manifest, ["content/skills"])).toEqual([]);
   });
 });
 
 describe("content-manifest self-test (real tree)", () => {
-  it("the committed manifest classifies every real top-level entry", () => {
-    const tracked = listTrackedTopLevel(REPO_ROOT);
-    expect(tracked.length).toBeGreaterThan(0);
+  it("the committed manifest satisfies the location invariant for the real content/ tree", () => {
+    const children = listTrackedContentChildren(REPO_ROOT);
+    expect(children.length).toBeGreaterThan(0);
     const result = evaluateContentManifest(REPO_ROOT, { root: REPO_ROOT });
     expect(result.code).toBe(0);
   });

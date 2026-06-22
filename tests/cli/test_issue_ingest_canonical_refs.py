@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
-SCHEMA_PATH = REPO_ROOT / "vbrief" / "schemas" / "vbrief-core.schema.json"
+SCHEMA_PATH = REPO_ROOT / "content/vbrief/schemas/vbrief-core.schema.json"
 LEGACY_ORIGIN_TYPE_RE = re.compile(r'"type"\s*:\s*"github-issue"')
 
 

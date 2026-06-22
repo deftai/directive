@@ -197,7 +197,8 @@ describe("doctor coverage final", () => {
   it("resolveDefaultFrameworkRoot returns a path", () => {
     const root = resolveDefaultFrameworkRoot();
     expect(existsSync(join(root, "main.md"))).toBe(true);
-    expect(existsSync(join(root, "templates", "agents-entry.md"))).toBe(true);
+    // #1875: templates/ moved under content/ in the source repo.
+    expect(existsSync(join(root, "content", "templates", "agents-entry.md"))).toBe(true);
   });
 
   it("payload staleness skip when sha or ref missing", () => {

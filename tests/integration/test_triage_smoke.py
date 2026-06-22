@@ -47,7 +47,7 @@ cache = importlib.import_module("cache")
 
 
 REPO = "deftai/directive"
-SKILL = REPO_ROOT / "skills" / "deft-directive-refinement" / "SKILL.md"
+SKILL = REPO_ROOT / "content/skills/deft-directive-refinement/SKILL.md"
 
 
 # ---------------------------------------------------------------------------

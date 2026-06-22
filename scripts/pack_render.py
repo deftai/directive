@@ -48,7 +48,13 @@ from typing import Any
 # default source / output paths are CWD-independent.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_SOURCE = REPO_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _content_root import content_root  # noqa: E402
+
+# Shippable content moved under content/ in the source repo and is
+# flattened to the framework root in a consumer deposit (#1875 C1).
+CONTENT_ROOT = content_root(REPO_ROOT)
+DEFAULT_SOURCE = CONTENT_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json"
 DEFAULT_OUTPUT = REPO_ROOT / "meta" / "lessons.md"
 
 # Canonical 4-line machine-generated banner (conventions/machine-generated-banner.md)
@@ -124,7 +130,7 @@ DOC_TITLE = "# Lessons Learned"
 RENDER_REGISTRY: dict[str, dict[str, Any]] = {
     "lessons": {
         "mode": "collection",
-        "source": REPO_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json",
+        "source": CONTENT_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json",
         "output": REPO_ROOT / "meta" / "lessons.md",
         "items_field": "lessons",
         "heading_field": "title",
@@ -135,7 +141,7 @@ RENDER_REGISTRY: dict[str, dict[str, Any]] = {
     "skills": {
         "mode": "documents",
         "doc_kind": "skill",
-        "source": REPO_ROOT / "packs" / "skills" / "skills-pack-0.1.json",
+        "source": CONTENT_ROOT / "packs" / "skills" / "skills-pack-0.1.json",
         "items_field": "skills",
         "name_field": "id",
         "description_field": "description",
@@ -146,7 +152,7 @@ RENDER_REGISTRY: dict[str, dict[str, Any]] = {
     "rules": {
         "mode": "documents",
         "doc_kind": "markdown",
-        "source": REPO_ROOT / "packs" / "rules" / "rules-pack-0.1.json",
+        "source": CONTENT_ROOT / "packs" / "rules" / "rules-pack-0.1.json",
         "items_field": "rules",
         "path_field": "path",
         "body_field": "body",
@@ -155,7 +161,7 @@ RENDER_REGISTRY: dict[str, dict[str, Any]] = {
     "strategies": {
         "mode": "documents",
         "doc_kind": "markdown",
-        "source": REPO_ROOT / "packs" / "strategies" / "strategies-pack-0.1.json",
+        "source": CONTENT_ROOT / "packs" / "strategies" / "strategies-pack-0.1.json",
         "items_field": "strategies",
         "path_field": "path",
         "body_field": "body",
@@ -164,7 +170,7 @@ RENDER_REGISTRY: dict[str, dict[str, Any]] = {
     "patterns": {
         "mode": "documents",
         "doc_kind": "markdown",
-        "source": REPO_ROOT / "packs" / "patterns" / "patterns-pack-0.1.json",
+        "source": CONTENT_ROOT / "packs" / "patterns" / "patterns-pack-0.1.json",
         "items_field": "patterns",
         "path_field": "path",
         "body_field": "body",
@@ -173,7 +179,7 @@ RENDER_REGISTRY: dict[str, dict[str, Any]] = {
     "swarm-spec": {
         "mode": "documents",
         "doc_kind": "markdown",
-        "source": REPO_ROOT / "packs" / "swarm-spec" / "swarm-spec-pack-0.1.json",
+        "source": CONTENT_ROOT / "packs" / "swarm-spec" / "swarm-spec-pack-0.1.json",
         "items_field": "entries",
         "path_field": "path",
         "body_field": "body",
@@ -265,7 +271,7 @@ def _targets_for_pack(
     for entry in pack.get(cfg["items_field"], []):
         if not entry.get(cfg["body_field"]):
             continue
-        out_path = REPO_ROOT / entry[cfg["path_field"]]
+        out_path = CONTENT_ROOT / entry[cfg["path_field"]]
         targets.append((out_path, doc_renderer(entry, cfg)))
     return targets
 

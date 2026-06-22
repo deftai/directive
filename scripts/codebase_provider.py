@@ -16,6 +16,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 import code_structure_validate
+from _content_root import content_root
 from _safe_subprocess import run_text
 from codebase_default_extractor import (
     build_codebase_map,
@@ -64,7 +65,7 @@ class ProviderArtifactPolicy:
 
 @lru_cache(maxsize=1)
 def _load_codebase_map_schema() -> dict[str, Any]:
-    schema_path = _REPO_ROOT / CODEBASE_MAP_SCHEMA_PATH
+    schema_path = content_root(_REPO_ROOT) / CODEBASE_MAP_SCHEMA_PATH
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     if not isinstance(schema, dict):
         raise ValueError(f"{CODEBASE_MAP_SCHEMA_PATH} must contain a JSON object")

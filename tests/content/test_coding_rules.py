@@ -36,12 +36,10 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-CODING_MD = _REPO_ROOT / "coding" / "coding.md"
-HYGIENE_MD = _REPO_ROOT / "coding" / "hygiene.md"
-BUILD_SKILL = _REPO_ROOT / "skills" / "deft-directive-build" / "SKILL.md"
-REVIEW_CYCLE_SKILL = (
-    _REPO_ROOT / "skills" / "deft-directive-review-cycle" / "SKILL.md"
-)
+CODING_MD = _REPO_ROOT / "content/coding/coding.md"
+HYGIENE_MD = _REPO_ROOT / "content/coding/hygiene.md"
+BUILD_SKILL = _REPO_ROOT / "content/skills/deft-directive-build/SKILL.md"
+REVIEW_CYCLE_SKILL = _REPO_ROOT / "content/skills/deft-directive-review-cycle/SKILL.md"
 
 
 def _read(path: Path) -> str:

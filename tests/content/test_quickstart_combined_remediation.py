@@ -21,8 +21,8 @@ import re
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_QUICK_START = _REPO_ROOT / "QUICK-START.md"
-_UPGRADING = _REPO_ROOT / "UPGRADING.md"
+_QUICK_START = _REPO_ROOT / "content/QUICK-START.md"
+_UPGRADING = _REPO_ROOT / "content/UPGRADING.md"
 
 _LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*$")

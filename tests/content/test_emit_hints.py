@@ -24,20 +24,20 @@ import pytest
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_HELPER_REL = "strategies/emit-hints.md"
+_HELPER_REL = "content/strategies/emit-hints.md"
 
 # Every vBRIEF-producing strategy that must link the hint at its emission step.
 _STRATEGY_FILES = [
-    "strategies/bdd.md",
-    "strategies/discuss.md",
-    "strategies/research.md",
-    "strategies/map.md",
-    "strategies/probe.md",
-    "strategies/interview.md",
-    "strategies/yolo.md",
-    "strategies/rapid.md",
-    "strategies/enterprise.md",
-    "strategies/speckit.md",
+    "content/strategies/bdd.md",
+    "content/strategies/discuss.md",
+    "content/strategies/research.md",
+    "content/strategies/map.md",
+    "content/strategies/probe.md",
+    "content/strategies/interview.md",
+    "content/strategies/yolo.md",
+    "content/strategies/rapid.md",
+    "content/strategies/enterprise.md",
+    "content/strategies/speckit.md",
 ]
 
 # Markdown link form strategies use to reference the shared helper.
@@ -143,7 +143,7 @@ def test_reference_is_near_emission_step(strategy_rel: str) -> None:
 class TestSpeckitBothEmissionPhases:
     """speckit emits at Phase 4 AND Phase 4.5 — both must surface the hint."""
 
-    _text = _read("strategies/speckit.md")
+    _text = _read("content/strategies/speckit.md")
 
     def _section(self, start_header: str, end_header: str) -> str:
         assert start_header in self._text, f"speckit.md missing section {start_header!r}"

@@ -28,8 +28,8 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-SECURITY_MD = _REPO_ROOT / "coding" / "security.md"
-CODING_MD = _REPO_ROOT / "coding" / "coding.md"
+SECURITY_MD = _REPO_ROOT / "content/coding/security.md"
+CODING_MD = _REPO_ROOT / "content/coding/coding.md"
 REFERENCES_MD = _REPO_ROOT / "REFERENCES.md"
 
 # Line ceiling: the #661 vBRIEF originally pinned <=150 lines for the

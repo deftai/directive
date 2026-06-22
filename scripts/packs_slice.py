@@ -38,16 +38,23 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _content_root import content_root  # noqa: E402
+
 # Repo root resolved from this file's location (scripts/ -> repo root) so pack
 # source / schema paths are CWD-independent.
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# Shippable content lives under content/ in the source repo and at the framework
+# root in a flattened consumer deposit (#1875 C1); resolve both contexts.
+CONTENT_ROOT = content_root(REPO_ROOT)
 
 # Pack short-name -> on-disk source + schema. The slice surface resolves the
 # canonical source (never the rendered .md) and the schema-declared registry.
 PACK_REGISTRY: dict[str, dict[str, Path]] = {
     "lessons": {
-        "source": REPO_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json",
-        "schema": REPO_ROOT / "vbrief" / "schemas" / "lessons-pack.schema.json",
+        "source": CONTENT_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json",
+        "schema": CONTENT_ROOT / "vbrief" / "schemas" / "lessons-pack.schema.json",
     },
 }
 
@@ -56,8 +63,8 @@ PACK_REGISTRY: dict[str, dict[str, Path]] = {
 # (e.g. a future skills-pack / rules-pack) appears WITHOUT any code change
 # here: drop ``packs/<name>/<name>-pack-*.json`` + its
 # ``vbrief/schemas/<name>-pack.schema.json`` and ``--list-packs`` lists it.
-PACKS_DIR = REPO_ROOT / "packs"
-SCHEMAS_DIR = REPO_ROOT / "vbrief" / "schemas"
+PACKS_DIR = CONTENT_ROOT / "packs"
+SCHEMAS_DIR = CONTENT_ROOT / "vbrief" / "schemas"
 
 _SINCE_RE = re.compile(r"^\d{4}-\d{2}(-\d{2})?$")
 

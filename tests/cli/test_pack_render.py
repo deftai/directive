@@ -29,12 +29,12 @@ import pack_migrate_lessons  # type: ignore[import-not-found]  # noqa: E402
 import pack_migrate_skills  # type: ignore[import-not-found]  # noqa: E402
 import pack_render  # type: ignore[import-not-found]  # noqa: E402
 
-_REAL_SOURCE = _REPO_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json"
+_REAL_SOURCE = _REPO_ROOT / "content/packs/lessons/lessons-pack-0.1.json"
 _REAL_OUTPUT = _REPO_ROOT / "meta" / "lessons.md"
-_REAL_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "lessons-pack.schema.json"
+_REAL_SCHEMA = _REPO_ROOT / "content/vbrief/schemas/lessons-pack.schema.json"
 
-_REAL_SKILLS_SOURCE = _REPO_ROOT / "packs" / "skills" / "skills-pack-0.1.json"
-_REAL_SKILLS_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "skills-pack.schema.json"
+_REAL_SKILLS_SOURCE = _REPO_ROOT / "content/packs/skills/skills-pack-0.1.json"
+_REAL_SKILLS_SCHEMA = _REPO_ROOT / "content/vbrief/schemas/skills-pack.schema.json"
 _PROOF_SKILL_PATH = "skills/deft-directive-cost/SKILL.md"
 
 
@@ -591,7 +591,7 @@ def test_skills_proof_skill_round_trips() -> None:
     proof = next(s for s in pack["skills"] if s["path"] == _PROOF_SKILL_PATH)
     assert proof["body"] is not None
     rendered = pack_render.render_skill_document(proof, cfg)
-    committed = (_REPO_ROOT / _PROOF_SKILL_PATH).read_text(encoding="utf-8")
+    committed = (_REPO_ROOT / "content" / _PROOF_SKILL_PATH).read_text(encoding="utf-8")
     assert rendered == committed
 
 
@@ -709,12 +709,12 @@ def test_lessons_render_still_byte_identical() -> None:
 # regression of the lessons + skills proofs.
 # ===========================================================================
 
-_REAL_RULES_SOURCE = _REPO_ROOT / "packs" / "rules" / "rules-pack-0.1.json"
-_REAL_RULES_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "rules-pack.schema.json"
+_REAL_RULES_SOURCE = _REPO_ROOT / "content/packs/rules/rules-pack-0.1.json"
+_REAL_RULES_SCHEMA = _REPO_ROOT / "content/vbrief/schemas/rules-pack.schema.json"
 _RULES_PROOF_PATH = "coding/testing.md"
 
-_REAL_STRATEGIES_SOURCE = _REPO_ROOT / "packs" / "strategies" / "strategies-pack-0.1.json"
-_REAL_STRATEGIES_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "strategies-pack.schema.json"
+_REAL_STRATEGIES_SOURCE = _REPO_ROOT / "content/packs/strategies/strategies-pack-0.1.json"
+_REAL_STRATEGIES_SCHEMA = _REPO_ROOT / "content/vbrief/schemas/strategies-pack.schema.json"
 _STRATEGIES_PROOF_PATH = "strategies/yolo.md"
 
 
@@ -752,7 +752,7 @@ def test_rules_proof_doc_round_trips() -> None:
         if r["path"] == _RULES_PROOF_PATH and r["body"] is not None
     )
     rendered = pack_render.render_markdown_document(proof, cfg)
-    committed = (_REPO_ROOT / _RULES_PROOF_PATH).read_text(encoding="utf-8")
+    committed = (_REPO_ROOT / "content" / _RULES_PROOF_PATH).read_text(encoding="utf-8")
     assert rendered == committed
 
 
@@ -766,7 +766,7 @@ def test_strategies_proof_doc_round_trips() -> None:
     )
     assert proof["body"] is not None
     rendered = pack_render.render_markdown_document(proof, cfg)
-    committed = (_REPO_ROOT / _STRATEGIES_PROOF_PATH).read_text(encoding="utf-8")
+    committed = (_REPO_ROOT / "content" / _STRATEGIES_PROOF_PATH).read_text(encoding="utf-8")
     assert rendered == committed
 
 
@@ -775,9 +775,7 @@ def test_rules_every_coding_doc_has_body() -> None:
     entry per doc) so each coding doc is a drift-checked projection."""
     pack = json.loads(_REAL_RULES_SOURCE.read_text(encoding="utf-8"))
     bodied_paths = {r["path"] for r in pack["rules"] if r["body"] is not None}
-    coding_docs = {
-        f"coding/{p.name}" for p in (_REPO_ROOT / "coding").glob("*.md")
-    }
+    coding_docs = {f"coding/{p.name}" for p in (_REPO_ROOT / "content/coding").glob("*.md")}
     assert bodied_paths == coding_docs
     assert _RULES_PROOF_PATH in bodied_paths
 
@@ -847,7 +845,7 @@ def test_pack_filter_limits_to_rules() -> None:
     # packs:slice v2 #1637 s4: the renderer now projects every coding/*.md doc,
     # not just the testing.md proof. The projected set must equal exactly the
     # coding docs on disk (AGENTS.md / main.md are metadata-only, not rendered).
-    expected = {p.name for p in (_REPO_ROOT / "coding").glob("*.md")}
+    expected = {p.name for p in (_REPO_ROOT / "content/coding").glob("*.md")}
     assert {path.name for _n, path, _t in targets} == expected
     assert "testing.md" in expected
 
@@ -879,5 +877,5 @@ def test_lessons_and_skills_proofs_still_byte_identical() -> None:
     skills_cfg = pack_render.RENDER_REGISTRY["skills"]
     proof = next(s for s in skills_pack["skills"] if s["path"] == _PROOF_SKILL_PATH)
     rendered = pack_render.render_skill_document(proof, skills_cfg)
-    committed = (_REPO_ROOT / _PROOF_SKILL_PATH).read_text(encoding="utf-8")
+    committed = (_REPO_ROOT / "content" / _PROOF_SKILL_PATH).read_text(encoding="utf-8")
     assert rendered == committed

@@ -10,7 +10,7 @@ def _read(path: str) -> str:
 
 
 def test_speckit_documents_phase_45() -> None:
-    text = _read("strategies/speckit.md")
+    text = _read("content/strategies/speckit.md")
     assert "## Phase 4.5: Story Decomposition / Swarm Readiness" in text
     assert "task scope:decompose" in text
     assert "vbrief/.eval/decompositions/ip001-auth.json" in text
@@ -24,7 +24,7 @@ def test_speckit_documents_phase_45() -> None:
 
 
 def test_vbrief_documents_epic_phase_story_swarm_semantics() -> None:
-    text = _read("vbrief/vbrief.md")
+    text = _read("content/vbrief/vbrief.md")
     for token in (
         'kind = "epic"',
         'kind = "phase"',
@@ -49,7 +49,7 @@ def test_vbrief_documents_epic_phase_story_swarm_semantics() -> None:
 
 
 def test_swarm_skill_requires_readiness_before_allocation() -> None:
-    text = _read("skills/deft-directive-swarm/SKILL.md")
+    text = _read("content/skills/deft-directive-swarm/SKILL.md")
     assert "task swarm:readiness -- vbrief/active/*.vbrief.json" in text
     assert "needs decomposition" in text
     assert "Allocate concurrent workers unless candidates are swarm-ready" in text
@@ -57,7 +57,7 @@ def test_swarm_skill_requires_readiness_before_allocation() -> None:
 
 
 def test_decompose_skill_exists_and_uses_deterministic_commands() -> None:
-    text = _read("skills/deft-directive-decompose/SKILL.md")
+    text = _read("content/skills/deft-directive-decompose/SKILL.md")
     assert "task scope:decompose" in text
     assert "task swarm:readiness" in text
     assert "task swarm:readiness -- vbrief/pending/<child-story-1>.vbrief.json" in text
@@ -78,9 +78,9 @@ def test_decompose_skill_exists_and_uses_deterministic_commands() -> None:
 
 def test_decomposition_docs_do_not_teach_root_draft_paths() -> None:
     for path in (
-        "skills/deft-directive-decompose/SKILL.md",
-        "strategies/speckit.md",
-        "vbrief/vbrief.md",
+        "content/skills/deft-directive-decompose/SKILL.md",
+        "content/strategies/speckit.md",
+        "content/vbrief/vbrief.md",
         "scripts/scope_decompose.py",
         "scripts/triage_help.py",
     ):
@@ -92,7 +92,7 @@ def test_decomposition_docs_do_not_teach_root_draft_paths() -> None:
 
 
 def test_make_spec_no_longer_teaches_stale_planitem_patterns() -> None:
-    text = _read("templates/make-spec.md")
+    text = _read("content/templates/make-spec.md")
     assert 'vBRIEFInfo": { "version": "0.6" }' in text
     assert "Nested children within a PlanItem MUST use `items`" in text
     assert "Use deprecated `subItems` for new content" in text

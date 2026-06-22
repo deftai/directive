@@ -29,10 +29,13 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-SECURITY_MD = _REPO_ROOT / "coding" / "security.md"
+SECURITY_MD = _REPO_ROOT / "content/coding/security.md"
+# Post-#1875 C3 split: the shippable library files (README + template) moved
+# under content/incidents/; the dated incident records stay at root incidents/.
 INCIDENTS_DIR = _REPO_ROOT / "incidents"
-INCIDENTS_README = INCIDENTS_DIR / "README.md"
-INCIDENTS_TEMPLATE = INCIDENTS_DIR / "_template.md"
+CONTENT_INCIDENTS_DIR = _REPO_ROOT / "content/incidents"
+INCIDENTS_README = CONTENT_INCIDENTS_DIR / "README.md"
+INCIDENTS_TEMPLATE = CONTENT_INCIDENTS_DIR / "_template.md"
 INCIDENTS_SEED = INCIDENTS_DIR / "2026-04-pocketos-railway-prod-db-wipe.md"
 
 
@@ -266,7 +269,7 @@ def test_incidents_library_seed_entry_present() -> None:
         "#708",
         "#686",
         "#587",
-        "coding/security.md",
+        "content/coding/security.md",
     ):
         assert token in text, (
             f"incidents/2026-04-pocketos-railway-prod-db-wipe.md: missing "

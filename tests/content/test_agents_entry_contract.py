@@ -22,9 +22,9 @@ import re
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_TEMPLATE = _REPO_ROOT / "templates" / "agents-entry.md"
+_TEMPLATE = _REPO_ROOT / "content/templates/agents-entry.md"
 _AGENTS_MD = _REPO_ROOT / "AGENTS.md"
-_PLACEHOLDER_SPEC = _REPO_ROOT / "templates" / "agents-entry.placeholders.md"
+_PLACEHOLDER_SPEC = _REPO_ROOT / "content/templates/agents-entry.placeholders.md"
 
 _OPEN_MARKER = "<!-- deft:managed-section v3 -->"
 _CLOSE_MARKER = "<!-- /deft:managed-section -->"

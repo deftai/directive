@@ -492,8 +492,8 @@ class TestCommitLint:
 class TestAgentsBootstrap:
     """Tests for QUICK-START.md trampoline and templates/agents-entry.md (#358)."""
 
-    TRAMPOLINE_PATH = REPO_ROOT / "QUICK-START.md"
-    TEMPLATE_PATH = REPO_ROOT / "templates" / "agents-entry.md"
+    TRAMPOLINE_PATH = REPO_ROOT / "content/QUICK-START.md"
+    TEMPLATE_PATH = REPO_ROOT / "content/templates/agents-entry.md"
     # The pre-v0.27 sentinel ``deft/main.md`` is still the trampoline's
     # idempotency probe because QUICK-START.md is operator-facing and may
     # describe both layouts; the template's canonical idempotency anchor

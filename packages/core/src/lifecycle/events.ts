@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentRoot } from "../content-root.js";
 
 /** Default event log location (project-local). */
 export const DEFAULT_EVENT_LOG = join(".deft-cache", "events.jsonl");
@@ -22,7 +23,9 @@ let behavioralRegistryCache: {
 
 function defaultRegistryPath(): string {
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-  return join(repoRoot, "events", "registry.json");
+  // #1875: the event registry is shippable content (content/events/ in source,
+  // flattened to events/ in a consumer deposit).
+  return join(contentRoot(repoRoot), "events", "registry.json");
 }
 
 function loadBehavioralRegistry(): {

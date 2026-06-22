@@ -4,7 +4,7 @@ A single-picture mental model of how Deft Directive turns an idea into shipped,
 auditable work — and keeps doing so as the project grows. It is **not** a one-and-done
 pipeline; it is two connected phases that loop.
 
-> **See also**: [CONCEPTS.md](./CONCEPTS.md) | [ARCHITECTURE.md](./ARCHITECTURE.md) | [FILES.md](./FILES.md) | [../strategies/README.md](../strategies/README.md)
+> **See also**: [CONCEPTS.md](./CONCEPTS.md) | [ARCHITECTURE.md](./ARCHITECTURE.md) | [FILES.md](./FILES.md) | [../strategies/README.md](../content/strategies/README.md)
 
 ![Deft Directive lifecycle: an inception phase (Concept → Strategy Analysis → Specification + Artifacts) feeding a recurring per-session phase (Session Start → Triage/Refine → Slice → Swarm → Review/Fix → Ship) that loops back through new issues and features](./assets/directive-lifecycle-diagram.png)
 
@@ -50,17 +50,17 @@ framework:
 
 | Diagram label | What it really is |
 |---|---|
-| **Concept** | The initial idea / project framing — entry into [`deft-directive-setup`](../skills/deft-directive-setup/SKILL.md) or a `/deft:change`. |
-| **Look** | Mapping and exploring the terrain — [`strategies/map.md`](../strategies/map.md) (`/deft:run:map`), codebase structure. |
-| **Deep Think** | Adversarial / alignment analysis — [`strategies/probe.md`](../strategies/probe.md), [`strategies/discuss.md`](../strategies/discuss.md), [`strategies/research.md`](../strategies/research.md), and `deft-directive-gh-arch`. |
-| **Strategy Analysis** | The preparatory strategies cycling through the [strategy chaining gate](../strategies/README.md) before spec generation. |
+| **Concept** | The initial idea / project framing — entry into [`deft-directive-setup`](../content/skills/deft-directive-setup/SKILL.md) or a `/deft:change`. |
+| **Look** | Mapping and exploring the terrain — [`strategies/map.md`](../content/strategies/map.md) (`/deft:run:map`), codebase structure. |
+| **Deep Think** | Adversarial / alignment analysis — [`strategies/probe.md`](../content/strategies/probe.md), [`strategies/discuss.md`](../content/strategies/discuss.md), [`strategies/research.md`](../content/strategies/research.md), and `deft-directive-gh-arch`. |
+| **Strategy Analysis** | The preparatory strategies cycling through the [strategy chaining gate](../content/strategies/README.md) before spec generation. |
 | **Spec / Specification + Artifacts** | Output of the spec-generating strategies (interview, speckit, …): `vbrief/PROJECT-DEFINITION.vbrief.json` plus dated `vbrief/proposed/` scope vBRIEFs. |
 | **Resume / Session Start** | The session-start ritual — `task session:start` and the `task triage:welcome` "what's next" one-liner. |
-| **Triage + Refine/Rethink** | The triage cache and refinement loop — `task triage:*`, [`deft-directive-triage`](../skills/deft-directive-triage/SKILL.md), [`deft-directive-refinement`](../skills/deft-directive-refinement/SKILL.md). "Rethink" = escalate back to Strategy Analysis. |
-| **Slice** | Vertical-slice decomposition — [`deft-directive-gh-slice`](../skills/deft-directive-gh-slice/SKILL.md) and [`deft-directive-decompose`](../skills/deft-directive-decompose/SKILL.md). |
-| **Swarm** | Parallel local agent orchestration — [`deft-directive-swarm`](../skills/deft-directive-swarm/SKILL.md), `task swarm:*`. |
-| **Review/Fix** | Bot-reviewer response loop — [`deft-directive-review-cycle`](../skills/deft-directive-review-cycle/SKILL.md) and [`deft-directive-pre-pr`](../skills/deft-directive-pre-pr/SKILL.md). |
-| **Ship** | PR merge and release — `task pr:*` and [`deft-directive-release`](../skills/deft-directive-release/SKILL.md). |
+| **Triage + Refine/Rethink** | The triage cache and refinement loop — `task triage:*`, [`deft-directive-triage`](../content/skills/deft-directive-triage/SKILL.md), [`deft-directive-refinement`](../content/skills/deft-directive-refinement/SKILL.md). "Rethink" = escalate back to Strategy Analysis. |
+| **Slice** | Vertical-slice decomposition — [`deft-directive-gh-slice`](../content/skills/deft-directive-gh-slice/SKILL.md) and [`deft-directive-decompose`](../content/skills/deft-directive-decompose/SKILL.md). |
+| **Swarm** | Parallel local agent orchestration — [`deft-directive-swarm`](../content/skills/deft-directive-swarm/SKILL.md), `task swarm:*`. |
+| **Review/Fix** | Bot-reviewer response loop — [`deft-directive-review-cycle`](../content/skills/deft-directive-review-cycle/SKILL.md) and [`deft-directive-pre-pr`](../content/skills/deft-directive-pre-pr/SKILL.md). |
+| **Ship** | PR merge and release — `task pr:*` and [`deft-directive-release`](../content/skills/deft-directive-release/SKILL.md). |
 | **Issues / Features** | GitHub issues and feature requests mirrored into `.deft-cache/` and surfaced as triage candidates. |
 
 ## Why it loops

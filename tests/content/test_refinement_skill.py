@@ -25,7 +25,7 @@ from __future__ import annotations
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_REFINEMENT_PATH = "skills/deft-directive-refinement/SKILL.md"
+_REFINEMENT_PATH = "content/skills/deft-directive-refinement/SKILL.md"
 
 
 def _read(rel_path: str) -> str:

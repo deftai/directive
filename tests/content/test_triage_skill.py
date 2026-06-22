@@ -22,9 +22,9 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-_TRIAGE_PATH = "skills/deft-directive-triage/SKILL.md"
-_TRIAGE_POINTER_PATH = ".agents/skills/deft-directive-triage/SKILL.md"
-_REFINEMENT_PATH = "skills/deft-directive-refinement/SKILL.md"
+_TRIAGE_PATH = "content/skills/deft-directive-triage/SKILL.md"
+_TRIAGE_POINTER_PATH = "content/.agents/skills/deft-directive-triage/SKILL.md"
+_REFINEMENT_PATH = "content/skills/deft-directive-refinement/SKILL.md"
 
 _MAX_SKILL_LINES = 150  # deft-directive-write-skill convention
 
@@ -200,10 +200,12 @@ def test_triage_skill_pointer_exists() -> None:
 def test_triage_skill_pointer_routes_to_real_skill() -> None:
     """Pointer body MUST direct readers at the real skill file."""
     text = _read(_TRIAGE_POINTER_PATH)
-    assert _TRIAGE_PATH in text, (
-        f"{_TRIAGE_POINTER_PATH}: must reference the real skill path "
-        f"{_TRIAGE_PATH!r}"
-    )
+    # The pointer body uses the consumer-relative skill path (no content/ prefix);
+    # under the #1875 C1 flatten content/<x> deposits to .deft/core/<x>.
+    consumer_ref = _TRIAGE_PATH.removeprefix("content/")
+    assert (
+        consumer_ref in text
+    ), f"{_TRIAGE_POINTER_PATH}: must reference the real skill path {consumer_ref!r}"
 
 
 # ---------------------------------------------------------------------------

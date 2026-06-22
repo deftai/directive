@@ -26,8 +26,8 @@ sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 import pack_migrate_rules  # type: ignore[import-not-found]  # noqa: E402
 
-_REAL_SOURCE = _REPO_ROOT / "packs" / "rules" / "rules-pack-0.1.json"
-_REAL_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "rules-pack.schema.json"
+_REAL_SOURCE = _REPO_ROOT / "content/packs/rules/rules-pack-0.1.json"
+_REAL_SCHEMA = _REPO_ROOT / "content/vbrief/schemas/rules-pack.schema.json"
 _PROOF_DOC = "coding/testing.md"
 
 # Glyphs from the coding/* RFC2119 legend.
@@ -313,7 +313,7 @@ def test_real_pack_every_coding_doc_bodied() -> None:
     """#1637 s4: the real pack bodies every coding/*.md doc (one entry each)."""
     pack = json.loads(_REAL_SOURCE.read_text(encoding="utf-8"))
     bodied_paths = {r["path"] for r in pack["rules"] if r["body"] is not None}
-    coding_docs = {f"coding/{p.name}" for p in (_REPO_ROOT / "coding").glob("*.md")}
+    coding_docs = {f"coding/{p.name}" for p in (_REPO_ROOT / "content/coding").glob("*.md")}
     assert bodied_paths == coding_docs
     assert _PROOF_DOC in bodied_paths
 

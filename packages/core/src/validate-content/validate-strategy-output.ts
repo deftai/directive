@@ -15,11 +15,24 @@ function readTextSafe(path: string): string {
   }
 }
 
+function isDirSafe(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 function isDeftFrameworkRoot(projectRoot: string): boolean {
+  // Post-#1875 content/ move: the strategies/ marker lives under content/ in
+  // the SOURCE repo (the C1 flatten strips that prefix in a consumer deposit,
+  // where neither location exists). Accept either layout and never throw on a
+  // missing dir -- consumers legitimately have no strategies/ at all.
   return (
     existsSync(join(projectRoot, "AGENTS.md")) &&
     existsSync(join(projectRoot, "Taskfile.yml")) &&
-    statSync(join(projectRoot, "strategies")).isDirectory()
+    (isDirSafe(join(projectRoot, "content", "strategies")) ||
+      isDirSafe(join(projectRoot, "strategies")))
   );
 }
 

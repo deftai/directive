@@ -47,8 +47,14 @@ from pathlib import Path
 # default paths are CWD-independent.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_PATTERNS_DIR = REPO_ROOT / "patterns"
-DEFAULT_OUT = REPO_ROOT / "packs" / "patterns" / "patterns-pack-0.1.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _content_root import content_root  # noqa: E402
+
+# Shippable content moved under content/ in the source repo and is
+# flattened to the framework root in a consumer deposit (#1875 C1).
+CONTENT_ROOT = content_root(REPO_ROOT)
+DEFAULT_PATTERNS_DIR = CONTENT_ROOT / "patterns"
+DEFAULT_OUT = CONTENT_ROOT / "packs" / "patterns" / "patterns-pack-0.1.json"
 
 PACK_ID = "patterns-pack-0.1"
 PACK_VERSION = "0.1"

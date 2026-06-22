@@ -66,10 +66,9 @@ from typing import Any
 # by tests that pre-populate sys.path with the ``scripts/`` directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import scm  # noqa: E402 -- sibling-first path insertion above is intentional
 from _project_context import resolve_project_repo, resolve_project_root  # noqa: E402
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
-
-import scm  # noqa: E402 -- sibling-first path insertion above is intentional
 
 reconfigure_stdio()
 

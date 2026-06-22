@@ -13,7 +13,7 @@ import re
 import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-TEMPLATE = REPO_ROOT / "templates" / "agent-prompt-preamble.md"
+TEMPLATE = REPO_ROOT / "content/templates/agent-prompt-preamble.md"
 
 REQUIRED_SECTION_HEADINGS = (
     "Read AGENTS.md before any other tool call",

@@ -24,9 +24,9 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _MAIN_MD = _REPO_ROOT / "main.md"
-_QUICKSTART_MD = _REPO_ROOT / "QUICK-START.md"
-_AGENTS_ENTRY_TEMPLATE = _REPO_ROOT / "templates" / "agents-entry.md"
-_SETUP_SKILL = _REPO_ROOT / "skills" / "deft-directive-setup" / "SKILL.md"
+_QUICKSTART_MD = _REPO_ROOT / "content/QUICK-START.md"
+_AGENTS_ENTRY_TEMPLATE = _REPO_ROOT / "content/templates/agents-entry.md"
+_SETUP_SKILL = _REPO_ROOT / "content/skills/deft-directive-setup/SKILL.md"
 _SETUP_GO = _REPO_ROOT / "cmd" / "deft-install" / "setup.go"
 
 _FALLBACK_CMD = "task -t ./deft/Taskfile.yml migrate:vbrief"

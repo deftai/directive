@@ -48,6 +48,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # sees ``NotImplementedError`` pointing at #445 / #935 Workstream 6 instead
 # of a confusing ``gh: command not found`` deep in the call stack. The shim
 # resolves the binary via the #884 ``ghx`` -> ``gh`` preference ladder.
+import scm  # noqa: E402 -- sibling-first path insertion above is intentional
 from _project_context import resolve_project_repo, resolve_project_root  # noqa: E402
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 from _vbrief_build import EMITTED_VBRIEF_VERSION, TODAY, slugify  # noqa: E402
@@ -59,8 +60,6 @@ from reconcile_issues import (  # noqa: E402
     fetch_open_issues,
     parse_issue_number,
 )
-
-import scm  # noqa: E402 -- sibling-first path insertion above is intentional
 
 # #883 unified cache surface (optional). When present we prefer the cached
 # raw.json payload over a live ``gh api`` round-trip so a Phase 0 walk that

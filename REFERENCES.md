@@ -13,7 +13,7 @@
 - Check for custom rules and preferences
 - Override path via `DEFT_USER_PATH` env var
 
-**[core/glossary.md](./core/glossary.md)** - Authoritative vocabulary
+**[core/glossary.md](./content/glossary.md)** - Authoritative vocabulary
 - Load: When any term is undefined or used ambiguously; before introducing a new term
 - Contains: work decomposition hierarchy, hygiene terms, framework design terms, GSD → Deft mapping
 
@@ -21,19 +21,19 @@
 
 ### When Writing Code
 
-1. **[coding/coding.md](./coding/coding.md)** - General coding guidelines
+1. **[coding/coding.md](./content/coding/coding.md)** - General coding guidelines
    - Load: For any software development task
    - Contains: modularity, contracts, error handling, change management
 
 2. **Language file** - Load based on language:
-   - [languages/python.md](./languages/python.md) - When writing Python
-   - [languages/go.md](./languages/go.md) - When writing Go
-   - [languages/typescript.md](./languages/typescript.md) - When writing TypeScript/JavaScript
-   - [languages/officejs.md](./languages/officejs.md) - When writing Office.js add-ins (Excel JavaScript API)
-   - [languages/cpp.md](./languages/cpp.md) - When writing C++
-   - [languages/vba.md](./languages/vba.md) - When writing VBA (Excel macros)
+   - [languages/python.md](./content/languages/python.md) - When writing Python
+   - [languages/go.md](./content/languages/go.md) - When writing Go
+   - [languages/typescript.md](./content/languages/typescript.md) - When writing TypeScript/JavaScript
+   - [languages/officejs.md](./content/languages/officejs.md) - When writing Office.js add-ins (Excel JavaScript API)
+   - [languages/cpp.md](./content/languages/cpp.md) - When writing C++
+   - [languages/vba.md](./content/languages/vba.md) - When writing VBA (Excel macros)
 
-3. **[vbrief/PROJECT-DEFINITION.vbrief.json](./vbrief/vbrief.md#project-definitionvbriefjson)** - Project identity gestalt
+3. **[vbrief/PROJECT-DEFINITION.vbrief.json](./content/vbrief/vbrief.md#project-definitionvbriefjson)** - Project identity gestalt
    - Load: When unsure about project standards (tech stack, architecture, risks)
    - Contains: project identity narratives (overview, tech stack, architecture, risks/unknowns, config) + scope registry across all lifecycle folders
    - Replaces: the former `PROJECT.md` (deprecated)
@@ -42,105 +42,105 @@
 
 Load based on interface type:
 
-- **[interfaces/cli.md](./interfaces/cli.md)** - Building command-line tools
-- **[interfaces/rest.md](./interfaces/rest.md)** - Designing/implementing REST APIs
-- **[interfaces/tui.md](./interfaces/tui.md)** - Building terminal UIs (Textual, ink)
-- **[interfaces/web.md](./interfaces/web.md)** - Building web UIs (React, etc.)
+- **[interfaces/cli.md](./content/interfaces/cli.md)** - Building command-line tools
+- **[interfaces/rest.md](./content/interfaces/rest.md)** - Designing/implementing REST APIs
+- **[interfaces/tui.md](./content/interfaces/tui.md)** - Building terminal UIs (Textual, ink)
+- **[interfaces/web.md](./content/interfaces/web.md)** - Building web UIs (React, etc.)
 
 ### When Working with Deployment Platforms
 
 Load when working on platform-specific deployment guidance:
 
-- **[deployments/README.md](./deployments/README.md)** - Overview and structure
+- **[deployments/README.md](./content/deployments/README.md)** - Overview and structure
 - **[deployments/<platform>/README.md]** - Platform module (e.g., cloud.gov)
 
 ### When Working with Tools
 
 Load as needed:
 
-- **[scm/git.md](./scm/git.md)** - Before committing (commit conventions)
-- **[scm/github.md](./scm/github.md)** - When setting up CI/CD, PRs, issues
-- **[tools/taskfile.md](./tools/taskfile.md)** - When creating/modifying tasks
-- **[coding/testing.md](./coding/testing.md)** - When writing tests or checking coverage
-- **[coding/security.md](./coding/security.md)** - When handling untrusted input, auth, secrets, dependencies, or building agent surfaces (#661)
-- **[tools/telemetry.md](./tools/telemetry.md)** - When implementing logging, tracing, metrics
+- **[scm/git.md](./content/scm/git.md)** - Before committing (commit conventions)
+- **[scm/github.md](./content/scm/github.md)** - When setting up CI/CD, PRs, issues
+- **[tools/taskfile.md](./content/tools/taskfile.md)** - When creating/modifying tasks
+- **[coding/testing.md](./content/coding/testing.md)** - When writing tests or checking coverage
+- **[coding/security.md](./content/coding/security.md)** - When handling untrusted input, auth, secrets, dependencies, or building agent surfaces (#661)
+- **[tools/telemetry.md](./content/tools/telemetry.md)** - When implementing logging, tracing, metrics
 
 ### When Working in a Swarm
 
-**[swarm/swarm.md](./swarm/swarm.md)** - Multi-agent coordination
+**[swarm/swarm.md](./content/swarm/swarm.md)** - Multi-agent coordination
 - Load: Only when multiple agents working on same codebase
 - Contains: communication protocols, conflict resolution, handoff patterns
 
 ### When Building LLM Applications
 
-**[patterns/llm-app.md](./patterns/llm-app.md)** - LLM application standards (#481)
+**[patterns/llm-app.md](./content/patterns/llm-app.md)** - LLM application standards (#481)
 - Load: When the project calls any LLM API (OpenAI, Anthropic, Cohere, local models, etc.), builds agentic functionality, or implements RAG
 - Contains: prompt construction (delimiters, parameterized templates), explicit trust tiers (system > few-shot > user > retrieved > web), tool/function-call validation (confused-deputy mitigation), RAG hygiene (no LLM-write-back, provenance), output handling (schema validation, XSS sanitization), multi-agent orchestration (sub-agent-output-is-untrusted), LLM-specific observability
 - Source material: AI Agent Traps paper (`docs/ssrn-6372438.pdf`)
 
-**[patterns/role-as-overlay.md](./patterns/role-as-overlay.md)** - Role as overlay (#816)
+**[patterns/role-as-overlay.md](./content/patterns/role-as-overlay.md)** - Role as overlay (#816)
 - Load: When the project applies a persona / role / stance to an LLM call (skill-defined reviewer / builder / summarizer roles, agent-level identities, per-call stance overrides) or designs a multi-turn agent that persists message history across turns
 - Contains: the role-as-system-overlay rule (never role-as-user-message), failure modes of role-injection-as-messages (history pollution, retrieval corruption, context-rot acceleration, false-memory propagation, resumption breakage), the call > session > agent precedence chain, the implementation contract for skills and sub-agent dispatch, and a provider-surface mapping (Anthropic `system`, OpenAI Chat `messages[0] role:system` / Responses `instructions`, Gemini `system_instruction`)
 - Source material: Flue SDK ([withastro/flue](https://github.com/withastro/flue)) README
 
-**[patterns/prompt-assembly-layer-ordering.md](./patterns/prompt-assembly-layer-ordering.md)** - Prompt assembly layer ordering (#836)
+**[patterns/prompt-assembly-layer-ordering.md](./content/patterns/prompt-assembly-layer-ordering.md)** - Prompt assembly layer ordering (#836)
 - Load: When the project assembles a system prompt from more than one fragment, relies on provider-side prompt caching (Anthropic / OpenAI / local), or operates an agent across more than one user turn per session
 - Contains: the cached-prefix-vs-ephemeral-injection invariant, canonical content for each layer, most-stable-first ordering inside the cached prefix, observability fields for cache-tier telemetry, and the load-bearing link to frozen-memory-snapshot (#832)
 - Extends: `patterns/llm-app.md` `## Prompt construction` + `## LLM-specific observability`
 
 ### When Managing Context or Long Tasks
 
-- **[context/context.md](./context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
-- **[context/working-memory.md](./context/working-memory.md)** - Scratchpad and externalization patterns with vBRIEF; plan.vbrief.json + scope vBRIEF relationship
-- **[context/long-horizon.md](./context/long-horizon.md)** - Multi-session checkpoint/resume patterns; lifecycle folder conventions
-- **[context/tool-design.md](./context/tool-design.md)** - Designing AI-consumable tools
-- **[context/deterministic-split.md](./context/deterministic-split.md)** - LLM vs deterministic responsibility boundaries
-- **[context/fractal-summaries.md](./context/fractal-summaries.md)** - Hierarchical memory compression (task → feature → release)
-- **[context/examples.md](./context/examples.md)** - Few-shot and behavioral example guidance
+- **[context/context.md](./content/context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
+- **[context/working-memory.md](./content/context/working-memory.md)** - Scratchpad and externalization patterns with vBRIEF; plan.vbrief.json + scope vBRIEF relationship
+- **[context/long-horizon.md](./content/context/long-horizon.md)** - Multi-session checkpoint/resume patterns; lifecycle folder conventions
+- **[context/tool-design.md](./content/context/tool-design.md)** - Designing AI-consumable tools
+- **[context/deterministic-split.md](./content/context/deterministic-split.md)** - LLM vs deterministic responsibility boundaries
+- **[context/fractal-summaries.md](./content/context/fractal-summaries.md)** - Hierarchical memory compression (task → feature → release)
+- **[context/examples.md](./content/context/examples.md)** - Few-shot and behavioral example guidance
 - Load: When tasks are complex, multi-phase, or when context budget is a concern
 
 ### When Verifying Agent Work
 
-- **[verification/verification.md](./verification/verification.md)** - Verification ladder, acceptance criteria, stub detection
-- **[verification/uat.md](./verification/uat.md)** - Auto-generated user acceptance test scripts
-- **[verification/plan-checking.md](./verification/plan-checking.md)** - Pre-execution plan verification (coverage, completeness, wiring, scope)
-- **[verification/integration.md](./verification/integration.md)** - Cross-feature wiring verification (export→import, API→consumer, E2E flow)
+- **[verification/verification.md](./content/verification/verification.md)** - Verification ladder, acceptance criteria, stub detection
+- **[verification/uat.md](./content/verification/uat.md)** - Auto-generated user acceptance test scripts
+- **[verification/plan-checking.md](./content/verification/plan-checking.md)** - Pre-execution plan verification (coverage, completeness, wiring, scope)
+- **[verification/integration.md](./content/verification/integration.md)** - Cross-feature wiring verification (export→import, API→consumer, E2E flow)
 - Load: When completing tasks/features, before marking work done
 
 ### When Handling Session Interruptions
 
-- **[resilience/continue-here.md](./resilience/continue-here.md)** - Interruption recovery protocol with vBRIEF; continue.vbrief.json + scope vBRIEF relationship
-- **[resilience/context-pruning.md](./resilience/context-pruning.md)** - Fresh context per task, eliminating context rot
+- **[resilience/continue-here.md](./content/resilience/continue-here.md)** - Interruption recovery protocol with vBRIEF; continue.vbrief.json + scope vBRIEF relationship
+- **[resilience/context-pruning.md](./content/resilience/context-pruning.md)** - Fresh context per task, eliminating context rot
 - Load: On session end, context exhaustion, or when resuming interrupted work
 
 ### When Planning Multi-Feature Work
 
-- **[contracts/boundary-maps.md](./contracts/boundary-maps.md)** - Explicit produces/consumes declarations between features
-- **[strategies/discuss.md](./strategies/discuss.md)** - Structured alignment phase with Feynman technique
-- **[strategies/map.md](./strategies/map.md)** - Codebase mapping for existing projects (stack, architecture, conventions, concerns)
-- **[strategies/research.md](./strategies/research.md)** - Structured research: Don't Hand-Roll + Common Pitfalls output
-- **[core/glossary.md](./core/glossary.md)** - Authoritative vocabulary (release, feature, task, demo sentence, context rot, etc.)
+- **[contracts/boundary-maps.md](./content/contracts/boundary-maps.md)** - Explicit produces/consumes declarations between features
+- **[strategies/discuss.md](./content/strategies/discuss.md)** - Structured alignment phase with Feynman technique
+- **[strategies/map.md](./content/strategies/map.md)** - Codebase mapping for existing projects (stack, architecture, conventions, concerns)
+- **[strategies/research.md](./content/strategies/research.md)** - Structured research: Don't Hand-Roll + Common Pitfalls output
+- **[core/glossary.md](./content/glossary.md)** - Authoritative vocabulary (release, feature, task, demo sentence, context rot, etc.)
 - Load: When planning features with multiple phases or gray areas
 
 ### When Working with Changes
 
-- **[commands.md](./commands.md)** - Change lifecycle workflows (create, apply, verify, archive)
+- **[commands.md](./content/commands.md)** - Change lifecycle workflows (create, apply, verify, archive)
 - **[history/README.md](./history/README.md)** - Change folder structure and conventions
-- **[context/spec-deltas.md](./context/spec-deltas.md)** - Spec delta format, vBRIEF chain pattern, reading/writing deltas
+- **[context/spec-deltas.md](./content/context/spec-deltas.md)** - Spec delta format, vBRIEF chain pattern, reading/writing deltas
 - Load: When using `/deft:change` commands
 
 ### When Creating Specifications
 
-**[templates/make-spec.md](./templates/make-spec.md)** - Specification generation
+**[templates/make-spec.md](./content/templates/make-spec.md)** - Specification generation
 - Load: When user asks to create a project specification
 - Contains: interview process, scope vBRIEF output format
 
-**[vbrief/vbrief.md](./vbrief/vbrief.md)** - Canonical vBRIEF usage
+**[vbrief/vbrief.md](./content/vbrief/vbrief.md)** - Canonical vBRIEF usage
 - Load: Whenever creating, reading, or managing vBRIEF files in a project
 - Contains: file taxonomy (root-level files + scope vBRIEFs in lifecycle folders), naming conventions, lifecycle rules, specification flow, tool mappings
 - Key rules: all vBRIEF files live in `./vbrief/` or lifecycle subfolders — never workspace root; scope vBRIEFs use `YYYY-MM-DD-descriptive-slug.vbrief.json` naming; `plan.status` inside each scope vBRIEF is the source of truth — not the folder location
 
-**[vbrief/schemas/vbrief-core.schema.json](./vbrief/schemas/vbrief-core.schema.json)** — vBRIEF JSON Schema
+**[vbrief/schemas/vbrief-core.schema.json](./content/vbrief/schemas/vbrief-core.schema.json)** — vBRIEF JSON Schema
 - Load: When creating, validating, or debugging `.vbrief.json` files
 - Contains: JSON Schema (draft 2020-12) defining `vBRIEFInfo`, `Plan`, `PlanItem`, `Status` enum
 - Source: [github.com/deftai/vBRIEF](https://github.com/deftai/vBRIEF)
@@ -169,11 +169,11 @@ coding.md → git.md (before committing)
 
 ## ⚠️ Don't Load Unless Needed
 
-**[core/ralph.md](./core/ralph.md)** - Ralph loop concept
+**[core/ralph.md](./content/meta/ralph.md)** - Ralph loop concept
 - Status: Draft, not implemented
 - Load: Only if exploring self-correction loops
 
-**[meta/code-field.md](./meta/code-field.md)** - Coding philosophy
+**[meta/code-field.md](./content/meta/code-field.md)** - Coding philosophy
 - Load: For mindset/philosophy, not technical rules
 - Complements technical standards, doesn't replace them
 

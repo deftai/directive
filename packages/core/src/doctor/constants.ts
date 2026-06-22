@@ -22,20 +22,25 @@ export const DOCTOR_ALLOWED_FLAGS = [
   "--help",
 ] as const;
 
-export const EXPECTED_FRAMEWORK_DIRS = [
-  "languages",
-  "strategies",
-  "skills",
-  "templates",
-  "tasks",
-  "scripts",
-  "vbrief",
+// Engine / lifecycle dirs that stay at the framework root (NOT relocated by
+// #1875). Shippable-content dirs moved under content/ -- see EXPECTED_CONTENT_DIRS.
+export const EXPECTED_FRAMEWORK_DIRS = ["tasks", "scripts", "vbrief"] as const;
+
+// Post-#1875 content/ move: these framework-internal markers now live under
+// content/ in the SOURCE repo. They identify a deft source checkout (a consumer
+// would never reproduce them); the C1 flatten means a consumer deposit has no
+// content/ dir, so the absence of content/ here is consistent with the
+// "not a source checkout" branch.
+export const DEFT_REPO_POSITIVE_MARKERS = [
+  "content/templates/agents-entry.md",
+  "content/skills/deft-directive-build/SKILL.md",
 ] as const;
 
-export const DEFT_REPO_POSITIVE_MARKERS = [
-  "templates/agents-entry.md",
-  "skills/deft-directive-build/SKILL.md",
-] as const;
+// Shippable-content framework dirs relocated under content/ by #1875. The
+// framework-layout doctor check resolves these via content-root probing so the
+// same check works for a source checkout (content/<dir>) and a flattened
+// consumer deposit (<dir>).
+export const EXPECTED_CONTENT_DIRS = ["languages", "strategies", "skills", "templates"] as const;
 
 export const CANONICAL_UPGRADE_COMMAND = "deft-install --yes --upgrade --repo-root . --json";
 

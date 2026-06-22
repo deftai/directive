@@ -11,9 +11,7 @@ describe("test_structure.py", () => {
   it("contracts/", () => {
     expect(isDir("contracts")).toBe(true);
   });
-  it("core/", () => {
-    expect(isDir("core")).toBe(true);
-  });
+  // #1875: core/ was redistributed into content/meta/ and no longer exists.
   it("deployments/", () => {
     expect(isDir("deployments")).toBe(true);
   });

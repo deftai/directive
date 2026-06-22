@@ -1,6 +1,6 @@
 /** Port of scripts/pack_render.py — content-pack projection renderer (#1294, #1295). */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,9 +8,33 @@ export function resolveRepoRoot(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 }
 
-const REPO_ROOT = resolveRepoRoot();
+/**
+ * Resolve the shippable-content root across both contexts (#1875 C1; mirrors
+ * scripts/_content_root.py::content_root). The content/ move relocated every
+ * shippable pack source + projection target under a single content/ root in the
+ * SOURCE repo; the C1 flatten strips that prefix in a CONSUMER deposit. Probe
+ * for content/: return <root>/content when it exists (source), else <root>
+ * (consumer). Pack sources and document projection targets resolve off this
+ * root so the renderer + drift gate work in both contexts unchanged. The lessons
+ * collection output (meta/lessons.md) stays repo-root-resident -- it is a
+ * repo-dev convenience projection, not shippable content.
+ */
+export function contentRoot(repoRoot: string): string {
+  const candidate = join(repoRoot, "content");
+  try {
+    if (statSync(candidate).isDirectory()) {
+      return candidate;
+    }
+  } catch {
+    // No content/ dir -> consumer (flattened) deposit; fall through.
+  }
+  return repoRoot;
+}
 
-export const DEFAULT_SOURCE = join(REPO_ROOT, "packs", "lessons", "lessons-pack-0.1.json");
+const REPO_ROOT = resolveRepoRoot();
+const CONTENT_ROOT = contentRoot(REPO_ROOT);
+
+export const DEFAULT_SOURCE = join(CONTENT_ROOT, "packs", "lessons", "lessons-pack-0.1.json");
 export const DEFAULT_OUTPUT = join(REPO_ROOT, "meta", "lessons.md");
 
 const LESSONS_BANNER: readonly string[] = [
@@ -82,7 +106,7 @@ export interface RenderRegistryEntry {
 export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
   lessons: {
     mode: "collection",
-    source: join(REPO_ROOT, "packs", "lessons", "lessons-pack-0.1.json"),
+    source: join(CONTENT_ROOT, "packs", "lessons", "lessons-pack-0.1.json"),
     output: join(REPO_ROOT, "meta", "lessons.md"),
     items_field: "lessons",
     heading_field: "title",
@@ -93,7 +117,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
   skills: {
     mode: "documents",
     doc_kind: "skill",
-    source: join(REPO_ROOT, "packs", "skills", "skills-pack-0.1.json"),
+    source: join(CONTENT_ROOT, "packs", "skills", "skills-pack-0.1.json"),
     items_field: "skills",
     name_field: "id",
     description_field: "description",
@@ -104,7 +128,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
   rules: {
     mode: "documents",
     doc_kind: "markdown",
-    source: join(REPO_ROOT, "packs", "rules", "rules-pack-0.1.json"),
+    source: join(CONTENT_ROOT, "packs", "rules", "rules-pack-0.1.json"),
     items_field: "rules",
     path_field: "path",
     body_field: "body",
@@ -113,7 +137,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
   strategies: {
     mode: "documents",
     doc_kind: "markdown",
-    source: join(REPO_ROOT, "packs", "strategies", "strategies-pack-0.1.json"),
+    source: join(CONTENT_ROOT, "packs", "strategies", "strategies-pack-0.1.json"),
     items_field: "strategies",
     path_field: "path",
     body_field: "body",
@@ -122,7 +146,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
   patterns: {
     mode: "documents",
     doc_kind: "markdown",
-    source: join(REPO_ROOT, "packs", "patterns", "patterns-pack-0.1.json"),
+    source: join(CONTENT_ROOT, "packs", "patterns", "patterns-pack-0.1.json"),
     items_field: "patterns",
     path_field: "path",
     body_field: "body",
@@ -131,7 +155,7 @@ export const RENDER_REGISTRY: Record<string, RenderRegistryEntry> = {
   "swarm-spec": {
     mode: "documents",
     doc_kind: "markdown",
-    source: join(REPO_ROOT, "packs", "swarm-spec", "swarm-spec-pack-0.1.json"),
+    source: join(CONTENT_ROOT, "packs", "swarm-spec", "swarm-spec-pack-0.1.json"),
     items_field: "entries",
     path_field: "path",
     body_field: "body",
@@ -245,7 +269,9 @@ function targetsForPack(
       continue;
     }
     const pathField = cfg.path_field ?? "path";
-    const outPath = join(REPO_ROOT, String(record[pathField]));
+    // Document projection targets (skills/rules/strategies/patterns) are
+    // shippable content -- they live under content/ in the source repo (#1875).
+    const outPath = join(CONTENT_ROOT, String(record[pathField]));
     targets.push([outPath, docRenderer(record, cfg)]);
   }
   return targets;

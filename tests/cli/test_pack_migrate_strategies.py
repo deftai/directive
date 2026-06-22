@@ -31,8 +31,8 @@ sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 import pack_migrate_strategies  # type: ignore[import-not-found]  # noqa: E402
 
-_REAL_SOURCE = _REPO_ROOT / "packs" / "strategies" / "strategies-pack-0.1.json"
-_REAL_SCHEMA = _REPO_ROOT / "vbrief" / "schemas" / "strategies-pack.schema.json"
+_REAL_SOURCE = _REPO_ROOT / "content/packs/strategies/strategies-pack-0.1.json"
+_REAL_SCHEMA = _REPO_ROOT / "content/vbrief/schemas/strategies-pack.schema.json"
 _PROOF_STRATEGY = "strategies/yolo.md"
 
 FIXTURE_YOLO_MD = """# Yolo Strategy
@@ -148,7 +148,7 @@ def test_is_redirect_stub_false_for_real_strategy() -> None:
 def test_is_redirect_stub_matches_real_pack_stubs() -> None:
     """The two committed pure-pointer stubs (brownfield -> map, the superseded
     roadmap strategy) are detected; the proof strategy is not."""
-    sdir = _REPO_ROOT / "strategies"
+    sdir = _REPO_ROOT / "content/strategies"
     assert pack_migrate_strategies.is_redirect_stub(
         (sdir / "brownfield.md").read_text(encoding="utf-8")
     )
@@ -267,9 +267,9 @@ def test_real_pack_every_non_redirect_has_body() -> None:
     pure redirect/superseded pointers stay metadata-only (body null)."""
     pack = json.loads(_REAL_SOURCE.read_text(encoding="utf-8"))
     assert pack["strategies"], "strategies pack must not be empty"
-    sdir = _REPO_ROOT / "strategies"
+    sdir = _REPO_ROOT / "content/strategies"
     for entry in pack["strategies"]:
-        md_text = (_REPO_ROOT / entry["path"]).read_text(encoding="utf-8")
+        md_text = (_REPO_ROOT / "content" / entry["path"]).read_text(encoding="utf-8")
         if pack_migrate_strategies.is_redirect_stub(md_text):
             assert entry["body"] is None, (
                 f"redirect stub {entry['path']} must stay body=null"
@@ -302,7 +302,7 @@ def test_real_pack_all_bodies_round_trip_through_renderer() -> None:
     assert len(bodied) >= 2, "expected the full non-redirect strategy set"
     for entry in bodied:
         rendered = pack_render.render_markdown_document(entry, cfg)
-        committed = (_REPO_ROOT / entry["path"]).read_text(encoding="utf-8")
+        committed = (_REPO_ROOT / "content" / entry["path"]).read_text(encoding="utf-8")
         assert rendered == committed, f"projection drift for {entry['path']}"
 
 

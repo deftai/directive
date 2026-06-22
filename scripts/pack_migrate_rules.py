@@ -58,8 +58,14 @@ from pathlib import Path
 # default paths are CWD-independent.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_CODING_DIR = REPO_ROOT / "coding"
-DEFAULT_OUT = REPO_ROOT / "packs" / "rules" / "rules-pack-0.1.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _content_root import content_root  # noqa: E402
+
+# Shippable content moved under content/ in the source repo and is
+# flattened to the framework root in a consumer deposit (#1875 C1).
+CONTENT_ROOT = content_root(REPO_ROOT)
+DEFAULT_CODING_DIR = CONTENT_ROOT / "coding"
+DEFAULT_OUT = CONTENT_ROOT / "packs" / "rules" / "rules-pack-0.1.json"
 
 PACK_ID = "rules-pack-0.1"
 PACK_VERSION = "0.1"
@@ -231,7 +237,14 @@ def build_pack(
     for src in extra_sources:
         if not src.is_file():
             continue
-        rel_path = src.resolve().relative_to(base).as_posix()
+        try:
+            rel_path = src.resolve().relative_to(base).as_posix()
+        except ValueError:
+            # Post-#1875: the extra harness-entry sources (AGENTS.md, main.md)
+            # stay at the repo/deposit root, while the coding dir moved under
+            # content/ -- so they are not under ``base`` (content/). They are
+            # top-level files, so the consumer-relative path is just the name.
+            rel_path = src.name
         domain = _SLUG_STRIP_RE.sub("-", src.stem.lower()).strip("-")
         text = src.read_text(encoding="utf-8")
         if src.name == "AGENTS.md":

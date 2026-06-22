@@ -55,9 +55,15 @@ from pathlib import Path
 # default paths are CWD-independent.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_SKILLS_DIR = REPO_ROOT / "skills"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _content_root import content_root  # noqa: E402
+
+# Shippable content moved under content/ in the source repo and is
+# flattened to the framework root in a consumer deposit (#1875 C1).
+CONTENT_ROOT = content_root(REPO_ROOT)
+DEFAULT_SKILLS_DIR = CONTENT_ROOT / "skills"
 DEFAULT_AGENTS_MD = REPO_ROOT / "AGENTS.md"
-DEFAULT_OUT = REPO_ROOT / "packs" / "skills" / "skills-pack-0.1.json"
+DEFAULT_OUT = CONTENT_ROOT / "packs" / "skills" / "skills-pack-0.1.json"
 
 PACK_ID = "skills-pack-0.1"
 PACK_VERSION = "0.1"
@@ -65,7 +71,11 @@ DEFAULT_SKILL_VERSION = "0.1"
 
 _ROUTING_HEADING = "## Skill Routing"
 _QUOTED_RE = re.compile(r'"([^"]+)"')
-_PATH_RE = re.compile(r"`(skills/[^`]+/SKILL\.md)`")
+# The maintainer AGENTS.md Skill Routing table references the source-repo path,
+# which after the #1875 content/ move is `content/skills/...`. Strip the optional
+# content/ prefix so the captured path stays consumer-relative (`skills/...`) and
+# matches the pack entry paths (which are relative to the flattened deposit root).
+_PATH_RE = re.compile(r"`(?:content/)?(skills/[^`]+/SKILL\.md)`")
 _ARROW_SPLIT_RE = re.compile(r"\u2192|->")
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?\n)---\n?(.*)$", re.DOTALL)
 _KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):(.*)$")

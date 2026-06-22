@@ -20,8 +20,8 @@ import re
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_UPGRADING = _REPO_ROOT / "UPGRADING.md"
-_QUICK_START = _REPO_ROOT / "QUICK-START.md"
+_UPGRADING = _REPO_ROOT / "content/UPGRADING.md"
+_QUICK_START = _REPO_ROOT / "content/QUICK-START.md"
 
 _LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*$")
@@ -174,10 +174,10 @@ def test_triage_cross_references_resolve() -> None:
             continue
         file_part, anchor = target.split("#", 1)
         file_part = file_part.lstrip("./")
-        if file_part == "" or file_part.endswith("UPGRADING.md"):
-            target_set, where = up_anchors, "UPGRADING.md"
-        elif file_part.endswith("QUICK-START.md"):
-            target_set, where = qs_anchors, "QUICK-START.md"
+        if file_part == "" or file_part.endswith("content/UPGRADING.md"):
+            target_set, where = up_anchors, "content/UPGRADING.md"
+        elif file_part.endswith("content/QUICK-START.md"):
+            target_set, where = qs_anchors, "content/QUICK-START.md"
         else:
             continue
         assert anchor in target_set, (

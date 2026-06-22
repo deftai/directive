@@ -134,7 +134,7 @@ _EXCLUDED_DIR_PREFIXES = (
     "vbrief/pending/",
     "vbrief/proposed/",
     "vbrief/cancelled/",
-    "vbrief/schemas/",
+    "content/vbrief/schemas/",
     "cmd/deft-install/",
     # Tests document contract tokens (legacy + canonical) by necessity --
     # they pin the redirect-stub gate-instruction split, document the
@@ -172,7 +172,7 @@ _EXCLUDED_EXACT_PATHS = frozenset(
         # `.deft/core/run` paths so consumers know what to migrate FROM
         # and TO. The F1 "Manual edits required after relocate" subsection
         # is the operator's worklist; the literal token is load-bearing.
-        "UPGRADING.md",
+        "content/UPGRADING.md",
         # #992 PR5 (rc1 dogfood evidence): the smoke doc verbatim-quotes
         # the relocator's `advise_external_hardcodes()` advisory stdout
         # captured during a real dogfood run against `deftai/postmortem`.
@@ -203,7 +203,7 @@ _EXCLUDED_EXACT_PATHS = frozenset(
 # any addition there MUST be reflected here as well.
 _LEGACY_REDIRECT_STUB_PATHS = frozenset(
     {
-        f"skills/{name}/SKILL.md"
+        f"content/skills/{name}/SKILL.md"
         for name in (
             "deft-sync",
             "deft-setup",
@@ -319,8 +319,8 @@ def test_gate_preamble_redirect_stubs_retain_legacy_token() -> None:
     independently by ``tests/content/test_deprecated_skill_redirects.py``.
     """
     gate_carrying_stubs = (
-        "skills/deft-setup/SKILL.md",
-        "skills/deft-build/SKILL.md",
+        "content/skills/deft-setup/SKILL.md",
+        "content/skills/deft-build/SKILL.md",
     )
     failures: list[str] = []
     for rel_path in gate_carrying_stubs:
@@ -353,13 +353,13 @@ def test_canonical_token_present_in_documented_surfaces() -> None:
     """
     canonical = ".deft/core/run"
     documented_surfaces = (
-        "templates/agents-entry.md",
+        "content/templates/agents-entry.md",
         "main.md",
         "README.md",
-        "UPGRADING.md",
+        "content/UPGRADING.md",
         "docs/ARCHITECTURE.md",
-        "docs/BROWNFIELD.md",
-        "skills/deft-directive-setup/SKILL.md",
+        "content/docs/BROWNFIELD.md",
+        "content/skills/deft-directive-setup/SKILL.md",
     )
     failures: list[str] = []
     for rel_path in documented_surfaces:

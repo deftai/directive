@@ -43,8 +43,14 @@ from pathlib import Path
 # anchor the default source / output paths so the migration is CWD-independent.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _content_root import content_root  # noqa: E402
+
+# Shippable content moved under content/ in the source repo and is
+# flattened to the framework root in a consumer deposit (#1875 C1).
+CONTENT_ROOT = content_root(REPO_ROOT)
 DEFAULT_SOURCE = REPO_ROOT / "meta" / "lessons.md"
-DEFAULT_OUT = REPO_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json"
+DEFAULT_OUT = CONTENT_ROOT / "packs" / "lessons" / "lessons-pack-0.1.json"
 
 PACK_ID = "lessons-pack-0.1"
 PACK_VERSION = "0.1"

@@ -15,9 +15,9 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-_PROBE_PATH = "skills/deft-directive-probe/SKILL.md"
+_PROBE_PATH = "content/skills/deft-directive-probe/SKILL.md"
 _AGENTS_MD = "AGENTS.md"
-_TEMPLATE = "templates/agents-entry.md"
+_TEMPLATE = "content/templates/agents-entry.md"
 
 _MAX_SKILL_LINES = 150
 

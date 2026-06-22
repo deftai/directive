@@ -40,7 +40,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "relocate.py"
-UPGRADING_MD = REPO_ROOT / "UPGRADING.md"
+UPGRADING_MD = REPO_ROOT / "content/UPGRADING.md"
 
 
 def _load_relocate() -> Any:
@@ -204,9 +204,15 @@ class TestSelfBootstrapEndToEnd:
         framework.mkdir(parents=True)
         # Mirror the scripts/ + templates/ subset the relocator actually
         # needs to run. We copy from the live REPO_ROOT so the test child
-        # is exercising the same code path as the deployed relocator.
+        # is exercising the same code path as the deployed relocator. The
+        # fake framework mirrors a CONSUMER deposit (flattened), so content
+        # dirs (templates/) are sourced from the post-#1875 content/ root while
+        # engine dirs (scripts/) stay at the repo root.
         for sub in ("scripts", "templates"):
-            shutil.copytree(REPO_ROOT / sub, framework / sub)
+            src = REPO_ROOT / sub
+            if not src.is_dir():
+                src = REPO_ROOT / "content" / sub
+            shutil.copytree(src, framework / sub)
         # vbrief/schemas/ is part of the deposit; ship a minimal stub.
         (framework / "vbrief" / "schemas").mkdir(parents=True)
         (framework / "vbrief" / "schemas" / "vbrief.schema.json").write_text(

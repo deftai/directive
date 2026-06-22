@@ -35,7 +35,7 @@ def _read(relpath: str) -> str:
 class TestSpeckitVbriefOutputs:
     """speckit.md must reference vBRIEF artifacts, not hand-authored files."""
 
-    _text = _read("strategies/speckit.md")
+    _text = _read("content/strategies/speckit.md")
 
     def test_speckit_references_project_definition_vbrief(self) -> None:
         """Phase 1 must target PROJECT-DEFINITION.vbrief.json (#361)."""
@@ -95,7 +95,7 @@ class TestSpeckitVbriefOutputs:
 class TestEnterpriseVbriefOutputs:
     """enterprise.md must reference vBRIEF artifacts and render commands."""
 
-    _text = _read("strategies/enterprise.md")
+    _text = _read("content/strategies/enterprise.md")
 
     def test_enterprise_references_prd_render(self) -> None:
         """Stage 1 must reference task prd:render (#364)."""

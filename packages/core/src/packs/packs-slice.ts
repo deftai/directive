@@ -4,15 +4,21 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentRoot } from "../content-root.js";
 
 export function resolveRepoRoot(): string {
   return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 }
 
 const REPO_ROOT = resolveRepoRoot();
+// #1875: content packs + their schemas are shippable content (content/packs/,
+// content/vbrief/schemas/ in source; flattened to packs/, vbrief/schemas/ in a
+// consumer deposit). Resolve all pack/schema paths off the content root so the
+// same code works in both contexts.
+const CONTENT_ROOT = contentRoot(REPO_ROOT);
 
 function effectiveRepoRoot(repoRoot?: string): string {
-  return repoRoot ?? REPO_ROOT;
+  return repoRoot ?? CONTENT_ROOT;
 }
 
 export interface PackRegistryPaths {
@@ -22,13 +28,13 @@ export interface PackRegistryPaths {
 
 export const PACK_REGISTRY: Record<string, PackRegistryPaths> = {
   lessons: {
-    source: join(REPO_ROOT, "packs", "lessons", "lessons-pack-0.1.json"),
-    schema: join(REPO_ROOT, "vbrief", "schemas", "lessons-pack.schema.json"),
+    source: join(CONTENT_ROOT, "packs", "lessons", "lessons-pack-0.1.json"),
+    schema: join(CONTENT_ROOT, "vbrief", "schemas", "lessons-pack.schema.json"),
   },
 };
 
-export const PACKS_DIR = join(REPO_ROOT, "packs");
-export const SCHEMAS_DIR = join(REPO_ROOT, "vbrief", "schemas");
+export const PACKS_DIR = join(CONTENT_ROOT, "packs");
+export const SCHEMAS_DIR = join(CONTENT_ROOT, "vbrief", "schemas");
 
 export const DEFAULT_DISPLAY: Record<string, unknown> = {
   heading: "title",

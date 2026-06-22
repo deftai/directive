@@ -30,4 +30,4 @@ history/changes/<name>/
 - Archived changes are immutable — never modify files in `history/archive/`
 - Spec deltas are merged into the main specification before archiving
 
-See [commands.md](../../commands.md) for the full command reference.
+See [commands.md](../../content/commands.md) for the full command reference.

@@ -19,8 +19,8 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-DEBUGGING_MD = _REPO_ROOT / "coding" / "debugging.md"
-CODING_MD = _REPO_ROOT / "coding" / "coding.md"
+DEBUGGING_MD = _REPO_ROOT / "content/coding/debugging.md"
+CODING_MD = _REPO_ROOT / "content/coding/coding.md"
 LESSONS_MD = _REPO_ROOT / "meta" / "lessons.md"
 
 
@@ -159,12 +159,10 @@ class TestLessonsCrossReference1621:
         )
 
 
-DEBUG_SKILL = _REPO_ROOT / "skills" / "deft-directive-debug" / "SKILL.md"
-DEBUG_SKILL_POINTER = (
-    _REPO_ROOT / ".agents" / "skills" / "deft-directive-debug" / "SKILL.md"
-)
+DEBUG_SKILL = _REPO_ROOT / "content/skills/deft-directive-debug/SKILL.md"
+DEBUG_SKILL_POINTER = _REPO_ROOT / "content/.agents/skills/deft-directive-debug/SKILL.md"
 AGENTS_MD = _REPO_ROOT / "AGENTS.md"
-AGENTS_ENTRY = _REPO_ROOT / "templates" / "agents-entry.md"
+AGENTS_ENTRY = _REPO_ROOT / "content/templates/agents-entry.md"
 
 
 class TestDebugSkill1621:

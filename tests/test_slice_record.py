@@ -594,7 +594,7 @@ def test_slice_wave_ready_composes_with_and() -> None:
 )
 def test_slicing_skills_reference_slice_record(skill_path: str) -> None:
     """Each slicing skill MUST document the write_slice call (#1132 acceptance)."""
-    body = Path(__file__).parent.parent.joinpath(skill_path).read_text(encoding="utf-8")
+    body = Path(__file__).parent.parent.joinpath("content", skill_path).read_text(encoding="utf-8")
     assert "slice_record" in body
     assert "#1132" in body
     assert "slices.jsonl" in body
@@ -602,8 +602,7 @@ def test_slicing_skills_reference_slice_record(skill_path: str) -> None:
 
 def test_gh_slice_skill_step_6_present() -> None:
     body = (
-        Path(__file__).parent.parent
-        / "skills/deft-directive-gh-slice/SKILL.md"
+        Path(__file__).parent.parent / "content/skills/deft-directive-gh-slice/SKILL.md"
     ).read_text(encoding="utf-8")
     assert "Step 6" in body
     assert "actor=\"skill:gh-slice\"" in body
@@ -611,16 +610,14 @@ def test_gh_slice_skill_step_6_present() -> None:
 
 def test_gh_arch_skill_actor_present() -> None:
     body = (
-        Path(__file__).parent.parent
-        / "skills/deft-directive-gh-arch/SKILL.md"
+        Path(__file__).parent.parent / "content/skills/deft-directive-gh-arch/SKILL.md"
     ).read_text(encoding="utf-8")
     assert "skill:gh-arch" in body
 
 
 def test_refinement_skill_actor_present() -> None:
     body = (
-        Path(__file__).parent.parent
-        / "skills/deft-directive-refinement/SKILL.md"
+        Path(__file__).parent.parent / "content/skills/deft-directive-refinement/SKILL.md"
     ).read_text(encoding="utf-8")
     assert "skill:refinement" in body
 

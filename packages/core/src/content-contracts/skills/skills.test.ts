@@ -8,7 +8,7 @@ import {
   readRepoFile,
   readSkill,
   repoFileExists,
-  repoPath,
+  resolveRepoPath,
   USER_MD_GATE_HEADING,
 } from "./helpers.js";
 
@@ -808,7 +808,7 @@ describe("test_skills", () => {
     expect(text).toContain("## Output Targets");
   });
   it("no_bare_deft_skill_directories", () => {
-    const bareDeft = readdirSync(repoPath("skills"), { withFileTypes: true })
+    const bareDeft = readdirSync(resolveRepoPath("skills"), { withFileTypes: true })
       .filter(
         (d) =>
           d.isDirectory() &&
@@ -821,7 +821,7 @@ describe("test_skills", () => {
   });
   it("agents_md_routing_all_deft_directive_paths", () => {
     const text = readAgentsMd();
-    const paths = [...text.matchAll(/\u2192\s+`(skills\/[^`]+)`/g)].map((m) => m[1]);
+    const paths = [...text.matchAll(/\u2192\s+`(content\/skills\/[^`]+)`/g)].map((m) => m[1]);
     expect(paths.length).toBeGreaterThan(0);
     const nonDirective = paths.filter((p) => !p.includes("deft-directive-"));
     expect(nonDirective).toEqual([]);

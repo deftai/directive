@@ -1,10 +1,22 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { resolveRepoRoot, runDeftTs } from "./deft-ts-runner.js";
 
 const repoRoot = resolveRepoRoot();
+// #1875: shippable content (packs/) lives under content/ in the source repo and
+// is flattened in a consumer deposit. Probe for content/ so this resolves both.
+function contentRoot(root: string): string {
+  const candidate = join(root, "content");
+  try {
+    if (statSync(candidate).isDirectory()) return candidate;
+  } catch {
+    // No content/ dir -> flattened deposit; fall through to root.
+  }
+  return root;
+}
+const contentDir = contentRoot(repoRoot);
 const temps: string[] = [];
 afterAll(() => {
   for (const t of temps) rmSync(t, { recursive: true, force: true });
@@ -20,7 +32,7 @@ describe("deft-ts pack-render", () => {
   it("renders legacy source/output pair", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-pack-legacy-"));
     temps.push(root);
-    const source = join(repoRoot, "packs", "lessons", "lessons-pack-0.1.json");
+    const source = join(contentDir, "packs", "lessons", "lessons-pack-0.1.json");
     const output = join(root, "lessons.md");
     const result = runDeftTs("pack-render", ["--source", source, "--output", output]);
     expect(result.exitCode).toBe(0);
@@ -30,7 +42,7 @@ describe("deft-ts pack-render", () => {
   it("exits 1 when --check detects drift", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-pack-drift-"));
     temps.push(root);
-    const source = join(repoRoot, "packs", "lessons", "lessons-pack-0.1.json");
+    const source = join(contentDir, "packs", "lessons", "lessons-pack-0.1.json");
     const output = join(root, "lessons.md");
     writeFileSync(output, "stale projection\n", "utf8");
     const result = runDeftTs("pack-render", ["--check", "--source", source, "--output", output]);

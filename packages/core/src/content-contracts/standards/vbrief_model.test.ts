@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isFile, loadJson, readText, repoRoot } from "./_helpers.js";
+import { isFile, loadJson, readText, resolveContentPath } from "./_helpers.js";
 
 describe("test_vbrief_model.py", () => {
   const FILENAME_PATTERN = /^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$/;
@@ -18,8 +18,9 @@ describe("test_vbrief_model.py", () => {
   ]);
 
   it("test_skills_dir_only_deft_directive_prefixed", () => {
-    const subdirs = readdirSync(join(repoRoot(), "skills")).filter((d) =>
-      statSync(join(repoRoot(), "skills", d)).isDirectory(),
+    const skillsDir = resolveContentPath("skills");
+    const subdirs = readdirSync(skillsDir).filter((d) =>
+      statSync(join(skillsDir, d)).isDirectory(),
     );
     expect(subdirs.length).toBeGreaterThan(0);
     const stubs = new Set([
@@ -37,8 +38,9 @@ describe("test_vbrief_model.py", () => {
   });
 
   it("test_skills_dir_has_no_bare_deft_prefix", () => {
-    const subdirs = readdirSync(join(repoRoot(), "skills")).filter((d) =>
-      statSync(join(repoRoot(), "skills", d)).isDirectory(),
+    const skillsDir = resolveContentPath("skills");
+    const subdirs = readdirSync(skillsDir).filter((d) =>
+      statSync(join(skillsDir, d)).isDirectory(),
     );
     const stubs = new Set([
       "deft-build",

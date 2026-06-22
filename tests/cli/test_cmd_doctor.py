@@ -496,12 +496,16 @@ def _seed_deft_repo_markers(root: Path) -> None:
     fixtures that lack these files are correctly classified as NOT the
     deft repo.
     """
-    (root / "templates").mkdir(parents=True, exist_ok=True)
-    (root / "templates" / "agents-entry.md").write_text(
+    # Post-#1875 content/ move: the positive markers are shippable content and
+    # now live under content/ in the SOURCE repo (the C1 flatten strips that
+    # prefix only in a consumer deposit). Seed them where the real source
+    # checkout carries them so _DEFT_REPO_POSITIVE_MARKERS resolves.
+    (root / "content" / "templates").mkdir(parents=True, exist_ok=True)
+    (root / "content" / "templates" / "agents-entry.md").write_text(
         "# fake agents-entry template\n", encoding="utf-8"
     )
-    (root / "skills" / "deft-directive-build").mkdir(parents=True, exist_ok=True)
-    (root / "skills" / "deft-directive-build" / "SKILL.md").write_text(
+    (root / "content" / "skills" / "deft-directive-build").mkdir(parents=True, exist_ok=True)
+    (root / "content" / "skills" / "deft-directive-build" / "SKILL.md").write_text(
         "# fake deft-directive-build SKILL\n", encoding="utf-8"
     )
 

@@ -14,7 +14,7 @@ afterAll(() => {
 
 function manifestJson(entries: Array<Record<string, unknown>>): string {
   return JSON.stringify({
-    version: 1,
+    version: 2,
     buckets: [
       { id: "content", label: "Content", description: "ships" },
       { id: "engine", label: "Engine", description: "runtime" },
@@ -23,16 +23,23 @@ function manifestJson(entries: Array<Record<string, unknown>>): string {
   });
 }
 
-/** Build a tmp git repo with two top-level entries and a manifest. */
+/**
+ * Build a tmp git repo with a content/ tree (skills + conventions) and a root
+ * engine dir, with the manifest at the post-#1875 default location
+ * content/conventions/content-manifest.json.
+ */
 function repo(entries: Array<Record<string, unknown>>): string {
   const root = mkdtempSync(join(tmpdir(), "deft-cm-cli-"));
   temps.push(root);
-  mkdirSync(join(root, "skills"), { recursive: true });
-  writeFileSync(join(root, "skills", "a.md"), "skill\n");
+  mkdirSync(join(root, "content", "skills"), { recursive: true });
+  writeFileSync(join(root, "content", "skills", "a.md"), "skill\n");
   mkdirSync(join(root, "packages"), { recursive: true });
   writeFileSync(join(root, "packages", "b.ts"), "export {};\n");
-  mkdirSync(join(root, "conventions"), { recursive: true });
-  writeFileSync(join(root, "conventions", "content-manifest.json"), manifestJson(entries));
+  mkdirSync(join(root, "content", "conventions"), { recursive: true });
+  writeFileSync(
+    join(root, "content", "conventions", "content-manifest.json"),
+    manifestJson(entries),
+  );
   execFileSync("git", ["init", "-q"], { cwd: root });
   execFileSync("git", ["add", "-A"], { cwd: root });
   return root;
@@ -67,20 +74,20 @@ describe("parseArgs", () => {
 });
 
 describe("run", () => {
-  it("returns 0 when every top-level entry is classified", () => {
+  it("returns 0 when the location invariant holds (every content/ child classified)", () => {
     const root = repo([
-      { path: "skills", bucket: "content", note: "skills" },
+      { path: "content/skills", bucket: "content", note: "skills" },
+      { path: "content/conventions", bucket: "content", note: "conventions" },
       { path: "packages", bucket: "engine", note: "engine" },
-      { path: "conventions", bucket: "content", note: "conventions" },
     ]);
     expect(silentRun(["--project-root", root])).toBe(0);
   });
-  it("returns 1 when a top-level entry is unclassified", () => {
-    const root = repo([{ path: "skills", bucket: "content", note: "skills" }]);
+  it("returns 1 when a content/ child is unclassified", () => {
+    const root = repo([{ path: "content/skills", bucket: "content", note: "skills" }]);
     expect(silentRun(["--project-root", root])).toBe(1);
   });
   it("returns 2 when the manifest is missing", () => {
-    const root = repo([{ path: "skills", bucket: "content", note: "skills" }]);
+    const root = repo([{ path: "content/skills", bucket: "content", note: "skills" }]);
     expect(silentRun(["--project-root", root, "--manifest", join(root, "nope.json")])).toBe(2);
   });
   it("returns 2 for a bad argument", () => {
@@ -88,9 +95,9 @@ describe("run", () => {
   });
   it("writes the clean message to stdout and drift to stderr", () => {
     const cleanRoot = repo([
-      { path: "skills", bucket: "content", note: "skills" },
+      { path: "content/skills", bucket: "content", note: "skills" },
+      { path: "content/conventions", bucket: "content", note: "conventions" },
       { path: "packages", bucket: "engine", note: "engine" },
-      { path: "conventions", bucket: "content", note: "conventions" },
     ]);
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
@@ -103,7 +110,7 @@ describe("run", () => {
       err.mockRestore();
     }
 
-    const driftRoot = repo([{ path: "skills", bucket: "content", note: "skills" }]);
+    const driftRoot = repo([{ path: "content/skills", bucket: "content", note: "skills" }]);
     const out2 = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     const err2 = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     try {

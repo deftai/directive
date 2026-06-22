@@ -50,9 +50,15 @@ from typing import Any
 LOG = logging.getLogger(__name__)
 
 # Canonical default storage location, resolved relative to the repo root.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _content_root import content_root  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# The .eval/ runtime log stays at the root vbrief/ (repo-dev); only the shipped
+# schemas moved under content/ in the #1875 C1 flatten dual-context.
 DEFAULT_LOG_PATH = REPO_ROOT / "vbrief" / ".eval" / "candidates.jsonl"
-SCHEMA_PATH = REPO_ROOT / "vbrief" / "schemas" / "candidates.schema.json"
+SCHEMA_PATH = content_root(REPO_ROOT) / "vbrief" / "schemas" / "candidates.schema.json"
 
 # Frozen vocabulary mirrored from candidates.schema.json. Keep in lockstep.
 # ``resume-eligible`` (#1123 / D3) is appended by the resume-condition

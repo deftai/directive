@@ -20,7 +20,7 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-PATTERNS_FILE = _REPO_ROOT / "patterns" / "prompt-assembly-layer-ordering.md"
+PATTERNS_FILE = _REPO_ROOT / "content/patterns/prompt-assembly-layer-ordering.md"
 REFERENCES_MD = _REPO_ROOT / "REFERENCES.md"
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"

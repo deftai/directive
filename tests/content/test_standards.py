@@ -100,7 +100,7 @@ def _exempt_set(check: str) -> set[str]:
 #    RECONCILIATION.md) -- these are tracked (committed) but contain
 #    captured legacy content verbatim; they are historical records, not
 #    framework docs.
-_MIGRATION_ARTIFACT_TREES = ("vbrief/migration",)
+_MIGRATION_ARTIFACT_TREES = ("vbrief/migration", "content/vbrief/migration")
 
 
 def _is_migration_artifact(rel: str) -> bool:
@@ -260,7 +260,7 @@ def test_no_warping_references(rel_path: str) -> None:
 
 def test_body_file_os_temp_dir_guidance() -> None:
     """scm/github.md must contain OS temp directory guidance for --body-file."""
-    text = (_REPO_ROOT / "scm/github.md").read_text(encoding="utf-8", errors="replace")
+    text = (_REPO_ROOT / "content/scm/github.md").read_text(encoding="utf-8", errors="replace")
     assert "GetTempFileName" in text, (
         "scm/github.md: missing PowerShell OS temp dir pattern "
         "(expected GetTempFileName for --body-file guidance)"

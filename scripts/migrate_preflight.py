@@ -53,6 +53,7 @@ from typing import NamedTuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _content_root import content_root  # noqa: E402
 from _precutover import (  # noqa: E402
     detect_pre_cutover_legacy,
     is_current_generated_specification,
@@ -135,7 +136,7 @@ def check_layout(deft_root: Path, project_root: Path) -> CheckResult:
             ),
         )
 
-    schemas_dir = deft_root / "vbrief" / "schemas"
+    schemas_dir = content_root(deft_root) / "vbrief" / "schemas"
     if not schemas_dir.is_dir():
         return CheckResult(
             "layout",

@@ -102,7 +102,7 @@ class TestReadmeVbriefCentric:
 class TestBrownfieldGuide:
     """docs/BROWNFIELD.md must exist and cover the acceptance criteria from #408."""
 
-    BROWNFIELD_PATH = _REPO_ROOT / "docs" / "BROWNFIELD.md"
+    BROWNFIELD_PATH = _REPO_ROOT / "content/docs/BROWNFIELD.md"
 
     def _content(self) -> str:
         assert self.BROWNFIELD_PATH.is_file(), (
@@ -174,10 +174,10 @@ class TestBrownfieldGuide:
 
     def test_referenced_by_quickstart(self):
         """QUICK-START.md must link to docs/BROWNFIELD.md per charter."""
-        quickstart = (_REPO_ROOT / "QUICK-START.md").read_text(encoding="utf-8")
-        assert "docs/BROWNFIELD.md" in quickstart, (
-            "QUICK-START.md must link to docs/BROWNFIELD.md (charter Phase 3 item)."
-        )
+        quickstart = (_REPO_ROOT / "content/QUICK-START.md").read_text(encoding="utf-8")
+        assert (
+            "docs/BROWNFIELD.md" in quickstart
+        ), "QUICK-START.md must link to docs/BROWNFIELD.md (charter Phase 3 item)."
 
     def test_rfc2119_legend_present(self):
         """BROWNFIELD.md uses deft's standard RFC 2119 notation; legend must be present."""

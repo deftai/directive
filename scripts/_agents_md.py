@@ -35,10 +35,15 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _content_root import content_root  # noqa: E402
 
 # --- Managed-section marker contract (verbatim from run) -------------------
 #
@@ -88,7 +93,7 @@ def framework_root() -> Path:
 
 def _agents_template_path() -> Path:
     """Return the absolute path to the canonical AGENTS.md template."""
-    return framework_root() / "templates" / "agents-entry.md"
+    return content_root(framework_root()) / "templates" / "agents-entry.md"
 
 
 def _read_agents_template() -> str | None:

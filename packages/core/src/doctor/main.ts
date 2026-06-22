@@ -1,8 +1,14 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { contentRoot } from "../content-root.js";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import { runChecks } from "./checks.js";
-import { EXPECTED_FRAMEWORK_DIRS, TASKFILE_INCLUDE_SNIPPET, UV_INSTALL_URL } from "./constants.js";
+import {
+  EXPECTED_CONTENT_DIRS,
+  EXPECTED_FRAMEWORK_DIRS,
+  TASKFILE_INCLUDE_SNIPPET,
+  UV_INSTALL_URL,
+} from "./constants.js";
 import {
   decideThrottle,
   formatIsoZ,
@@ -152,17 +158,25 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     sink.blank();
   }
   sink.info("Checking Deft structure...");
-  for (const dirName of EXPECTED_FRAMEWORK_DIRS) {
-    const dirPath = join(frameworkRoot, dirName);
-    const isDir =
-      seams.isDir ??
-      ((p: string) => {
-        try {
-          return statSync(p).isDirectory();
-        } catch {
-          return false;
-        }
-      });
+  const isDir =
+    seams.isDir ??
+    ((p: string) => {
+      try {
+        return statSync(p).isDirectory();
+      } catch {
+        return false;
+      }
+    });
+  // #1875: shippable-content dirs resolve under content/ in a source checkout
+  // and at the root in a flattened consumer deposit; engine/lifecycle dirs stay
+  // at the framework root in both layouts.
+  const contentBase = contentRoot(frameworkRoot);
+  const layoutChecks: Array<[dirName: string, base: string]> = [
+    ...EXPECTED_CONTENT_DIRS.map((d) => [d, contentBase] as [string, string]),
+    ...EXPECTED_FRAMEWORK_DIRS.map((d) => [d, frameworkRoot] as [string, string]),
+  ];
+  for (const [dirName, base] of layoutChecks) {
+    const dirPath = join(base, dirName);
     if (isDir(dirPath)) {
       sink.success(`Directory: ${dirName}/`);
     } else {

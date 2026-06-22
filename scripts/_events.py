@@ -75,6 +75,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _content_root import content_root  # noqa: E402
+
 # Default event log location (project-local). Lives under ``.deft-cache/``
 # -- which the canonical gitignore deposit already covers -- rather than
 # ``.deft/``, which is no longer blanket-gitignored now that ``.deft/core/``
@@ -86,7 +90,7 @@ DEFAULT_EVENT_LOG: Path = Path(".deft-cache") / "events.jsonl"
 # this module so tests and direct script invocations both find it without
 # depending on cwd.
 _REGISTRY_PATH: Path = (
-    Path(__file__).resolve().parent.parent / "events" / "registry.json"
+    content_root(Path(__file__).resolve().parent.parent) / "events" / "registry.json"
 )
 
 # Behavioral event category enum value -- this helper only emits events

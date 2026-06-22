@@ -48,6 +48,7 @@ from typing import Any
 # Make sibling helpers importable both when run as __main__ and when imported by tests.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _content_root import content_root  # noqa: E402
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 
 reconfigure_stdio()
@@ -281,7 +282,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     root = _resolve_root(args.root)
-    map_path = args.map if args.map is not None else (root / DEFAULT_MAP_PATH)
+    # Post-#1875 content/ move: the ROM data file moved under content/ (it is
+    # shippable convention content). Resolve the MAP against the content root
+    # (content_root() falls back to ``root`` when no content/ dir exists, so the
+    # tmp-fixture unit tests still resolve a root-level map). The owner_file
+    # values, by contrast, are stored SOURCE-REPO-relative to the repo root --
+    # moved content files already carry their ``content/`` prefix and the
+    # root-resident harness entries (AGENTS.md, main.md) and repo-dev owners
+    # (meta/lessons.md) sit at root -- so they resolve against ``root`` directly.
+    # rule-ownership-lint is a source-repo self-test (it does not run in a
+    # flattened consumer deposit), so root-relative resolution is correct here.
+    content_base = content_root(root)
+    map_path = args.map if args.map is not None else (content_base / DEFAULT_MAP_PATH)
 
     try:
         payload = _load_map(map_path)

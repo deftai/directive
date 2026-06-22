@@ -998,7 +998,7 @@ class TestSchemaAlignment:
 
     @pytest.fixture(scope="class")
     def schema(self) -> dict[str, Any]:
-        path = REPO_ROOT / "vbrief" / "schemas" / "cache-meta.schema.json"
+        path = REPO_ROOT / "content/vbrief/schemas/cache-meta.schema.json"
         return json.loads(path.read_text(encoding="utf-8"))
 
     def test_top_level_required_fields_match(self, schema: dict[str, Any]) -> None:

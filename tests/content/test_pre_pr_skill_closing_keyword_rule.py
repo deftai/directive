@@ -38,7 +38,7 @@ def _read(rel: str) -> str:
 
 def test_pre_pr_skill_phase4_rule_present() -> None:
     """Phase 4 (Diff) MUST carry the !-rule invoking pr:check-closing-keywords."""
-    text = _read("skills/deft-directive-pre-pr/SKILL.md")
+    text = _read("content/skills/deft-directive-pre-pr/SKILL.md")
     # The rule MUST live under the Phase 4 -- Diff heading.
     assert "### Phase 4 -- Diff" in text, (
         "skills/deft-directive-pre-pr/SKILL.md missing Phase 4 (Diff) heading"
@@ -63,7 +63,7 @@ def test_pre_pr_skill_phase4_rule_present() -> None:
 
 def test_pre_pr_skill_phase4_recurrence_record_present() -> None:
     """The rule + anti-pattern MUST cite the Layer 1/2/3 recurrence stack."""
-    text = _read("skills/deft-directive-pre-pr/SKILL.md")
+    text = _read("content/skills/deft-directive-pre-pr/SKILL.md")
     for issue_ref in ("#167", "#697", "#401", "#700", "#735"):
         assert issue_ref in text, (
             f"skills/deft-directive-pre-pr/SKILL.md MUST cite {issue_ref} as part of "
@@ -73,7 +73,7 @@ def test_pre_pr_skill_phase4_recurrence_record_present() -> None:
 
 def test_pre_pr_skill_phase4_anti_pattern_present() -> None:
     """The Anti-Patterns block MUST carry the \u2297 entry for the lint."""
-    text = _read("skills/deft-directive-pre-pr/SKILL.md")
+    text = _read("content/skills/deft-directive-pre-pr/SKILL.md")
     # The \u2297 (MUST NOT) anti-pattern citing #737 MUST exist.
     assert "## Anti-Patterns" in text
     # Stable substring on the anti-pattern itself.
@@ -90,10 +90,10 @@ def test_pre_pr_skill_phase4_anti_pattern_present() -> None:
 
 def test_swarm_skill_phase6_layer0_cross_reference_present() -> None:
     """Phase 6 Step 1 MUST carry a Layer 0 (prevention) cross-reference."""
-    text = _read("skills/deft-directive-swarm/SKILL.md")
-    assert "### Step 1: Merge" in text, (
-        "skills/deft-directive-swarm/SKILL.md missing Phase 6 Step 1 heading"
-    )
+    text = _read("content/skills/deft-directive-swarm/SKILL.md")
+    assert (
+        "### Step 1: Merge" in text
+    ), "skills/deft-directive-swarm/SKILL.md missing Phase 6 Step 1 heading"
     # The cross-reference MUST mention BOTH Layer 0 and Layer 3 to
     # disambiguate from the existing Layer 3 rule.
     assert "Layer 0" in text, (

@@ -28,8 +28,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # ---------------------------------------------------------------------------
 
 SKILL_PATHS = [
-    "skills/deft-directive-build/SKILL.md",
-    "skills/deft-directive-setup/SKILL.md",
+    "content/skills/deft-directive-build/SKILL.md",
+    "content/skills/deft-directive-setup/SKILL.md",
 ]
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"
@@ -125,7 +125,7 @@ def test_skill_platform_detection_env_override(rel_path: str) -> None:
 
 def test_deft_directive_build_user_md_gate() -> None:
     """deft-directive-build must contain a USER.md Gate section."""
-    rel_path = "skills/deft-directive-build/SKILL.md"
+    rel_path = "content/skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
     assert USER_MD_GATE_HEADING in text, (
         f"{rel_path}: missing '{USER_MD_GATE_HEADING}' section -- "
@@ -135,7 +135,7 @@ def test_deft_directive_build_user_md_gate() -> None:
 
 def test_deft_directive_build_user_md_gate_redirects_to_deft_setup() -> None:
     """deft-directive-build USER.md Gate must reference deft-directive-setup."""
-    rel_path = "skills/deft-directive-build/SKILL.md"
+    rel_path = "content/skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
     assert "deft-directive-setup" in text, (
         f"{rel_path}: USER.md Gate must reference deft-directive-setup as the "
@@ -149,7 +149,7 @@ def test_deft_directive_build_user_md_gate_redirects_to_deft_setup() -> None:
 
 def test_deft_setup_has_no_user_md_gate() -> None:
     """deft-directive-setup must not have a USER.md Gate section (that belongs in deft-build)."""
-    rel_path = "skills/deft-directive-setup/SKILL.md"
+    rel_path = "content/skills/deft-directive-setup/SKILL.md"
     text = _read_skill(rel_path)
     assert USER_MD_GATE_HEADING not in text, (
         f"{rel_path}: should not contain '{USER_MD_GATE_HEADING}' — "
@@ -163,7 +163,7 @@ def test_deft_setup_has_no_user_md_gate() -> None:
 
 def test_phase2_inference_no_deft_build_files() -> None:
     """Phase 2 Inference must forbid scanning ./deft/ for build files."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     assert "\u2297" in text and "./deft/" in text and "build files" in text.lower(), (
         "skills/deft-directive-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
         "forbidding scanning ./deft/ for build files"
@@ -172,7 +172,7 @@ def test_phase2_inference_no_deft_build_files() -> None:
 
 def test_phase2_inference_no_deft_git() -> None:
     """Phase 2 Inference must forbid running git inside ./deft/."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     assert "git" in text.lower() and "./deft/" in text and "framework repo" in text.lower(), (
         "skills/deft-directive-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
         "forbidding git commands inside ./deft/"
@@ -185,7 +185,7 @@ def test_phase2_inference_no_deft_git() -> None:
 
 def test_phase2_inference_directory_name_fallback() -> None:
     """Phase 2 Inference must fall back to directory name when no build files found."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     assert "directory name" in text.lower() and "no build files" in text.lower(), (
         "skills/deft-directive-setup/SKILL.md: Phase 2 Inference must contain a fallback rule "
         "using the current directory name when no build files are found"
@@ -198,7 +198,7 @@ def test_phase2_inference_directory_name_fallback() -> None:
 
 def test_user_md_template_no_primary_languages() -> None:
     """USER.md template must not contain a Primary Languages field."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     # The template is between ```markdown and ``` — check the whole file
     assert "**Primary Languages**" not in text, (
         "skills/deft-directive-setup/SKILL.md: USER.md template still contains "
@@ -208,7 +208,7 @@ def test_user_md_template_no_primary_languages() -> None:
 
 def test_phase1_track1_no_language_step() -> None:
     """Phase 1 Track 1 must not ask about preferred languages."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     # Track 1 should not have "Ask preferred languages" in its steps
     assert "Ask preferred languages" not in text, (
         "skills/deft-directive-setup/SKILL.md: Phase 1 Track 1 still asks about "
@@ -222,7 +222,7 @@ def test_phase1_track1_no_language_step() -> None:
 
 def test_phase2_track1_has_deployment_platform() -> None:
     """Phase 2 Track 1 must ask about deployment platform before language."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     assert "deployment platform" in text.lower(), (
         "skills/deft-directive-setup/SKILL.md: Phase 2 Track 1 must ask about "
         "deployment platform (#108)"
@@ -231,7 +231,7 @@ def test_phase2_track1_has_deployment_platform() -> None:
 
 def test_phase2_track1_platform_before_language() -> None:
     """Deployment platform question must appear before language question in Track 1."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     platform_pos = text.lower().find("deployment platform")
     # Find the language step that follows platform (Step 4 in Track 1)
     language_pos = text.lower().find("ask languages", platform_pos)
@@ -243,7 +243,7 @@ def test_phase2_track1_platform_before_language() -> None:
 
 def test_phase2_track1_progressive_other_disclosure() -> None:
     """Phase 2 Track 1 language step must include progressive Other disclosure."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     assert "Tier 2" in text and "Tier 3" in text, (
         "skills/deft-directive-setup/SKILL.md: Phase 2 Track 1 language step must include "
         "progressive Other disclosure (Tier 2, Tier 3)"
@@ -252,7 +252,7 @@ def test_phase2_track1_progressive_other_disclosure() -> None:
 
 def test_phase2_track1_missing_standards_warning() -> None:
     """Phase 2 Track 1 must warn when entered language has no standards file."""
-    text = _read_skill("skills/deft-directive-setup/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-setup/SKILL.md")
     assert "standards file" in text.lower() and "general defaults" in text.lower(), (
         "skills/deft-directive-setup/SKILL.md: Phase 2 Track 1 must warn when entered "
         "language has no deft standards file"
@@ -265,7 +265,7 @@ def test_phase2_track1_missing_standards_warning() -> None:
 
 def test_deft_directive_build_references_task_check() -> None:
     """deft-directive-build must reference 'task check' as a quality gate."""
-    rel_path = "skills/deft-directive-build/SKILL.md"
+    rel_path = "content/skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
     assert "task check" in text, (
         f"{rel_path}: must reference 'task check' -- Taskfile is a hard dependency"
@@ -274,7 +274,7 @@ def test_deft_directive_build_references_task_check() -> None:
 
 def test_deft_directive_build_references_task_test_coverage() -> None:
     """deft-directive-build must reference 'task test:coverage'."""
-    rel_path = "skills/deft-directive-build/SKILL.md"
+    rel_path = "content/skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
     assert "task test:coverage" in text, (
         f"{rel_path}: must reference 'task test:coverage' -- Taskfile is a hard dependency"
@@ -285,7 +285,7 @@ def test_deft_directive_build_references_task_test_coverage() -> None:
 # 12. deft-directive-swarm skill — file existence and RFC2119 (#188, #199, #317)
 # ---------------------------------------------------------------------------
 
-_SWARM_PATH = "skills/deft-directive-swarm/SKILL.md"
+_SWARM_PATH = "content/skills/deft-directive-swarm/SKILL.md"
 
 
 def test_deft_directive_swarm_exists() -> None:
@@ -515,8 +515,8 @@ def test_deft_directive_swarm_greptile_rebase_latency() -> None:
 #     (#146, t2.7.5; #318, vBRIEF cutover rename + rewrite)
 # ---------------------------------------------------------------------------
 
-_SYNC_PATH = "skills/deft-directive-sync/SKILL.md"
-_SYNC_POINTER_PATH = ".agents/skills/deft-directive-sync/SKILL.md"
+_SYNC_PATH = "content/skills/deft-directive-sync/SKILL.md"
+_SYNC_POINTER_PATH = "content/.agents/skills/deft-directive-sync/SKILL.md"
 
 
 def test_deft_directive_sync_exists() -> None:
@@ -578,7 +578,7 @@ def test_deft_directive_sync_pointer_exists() -> None:
         f"Thin pointer missing: {_SYNC_POINTER_PATH}"
     )
 
-_REVIEW_CYCLE_PATH = "skills/deft-directive-review-cycle/SKILL.md"
+_REVIEW_CYCLE_PATH = "content/skills/deft-directive-review-cycle/SKILL.md"
 
 def test_deft_directive_sync_lifecycle_folder_validation() -> None:
     """deft-directive-sync must validate lifecycle folder structure."""
@@ -671,8 +671,8 @@ def test_deft_review_cycle_mcp_fallback() -> None:
 #     (#316, vBRIEF cutover rename + rewrite from deft-roadmap-refresh)
 # ---------------------------------------------------------------------------
 
-_REFINEMENT_PATH = "skills/deft-directive-refinement/SKILL.md"
-_REFINEMENT_POINTER_PATH = ".agents/skills/deft-directive-refinement/SKILL.md"
+_REFINEMENT_PATH = "content/skills/deft-directive-refinement/SKILL.md"
+_REFINEMENT_POINTER_PATH = "content/.agents/skills/deft-directive-refinement/SKILL.md"
 
 
 def test_deft_directive_refinement_exists() -> None:
@@ -959,10 +959,10 @@ def test_deft_review_cycle_send_message() -> None:
 
 def test_deft_directive_build_precommit_file_review() -> None:
     """deft-directive-build must include mandatory pre-commit file review step."""
-    text = _read_skill("skills/deft-directive-build/SKILL.md")
-    assert "encoding errors" in text.lower() and "unintended duplication" in text.lower(), (
-        "skills/deft-directive-build/SKILL.md: missing pre-commit file review step (#239, t1.11.4)"
-    )
+    text = _read_skill("content/skills/deft-directive-build/SKILL.md")
+    assert (
+        "encoding errors" in text.lower() and "unintended duplication" in text.lower()
+    ), "skills/deft-directive-build/SKILL.md: missing pre-commit file review step (#239, t1.11.4)"
 
 
 # ---------------------------------------------------------------------------
@@ -999,12 +999,12 @@ def test_deft_review_cycle_unchecked_p1_antipattern() -> None:
 # 27. Semantic contradiction check in deft-build and deft-pre-pr (#251, t1.12.3)
 # ---------------------------------------------------------------------------
 
-_PRE_PR_PATH = "skills/deft-directive-pre-pr/SKILL.md"
+_PRE_PR_PATH = "content/skills/deft-directive-pre-pr/SKILL.md"
 
 
 def test_deft_directive_build_semantic_contradiction_rule() -> None:
     """deft-directive-build must require contradiction scan for !/\u2297 rules."""
-    text = _read_skill("skills/deft-directive-build/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-build/SKILL.md")
     assert "semantic contradictions" in text.lower(), (
         "skills/deft-directive-build/SKILL.md: "
         "missing semantic contradiction check rule (#251, t1.12.3)"
@@ -1013,7 +1013,7 @@ def test_deft_directive_build_semantic_contradiction_rule() -> None:
 
 def test_deft_directive_build_strength_duplicate_rule() -> None:
     """deft-directive-build must require strength-duplicate check."""
-    text = _read_skill("skills/deft-directive-build/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-build/SKILL.md")
     assert (
         "strength duplicates" in text.lower()
         and "weaker-strength duplicate" in text.lower()
@@ -1025,7 +1025,7 @@ def test_deft_directive_build_strength_duplicate_rule() -> None:
 
 def test_deft_directive_build_contradiction_antipattern() -> None:
     """deft-directive-build must prohibit adding prohibition without scanning."""
-    text = _read_skill("skills/deft-directive-build/SKILL.md")
+    text = _read_skill("content/skills/deft-directive-build/SKILL.md")
     assert (
         "prohibition" in text.lower()
         and "softer-strength" in text.lower()
@@ -1138,7 +1138,7 @@ def test_deft_directive_swarm_antipattern_no_skip_phase5_gate() -> None:
 # 29. deft-setup USER.md/PROJECT.md deft_version field (#270, t3.2.1)
 # ---------------------------------------------------------------------------
 
-_SETUP_PATH = "skills/deft-directive-setup/SKILL.md"
+_SETUP_PATH = "content/skills/deft-directive-setup/SKILL.md"
 
 
 def test_deft_setup_user_md_template_has_deft_version() -> None:
@@ -1195,8 +1195,8 @@ def test_deft_setup_deft_version_must_rule() -> None:
 # 30. deft-interview skill -- existence, structure, and content (#296, t2.11.1)
 # ---------------------------------------------------------------------------
 
-_INTERVIEW_PATH = "skills/deft-directive-interview/SKILL.md"
-_INTERVIEW_POINTER_PATH = ".agents/skills/deft-directive-interview/SKILL.md"
+_INTERVIEW_PATH = "content/skills/deft-directive-interview/SKILL.md"
+_INTERVIEW_POINTER_PATH = "content/.agents/skills/deft-directive-interview/SKILL.md"
 
 
 def test_deft_interview_exists() -> None:
@@ -1554,7 +1554,7 @@ def test_no_bare_deft_skill_directories() -> None:
     name but must contain the deprecation redirect sentinel -- that is
     enforced separately in tests/content/test_deprecated_skill_redirects.py.
     """
-    skills_dir = _REPO_ROOT / "skills"
+    skills_dir = _REPO_ROOT / "content/skills"
     bare_deft = [
         d.name for d in skills_dir.iterdir()
         if d.is_dir()
@@ -1577,7 +1577,7 @@ def test_agents_md_routing_all_deft_directive_paths() -> None:
     """
     text = _read_skill("AGENTS.md")
     pattern = re.compile(
-        r"\u2192\s+`(skills/[^`]+)`",
+        r"\u2192\s+`(content/skills/[^`]+)`",
     )
     paths = pattern.findall(text)
     assert paths, "No routing paths found in AGENTS.md Skill Routing section"
@@ -1800,7 +1800,7 @@ def test_deft_directive_swarm_phase6_slack_override_merge_callout() -> None:
 # 39. #727 -- canonical poller template + Sub-Agent Role Separation rules
 # ---------------------------------------------------------------------------
 
-_POLLER_TEMPLATE_PATH = "templates/swarm-greptile-poller-prompt.md"
+_POLLER_TEMPLATE_PATH = "content/templates/swarm-greptile-poller-prompt.md"
 
 _POLLER_TEMPLATE_PLACEHOLDERS = (
     "{pr_number}",

@@ -50,8 +50,8 @@ _UPGRADING_REFERENCE_CANONICAL = ".deft/core/UPGRADING.md"
 _UPGRADING_REFERENCE_LEGACY = "deft/UPGRADING.md"
 
 _REDIRECT_STUB_PATHS = (
-    "skills/deft-setup/SKILL.md",
-    "skills/deft-build/SKILL.md",
+    "content/skills/deft-setup/SKILL.md",
+    "content/skills/deft-build/SKILL.md",
 )
 _CANONICAL_PATHS = (
     "main.md",

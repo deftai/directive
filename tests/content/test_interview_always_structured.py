@@ -26,8 +26,8 @@ import pytest
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_INTERVIEW_PATH = "skills/deft-directive-interview/SKILL.md"
-_SETUP_PATH = "skills/deft-directive-setup/SKILL.md"
+_INTERVIEW_PATH = "content/skills/deft-directive-interview/SKILL.md"
+_SETUP_PATH = "content/skills/deft-directive-setup/SKILL.md"
 
 
 @pytest.fixture(scope="module")

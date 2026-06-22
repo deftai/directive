@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { contentRoot } from "../content-root.js";
 import { loadJsonFile } from "../verify-source/code-structure-validate.js";
 import { CODEBASE_MAP_SCHEMA_PATH } from "./constants.js";
 import {
@@ -51,7 +52,9 @@ function loadCodebaseMapSchema(): Record<string, unknown> {
   if (cachedSchema !== null) {
     return cachedSchema;
   }
-  const schemaPath = join(REPO_ROOT, CODEBASE_MAP_SCHEMA_PATH);
+  // #1875: the codebase-map schema is shippable content (content/vbrief/schemas/
+  // in source, flattened to vbrief/schemas/ in a consumer deposit).
+  const schemaPath = join(contentRoot(REPO_ROOT), CODEBASE_MAP_SCHEMA_PATH);
   const schema = JSON.parse(readFileSync(schemaPath, { encoding: "utf8" })) as unknown;
   if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
     throw new Error(`${CODEBASE_MAP_SCHEMA_PATH} must contain a JSON object`);

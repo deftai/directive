@@ -1,6 +1,6 @@
 # Versioning
 Canonical reference for the version sources Deft uses across runtime, release tooling, and Python packaging surfaces. Established in #771 to close the gap between the release-tag truth and the (previously stale) ``pyproject.toml`` ``[project].version``.
-**See also**: [scm/changelog.md](../scm/changelog.md), [scm/github.md](../scm/github.md), [skills/deft-directive-release/SKILL.md](../skills/deft-directive-release/SKILL.md).
+**See also**: [scm/changelog.md](../content/scm/changelog.md), [scm/github.md](../content/scm/github.md), [skills/deft-directive-release/SKILL.md](../content/skills/deft-directive-release/SKILL.md).
 ## TL;DR
 - The annotated git tag (``vX.Y.Z``) is the **single source of truth** for what version Deft is at.
 - Three surfaces read from that one source via deterministic helpers; none of them edit the value by hand.

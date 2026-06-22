@@ -21,7 +21,7 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
-PATTERNS_EXECUTOR = _REPO_ROOT / "patterns" / "executor-layer-credentials.md"
+PATTERNS_EXECUTOR = _REPO_ROOT / "content/patterns/executor-layer-credentials.md"
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"
 

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { contentRoot } from "../content-root.js";
 import { agentsRefreshPlan, renderManagedSection, stripManagedSectionAttrs } from "./agents-md.js";
 import {
   contentPrefix,
@@ -11,8 +12,14 @@ import {
 } from "./resolve-changelog-unreleased.js";
 import { disambiguateSlug, normalizeSlug } from "./slug-normalize.js";
 
+// #1875: templates/ moved under content/ in the source repo (flattened in a
+// consumer deposit). Resolve via content-root probing so both layouts work.
 const TEMPLATE = readFileSync(
-  join(import.meta.dirname, "..", "..", "..", "..", "templates", "agents-entry.md"),
+  join(
+    contentRoot(join(import.meta.dirname, "..", "..", "..", "..")),
+    "templates",
+    "agents-entry.md",
+  ),
   "utf8",
 );
 

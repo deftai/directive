@@ -337,7 +337,7 @@ class TestReferenceDocCrossCheck:
     canonical helpers exposed by this module so the heuristic and the
     written checklist do not drift apart."""
 
-    _IP_RISK_DOC = REPO_ROOT / "references" / "ip-risk.md"
+    _IP_RISK_DOC = REPO_ROOT / "content/references/ip-risk.md"
 
     def test_reference_doc_exists(self):
         assert self._IP_RISK_DOC.is_file(), (

@@ -32,7 +32,7 @@ class TestRapidVbriefOutput:
     """rapid.md must reference v0.20 date-prefixed proposed/ vBRIEFs,
     PROJECT-DEFINITION, contract, and never legacy specification.vbrief.json (s5 migration)."""
 
-    _text = _read("strategies/rapid.md")
+    _text = _read("content/strategies/rapid.md")
 
     def test_v020_note_and_contract_citation(self) -> None:
         assert "v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166)" in self._text
@@ -96,7 +96,7 @@ class TestRapidVbriefOutput:
 class TestBddVbriefOutput:
     """bdd.md must reference vbrief/proposed/ and not specs/ as output."""
 
-    _text = _read("strategies/bdd.md")
+    _text = _read("content/strategies/bdd.md")
 
     def test_references_vbrief_proposed(self) -> None:
         assert "vbrief/proposed/" in self._text, (
@@ -136,7 +136,7 @@ class TestBddVbriefOutput:
 class TestDiscussVbriefOutput:
     """discuss.md must reference vbrief/proposed/ and not {scope}-context.md as output."""
 
-    _text = _read("strategies/discuss.md")
+    _text = _read("content/strategies/discuss.md")
 
     def test_references_vbrief_proposed(self) -> None:
         assert "vbrief/proposed/" in self._text, (
@@ -182,7 +182,7 @@ class TestInterviewV020Output:
     no primary write of legacy specification.vbrief.json.
     """
 
-    _text = _read("strategies/interview.md")
+    _text = _read("content/strategies/interview.md")
 
     def test_references_date_prefixed_proposed_vbrief(self) -> None:
         assert (

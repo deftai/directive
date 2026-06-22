@@ -57,7 +57,7 @@ class TestDeprecationRedirectStubs:
     """Each legacy skills/deft-*/SKILL.md must exist and redirect to QUICK-START."""
 
     def test_stub_file_exists(self, old_name: str, new_name: str) -> None:
-        path = _REPO_ROOT / "skills" / old_name / "SKILL.md"
+        path = _REPO_ROOT / "content/skills" / old_name / "SKILL.md"
         assert path.is_file(), (
             f"skills/{old_name}/SKILL.md missing -- this stub is part of the "
             f"v0.19 -> v0.20 bridge (#411). Accidental cleanup would break "
@@ -65,7 +65,7 @@ class TestDeprecationRedirectStubs:
         )
 
     def test_stub_has_sentinel(self, old_name: str, new_name: str) -> None:
-        path = _REPO_ROOT / "skills" / old_name / "SKILL.md"
+        path = _REPO_ROOT / "content/skills" / old_name / "SKILL.md"
         content = path.read_text(encoding="utf-8")
         assert _STUB_SENTINEL in content, (
             f"skills/{old_name}/SKILL.md is missing the {_STUB_SENTINEL!r} "
@@ -84,7 +84,7 @@ class TestDeprecationRedirectStubs:
         )
 
     def test_stub_points_at_quickstart(self, old_name: str, new_name: str) -> None:
-        path = _REPO_ROOT / "skills" / old_name / "SKILL.md"
+        path = _REPO_ROOT / "content/skills" / old_name / "SKILL.md"
         content = path.read_text(encoding="utf-8")
         assert _QUICKSTART_REDIRECT_PHRASE in content, (
             f"skills/{old_name}/SKILL.md must point agents at "
@@ -92,7 +92,7 @@ class TestDeprecationRedirectStubs:
         )
 
     def test_stub_names_replacement_skill(self, old_name: str, new_name: str) -> None:
-        path = _REPO_ROOT / "skills" / old_name / "SKILL.md"
+        path = _REPO_ROOT / "content/skills" / old_name / "SKILL.md"
         content = path.read_text(encoding="utf-8")
         assert new_name in content, (
             f"skills/{old_name}/SKILL.md should mention its current replacement "
@@ -103,7 +103,7 @@ class TestDeprecationRedirectStubs:
 
 def test_no_extra_bare_deft_redirect_stubs() -> None:
     """No additional bare deft-* directories beyond the 8 v0.19 bridge stubs."""
-    skills_dir = _REPO_ROOT / "skills"
+    skills_dir = _REPO_ROOT / "content/skills"
     known = {old for old, _ in _REDIRECT_STUBS}
     found = {
         d.name
@@ -128,7 +128,7 @@ def test_no_extra_bare_deft_redirect_stubs() -> None:
 class TestUpgradingDoc:
     """UPGRADING.md must exist at the repo root with the v0.20.0 section."""
 
-    PATH = _REPO_ROOT / "UPGRADING.md"
+    PATH = _REPO_ROOT / "content/UPGRADING.md"
 
     def test_exists(self) -> None:
         assert self.PATH.is_file(), "UPGRADING.md missing at repo root (#411)"
@@ -209,7 +209,7 @@ def test_readme_banner_has_agent_rule() -> None:
 class TestQuickStartUpgradeDetection:
     """QUICK-START.md must have upgrade detection and session-restart instructions."""
 
-    PATH = _REPO_ROOT / "QUICK-START.md"
+    PATH = _REPO_ROOT / "content/QUICK-START.md"
 
     def _content(self) -> str:
         return self.PATH.read_text(encoding="utf-8")
@@ -289,7 +289,7 @@ class TestAgentsEntryFallbackRule:
     .deft/core/skills/ path is unreadable (#411 item 2, paths flipped to
     canonical layout in #1020)."""
 
-    TEMPLATE = _REPO_ROOT / "templates" / "agents-entry.md"
+    TEMPLATE = _REPO_ROOT / "content/templates/agents-entry.md"
     SETUP_GO = _REPO_ROOT / "cmd" / "deft-install" / "setup.go"
 
     def test_template_has_fallback_rule(self) -> None:

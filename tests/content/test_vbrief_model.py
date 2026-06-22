@@ -25,10 +25,10 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # Constants
 # ---------------------------------------------------------------------------
 
-_SKILLS_DIR = _REPO_ROOT / "skills"
+_SKILLS_DIR = _REPO_ROOT / "content/skills"
 _AGENTS_MD = _REPO_ROOT / "AGENTS.md"
-_VBRIEF_MD = _REPO_ROOT / "vbrief" / "vbrief.md"
-_SCHEMA_PATH = _REPO_ROOT / "vbrief" / "schemas" / "vbrief-core.schema.json"
+_VBRIEF_MD = _REPO_ROOT / "content/vbrief/vbrief.md"
+_SCHEMA_PATH = _REPO_ROOT / "content/vbrief/schemas/vbrief-core.schema.json"
 
 # Lifecycle folders documented in vbrief.md (RFC D2/D13)
 _LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
@@ -61,7 +61,7 @@ _VALID_STATUSES = {
 # first-class output targets (non-deprecated, non-history content files).
 # Excludes: history/, CHANGELOG.md, deprecated files, and test files.
 _CONTENT_GLOBS = [
-    "skills/*/SKILL.md",
+    "content/skills/*/SKILL.md",
     "AGENTS.md",
     "main.md",
 ]
@@ -89,7 +89,7 @@ def _routing_entries() -> list[tuple[str, str]]:
     """
     text = _read_text(_AGENTS_MD)
     pattern = re.compile(
-        r"^-\s+.+\u2192\s+`(skills/[^`]+)`",
+        r"^-\s+.+\u2192\s+`(content/skills/[^`]+)`",
         re.MULTILINE,
     )
     results: list[tuple[str, str]] = []

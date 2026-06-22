@@ -16,7 +16,7 @@ import code_structure_validate as csv_validate  # noqa: E402
 
 def test_schema_required_keys_match_pr2_profile() -> None:
     schema = json.loads(
-        (_REPO_ROOT / "vbrief/schemas/vbrief-core.schema.json").read_text(encoding="utf-8")
+        (_REPO_ROOT / "content/vbrief/schemas/vbrief-core.schema.json").read_text(encoding="utf-8")
     )
     code_structure_schema = schema["$defs"]["CodeStructure"]
     assert code_structure_schema["properties"]["version"]["const"] == (

@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_MERMAID_MD = _REPO_ROOT / "languages" / "mermaid.md"
+_MERMAID_MD = _REPO_ROOT / "content/languages/mermaid.md"
 
 
 def _read_mermaid_rules() -> str:

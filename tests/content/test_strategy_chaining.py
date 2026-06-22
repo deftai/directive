@@ -23,7 +23,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_STRATEGIES = _REPO_ROOT / "strategies"
+_STRATEGIES = _REPO_ROOT / "content/strategies"
 _VALID_TYPES = {"preparatory", "spec-generating"}
 
 
@@ -37,7 +37,7 @@ def _read(relpath: str) -> str:
 
 def _parse_readme_table() -> list[dict[str, str]]:
     """Parse the strategy table from README.md into a list of dicts."""
-    text = _read("strategies/README.md")
+    text = _read("content/strategies/README.md")
     rows = []
     in_table = False
     headers: list[str] = []
@@ -67,7 +67,7 @@ def _parse_readme_table() -> list[dict[str, str]]:
 class TestInterviewGateSections:
     """interview.md must have both gate sections (FR-1, FR-8)."""
 
-    _text = _read("strategies/interview.md")
+    _text = _read("content/strategies/interview.md")
 
     def test_chaining_gate_section_exists(self) -> None:
         assert "## Chaining Gate" in self._text, (
@@ -163,7 +163,7 @@ def test_preparatory_strategy_references_chaining_gate(filename: str) -> None:
     with separate Chained/Standalone subsections instead of a single
     'Then: Chaining Gate' section. Both patterns satisfy the requirement.
     """
-    text = _read(f"strategies/{filename}")
+    text = _read(f"content/strategies/{filename}")
     has_then_section = "## Then: Chaining Gate" in text
     has_chained_mode = "### Chained Mode" in text and "chaining gate" in text.lower()
     assert has_then_section or has_chained_mode, (
@@ -176,7 +176,7 @@ def test_preparatory_strategy_references_chaining_gate(filename: str) -> None:
 @pytest.mark.parametrize("filename", _SPEC_GENERATING_FILES)
 def test_spec_generating_strategy_no_then_chaining_gate(filename: str) -> None:
     """Spec-generating strategies must NOT have a 'Then: Chaining Gate' section."""
-    text = _read(f"strategies/{filename}")
+    text = _read(f"content/strategies/{filename}")
     assert "## Then: Chaining Gate" not in text, (
         f"strategies/{filename} should not have '## Then: Chaining Gate' — "
         "spec-generating strategies produce specs, they don't chain back"
@@ -190,7 +190,7 @@ def test_spec_generating_strategy_no_then_chaining_gate(filename: str) -> None:
 class TestVbriefSchemaDocumentation:
     """vbrief.md must document the strategy chaining fields (FR-11, FR-12)."""
 
-    _text = _read("vbrief/vbrief.md")
+    _text = _read("content/vbrief/vbrief.md")
 
     def test_completed_strategies_documented(self) -> None:
         assert "completedStrategies" in self._text, (
@@ -226,7 +226,7 @@ class TestYoloV020OutputShape:
         follow v0.20 and would pass the deterministic gate / Pre-Cutover Detection
         Guard.
         """
-        text = _read("strategies/yolo.md")
+        text = _read("content/strategies/yolo.md")
 
         # New v0.20 section and instructions present (core of the migration)
         assert "v0.20 Output Shape (s3-migrate-yolo / #1166)" in text
@@ -260,7 +260,7 @@ class TestYoloV020OutputShape:
 class TestProbeMechanicalGuard:
     """probe.md must document the probe_session.py mechanical guard (#1518c)."""
 
-    _text = _read("strategies/probe.md")
+    _text = _read("content/strategies/probe.md")
 
     def test_probe_strategy_documents_mechanical_guard_module(self) -> None:
         assert "scripts/probe_session.py" in self._text, (

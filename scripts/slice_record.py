@@ -67,9 +67,15 @@ LOG = logging.getLogger(__name__)
 
 # Canonical default storage location resolved relative to the repo root
 # (mirrors :mod:`candidates_log`).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _content_root import content_root  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# The .eval/ runtime log is a repo-dev sibling that stays at the root vbrief/;
+# only the shipped schemas moved under content/ (#1875 C1 dual-context).
 DEFAULT_LOG_PATH = REPO_ROOT / "vbrief" / ".eval" / "slices.jsonl"
-SCHEMA_PATH = REPO_ROOT / "vbrief" / "schemas" / "slices.schema.json"
+SCHEMA_PATH = content_root(REPO_ROOT) / "vbrief" / "schemas" / "slices.schema.json"
 
 # Frozen enum mirrored from slices.schema.json. Keep in lockstep with the
 # schema file -- bumping the schema's enum requires a follow-up child

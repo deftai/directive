@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: 8841b54aac3718ddf4b68ea8aa5de59b829ba26c153b1c08b0ebe3e452e25202 -->
-<!-- Source digest sha256: 5bb1e1949fcb67e40d50e4e5b88d714dad1ac2b8d1aa36ff7797739a5b5b4beb -->
+<!-- Artifact sha256: 2a2655371add9f2c8866b21660961b768eb5b6eece693d69832a4f57cba11eec -->
+<!-- Source digest sha256: fd3c159cec1f1524e4c382e1b9e1f880cf1defdc218c5436816600f7418e7c01 -->
 
 # Codebase MAP
 
@@ -14,21 +14,21 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `5bb1e1949fcb67e40d50e4e5b88d714dad1ac2b8d1aa36ff7797739a5b5b4beb` |
+| Source digest | `fd3c159cec1f1524e4c382e1b9e1f880cf1defdc218c5436816600f7418e7c01` |
 
 ## Modules
 
 | Module | Name | Purpose | Paths | Files |
 | --- | --- | --- | --- | ---: |
-| `framework-content` | Framework Content | Agent-consumed standards, strategies, skills, templates, and documentation. | `AGENTS.md`, `SKILL.md`, `README.md`, `QUICK-START.md`, ... | 270 |
-| `python-tooling` | Python Tooling | Framework CLI helpers, validators, lifecycle tools, and automation scripts. | `run`, `run.py`, `run.bat`, `scripts/**/*.py` | 163 |
-| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1034 |
+| `framework-content` | Framework Content | Agent-consumed standards, strategies, skills, templates, and documentation. | `AGENTS.md`, `SKILL.md`, `README.md`, `QUICK-START.md`, ... | 67 |
+| `python-tooling` | Python Tooling | Framework CLI helpers, validators, lifecycle tools, and automation scripts. | `run`, `run.py`, `run.bat`, `scripts/**/*.py` | 164 |
+| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1036 |
 | `task-runner` | Task Runner | Taskfile entry points that expose framework commands in source and consumer installs. | `Taskfile.yml`, `tasks/**/*.yml` | 47 |
 | `go-installer` | Go Installer | Standalone installer binary for end-user and maintainer installs. | `go.mod`, `cmd/deft-install/**/*.go` | 27 |
-| `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 751 |
-| `content-packs` | Content Packs | Curated, sliceable agent memory packs rendered and checked through the packs task namespace. | `packs/**/*.md`, `packs/**/*.json` | 6 |
+| `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 737 |
+| `content-packs` | Content Packs | Curated, sliceable agent memory packs rendered and checked through the packs task namespace. | `packs/**/*.md`, `packs/**/*.json` | 0 |
 | `ci-release-automation` | CI and Release Automation | Repository automation for branch policy, hooks, GitHub Actions, PR readiness, and release publication. | `.github/**/*.yml`, `.github/**/*.yaml`, `.githooks/*` | 6 |
-| `test-suite` | Test Suite | CLI, content, integration, and regression tests for framework behavior. | `tests/**/*.py`, `tests/**/*.json` | 339 |
+| `test-suite` | Test Suite | CLI, content, integration, and regression tests for framework behavior. | `tests/**/*.py`, `tests/**/*.json` | 340 |
 
 ## Coupling
 
@@ -137,16 +137,15 @@
 | Language | Files |
 | --- | ---: |
 | Go | 26 |
-| JSON | 808 |
-| Markdown | 273 |
+| JSON | 791 |
+| Markdown | 67 |
 | Other | 5 |
-| Python | 455 |
-| TypeScript | 1023 |
+| Python | 457 |
+| TypeScript | 1025 |
 | YAML | 53 |
 
 ## Degraded Signals
 
-- `MODULE-FILES-TRUNCATED`: Module file list was truncated to 100 deterministic entries.
 - `MODULE-FILES-TRUNCATED`: Module file list was truncated to 100 deterministic entries.
 - `MODULE-FILES-TRUNCATED`: Module file list was truncated to 100 deterministic entries.
 - `MODULE-FILES-TRUNCATED`: Module file list was truncated to 100 deterministic entries.

@@ -112,7 +112,7 @@ def _assert_canonical_banner(
     )
     assert "DO NOT EDIT MANUALLY" in lines[0], (
         "first line must carry the 'DO NOT EDIT MANUALLY' clause per "
-        "conventions/machine-generated-banner.md"
+        "content/conventions/machine-generated-banner.md"
     )
     # Line 2: Purpose
     assert lines[1] == f"<!-- Purpose: {purpose} -->", (
@@ -260,10 +260,8 @@ def test_writer_emits_canonical_banner(
 def test_registered_purposes_match_convention_doc() -> None:
     """The ``Purpose`` registry in the convention doc must match the
     ``REGISTERED_PURPOSES`` set used by this test."""
-    doc_path = _REPO_ROOT / "conventions" / "machine-generated-banner.md"
-    assert doc_path.is_file(), (
-        "conventions/machine-generated-banner.md must exist (#572 AC 1)"
-    )
+    doc_path = _REPO_ROOT / "content/conventions/machine-generated-banner.md"
+    assert doc_path.is_file(), "conventions/machine-generated-banner.md must exist (#572 AC 1)"
     doc = doc_path.read_text(encoding="utf-8")
     for purpose in REGISTERED_PURPOSES:
         assert f"`{purpose}`" in doc, (
@@ -303,7 +301,7 @@ def test_setup_skill_detects_both_legacy_and_canonical_markers() -> None:
     """skills/deft-directive-setup/SKILL.md pre-cutover guard MUST accept
     both the legacy deprecation sentinel AND the canonical banner Purpose
     marker for one release cycle (#572 AC 3)."""
-    skill = _REPO_ROOT / "skills" / "deft-directive-setup" / "SKILL.md"
+    skill = _REPO_ROOT / "content/skills/deft-directive-setup/SKILL.md"
     text = skill.read_text(encoding="utf-8")
     assert "<!-- deft:deprecated-redirect -->" in text, (
         "setup SKILL must still mention the legacy deprecated-redirect "

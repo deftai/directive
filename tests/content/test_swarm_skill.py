@@ -39,7 +39,7 @@ import pytest
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_SWARM_PATH = "skills/deft-directive-swarm/SKILL.md"
+_SWARM_PATH = "content/skills/deft-directive-swarm/SKILL.md"
 
 
 def _read_swarm() -> str:
@@ -466,7 +466,7 @@ def test_swarm_anti_patterns_1487_bullet_present() -> None:
 # Grok Build-only wording or drops backend / role metadata for dispatched
 # workers. Stable substring matches (not full-text).
 
-_PREAMBLE_PATH = "templates/agent-prompt-preamble.md"
+_PREAMBLE_PATH = "content/templates/agent-prompt-preamble.md"
 
 _STEP1B_HEADER = "### Step 1b: Provider-neutral sub-agent routing (#1531)"
 _STEP1B_END = "### Step 2a: Orchestrated Launch (start_agent available)"

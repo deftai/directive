@@ -9,12 +9,27 @@ export function repoPath(...segments: string[]): string {
   return join(REPO_ROOT, ...segments);
 }
 
+/**
+ * Resolve a repo-root-relative content path across both contexts (#1875 C1).
+ * The content/ move relocated shippable content under content/ in the SOURCE
+ * repo; the C1 flatten strips that prefix in a CONSUMER deposit. Probe content/
+ * first (SOURCE layout), then fall back to the repo root so root-resident
+ * harness entries (AGENTS.md) and the flattened consumer layout still resolve.
+ */
+export function resolveRepoPath(relPath: string): string {
+  const underContent = join(REPO_ROOT, "content", relPath);
+  if (existsSync(underContent)) {
+    return underContent;
+  }
+  return repoPath(relPath);
+}
+
 export function readRepoFile(relPath: string): string {
-  return readFileSync(repoPath(relPath), "utf8");
+  return readFileSync(resolveRepoPath(relPath), "utf8");
 }
 
 export function repoFileExists(relPath: string): boolean {
-  return existsSync(repoPath(relPath));
+  return existsSync(resolveRepoPath(relPath));
 }
 
 export function readSkill(relPath: string): string {
@@ -38,7 +53,7 @@ export function returningSessionsSection(): string {
 }
 
 export function listSkillMdFiles(): string[] {
-  const skillsDir = repoPath("skills");
+  const skillsDir = resolveRepoPath("skills");
   const results: string[] = [];
   for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
     if (entry.isDirectory()) {

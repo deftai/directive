@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { contentRoot } from "../content-root.js";
 import {
   clearRegistryCache,
   DEPRECATED_SKILL_REDIRECT_SENTINEL,
@@ -16,7 +17,8 @@ import {
 } from "./event-detect.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-const REGISTRY_PATH = join(REPO_ROOT, "events", "registry.json");
+// #1875: the event registry is shippable content (content/events/ in source).
+const REGISTRY_PATH = join(contentRoot(REPO_ROOT), "events", "registry.json");
 
 const EXPECTED_DETECTION_BOUND_NAMES = new Set([
   "pre-cutover:detected",

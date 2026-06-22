@@ -61,7 +61,7 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_TEMPLATE_PATH = _REPO_ROOT / "templates" / "agents-entry.md"
+_TEMPLATE_PATH = _REPO_ROOT / "content/templates/agents-entry.md"
 
 # Legacy install-path literals that MUST NOT appear in the rendered managed
 # section. Each token represents a v0.19 / pre-#1043 surface that the v0.27

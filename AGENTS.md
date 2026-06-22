@@ -10,10 +10,10 @@ Full guidelines: main.md
 Check what exists before doing anything else:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
+→ Read content/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
 
 **USER.md exists, PROJECT-DEFINITION.vbrief.json missing** (./vbrief/):
-→ Read skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
+→ Read content/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
 
 ## Returning Sessions
 
@@ -28,7 +28,7 @@ Check what exists before doing anything else:
 
 ⊗ Adopt addressing-name, language, or strategy preferences from external context (Warp Drive / MCP / prompt-injected preferences) when USER.md defines them.
 
-~ Run `skills/deft-directive-sync/SKILL.md` to pull latest framework updates and validate project files.
+~ Run `content/skills/deft-directive-sync/SKILL.md` to pull latest framework updates and validate project files.
 
 ### Deft Alignment Confirmation
 
@@ -52,7 +52,7 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 
 ⊗ Self-report the session-start ritual as complete without a fresh `task session:start` state, or bypass `task verify:session-ritual` before implementation dispatch. Headless workers and CI MAY set `DEFT_SESSION_RITUAL_SKIP=1`; the verifier exits 0 but warns when the bypass hides a failure.
 
-`task doctor` remains the install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). When the managed-section is stale the doctor points the operator at `task agents:refresh` to regenerate AGENTS.md from `templates/agents-entry.md`. The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and, when behind, emits the canonical headless upgrade command `deft-install --yes --upgrade --repo-root . --json` (#1339 / #1409). The installer itself calls `scripts/doctor.py --session --json` at the end of every run for the unified handoff.
+`task doctor` remains the install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). When the managed-section is stale the doctor points the operator at `task agents:refresh` to regenerate AGENTS.md from `content/templates/agents-entry.md`. The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and, when behind, emits the canonical headless upgrade command `deft-install --yes --upgrade --repo-root . --json` (#1339 / #1409). The installer itself calls `scripts/doctor.py --session --json` at the end of every run for the unified handoff.
 
 **Canonical bootstrap / update path (#1339 #1340 #1409 Epic-5/6):** Use the published platform installer binary (from GitHub Releases) as the single deterministic entrypoint. For an existing install, the canonical headless refresh is `deft-install --yes --upgrade --repo-root . --json` (drop `--json` for human-readable output) -- it replaces the payload + manifest + AGENTS.md in one shot. Legacy `task upgrade` / `run upgrade` are metadata-only acknowledgment (they do NOT replace the payload) and `task relocate -- --confirm` is back-compat only; git-clone / submodule / legacy doctor surfaces are de-emphasized in UPGRADING.md / README / skills. Agent example: after running the installer command, start your session; the doctor output (or `task doctor`) tells you the exact state and whether a re-install is needed for freshness.
 `task triage:welcome` default mode remains non-interactive and emits the current triage-cache one-liner via the consolidated welcome surface (N3 / #1143). When state is incomplete (no `vbrief/.eval/candidates.jsonl`, no `triageScope`, no `wipCap` -- or any partial subset), an additional nudge line points the operator at `task triage:welcome --onboard` to set up or resume triage. D2's 4-hour suppression window still governs the headline. The headline `in-flight` count is **filesystem-truth** -- a live count of `vbrief/active/*.vbrief.json` files with `plan.status == "running"` (#1270). When that count diverges from the legacy audit-log-derived cache-scoped view, a second `[triage:scope]` line surfaces the gap; the wording distinguishes whether `plan.policy.triageScope[]` is explicitly configured (`outside plan.policy.triageScope[]`) or absent/empty/default (`not configured`). `task triage:summary` stays as a composable primitive for non-session-start callers (`deft-directive-sync`, scripts) -- not deprecated.
@@ -65,9 +65,9 @@ Reserved placement for the optional 6th conditional step (resume nudge from the 
 
 ## Template propagation discipline (#1309)
 
-! When a maintainer-side rule lands in this `AGENTS.md` that is consumer-relevant (welcome / WIP cap / triage / install integrity / branch policy / encoding gates / canonical commands / skill routing), the same PR MUST update `templates/agents-entry.md` to mirror it, then run `task agents:refresh` so consumer-side AGENTS.md inherits the change. The deterministic gate `tests/content/test_agents_entry_contract.py` enforces this with a whitespace-normalized substring containment check over a curated marker list (commands, policy keys, distinctive headers, action-verb directive list); adding a new consumer-relevant rule means extending that marker list in the same PR.
+! When a maintainer-side rule lands in this `AGENTS.md` that is consumer-relevant (welcome / WIP cap / triage / install integrity / branch policy / encoding gates / canonical commands / skill routing), the same PR MUST update `content/templates/agents-entry.md` to mirror it, then run `task agents:refresh` so consumer-side AGENTS.md inherits the change. The deterministic gate `tests/content/test_agents_entry_contract.py` enforces this with a whitespace-normalized substring containment check over a curated marker list (commands, policy keys, distinctive headers, action-verb directive list); adding a new consumer-relevant rule means extending that marker list in the same PR.
 
-⊗ Land a consumer-relevant rule on `AGENTS.md` without mirroring it into `templates/agents-entry.md` -- the consumer AGENTS.md is rendered from the template, not from the maintainer file, so an un-propagated rule is invisible to every consumer.
+⊗ Land a consumer-relevant rule on `AGENTS.md` without mirroring it into `content/templates/agents-entry.md` -- the consumer AGENTS.md is rendered from the template, not from the maintainer file, so an un-propagated rule is invisible to every consumer.
 
 ## WIP cap
 
@@ -81,8 +81,8 @@ The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbri
 
 ## Before Improvising
 
-- ! Before designing a multi-step workflow from scratch, scan `skills/` for an existing skill that covers the task — skills are versioned, tested, and encode lessons from prior runs
-- ⊗ Improvise a multi-step workflow without first checking `skills/` for coverage
+- ! Before designing a multi-step workflow from scratch, scan `content/skills/` for an existing skill that covers the task — skills are versioned, tested, and encode lessons from prior runs
+- ⊗ Improvise a multi-step workflow without first checking `content/skills/` for coverage
 
 ## Cache-as-authoritative work selection (#1149)
 
@@ -103,24 +103,24 @@ The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbri
 
 When user input matches a trigger keyword, read the corresponding skill:
 
-- "review cycle" / "check reviews" / "run review cycle" → `skills/deft-directive-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" → `skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5; Phase 0 is queue-driven (see N2 / #1142)
-- "decompose" / "story decomposition" / "swarm readiness" → `skills/deft-directive-decompose/SKILL.md` — converts phase/epic scopes into swarm-ready story vBRIEFs before swarm allocation.
-- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" → `skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit; Phase 0 consults the triage cache first (see N1 / #1141). The refinement frontmatter's `work the cache` trigger routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
-- "triage <N>" / "triage issue" / "ingest issue" → `skills/deft-directive-refinement/SKILL.md` — canonical vBRIEF intake for GitHub issues
-- "build" / "implement" / "implement spec" → `skills/deft-directive-build/SKILL.md`
-- "cost" / "budget" / "pre-build cost" / "how much will this cost" → `skills/deft-directive-cost/SKILL.md`
-- "setup" / "bootstrap" / "onboard" → `skills/deft-directive-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-directive-sync/SKILL.md`
-- "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-directive-pre-pr/SKILL.md`
-- "interview loop" / "q&a loop" / "run interview loop" → `skills/deft-directive-interview/SKILL.md`
-- "run probe" / "/deft:run:probe" / "probe" → `skills/deft-directive-probe/SKILL.md` — adversarial one-question-per-turn plan stress-testing; no vBRIEF or plan artifacts until probe completion criteria are met (#1518)
-- "release" / "cut release" / "v0.X.Y" / "publish release" → `skills/deft-directive-release/SKILL.md` — operationalizes the `task release` / `task release:publish` / `task release:rollback` / `task release:e2e` surface (#74 + #716 safety hardening); re-uses the `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 5 Slack announcement template
-- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" → `skills/deft-directive-glossary/SKILL.md` — extracts a DDD-style ubiquitous language from the current conversation, flags ambiguities and synonyms, proposes a canonical glossary, and writes `UBIQUITOUS_LANGUAGE.md`; integrates with `core/glossary.md` as a baseline when present (#441)
-- "improve architecture" / "deep modules" / "interface design" / "refactor RFC" → `skills/deft-directive-gh-arch/SKILL.md` — explores codebase for shallow modules, designs competing interfaces in parallel via sub-agents, files a refactor RFC as a GitHub Issue (#442 re-land)
-- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" → `skills/deft-directive-debug/SKILL.md` — evidence-based root-cause investigation MODE: claim ledger, falsification + red-team waves, chat answer-embargo until evidence closes, and the `task verify:investigation` close gate; operationalizes `coding/debugging.md` (#1621)
-- "triage hygiene" / "work the cache" → `skills/deft-directive-triage/SKILL.md`
-- "what's next" / "queue" / "build a cohort" → `skills/deft-directive-triage/SKILL.md`
+- "review cycle" / "check reviews" / "run review cycle" → `content/skills/deft-directive-review-cycle/SKILL.md`
+- "swarm" / "parallel agents" / "run agents" → `content/skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5; Phase 0 is queue-driven (see N2 / #1142)
+- "decompose" / "story decomposition" / "swarm readiness" → `content/skills/deft-directive-decompose/SKILL.md` — converts phase/epic scopes into swarm-ready story vBRIEFs before swarm allocation.
+- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" → `content/skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit; Phase 0 consults the triage cache first (see N1 / #1141). The refinement frontmatter's `work the cache` trigger routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
+- "triage <N>" / "triage issue" / "ingest issue" → `content/skills/deft-directive-refinement/SKILL.md` — canonical vBRIEF intake for GitHub issues
+- "build" / "implement" / "implement spec" → `content/skills/deft-directive-build/SKILL.md`
+- "cost" / "budget" / "pre-build cost" / "how much will this cost" → `content/skills/deft-directive-cost/SKILL.md`
+- "setup" / "bootstrap" / "onboard" → `content/skills/deft-directive-setup/SKILL.md`
+- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `content/skills/deft-directive-sync/SKILL.md`
+- "pre-pr" / "quality loop" / "rwldl" / "self-review" → `content/skills/deft-directive-pre-pr/SKILL.md`
+- "interview loop" / "q&a loop" / "run interview loop" → `content/skills/deft-directive-interview/SKILL.md`
+- "run probe" / "/deft:run:probe" / "probe" → `content/skills/deft-directive-probe/SKILL.md` — adversarial one-question-per-turn plan stress-testing; no vBRIEF or plan artifacts until probe completion criteria are met (#1518)
+- "release" / "cut release" / "v0.X.Y" / "publish release" → `content/skills/deft-directive-release/SKILL.md` — operationalizes the `task release` / `task release:publish` / `task release:rollback` / `task release:e2e` surface (#74 + #716 safety hardening); re-uses the `content/skills/deft-directive-swarm/SKILL.md` Phase 6 Step 5 Slack announcement template
+- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" → `content/skills/deft-directive-glossary/SKILL.md` — extracts a DDD-style ubiquitous language from the current conversation, flags ambiguities and synonyms, proposes a canonical glossary, and writes `UBIQUITOUS_LANGUAGE.md`; integrates with `content/glossary.md` as a baseline when present (#441)
+- "improve architecture" / "deep modules" / "interface design" / "refactor RFC" → `content/skills/deft-directive-gh-arch/SKILL.md` — explores codebase for shallow modules, designs competing interfaces in parallel via sub-agents, files a refactor RFC as a GitHub Issue (#442 re-land)
+- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" → `content/skills/deft-directive-debug/SKILL.md` — evidence-based root-cause investigation MODE: claim ledger, falsification + red-team waves, chat answer-embargo until evidence closes, and the `task verify:investigation` close gate; operationalizes `content/coding/debugging.md` (#1621)
+- "triage hygiene" / "work the cache" → `content/skills/deft-directive-triage/SKILL.md`
+- "what's next" / "queue" / "build a cohort" → `content/skills/deft-directive-triage/SKILL.md`
 - "welcome" / "onboard triage" → invokes `task triage:welcome --onboard` (N3 / #1143)
 
 ## Development Process (always follow)
@@ -152,7 +152,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - ! If no scope vBRIEF exists for the work, create one in `./vbrief/proposed/` before implementing
 - ⊗ Begin editing files before checking scope vBRIEF coverage and creating a feature branch — even if the user says "yes" or "proceed"
 
-! Before opening a PR, run `skills/deft-directive-pre-pr/SKILL.md` for an iterative quality loop.
+! Before opening a PR, run `content/skills/deft-directive-pre-pr/SKILL.md` for an iterative quality loop.
 
 **Before committing:**
 - Run `task check` (validate + lint + test) — this is the pre-commit gate
@@ -171,7 +171,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 **PR conventions:**
 - ROADMAP.md updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit
 - Commit messages: `feat/fix/docs/chore` prefix, concise subject, bullet-point body
-- When running a review cycle on a PR, follow `skills/deft-directive-review-cycle/SKILL.md`
+- When running a review cycle on a PR, follow `content/skills/deft-directive-review-cycle/SKILL.md`
 - ! After squash merge, verify issues actually closed: `gh issue view <N> --json state --jq .state`. Squash merges can silently fail to process closing keywords (`Closes #N`). If still open, close manually with a comment referencing the merged PR (#167)
 
 ## CHANGELOG entry style (#1242)
@@ -203,11 +203,11 @@ Canonical write-up + good / bad example: `CONTRIBUTING.md` `## CHANGELOG entry s
 **Root-cause rule (#798):** On Windows PowerShell 5.1, ANY modification of a file containing non-ASCII content MUST go through Python `pathlib.Path.read_text(encoding="utf-8")` / `write_text(text, encoding="utf-8")`. The corruption happens on the **READ** side: `Get-Content -Raw` decodes via the active Windows codepage (cp1252 or cp437) BEFORE any safe write can preserve the bytes. A correct UTF-8 write of already-corrupted text just persists the mojibake. PowerShell 7+ (`pwsh`), bash, and zsh handle UTF-8 correctly and are exempt.
 
 - ! On PS 5.1, MUST use Python `pathlib` for all file edits touching non-ASCII glyphs (em dashes, arrows, ⊗, ✓, …, smart quotes, etc.) -- never `Get-Content -Raw` / `Set-Content` / inline `-replace` / backtick-n interpolation
-- ! When writing files using PowerShell on PS 7+ where unavoidable, MUST use `New-Object System.Text.UTF8Encoding $false` -- never `[System.Text.Encoding]::UTF8` (writes BOM). See `scm/github.md` PS 5.1 section.
+- ! When writing files using PowerShell on PS 7+ where unavoidable, MUST use `New-Object System.Text.UTF8Encoding $false` -- never `[System.Text.Encoding]::UTF8` (writes BOM). See `content/scm/github.md` PS 5.1 section.
 - ! Personal rule `3MieNBQjwlObZM1If060iy` on the user's Warp profile encodes the same prohibition for the swarm cohort -- this AGENTS.md rule is the project-side mirror so consumer-installed copies of deft carry the rule even when the personal rule is not loaded
 - ⊗ Round-trip a file containing non-ASCII content through PS 5.1 commands (`Get-Content` → `-replace` → `Set-Content`, `Get-Content` → string concat → `WriteAllText`, here-strings interpolating non-ASCII) -- the read-side decode corrupts the bytes regardless of how the write side is encoded
 
-**Recurrence record:** four prior occurrences before the deterministic gate landed -- #236 (t1.11.1, scm/github.md), #240 (t1.11.2, multi-line here-string rule), #283 (t1.20.1, AGENTS.md UTF8Encoding rule), and PR #795 (2026-05-01, 132-line CHANGELOG mojibake on a maintainer with all three prose rules loaded; the read-side decode happened before any write).
+**Recurrence record:** four prior occurrences before the deterministic gate landed -- #236 (t1.11.1, content/scm/github.md), #240 (t1.11.2, multi-line here-string rule), #283 (t1.20.1, AGENTS.md UTF8Encoding rule), and PR #795 (2026-05-01, 132-line CHANGELOG mojibake on a maintainer with all three prose rules loaded; the read-side decode happened before any write).
 
 **Deterministic-tier enforcement (#798):** `scripts/verify_encoding.py` scans tracked text files for U+FFFD replacement chars, the curated CP1252/CP437-as-UTF-8 mojibake bigram set, and unexpected UTF-8 BOM on .md/.json/.yml/.yaml/.txt. Wired into `task check` via `task verify:encoding` and into `.githooks/pre-commit` via `--staged`. Three-state exit (0 clean / 1 corruption / 2 config error). Per `main.md` Rule Authority [AXIOM] this elevates the rule from prose tier to deterministic tier -- the gate is the rule body; this AGENTS.md section is a cross-reference, not a duplicate. Document an exception via `task verify:encoding -- --allow-list <path>` (newline-separated glob patterns).
 
@@ -227,32 +227,32 @@ Cross-references: `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-open
 - ⊗ Pass `text=True` to `subprocess.run` without an explicit `encoding="utf-8", errors="replace"` pair when the captured output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages, web fetches). The default locale-codepage decode is the bug.
 - ⊗ Catch and silently swallow `UnicodeDecodeError` from a subprocess capture site -- the helper makes the error unreachable; if a future caller hits it, the right response is to fix the call site to route through the helper, not to swallow.
 
-**Recurrence record:** observed across multiple gh-shelling scripts during the #1166 swarm (`pr_merge_readiness.py`, `tmp_monitor_1363.py`, ad-hoc monitor scripts). The class of bug also bit prior PowerShell-encoding work (#236 / #240 / #283 / #795) on the file-edit side; the subprocess-capture side is the structural complement covered by #1366. Cross-references: `templates/agent-prompt-preamble.md` § 3.6, `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md` (related #1353 wrapper-leakage analysis), Wave-2 dependents #1365 (sub-agent visibility) and #1368 (`pr_merge_readiness.py` hardening), Wave-3 dependent #1369 (cascade automation).
+**Recurrence record:** observed across multiple gh-shelling scripts during the #1166 swarm (`pr_merge_readiness.py`, `tmp_monitor_1363.py`, ad-hoc monitor scripts). The class of bug also bit prior PowerShell-encoding work (#236 / #240 / #283 / #795) on the file-edit side; the subprocess-capture side is the structural complement covered by #1366. Cross-references: `content/templates/agent-prompt-preamble.md` § 3.6, `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md` (related #1353 wrapper-leakage analysis), Wave-2 dependents #1365 (sub-agent visibility) and #1368 (`pr_merge_readiness.py` hardening), Wave-3 dependent #1369 (cascade automation).
 
 ## Cascade automation surface (#1369)
 
 **Why this rule exists:** the 2026-05-26 #1166 swarm cascade saw the monitor babysit individual PRs because there was no first-class "wait-until-ready, then merge" primitive that survived the Grok Build harness fragility documented at #1353 / #1366. The Wave-1+2 work made the underlying primitives reliable (`_safe_subprocess.run_text` #1366, `pr_merge_readiness.py` layered fallbacks #1368, `monitor_pr.py` resilient wait loop #1368) and the Wave-3 helper `scripts/pr_wait_mergeable.py` composes them into one verb. The cascade now has a deterministic three-state exit (0 merged / 1 timeout-or-escalation / 2 config error); the protected-issue inspector chains AHEAD of the wait loop so a Layer-3 false-positive (#701) cannot reach a `gh pr merge` call.
 
 - ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>` (script: `scripts/pr_wait_mergeable.py`). Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
-- ! The per-PR atomic gate (`task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) documented in `skills/deft-directive-swarm/SKILL.md` Phase 5 -> 6 STILL applies for any in-cascade merge an operator runs by hand. The Wave-3 cascade surface is the automated wrapper; the per-PR atomic gate is the manual freshness-window-atomic check. The two co-exist -- one does not retire the other.
+- ! The per-PR atomic gate (`task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) documented in `content/skills/deft-directive-swarm/SKILL.md` Phase 5 -> 6 STILL applies for any in-cascade merge an operator runs by hand. The Wave-3 cascade surface is the automated wrapper; the per-PR atomic gate is the manual freshness-window-atomic check. The two co-exist -- one does not retire the other.
 - ! When `--protected <issue-numbers>` is supplied, the helper invokes `scripts/pr_check_protected_issues.py` (#701) BEFORE the wait loop. A persistent `closingIssuesReferences` link short-circuits the cascade with exit 1 (escalation) AHEAD of any `gh pr merge` call. New cascade scripts MUST preserve this ordering -- the protected-issue check is structurally a pre-condition that cannot be resolved by waiting.
 - ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
 - ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
 
 **Recurrence record:** the #1166 swarm cascade abandoned automated merging on PR #1363 + Wave 3 because the existing hand-rolled monitor (which pre-dated #1368 / #1366) went blind on `pr_merge_readiness.py` exits where `head: None` survived for 15+ minutes. The cascade automation surface (#1369) is the structural answer; the rule above keeps the surface load-bearing instead of an opt-in convenience that drifts back into hand-rolled loops on future swarms.
 
-Cross-references: `scripts/pr_wait_mergeable.py` (helper), `tasks/pr.yml` `wait-mergeable-and-merge` (Taskfile surface), `tests/cli/test_pr_wait_mergeable.py` (acceptance contract), `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 + Phase 6 Step 5 (cascade automation citations), `scripts/monitor_pr.py` + `scripts/pr_merge_readiness.py` (Wave-2 wait-until-ready primitives, #1368), `scripts/pr_check_protected_issues.py` (Layer-3 #701).
+Cross-references: `scripts/pr_wait_mergeable.py` (helper), `tasks/pr.yml` `wait-mergeable-and-merge` (Taskfile surface), `tests/cli/test_pr_wait_mergeable.py` (acceptance contract), `content/skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 + Phase 6 Step 5 (cascade automation citations), `scripts/monitor_pr.py` + `scripts/pr_merge_readiness.py` (Wave-2 wait-until-ready primitives, #1368), `scripts/pr_check_protected_issues.py` (Layer-3 #701).
 
 ## Headless swarm launch gate-stack (#1387)
 
-**Why this rule exists:** launching a swarm has historically required walking the full interactive Phase 0 (queue scan, promote-fill loop, lifecycle bridge, allocation approval) even when the operator already has a curated, pre-approved cohort in hand. The headless / low-ceremony launch path (#1387, built on the #1378 allocation-context token) collapses those per-phase gates into a single consent so a ready cohort launches in one shot. This gate-stack note is the maintainer-side mirror of `skills/deft-directive-swarm/SKILL.md`; both surfaces MUST agree (it is swarm-orchestration discipline, maintainer-only, like #954 / #1364 / #1369 -- not part of the consumer managed-section).
+**Why this rule exists:** launching a swarm has historically required walking the full interactive Phase 0 (queue scan, promote-fill loop, lifecycle bridge, allocation approval) even when the operator already has a curated, pre-approved cohort in hand. The headless / low-ceremony launch path (#1387, built on the #1378 allocation-context token) collapses those per-phase gates into a single consent so a ready cohort launches in one shot. This gate-stack note is the maintainer-side mirror of `content/skills/deft-directive-swarm/SKILL.md`; both surfaces MUST agree (it is swarm-orchestration discipline, maintainer-only, like #954 / #1364 / #1369 -- not part of the consumer managed-section).
 
 - ! When the operator supplies a pre-approved cohort via the **C1** CLI `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`, the swarm skill's Phase 0 per-phase approval gates collapse into the SINGLE #1378 `## Allocation context` consent token (`dispatch_kind: swarm-cohort` + non-null `allocation_plan_id` + `batching_rationale`); the interactive promote-fill loop is skipped.
 - ! Phase 2 accepts a **pre-created worktree map** (the **C3** JSON array of `{ story_id, worktree_path, base_branch }`) resolved via `resolve_worktree_map(...)` in `scripts/swarm_worktrees.py` -- which raises on same-path collisions or base-branch mismatches -- instead of always running `git worktree add` per agent.
 - ! Phase 3 consumes the **C2** launch-manifest (the JSON array of `{ story_id, vbrief_path, worktree_path, branch, allocation_context }`, where `allocation_context` is the #1378 token) emitted by `task swarm:launch` as dispatch PREP before spawning; the spawn itself stays agent-driven via the platform adapter (`start_agent` / `spawn_subagent`). `task swarm:launch` does NOT spawn agents -- it emits the manifest and stops.
 - ⊗ Re-prompt the operator for per-phase batching approval when a pre-approved cohort is launched via `task swarm:launch` -- the #1378 allocation-context token is the batched consent (all-or-nothing dispatch envelope, #954).
 
-Cross-references: `skills/deft-directive-swarm/SKILL.md` Phase 0 (headless cohort fast-path), Phase 2 Step 1 Mode A (pre-created worktree map), Phase 3 Step 0.5 (launch-manifest consumption); `templates/agent-prompt-preamble.md` § 2.5 (the #1378 allocation-context token). Refs #1387, #1378.
+Cross-references: `content/skills/deft-directive-swarm/SKILL.md` Phase 0 (headless cohort fast-path), Phase 2 Step 1 Mode A (pre-created worktree map), Phase 3 Step 0.5 (launch-manifest consumption); `content/templates/agent-prompt-preamble.md` § 2.5 (the #1378 allocation-context token). Refs #1387, #1378.
 
 ## SCM tooling -- prefer ghx (#884)
 
@@ -279,16 +279,16 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 
 ## Multi-agent orchestration discipline (#954)
 
-**Why this rule exists:** the 2026-05-07 multi-agent session surfaced concrete recurrence patterns when orchestrators dispatched workers without a canonical preamble — workers polled GitHub via GraphQL surfaces (`gh pr view --json`, `gh pr ready`) and exhausted the 5000-req/hr GraphQL bucket mid-cascade; release agents looped on Draft↔Ready toggles burning more GraphQL budget; one worker self-terminated with `succeeded` lifecycle while reporting "holding for reply" in a status message, breaking the implied resume channel. The canonical preamble at `templates/agent-prompt-preamble.md` and the rules below institutionalise the mitigations. Consumer-installed deft carries this rule even when the orchestrator does not load it, so swarm cohorts inherit the discipline.
+**Why this rule exists:** the 2026-05-07 multi-agent session surfaced concrete recurrence patterns when orchestrators dispatched workers without a canonical preamble — workers polled GitHub via GraphQL surfaces (`gh pr view --json`, `gh pr ready`) and exhausted the 5000-req/hr GraphQL bucket mid-cascade; release agents looped on Draft↔Ready toggles burning more GraphQL budget; one worker self-terminated with `succeeded` lifecycle while reporting "holding for reply" in a status message, breaking the implied resume channel. The canonical preamble at `content/templates/agent-prompt-preamble.md` and the rules below institutionalise the mitigations. Consumer-installed deft carries this rule even when the orchestrator does not load it, so swarm cohorts inherit the discipline.
 
 - ! When invoking `gh` for read-only operations, prefer REST surfaces over GraphQL -- forbid `gh issue view --json`, `gh pr view --json`, `gh pr ready`, `gh pr update-branch` (all GraphQL); use `gh api repos/<owner>/<repo>/issues/<N>` / `gh api repos/<owner>/<repo>/pulls/<N>` (REST) or `ghx api` (cached REST) instead. The GraphQL bucket is shared across all workers under the same identity and is the operational bottleneck, not the REST `core` bucket.
 - ! Within a single review cycle, toggle PR Draft↔Ready state at most once. Once Ready, stay Ready unless a P0 finding demands a re-Draft -- each toggle costs a GraphQL mutation and stale Draft re-toggles are the documented failure mode for the PR #652-class merge cascades.
-- ! Before any GraphQL-heavy operation (PR readiness check, review polling, batch issue ingest, mass `gh pr list`), probe `gh api rate_limit` (the live, uncached form) and inspect `graphql.remaining`. If < 500, switch to REST equivalents or batch+wait until the bucket resets. The decision tree lives in `templates/agent-prompt-preamble.md` § 7. Do NOT use `ghx api rate_limit` for the throttle probe -- ghx is a cached read-only GET proxy, so the cached value can be stale; under N-concurrent-workers the GraphQL bucket can deplete within minutes between probe and use, causing an agent to proceed into GraphQL-heavy work against an exhausted bucket.
-- ! Dispatcher-level lifecycle hygiene: workers MUST be all-or-nothing on their dispatch envelope. Mid-scope user-approval gates require two separate dispatches (Scope A → worker reports back → user approves → Scope B). A worker that finishes its tool loop while emitting a "paused, awaiting reply" status message will be observed as `succeeded` (terminal) by the platform; its `agent_id` then becomes unreachable and reply messages have no live runtime to deliver to. Splitting at the gate is the only enforceable mitigation. See `templates/agent-prompt-preamble.md` § 9.
-- ! Orchestrators dispatching implementation sub-agents MUST include the canonical preamble verbatim (or by reference) in the worker's dispatch envelope -- see `templates/agent-prompt-preamble.md`. The preamble covers AGENTS.md read mandate, the #810 vBRIEF gate walkthrough, the PowerShell 5.1 non-ASCII rule (#798), pre-pr + review-cycle skill mandates, the four rules above, sub-agent spawn rules per #727, orchestrator dispatch doctrine (#1880), and the mandatory DONE message protocol.
-- ⊗ Dispatch an implementation sub-agent without including the canonical preamble (or a reference to `templates/agent-prompt-preamble.md` it can read directly) -- the recurrence patterns above re-fire on every fresh dispatch that omits this institutional memory.
+- ! Before any GraphQL-heavy operation (PR readiness check, review polling, batch issue ingest, mass `gh pr list`), probe `gh api rate_limit` (the live, uncached form) and inspect `graphql.remaining`. If < 500, switch to REST equivalents or batch+wait until the bucket resets. The decision tree lives in `content/templates/agent-prompt-preamble.md` § 7. Do NOT use `ghx api rate_limit` for the throttle probe -- ghx is a cached read-only GET proxy, so the cached value can be stale; under N-concurrent-workers the GraphQL bucket can deplete within minutes between probe and use, causing an agent to proceed into GraphQL-heavy work against an exhausted bucket.
+- ! Dispatcher-level lifecycle hygiene: workers MUST be all-or-nothing on their dispatch envelope. Mid-scope user-approval gates require two separate dispatches (Scope A → worker reports back → user approves → Scope B). A worker that finishes its tool loop while emitting a "paused, awaiting reply" status message will be observed as `succeeded` (terminal) by the platform; its `agent_id` then becomes unreachable and reply messages have no live runtime to deliver to. Splitting at the gate is the only enforceable mitigation. See `content/templates/agent-prompt-preamble.md` § 9.
+- ! Orchestrators dispatching implementation sub-agents MUST include the canonical preamble verbatim (or by reference) in the worker's dispatch envelope -- see `content/templates/agent-prompt-preamble.md`. The preamble covers AGENTS.md read mandate, the #810 vBRIEF gate walkthrough, the PowerShell 5.1 non-ASCII rule (#798), pre-pr + review-cycle skill mandates, the four rules above, sub-agent spawn rules per #727, orchestrator dispatch doctrine (#1880), and the mandatory DONE message protocol.
+- ⊗ Dispatch an implementation sub-agent without including the canonical preamble (or a reference to `content/templates/agent-prompt-preamble.md` it can read directly) -- the recurrence patterns above re-fire on every fresh dispatch that omits this institutional memory.
 
-**Orchestrator dispatch doctrine (#1880):** Root cause from the 2026-06-22 #1878 session (Gaps C and D). Canonical prose lives in `templates/agent-prompt-preamble.md` §9; skills cross-reference swarm Phase 3/5→6 and review-cycle Review Monitoring.
+**Orchestrator dispatch doctrine (#1880):** Root cause from the 2026-06-22 #1878 session (Gaps C and D). Canonical prose lives in `content/templates/agent-prompt-preamble.md` §9; skills cross-reference swarm Phase 3/5→6 and review-cycle Review Monitoring.
 
 - ! **Worker-owns-lifecycle (Gap C):** When dispatching an implementation worker, the envelope MUST declare `stop-at: pr-open` OR `drive-to: merge-ready` (default for story work). Workers scoped `drive-to: merge-ready` own PR + review cycle + fix batches through merge-ready as ONE unit of work — they spawn their own review poller per review-cycle monitoring tiers; the orchestrator MUST NOT hand back at PR-open and re-dispatch separate leaf agents for review/fixes.
 - ! **Background dispatch (Gap D):** Long-running workers (>~3 min: implementation, fix batches, review-cycle owners, pollers) MUST dispatch independently / in the background (on Cursor: Task tool `run_in_background: true`) so the conversation channel stays interactive; foreground dispatch is for short tasks only.
@@ -320,14 +320,14 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 8. `### Open questions` -- optional; surface decisions still owing operator input.
 9. `### Reading order for fresh contributors` -- the canonical three-step (umbrella body -> this comment -> amendment comments) so a new reader knows where to start.
 
-v1 ships as discipline-only (this AGENTS.md section + skill cross-references in `skills/deft-directive-gh-slice/SKILL.md` and `skills/deft-directive-refinement/SKILL.md` final phases). The optional mechanical render verb (`task umbrella:current-shape <N>`) is deferred to v2 unless discipline degrades; the v2 mechanical render requires a structured-amendment-comment format which chains cleanly off the N14 (TBD) pass-type declaration rule.
+v1 ships as discipline-only (this AGENTS.md section + skill cross-references in `content/skills/deft-directive-gh-slice/SKILL.md` and `content/skills/deft-directive-refinement/SKILL.md` final phases). The optional mechanical render verb (`task umbrella:current-shape <N>`) is deferred to v2 unless discipline degrades; the v2 mechanical render requires a structured-amendment-comment format which chains cleanly off the N14 (TBD) pass-type declaration rule.
 
-Cross-references: `skills/deft-directive-gh-slice/SKILL.md` (final phase -- file the umbrella, then file its current-shape comment per this convention), `skills/deft-directive-refinement/SKILL.md` (final phase -- same cross-reference), `templates/agent-prompt-preamble.md` (canonical orchestrator preamble that consumers of this convention dispatch against). Refs #1140 (parent meta-umbrella -- design-pass churn), #1119 (companion umbrella whose pattern motivated this convention; its v3 current-shape comment is the seed example pre-dating this convention).
+Cross-references: `content/skills/deft-directive-gh-slice/SKILL.md` (final phase -- file the umbrella, then file its current-shape comment per this convention), `content/skills/deft-directive-refinement/SKILL.md` (final phase -- same cross-reference), `content/templates/agent-prompt-preamble.md` (canonical orchestrator preamble that consumers of this convention dispatch against). Refs #1140 (parent meta-umbrella -- design-pass churn), #1119 (companion umbrella whose pattern motivated this convention; its v3 current-shape comment is the seed example pre-dating this convention).
 
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
 
-When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
+When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
 <!-- deft:managed-section v3 sha=8f010c664a2c refreshed=2026-06-17T12:39:17Z session=90e3a65c4ce4 -->
 # Deft — AI Development Framework

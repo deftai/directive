@@ -33,7 +33,7 @@ import re
 import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-TEMPLATE_PATH = REPO_ROOT / "templates" / "swarm-greptile-poller-prompt.md"
+TEMPLATE_PATH = REPO_ROOT / "content/templates/swarm-greptile-poller-prompt.md"
 
 
 # ---------------------------------------------------------------------------

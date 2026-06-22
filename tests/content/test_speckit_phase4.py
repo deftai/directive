@@ -26,7 +26,7 @@ def _read(relpath: str) -> str:
 class TestSpeckitPhase4Emission:
     """Phase 4 must direct scope vBRIEF emission to vbrief/pending/."""
 
-    _text = _read("strategies/speckit.md")
+    _text = _read("content/strategies/speckit.md")
 
     def test_phase_4_heading_updated(self) -> None:
         assert "## Phase 4: Implementation Phase / Epic Scope Emission" in self._text, (
@@ -114,7 +114,7 @@ class TestSpeckitPhase4Emission:
 class TestVbriefMdUpdates:
     """vbrief/vbrief.md must document the new conventions."""
 
-    _text = _read("vbrief/vbrief.md")
+    _text = _read("content/vbrief/vbrief.md")
 
     def test_ip_filename_convention_documented(self) -> None:
         assert "YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json" in self._text, (

@@ -33,8 +33,8 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_BUILD_SKILL = _REPO_ROOT / "skills" / "deft-directive-build" / "SKILL.md"
-_SWARM_SKILL = _REPO_ROOT / "skills" / "deft-directive-swarm" / "SKILL.md"
+_BUILD_SKILL = _REPO_ROOT / "content/skills/deft-directive-build/SKILL.md"
+_SWARM_SKILL = _REPO_ROOT / "content/skills/deft-directive-swarm/SKILL.md"
 
 # A line carrying the `!` (RFC2119 MUST) marker that references the
 # Taskfile wrapper. Matches "- ! ..." (Anti-Patterns / Step bullets)

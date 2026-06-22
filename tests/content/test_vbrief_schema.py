@@ -16,8 +16,8 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_SCHEMA_PATH = _REPO_ROOT / "vbrief/schemas/vbrief-core.schema.json"
-_VBRIEF_MD_PATH = _REPO_ROOT / "vbrief/vbrief.md"
+_SCHEMA_PATH = _REPO_ROOT / "content/vbrief/schemas/vbrief-core.schema.json"
+_VBRIEF_MD_PATH = _REPO_ROOT / "content/vbrief/vbrief.md"
 _SPEC_PATH = _REPO_ROOT / "vbrief/specification.vbrief.json"
 _PLAN_PATH = _REPO_ROOT / "vbrief/plan.vbrief.json"
 
