@@ -22,7 +22,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 const EXIT_OK = 0;
 const EXIT_DRIFT = 1;
@@ -202,7 +202,11 @@ export function listTrackedTopLevel(root: string): string[] {
  *
  * Returns drift diagnostics (one per divergence). An empty array means clean.
  */
-export function lintManifest(manifest: ContentManifest, topLevel: readonly string[]): string[] {
+export function lintManifest(
+  manifest: ContentManifest,
+  topLevel: readonly string[],
+  manifestLabel: string = DEFAULT_MANIFEST_PATH,
+): string[] {
   const diagnostics: string[] = [];
   const classified = new Set(manifest.entries.map((e) => e.path));
   const tracked = new Set(topLevel);
@@ -210,7 +214,7 @@ export function lintManifest(manifest: ContentManifest, topLevel: readonly strin
   for (const entry of topLevel) {
     if (!classified.has(entry)) {
       diagnostics.push(
-        `unclassified top-level entry '${entry}' -- add a row to ${DEFAULT_MANIFEST_PATH} assigning it a bucket (content|engine|harness|repo-dev).`,
+        `unclassified top-level entry '${entry}' -- add a row to ${manifestLabel} assigning it a bucket (content|engine|harness|repo-dev).`,
       );
     }
   }
@@ -251,7 +255,12 @@ export function evaluateContentManifest(
   try {
     const manifest = loadManifest(manifestPath);
     const topLevel = options.topLevelEntries ?? listTrackedTopLevel(root);
-    const diagnostics = lintManifest(manifest, [...topLevel]);
+    // Forward the resolved manifest location so drift diagnostics point at the
+    // manifest actually in use, not the hardcoded default (a custom manifestPath
+    // would otherwise be mis-reported in CI output).
+    const relLabel = relative(root, manifestPath);
+    const manifestLabel = relLabel && !relLabel.startsWith("..") ? relLabel : manifestPath;
+    const diagnostics = lintManifest(manifest, [...topLevel], manifestLabel);
     if (diagnostics.length > 0) {
       const lines = [
         `FAIL: content manifest drift detected in ${diagnostics.length} entr(y/ies):`,
@@ -262,7 +271,7 @@ export function evaluateContentManifest(
     return {
       code: EXIT_OK,
       message: `OK: content manifest clean -- ${manifest.entries.length} top-level entr(y/ies) classified across ${manifest.buckets.length} bucket(s) (root=${root}).`,
-      stream: "stderr",
+      stream: "stdout",
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

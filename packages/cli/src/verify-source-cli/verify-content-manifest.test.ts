@@ -86,4 +86,33 @@ describe("run", () => {
   it("returns 2 for a bad argument", () => {
     expect(silentRun(["--bogus"])).toBe(2);
   });
+  it("writes the clean message to stdout and drift to stderr", () => {
+    const cleanRoot = repo([
+      { path: "skills", bucket: "content", note: "skills" },
+      { path: "packages", bucket: "engine", note: "engine" },
+      { path: "conventions", bucket: "content", note: "conventions" },
+    ]);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["--project-root", cleanRoot])).toBe(0);
+      expect(out).toHaveBeenCalled();
+      expect(err).not.toHaveBeenCalled();
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+
+    const driftRoot = repo([{ path: "skills", bucket: "content", note: "skills" }]);
+    const out2 = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err2 = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["--project-root", driftRoot])).toBe(1);
+      expect(err2).toHaveBeenCalled();
+      expect(out2).not.toHaveBeenCalled();
+    } finally {
+      out2.mockRestore();
+      err2.mockRestore();
+    }
+  });
 });
