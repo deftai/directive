@@ -25,7 +25,23 @@ Deft is a **layered set of standards files plus deterministic `task` tooling** t
 
 **📍 Roadmap:** See [ROADMAP.md](./ROADMAP.md) for the development timeline, open issues, and planned work.
 
+## Deft & Directive (naming)
+
+**Deft is the company; Directive is the product.** In docs and on npm, *Deft* names the organization and the on-disk footprint (`.deft/`, `@deftai/*` scope, `deft.md`). *Directive* names the framework you install and run — the published npm package is `@deftai/directive`, and the primary CLI command is `directive` (`deft` is retained as an alias). Existing `deft-install` / `deft` wording in older paths refers to the same product during the staged transition to the npm-first channel ([#423](https://github.com/deftai/directive/issues/423), [#11](https://github.com/deftai/directive/issues/11)).
+
 ## 🚀 Getting Started
+
+### npm (emerging canonical channel)
+
+When Node 20+ is already on your PATH, install Directive globally from npm:
+
+```bash
+npm i -g @deftai/directive
+```
+
+Then run `directive` (or the `deft` alias) from any project directory — for example `directive doctor`, `directive session:start`, or `npx @deftai/directive <verb>` without a global install. This is the emerging primary distribution path; the Go installer below remains the bootstrap option during the staged retire window.
+
+### Go installer (bootstrap / air-gapped)
 
 Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts.
 
@@ -44,7 +60,9 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 > **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
 
-### 1. Install Deft
+### 1. Install Directive
+
+Prefer **`npm i -g @deftai/directive`** when Node 20+ is available (see [npm channel](#npm-emerging-canonical-channel) above). Otherwise use the platform Go installer:
 
 **Windows:**
 - Download `install-windows-amd64.exe` (or `install-windows-arm64.exe` for Surface / Copilot+ PCs)

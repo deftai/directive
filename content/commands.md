@@ -19,7 +19,63 @@ flowchart LR
     Active -->|"task scope:complete"| Completed["completed scope"]
 ```
 
-`task --list` is the authoritative command index. This file explains the main command families and the older `/deft:change` folder workflow that remains as historical/compatibility guidance.
+`task --list` is the authoritative command index. This file explains the main command families, the agent slash-command surface, and the older `/deft:directive:change` folder workflow that remains as historical/compatibility guidance.
+
+---
+
+## Slash Command Namespaces (#418 / #1670)
+
+Deft exposes two slash-command namespaces. **Product-level** commands for the Directive framework live under `/deft:directive:*` (matching the `deft-directive-*` skill prefix). **Cross-product** commands that operate on shared vBRIEF abstractions stay at the umbrella `/deft:*` level so sibling products can share them.
+
+### Directive product commands (`/deft:directive:*`)
+
+When the user types a product slash command, agents MUST route to the corresponding skill or strategy file.
+
+**Change lifecycle** (see [Historical `/deft:directive:change` folder workflow](#historical-deftdirectivechange-folder-workflow) below):
+
+- `/deft:directive:change <name>` — Create a scoped change proposal in `history/changes/<name>/`
+- `/deft:directive:change:apply` — Implement tasks from the active change
+- `/deft:directive:change:verify` — Verify the active change against acceptance criteria
+- `/deft:directive:change:archive` — Archive completed change to `history/archive/`
+
+**Strategies** — `/deft:directive:run:<name>` maps to `strategies/<name>.md`:
+
+- `/deft:directive:run:interview <name>` — Structured interview with sizing gate ([strategies/interview.md](./strategies/interview.md))
+- `/deft:directive:run:yolo <name>` — Auto-pilot interview ([strategies/yolo.md](./strategies/yolo.md))
+- `/deft:directive:run:map` — Brownfield codebase mapping ([strategies/map.md](./strategies/map.md))
+- `/deft:directive:run:discuss <topic>` — Feynman-style alignment ([strategies/discuss.md](./strategies/discuss.md))
+- `/deft:directive:run:research <domain>` — Research before planning ([strategies/research.md](./strategies/research.md))
+- `/deft:directive:run:speckit <name>` — Five-phase spec workflow ([strategies/speckit.md](./strategies/speckit.md))
+- `/deft:directive:run:probe` — Adversarial plan stress-testing ([skills/deft-directive-probe/SKILL.md](./skills/deft-directive-probe/SKILL.md))
+
+**Naming rule:** `/deft:directive:run:<x>` always maps to `strategies/<x>.md` (or the matching skill when noted). Custom strategies follow the same pattern.
+
+### Cross-product commands (umbrella `/deft:*`)
+
+These commands are NOT migrated — they operate on shared vBRIEF session abstractions usable across Deft products:
+
+- `/deft:continue` — Resume from continue checkpoint ([resilience/continue-here.md](./resilience/continue-here.md))
+- `/deft:checkpoint` — Save session state to `./vbrief/continue.vbrief.json`
+
+### Deprecation aliases (prior `/deft:*` product forms)
+
+The legacy product forms below remain accepted but SHOULD emit a deprecation warning directing the user to the `/deft:directive:*` equivalent. Prefer the namespaced form in new documentation and skill routing.
+
+| Deprecated alias | Canonical form |
+|------------------|----------------|
+| `/deft:change` | `/deft:directive:change` |
+| `/deft:change:apply` | `/deft:directive:change:apply` |
+| `/deft:change:verify` | `/deft:directive:change:verify` |
+| `/deft:change:archive` | `/deft:directive:change:archive` |
+| `/deft:run:interview` | `/deft:directive:run:interview` |
+| `/deft:run:yolo` | `/deft:directive:run:yolo` |
+| `/deft:run:map` | `/deft:directive:run:map` |
+| `/deft:run:discuss` | `/deft:directive:run:discuss` |
+| `/deft:run:research` | `/deft:directive:run:research` |
+| `/deft:run:speckit` | `/deft:directive:run:speckit` |
+| `/deft:run:probe` | `/deft:directive:run:probe` |
+
+Skills retain the `deft-directive-*` prefix — only the slash-command surface is namespaced.
 
 ---
 
@@ -210,9 +266,9 @@ Canonical install/upgrade is handled by the published `deft-install` binary, and
 
 ---
 
-## Historical `/deft:change` Folder Workflow
+## Historical `/deft:directive:change` Folder Workflow
 
-Older guidance used `history/changes/<name>/` folders with `proposal.vbrief.json`, `tasks.vbrief.json`, and optional spec deltas. That pattern remains useful as historical context and may still appear in archived work, but the active repository workflow is scope-vBRIEF lifecycle under `vbrief/`.
+Older guidance used `history/changes/<name>/` folders with `proposal.vbrief.json`, `tasks.vbrief.json`, and optional spec deltas. Invoke via `/deft:directive:change <name>` (alias: `/deft:change <name>`, deprecated). That pattern remains useful as historical context and may still appear in archived work, but the active repository workflow is scope-vBRIEF lifecycle under `vbrief/`.
 
 If a future change uses `history/changes/`, files MUST use vBRIEF `0.6`, not the obsolete `0.5` examples.
 

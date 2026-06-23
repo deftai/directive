@@ -329,7 +329,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=8f010c664a2c refreshed=2026-06-17T12:39:17Z session=90e3a65c4ce4 -->
+<!-- deft:managed-section v3 sha=35d735c249ac refreshed=2026-06-23T02:17:28Z session=315f07a8c69e -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -424,6 +424,15 @@ Deft ships versioned content packs (e.g. lessons learned from prior work) under 
 
 ! Before improvising on a problem, discover packs with `deft packs:slice --list-packs`, then load the relevant slice. This wiring references the discovery commands on purpose -- it never enumerates pack or slice names, so new packs/slices need no change here.
 
+## Codebase MAP Projection (#1595 / #1498)
+
+`vbrief/PROJECT-DEFINITION.vbrief.json` `plan.architecture.codeStructure` is the durable codebase-structure source. `.planning/codebase/MAP.md` is a generated orientation projection from that metadata plus provider/code-derived facts.
+
+- ~ If `.planning/codebase/MAP.md` exists, read it as orientation before broad codebase scanning.
+- ~ If it is absent or may be stale, run `deft codebase:map` and `deft verify:codebase-map-fresh` when those commands resolve; treat the result as advisory unless the current task edits `plan.architecture.codeStructure`, a configured provider artifact, or the generated MAP itself.
+- ! When the MAP is wrong, update `plan.architecture.codeStructure` or the selected provider artifact, then regenerate the MAP.
+- ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the vBRIEF metadata.
+
 ## Skill Routing
 
 When user input matches a trigger keyword, read the corresponding skill (paths are relative to the consumer's project root and resolve under `.deft/core/skills/`):
@@ -439,7 +448,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" -> `.deft/core/skills/deft-directive-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/skills/deft-directive-pre-pr/SKILL.md`
 - "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/skills/deft-directive-interview/SKILL.md`
-- "run probe" / "/deft:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md`
+- "run probe" / "/deft:directive:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md` (deprecated alias: `/deft:run:probe`)
 - "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/skills/deft-directive-glossary/SKILL.md`
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/skills/deft-directive-gh-arch/SKILL.md`
 - "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/skills/deft-directive-debug/SKILL.md`
@@ -510,12 +519,24 @@ Cross-reference: `.deft/core/docs/analysis/2026-05-26-issue-1353-grok-windows-ca
 
 ## Commands
 
-- /deft:change <name>        — Propose a scoped change
-- /deft:run:interview        — Structured spec interview
-- /deft:run:speckit          — Five-phase spec workflow (large projects)
-- /deft:run:discuss <topic>  — Feynman-style alignment
-- /deft:run:research <topic> — Research before planning
-- /deft:run:map              — Map an existing codebase
+Directive product commands use the `/deft:directive:*` namespace (#418 / #1670). Prior `/deft:*` product forms remain as deprecation-warning aliases — see `content/commands.md` for the full alias table. Cross-product session commands stay at the umbrella `/deft:*` level.
+
+**Directive product (`/deft:directive:*`):**
+
+- /deft:directive:change <name>        — Propose a scoped change (alias: `/deft:change`, deprecated)
+- /deft:directive:run:interview        — Structured spec interview (alias: `/deft:run:interview`, deprecated)
+- /deft:directive:run:speckit          — Five-phase spec workflow (alias: `/deft:run:speckit`, deprecated)
+- /deft:directive:run:discuss <topic>  — Feynman-style alignment (alias: `/deft:run:discuss`, deprecated)
+- /deft:directive:run:research <topic> — Research before planning (alias: `/deft:run:research`, deprecated)
+- /deft:directive:run:map              — Map an existing codebase (alias: `/deft:run:map`, deprecated)
+
+**Cross-product (umbrella `/deft:*`):**
+
+- /deft:continue — Resume from continue checkpoint
+- /deft:checkpoint — Save session state to `./vbrief/continue.vbrief.json`
+
+**CLI compatibility:**
+
 - .deft/core/run bootstrap         — CLI setup (terminal users)
 - .deft/core/run spec              — CLI spec generation
 <!-- /deft:managed-section -->

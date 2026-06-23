@@ -15,10 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Docs now state Deft = company, Directive = product, and show the npm install path (#423, #11, #1670)** — The identity model (Deft is the company, Directive is the product) is now documented, and `npm i -g @deftai/directive` with the `directive` command (`deft` alias) is called out as the emerging canonical install channel. The Go bootstrap installer remains documented during the staged retire window. Refs #423 #11 #1670.
 
 ### Changed
 
 - **Published npm packages now use product-scoped @deftai/directive* names (#11 #1670)** -- The three workspace packages rename to `@deftai/directive`, `@deftai/directive-core`, and `@deftai/directive-types`, with all cross-package imports updated. The CLI exposes `directive` as the canonical bin and retains `deft` as an alias, both routing to the same entrypoint. Refs #11 #1670.
+- **Product slash commands now live under `/deft:directive:*`** — Directive framework commands (`change`, `run:<strategy>`, etc.) are namespaced under `/deft:directive:*` to match the `deft-directive-*` skills and leave room for sibling-product namespaces. Prior `/deft:*` product forms remain as deprecation-warning aliases; cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. Refs #418 #1670.
 
 ### Fixed
 
