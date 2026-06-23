@@ -1,0 +1,29 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1918"
+  },
+  "plan": {
+    "title": "directive version reports hardcoded engine version 0.0.0",
+    "status": "running",
+    "narratives": {
+      "Description": "directive version reports hardcoded engine version 0.0.0",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1918",
+      "Overview": "## Symptom\nAfter the v0.55.0 npm publish, `npm i -g @deftai/directive@0.55.0` then `directive version` (and the `deft` alias) prints:\n\n```\n@deftai/directive (engine: @deftai/directive-core@0.0.0)\n```\n\nThe published package metadata is correct (`@deftai/directive-core@0.55.0` on the registry); only the runtime-reported version is wrong.\n\n## Root cause\n`engineInfo()` returns a hardcoded version literal:\n\n`packages/core/src/index.ts:58`\n```ts\nexport function engineInfo(): EngineInfo {\n  return { name: CORE_PACKAGE, version: \"0.0.0\" };\n}\n```\n\n`banner()` (`packages/cli/src/index.ts:16`) and the `version` dispatch (`packages/cli/src/dispatch.ts:573`) both render `${info.name}@${info.version}`, so they always emit `0.0.0`. The publish workflow aligns `package.json` versions at publish time only, so nothing updates this literal.\n\n## Suggested fix\nSource the version from the package's own `package.json` at build or runtime (e.g. a generated `version.ts` written during `tsc -b`/build, or reading the installed `package.json`) instead of the hardcoded literal. Update the three tests that currently assert `0.0.0` (`index.test.ts`, `dispatch.test.ts`, `bin.test.ts`) accordingly.\n\n## Severity\nCosmetic — does not affect install or functionality, but `directive version` is the first thing a user runs to confirm their install, so a wrong number undermines confidence.\n\nFound during the #1909 first-publish smoke test. Refs #1909 #11"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1918",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1918: directive version reports hardcoded engine version 0.0.0"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1909",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1909"
+      }
+    ],
+    "updated": "2026-06-23T21:00:32Z"
+  }
+}

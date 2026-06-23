@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { engineInfo } from "@deftai/directive-core";
 import { describe, expect, it } from "vitest";
 
-const VERSION_LINE = "@deftai/directive (engine: @deftai/directive-core@0.0.0)\n";
+const VERSION_LINE = `@deftai/directive (engine: @deftai/directive-core@${engineInfo().version})\n`;
 
 describe("dist/bin.js entrypoint", () => {
   const binPath = join(dirname(fileURLToPath(import.meta.url)), "../dist/bin.js");

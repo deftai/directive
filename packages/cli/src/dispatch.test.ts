@@ -1,3 +1,4 @@
+import { engineInfo } from "@deftai/directive-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CLI_MODULE_VERBS,
@@ -9,6 +10,9 @@ import {
   resolveCanonicalVerb,
   VERB_ALIASES,
 } from "./dispatch.js";
+
+const engineVersion = engineInfo().version;
+const VERSION_BANNER = `@deftai/directive (engine: @deftai/directive-core@${engineVersion})\n`;
 
 afterEach(() => {
   resetHandlerCacheForTests();
@@ -61,7 +65,7 @@ describe("dispatch", () => {
       writeErr: () => {},
     });
     expect(code).toBe(0);
-    expect(out.join("")).toBe("@deftai/directive (engine: @deftai/directive-core@0.0.0)\n");
+    expect(out.join("")).toBe(VERSION_BANNER);
   });
 
   it("returns 0 for -V and prints the engine banner", async () => {
@@ -73,7 +77,7 @@ describe("dispatch", () => {
       writeErr: () => {},
     });
     expect(code).toBe(0);
-    expect(out.join("")).toBe("@deftai/directive (engine: @deftai/directive-core@0.0.0)\n");
+    expect(out.join("")).toBe(VERSION_BANNER);
   });
 
   it("returns 0 for empty argv and prints help", async () => {

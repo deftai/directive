@@ -1,4 +1,5 @@
 import type { EngineInfo } from "@deftai/directive-types";
+import { readCorePackageVersion } from "./engine-version.js";
 
 /**
  * `@deftai/directive-core` — the deft directive engine core.
@@ -55,5 +56,5 @@ export const CORE_PACKAGE = "@deftai/directive-core" as const;
 
 /** Returns identifying metadata for the core engine package. */
 export function engineInfo(): EngineInfo {
-  return { name: CORE_PACKAGE, version: "0.0.0" };
+  return { name: CORE_PACKAGE, version: readCorePackageVersion() };
 }

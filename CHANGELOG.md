@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`directive version` now reports the installed engine version (#1918)** — `engineInfo()` previously returned a hardcoded `0.0.0`, so `directive version` and the `deft` alias always showed `@deftai/directive-core@0.0.0` even after a correct npm install. The runtime banner now reads the version from the installed `@deftai/directive-core` package.json, matching registry metadata. Refs #1918 #1909.
 
 ### Removed
 
