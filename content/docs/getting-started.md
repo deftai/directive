@@ -20,9 +20,13 @@ Deft Directive is a Taskfile-first framework for AI-assisted software work. It c
 
 ## Installation
 
-### npm (emerging canonical channel)
+### npm (coming soon — not yet published)
 
-When Node is already available, install Directive globally:
+> ⚠️ **The `@deftai/directive` npm package is not yet published** to the registry (provisioning tracked by [#1909](https://github.com/deftai/directive/issues/1909)). **Until it goes live, install via the [Go installer](#go-installer-bootstrap) below.** The commands shown here are what the install will become once the package is published.
+
+<!-- TODO(#1909): flip to npm-canonical and remove this "coming soon" notice when @deftai/directive is published -->
+
+Once published, when Node is already available you will install Directive globally:
 
 ```bash
 npm i -g @deftai/directive
@@ -30,14 +34,14 @@ directive --version    # primary command
 deft --version         # alias — same binary
 ```
 
-One-shot without a global install:
+One-shot without a global install (also once published):
 
 ```bash
 npx @deftai/directive doctor
 npx @deftai/directive session:start
 ```
 
-This npm path is the emerging primary distribution channel under `@deftai/directive` ([#11](https://github.com/deftai/directive/issues/11)). The Go installer below remains documented as the bootstrap option during the staged retire window.
+This npm path is the emerging primary distribution channel under `@deftai/directive` ([#11](https://github.com/deftai/directive/issues/11)); the Go installer below remains the install/bootstrap option today and during the staged retire window.
 
 ### Go installer (bootstrap)
 
