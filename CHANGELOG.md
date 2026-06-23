@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Framework content now ships as `@deftai/directive-content` with resolver fallback (#11, #1669)** — The shippable `content/` tree is packaged as its own npm module with the C1 flatten preserved, and the TypeScript content-root resolver reads from the installed package when present or falls back to the vendored `.deft/core/` deposit across in-repo, hybrid, and external workspace layouts. Refs #11 #1669.
+- **`directive init` and `directive update` delegate to bundled deft-install (#11 #1670)** — The npm CLI now shells out to the bundled Go installer with the canonical headless argv (`--yes --repo-root . --json` for init; `--yes --upgrade --repo-root . --json` for update), surfaces its JSON result, and emits a clear remediation message when the platform binary is missing. Refs #11 #1670.
+- **Unified `directive <namespace> <verb>` CLI router (#11 #1670)** — The npm CLI now routes `directive verify branch`, `directive scope promote`, and other namespace verbs to the same TypeScript handlers as `task <ns>:<verb>`, with top-level shortcuts for `version`, `check`, and `doctor`. The `deft` bin alias uses identical dispatch. Refs #11 #1670.
 - **Docs now state Deft = company, Directive = product, and show the npm install path (#423, #11, #1670)** — The identity model (Deft is the company, Directive is the product) is now documented, and `npm i -g @deftai/directive` with the `directive` command (`deft` alias) is called out as the emerging canonical install channel. The Go bootstrap installer remains documented during the staged retire window. Refs #423 #11 #1670.
 
 ### Changed

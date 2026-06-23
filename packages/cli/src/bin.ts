@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { dispatch } from "./dispatch.js";
+import { routeAndDispatch } from "./cli-router/index.js";
 
-const code = await dispatch(process.argv.slice(2));
+const code = await routeAndDispatch(process.argv.slice(2));
 process.exit(code);
