@@ -31,15 +31,19 @@ Deft is a **layered set of standards files plus deterministic `task` tooling** t
 
 ## 🚀 Getting Started
 
-### npm (emerging canonical channel)
+### npm (coming soon — not yet published)
 
-When Node 20+ is already on your PATH, install Directive globally from npm:
+> ⚠️ **The `@deftai/directive` npm package is not yet published** to the registry (provisioning tracked by [#1909](https://github.com/deftai/directive/issues/1909)). **Until it goes live, install via the [Go installer](#go-installer-bootstrap--air-gapped) below.** The command shown here is what the install will become once the package is published.
+
+<!-- TODO(#1909): flip to npm-canonical and remove this "coming soon" notice when @deftai/directive is published -->
+
+Once published, when Node 20+ is already on your PATH you will install Directive globally from npm:
 
 ```bash
 npm i -g @deftai/directive
 ```
 
-Then run `directive` (or the `deft` alias) from any project directory — for example `directive doctor`, `directive session:start`, or `npx @deftai/directive <verb>` without a global install. This is the emerging primary distribution path; the Go installer below remains the bootstrap option during the staged retire window.
+Then run `directive` (or the `deft` alias) from any project directory — for example `directive doctor`, `directive session:start`, or `npx @deftai/directive <verb>` without a global install. This is the emerging primary distribution path; the Go installer below remains the install/bootstrap option today and during the staged retire window.
 
 ### Go installer (bootstrap / air-gapped)
 
@@ -62,7 +66,7 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 ### 1. Install Directive
 
-Prefer **`npm i -g @deftai/directive`** when Node 20+ is available (see [npm channel](#npm-emerging-canonical-channel) above). Otherwise use the platform Go installer:
+Until the npm package is published ([#1909](https://github.com/deftai/directive/issues/1909)), install via the platform **Go installer** below. (Once live, **`npm i -g @deftai/directive`** will be the preferred path when Node 20+ is available — see [npm channel](#npm-coming-soon--not-yet-published) above.)
 
 **Windows:**
 - Download `install-windows-amd64.exe` (or `install-windows-arm64.exe` for Surface / Copilot+ PCs)
