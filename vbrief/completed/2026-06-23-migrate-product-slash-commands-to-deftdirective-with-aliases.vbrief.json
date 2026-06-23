@@ -6,7 +6,7 @@
   "plan": {
     "id": "11-s5-slash-command-namespace",
     "title": "Migrate product slash commands to /deft:directive:* with aliases",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
     "narratives": {
       "Description": "Resolve the #418 tail under the #1670 model: migrate product-level slash commands from /deft:* to /deft:directive:* with retained aliases + deprecation notes, while cross-product commands that operate on shared vBRIEF abstractions (/deft:continue, /deft:checkpoint) stay at the umbrella /deft:*. Skills stay deft-directive-* (no rename). Source edits go through templates/agents-entry.md + content/commands.md, then `task agents:refresh` regenerates AGENTS.md, honoring the #1309 template-propagation discipline.",
@@ -64,7 +64,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Resolves #418 (command namespace tail) under the #1670 model / #1669 Wave 2; documentation+template surface with no spec-section trace."
-      }
+      },
+      "completedAt": "2026-06-23T02:19:29Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -74,6 +76,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-23T02:10:30Z"
+    "updated": "2026-06-23T02:19:29Z"
   }
 }

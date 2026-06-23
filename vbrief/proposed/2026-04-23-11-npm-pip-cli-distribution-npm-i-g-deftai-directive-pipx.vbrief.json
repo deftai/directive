@@ -53,7 +53,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-23-migrate-product-slash-commands-to-deftdirective-with-aliases.vbrief.json",
+        "uri": "completed/2026-06-23-migrate-product-slash-commands-to-deftdirective-with-aliases.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Migrate product slash commands to /deft:directive:* with aliases",
         "TrustLevel": "internal"
