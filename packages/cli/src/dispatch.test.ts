@@ -88,6 +88,30 @@ describe("dispatch", () => {
     expect(out.join("")).toContain("Usage: deft-ts");
   });
 
+  it("returns 0 for -h and prints help", async () => {
+    const out: string[] = [];
+    const code = await dispatch(["-h"], {
+      writeOut: (text) => {
+        out.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("verify-encoding");
+  });
+
+  it("returns 0 for help and prints help", async () => {
+    const out: string[] = [];
+    const code = await dispatch(["help"], {
+      writeOut: (text) => {
+        out.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("verify-encoding");
+  });
+
   it("returns 0 for --help and prints the verb list", async () => {
     const out: string[] = [];
     const code = await dispatch(["--help"], {
