@@ -358,18 +358,6 @@ jobs:
     # and PowerShell, not just statically lint-checked.
     name: Windows (task dispatch regression)
     runs-on: windows-latest
-    # #1922: `scope:_ensure-ts` runs `pnpm --dir <repo> run build` from the
-    # consumer-fixture CWD (D:\a\_temp\consumer), which has no `packageManager`
-    # pin, so corepack on windows-latest supplies a newer pnpm patch (e.g.
-    # 11.9.0) than the repo's pinned 11.8.0. pnpm's default self-management then
-    # hard-fails ("pnpm does not switch versions when running under corepack").
-    # The setting is read relative to CWD, so a repo `.npmrc` is not consulted;
-    # the `npm_config_*` env var is CWD-independent and disables the refusal so
-    # the corepack binary runs against the pinned project (lockfile is
-    # compatible across pnpm 11.x patches). Framework-CI-only: consumers ship
-    # prebuilt dist and never run `pnpm build`.
-    env:
-      npm_config_manage_package_manager_versions: "false"
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
@@ -402,8 +390,21 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Enable corepack (pnpm)
-        run: corepack enable
+      # #1922: `corepack prepare --activate` (run from the repo root, so it
+      # reads `packageManager` from package.json) makes the pinned pnpm version
+      # the corepack default. The downstream `scope:_ensure-ts` step runs
+      # `pnpm --dir <repo> run build` from the consumer-fixture CWD
+      # (D:\a\_temp\consumer), which has no `packageManager` pin -- without an
+      # activated default, corepack falls back to a newer bundled patch (e.g.
+      # 11.9.0) and pnpm hard-fails ("pnpm does not switch versions when running
+      # under corepack") because it differs from the repo's pin. Activating the
+      # pinned version first keeps the corepack-provided binary in lockstep with
+      # the pin regardless of the invocation CWD. No version is hardcoded, so the
+      # workflow tracks the package.json pin automatically.
+      - name: Enable corepack and activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare --activate
 
       - name: Install Node dependencies (pnpm)
         run: pnpm install --frozen-lockfile
