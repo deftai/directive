@@ -135,24 +135,20 @@ const _SANDBOX_AUTH_ANTI_PATTERN_TOKENS = [
   "sandbox UID 0",
   "#1557",
 ];
-const _PHASE0_BACKEND_HEADER = "#### Phase 0e -- Interactive sub-agent backend selection (#1568)";
-const _PHASE0_BACKEND_END = "#### Manual / GitHub-issue escape hatch";
+const _PHASE0_BACKEND_HEADER =
+  "#### Phase 0e -- Interactive sub-agent backend selection (DEPRECATED -- #1568 / superseded by #1739)";
+const _PHASE0_BACKEND_END = "#### Phase 0f -- Greenfield swarm-ready bootstrap (#1053)";
+// Tokens that MUST still be present in the deprecated Phase 0e block (#1891):
+// it becomes a supersession pointer, not an interactive menu.
 const _INTERACTIVE_BACKEND_TOKENS = [
-  "task policy:subagent-backends",
+  "This phase is superseded.",
+  "Per-role operator model routing",
+  ".deft/routing.local.json",
+  "task verify:routing -- --advise",
+  "task swarm:routing-set",
   "plan.policy.swarmSubagentBackend",
-  "before any `task swarm:launch`",
-  "operator preference",
-  "probe availability is supporting evidence only",
-  "do NOT imply `cursor-cloud` is the default just because it is probe-available",
-  "Local Composer/Cursor subagents (`composer`)",
-  "Cursor cloud agents (`cursor-cloud`)",
-  "Grok Build subagents (`grok-build`)",
-  "task policy:subagent-backend -- <id>",
-  "per-run launch-context choice",
-  "unavailable or unknown",
-  "rerun the probe in the target environment",
-  "Autonomous/headless launch remains fail-closed",
-  "scripts/swarm_launch.py",
+  "#1891",
+  "do not consult them for new work",
 ];
 const _GREENFIELD_BOOTSTRAP_HEADER = "#### Phase 0f -- Greenfield swarm-ready bootstrap (#1053)";
 const _GREENFIELD_BOOTSTRAP_END = "#### Manual / GitHub-issue escape hatch";
@@ -566,23 +562,9 @@ describe("test_swarm_skill", () => {
     const anti_block = text.slice(anti_start, undefined);
     expect(anti_block).toContain(token);
   });
-  it.each([
-    "task policy:subagent-backends",
-    "plan.policy.swarmSubagentBackend",
-    "before any `task swarm:launch`",
-    "operator preference",
-    "probe availability is supporting evidence only",
-    "do NOT imply `cursor-cloud` is the default just because it is probe-available",
-    "Local Composer/Cursor subagents (`composer`)",
-    "Cursor cloud agents (`cursor-cloud`)",
-    "Grok Build subagents (`grok-build`)",
-    "task policy:subagent-backend -- <id>",
-    "per-run launch-context choice",
-    "unavailable or unknown",
-    "rerun the probe in the target environment",
-    "Autonomous/headless launch remains fail-closed",
-    "scripts/swarm_launch.py",
-  ])("swarm_phase0_backend_selection_token_present %s", (token) => {
+  it.each(
+    _INTERACTIVE_BACKEND_TOKENS,
+  )("swarm_phase0_backend_selection_token_present %s", (token) => {
     const block = _phase0_backend_block(_read_swarm());
     expect(block).toContain(token);
   });
@@ -594,42 +576,25 @@ describe("test_swarm_skill", () => {
     expect(phase0e).not.toBe(-1);
     expect(phase0d).toBeLessThan(phase0e);
     const block = text.slice(phase0d, phase0e);
-    expect(block).toContain("Phase 0e below captures the intended sub-agent backend");
-    expect(block).toContain("before Step 0.5 hardens lifecycle state");
+    // Phase 0d references Phase 0e as deprecated (#1891)
+    expect(block).toContain("Phase 0e below");
   });
   it("swarm_phase0_backend_menu_uses_visible_numbered_options", () => {
+    // Phase 0e is deprecated (#1891): no menu; verify the routing pointer is present
     const block = _phase0_backend_block(_read_swarm());
-    const options = [
-      "1. Local Composer/Cursor subagents (`composer`)",
-      "2. Cursor cloud agents (`cursor-cloud`)",
-      "3. Grok Build subagents (`grok-build`)",
-      "4. Discuss",
-      "5. Back",
-    ];
-    const positions = options.map((option) => block.indexOf(option));
-    expect(positions.every((position) => position !== -1)).toBeTruthy();
-    expect(positions).toEqual([...positions].sort());
+    expect(block).toContain("task swarm:routing-set");
+    expect(block).toContain("task verify:routing");
   });
   it("swarm_phase0_backend_followup_menu_uses_visible_numbered_options", () => {
+    // Phase 0e is deprecated (#1891): no follow-up menu; verify routing pointer
     const block = _phase0_backend_block(_read_swarm());
-    const options = [
-      "1. Persist backend to project policy with `task policy:subagent-backend -- <id>`",
-      "2. Record backend as a per-run launch-context choice for this swarm only",
-      "3. Discuss",
-      "4. Back",
-    ];
-    const positions = options.map((option) => block.indexOf(option));
-    expect(positions.every((position) => position !== -1)).toBeTruthy();
-    expect(positions).toEqual([...positions].sort());
+    expect(block).toContain("task swarm:routing-set");
   });
   it("swarm_phase0_backend_menu_keeps_discuss_back_final", () => {
+    // Phase 0e is deprecated (#1891): MUST NOT directive replaces the menu
     const block = _phase0_backend_block(_read_swarm());
-    const discuss = block.indexOf("4. Discuss");
-    const back = block.indexOf("5. Back");
-    expect(discuss).not.toBe(-1);
-    expect(back).not.toBe(-1);
-    expect(discuss).toBeLessThan(back);
-    expect(block.slice(back, undefined)).not.toContain("6. ");
+    expect(block).toContain("⊗");
+    expect(block).toContain("swarmSubagentBackend");
   });
   it.each([
     "greenfield swarm-ready bootstrap",
