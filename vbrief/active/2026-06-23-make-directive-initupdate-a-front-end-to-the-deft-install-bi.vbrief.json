@@ -6,7 +6,7 @@
   "plan": {
     "id": "11-s4-init-update-frontend",
     "title": "Make directive init/update a front-end to the deft-install binary",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
     "narratives": {
       "Description": "Implement the #1670 Decision-3 transition contract: `directive init` and `directive update` delegate to the bundled deft-install Go binary (deft-install --yes --upgrade --repo-root . --json) rather than reimplementing bootstrap. This keeps a single bootstrap implementation during the staged Go-retire window; the CLI absorbs the logic only at Wave 5. Builds on the S3 router.",
@@ -72,6 +72,7 @@
         "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-23T03:47:16Z"
   }
 }
