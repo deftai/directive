@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1923"
+  },
+  "plan": {
+    "title": "CI: TS global branch-coverage sits at the 85% threshold boundary (84.99%) and fails intermittently",
+    "status": "completed",
+    "narratives": {
+      "Description": "CI: TS global branch-coverage sits at the 85% threshold boundary (84.99%) and fails intermittently",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1923",
+      "Overview": "## Symptom\nThe **TypeScript (build + lint + test)** CI job fails at the vitest coverage gate:\n\n```\nERROR: Coverage for branches (84.99%) does not meet global threshold (85%)\nStatements   : 87.66%\nBranches     : 84.99% ( 17888/21046 )\nFunctions    : 93.83%\nLines        : 87.66%\n```\n\n## Root cause\nGlobal branch coverage has drifted to `84.99%`, a hair below the configured `85%` threshold. Because it's right at the boundary, the gate fails intermittently and blocks unrelated PRs (observed on PR #1921, a YAML-only change). `task check` locally does not replicate the CI coverage-threshold lane, so this only surfaces in CI.\n\n## Suggested fix\n- Add targeted branch tests to the lowest-covered modules to push branches comfortably above 85% (e.g. `verify-stubs.ts` 70.96%, `dependency-chain-check.ts` 73.91%, `scm-call-scan.ts` 79.24%, `safety.ts` 85.81%), rather than lowering the threshold.\n- Optionally surface the coverage-threshold lane in `task check` (or a `task ts:coverage`) so it's caught locally before CI.\n\n## Impact\nIntermittent red TS check on PRs; currently bypassed via admin merge.\n\nFound during the #1909 npm work. Refs #1921"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1923",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1923: CI: TS global branch-coverage sits at the 85% threshold boundary (84.99%) and fails intermittently"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1921",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1921"
+      }
+    ],
+    "updated": "2026-06-23T19:18:31Z",
+    "metadata": {
+      "completedAt": "2026-06-23T19:18:31Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **npm publishing now uses OIDC trusted publishing instead of a stored token (#1919, #1909)** — The publish workflow authenticates to npm via GitHub's short-lived OIDC identity rather than a long-lived `NPM_TOKEN` secret, so there is no standing credential to leak or rotate. Requires a one-time per-package trusted-publisher configuration on npmjs.com. Refs #1919 #1909.
 
 ### Fixed
+- **CI is green again on Windows and the TypeScript coverage gate (#1922, #1923)** — The Windows task-dispatch job no longer hard-fails when the runner's corepack supplies a newer pnpm patch than the pinned version, and the TypeScript branch-coverage gate is back above its 85% threshold (added targeted source-stub scanner tests). Both were blocking unrelated PRs from merging without an admin override. Refs #1922 #1923.
 - **npm packages now actually publish with provenance (#1916, #1909)** — The publish workflow ran on a third-party (Blacksmith) runner, which npm's registry rejects for provenance-signed releases, so the first `v*` tag published nothing. The publish job now runs on a GitHub-hosted runner so the supply-chain provenance attestation is accepted, and a manual re-publish trigger lets an existing release tag be (re)published without recreating the tag. Refs #1916 #1909.
 
 ### Removed

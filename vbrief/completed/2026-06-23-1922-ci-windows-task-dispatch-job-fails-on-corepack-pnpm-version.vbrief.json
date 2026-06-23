@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1922"
+  },
+  "plan": {
+    "title": "CI: Windows task-dispatch job fails on corepack pnpm version drift (11.8.0 vs 11.9.0)",
+    "status": "completed",
+    "narratives": {
+      "Description": "CI: Windows task-dispatch job fails on corepack pnpm version drift (11.8.0 vs 11.9.0)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1922",
+      "Overview": "## Symptom\nThe **Windows (task dispatch regression)** CI job fails at `task scope:promote` → `scope:_ensure-ts` → `pnpm ... run build`:\n\n```\n! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-11.9.0.tgz\n[ERROR] This project is configured to use 11.8.0 of pnpm. Your current pnpm is v11.9.0\nCorepack invoked pnpm with this version, and pnpm does not switch versions when running under corepack.\ntask: Failed to run task \"scope:_ensure-ts\": exit status 1\n```\n\n## Root cause\nThe project pins pnpm `11.8.0` (via `packageManager` / `devEngines.packageManager`), but the Windows runner's corepack resolves `11.9.0` and refuses to switch versions when invoked under corepack. Observed on PR #1921's CI (a YAML-only change), so it is environment drift, not a code regression.\n\n## Suggested fix (pick one)\n- Bump the pinned pnpm version (`packageManager`/`devEngines.packageManager`) to match what corepack resolves, and keep it current; or\n- Pin corepack to install the exact configured pnpm version on the Windows job before running tasks; or\n- Set `devEngines.packageManager.onFail: \"warn\"` (or `--pm-on-fail=warn`) so a patch drift warns instead of hard-failing.\n\n## Impact\nRed Windows check on every PR until resolved; currently bypassed via admin merge. Non-blocking for runtime, but it defeats the Windows regression guard.\n\nFound during the #1909 npm work. Refs #1921"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1922",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1922: CI: Windows task-dispatch job fails on corepack pnpm version drift (11.8.0 vs 11.9.0)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1921",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1921"
+      }
+    ],
+    "updated": "2026-06-23T19:18:30Z",
+    "metadata": {
+      "completedAt": "2026-06-23T19:18:30Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
