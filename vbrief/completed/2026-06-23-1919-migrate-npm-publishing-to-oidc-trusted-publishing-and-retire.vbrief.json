@@ -1,0 +1,54 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1919"
+  },
+  "plan": {
+    "title": "Migrate npm publishing to OIDC trusted publishing and retire NPM_TOKEN",
+    "status": "completed",
+    "narratives": {
+      "Description": "Migrate npm publishing to OIDC trusted publishing and retire NPM_TOKEN",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1919",
+      "Overview": "**Umbrella:** #1909 (npm provisioning) — steady-state credential hardening.\n\n## Why\nThe first publish (v0.55.0) used the long-lived `NPM_TOKEN` repo secret because trusted publishing can't be configured for packages that don't exist yet. Now that all four `@deftai/directive*` packages exist on npmjs.com, we can switch to **OIDC trusted publishing** and delete the standing credential.\n\nBenefits: no long-lived secret to leak or rotate; the publish authenticates via a short-lived, per-run GitHub OIDC identity. The workflow already declares `permissions: id-token: write`, and the publish job already runs on a GitHub-hosted runner (`ubuntu-latest`, #1916), so both prerequisites are met.\n\n## Scope / checklist\n- [ ] On npmjs.com, configure a **trusted publisher** for each package (`@deftai/directive`, `@deftai/directive-core`, `@deftai/directive-content`, `@deftai/directive-types`), pointing at `deftai/directive` + the `.github/workflows/npm-publish.yml` workflow.\n- [ ] Remove the `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` env from the four publish steps in `.github/workflows/npm-publish.yml` (OIDC needs no token).\n- [ ] Delete the `NPM_TOKEN` GitHub Actions secret (`gh secret delete NPM_TOKEN --repo deftai/directive`).\n- [ ] Validate end-to-end with a patch release (or a `workflow_dispatch` re-publish on a test tag) that publishes cleanly with provenance and **no** token.\n- [ ] Document the final setup (org ownership, trusted-publisher config, what to do if OIDC publish fails) in the release runbook (the remaining #1909 doc item).\n\n## Acceptance\n- A `v*` tag publishes all four packages with provenance using OIDC only; `NPM_TOKEN` no longer exists.\n\nRefs #1909 #1916 #11 #1670"
+    },
+    "items": [
+      {
+        "title": "On npmjs.com, configure a **trusted publisher** for each package (, , , ), pointing at  + the  workflow.",
+        "status": "proposed"
+      },
+      {
+        "title": "Remove the  env from the four publish steps in  (OIDC needs no token).",
+        "status": "proposed"
+      },
+      {
+        "title": "Delete the  GitHub Actions secret ().",
+        "status": "proposed"
+      },
+      {
+        "title": "Validate end-to-end with a patch release (or a  re-publish on a test tag) that publishes cleanly with provenance and **no** token.",
+        "status": "proposed"
+      },
+      {
+        "title": "Document the final setup (org ownership, trusted-publisher config, what to do if OIDC publish fails) in the release runbook (the remaining #1909 doc item).",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1919",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1919: Migrate npm publishing to OIDC trusted publishing and retire NPM_TOKEN"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1909",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1909"
+      }
+    ],
+    "updated": "2026-06-23T18:43:05Z",
+    "metadata": {
+      "completedAt": "2026-06-23T18:43:05Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

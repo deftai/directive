@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **npm publishing now uses OIDC trusted publishing instead of a stored token (#1919, #1909)** — The publish workflow authenticates to npm via GitHub's short-lived OIDC identity rather than a long-lived `NPM_TOKEN` secret, so there is no standing credential to leak or rotate. Requires a one-time per-package trusted-publisher configuration on npmjs.com. Refs #1919 #1909.
 
 ### Fixed
 - **npm packages now actually publish with provenance (#1916, #1909)** — The publish workflow ran on a third-party (Blacksmith) runner, which npm's registry rejects for provenance-signed releases, so the first `v*` tag published nothing. The publish job now runs on a GitHub-hosted runner so the supply-chain provenance attestation is accepted, and a manual re-publish trigger lets an existing release tag be (re)published without recreating the tag. Refs #1916 #1909.
