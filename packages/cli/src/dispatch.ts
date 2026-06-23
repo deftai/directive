@@ -5,7 +5,7 @@
 
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
-import { banner } from "./index.js";
+import { engineInfo } from "@deftai/directive-core";
 
 export type CommandHandler = (argv: string[]) => number | Promise<number>;
 
@@ -566,10 +566,17 @@ async function invokeHandler(handler: CommandHandler, argv: string[]): Promise<n
   return typeof code === "number" ? code : 0;
 }
 
+const CLI_PACKAGE = "@deftai/directive" as const;
+
+function versionBanner(): string {
+  const info = engineInfo();
+  return `${CLI_PACKAGE} (engine: ${info.name}@${info.version})\n`;
+}
+
 /** Dispatch argv to a registered verb; returns the handler exit code. */
 export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Promise<number> {
   if (argv[0] === "--version" || argv[0] === "-V") {
-    io.writeOut(`${banner()}\n`);
+    io.writeOut(versionBanner());
     return 0;
   }
 

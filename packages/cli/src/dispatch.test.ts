@@ -112,6 +112,44 @@ describe("dispatch", () => {
     expect(out.join("")).toContain("verify-encoding");
   });
 
+  it("returns exit code 2 when a handler throws", async () => {
+    vi.doMock("./verify-encoding.js", () => ({
+      run: () => {
+        throw new Error("boom");
+      },
+    }));
+    resetHandlerCacheForTests();
+
+    const err: string[] = [];
+    const code = await dispatch(["verify-encoding"], {
+      writeOut: () => {},
+      writeErr: (text) => {
+        err.push(text);
+      },
+    });
+    expect(code).toBe(2);
+    expect(err.join("")).toBe("deft-ts: boom\n");
+  });
+
+  it("stringifies non-Error handler throws", async () => {
+    vi.doMock("./verify-encoding.js", () => ({
+      run: () => {
+        throw "plain";
+      },
+    }));
+    resetHandlerCacheForTests();
+
+    const err: string[] = [];
+    const code = await dispatch(["verify-encoding"], {
+      writeOut: () => {},
+      writeErr: (text) => {
+        err.push(text);
+      },
+    });
+    expect(code).toBe(2);
+    expect(err.join("")).toBe("deft-ts: plain\n");
+  });
+
   it("returns 0 for --help and prints the verb list", async () => {
     const out: string[] = [];
     const code = await dispatch(["--help"], {
