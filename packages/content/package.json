@@ -8,9 +8,7 @@
     "**/*"
   ],
   "scripts": {
-    "build": "node --input-type=module -e \"import{cpSync,existsSync,readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));const src=join(pkg,'..','..','content');for(const name of readdirSync(src)){const from=join(src,name);const to=join(pkg,name);if(existsSync(to))rmSync(to,{recursive:true,force:true});cpSync(from,to,{recursive:true});}\"",
-    "clean": "node --input-type=module -e \"import{readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));for(const name of readdirSync(pkg)){if(name==='package.json')continue;rmSync(join(pkg,name),{recursive:true,force:true});}\"",
-    "prepack": "pnpm run build",
-    "postpack": "pnpm run clean"
+    "prepack": "node --input-type=module -e \"import{cpSync,existsSync,readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));const src=join(pkg,'..','..','content');for(const name of readdirSync(src)){const from=join(src,name);const to=join(pkg,name);if(existsSync(to))rmSync(to,{recursive:true,force:true});cpSync(from,to,{recursive:true});}\"",
+    "postpack": "node --input-type=module -e \"import{readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));for(const name of readdirSync(pkg)){if(name==='package.json')continue;rmSync(join(pkg,name),{recursive:true,force:true});}\""
   }
 }
