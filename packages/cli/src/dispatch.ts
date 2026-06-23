@@ -1,5 +1,5 @@
 /**
- * Unified `deft-ts <verb> [args]` dispatcher (#1828 s0).
+ * Unified `directive <verb> [args]` dispatcher (#1828 s0).
  * Routes to ported command modules in packages/cli and packages/core.
  */
 
@@ -555,7 +555,7 @@ export function registeredVerbs(): readonly string[] {
 
 /** Print dispatcher help listing every registered verb. */
 export function printHelp(io: DispatchIo = defaultIo()): void {
-  io.writeOut("Usage: deft-ts <verb> [args...]\n\nRegistered verbs:\n");
+  io.writeOut("Usage: directive <verb> [args...]\n\nRegistered verbs:\n");
   for (const name of registeredVerbs()) {
     io.writeOut(`  ${name}\n`);
   }
@@ -588,7 +588,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
   const [verb, ...rest] = argv;
   const canonical = resolveCanonicalVerb(verb ?? "");
   if (canonical === null) {
-    io.writeErr(`deft-ts: unknown verb '${verb}'\n`);
+    io.writeErr(`directive: unknown verb '${verb}'\n`);
     return 1;
   }
 
@@ -601,7 +601,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    io.writeErr(`deft-ts: ${message}\n`);
+    io.writeErr(`directive: ${message}\n`);
     return 2;
   }
 }

@@ -43,7 +43,7 @@ describe("printHelp", () => {
       writeErr: () => {},
     });
     const body = lines.join("");
-    expect(body).toContain("Usage: deft-ts <verb> [args...]");
+    expect(body).toContain("Usage: directive <verb> [args...]");
     expect(body).toContain("Registered verbs:");
     for (const verb of registeredVerbs()) {
       expect(body).toContain(`  ${verb}\n`);
@@ -85,7 +85,7 @@ describe("dispatch", () => {
       writeErr: () => {},
     });
     expect(code).toBe(0);
-    expect(out.join("")).toContain("Usage: deft-ts");
+    expect(out.join("")).toContain("Usage: directive");
   });
 
   it("returns 0 for -h and prints help", async () => {
@@ -167,7 +167,7 @@ describe("dispatch", () => {
       },
     });
     expect(code).toBe(2);
-    expect(err.join("")).toBe("deft-ts: boom\n");
+    expect(err.join("")).toBe("directive: boom\n");
   });
 
   it("stringifies non-Error handler throws", async () => {
@@ -186,7 +186,7 @@ describe("dispatch", () => {
       },
     });
     expect(code).toBe(2);
-    expect(err.join("")).toBe("deft-ts: plain\n");
+    expect(err.join("")).toBe("directive: plain\n");
   });
 
   it("returns 0 for --help and prints the verb list", async () => {
@@ -210,7 +210,7 @@ describe("dispatch", () => {
       },
     });
     expect(code).toBe(1);
-    expect(err.join("")).toBe("deft-ts: unknown verb 'not-a-real-verb'\n");
+    expect(err.join("")).toBe("directive: unknown verb 'not-a-real-verb'\n");
   });
 
   it("routes a known verb through its handler and propagates the exit code", async () => {

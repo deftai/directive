@@ -14,7 +14,7 @@ describe("deft-ts runner", () => {
   it("runs --help with exit 0", () => {
     const result = runDeftTsArgv(["--help"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Usage: deft-ts");
+    expect(result.stdout).toContain("Usage: directive");
     expect(result.stdout).toContain("pack-render");
   });
 
