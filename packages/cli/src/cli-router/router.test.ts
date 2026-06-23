@@ -142,15 +142,25 @@ describe("routeAndDispatch", () => {
   });
 
   it("returns exit code 2 when bundled deft-install is missing", async () => {
-    const err: string[] = [];
-    const code = await routeAndDispatch(["init"], {
-      writeOut: () => {},
-      writeErr: (text) => {
-        err.push(text);
-      },
-    });
-    expect(code).toBe(2);
-    expect(err.join("")).toContain("bundled deft-install binary not found");
+    const previous = process.env.DEFT_INSTALL_BINARY;
+    delete process.env.DEFT_INSTALL_BINARY;
+    try {
+      const err: string[] = [];
+      const code = await routeAndDispatch(["init"], {
+        writeOut: () => {},
+        writeErr: (text) => {
+          err.push(text);
+        },
+      });
+      expect(code).toBe(2);
+      expect(err.join("")).toContain("bundled deft-install binary not found");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DEFT_INSTALL_BINARY;
+      } else {
+        process.env.DEFT_INSTALL_BINARY = previous;
+      }
+    }
   });
 
   it("routes verify branch to the same handler as verify:branch", async () => {

@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,7 +11,6 @@ import {
   resolveBundledDeftInstallBinary,
 } from "./resolve-binary.js";
 import { runDeftInstall } from "./run-deft-install.js";
-import { runUpdate } from "./update.js";
 
 function captureIo(): { io: DispatchIo; out: string[]; err: string[] } {
   const out: string[] = [];
@@ -43,6 +42,7 @@ describe("resolveBundledDeftInstallBinary", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-install-"));
     const binary = join(dir, "deft-install");
     writeFileSync(binary, "#!/bin/sh\nexit 0\n", "utf8");
+    chmodSync(binary, 0o755);
     expect(resolveBundledDeftInstallBinary({ env: { DEFT_INSTALL_BINARY: binary } })).toBe(binary);
   });
 
@@ -74,7 +74,7 @@ describe("runDeftInstall delegation", () => {
       verb: "init",
       canonicalArgv: CANONICAL_INIT_ARGV,
       io,
-      resolveBinary: () => "/bundled/deft-install",
+      resolveBinaryDetailed: () => ({ ok: true, path: "/bundled/deft-install" }),
       runBinary,
     });
 
@@ -97,7 +97,7 @@ describe("runDeftInstall delegation", () => {
       verb: "update",
       canonicalArgv: CANONICAL_UPDATE_ARGV,
       io,
-      resolveBinary: () => "/bundled/deft-install",
+      resolveBinaryDetailed: () => ({ ok: true, path: "/bundled/deft-install" }),
       runBinary,
     });
 
@@ -112,12 +112,13 @@ describe("runDeftInstall delegation", () => {
       verb: "init",
       canonicalArgv: CANONICAL_INIT_ARGV,
       io,
-      resolveBinary: () => null,
-      resolveBinaryOptions: {
+      resolveBinaryDetailed: () => ({
+        ok: false,
+        reason: "not-found",
         packageRoot: "/pkg/root",
         platform: "linux",
         arch: "x64",
-      },
+      }),
     });
 
     expect(code).toBe(2);
@@ -129,11 +130,21 @@ describe("runDeftInstall delegation", () => {
     expect(message).not.toContain("ENOENT");
   });
 
-  it("runUpdate surfaces missing-binary diagnostic", () => {
+  it("reports unreadable DEFT_INSTALL_BINARY override distinctly", () => {
     const { io, err } = captureIo();
-    const code = runUpdate([], io);
+    const code = runDeftInstall({
+      verb: "update",
+      canonicalArgv: CANONICAL_UPDATE_ARGV,
+      io,
+      resolveBinaryDetailed: () => ({
+        ok: false,
+        reason: "override-unreadable",
+        path: "/bad/deft-install",
+      }),
+    });
+
     expect(code).toBe(2);
-    expect(err.join("")).toContain("directive update:");
+    expect(err.join("")).toContain("DEFT_INSTALL_BINARY is set to /bad/deft-install");
   });
 });
 
