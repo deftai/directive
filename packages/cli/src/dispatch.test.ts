@@ -76,6 +76,18 @@ describe("dispatch", () => {
     expect(out.join("")).toBe("@deftai/directive (engine: @deftai/directive-core@0.0.0)\n");
   });
 
+  it("returns 0 for empty argv and prints help", async () => {
+    const out: string[] = [];
+    const code = await dispatch([], {
+      writeOut: (text) => {
+        out.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("Usage: deft-ts");
+  });
+
   it("returns 0 for --help and prints the verb list", async () => {
     const out: string[] = [];
     const code = await dispatch(["--help"], {
