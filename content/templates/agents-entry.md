@@ -117,7 +117,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" -> `.deft/core/skills/deft-directive-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/skills/deft-directive-pre-pr/SKILL.md`
 - "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/skills/deft-directive-interview/SKILL.md`
-- "run probe" / "/deft:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md`
+- "run probe" / "/deft:directive:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md` (deprecated alias: `/deft:run:probe`)
 - "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/skills/deft-directive-glossary/SKILL.md`
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/skills/deft-directive-gh-arch/SKILL.md`
 - "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/skills/deft-directive-debug/SKILL.md`
@@ -188,12 +188,24 @@ Cross-reference: `.deft/core/docs/analysis/2026-05-26-issue-1353-grok-windows-ca
 
 ## Commands
 
-- /deft:change <name>        — Propose a scoped change
-- /deft:run:interview        — Structured spec interview
-- /deft:run:speckit          — Five-phase spec workflow (large projects)
-- /deft:run:discuss <topic>  — Feynman-style alignment
-- /deft:run:research <topic> — Research before planning
-- /deft:run:map              — Map an existing codebase
+Directive product commands use the `/deft:directive:*` namespace (#418 / #1670). Prior `/deft:*` product forms remain as deprecation-warning aliases — see `content/commands.md` for the full alias table. Cross-product session commands stay at the umbrella `/deft:*` level.
+
+**Directive product (`/deft:directive:*`):**
+
+- /deft:directive:change <name>        — Propose a scoped change (alias: `/deft:change`, deprecated)
+- /deft:directive:run:interview        — Structured spec interview (alias: `/deft:run:interview`, deprecated)
+- /deft:directive:run:speckit          — Five-phase spec workflow (alias: `/deft:run:speckit`, deprecated)
+- /deft:directive:run:discuss <topic>  — Feynman-style alignment (alias: `/deft:run:discuss`, deprecated)
+- /deft:directive:run:research <topic> — Research before planning (alias: `/deft:run:research`, deprecated)
+- /deft:directive:run:map              — Map an existing codebase (alias: `/deft:run:map`, deprecated)
+
+**Cross-product (umbrella `/deft:*`):**
+
+- /deft:continue — Resume from continue checkpoint
+- /deft:checkpoint — Save session state to `./vbrief/continue.vbrief.json`
+
+**CLI compatibility:**
+
 - .deft/core/run bootstrap         — CLI setup (terminal users)
 - .deft/core/run spec              — CLI spec generation
 <!-- /deft:managed-section -->

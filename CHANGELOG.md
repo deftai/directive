@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Product slash commands now live under `/deft:directive:*`** — Directive framework commands (`change`, `run:<strategy>`, etc.) are namespaced under `/deft:directive:*` to match the `deft-directive-*` skills and leave room for sibling-product namespaces. Prior `/deft:*` product forms remain as deprecation-warning aliases; cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. Refs #418 #1670.
+
 ### Fixed
 
 ### Removed
