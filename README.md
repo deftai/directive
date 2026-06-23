@@ -31,46 +31,36 @@ Deft is a **layered set of standards files plus deterministic `task` tooling** t
 
 ## 🚀 Getting Started
 
-### npm (coming soon — not yet published)
+### 1. Install Directive
 
-> ⚠️ **The `@deftai/directive` npm package is not yet published** to the registry (provisioning tracked by [#1909](https://github.com/deftai/directive/issues/1909)). **Until it goes live, install via the [Go installer](#go-installer-bootstrap--air-gapped) below.** The command shown here is what the install will become once the package is published.
-
-<!-- TODO(#1909): flip to npm-canonical and remove this "coming soon" notice when @deftai/directive is published -->
-
-Once published, when Node 20+ is already on your PATH you will install Directive globally from npm:
+Install Directive globally with npm (Node ≥ 20 required):
 
 ```bash
 npm i -g @deftai/directive
 ```
 
-Then run `directive` (or the `deft` alias) from any project directory — for example `directive doctor`, `directive session:start`, or `npx @deftai/directive <verb>` without a global install. This is the emerging primary distribution path; the Go installer below remains the install/bootstrap option today and during the staged retire window.
+Run `directive` (or the `deft` alias) from any project directory — for example `directive doctor`, `directive session:start`, or `npx @deftai/directive <verb>` without a global install.
 
-### Go installer (bootstrap / air-gapped)
+**Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
 
-Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts.
+> **🔄 Upgrading?** Run `npm i -g @deftai/directive@latest`. Read [UPGRADING.md](./content/UPGRADING.md) before proceeding if coming from a Go-installer install. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
 
-> **⬇️ Quick Download** — direct binaries from the [latest GitHub Release](https://github.com/deftai/directive/releases/latest):
+> **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
+
+> **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
+
+#### Legacy / offline / no-Node bootstrap (frozen Go installer, #1912)
+
+For machines without Node or when migrating from an old on-disk layout, the **final frozen Go installer** is available as a stage-1 legacy bridge. Use it only when `npm i -g @deftai/directive` is not an option — once Node is available, move to the npm path.
+
+> **⬇️ Legacy binaries** — from the [latest GitHub Release](https://github.com/deftai/directive/releases/latest):
 > - **Windows:** [`install-windows-amd64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe) | [`install-windows-arm64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-arm64.exe) (Surface / Copilot+ PCs)
 > - **macOS:** [`install-macos-universal`](https://github.com/deftai/directive/releases/latest/download/install-macos-universal) (Intel + Apple Silicon)
 > - **Linux:** [`install-linux-amd64`](https://github.com/deftai/directive/releases/latest/download/install-linux-amd64) | [`install-linux-arm64`](https://github.com/deftai/directive/releases/latest/download/install-linux-arm64) (Raspberry Pi / ARM)
 
-> **🌐 Alternative installer — hosted webinstaller:** prefer not to download and run a local binary first? The hosted webinstaller at **<https://webinstaller.fly.dev/>** walks through the same setup in your browser. Trade-off: hosted convenience vs. the local-only install above (the binaries linked here stay on your machine and can be inspected before running). The webinstaller is an alternative path, not the default — for offline / air-gapped environments and security-conscious teams, prefer the local binaries.
-
-> **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
-
-> **🔄 Upgrading from a previous version?** Read [UPGRADING.md](./content/UPGRADING.md) before proceeding. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
->
-> **Canonical path (Epic-5/6 #1339 #1340, #1409):** The published installer binary is the single deterministic entrypoint for install and update. For an existing install, the **canonical headless upgrade command** is `deft-install --yes --upgrade --repo-root . --json` — run it from your project root to force-refresh the framework payload, manifest, and AGENTS.md in one shot (drop `--json` for human-readable output). **Layout-aware & git-safe (#1428, #1425):** the upgrade auto-detects which of the two on-disk payload layouts you have — a **vendored** `.deft/core/` (a git-free payload with no nested `.git` of its own; produced by the webinstaller and, as of v0.39.2, by fresh binary-installer installs) or a **clone** payload (a framework checkout that carries its own `.git`, from older installs or a manual `git clone` origin) — and refreshes accordingly: a vendored payload via a git-free tarball file-swap (atomic, with a timestamped backup), a clone via a clone-to-vendored migration. In every case it **never runs git against your own repository**. At the end of a successful run the installer invokes `scripts/doctor.py --session --json`; the doctor reads the `<install>/VERSION` manifest and recommends that exact command when the payload is stale. Legacy paths are **back-compat only**: `task upgrade` / `run upgrade` are metadata-only acknowledgment (they do NOT replace the payload), and submodule updates / legacy doctor surfaces are de-emphasized. See the installer-doctor handoff in the linked epics and [UPGRADING.md](./content/UPGRADING.md).
-
-> **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
-
-### 1. Install Directive
-
-Until the npm package is published ([#1909](https://github.com/deftai/directive/issues/1909)), install via the platform **Go installer** below. (Once live, **`npm i -g @deftai/directive`** will be the preferred path when Node 20+ is available — see [npm channel](#npm-coming-soon--not-yet-published) above.)
-
 **Windows:**
 - Download `install-windows-amd64.exe` (or `install-windows-arm64.exe` for Surface / Copilot+ PCs)
-- Run it — Windows SmartScreen may warn about an unrecognised publisher; click "More info" then "Run anyway" (code signing is planned for a future release)
+- Run it — Windows SmartScreen may warn about an unrecognised publisher; click "More info" then "Run anyway"
 
 **macOS:**
 - Download `install-macos-universal` (works on all Macs — Intel and Apple Silicon)
@@ -90,33 +80,17 @@ Until the npm package is published ([#1909](https://github.com/deftai/directive/
   chmod +x install-linux-amd64 && ./install-linux-amd64
   ```
 
-The installer guides you through choosing a project directory, installs git if needed, vendors the deft framework payload into `.deft/core/` (as of v0.39.2 a git-free deposit with no nested `.git` of its own; older installs and manual `git clone` origins instead carry a framework clone that keeps its own `.git`), wires it into your project's `AGENTS.md`, and creates your user config directory. Either layout is upgraded in place by `deft-install --upgrade`, which auto-detects the payload and never runs git against your own repository.
+The installer vendors the deft framework payload into `.deft/core/`, wires it into your project's `AGENTS.md`, and creates your user config directory.
 
-**Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
+#### Agent / headless install
 
-On startup, `deft-install` checks the latest GitHub release and warns if the downloaded binary on disk is stale before it changes your project. Offline and CI runs can skip that check with `--no-update-check` or `DEFT_NO_UPDATE_CHECK=1`.
-
-#### Agent / headless one-liner (fetch the release binary and run)
-
-Asked to **"download and install Deft from GitHub into this directory"** — for example by an AI agent or a CI job? Use the canonical per-platform fetch-and-run one-liner below. It downloads the correct release binary from `https://github.com/deftai/directive/releases/latest/download/<asset>`, makes it executable, then runs it headless against the current directory (`--yes --repo-root . --json`). ⊗ Do NOT `go build` from a source checkout or guess a developer-specific path (e.g. a hardcoded `/Users/<name>/...` clone) — the canonical fetch path never assumes a local clone.
-
-**macOS (Intel + Apple Silicon):**
+Asked to **"install Deft into this directory"** — for example by an AI agent or a CI job? Use npm:
 
 ```bash
-curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-macos-universal && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
+npm i -g @deftai/directive
 ```
 
-**Linux** (amd64; use `install-linux-arm64` on Raspberry Pi / ARM):
-
-```bash
-curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/latest/download/install-linux-amd64 && chmod +x /tmp/deft-install && /tmp/deft-install --yes --repo-root . --json
-```
-
-**Windows** (PowerShell; use `install-windows-arm64.exe` on Surface / Copilot+ PCs):
-
-```powershell
-Invoke-WebRequest -Uri https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe -OutFile $env:TEMP\deft-install.exe; & $env:TEMP\deft-install.exe --yes --repo-root . --json
-```
+For environments where Node is unavailable, the frozen legacy Go-installer binaries remain available from [GitHub Releases](https://github.com/deftai/directive/releases/latest) (see the [Legacy bootstrap](#legacy--offline--no-node-bootstrap-frozen-go-installer-1912) section above).
 
 **Building from source (developers only):** requires Go 1.22+
 
@@ -291,7 +265,7 @@ Deft embodies:
 
 ---
 
-**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then [download the installer](https://github.com/deftai/directive/releases) for your platform to get started.
+**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then run `npm i -g @deftai/directive` (Node ≥ 20) to get started.
 
 ---
 

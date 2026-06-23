@@ -260,10 +260,10 @@ _PROPAGATION_COMMAND_MARKERS: tuple[tuple[str, str], ...] = (
         "deft packs:slice --list-packs",
         "deft packs:slice --list-packs",
     ),
-    # #1409: canonical headless upgrade command surfaced in both files.
+    # #1409/#1912: canonical upgrade command (npm since v0.55.1, frozen Go installer is legacy).
     (
-        "deft-install --yes --upgrade --repo-root . --json",
-        "deft-install --yes --upgrade --repo-root . --json",
+        "npm i -g @deftai/directive@latest",
+        "npm i -g @deftai/directive@latest",
     ),
     ("git status --short --branch", "git status --short --branch"),
     ("deft scope:promote -- <path>", "task scope:promote -- <path>"),

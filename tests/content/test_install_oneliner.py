@@ -45,9 +45,10 @@ class TestFetchAndRunOneLiner:
 
     def test_runs_headless_flags(self, name: str):
         content = _doc(name)
-        assert "--yes --repo-root . --json" in content, (
-            f"{name} one-liner must run the binary headless with "
-            "`--yes --repo-root . --json` (#1661)."
+        # npm is now the canonical headless install; Go installer one-liners are legacy (#1912)
+        assert "npm i -g @deftai/directive" in content, (
+            f"{name} must document the canonical npm install command "
+            "`npm i -g @deftai/directive` (#1661 / #1912)."
         )
 
     def test_covers_each_platform_asset(self, name: str):

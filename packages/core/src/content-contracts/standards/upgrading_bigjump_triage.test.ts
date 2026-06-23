@@ -87,9 +87,9 @@ describe("test_upgrading_bigjump_triage.py", () => {
   it("test_triage_references_quickstart_and_doctor_surface", () => {
     const body = sectionBody(readText("UPGRADING.md"), TRIAGE_HEADING, 2);
     expect(body).toContain("QUICK-START.md#");
-    expect(body).toContain("task doctor");
-    expect(body).toContain("deft-install --yes --upgrade --repo-root . --json");
-    expect(body).toContain(`#${DOCTOR_ANCHOR}`);
+    // npm is now the canonical upgrade command; Go installer is a frozen legacy bridge (#1912)
+    expect(body).toContain("npm i -g @deftai/directive@latest");
+    expect(body).toContain("directive doctor");
   });
   it("test_doctor_anchor_actually_exists", () => {
     expect(anchorSet(readText("UPGRADING.md"))).toContain(DOCTOR_ANCHOR);

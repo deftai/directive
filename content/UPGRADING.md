@@ -8,6 +8,29 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Canonical upgrade — npm (v0.55.1+)
+
+From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical upgrade command is:
+
+```bash
+npm i -g @deftai/directive@latest
+```
+
+Run from any shell with Node ≥ 20. After upgrading, start a new agent session so the refreshed AGENTS.md and skills load from a clean context. Run `directive doctor` to confirm the install state.
+
+### One-time migration from the Go installer (legacy → npm)
+
+If your current install uses the frozen Go installer (`deft-install`), migrate once:
+
+1. Install Node ≥ 20 if not already present.
+2. Run `npm i -g @deftai/directive` to install from npm.
+3. In your project, run `directive agents:refresh` to update AGENTS.md with the npm-based managed section.
+4. Verify with `directive doctor` — the install-integrity check confirms the npm payload is current.
+
+The frozen Go installer remains available at [GitHub Releases](https://github.com/deftai/directive/releases) as a no-Node fallback but receives no further updates (#1912). After this one-time step, `npm i -g @deftai/directive@latest` is the only upgrade command you need.
+
+---
+
 ## Big-jump triage — multi-version upgrades (start here)
 
 > **Multi-version jump?** Start here. This guide is ordered newest-first, so a consumer jumping several minor versions otherwise has to read every section to infer which ones apply and in what order. This entry point maps **version-range buckets** to the sections that apply and the **apply-order** to run them in.
@@ -25,23 +48,25 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - **From v0.25.x — manual (breaking).** The deft-cache on-disk layout changed: [From v0.25.x → v0.26.0](#from-v025x--v0260-deft-cache-unified-layer-breaking).
 - **From v0.26.x — auto-handled (interactive).** Run the triage adoption ritual: [From v0.26.x → v0.27](#from-v026x---v027-triage-adoption-via-task-triagewelcome).
 - **From v0.27.x — mostly auto-handled.** Pick up the install manifest and the `deft/` → `.deft/core/` layout: [From v0.27.x → v0.28](#from-v027x---v028-canonical-install-manifest-at-installversion), [From deft/ → .deft/core/](#from-deft---deftcore), and [From drifted AGENTS.md → current install](#from-drifted-agentsmd---current-install-task-upgrade-repair-path-1061).
-- **From v0.28–v0.36 (and the final hop to current) — auto-handled.** The canonical installer + doctor handoff is the single supported path: [Canonical installer + doctor handoff](#canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409).
+- **From v0.28–v0.36 (and the final hop to current) — auto-handled.** If still on the Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) above, then `npm i -g @deftai/directive@latest` for all future upgrades.
 
-**Final step for every bucket.** Finish on the canonical headless upgrade command, then let the doctor confirm you are current:
+**Final step for every bucket.** Finish on the canonical upgrade command, then let the doctor confirm you are current:
 
 ```bash
-deft-install --yes --upgrade --repo-root . --json
+npm i -g @deftai/directive@latest
 ```
 
-Then run `task doctor` (or `run doctor`): it reads `<install>/VERSION`, compares against the remote ref, and tells you whether any further hop is still due. See [Canonical installer + doctor handoff](#canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409) for the full handoff contract.
+Then run `directive doctor`: it checks install integrity and tells you whether any further hop is still due. If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
 
 ---
 
 ## Canonical installer + doctor handoff (v0.37+ / Epic-5+6 #1339 #1340, #1409)
 
-**The single supported path for humans and agents:**
+> **Note (v0.55.1+):** npm is now the canonical install and upgrade path. See [Canonical upgrade — npm](#canonical-upgrade--npm-v0551) above. The Go-installer install path documented here is a **frozen legacy bridge** (#1912); it remains accurate for consumers still on that layout.
 
-1. Download and run the platform-specific installer binary from GitHub Releases (or the webinstaller).
+**Legacy Go-installer path (for archaeology / migration reference):**
+
+1. Download and run the platform-specific installer binary from GitHub Releases.
 2. The installer writes the payload + manifest + AGENTS.md + skills, then **deterministically calls `scripts/doctor.py --session --json`** at the end.
 3. Doctor (now the single owner of all health/install-integrity/staleness logic) reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, emits a **clear recommendation** to run the canonical headless upgrader: `deft-install --yes --upgrade --repo-root . --json`.
 4. On subsequent sessions `task doctor` / `run doctor` (thin shims to the canonical `scripts/doctor.py`) continue to surface the same guidance.
@@ -132,7 +157,7 @@ This manual exclude is harmless to keep, but it becomes unnecessary once the ins
 
 - ⊗ It does NOT mutate any filesystem state during detection or emission.
 - ⊗ It does NOT block the CLI invocation it fires alongside; the gate stays exit-0 for manifest drift (mirrors the #801 remote-version probe's informational-only contract).
-- ⊗ It does NOT auto-rewrite the manifest -- writing belongs to `task upgrade` / `run install` / `oz-agent-upgrade` / the webinstaller.
+- ⊗ It does NOT auto-rewrite the manifest -- writing belongs to `task upgrade` / `run install` / `oz-agent-upgrade`.
 - ⊗ It does NOT call `read_yn` / interactive confirm helpers; the advisory is a one-line warn, not a prompt.
 
 ### Rollback
@@ -194,7 +219,7 @@ The doctor's FAIL `detail` strings name the exact commands the operator should r
 <!-- 992-pr3: From deft/ -> .deft/core/ migration BEGIN -->
 ## From deft/ -> .deft/core/
 
-- **Applies when:** `.deft/core/run gate` reports a non-A install layout state (`B`, `C`, or `D`) -- equivalently, the new `_check_upgrade_gate` install-layout auto-prompt fires `[deft] install layout state: <X> (<description>). Run .deft/core/run relocate to upgrade. (Y/n)` on every CLI invocation. The four states inspected by the detector are: **A** pure `deft/` (legacy install; AGENTS.md + framework agree at the legacy path -- working today, no action required), **B** pure `.deft/core/` (current installer / webinstaller / sync skill / oz output -- AGENTS.md may still say `deft/` and the contract diverges), **C** hybrid (both `deft/` and `.deft/core/` present -- agents follow whichever they read first), **D** AGENTS.md only (managed-section markers present but no framework directory -- partial install). State A is the only non-firing state in v0.27 -- a future cycle decides whether to deprecate the legacy path. (#992)
+- **Applies when:** `.deft/core/run gate` reports a non-A install layout state (`B`, `C`, or `D`) -- equivalently, the new `_check_upgrade_gate` install-layout auto-prompt fires `[deft] install layout state: <X> (<description>). Run .deft/core/run relocate to upgrade. (Y/n)` on every CLI invocation. The four states inspected by the detector are: **A** pure `deft/` (legacy install; AGENTS.md + framework agree at the legacy path -- working today, no action required), **B** pure `.deft/core/` (current installer / sync skill / oz output -- AGENTS.md may still say `deft/` and the contract diverges), **C** hybrid (both `deft/` and `.deft/core/` present -- agents follow whichever they read first), **D** AGENTS.md only (managed-section markers present but no framework directory -- partial install). State A is the only non-firing state in v0.27 -- a future cycle decides whether to deprecate the legacy path. (#992)
 - **Safe to auto-run:** No -- the relocator is wipe-and-reinstall by design and operator consent is required at every gate-prompt invocation. The cmd_gate auto-prompt is purely informational: it asks `(Y/n)` as a visual consent affordance but the gate itself NEVER invokes `task relocate` automatically and NEVER mutates filesystem state. This mirrors the **#884 ghx-install consent gate** precedent (`task setup` prompts before invoking the upstream installer; the only non-interactive paths are explicit `--yes` or env-var opt-out). The relocator's own `task relocate` surface ALSO prompts `[y/N]` on bare invocation; pass `--confirm` to skip the prompt in scripted use, never as a default. The relocator writes a gzip snapshot tarball to `.deft-cache/relocate-snapshot-<UTC-timestamp>.tar.gz` BEFORE any wipe so a botched relocate is recoverable.
 - **Restart required:** Yes -- the marker v1 -> v2 bump (PR1) intentionally fires `agents-md=stale` on every current install on the first `cmd_gate` invocation post-v0.27. After the relocator completes, AGENTS.md is re-rendered with the v2 managed-section markers; chase with a fresh agent session so the refreshed `AGENTS.md` (Implementation Intent Gate, Branch Policy Disclosure, Multi-agent orchestration discipline, etc.) loads from a clean context. Your current session still holds the pre-relocate `AGENTS.md` in memory; restarting closes that drift.
 - **Commands:**
@@ -210,18 +235,18 @@ The doctor's FAIL `detail` strings name the exact commands the operator should r
 The gate-side detector inspects three filesystem facts at the consumer project root: presence of `deft/` (legacy framework dir), presence of `.deft/core/` (canonical framework dir), and presence of managed-section markers in `AGENTS.md`. The four states map onto those facts as follows:
 
 - **State A** -- `deft/` present, `.deft/core/` absent. Legacy install. **No prompt fires.** Working today; relocate is OPTIONAL in v0.27. Operators on state A can keep their legacy install indefinitely or relocate proactively.
-- **State B** -- `deft/` absent, `.deft/core/` present. Current installer / webinstaller / sync skill / oz output. **Prompt fires.** AGENTS.md may still reference `deft/` paths (pre-PR1 contract); the relocator re-renders AGENTS.md with the v2 markers and aligns the contract.
+- **State B** -- `deft/` absent, `.deft/core/` present. Current installer / sync skill / oz output. **Prompt fires.** AGENTS.md may still reference `deft/` paths (pre-PR1 contract); the relocator re-renders AGENTS.md with the v2 markers and aligns the contract.
 - **State C** -- both `deft/` AND `.deft/core/` present. Hybrid. **Prompt fires.** Agents follow whichever path they read first; the relocator wipes both and reinstalls into `.deft/core/` only (single-namespace contract per the v0.27 DesignChoice).
 - **State D** -- neither directory present, AGENTS.md with managed markers present. Partial install. **Prompt fires.** Typically a cancelled / interrupted install; the relocator does a fresh canonical install into `.deft/core/`.
 
 ### What the relocator does
 
-`task relocate` runs `scripts/relocate.py` (PR2). The implementation is wipe-and-reinstall by design: one idempotent code path across states A/B/C/D/F that enforces the canonical `.deft/core/` namespace contract from #11 (read-only packaged assets), has a trivial test surface (state matrix x relocator -> assert end state), catches stale framework versions for free (state B benefits even though no path move is needed), and aligns with the npm/pip rail packaging semantics that #11 will ship in parallel. Per phase, the relocator:
+`task relocate` runs `scripts/relocate.py` (PR2). The implementation is wipe-and-reinstall by design: one idempotent code path across states A/B/C/D/F that enforces the canonical `.deft/core/` namespace contract from #11 (read-only packaged assets), has a trivial test surface (state matrix x relocator -> assert end state), catches stale framework versions for free (state B benefits even though no path move is needed), and aligns with the npm rail packaging semantics that #11 ships. Per phase, the relocator:
 
 1. **Pre-flight gates** -- hard-fails without `--force` when the framework dir is git-tracked + customized (preserved-files list printed) OR any `vbrief/active/*.vbrief.json` has `plan.status == "running"` (active swarm).
 2. **Snapshot** -- writes a gzip tarball to `.deft-cache/relocate-snapshot-<UTC-timestamp>.tar.gz` covering `deft/` + `.deft/core/` + `AGENTS.md` so the operation is reversible via `task relocate -- --rollback`.
 3. **Wipe** -- removes both `deft/` (if present) and `.deft/core/` (if present) -- the operation is contractually idempotent across source states.
-4. **Reinstall** -- copies the framework source into `.deft/core/`. The bootstrap path (`webinstaller/upgrade.sh` / `upgrade.ps1`, in the separate `webinstaller` repo) fetches a fresh framework copy to a temp dir and runs the relocator FROM that copy, so the in-place framework about to be wiped never executes its own wipe (BOOTSTRAP NEVER SELF-DESTRUCTIVE).
+4. **Reinstall** -- copies the framework source into `.deft/core/`. The bootstrap path fetches a fresh framework copy to a temp dir and runs the relocator FROM that copy, so the in-place framework about to be wiped never executes its own wipe (BOOTSTRAP NEVER SELF-DESTRUCTIVE).
 5. **AGENTS.md re-render** -- bumps the managed-section bytes to the v2 marker contract using the `_wrap_legacy_in_markers` semantics from `run` (#794) so consumer notes outside the bracketed region survive verbatim.
 6. **`.gitignore` update** -- ensures `.deft/core/` is gitignored by default per the #845 / `.deft-cache/` precedent (hidden-namespace contract).
 7. **Advisory grep** -- scans consumer files OUTSIDE `.deft/core/` for legacy framework path references and prints findings (CI workflows, external scripts, dotfiles that hardcode the pre-v0.27 path). See `scripts/_relocate_states.py::advise_external_hardcodes()` for the exact search constant + grep semantics. The relocator NEVER auto-rewrites these -- CI / external tooling that hardcodes the legacy path is out of framework's control; the operator decides whether to update each surface.

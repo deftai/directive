@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
       "SourceSection": "Phase 3 -- Documentation & Content Fixes"
     },
@@ -30,6 +30,6 @@
         "title": "Issue #11: Proposal: Publish Deft as an NPM + PIP CLI (related; this brief leads with webinstaller and references #11)"
       }
     ],
-    "updated": "2026-05-20T12:38:34Z"
+    "updated": "2026-06-23T21:01:07Z"
   }
 }

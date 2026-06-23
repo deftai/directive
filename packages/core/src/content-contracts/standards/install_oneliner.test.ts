@@ -7,7 +7,8 @@ describe("test_install_oneliner.py", () => {
       expect(readText("README.md")).toContain("releases/latest/download");
     });
     it("test_runs_headless_flags[README.md]", () => {
-      expect(readText("README.md")).toContain("--yes --repo-root . --json");
+      // npm is now the canonical headless install; Go installer one-liners are legacy
+      expect(readText("README.md")).toContain("npm i -g @deftai/directive");
     });
     it("test_covers_each_platform_asset[README.md]", () => {
       const content = readText("README.md");

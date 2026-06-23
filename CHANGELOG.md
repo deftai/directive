@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **Install and upgrade docs now lead with npm (#761)** — README Getting Started, UPGRADING, RELEASING, QUICK-START, and AGENTS.md now treat `npm i -g @deftai/directive` as the canonical install/upgrade path; the frozen Go installer is documented only as a legacy no-Node bootstrap bridge. Removes pip, webinstaller, and stale "not yet published" hedging. Closes #761.
 
 - **Deprecation signals for `swarmSubagentBackend` enum** — the `plan.policy.swarmSubagentBackend` enum and associated `task policy:subagent-backend(s)` tasks are now visibly marked deprecated (superseded by per-role operator model routing via `.deft/routing.local.json`, introduced in #1739). Deprecation banners added to the TypeScript module (`subagent-backend.ts`), the Python twin (`scripts/policy.py`), and both task descriptions. The swarm skill (`deft-directive-swarm`) source was updated (via `packs/skills/skills-pack-0.1.json`) to demote Phase 0e to a superseded pointer and promote `task swarm:routing-set` / `task verify:routing` as the primary doctrine; the rendered SKILL.md was regenerated. The `task verify:routing --advise` output now includes a one-line enum-deprecated note. No deletion; hard removal tracked by #1860. Closes #1891.
 

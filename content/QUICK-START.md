@@ -4,9 +4,19 @@ You are reading this because a user told you to, or because a stale `AGENTS.md` 
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-## Installing Deft from GitHub (fetch-and-run one-liner)
+## Installing Deft (canonical — npm)
 
-! If Deft is **not yet installed** and you were told to "download and install Deft from GitHub into this directory," do NOT build from a source checkout and do NOT guess a path. Run the canonical per-platform fetch-and-run one-liner below. Each downloads the correct release binary from `https://github.com/deftai/directive/releases/latest/download/<asset>`, makes it executable, then runs it headless against the current directory (`--yes --repo-root . --json`).
+! If Deft is **not yet installed** and you were told to "install Deft into this directory," the canonical install is npm (Node ≥ 20 required):
+
+```bash
+npm i -g @deftai/directive
+```
+
+Once installed, run `directive` (or the `deft` alias) from your project directory. Continue with Step 1 below.
+
+### Legacy / no-Node fallback (frozen Go installer, #1912)
+
+If Node is not available, the frozen legacy Go installer is the fallback. Do NOT build from a source checkout and do NOT guess a path. Each one-liner downloads the correct release binary from `releases/latest/download`, makes it executable, then runs it headless.
 
 **macOS (Intel + Apple Silicon):**
 
@@ -26,7 +36,7 @@ curl -fsSL -o /tmp/deft-install https://github.com/deftai/directive/releases/lat
 Invoke-WebRequest -Uri https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe -OutFile $env:TEMP\deft-install.exe; & $env:TEMP\deft-install.exe --yes --repo-root . --json
 ```
 
-⊗ Do NOT `go build` from a source checkout or a developer-specific path (e.g. a hardcoded `/Users/<name>/...` clone) — the canonical fetch path above never assumes a local clone. Once the installer finishes, continue with Step 1 below.
+⊗ Do NOT `go build` from a source checkout or a developer-specific path (e.g. a hardcoded `/Users/<name>/...` clone). Once the installer finishes, continue with Step 1 below.
 
 ## Step 1 — Who are you?
 

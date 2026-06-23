@@ -143,18 +143,17 @@ def test_triage_references_quickstart_and_doctor_surface() -> None:
     assert "QUICK-START.md#" in body, (
         "The triage must cross-reference QUICK-START.md (#1115)."
     )
-    assert "task doctor" in body, (
+    # npm is now the canonical upgrade command; Go installer is a frozen legacy bridge (#1912)
+    assert "npm i -g @deftai/directive@latest" in body, (
+        "The triage must name the canonical upgrade command as the "
+        "final step (#1115 / #1912)."
+    )
+    assert "directive doctor" in body, (
         "The triage must point multi-version upgraders at the doctor command "
         "surface (#1115)."
     )
-    assert "deft-install --yes --upgrade --repo-root . --json" in body, (
-        "The triage must name the canonical headless upgrade command as the "
-        "final step (#1115)."
-    )
-    assert f"#{_DOCTOR_ANCHOR}" in body, (
-        "The triage must link to the canonical installer + doctor handoff "
-        "section (#1115)."
-    )
+    # The Go-installer doctor-handoff anchor remains in UPGRADING.md for archaeology but
+    # is no longer required to be linked from the triage section (#1912 npm-canonical reframe).
 
 
 def test_triage_cross_references_resolve() -> None:

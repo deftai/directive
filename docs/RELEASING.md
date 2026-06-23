@@ -1,6 +1,6 @@
 # Release & Testing
 
-The GitHub Actions workflow (`.github/workflows/release.yml`) builds installers for all 6 platform targets, creates a macOS universal binary, runs smoke tests on real hardware, and publishes a GitHub Release.
+The release process publishes `@deftai/directive` to npm (the canonical install channel) and builds the frozen legacy Go-installer binaries for all 6 platform targets. The GitHub Actions workflow (`.github/workflows/release.yml`) creates a macOS universal binary, runs smoke tests on real hardware, and publishes both the npm package and a GitHub Release.
 
 > **📚 See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) • [CONCEPTS.md](./CONCEPTS.md) • [FILES.md](./FILES.md) • [../README.md](../README.md)
 
@@ -78,4 +78,4 @@ Manual runs skip the release job automatically (guarded by `if: startsWith(githu
 4. Verify the published release at https://github.com/deftai/directive/releases
 5. Each release includes: `install-windows-amd64.exe`, `install-windows-arm64.exe`, `install-macos-universal`, `install-linux-amd64`, `install-linux-arm64`
 
-> **Note:** Binaries are not yet code-signed. macOS users may need to bypass Gatekeeper (see [Getting Started in the README](../README.md#-getting-started)). Windows users may see a SmartScreen warning. Code signing is planned for a future release.
+> **Note:** The frozen legacy Go-installer binaries are not code-signed. macOS users may need to bypass Gatekeeper (see [Getting Started in the README](../README.md#-getting-started)). Windows users may see a SmartScreen warning. The canonical npm package (`@deftai/directive`) is published with keyless OIDC provenance and does not have this restriction.
