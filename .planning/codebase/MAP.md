@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: fb3b7e498cbe5c6d19c41785f238c0b48a0a7546f190672f5d6d276f068e6bf0 -->
-<!-- Source digest sha256: 7b7611e98ca483e2978957622e1c248e8d856a42af81d8ac9b8757bc27cef21c -->
+<!-- Artifact sha256: 7f57378b597a7a69177906e1b2a85e89b78da2969f75f59e590572d07a653033 -->
+<!-- Source digest sha256: b9906661f8581d99eba79b3e4f620b01a904e5163ea2828ba14b0443ed2091ee -->
 
 # Codebase MAP
 
@@ -14,7 +14,7 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `7b7611e98ca483e2978957622e1c248e8d856a42af81d8ac9b8757bc27cef21c` |
+| Source digest | `b9906661f8581d99eba79b3e4f620b01a904e5163ea2828ba14b0443ed2091ee` |
 
 ## Modules
 
@@ -25,7 +25,7 @@
 | `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1052 |
 | `task-runner` | Task Runner | Taskfile entry points that expose framework commands in source and consumer installs. | `Taskfile.yml`, `tasks/**/*.yml` | 47 |
 | `go-installer` | Go Installer | Standalone installer binary for end-user and maintainer installs. | `go.mod`, `cmd/deft-install/**/*.go` | 27 |
-| `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 750 |
+| `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 751 |
 | `content-packs` | Content Packs | Curated, sliceable agent memory packs rendered and checked through the packs task namespace. | `packs/**/*.md`, `packs/**/*.json` | 0 |
 | `ci-release-automation` | CI and Release Automation | Repository automation for branch policy, hooks, GitHub Actions, PR readiness, and release publication. | `.github/**/*.yml`, `.github/**/*.yaml`, `.githooks/*` | 7 |
 | `test-suite` | Test Suite | CLI, content, integration, and regression tests for framework behavior. | `tests/**/*.py`, `tests/**/*.json` | 340 |
@@ -138,7 +138,7 @@
 | Language | Files |
 | --- | ---: |
 | Go | 26 |
-| JSON | 803 |
+| JSON | 804 |
 | Markdown | 69 |
 | Other | 5 |
 | Python | 457 |

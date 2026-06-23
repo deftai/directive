@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1916"
+  },
+  "plan": {
+    "title": "npm publish workflow uses self-hosted (Blacksmith) runner — incompatible with --provenance",
+    "status": "completed",
+    "narratives": {
+      "Description": "npm publish workflow uses self-hosted (Blacksmith) runner — incompatible with --provenance",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1916",
+      "Overview": "## Found during the v0.55.0 live npm smoke test (#1909)\n\nThe first real `v*` tag (`v0.55.0`) fired `.github/workflows/npm-publish.yml`, which failed at the registry:\n\n```\nnpm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/@deftai%2fdirective-types\nError verifying sigstore provenance bundle: Unsupported GitHub Actions runner environment: \"self-hosted\".\nOnly \"github-hosted\" runners are supported when publishing with provenance.\n```\n\n### Root cause\nThe publish job runs on `runs-on: blacksmith-4vcpu-ubuntu-2404` (a third-party Blacksmith runner). `npm publish --provenance` requires a **GitHub-hosted** runner — the OIDC identity used to sign the Sigstore provenance bundle is only trusted from github-hosted runners. Blacksmith reads as `self-hosted`, so the registry rejects the bundle with HTTP 422.\n\n### Impact\n- Nothing published (all four `@deftai/directive*` packages are 404 — clean failure, no registry side effects).\n- The `v0.55.0` GitHub release is held as a draft pending the npm channel.\n\n### Fix\n- Move the publish job to `runs-on: ubuntu-latest` (github-hosted) and keep `--provenance`.\n- Add a `workflow_dispatch` trigger with a `tag` input so an existing tag (e.g. `v0.55.0`) can be (re)published without tag surgery.\n- First publish stays token-based (`NPM_TOKEN`); switch to OIDC trusted publishing after the packages exist (#1909).\n\nRefs #1909 #11 #1670"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1916",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1916: npm publish workflow uses self-hosted (Blacksmith) runner — incompatible with --provenance"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1909",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1909"
+      }
+    ],
+    "updated": "2026-06-23T18:24:24Z",
+    "metadata": {
+      "completedAt": "2026-06-23T18:24:24Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -7,6 +7,15 @@ on:
   push:
     tags:
       - "v*"
+  # Manual re-publish of an existing tag without tag surgery (#1916). Use when a
+  # tag-triggered run failed and the fix lives on a later commit: dispatch with
+  # the tag to (re)publish, e.g. v0.55.0.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to (re)publish, e.g. v0.55.0"
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -15,9 +24,19 @@ permissions:
 jobs:
   publish:
     name: Publish @deftai/directive* to npm
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    # GitHub-hosted runner is REQUIRED for npm --provenance (#1916): the registry
+    # rejects Sigstore provenance bundles signed on self-hosted / third-party
+    # runners (e.g. Blacksmith) with HTTP 422 "Unsupported ... runner
+    # environment: self-hosted". Do NOT move this job to a Blacksmith runner.
+    runs-on: ubuntu-latest
+    # REF_NAME unifies the tag source across both triggers: github.ref_name for a
+    # push-tag run, inputs.tag for a manual workflow_dispatch re-publish.
+    env:
+      REF_NAME: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       # Node 24 LTS pinned via .nvmrc; registry-url wires NODE_AUTH_TOKEN for npm.
       # id-token: write (workflow permissions) enables --provenance attestations.
@@ -39,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${REF_NAME#v}"
           echo "Publishing npm packages at version ${VERSION}"
           for dir in packages/types packages/core packages/content packages/cli; do
             npm version "${VERSION}" --no-git-tag-version --allow-same-version --prefix "${dir}"
@@ -48,7 +67,7 @@ jobs:
       - name: Resolve workspace protocol for npm publish
         shell: bash
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.REF_NAME }}
         run: |
           set -euo pipefail
           VERSION="${VERSION#v}"
