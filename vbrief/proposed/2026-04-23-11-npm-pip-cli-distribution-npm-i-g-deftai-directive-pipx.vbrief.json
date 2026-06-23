@@ -35,7 +35,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr.vbrief.json",
+        "uri": "completed/2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Publish content as @deftai/directive-content and resolve it from the package",
         "TrustLevel": "internal"

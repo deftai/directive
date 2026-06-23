@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Framework content now ships as `@deftai/directive-content` with resolver fallback (#11, #1669)** — The shippable `content/` tree is packaged as its own npm module with the C1 flatten preserved, and the TypeScript content-root resolver reads from the installed package when present or falls back to the vendored `.deft/core/` deposit across in-repo, hybrid, and external workspace layouts. Refs #11 #1669.
 - **Docs now state Deft = company, Directive = product, and show the npm install path (#423, #11, #1670)** — The identity model (Deft is the company, Directive is the product) is now documented, and `npm i -g @deftai/directive` with the `directive` command (`deft` alias) is called out as the emerging canonical install channel. The Go bootstrap installer remains documented during the staged retire window. Refs #423 #11 #1670.
 
 ### Changed

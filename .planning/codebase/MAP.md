@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: 4fe5c74e816993c8d344ceed1a8e1064267acad30a78fad2b7b8652224f0192f -->
-<!-- Source digest sha256: f595354b5798faa89dff21aa3209a66890f51b5fd70568b2f3840266f4f7a29b -->
+<!-- Artifact sha256: 048c1d1d83e98ff9e4b56de4744f5bf2d8ef3d53d83a0a9f9252ca9d82920a68 -->
+<!-- Source digest sha256: d7b3be2df31da1e29d45ca1b1825f3a6f4069a4d6eb3ff58ce0e2bdb63bef740 -->
 
 # Codebase MAP
 
@@ -14,7 +14,7 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `f595354b5798faa89dff21aa3209a66890f51b5fd70568b2f3840266f4f7a29b` |
+| Source digest | `d7b3be2df31da1e29d45ca1b1825f3a6f4069a4d6eb3ff58ce0e2bdb63bef740` |
 
 ## Modules
 
@@ -22,7 +22,7 @@
 | --- | --- | --- | --- | ---: |
 | `framework-content` | Framework Content | Agent-consumed standards, strategies, skills, templates, and documentation. | `AGENTS.md`, `SKILL.md`, `README.md`, `QUICK-START.md`, ... | 67 |
 | `python-tooling` | Python Tooling | Framework CLI helpers, validators, lifecycle tools, and automation scripts. | `run`, `run.py`, `run.bat`, `scripts/**/*.py` | 164 |
-| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1038 |
+| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1041 |
 | `task-runner` | Task Runner | Taskfile entry points that expose framework commands in source and consumer installs. | `Taskfile.yml`, `tasks/**/*.yml` | 47 |
 | `go-installer` | Go Installer | Standalone installer binary for end-user and maintainer installs. | `go.mod`, `cmd/deft-install/**/*.go` | 27 |
 | `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 746 |
@@ -137,11 +137,11 @@
 | Language | Files |
 | --- | ---: |
 | Go | 26 |
-| JSON | 800 |
+| JSON | 801 |
 | Markdown | 67 |
 | Other | 5 |
 | Python | 457 |
-| TypeScript | 1027 |
+| TypeScript | 1029 |
 | YAML | 53 |
 
 ## Degraded Signals
