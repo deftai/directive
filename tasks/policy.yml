@@ -60,6 +60,8 @@ tasks:
     deps:
       - task: :ts:build
     cmds:
+      - cmd: echo "[deft deprecation] task policy:subagent-backend is superseded by 'task swarm:routing-set' (#1739). The swarmSubagentBackend enum is no longer the active routing surface." 1>&2
+        silent: true
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy-set subagent-backend {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   subagent-backends:
