@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: 0eea74ba10cb90de3dc871a18f26386982e52898a3dfcd1b18abeb9f48df32e4 -->
-<!-- Source digest sha256: 058647d571e14f1b6410f3971bdc27582f5d73de75a42eba6efe2f5bf0ebab8a -->
+<!-- Artifact sha256: 07404feea6bfc53cbf64dec77acd8c6ce6be591817ef2c068b13ce76eb9e3725 -->
+<!-- Source digest sha256: f96c81566241162939850c2d8ca4ce19bf37ee964e9724a5fb65dc72a7a3473b -->
 
 # Codebase MAP
 
@@ -14,7 +14,7 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `058647d571e14f1b6410f3971bdc27582f5d73de75a42eba6efe2f5bf0ebab8a` |
+| Source digest | `f96c81566241162939850c2d8ca4ce19bf37ee964e9724a5fb65dc72a7a3473b` |
 
 ## Modules
 
@@ -22,13 +22,13 @@
 | --- | --- | --- | --- | ---: |
 | `framework-content` | Framework Content | Agent-consumed standards, strategies, skills, templates, and documentation. | `AGENTS.md`, `SKILL.md`, `README.md`, `QUICK-START.md`, ... | 67 |
 | `python-tooling` | Python Tooling | Framework CLI helpers, validators, lifecycle tools, and automation scripts. | `run`, `run.py`, `run.bat`, `scripts/**/*.py` | 164 |
-| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1049 |
+| `typescript-engine` | TypeScript Engine | Node/TypeScript packages for the directive engine migration, CLI shims, and Python-oracle parity harnesses. | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `tsconfig*.json`, ... | 1050 |
 | `task-runner` | Task Runner | Taskfile entry points that expose framework commands in source and consumer installs. | `Taskfile.yml`, `tasks/**/*.yml` | 47 |
 | `go-installer` | Go Installer | Standalone installer binary for end-user and maintainer installs. | `go.mod`, `cmd/deft-install/**/*.go` | 27 |
 | `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 746 |
 | `content-packs` | Content Packs | Curated, sliceable agent memory packs rendered and checked through the packs task namespace. | `packs/**/*.md`, `packs/**/*.json` | 0 |
 | `ci-release-automation` | CI and Release Automation | Repository automation for branch policy, hooks, GitHub Actions, PR readiness, and release publication. | `.github/**/*.yml`, `.github/**/*.yaml`, `.githooks/*` | 6 |
-| `test-suite` | Test Suite | CLI, content, integration, and regression tests for framework behavior. | `tests/**/*.py`, `tests/**/*.json` | 339 |
+| `test-suite` | Test Suite | CLI, content, integration, and regression tests for framework behavior. | `tests/**/*.py`, `tests/**/*.json` | 340 |
 
 ## Coupling
 
@@ -138,7 +138,7 @@
 | Language | Files |
 | --- | ---: |
 | Go | 26 |
-| JSON | 799 |
+| JSON | 801 |
 | Markdown | 67 |
 | Other | 5 |
 | Python | 457 |
