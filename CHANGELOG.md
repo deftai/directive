@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Docs now state Deft = company, Directive = product, and show the npm install path (#423, #11, #1670)** — README and getting-started now explain the identity model (`@deftai` scope / `.deft` footprint vs `@deftai/directive` product) and document `npm i -g @deftai/directive` with the `directive` command (`deft` alias) as the emerging canonical channel alongside the Go bootstrap installer. Refs #423 #11 #1670.
+- **Docs now state Deft = company, Directive = product, and show the npm install path (#423, #11, #1670)** — The identity model (Deft is the company, Directive is the product) is now documented, and `npm i -g @deftai/directive` with the `directive` command (`deft` alias) is called out as the emerging canonical install channel. The Go bootstrap installer remains documented during the staged retire window. Refs #423 #11 #1670.
 
 ### Changed
 
