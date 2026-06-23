@@ -112,6 +112,19 @@ describe("dispatch", () => {
     expect(out.join("")).toContain("verify-encoding");
   });
 
+  it("coerces a void handler return to exit code 0", async () => {
+    vi.doMock("./verify-encoding.js", () => ({
+      run: () => undefined,
+    }));
+    resetHandlerCacheForTests();
+
+    const code = await dispatch(["verify-encoding"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+  });
+
   it("returns exit code 2 when a handler throws", async () => {
     vi.doMock("./verify-encoding.js", () => ({
       run: () => {
