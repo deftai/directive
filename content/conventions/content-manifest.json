@@ -175,7 +175,7 @@
     {
       "path": "content/vbrief",
       "bucket": "content",
-      "note": "Shipped vBRIEF surface: schemas/, vbrief.md, migration/. The lifecycle folders + PROJECT-DEFINITION live at the maintainer-only root vbrief/."
+      "note": "Shipped vBRIEF surface: schemas/, vbrief.md. The lifecycle folders + PROJECT-DEFINITION live at the maintainer-only root vbrief/. The framework's own migration RESULT artifacts (LEGACY-REPORT.md / RECONCILIATION.md / safety-manifest.json) are repo-dev and live at root vbrief/migration/ -- they are this repo's migration output, not a consumer convention, so they are not shipped (refines C3: migration/ held only framework-result records, not migration conventions)."
     },
     {
       "path": "content/verification",
@@ -393,7 +393,7 @@
     {
       "path": "vbrief",
       "bucket": "repo-dev",
-      "note": "The maintainer's own vBRIEF scope lifecycle (proposed/pending/active/completed/cancelled + PROJECT-DEFINITION). The shippable vBRIEF surface (schemas/, vbrief.md, migration/) was promoted to content/vbrief/ (#1875 C3)."
+      "note": "The maintainer's own vBRIEF scope lifecycle (proposed/pending/active/completed/cancelled + PROJECT-DEFINITION) plus the framework's own migration RESULT artifacts at vbrief/migration/ (LEGACY-REPORT.md / RECONCILIATION.md / safety-manifest.json). The shippable vBRIEF surface (schemas/, vbrief.md) was promoted to content/vbrief/ (#1875 C3); the migration result records stay repo-dev (this repo's own migration output, not a consumer convention)."
     }
   ]
 }

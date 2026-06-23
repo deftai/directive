@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Leaner, cleaner npm packages ahead of first publish (#11, #1669)** — The published `@deftai/directive*` packages now ship only runtime JavaScript and type declarations: TypeScript build-cache files and source maps are excluded (cutting `@deftai/directive-core` roughly in half), and the framework's own internal migration records (legacy report, reconciliation report, safety manifest) no longer ship inside `@deftai/directive-content` — they are repo-only maintainer artifacts and now live at the maintainer root. Consumers get smaller installs with no behavior change. Refs #11 #1669.
+
 ### Added
 - **Tag-triggered npm publish with provenance for @deftai/directive* (#11, #1670)** — Pushing a `v*` release tag now runs a GitHub Actions workflow that builds the workspace and publishes `@deftai/directive-types`, `@deftai/directive-core`, `@deftai/directive-content`, and `@deftai/directive` to npm with public access and supply-chain provenance attestations. PyPI/pip distribution remains deferred (#1084). Refs #11 #1670.
 - **Framework content now ships as `@deftai/directive-content` with resolver fallback (#11, #1669)** — The shippable `content/` tree is packaged as its own npm module with the C1 flatten preserved, and the TypeScript content-root resolver reads from the installed package when present or falls back to the vendored `.deft/core/` deposit across in-repo, hybrid, and external workspace layouts. Refs #11 #1669.
