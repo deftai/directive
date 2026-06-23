@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1925",
@@ -24,6 +24,10 @@
         "title": "Issue #1910"
       }
     ],
-    "updated": "2026-06-23T21:00:51Z"
+    "updated": "2026-06-23T23:47:49Z",
+    "metadata": {
+      "completedAt": "2026-06-23T23:47:49Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

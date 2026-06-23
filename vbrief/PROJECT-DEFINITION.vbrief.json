@@ -990,10 +990,10 @@
       {
         "id": "2026-04-30-761-install-paths-reframe-webinstaller-npm",
         "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
-        "status": "running",
+        "status": "completed",
         "metadata": {
-          "source_path": "active/2026-04-30-761-install-paths-reframe-webinstaller-npm.vbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "completed/2026-04-30-761-install-paths-reframe-webinstaller-npm.vbrief.json",
+          "lifecycle_folder": "completed",
           "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/761",

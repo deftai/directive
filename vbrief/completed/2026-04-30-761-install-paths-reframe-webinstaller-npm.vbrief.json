@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "SourceSection": "Phase 3 -- Documentation & Content Fixes"
     },
@@ -16,7 +16,9 @@
         "Description": "Reframe install documentation around webinstaller (https://webinstaller.fly.dev/) + npm/pip (#11), demote Go binary installer to legacy. Supersedes the cancelled code-signing brief.",
         "Description_source": "chore/proposed-vbrief-cleanup discussion",
         "Status_source": "filed-during-cleanup"
-      }
+      },
+      "completedAt": "2026-06-23T23:47:49Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -30,6 +32,6 @@
         "title": "Issue #11: Proposal: Publish Deft as an NPM + PIP CLI (related; this brief leads with webinstaller and references #11)"
       }
     ],
-    "updated": "2026-06-23T21:01:07Z"
+    "updated": "2026-06-23T23:47:49Z"
   }
 }

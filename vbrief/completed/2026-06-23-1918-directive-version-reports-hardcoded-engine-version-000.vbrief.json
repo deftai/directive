@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "directive version reports hardcoded engine version 0.0.0",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "directive version reports hardcoded engine version 0.0.0",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1918",
@@ -24,6 +24,10 @@
         "title": "Issue #1909"
       }
     ],
-    "updated": "2026-06-23T21:00:32Z"
+    "updated": "2026-06-23T23:47:49Z",
+    "metadata": {
+      "completedAt": "2026-06-23T23:47:49Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

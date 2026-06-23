@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1891",
@@ -27,6 +27,10 @@
         "title": "Issue #1891: swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum"
       }
     ],
-    "updated": "2026-06-23T21:00:59Z"
+    "updated": "2026-06-23T23:47:49Z",
+    "metadata": {
+      "completedAt": "2026-06-23T23:47:49Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
