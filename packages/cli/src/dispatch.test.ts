@@ -281,4 +281,10 @@ describe("dispatch", () => {
     expect(resolveCanonicalVerb("verify-encoding")).toBe("verify-encoding");
     expect(resolveCanonicalVerb("scm")).toBe("scm");
   });
+
+  it("resolves every task-style alias in VERB_ALIASES", () => {
+    for (const [alias, canonical] of Object.entries(VERB_ALIASES)) {
+      expect(resolveCanonicalVerb(alias)).toBe(canonical);
+    }
+  });
 });
