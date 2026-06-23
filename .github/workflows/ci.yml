@@ -386,12 +386,18 @@ jobs:
       # `node packages/cli/dist/bin.js`. Without Node/pnpm on PATH this job
       # failed `scope:_ensure-ts` with exit 127. Node 24 LTS pinned via .nvmrc;
       # corepack activates the pnpm version from package.json `packageManager`.
+      # The later task regression steps run from a fixture directory, so prepare
+      # the pinned pnpm as Corepack's default before leaving the workspace.
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: .nvmrc
 
       - name: Enable corepack (pnpm)
-        run: corepack enable
+        shell: pwsh
+        run: |
+          corepack enable
+          $packageManager = (Get-Content package.json | ConvertFrom-Json).packageManager
+          corepack prepare $packageManager --activate
 
       - name: Install Node dependencies (pnpm)
         run: pnpm install --frozen-lockfile

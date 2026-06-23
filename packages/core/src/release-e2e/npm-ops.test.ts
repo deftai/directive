@@ -152,6 +152,43 @@ describe("rehearseNpmPublish", () => {
     expect(calls.some((c) => c.includes("publish"))).toBe(false);
   });
 
+  it("short-circuits before build when install fails", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-install-fail-"));
+    scaffoldPackages(clone);
+    const calls: string[][] = [];
+    const seams: E2ESeams = {
+      which: (n) => `/usr/bin/${n}`,
+      spawnText: (cmd, args) => {
+        const full = [cmd, ...args];
+        calls.push(full);
+        return full.includes("install")
+          ? { status: 1, stdout: "lockfile mismatch", stderr: "" }
+          : ok();
+      },
+    };
+    const [okFlag, reason] = rehearseNpmPublish(clone, "0.0.1", seams);
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("pnpm install failed");
+    expect(reason).toContain("lockfile mismatch");
+    expect(calls.some((c) => c.includes("build"))).toBe(false);
+  });
+
+  it("short-circuits before publish when version alignment fails", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-align-fail-"));
+    const calls: string[][] = [];
+    const seams: E2ESeams = {
+      which: (n) => `/usr/bin/${n}`,
+      spawnText: (cmd, args) => {
+        calls.push([cmd, ...args]);
+        return ok();
+      },
+    };
+    const [okFlag, reason] = rehearseNpmPublish(clone, "0.0.1", seams);
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("version-align FAIL");
+    expect(calls.some((c) => c.includes("publish"))).toBe(false);
+  });
+
   it("short-circuits when the core publish fails", () => {
     const clone = mkdtempSync(join(tmpdir(), "deft-npm-pub-fail-"));
     scaffoldPackages(clone);

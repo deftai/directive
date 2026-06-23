@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Master CI no longer fails after the npm publish release work (#1910, #1916)** -- The Windows task-dispatch regression job now prepares the root `packageManager` pnpm version as Corepack's default before running fixture-scoped tasks, and the npm publish rehearsal has explicit install/alignment short-circuit coverage so the TypeScript branch threshold stays green. Refs #1910 #1916.
 - **npm packages now actually publish with provenance (#1916, #1909)** — The publish workflow ran on a third-party (Blacksmith) runner, which npm's registry rejects for provenance-signed releases, so the first `v*` tag published nothing. The publish job now runs on a GitHub-hosted runner so the supply-chain provenance attestation is accepted, and a manual re-publish trigger lets an existing release tag be (re)published without recreating the tag. Refs #1916 #1909.
 
 ### Removed
