@@ -6,7 +6,7 @@
   "plan": {
     "id": "11-s7-identity-docs",
     "title": "Document the Deft-company / Directive-product model and npm install paths",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
     "narratives": {
       "Description": "Resolve the #423 tail: add the user-visible 'Deft is the company, Directive is the product' note and reframe the primary install paths around npm (`npm i -g @deftai/directive`; `directive` command with `deft` alias). The Go installer stays documented as the bootstrap path during the staged-retire window. This is the docs surface for the Wave-2 distribution change; the full #761 README/UPGRADING reframe remains Wave 4.",
@@ -62,7 +62,9 @@
         "file_scope_confidence": "high",
         "model_tier": "standard",
         "missing_traces_justification": "Resolves #423 (identity-model doc tail) + Wave-2 install-path surface under #11/#1669; documentation with no spec-section trace."
-      }
+      },
+      "completedAt": "2026-06-23T02:22:11Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -72,6 +74,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-23T02:10:30Z"
+    "updated": "2026-06-23T02:22:11Z"
   }
 }

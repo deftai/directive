@@ -4,18 +4,44 @@ Deft Directive is a Taskfile-first framework for AI-assisted software work. It c
 
 > **Note**: This guide is an orientation layer. For current architecture details, see [ARCHITECTURE.md](../../docs/ARCHITECTURE.md); for command behavior, see [commands.md](../commands.md).
 
+## Deft & Directive (naming)
+
+**Deft is the company; Directive is the product.** *Deft* names the organization and the on-disk footprint (`.deft/`, `@deftai/*` npm scope, user config under `~/.config/deft/`). *Directive* names the framework you install and run: the npm package is `@deftai/directive`, and the primary CLI is `directive` (`deft` is an alias). Legacy `deft-install` / `deft` paths in this guide refer to the same product during the staged transition ([#423](https://github.com/deftai/directive/issues/423)).
+
 ---
 
 ## Prerequisites
 
-<!-- TODO: Document required tools (Go 1.22+, Python 3.11+, uv, task) and supported platforms -->
+- **Node 20+** and **pnpm** for live gates and the npm distribution channel (see `.nvmrc` in the framework payload).
+- **Go 1.22+** only if you use the bootstrap Go installer or build from source.
+- **Python 3.11+**, **uv**, **task**, **git**, and **gh** for full framework workflows — run `directive toolchain:check` (or `deft toolchain:check`) after install.
 
 ---
 
 ## Installation
 
-Download a platform installer from the Deft release page and run it from the
-project you want to adopt:
+### npm (emerging canonical channel)
+
+When Node is already available, install Directive globally:
+
+```bash
+npm i -g @deftai/directive
+directive --version    # primary command
+deft --version         # alias — same binary
+```
+
+One-shot without a global install:
+
+```bash
+npx @deftai/directive doctor
+npx @deftai/directive session:start
+```
+
+This npm path is the emerging primary distribution channel under `@deftai/directive` ([#11](https://github.com/deftai/directive/issues/11)). The Go installer below remains documented as the bootstrap option during the staged retire window.
+
+### Go installer (bootstrap)
+
+Download a platform installer from the [Directive release page](https://github.com/deftai/directive/releases) and run it from the project you want to adopt:
 
 ```bash
 deft-install --yes --repo-root . --json
