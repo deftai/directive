@@ -16,8 +16,8 @@ export const TOP_LEVEL_UX_VERBS = [
   "feature",
 ] as const;
 
-/** Stubbed until S4 lands deft-install delegation (#11). */
-export const STUBBED_TOP_LEVEL_VERBS = new Set<string>(["init", "update"]);
+/** Stubbed until a later story lands the handler (#1670 / #11). */
+export const STUBBED_TOP_LEVEL_VERBS = new Set<string>([]);
 
 /** Registered but not yet implemented as TS handlers. */
 export const DEFERRED_TOP_LEVEL_VERBS = new Set<string>(["bootstrap", "feature"]);
@@ -108,13 +108,14 @@ function routeTopLevel(first: string, rest: string[]): RoutedArgv | null {
   if (first === "check" || first === "doctor") {
     return { kind: "dispatch", argv: [first, ...rest] };
   }
+  if (first === "init" || first === "update") {
+    return { kind: "dispatch", argv: [first, ...rest] };
+  }
   if (STUBBED_TOP_LEVEL_VERBS.has(first)) {
     return {
       kind: "stub",
       argv: [],
-      stubMessage:
-        `directive ${first}: deft-install delegation is not wired yet (S4 / #11). ` +
-        "Use deft-install directly for now.",
+      stubMessage: `directive ${first}: not yet implemented in the TS CLI (#1670 / #11).`,
     };
   }
   if (DEFERRED_TOP_LEVEL_VERBS.has(first)) {

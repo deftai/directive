@@ -87,9 +87,11 @@ describe("routeArgv", () => {
     expect(routeArgv(["-h"]).argv).toEqual(["-h"]);
   });
 
-  it("stubs init and update until S4", () => {
-    expect(routeArgv(["init"]).kind).toBe("stub");
-    expect(routeArgv(["update"]).kind).toBe("stub");
+  it("routes init and update to dispatch handlers", () => {
+    expect(routeArgv(["init"]).kind).toBe("dispatch");
+    expect(routeArgv(["init"]).argv).toEqual(["init"]);
+    expect(routeArgv(["update"]).kind).toBe("dispatch");
+    expect(routeArgv(["update"]).argv).toEqual(["update"]);
   });
 
   it("registers every curated top-level UX verb", () => {
@@ -139,7 +141,7 @@ describe("routeAndDispatch", () => {
     expect(out.join("")).toContain("@deftai/directive");
   });
 
-  it("returns exit code 2 for stubbed init", async () => {
+  it("returns exit code 2 when bundled deft-install is missing", async () => {
     const err: string[] = [];
     const code = await routeAndDispatch(["init"], {
       writeOut: () => {},
@@ -148,7 +150,7 @@ describe("routeAndDispatch", () => {
       },
     });
     expect(code).toBe(2);
-    expect(err.join("")).toContain("deft-install");
+    expect(err.join("")).toContain("bundled deft-install binary not found");
   });
 
   it("routes verify branch to the same handler as verify:branch", async () => {

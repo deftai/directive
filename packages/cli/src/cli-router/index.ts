@@ -3,7 +3,20 @@
  */
 
 import { type DispatchIo, dispatch } from "../dispatch.js";
+import { runInit } from "../init-cli/init.js";
+import { runUpdate } from "../init-cli/update.js";
 import { routeArgv } from "./route-argv.js";
+
+function defaultIo(): DispatchIo {
+  return {
+    writeOut: (text) => {
+      process.stdout.write(text);
+    },
+    writeErr: (text) => {
+      process.stderr.write(text);
+    },
+  };
+}
 
 export {
   DEFERRED_TOP_LEVEL_VERBS,
@@ -24,12 +37,18 @@ export async function routeAndDispatch(argv: readonly string[], io?: DispatchIo)
   const routed = routeArgv(argv);
   if (routed.kind === "stub") {
     const message = routed.stubMessage ?? "directive: command not available";
-    if (io !== undefined) {
-      io.writeErr(`${message}\n`);
-    } else {
-      process.stderr.write(`${message}\n`);
-    }
+    const sink = io ?? defaultIo();
+    sink.writeErr(`${message}\n`);
     return 2;
   }
+
+  const [first, ...rest] = routed.argv;
+  if (first === "init") {
+    return runInit(rest, io ?? defaultIo());
+  }
+  if (first === "update") {
+    return runUpdate(rest, io ?? defaultIo());
+  }
+
   return dispatch(routed.argv, io);
 }
