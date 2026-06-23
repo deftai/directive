@@ -6,7 +6,7 @@
   "plan": {
     "id": "11-s2-content-package-resolver",
     "title": "Publish content as @deftai/directive-content and resolve it from the package",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
     "narratives": {
       "Description": "Implement the C4-locked package shape: the content/ root ships as its own publishable package @deftai/directive-content, and the TS content-resolver reads content from the installed package across the three operating modes (in-repo vendored, hybrid npm-engine, external workspace) rather than only from the committed .deft/core/ deposit. This is the engine/content split's content half made real on npm.",
@@ -75,6 +75,7 @@
         "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-23T03:21:07Z"
   }
 }

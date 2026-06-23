@@ -35,13 +35,13 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr.vbrief.json",
+        "uri": "active/2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Publish content as @deftai/directive-content and resolve it from the package",
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-23-implement-the-directive-verb-router-and-top-level-ux-verbs.vbrief.json",
+        "uri": "active/2026-06-23-implement-the-directive-verb-router-and-top-level-ux-verbs.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Implement the directive verb router and top-level UX verbs",
         "TrustLevel": "internal"
@@ -59,7 +59,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-23-add-the-npm-publish-workflow-with-provenance.vbrief.json",
+        "uri": "active/2026-06-23-add-the-npm-publish-workflow-with-provenance.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add the npm publish workflow with provenance",
         "TrustLevel": "internal"

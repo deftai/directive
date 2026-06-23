@@ -6,7 +6,7 @@
   "plan": {
     "id": "11-s6-npm-publish-workflow",
     "title": "Add the npm publish workflow with provenance",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
     "narratives": {
       "Description": "Establish npm as the canonical v1 distribution channel (#1670 Decision-4): a GitHub Actions workflow that publishes @deftai/directive, @deftai/directive-core, @deftai/directive-types, and @deftai/directive-content to npm with provenance on a version tag. pip is explicitly out of scope for v1 (deferred; #1084 stays parked). Builds on the final package names from S1.",
@@ -77,6 +77,7 @@
         "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-23T03:21:08Z"
   }
 }

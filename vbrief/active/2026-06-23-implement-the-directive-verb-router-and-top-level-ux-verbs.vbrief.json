@@ -6,7 +6,7 @@
   "plan": {
     "id": "11-s3-directive-verb-router",
     "title": "Implement the directive verb router and top-level UX verbs",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
     "narratives": {
       "Description": "Build the unified `directive <namespace> <verb>` command surface defined in #1670: it mirrors the existing `task <namespace>:<verb>` map one-to-one, and promotes the curated UX verbs (init, update, bootstrap, check, doctor, version, feature) to the top level. The router dispatches to the existing TS engine entrypoints; the `deft` alias accepts the identical surface. init/update delegation to deft-install is a separate story (S4); this story delivers the router skeleton plus the read-only/non-bootstrap verbs.",
@@ -75,6 +75,7 @@
         "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-23T03:21:08Z"
   }
 }
