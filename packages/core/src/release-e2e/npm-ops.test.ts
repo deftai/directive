@@ -121,7 +121,11 @@ describe("rehearseNpmPublish", () => {
     expect(reason).toContain("npm publish --dry-run clean for 4 packages");
     expect(calls[0]?.cmd).toContain("install");
     expect(calls[1]?.cmd).toContain("build");
-    const publishCwds = calls.filter((c) => c.cmd.includes("publish")).map((c) => c.cwd);
+    const publishCalls = calls.filter((c) => c.cmd.includes("publish"));
+    expect(
+      publishCalls.every((c) => c.cmd.includes("--tag") && c.cmd.includes("e2e-rehearsal")),
+    ).toBe(true);
+    const publishCwds = publishCalls.map((c) => c.cwd);
     expect(publishCwds).toEqual([
       join(clone, "packages", "types"),
       join(clone, "packages", "core"),

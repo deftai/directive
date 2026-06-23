@@ -1,0 +1,29 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1925"
+  },
+  "plan": {
+    "title": "release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)",
+    "status": "running",
+    "narratives": {
+      "Description": "release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1925",
+      "Overview": "## Symptom\n`task release:e2e` (the #1910 npm rehearsal step) fails at `npm publish --dry-run` once real packages exist on the registry at a higher version:\n\n```\nnpm error Cannot implicitly apply the \"latest\" tag because previously published version 0.55.0 is higher than the new version 0.0.1. You must specify a tag using --tag.\n```\n\nObserved during the v0.55.1 cut (2026-06-23). The GitHub-pipeline steps (clone, push-mirror, task release, verify draft, verify tag, rollback) all pass; only the npm dry-run trips.\n\n## Root cause\nThe e2e harness rehearses with a fixed dummy version `0.0.1`. Before any real publish this was fine, but now that `@deftai/directive*` is live at `0.55.0`/`0.55.1`, npm's `--dry-run` refuses to implicitly apply the `latest` dist-tag to a *lower* version. This is a harness artifact, not a real release blocker (an actual release version is always higher than the latest published).\n\n## Impact\n`task release:e2e` now exits non-zero on the npm step on every cut, forcing operators to re-run with `--skip-npm` and lose the npm-channel rehearsal. The skill's Phase 3 hard-refusal semantics then have to be manually overridden.\n\n## Suggested fix (pick one)\n- Have the harness derive a rehearsal version *above* the latest published version (e.g. query `npm view <pkg> version` and bump), or\n- Pass `--tag e2e-rehearsal` (a throwaway dist-tag) to the dry-run so the implicit-latest check is bypassed, or\n- Point the rehearsal at a dummy/scoped package name that has no published history.\n\nFound during the v0.55.1 release. Refs #1910 #1909."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1925",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1925: release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1910",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1910"
+      }
+    ],
+    "updated": "2026-06-23T21:00:51Z"
+  }
+}

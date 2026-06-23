@@ -1187,6 +1187,8 @@ class TestRehearseNpmPublish:
         assert "install" in calls[0][0]
         assert "build" in calls[1][0]
         # Remaining commands are npm publish --dry-run per package in order.
+        publish_cmds = [cmd for cmd, _cwd in calls if "publish" in cmd]
+        assert all("--tag" in cmd and "e2e-rehearsal" in cmd for cmd in publish_cmds)
         publish_dirs = [cwd for cmd, cwd in calls if "publish" in cmd]
         assert publish_dirs == [
             str(tmp_path / "packages" / "types"),

@@ -52,8 +52,9 @@ spurious ``v0.0.1`` artefacts to ``deftai/directive``.
    g. ``rehearse_npm_publish`` (#1910) -- mirror ``npm-publish.yml`` against
       the clone: ``pnpm install`` + ``pnpm -w run build``, align the four
       ``@deftai/directive*`` ``package.json`` versions + resolve the
-      ``workspace:`` protocol, then ``npm publish --dry-run --access public``
-      per package in dependency order (types -> core -> content -> cli). This
+      ``workspace:`` protocol, then ``npm publish --dry-run --access public
+      --tag e2e-rehearsal`` per package in dependency order (types -> core ->
+      content -> cli). This
       catches a broken ``files`` allowlist, version drift, or dependency-order
       bug BEFORE a real ``v*`` tag fires the publish workflow, without ever
       touching the real registry. Soft-skips when ``npm`` is absent from PATH;
@@ -142,6 +143,10 @@ REHEARSAL_VERSION = "0.0.1"
 # #1910: dependency order for the npm publish dry-run rehearsal, mirroring
 # .github/workflows/npm-publish.yml (types -> core -> content -> cli).
 NPM_PUBLISH_PACKAGES = ("types", "core", "content", "cli")
+# #1925: throwaway dist-tag so npm publish --dry-run does not try to apply
+# ``latest`` to the fixed rehearsal sentinel ``0.0.1`` once real packages
+# exist at a higher version on the registry.
+NPM_E2E_REHEARSAL_TAG = "e2e-rehearsal"
 NPM_INSTALL_TIMEOUT_SECONDS = 600
 NPM_BUILD_TIMEOUT_SECONDS = 600
 NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS = 180
@@ -745,8 +750,11 @@ def rehearse_npm_publish(clone_dir: Path, version: str) -> tuple[bool, str]:
        allowlist to produce a meaningful tarball.
     4. Align the four ``package.json`` versions to ``<version>`` and resolve
        the ``workspace:`` protocol (folds in the item-4 version assertion).
-    5. ``npm publish --dry-run --access public`` per package in dependency
-       order (types -> core -> content -> cli).
+    5. ``npm publish --dry-run --access public --tag e2e-rehearsal`` per
+       package in dependency order (types -> core -> content -> cli). The
+       throwaway dist-tag bypasses npm's implicit-``latest`` check when the
+       rehearsal sentinel version is below the highest published version
+       (#1925).
 
     Returns ``(ok, reason)`` like ``verify_draft_release`` / ``verify_tag`` so
     the orchestrator and tests treat it uniformly. Because installing +
@@ -784,8 +792,18 @@ def rehearse_npm_publish(clone_dir: Path, version: str) -> tuple[bool, str]:
     for pkg in NPM_PUBLISH_PACKAGES:
         pkg_dir = clone_dir / "packages" / pkg
         ok, reason = _run_npm_step(
-            [npm_path, "publish", "--dry-run", "--access", "public"],
-            pkg_dir, env, f"npm publish --dry-run packages/{pkg}",
+            [
+                npm_path,
+                "publish",
+                "--dry-run",
+                "--access",
+                "public",
+                "--tag",
+                NPM_E2E_REHEARSAL_TAG,
+            ],
+            pkg_dir,
+            env,
+            f"npm publish --dry-run --tag {NPM_E2E_REHEARSAL_TAG} packages/{pkg}",
             NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS,
         )
         if not ok:

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { defaultWhich, spawnText } from "../release/spawn.js";
 import {
   NPM_BUILD_TIMEOUT_SECONDS,
+  NPM_E2E_REHEARSAL_TAG,
   NPM_INSTALL_TIMEOUT_SECONDS,
   NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS,
   NPM_PUBLISH_PACKAGES,
@@ -119,7 +120,9 @@ export function alignNpmPackageVersions(cloneDir: string, version: string): [boo
  *   2. Resolve pnpm (or `corepack pnpm`) and `pnpm install --frozen-lockfile`.
  *   3. `pnpm -w run build`; dist/ must exist for the dist-only files allowlist.
  *   4. Align the four package.json versions + resolve the workspace protocol.
- *   5. `npm publish --dry-run --access public` per package in dependency order.
+ *   5. `npm publish --dry-run --access public --tag e2e-rehearsal` per package
+ *      in dependency order (#1925 bypasses implicit-`latest` when the rehearsal
+ *      sentinel is below the highest published version).
  *
  * Returns [ok, reason] like verifyDraftRelease / verifyTag.
  */
@@ -173,10 +176,10 @@ export function rehearseNpmPublish(
   for (const pkg of NPM_PUBLISH_PACKAGES) {
     const pkgDir = join(cloneDir, "packages", pkg);
     [ok, reason] = runNpmStep(
-      [npmPath, "publish", "--dry-run", "--access", "public"],
+      [npmPath, "publish", "--dry-run", "--access", "public", "--tag", NPM_E2E_REHEARSAL_TAG],
       pkgDir,
       env,
-      `npm publish --dry-run packages/${pkg}`,
+      `npm publish --dry-run --tag ${NPM_E2E_REHEARSAL_TAG} packages/${pkg}`,
       NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS,
       seams,
     );

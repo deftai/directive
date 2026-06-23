@@ -14,6 +14,8 @@ export const REHEARSAL_VERSION = "0.0.1";
  * .github/workflows/npm-publish.yml (types -> core -> content -> cli).
  */
 export const NPM_PUBLISH_PACKAGES = ["types", "core", "content", "cli"] as const;
+/** #1925: throwaway dist-tag so dry-run does not apply `latest` to 0.0.1. */
+export const NPM_E2E_REHEARSAL_TAG = "e2e-rehearsal";
 export const NPM_INSTALL_TIMEOUT_SECONDS = 600;
 export const NPM_BUILD_TIMEOUT_SECONDS = 600;
 export const NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS = 180;
