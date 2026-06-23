@@ -10,7 +10,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runCodebaseMapCli } from "@deftai/core/codebase";
+import { runCodebaseMapCli } from "@deftai/directive-core/codebase";
 
 export interface CommandCapture {
   readonly exitCode: number;

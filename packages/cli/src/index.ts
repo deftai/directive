@@ -1,14 +1,14 @@
-import { engineInfo } from "@deftai/core";
+import { engineInfo } from "@deftai/directive-core";
 
 /**
- * `@deftai/cli` — entrypoint for the deft directive TypeScript engine.
+ * `@deftai/directive` — entrypoint for the deft directive TypeScript engine.
  *
  * Wave-1 skeleton (#1717): `banner()` spans the full dependency chain
  * (cli → core → types), proving the project-reference graph builds and
  * resolves end-to-end. Real commands land in later migration waves.
  */
 
-export const CLI_PACKAGE = "@deftai/cli" as const;
+export const CLI_PACKAGE = "@deftai/directive" as const;
 
 /** Renders the engine banner string, sourcing core engine metadata. */
 export function banner(): string {

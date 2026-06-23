@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runDefaultExtractorCli } from "@deftai/core/codebase";
+import { runDefaultExtractorCli } from "@deftai/directive-core/codebase";
 
 const result = runDefaultExtractorCli(process.argv.slice(2));
 if (result.stdout) process.stdout.write(result.stdout);

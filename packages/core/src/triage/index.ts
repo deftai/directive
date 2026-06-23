@@ -1,5 +1,5 @@
 /**
- * `@deftai/core/triage` — the ported triage engine surface (#1530 Wave 3, #1725).
+ * `@deftai/directive-core/triage` — the ported triage engine surface (#1530 Wave 3, #1725).
  *
  * Each triage verb is a self-contained module ported from its `scripts/triage_*.py`
  * oracle. They are re-exported here under stable per-verb namespaces (rather than

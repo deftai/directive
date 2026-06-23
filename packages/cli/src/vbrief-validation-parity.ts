@@ -12,7 +12,7 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PARITY_SCENARIO_NAMES } from "@deftai/core/vbrief-validation";
+import { PARITY_SCENARIO_NAMES } from "@deftai/directive-core/vbrief-validation";
 
 const PYTHON_DRIVER = String.raw`import json, os, sys
 from pathlib import Path

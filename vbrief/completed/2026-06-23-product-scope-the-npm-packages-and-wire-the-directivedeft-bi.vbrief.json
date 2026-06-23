@@ -6,7 +6,7 @@
   "plan": {
     "id": "11-s1-package-rename",
     "title": "Product-scope the npm packages and wire the directive/deft bins",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
     "narratives": {
       "Description": "Rename the three published workspace packages from function-named to product-scoped per the #1670 identity model: @deftai/cli -> @deftai/directive, @deftai/core -> @deftai/directive-core, @deftai/types -> @deftai/directive-types. Rewrite every internal import specifier (~65 .ts files reference @deftai/core|types|cli) and the workspace/tsconfig project references so the build stays green. Expose a single user-facing bin named `directive` from @deftai/directive with `deft` retained as an alias (npm multi-bin). This is the foundational story the rest of Wave 2 builds on: it touches the shared import surface and every package.json, so it lands first and alone.",
@@ -68,7 +68,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "strong",
         "missing_traces_justification": "Distribution/packaging story for #11 (npm CLI channel) implementing the #1670 identity model under umbrella #1669 Wave 2; no specification.vbrief.json spec-section applies to maintainer distribution tooling."
-      }
+      },
+      "completedAt": "2026-06-23T02:24:47Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -78,6 +80,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-23T02:10:29Z"
+    "updated": "2026-06-23T02:24:47Z"
   }
 }

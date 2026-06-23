@@ -15,14 +15,14 @@ import {
   resultToDict,
   validateCandidatesEntry,
   validateGithubAuth,
-} from "@deftai/core/intake";
+} from "@deftai/directive-core/intake";
 import {
   PARITY_SCENARIO_NAMES,
   type ParityScenarioName,
   SAMPLE_ISSUE,
   SAMPLE_VBRIEF,
-} from "@deftai/core/intake/parity-scenarios";
-import { pythonJsonStringify } from "@deftai/core/scm";
+} from "@deftai/directive-core/intake/parity-scenarios";
+import { pythonJsonStringify } from "@deftai/directive-core/scm";
 
 export interface Capture {
   readonly exitCode: number;

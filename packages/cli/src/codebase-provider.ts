@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runProviderCli } from "@deftai/core/codebase";
+import { runProviderCli } from "@deftai/directive-core/codebase";
 
 const result = runProviderCli(process.argv.slice(2));
 if (result.stdout) process.stdout.write(result.stdout);

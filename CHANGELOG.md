@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Published npm packages now use product-scoped @deftai/directive* names (#11 #1670)** -- The three workspace packages rename to `@deftai/directive`, `@deftai/directive-core`, and `@deftai/directive-types`, with all cross-package imports updated. The CLI exposes `directive` as the canonical bin and retains `deft` as an alias, both routing to the same entrypoint. Refs #11 #1670.
+
 ### Fixed
 
 ### Removed

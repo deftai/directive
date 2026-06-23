@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { runSessionStart, verifySessionRitual } from "@deftai/core/session";
+import { runSessionStart, verifySessionRitual } from "@deftai/directive-core/session";
 import { afterAll, describe, expect, it } from "vitest";
 import { runDeftTs, seedProject } from "./_helpers.js";
 

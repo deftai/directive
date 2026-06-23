@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdVerifyInvestigation } from "@deftai/core/orchestration";
+import { cmdVerifyInvestigation } from "@deftai/directive-core/orchestration";
 
 export function run(argv: string[]): number {
   return cmdVerifyInvestigation(argv);

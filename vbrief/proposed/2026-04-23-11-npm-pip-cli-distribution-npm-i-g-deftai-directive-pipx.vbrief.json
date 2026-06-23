@@ -29,7 +29,7 @@
         "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
       },
       {
-        "uri": "active/2026-06-23-product-scope-the-npm-packages-and-wire-the-directivedeft-bi.vbrief.json",
+        "uri": "completed/2026-06-23-product-scope-the-npm-packages-and-wire-the-directivedeft-bi.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Product-scope the npm packages and wire the directive/deft bins",
         "TrustLevel": "internal"

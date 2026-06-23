@@ -6,10 +6,10 @@
  *   deft-ts preflight-cache --project-root <path> --allow-missing-bootstrap
  *   deft-ts preflight-cache --project-root <path> --for-issue <N>
  *
- * Thin shim -- delegates to @deftai/core/preflight-cache.
+ * Thin shim -- delegates to @deftai/directive-core/preflight-cache.
  */
 import { fileURLToPath } from "node:url";
-import { evaluate } from "@deftai/core/preflight-cache";
+import { evaluate } from "@deftai/directive-core/preflight-cache";
 
 interface ParsedArgs {
   projectRoot?: string;

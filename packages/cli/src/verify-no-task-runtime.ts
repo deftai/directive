@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { formatScanResult, scan } from "@deftai/core/verify-env";
+import { formatScanResult, scan } from "@deftai/directive-core/verify-env";
 
 export function run(): number {
   const findings = scan();

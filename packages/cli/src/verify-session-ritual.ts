@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { emitBypassWarning, emitVerifyJson, verifySessionRitual } from "@deftai/core/session";
+import {
+  emitBypassWarning,
+  emitVerifyJson,
+  verifySessionRitual,
+} from "@deftai/directive-core/session";
 
 interface ParsedArgs {
   projectRoot: string;

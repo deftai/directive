@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdSubagentMonitor } from "@deftai/core/orchestration";
+import { cmdSubagentMonitor } from "@deftai/directive-core/orchestration";
 
 export function run(argv: string[]): number {
   return cmdSubagentMonitor(argv);

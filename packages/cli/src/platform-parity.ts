@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Golden-output parity harness (#1787 s3): runs BOTH the frozen Python oracle
- * modules and the ported TS @deftai/core/platform helpers over shared fixtures,
+ * modules and the ported TS @deftai/directive-core/platform helpers over shared fixtures,
  * cache-off, and diffs JSON payloads + exit codes.
  *
  * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
@@ -21,7 +21,7 @@ import {
   resolveChangelog,
   resolveVersion,
   toPep440,
-} from "@deftai/core/platform";
+} from "@deftai/directive-core/platform";
 
 export interface ParityCase {
   readonly name: string;

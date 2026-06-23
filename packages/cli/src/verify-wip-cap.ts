@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluate } from "@deftai/core/wip-cap";
+import { evaluate } from "@deftai/directive-core/wip-cap";
 
 interface ParsedArgs {
   projectRoot: string;

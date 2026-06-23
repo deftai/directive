@@ -1,5 +1,5 @@
 {
-  "name": "@deftai/core",
+  "name": "@deftai/directive-core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -184,7 +184,7 @@
     }
   },
   "dependencies": {
-    "@deftai/types": "workspace:*"
+    "@deftai/directive-types": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b",

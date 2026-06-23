@@ -4,7 +4,7 @@
  *
  * Python parity oracles stay in tests/cli/ until Wave 9 (#1731).
  */
-import { runToolchainCheck } from "@deftai/core/verify-env";
+import { runToolchainCheck } from "@deftai/directive-core/verify-env";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatch, resetHandlerCacheForTests, resolveCanonicalVerb } from "../dispatch.js";
 

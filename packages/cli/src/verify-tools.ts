@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { verificationResultToJson, verifyRequiredTools } from "@deftai/core/verify-env";
+import { verificationResultToJson, verifyRequiredTools } from "@deftai/directive-core/verify-env";
 
 interface ParsedArgs {
   install: boolean;

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCapacityShowCli } from "@deftai/core/capacity";
+import { runCapacityShowCli } from "@deftai/directive-core/capacity";
 
 const result = runCapacityShowCli(process.argv.slice(2));
 if (result.stdout) process.stdout.write(result.stdout);

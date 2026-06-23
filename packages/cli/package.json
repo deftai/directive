@@ -1,11 +1,13 @@
 {
-  "name": "@deftai/cli",
+  "name": "@deftai/directive",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
+    "directive": "./dist/bin.js",
+    "deft": "./dist/bin.js",
     "deft-ts": "./dist/bin.js",
     "deft-verify-encoding": "./dist/verify-encoding.js",
     "deft-encoding-parity": "./dist/parity.js",
@@ -27,7 +29,7 @@
     }
   },
   "dependencies": {
-    "@deftai/core": "workspace:*"
+    "@deftai/directive-core": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b"

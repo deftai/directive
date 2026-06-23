@@ -7,7 +7,7 @@
  *   deft-ts preflight-gh --command "<gh ...>"
  *   deft-ts preflight-gh --pre-push-stdin  (reads from stdin)
  *
- * Thin shim -- delegates to @deftai/core/preflight-gh.
+ * Thin shim -- delegates to @deftai/directive-core/preflight-gh.
  */
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
@@ -16,7 +16,7 @@ import {
   ENV_BYPASS,
   evaluateCommand,
   runSelfTest,
-} from "@deftai/core/preflight-gh";
+} from "@deftai/directive-core/preflight-gh";
 
 interface ParsedArgs {
   mode?: "self-test" | "command" | "pre-push-stdin";

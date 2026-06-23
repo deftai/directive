@@ -14,7 +14,7 @@ import {
   evaluateRuleOwnership,
   evaluateScmBoundary,
   evaluateVerifyStubs,
-} from "@deftai/core/verify-source";
+} from "@deftai/directive-core/verify-source";
 
 export interface GateCapture {
   readonly name: string;

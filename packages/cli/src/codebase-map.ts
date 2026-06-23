@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runCodebaseMapCli } from "@deftai/core/codebase";
+import { runCodebaseMapCli } from "@deftai/directive-core/codebase";
 
 const result = runCodebaseMapCli(process.argv.slice(2));
 if (result.stdout) process.stdout.write(result.stdout);

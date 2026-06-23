@@ -1,5 +1,5 @@
 {
-  "name": "@deftai/types",
+  "name": "@deftai/directive-types",
   "version": "0.0.0",
   "private": true,
   "type": "module",

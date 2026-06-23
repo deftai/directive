@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateStrategyOutput } from "@deftai/core/validate-content";
+import { validateStrategyOutput } from "@deftai/directive-core/validate-content";
 
 interface ParsedArgs {
   projectRoot: string;

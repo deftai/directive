@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluateRuleOwnership } from "@deftai/core/verify-source";
+import { evaluateRuleOwnership } from "@deftai/directive-core/verify-source";
 
 interface ParsedArgs {
   mapPath: string | null;

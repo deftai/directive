@@ -52,6 +52,18 @@ describe("printHelp", () => {
 });
 
 describe("dispatch", () => {
+  it("returns 0 for --version and prints the engine banner", async () => {
+    const out: string[] = [];
+    const code = await dispatch(["--version"], {
+      writeOut: (text) => {
+        out.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toBe("@deftai/directive (engine: @deftai/directive-core@0.0.0)\n");
+  });
+
   it("returns 0 for --help and prints the verb list", async () => {
     const out: string[] = [];
     const code = await dispatch(["--help"], {
@@ -111,7 +123,7 @@ describe("dispatch", () => {
       stdout: "ok\n",
       stderr: "",
     }));
-    vi.doMock("@deftai/core/capacity", () => ({ runCapacityShowCli }));
+    vi.doMock("@deftai/directive-core/capacity", () => ({ runCapacityShowCli }));
     resetHandlerCacheForTests();
 
     const out: string[] = [];

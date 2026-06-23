@@ -5,10 +5,10 @@
  * Usage:
  *   deft-ts ts-check-lane --project-root <path>
  *
- * Thin shim -- delegates to @deftai/core/ts-check-lane.
+ * Thin shim -- delegates to @deftai/directive-core/ts-check-lane.
  */
 import { fileURLToPath } from "node:url";
-import { resolvePnpm, runTsLane } from "@deftai/core/ts-check-lane";
+import { resolvePnpm, runTsLane } from "@deftai/directive-core/ts-check-lane";
 
 interface ParsedArgs {
   projectRoot?: string;

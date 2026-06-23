@@ -1,5 +1,5 @@
 /**
- * `@deftai/types` — shared types for the deft directive TypeScript engine.
+ * `@deftai/directive-types` — shared types for the deft directive TypeScript engine.
  *
  * Wave-1 skeleton (#1717): carries only the identity constant and a
  * placeholder metadata shape needed to prove the cross-package dependency
@@ -7,7 +7,7 @@
  * `verify:encoding` tracer bullet and parity harness (#1718).
  */
 
-export const TYPES_PACKAGE = "@deftai/types" as const;
+export const TYPES_PACKAGE = "@deftai/directive-types" as const;
 
 /** Identifying metadata for a deft engine package. */
 export interface EngineInfo {

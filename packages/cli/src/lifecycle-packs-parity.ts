@@ -11,8 +11,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { eventDetect, lifecycleHygiene } from "@deftai/core/lifecycle";
-import { packsSlice, quarantineExt } from "@deftai/core/packs";
+import { eventDetect, lifecycleHygiene } from "@deftai/directive-core/lifecycle";
+import { packsSlice, quarantineExt } from "@deftai/directive-core/packs";
 
 export interface CommandCapture {
   readonly exitCode: number;

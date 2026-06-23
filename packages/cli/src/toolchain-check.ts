@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { runToolchainCheck } from "@deftai/core/verify-env";
+import { runToolchainCheck } from "@deftai/directive-core/verify-env";
 
 export function run(): number {
   const result = runToolchainCheck();

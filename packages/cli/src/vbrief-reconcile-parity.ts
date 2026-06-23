@@ -9,7 +9,7 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PARITY_SCENARIO_NAMES } from "@deftai/core/vbrief-reconcile";
+import { PARITY_SCENARIO_NAMES } from "@deftai/directive-core/vbrief-reconcile";
 
 const FAKE_GH_PY = `import json
 import os

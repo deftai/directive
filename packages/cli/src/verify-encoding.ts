@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluate, type ScanMode } from "@deftai/core";
+import { evaluate, type ScanMode } from "@deftai/directive-core";
 
 interface ParsedArgs {
   mode: ScanMode;

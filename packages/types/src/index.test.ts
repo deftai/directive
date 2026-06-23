@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { TYPES_PACKAGE } from "./index.js";
 
-describe("@deftai/types", () => {
+describe("@deftai/directive-types", () => {
   it("exports its package identity", () => {
-    expect(TYPES_PACKAGE).toBe("@deftai/types");
+    expect(TYPES_PACKAGE).toBe("@deftai/directive-types");
   });
 });

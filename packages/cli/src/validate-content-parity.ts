@@ -12,12 +12,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { EvaluateResult } from "@deftai/core/validate-content";
+import type { EvaluateResult } from "@deftai/directive-core/validate-content";
 import {
   validateLinks,
   validateStrategyOutput,
   verifyCapacity,
-} from "@deftai/core/validate-content";
+} from "@deftai/directive-core/validate-content";
 
 export function normalizeOutput(text: string): string {
   return text.replace(

@@ -18,7 +18,7 @@ import {
   renderText,
   resolvePolicy,
   setPolicy,
-} from "@deftai/core/policy";
+} from "@deftai/directive-core/policy";
 
 const CAPABILITY_COST_DISCLOSURE =
   "\u26a0 Capability-cost disclosure -- enabling direct commits to the default " +

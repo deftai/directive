@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { runProjectionRegistryCli } from "@deftai/core/codebase";
+import { runProjectionRegistryCli } from "@deftai/directive-core/codebase";
 
 const result = runProjectionRegistryCli(process.argv.slice(2));
 if (result.stdout) process.stdout.write(result.stdout);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdVerifyJudgmentGates } from "@deftai/core/orchestration";
+import { cmdVerifyJudgmentGates } from "@deftai/directive-core/orchestration";
 
 export function run(argv: string[]): number {
   return cmdVerifyJudgmentGates(argv);

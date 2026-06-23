@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluate } from "@deftai/core/verify-env";
+import { evaluate } from "@deftai/directive-core/verify-env";
 
 interface ParsedArgs {
   projectRoot: string;

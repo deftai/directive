@@ -18,7 +18,7 @@ import {
   renderSpec,
   runFrameworkCommand,
   validateSpec,
-} from "@deftai/core/render";
+} from "@deftai/directive-core/render";
 
 export interface CommandCapture {
   readonly exitCode: number;

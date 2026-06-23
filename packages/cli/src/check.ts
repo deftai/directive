@@ -4,10 +4,10 @@
  *
  * Usage: deft-ts check --framework-root <path> --project-root <path>
  *
- * Thin shim: parses args and delegates to dispatchTaskCheck in @deftai/core/check.
+ * Thin shim: parses args and delegates to dispatchTaskCheck in @deftai/directive-core/check.
  */
 import { fileURLToPath } from "node:url";
-import { dispatchTaskCheck } from "@deftai/core/check";
+import { dispatchTaskCheck } from "@deftai/directive-core/check";
 
 interface ParsedArgs {
   frameworkRoot?: string;

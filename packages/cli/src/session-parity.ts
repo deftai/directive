@@ -9,14 +9,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { GitRunner } from "@deftai/core/session";
+import type { GitRunner } from "@deftai/directive-core/session";
 import {
   emitVerifyJson,
   newRitualStatePayload,
   ritualStep,
   verifySessionRitual,
   writeRitualState,
-} from "@deftai/core/session";
+} from "@deftai/directive-core/session";
 
 export interface Capture {
   readonly exitCode: number;

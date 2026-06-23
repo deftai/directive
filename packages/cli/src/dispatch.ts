@@ -5,6 +5,7 @@
 
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
+import { banner } from "./index.js";
 
 export type CommandHandler = (argv: string[]) => number | Promise<number>;
 
@@ -227,51 +228,51 @@ function resolveHandler(mod: Record<string, unknown>): CommandHandler | null {
 async function loadWrapperCliHandler(stem: string, io: DispatchIo): Promise<CommandHandler> {
   switch (stem) {
     case "capacity-backfill": {
-      const { runCapacityBackfillCli } = await import("@deftai/core/capacity");
+      const { runCapacityBackfillCli } = await import("@deftai/directive-core/capacity");
       return async (argv) => emitCliResult(await runCapacityBackfillCli(argv), io);
     }
     case "capacity-show": {
-      const { runCapacityShowCli } = await import("@deftai/core/capacity");
+      const { runCapacityShowCli } = await import("@deftai/directive-core/capacity");
       return (argv) => emitCliResult(runCapacityShowCli(argv), io);
     }
     case "codebase-default-extractor": {
-      const { runDefaultExtractorCli } = await import("@deftai/core/codebase");
+      const { runDefaultExtractorCli } = await import("@deftai/directive-core/codebase");
       return (argv) => emitCliResult(runDefaultExtractorCli(argv), io);
     }
     case "codebase-map": {
-      const { runCodebaseMapCli } = await import("@deftai/core/codebase");
+      const { runCodebaseMapCli } = await import("@deftai/directive-core/codebase");
       return (argv) => emitCliResult(runCodebaseMapCli(argv), io);
     }
     case "codebase-map-fresh": {
-      const { runCodebaseMapFreshCli } = await import("@deftai/core/codebase");
+      const { runCodebaseMapFreshCli } = await import("@deftai/directive-core/codebase");
       return (argv) => emitCliResult(runCodebaseMapFreshCli(argv), io);
     }
     case "codebase-projection-registry": {
-      const { runProjectionRegistryCli } = await import("@deftai/core/codebase");
+      const { runProjectionRegistryCli } = await import("@deftai/directive-core/codebase");
       return (argv) => emitCliResult(runProjectionRegistryCli(argv), io);
     }
     case "codebase-provider": {
-      const { runProviderCli } = await import("@deftai/core/codebase");
+      const { runProviderCli } = await import("@deftai/directive-core/codebase");
       return (argv) => emitCliResult(runProviderCli(argv), io);
     }
     case "vbrief-activate": {
-      const { run } = await import("@deftai/core/vbrief-activate");
+      const { run } = await import("@deftai/directive-core/vbrief-activate");
       return run;
     }
     case "vbrief-build": {
-      const { cmdVbriefBuild } = await import("@deftai/core/vbrief-build");
+      const { cmdVbriefBuild } = await import("@deftai/directive-core/vbrief-build");
       return cmdVbriefBuild;
     }
     case "vbrief-reconcile": {
-      const { cmdVbriefReconcile } = await import("@deftai/core/vbrief-reconcile");
+      const { cmdVbriefReconcile } = await import("@deftai/directive-core/vbrief-reconcile");
       return cmdVbriefReconcile;
     }
     case "vbrief-validate": {
-      const { cmdVbriefValidate } = await import("@deftai/core/vbrief-validate");
+      const { cmdVbriefValidate } = await import("@deftai/directive-core/vbrief-validate");
       return cmdVbriefValidate;
     }
     case "vbrief-validation": {
-      const { cmdVbriefValidation } = await import("@deftai/core/vbrief-validation");
+      const { cmdVbriefValidation } = await import("@deftai/directive-core/vbrief-validation");
       return cmdVbriefValidation;
     }
     default:
@@ -419,7 +420,7 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       return worktreesMain;
     }
     case "framework-commands": {
-      const { frameworkCommandsMain } = await import("@deftai/core/render");
+      const { frameworkCommandsMain } = await import("@deftai/directive-core/render");
       return (argv) => frameworkCommandsMain(argv);
     }
     case "pack-render": {
@@ -451,7 +452,7 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       return (argv) => runProjectRenderCli(argv);
     }
     case "code-structure-validate": {
-      const { evaluateCodeStructure } = await import("@deftai/core/verify-source");
+      const { evaluateCodeStructure } = await import("@deftai/directive-core/verify-source");
       return (argv) => {
         const parsed = parseCodeStructureArgs(argv);
         if (parsed.error !== undefined) {
@@ -567,6 +568,11 @@ async function invokeHandler(handler: CommandHandler, argv: string[]): Promise<n
 
 /** Dispatch argv to a registered verb; returns the handler exit code. */
 export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Promise<number> {
+  if (argv[0] === "--version" || argv[0] === "-V") {
+    io.writeOut(`${banner()}\n`);
+    return 0;
+  }
+
   if (argv.length === 0 || argv[0] === "--help" || argv[0] === "-h" || argv[0] === "help") {
     printHelp(io);
     return 0;

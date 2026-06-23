@@ -15,7 +15,7 @@ import {
   runToolchainCheck,
   scan,
   verifyRequiredTools,
-} from "@deftai/core/verify-env";
+} from "@deftai/directive-core/verify-env";
 
 export interface Capture {
   readonly exitCode: number;
