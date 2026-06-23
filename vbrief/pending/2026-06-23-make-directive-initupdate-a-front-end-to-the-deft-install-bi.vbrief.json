@@ -1,0 +1,77 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json"
+  },
+  "plan": {
+    "id": "11-s4-init-update-frontend",
+    "title": "Make directive init/update a front-end to the deft-install binary",
+    "status": "pending",
+    "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+    "narratives": {
+      "Description": "Implement the #1670 Decision-3 transition contract: `directive init` and `directive update` delegate to the bundled deft-install Go binary (deft-install --yes --upgrade --repo-root . --json) rather than reimplementing bootstrap. This keeps a single bootstrap implementation during the staged Go-retire window; the CLI absorbs the logic only at Wave 5. Builds on the S3 router.",
+      "ImplementationPlan": "1. Add packages/cli/src/init-cli init/update command handlers that locate the bundled deft-install binary and shell out with the canonical flags, surfacing its JSON result.\n2. Route the handlers through the safe-subprocess capture contract (utf-8/errors=replace) and map deft-install exit codes to the directive CLI exit contract.\n3. Verify with vitest tests that stub the binary invocation (asserting the canonical argv + JSON passthrough) plus a smoke test against a temp repo fixture.",
+      "UserStory": "As a directive consumer, I want `directive init` and `directive update` to drive the proven deft-install bootstrap, so that I get one reliable install/upgrade path during the transition without a second bootstrap implementation."
+    },
+    "items": [
+      {
+        "id": "11-s4-a1",
+        "title": "init delegates with canonical argv",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When `directive init` runs, then it invokes the bundled deft-install binary with the canonical install argv and returns the binary's structured result."
+        }
+      },
+      {
+        "id": "11-s4-a2",
+        "title": "update delegates upgrade path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When `directive update` runs, then it invokes deft-install with `--yes --upgrade --repo-root . --json` and maps a non-zero binary exit to a non-zero CLI exit."
+        }
+      },
+      {
+        "id": "11-s4-a3",
+        "title": "missing-binary diagnostic",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the bundled deft-install binary cannot be located, when init/update runs, then the CLI emits a clear remediation error rather than a raw spawn failure."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/init-cli/"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive test src/init-cli"
+        ],
+        "expected_outputs": [
+          "directive init/update delegate to bundled deft-install with canonical argv",
+          "Exit-code mapping + safe-subprocess capture",
+          "Vitest stubs asserting argv/JSON passthrough + missing-binary diagnostic"
+        ],
+        "depends_on": [
+          "11-s3-directive-verb-router"
+        ],
+        "conflict_group": "cli-router",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Implements #1670 Decision-3 (front-end to deft-install) under #11/#1669 Wave 2; maintainer tooling with no spec-section trace."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 7 decomposed from proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json"
+  },
+  "plan": {
+    "id": "11-s7-identity-docs",
+    "title": "Document the Deft-company / Directive-product model and npm install paths",
+    "status": "running",
+    "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+    "narratives": {
+      "Description": "Resolve the #423 tail: add the user-visible 'Deft is the company, Directive is the product' note and reframe the primary install paths around npm (`npm i -g @deftai/directive`; `directive` command with `deft` alias). The Go installer stays documented as the bootstrap path during the staged-retire window. This is the docs surface for the Wave-2 distribution change; the full #761 README/UPGRADING reframe remains Wave 4.",
+      "ImplementationPlan": "1. Add a concise identity-model note (Deft = company/org/scope/.deft footprint; Directive = product/bin) to README.md and the getting-started content.\n2. Add the npm install/quickstart paths (`npm i -g @deftai/directive`, `npx @deftai/directive ...`, `directive`/`deft`) alongside the existing installer path, marked as the emerging canonical channel.\n3. Verify with `node packages/cli/dist/bin.js verify links` (no broken links) and a docs read-through confirming the identity note + install paths are present.",
+      "UserStory": "As a new directive user, I want the docs to state plainly that Deft is the company and Directive is the product and to show the npm install path, so that I understand the naming and can install via npm."
+    },
+    "items": [
+      {
+        "id": "11-s7-a1",
+        "title": "identity-model note present",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When README and getting-started are read, then a clear 'Deft = company, Directive = product' note is present and consistent with the @deftai/directive naming."
+        }
+      },
+      {
+        "id": "11-s7-a2",
+        "title": "npm install paths documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the install docs are read, then `npm i -g @deftai/directive` and the `directive`/`deft` command are documented as the emerging canonical channel alongside the installer."
+        }
+      },
+      {
+        "id": "11-s7-a3",
+        "title": "no broken links",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When `directive verify links` runs over the edited docs, then it returns exit 0 with no broken references."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "README.md",
+          "content/getting-started.md"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/bin.js verify links"
+        ],
+        "expected_outputs": [
+          "Identity-model note (Deft=company / Directive=product) in README + getting-started",
+          "npm install/quickstart paths documented as emerging canonical channel",
+          "verify links green"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Resolves #423 (identity-model doc tail) + Wave-2 install-path surface under #11/#1669; documentation with no spec-section trace."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-23T02:10:30Z"
+  }
+}

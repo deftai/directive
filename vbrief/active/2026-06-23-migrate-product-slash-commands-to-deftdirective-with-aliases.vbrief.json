@@ -1,0 +1,79 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json"
+  },
+  "plan": {
+    "id": "11-s5-slash-command-namespace",
+    "title": "Migrate product slash commands to /deft:directive:* with aliases",
+    "status": "running",
+    "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+    "narratives": {
+      "Description": "Resolve the #418 tail under the #1670 model: migrate product-level slash commands from /deft:* to /deft:directive:* with retained aliases + deprecation notes, while cross-product commands that operate on shared vBRIEF abstractions (/deft:continue, /deft:checkpoint) stay at the umbrella /deft:*. Skills stay deft-directive-* (no rename). Source edits go through templates/agents-entry.md + content/commands.md, then `task agents:refresh` regenerates AGENTS.md, honoring the #1309 template-propagation discipline.",
+      "ImplementationPlan": "1. Edit the command-surface source files content/commands.md and templates/agents-entry.md to define product commands under /deft:directive:* (change, run:<strategy>, ...), keep /deft:continue + /deft:checkpoint at the umbrella level, and document the old forms as deprecation-warning aliases.\n2. Run the agents-refresh CLI (`task agents:refresh`) to regenerate the AGENTS.md managed-section from the template file and confirm the managed-section contract test passes.\n3. Verify with the content/skills tests + the agents-entry contract test (tests/content/test_agents_entry_contract.py) that the new namespace + retained aliases are present and the cross-product commands remain at /deft:*.",
+      "UserStory": "As a directive user, I want product commands namespaced under /deft:directive:* (with old aliases still working), so that the command surface matches the deft-directive-* skills and leaves room for sibling-product command namespaces."
+    },
+    "items": [
+      {
+        "id": "11-s5-a1",
+        "title": "product commands namespaced",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the migration, when commands.md/agents-entry are inspected, then product commands appear under /deft:directive:* and the prior /deft:* forms are documented as deprecation-warning aliases."
+        }
+      },
+      {
+        "id": "11-s5-a2",
+        "title": "cross-product commands stay at umbrella",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the command surface is inspected, then /deft:continue and /deft:checkpoint remain at the umbrella /deft:* level (not migrated)."
+        }
+      },
+      {
+        "id": "11-s5-a3",
+        "title": "AGENTS.md regenerated and contract green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When `task agents:refresh` runs and the agents-entry contract test executes, then AGENTS.md reflects the new namespace and the managed-section contract test passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/commands.md",
+          "templates/agents-entry.md"
+        ],
+        "verify_commands": [
+          "task agents:refresh",
+          "pnpm -w run build && node packages/cli/dist/bin.js verify links",
+          "uv run pytest tests/content/test_agents_entry_contract.py"
+        ],
+        "expected_outputs": [
+          "Product slash commands under /deft:directive:* with retained aliases",
+          "Cross-product /deft:continue + /deft:checkpoint preserved at umbrella",
+          "AGENTS.md regenerated; agents-entry contract test green"
+        ],
+        "depends_on": [],
+        "conflict_group": "command-surface",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Resolves #418 (command namespace tail) under the #1670 model / #1669 Wave 2; documentation+template surface with no spec-section trace."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-23T02:10:30Z"
+  }
+}

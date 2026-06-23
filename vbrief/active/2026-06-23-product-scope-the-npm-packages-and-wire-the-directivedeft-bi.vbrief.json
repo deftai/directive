@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json"
+  },
+  "plan": {
+    "id": "11-s1-package-rename",
+    "title": "Product-scope the npm packages and wire the directive/deft bins",
+    "status": "running",
+    "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+    "narratives": {
+      "Description": "Rename the three published workspace packages from function-named to product-scoped per the #1670 identity model: @deftai/cli -> @deftai/directive, @deftai/core -> @deftai/directive-core, @deftai/types -> @deftai/directive-types. Rewrite every internal import specifier (~65 .ts files reference @deftai/core|types|cli) and the workspace/tsconfig project references so the build stays green. Expose a single user-facing bin named `directive` from @deftai/directive with `deft` retained as an alias (npm multi-bin). This is the foundational story the rest of Wave 2 builds on: it touches the shared import surface and every package.json, so it lands first and alone.",
+      "ImplementationPlan": "1. Rename the `name` field in packages/{cli,core,types}/package.json to the @deftai/directive* scheme and update the root pnpm-workspace + tsconfig project references and any `paths` aliases.\n2. Mechanically rewrite the import specifiers across the ~65 .ts files (@deftai/core -> @deftai/directive-core, @deftai/types -> @deftai/directive-types, @deftai/cli -> @deftai/directive) and replace the cli `bin` map with `directive` canonical + `deft` alias both pointing at dist/bin.js.\n3. Verify with a clean `pnpm -w install && pnpm -w run build` (tsc -b green), confirm `node packages/cli/dist/bin.js --version` resolves, and assert zero residual `@deftai/(core|types|cli)` specifiers remain in packages/**.",
+      "UserStory": "As a directive maintainer, I want the published packages named by product under the @deftai company scope with a `directive` bin (and `deft` alias), so that the distribution surface reflects Deft-the-company / Directive-the-product before anything is published to npm."
+    },
+    "items": [
+      {
+        "id": "11-s1-a1",
+        "title": "packages renamed and build green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the three packages renamed to @deftai/directive, @deftai/directive-core, and @deftai/directive-types, when `pnpm -w install && pnpm -w run build` runs, then tsc -b completes with zero errors."
+        }
+      },
+      {
+        "id": "11-s1-a2",
+        "title": "no residual old specifiers",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the repo is scanned for `@deftai/core`, `@deftai/types`, or `@deftai/cli` import specifiers under packages/**, then zero matches remain."
+        }
+      },
+      {
+        "id": "11-s1-a3",
+        "title": "directive bin with deft alias",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given @deftai/directive declares bins `directive` and `deft` both pointing at dist/bin.js, when either `node $(npm bin)/directive --version` or `.../deft --version` runs, then the same version string prints."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/cli/package.json",
+          "packages/core/package.json",
+          "packages/types/package.json",
+          "pnpm-workspace.yaml",
+          "tsconfig.json",
+          "packages/**/*.ts (import-specifier rewrite only)"
+        ],
+        "verify_commands": [
+          "pnpm -w install && pnpm -w run build",
+          "node packages/cli/dist/bin.js --version",
+          "rg -c \"@deftai/(core|types|cli)\" packages --glob '*.ts'"
+        ],
+        "expected_outputs": [
+          "Three packages renamed to @deftai/directive*; build green",
+          "All ~65 cross-import specifiers rewritten; zero residual old specifiers",
+          "directive bin canonical + deft alias both resolving"
+        ],
+        "depends_on": [],
+        "conflict_group": "packaging-rename",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "strong",
+        "missing_traces_justification": "Distribution/packaging story for #11 (npm CLI channel) implementing the #1670 identity model under umbrella #1669 Wave 2; no specification.vbrief.json spec-section applies to maintainer distribution tooling."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-23T02:10:29Z"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json"
+  },
+  "plan": {
+    "id": "11-s6-npm-publish-workflow",
+    "title": "Add the npm publish workflow with provenance",
+    "status": "pending",
+    "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+    "narratives": {
+      "Description": "Establish npm as the canonical v1 distribution channel (#1670 Decision-4): a GitHub Actions workflow that publishes @deftai/directive, @deftai/directive-core, @deftai/directive-types, and @deftai/directive-content to npm with provenance on a version tag. pip is explicitly out of scope for v1 (deferred; #1084 stays parked). Builds on the final package names from S1.",
+      "ImplementationPlan": "1. Add .github/workflows/npm-publish.yml triggered on v* tags that builds the workspace and runs `npm publish --provenance --access public` for each @deftai/directive* package in dependency order.\n2. Add `publishConfig.access=public` + the `repository`/`provenance`-relevant fields to each published package.json and ensure files allowlists are correct.\n3. Verify with `npm publish --dry-run` per package (run in CI or locally with --dry-run) confirming the tarball contents and that provenance flags are accepted.",
+      "UserStory": "As a directive maintainer, I want a tag-triggered workflow that publishes the @deftai/directive* packages to npm with provenance, so that consumers can `npm i -g @deftai/directive` at a pinned version from a verifiable supply chain."
+    },
+    "items": [
+      {
+        "id": "11-s6-a1",
+        "title": "tag-triggered publish workflow",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a v* tag, when the npm-publish workflow runs, then it builds the workspace and publishes each @deftai/directive* package with `--provenance --access public` in dependency order."
+        }
+      },
+      {
+        "id": "11-s6-a2",
+        "title": "package publish config correct",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When `npm publish --dry-run` runs for each published package, then the tarball file allowlist is correct and publishConfig.access=public is set."
+        }
+      },
+      {
+        "id": "11-s6-a3",
+        "title": "pip explicitly out of scope",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the workflow and docs are reviewed, then no PyPI publish path is added and the v1-npm-only decision is recorded inline (#1084 remains deferred)."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          ".github/workflows/npm-publish.yml",
+          "packages/cli/package.json",
+          "packages/core/package.json",
+          "packages/types/package.json",
+          "packages/content/package.json"
+        ],
+        "verify_commands": [
+          "npm publish --dry-run --workspace @deftai/directive",
+          "node -e \"require('js-yaml').load(require('fs').readFileSync('.github/workflows/npm-publish.yml','utf8'))\""
+        ],
+        "expected_outputs": [
+          "New .github/workflows/npm-publish.yml (tag-triggered, provenance)",
+          "publishConfig + files allowlist on each published package",
+          "npm-only v1 (no PyPI path); #1084 deferred note"
+        ],
+        "depends_on": [
+          "11-s1-package-rename"
+        ],
+        "conflict_group": "ci-publish",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Implements #11 npm channel (canonical v1 per #1670 Decision-4) under #1669 Wave 2; CI/release tooling with no spec-section trace."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

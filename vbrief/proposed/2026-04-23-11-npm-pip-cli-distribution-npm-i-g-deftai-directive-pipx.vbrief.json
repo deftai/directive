@@ -19,13 +19,56 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
-      }
+      },
+      "kind": "epic"
     },
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/11",
         "type": "x-vbrief/github-issue",
         "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
+      },
+      {
+        "uri": "active/2026-06-23-product-scope-the-npm-packages-and-wire-the-directivedeft-bi.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Product-scope the npm packages and wire the directive/deft bins",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Publish content as @deftai/directive-content and resolve it from the package",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-23-implement-the-directive-verb-router-and-top-level-ux-verbs.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Implement the directive verb router and top-level UX verbs",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-23-make-directive-initupdate-a-front-end-to-the-deft-install-bi.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Make directive init/update a front-end to the deft-install binary",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "active/2026-06-23-migrate-product-slash-commands-to-deftdirective-with-aliases.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Migrate product slash commands to /deft:directive:* with aliases",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-23-add-the-npm-publish-workflow-with-provenance.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Add the npm publish workflow with provenance",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "active/2026-06-23-document-the-deft-company-directive-product-model-and-npm-in.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Document the Deft-company / Directive-product model and npm install paths",
+        "TrustLevel": "internal"
       }
     ],
     "updated": "2026-05-20T12:38:34Z"

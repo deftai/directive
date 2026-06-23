@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json"
+  },
+  "plan": {
+    "id": "11-s3-directive-verb-router",
+    "title": "Implement the directive verb router and top-level UX verbs",
+    "status": "pending",
+    "planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+    "narratives": {
+      "Description": "Build the unified `directive <namespace> <verb>` command surface defined in #1670: it mirrors the existing `task <namespace>:<verb>` map one-to-one, and promotes the curated UX verbs (init, update, bootstrap, check, doctor, version, feature) to the top level. The router dispatches to the existing TS engine entrypoints; the `deft` alias accepts the identical surface. init/update delegation to deft-install is a separate story (S4); this story delivers the router skeleton plus the read-only/non-bootstrap verbs.",
+      "ImplementationPlan": "1. Add a packages/cli/src/cli-router module that parses `<namespace> <verb>` and maps to the existing engine command handlers (verify:*, scope:*, vbrief:*, triage:*, etc.), with a curated top-level alias table for check/doctor/version/feature.\n2. Wire packages/cli/src/bin.ts to the router so both the `directive` and `deft` bins enter the same dispatch, preserving current --project-root handling.\n3. Verify with vitest router-mapping tests plus smoke invocations (`directive version`, `directive check`, `directive scope --help`) that resolve to the same handlers as the task surface.",
+      "UserStory": "As a directive user, I want a single `directive` command whose verbs mirror the task surface with friendly top-level shortcuts, so that I can drive the framework without memorizing the task runner namespaces."
+    },
+    "items": [
+      {
+        "id": "11-s3-a1",
+        "title": "namespace:verb parity with task surface",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the router, when `directive verify branch` (and a representative sample of scope/vbrief/triage verbs) runs, then it dispatches to the same engine handler as the corresponding `task <ns>:<verb>` with matching exit codes."
+        }
+      },
+      {
+        "id": "11-s3-a2",
+        "title": "top-level UX verbs",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When `directive version`, `directive check`, and `directive doctor` run, then each resolves to its promoted top-level handler and returns the same output as the underlying task aggregate."
+        }
+      },
+      {
+        "id": "11-s3-a3",
+        "title": "deft alias parity",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the same arguments, when invoked via `deft <...>` instead of `directive <...>`, then the dispatch and output are identical."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/cli-router/",
+          "packages/cli/src/bin.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive test src/cli-router",
+          "node packages/cli/dist/bin.js version",
+          "node packages/cli/dist/bin.js verify branch --help"
+        ],
+        "expected_outputs": [
+          "New cli-router module mapping directive <ns> <verb> to engine handlers",
+          "Curated top-level UX verbs (init/update/bootstrap/check/doctor/version/feature)",
+          "Router-mapping vitest coverage; deft alias parity"
+        ],
+        "depends_on": [
+          "11-s1-package-rename"
+        ],
+        "conflict_group": "cli-router",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "strong",
+        "missing_traces_justification": "Implements the #1670 unified verb vocabulary under #11/#1669 Wave 2; maintainer CLI tooling with no spec-section trace."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}
