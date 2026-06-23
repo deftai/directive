@@ -24,6 +24,7 @@ import { destroyTempRepo, provisionTempRepo, verifyDraftRelease } from "./gh-ops
 import * as gitOps from "./git-ops.js";
 import { cloneRepoToTemp, pushMirror, setOriginToTempRepo, verifyTag } from "./git-ops.js";
 import { cmdReleaseE2e, runE2e } from "./main.js";
+import * as npmOps from "./npm-ops.js";
 import * as rehearsalModule from "./rehearsal.js";
 import { runRehearsal } from "./rehearsal.js";
 import type { E2EConfig, E2ESeams } from "./types.js";
@@ -34,6 +35,7 @@ function config(overrides: Partial<E2EConfig> = {}): E2EConfig {
     projectRoot: ".",
     dryRun: false,
     keepRepo: false,
+    skipNpm: false,
     repoSlug: "deftai-release-test-20260428190000-abcdef",
     ...overrides,
   };
@@ -376,7 +378,7 @@ describe("runRehearsal", () => {
       },
     };
 
-    const [ok, reason] = runRehearsal("deftai", "x", "/proj", REHEARSAL_VERSION, seams);
+    const [ok, reason] = runRehearsal("deftai", "x", "/proj", REHEARSAL_VERSION, seams, true);
     expect(ok).toBe(true);
     expect(reason).toContain("pipeline-mirror rehearsal succeeded");
     expect(order).toEqual([
@@ -394,10 +396,49 @@ describe("runRehearsal", () => {
       order.push("clone");
       return [false, "clone failed"];
     });
-    const [failOk, failReason] = runRehearsal("deftai", "x", "/proj", REHEARSAL_VERSION, seams);
+    const [failOk, failReason] = runRehearsal(
+      "deftai",
+      "x",
+      "/proj",
+      REHEARSAL_VERSION,
+      seams,
+      true,
+    );
     expect(failOk).toBe(false);
     expect(failReason).toContain("clone");
     expect(order).toEqual(["clone"]);
+  });
+
+  it("includes the npm publish dry-run step by default (#1910)", () => {
+    const order: string[] = [];
+    vi.spyOn(gitOps, "cloneRepoToTemp").mockImplementation(() => {
+      order.push("clone");
+      return [true, "ok"];
+    });
+    vi.spyOn(gitOps, "setOriginToTempRepo").mockReturnValue([true, "ok"]);
+    vi.spyOn(gitOps, "pushMirror").mockReturnValue([true, "ok"]);
+    vi.spyOn(ghOps, "verifyDraftRelease").mockReturnValue([true, "ok"]);
+    vi.spyOn(gitOps, "verifyTag").mockImplementation(() => {
+      order.push("verify tag");
+      return [true, "ok"];
+    });
+    vi.spyOn(npmOps, "rehearseNpmPublish").mockImplementation(() => {
+      order.push("npm");
+      return [true, "ok"];
+    });
+    const seams: E2ESeams = {
+      mkdtemp: () => mkdtempSync(join(tmpdir(), "deft-e2e-")),
+      releaseEntrypoint: () => 0,
+      rollbackEntrypoint: () => {
+        order.push("rollback");
+        return 0;
+      },
+    };
+    const [ok, reason] = runRehearsal("deftai", "x", "/proj", REHEARSAL_VERSION, seams);
+    expect(ok).toBe(true);
+    expect(reason).toContain("npm publish dry-run");
+    // npm step lands between verify tag and rollback.
+    expect(order).toEqual(["clone", "verify tag", "npm", "rollback"]);
   });
 
   it("task release failure short-circuits before verify", () => {

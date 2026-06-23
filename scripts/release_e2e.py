@@ -49,7 +49,17 @@ spurious ``v0.0.1`` artefacts to ``deftai/directive``.
       lifecycle, #716).
    f. ``git -C <tmpdir> ls-remote --tags origin v0.0.1`` -- assert the
       tag exists on the temp remote.
-   g. ``task release:rollback -- 0.0.1 --repo deftai/<slug>`` -- exercise
+   g. ``rehearse_npm_publish`` (#1910) -- mirror ``npm-publish.yml`` against
+      the clone: ``pnpm install`` + ``pnpm -w run build``, align the four
+      ``@deftai/directive*`` ``package.json`` versions + resolve the
+      ``workspace:`` protocol, then ``npm publish --dry-run --access public``
+      per package in dependency order (types -> core -> content -> cli). This
+      catches a broken ``files`` allowlist, version drift, or dependency-order
+      bug BEFORE a real ``v*`` tag fires the publish workflow, without ever
+      touching the real registry. Soft-skips when ``npm`` is absent from PATH;
+      suppressed entirely by ``--skip-npm`` (install+build exceed the <90s
+      fast budget that ``--skip-ci``/``--skip-build`` protect).
+   h. ``task release:rollback -- 0.0.1 --repo deftai/<slug>`` -- exercise
       the rollback path against a known-state release (#725 forward-revert
       flow on a protected default branch).
 
@@ -77,9 +87,9 @@ Mockability
 Every side-effecting step (``provision_temp_repo`` / ``destroy_temp_repo``
 / ``clone_repo_to_temp`` / ``set_origin_to_temp_repo`` / ``push_mirror``
 / ``dispatch_task_release`` / ``verify_draft_release`` / ``verify_tag``
-/ ``dispatch_task_release_rollback``) is an isolated function so tests
-can replace it with a mock; CI exercises the orchestration without
-ever cloning, pushing, or hitting real GitHub.
+/ ``rehearse_npm_publish`` / ``dispatch_task_release_rollback``) is an
+isolated function so tests can replace it with a mock; CI exercises the
+orchestration without ever cloning, pushing, or hitting real GitHub.
 
 Refs #720 (pipeline-mirror deepening), #716 (canonical spec; safety
 hardening Item 4 of 7), #722 (subprocess PATHEXT fix; release._resolve_gh
@@ -128,6 +138,14 @@ REPO_SLUG_PREFIX = "deftai-release-test-"
 # as a rehearsal artefact -- and ``X.Y.Z`` matches the strict semver
 # regex enforced by ``release._validate_version``.
 REHEARSAL_VERSION = "0.0.1"
+
+# #1910: dependency order for the npm publish dry-run rehearsal, mirroring
+# .github/workflows/npm-publish.yml (types -> core -> content -> cli).
+NPM_PUBLISH_PACKAGES = ("types", "core", "content", "cli")
+NPM_INSTALL_TIMEOUT_SECONDS = 600
+NPM_BUILD_TIMEOUT_SECONDS = 600
+NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS = 180
+
 RELEASE_ENTRYPOINT_TIMEOUT_SECONDS = 600.0
 ROLLBACK_ENTRYPOINT_TIMEOUT_SECONDS = 300.0
 ENTRYPOINT_TIMEOUT_EXIT_CODE = 124
@@ -144,6 +162,7 @@ class E2EConfig:
     project_root: Path
     dry_run: bool
     keep_repo: bool  # When True, skip cleanup (manual debugging only)
+    skip_npm: bool = False  # When True, skip the npm publish dry-run step (#1910)
     # Optional override slug (test injection). If None, a fresh slug is
     # generated per run.
     repo_slug: str | None = None
@@ -186,6 +205,17 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="PATH",
         help="Repository root (default: $DEFT_PROJECT_ROOT or scripts/.. ).",
+    )
+    parser.add_argument(
+        "--skip-npm",
+        action="store_true",
+        help=(
+            "Skip the npm publish dry-run rehearsal step (#1910). The step "
+            "installs + builds the workspace, which exceeds the <90s fast "
+            "budget that --skip-ci/--skip-build protect; use this to keep the "
+            "rehearsal fast. The step also soft-skips on its own when npm is "
+            "absent from PATH."
+        ),
     )
     return parser
 
@@ -608,6 +638,164 @@ def verify_tag(clone_dir: Path, version: str) -> tuple[bool, str]:
     return True, f"verified tag {tag} present on temp origin"
 
 
+# ---- npm publish dry-run rehearsal (#1910) ---------------------------------
+
+
+def _resolve_pnpm() -> list[str] | None:
+    """Resolve a pnpm invocation prefix for the clone build (#1910).
+
+    Prefers a ``pnpm`` binary on PATH; falls back to ``corepack pnpm`` so a
+    Node install that ships corepack (the npm-publish.yml path) works without
+    a globally-installed pnpm. Returns ``None`` when neither is available.
+    """
+    pnpm = shutil.which("pnpm")
+    if pnpm:
+        return [pnpm]
+    corepack = shutil.which("corepack")
+    if corepack:
+        return [corepack, "pnpm"]
+    return None
+
+
+def _run_npm_step(
+    cmd: list[str], cwd: Path, env: dict[str, str], label: str, timeout: int
+) -> tuple[bool, str]:
+    """Run one npm/pnpm subprocess step and normalise it to ``(ok, reason)``.
+
+    Uses ``encoding="utf-8", errors="replace"`` per the #1366 safe-capture
+    rule so an undecodable byte in npm/pnpm output cannot crash the reader.
+    """
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            check=False,
+            env=env,
+        )
+    except FileNotFoundError:
+        return False, f"{label}: command not found ({cmd[0]})"
+    except subprocess.TimeoutExpired:
+        return False, f"{label}: timed out after {timeout}s"
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        return False, f"{label} failed (exit {result.returncode}): {detail[-500:]}"
+    return True, f"{label} OK"
+
+
+def align_npm_package_versions(clone_dir: Path, version: str) -> tuple[bool, str]:
+    """Bump the four published package versions + resolve workspace deps (#1910).
+
+    Mirrors the npm-publish.yml "Align package versions with release tag" and
+    "Resolve workspace protocol for npm publish" steps: every published
+    ``package.json`` is set to ``<version>`` and any ``workspace:`` dependency
+    spec is rewritten to ``^<version>`` (npm cannot publish the pnpm
+    ``workspace:`` protocol verbatim).
+
+    Folds in the scope item-4 version-alignment assertion: after writing,
+    each manifest is read back and must report exactly ``<version>`` so a
+    drift / malformed-manifest bug surfaces in the rehearsal rather than at
+    real tag time.
+    """
+    for pkg in NPM_PUBLISH_PACKAGES:
+        manifest = clone_dir / "packages" / pkg / "package.json"
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return False, f"version-align FAIL: cannot read packages/{pkg}/package.json: {exc}"
+        data["version"] = version
+        deps = data.get("dependencies")
+        if isinstance(deps, dict):
+            for name, spec in list(deps.items()):
+                if isinstance(spec, str) and spec.startswith("workspace:"):
+                    deps[name] = f"^{version}"
+        try:
+            manifest.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+            readback = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return False, f"version-align FAIL: cannot write packages/{pkg}/package.json: {exc}"
+        if readback.get("version") != version:
+            return False, (
+                f"version-align FAIL: packages/{pkg} version="
+                f"{readback.get('version')!r} != {version!r}"
+            )
+    return True, f"aligned 4 package versions to {version} (+ resolved workspace protocol)"
+
+
+def rehearse_npm_publish(clone_dir: Path, version: str) -> tuple[bool, str]:
+    """Dry-run the npm publish for the four @deftai/directive* packages (#1910).
+
+    Mirrors ``.github/workflows/npm-publish.yml`` so a broken ``files``
+    allowlist, version drift, or dependency-order bug surfaces in
+    ``task release:e2e`` BEFORE a real ``v*`` tag fires the publish
+    workflow -- without ever touching the real registry (every package is
+    published with ``--dry-run``).
+
+    Steps, all inside the throwaway clone:
+
+    1. Resolve ``npm``. SOFT-SKIP (returns ``ok=True``) when npm is absent so
+       Node-less operators are not blocked -- symmetric to ``--skip-npm``.
+    2. Resolve pnpm (or ``corepack pnpm``) and ``pnpm install
+       --frozen-lockfile``; the fresh ``git clone`` has no ``node_modules``.
+    3. ``pnpm -w run build``; ``dist/`` must exist for the dist-only ``files``
+       allowlist to produce a meaningful tarball.
+    4. Align the four ``package.json`` versions to ``<version>`` and resolve
+       the ``workspace:`` protocol (folds in the item-4 version assertion).
+    5. ``npm publish --dry-run --access public`` per package in dependency
+       order (types -> core -> content -> cli).
+
+    Returns ``(ok, reason)`` like ``verify_draft_release`` / ``verify_tag`` so
+    the orchestrator and tests treat it uniformly. Because installing +
+    building the workspace blows the <90s rehearsal budget, the orchestrator
+    only runs this step when ``--skip-npm`` is NOT set.
+    """
+    npm_path = shutil.which("npm")
+    if npm_path is None:
+        return True, "SKIP (npm not on PATH; Node-less operator)"
+    pnpm_cmd = _resolve_pnpm()
+    if pnpm_cmd is None:
+        return False, (
+            "npm present but neither pnpm nor corepack is on PATH -- "
+            "cannot build the workspace for the dry-run"
+        )
+
+    env = os.environ.copy()
+    env["DEFT_PROJECT_ROOT"] = str(clone_dir)
+
+    ok, reason = _run_npm_step(
+        [*pnpm_cmd, "install", "--frozen-lockfile"],
+        clone_dir, env, "pnpm install", NPM_INSTALL_TIMEOUT_SECONDS,
+    )
+    if not ok:
+        return False, reason
+    ok, reason = _run_npm_step(
+        [*pnpm_cmd, "-w", "run", "build"],
+        clone_dir, env, "pnpm build", NPM_BUILD_TIMEOUT_SECONDS,
+    )
+    if not ok:
+        return False, reason
+    ok, reason = align_npm_package_versions(clone_dir, version)
+    if not ok:
+        return False, reason
+    for pkg in NPM_PUBLISH_PACKAGES:
+        pkg_dir = clone_dir / "packages" / pkg
+        ok, reason = _run_npm_step(
+            [npm_path, "publish", "--dry-run", "--access", "public"],
+            pkg_dir, env, f"npm publish --dry-run packages/{pkg}",
+            NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS,
+        )
+        if not ok:
+            return False, reason
+    return True, (
+        "npm publish --dry-run clean for 4 packages "
+        f"(types -> core -> content -> cli) at v{version}"
+    )
+
+
 def dispatch_task_release_rollback(
     clone_dir: Path, version: str, repo: str
 ) -> tuple[bool, str]:
@@ -642,15 +830,22 @@ def dispatch_task_release_rollback(
 def run_rehearsal(
     owner: str, slug: str, project_root: Path,
     version: str = REHEARSAL_VERSION,
+    *,
+    skip_npm: bool = False,
 ) -> tuple[bool, str]:
-    """Execute the full pipeline-mirror rehearsal (#720).
+    """Execute the full pipeline-mirror rehearsal (#720, #1910).
 
-    Orchestrates seven steps inside a ``tempfile.TemporaryDirectory``:
-    clone -> set-origin -> push-mirror -> task release -> verify draft
-    -> verify tag -> task release:rollback. On the first step failure,
-    short-circuits and returns the diagnostic; the caller is responsible
-    for cleanup of the temp GitHub repo (run_e2e wraps this in
-    ``try/finally``).
+    Orchestrates the rehearsal steps inside a
+    ``tempfile.TemporaryDirectory``: clone -> set-origin -> push-mirror ->
+    task release -> verify draft -> verify tag -> (npm publish dry-run) ->
+    task release:rollback. On the first step failure, short-circuits and
+    returns the diagnostic; the caller is responsible for cleanup of the
+    temp GitHub repo (run_e2e wraps this in ``try/finally``).
+
+    Per #1910 the npm publish dry-run step is inserted after ``verify tag``
+    and before ``task release:rollback`` unless ``skip_npm`` is set; it
+    soft-skips internally when ``npm`` is absent from PATH so Node-less
+    operators are not blocked.
 
     Pre-#720 this function was a smoke-test ``gh repo view`` (existence
     check only). The deeper flow surfaces real regressions in the
@@ -666,19 +861,27 @@ def run_rehearsal(
             ("task release", lambda: dispatch_task_release(clone_dir, version, repo_full)),
             ("verify draft", lambda: verify_draft_release(owner, slug, version)),
             ("verify tag", lambda: verify_tag(clone_dir, version)),
+        ]
+        if not skip_npm:
+            steps.append(
+                ("npm publish dry-run", lambda: rehearse_npm_publish(clone_dir, version))
+            )
+        steps.append(
             (
                 "task release:rollback",
                 lambda: dispatch_task_release_rollback(clone_dir, version, repo_full),
-            ),
-        ]
+            )
+        )
         for label, step in steps:
             ok, reason = step()
             _emit(f"  rehearsal step: {label}", f"{'OK' if ok else 'FAIL'} ({reason})")
             if not ok:
                 return False, f"{label}: {reason}"
+    npm_note = " (npm dry-run skipped)" if skip_npm else " -> npm publish dry-run"
     return True, (
         f"pipeline-mirror rehearsal succeeded against {repo_full} "
-        f"(7 steps; clone -> push heads+tags -> task release -> verify -> rollback)"
+        f"({len(steps)} steps; clone -> push heads+tags -> task release -> "
+        f"verify draft+tag{npm_note} -> rollback)"
     )
 
 
@@ -703,12 +906,17 @@ def run_e2e(config: E2EConfig) -> int:
             "Provision temp repo",
             f"DRYRUN (would run `gh repo create --private {owner}/{slug}`)",
         )
+        npm_plan = (
+            "task release:rollback"
+            if config.skip_npm
+            else "npm publish dry-run (4 packages) -> task release:rollback"
+        )
         _emit(
             "Rehearsal",
             (
                 "DRYRUN (would run pipeline-mirror rehearsal: clone -> "
                 "push heads+tags -> task release -> verify draft + tag -> "
-                "task release:rollback against temp repo)"
+                f"{npm_plan} against temp repo)"
             ),
         )
         _emit(
@@ -726,7 +934,9 @@ def run_e2e(config: E2EConfig) -> int:
 
     rehearsal_rc = EXIT_OK
     try:
-        ok, reason = run_rehearsal(owner, slug, config.project_root)
+        ok, reason = run_rehearsal(
+            owner, slug, config.project_root, skip_npm=config.skip_npm
+        )
         if ok:
             _emit("Rehearsal", f"OK ({reason})")
         else:
@@ -774,6 +984,7 @@ def main(argv: list[str] | None = None) -> int:
         project_root=project_root,
         dry_run=args.dry_run,
         keep_repo=args.keep_repo,
+        skip_npm=args.skip_npm,
     )
     return run_e2e(config)
 

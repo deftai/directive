@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
 import re
 import shutil
 import subprocess
@@ -746,6 +747,7 @@ class TestRunRehearsal:
             "dispatch_task_release",
             "verify_draft_release",
             "verify_tag",
+            "rehearse_npm_publish",
             "dispatch_task_release_rollback",
         ]
         for name in names:
@@ -754,7 +756,7 @@ class TestRunRehearsal:
             )
         return order
 
-    def test_happy_path_walks_all_seven_steps_in_order(
+    def test_happy_path_walks_all_eight_steps_in_order(
         self, monkeypatch, tmp_path
     ):
         order = self._patch_all_steps(monkeypatch)
@@ -763,6 +765,7 @@ class TestRunRehearsal:
         )
         assert ok is True
         assert "pipeline-mirror rehearsal succeeded" in reason
+        # #1910: the npm publish dry-run lands between verify_tag and rollback.
         assert order == [
             "clone_repo_to_temp",
             "set_origin_to_temp_repo",
@@ -770,6 +773,7 @@ class TestRunRehearsal:
             "dispatch_task_release",
             "verify_draft_release",
             "verify_tag",
+            "rehearse_npm_publish",
             "dispatch_task_release_rollback",
         ]
 
@@ -836,6 +840,9 @@ class TestRunRehearsal:
             release_e2e, "verify_tag", lambda *a, **kw: (True, "ok")
         )
         monkeypatch.setattr(
+            release_e2e, "rehearse_npm_publish", lambda *a, **kw: (True, "ok")
+        )
+        monkeypatch.setattr(
             release_e2e, "dispatch_task_release_rollback",
             lambda *a, **kw: (True, "ok"),
         )
@@ -878,7 +885,7 @@ class TestRunE2E:
             order.append("provision")
             return True, f"created {owner}/{slug}"
 
-        def fake_rehearsal(owner, slug, project_root, version=None):
+        def fake_rehearsal(owner, slug, project_root, version=None, **kwargs):
             order.append("rehearsal")
             return True, "ok"
 
@@ -921,7 +928,7 @@ class TestRunE2E:
             order.append("provision")
             return True, "created"
 
-        def fake_rehearsal(owner, slug, project_root, version=None):
+        def fake_rehearsal(owner, slug, project_root, version=None, **kwargs):
             order.append("rehearsal")
             return False, "task release failed"
 
@@ -950,7 +957,7 @@ class TestRunE2E:
             lambda owner, slug: (True, "created"),
         )
 
-        def fake_rehearsal(owner, slug, project_root, version=None):
+        def fake_rehearsal(owner, slug, project_root, version=None, **kwargs):
             order.append("rehearsal")
             raise RuntimeError("network blew up mid-clone")
 
@@ -976,7 +983,7 @@ class TestRunE2E:
         monkeypatch.setattr(
             release_e2e,
             "run_rehearsal",
-            lambda owner, slug, project_root, version=None: (True, "ok"),
+            lambda owner, slug, project_root, version=None, **kwargs: (True, "ok"),
         )
         monkeypatch.setattr(
             release_e2e,
@@ -999,7 +1006,7 @@ class TestRunE2E:
         monkeypatch.setattr(
             release_e2e,
             "run_rehearsal",
-            lambda owner, slug, project_root, version=None: (True, "ok"),
+            lambda owner, slug, project_root, version=None, **kwargs: (True, "ok"),
         )
 
         def boom(*_a, **_kw):  # pragma: no cover
@@ -1070,3 +1077,233 @@ class TestSubprocessSmoke:
         assert result.returncode == 0
         assert "release_e2e" in result.stdout
         assert "--keep-repo" in result.stdout
+        assert "--skip-npm" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# npm publish dry-run rehearsal (#1910)
+# ---------------------------------------------------------------------------
+
+
+def _scaffold_npm_packages(clone_dir: Path) -> None:
+    """Create the four published package.json manifests under a clone dir."""
+    manifests = {
+        "types": {"name": "@deftai/directive-types", "version": "0.0.0"},
+        "core": {
+            "name": "@deftai/directive-core",
+            "version": "0.0.0",
+            "dependencies": {"@deftai/directive-types": "workspace:*"},
+        },
+        "content": {"name": "@deftai/directive-content", "version": "0.0.0"},
+        "cli": {
+            "name": "@deftai/directive",
+            "version": "0.0.0",
+            "dependencies": {
+                "@deftai/directive-types": "workspace:*",
+                "@deftai/directive-core": "workspace:*",
+                "@deftai/directive-content": "workspace:*",
+            },
+        },
+    }
+    for name, data in manifests.items():
+        pkg_dir = clone_dir / "packages" / name
+        pkg_dir.mkdir(parents=True)
+        (pkg_dir / "package.json").write_text(json.dumps(data), encoding="utf-8")
+
+
+class TestAlignNpmPackageVersions:
+    def test_bumps_versions_and_resolves_workspace_protocol(self, tmp_path):
+        _scaffold_npm_packages(tmp_path)
+        ok, reason = release_e2e.align_npm_package_versions(tmp_path, "1.2.3")
+        assert ok is True
+        assert "aligned 4 package versions to 1.2.3" in reason
+        for name in ("types", "core", "content", "cli"):
+            data = json.loads(
+                (tmp_path / "packages" / name / "package.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            assert data["version"] == "1.2.3"
+        # workspace:* deps rewritten to ^<version>; nothing left on the protocol.
+        cli = json.loads(
+            (tmp_path / "packages" / "cli" / "package.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert cli["dependencies"]["@deftai/directive-core"] == "^1.2.3"
+        assert all(
+            not v.startswith("workspace:") for v in cli["dependencies"].values()
+        )
+
+    def test_missing_manifest_returns_false(self, tmp_path):
+        # Only scaffold types; core/content/cli are absent.
+        (tmp_path / "packages" / "types").mkdir(parents=True)
+        (tmp_path / "packages" / "types" / "package.json").write_text(
+            json.dumps({"name": "@deftai/directive-types", "version": "0.0.0"}),
+            encoding="utf-8",
+        )
+        ok, reason = release_e2e.align_npm_package_versions(tmp_path, "1.2.3")
+        assert ok is False
+        assert "version-align FAIL" in reason
+
+
+class TestRehearseNpmPublish:
+    def test_soft_skips_when_npm_absent(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _name: None)
+        ok, reason = release_e2e.rehearse_npm_publish(tmp_path, "0.0.1")
+        # SOFT-skip: ok=True so Node-less operators are not blocked.
+        assert ok is True
+        assert "SKIP" in reason and "npm not on PATH" in reason
+
+    def test_fails_when_pnpm_and_corepack_absent(self, monkeypatch, tmp_path):
+        def fake_which(name):
+            return "/usr/bin/npm" if name == "npm" else None
+
+        monkeypatch.setattr(release_e2e.shutil, "which", fake_which)
+        ok, reason = release_e2e.rehearse_npm_publish(tmp_path, "0.0.1")
+        assert ok is False
+        assert "neither pnpm nor corepack" in reason
+
+    def test_happy_path_installs_builds_aligns_then_publishes_in_order(
+        self, monkeypatch, tmp_path
+    ):
+        _scaffold_npm_packages(tmp_path)
+        monkeypatch.setattr(
+            release_e2e.shutil,
+            "which",
+            lambda name: f"/usr/bin/{name}",
+        )
+        calls: list[tuple[tuple[str, ...], str | None]] = []
+
+        def fake_run(cmd, *args, **kwargs):
+            calls.append((tuple(cmd), kwargs.get("cwd")))
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.rehearse_npm_publish(tmp_path, "0.0.1")
+        assert ok is True
+        assert "npm publish --dry-run clean for 4 packages" in reason
+        # First two commands are pnpm install + pnpm build.
+        assert "install" in calls[0][0]
+        assert "build" in calls[1][0]
+        # Remaining commands are npm publish --dry-run per package in order.
+        publish_dirs = [cwd for cmd, cwd in calls if "publish" in cmd]
+        assert publish_dirs == [
+            str(tmp_path / "packages" / "types"),
+            str(tmp_path / "packages" / "core"),
+            str(tmp_path / "packages" / "content"),
+            str(tmp_path / "packages" / "cli"),
+        ]
+        # Version alignment actually happened on disk.
+        types_pkg = json.loads(
+            (tmp_path / "packages" / "types" / "package.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        assert types_pkg["version"] == "0.0.1"
+
+    def test_build_failure_short_circuits_before_publish(
+        self, monkeypatch, tmp_path
+    ):
+        _scaffold_npm_packages(tmp_path)
+        monkeypatch.setattr(
+            release_e2e.shutil, "which", lambda name: f"/usr/bin/{name}"
+        )
+        calls: list[tuple[str, ...]] = []
+
+        def fake_run(cmd, *args, **kwargs):
+            calls.append(tuple(cmd))
+            # install OK, build fails.
+            if "build" in cmd:
+                return SimpleNamespace(returncode=1, stdout="", stderr="boom")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.rehearse_npm_publish(tmp_path, "0.0.1")
+        assert ok is False
+        assert "pnpm build failed" in reason
+        # No publish command was attempted after the build failure.
+        assert not any("publish" in cmd for cmd in calls)
+
+    def test_publish_failure_on_core_short_circuits(self, monkeypatch, tmp_path):
+        _scaffold_npm_packages(tmp_path)
+        monkeypatch.setattr(
+            release_e2e.shutil, "which", lambda name: f"/usr/bin/{name}"
+        )
+        publish_cwds: list[str | None] = []
+
+        def fake_run(cmd, *args, **kwargs):
+            if "publish" in cmd:
+                cwd = kwargs.get("cwd")
+                publish_cwds.append(cwd)
+                if cwd == str(tmp_path / "packages" / "core"):
+                    return SimpleNamespace(returncode=1, stdout="", stderr="EPERM")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.rehearse_npm_publish(tmp_path, "0.0.1")
+        assert ok is False
+        assert "packages/core" in reason
+        # content + cli must NOT be attempted once core fails.
+        assert str(tmp_path / "packages" / "content") not in publish_cwds
+        assert str(tmp_path / "packages" / "cli") not in publish_cwds
+
+
+class TestRunRehearsalSkipNpm:
+    def test_skip_npm_omits_the_npm_step(self, monkeypatch, tmp_path):
+        order: list[str] = []
+
+        def make_helper(name):
+            def helper(*args, **kwargs):
+                order.append(name)
+                return True, f"{name} ok"
+
+            return helper
+
+        for name in (
+            "clone_repo_to_temp",
+            "set_origin_to_temp_repo",
+            "push_mirror",
+            "dispatch_task_release",
+            "verify_draft_release",
+            "verify_tag",
+            "dispatch_task_release_rollback",
+        ):
+            monkeypatch.setattr(release_e2e, name, make_helper(name))
+
+        def boom(*_a, **_kw):
+            raise AssertionError("rehearse_npm_publish MUST NOT run when skip_npm=True")
+
+        monkeypatch.setattr(release_e2e, "rehearse_npm_publish", boom)
+        ok, reason = release_e2e.run_rehearsal(
+            "deftai", "x", tmp_path, skip_npm=True
+        )
+        assert ok is True
+        assert "npm dry-run skipped" in reason
+        assert "rehearse_npm_publish" not in order
+
+
+class TestSkipNpmFlag:
+    def test_flag_sets_config_skip_npm(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def fake_run_e2e(config):
+            captured["config"] = config
+            return release_e2e.EXIT_OK
+
+        monkeypatch.setattr(release_e2e, "run_e2e", fake_run_e2e)
+        rc = release_e2e.main(
+            ["--dry-run", "--skip-npm", "--project-root", str(tmp_path)]
+        )
+        assert rc == release_e2e.EXIT_OK
+        assert captured["config"].skip_npm is True
+
+    def test_dry_run_text_mentions_npm_when_not_skipped(self, capsys):
+        release_e2e.run_e2e(_config(dry_run=True))
+        err = capsys.readouterr().err
+        assert "npm publish dry-run (4 packages)" in err
+
+    def test_dry_run_text_omits_npm_when_skipped(self, capsys):
+        release_e2e.run_e2e(_config(dry_run=True, skip_npm=True))
+        err = capsys.readouterr().err
+        assert "npm publish dry-run (4 packages)" not in err

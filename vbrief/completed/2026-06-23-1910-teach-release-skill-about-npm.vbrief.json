@@ -1,0 +1,92 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #1910 (Wave 4): teach the release skill about npm -- pre-flight token gate, post-publish registry verification, tag->npm coupling docs, and an npm dry-run rehearsal in release_e2e.py."
+  },
+  "plan": {
+    "id": "1910-release-skill-npm-aware",
+    "title": "Teach the release skill about npm",
+    "status": "completed",
+    "narratives": {
+      "Description": "After Wave 2 (#11), pushing a v* tag auto-triggers .github/workflows/npm-publish.yml. The release pipeline (skills/deft-directive-release/SKILL.md + task release/release:publish/release:e2e) creates and pushes those tags but is 100% GitHub-release-aware and 0% npm-aware: no NPM_TOKEN/OIDC pre-flight, no npm publish coordination, no post-publish registry verification, and the e2e rehearsal does not exercise the npm publish path. This closes that gap. The release_e2e dry-run rehearsal (scope item 6) needs no live registry and lands independently of #1909; the real-registry post-publish smoke check soft-depends on #1909 (now provisioned).",
+      "ImplementationPlan": "1. Pre-flight gate (skill Phase 1): verify the npm credential path is configured (NPM_TOKEN secret or OIDC trusted publisher for @deftai/directive*); warn loudly (fail behind a flag). Cross-ref #1909.\n2. Post-publish npm verification (new skill phase mirroring Phase 7): after tag push + workflow run, confirm the four @deftai/directive* packages landed at the new version with provenance (npm view per package).\n3. Document the tag->npm coupling in the skill body: a v* tag is a two-channel action (GitHub release + npm publish in a separate non-blocking workflow).\n4. Version-alignment note: npm workflow derives version from the tag (${GITHUB_REF_NAME#v}); the skill owns the version; document the invariant.\n5. Template propagation: maintainer-only release tooling -- no managed-section mirror expected.\n6. scripts/release_e2e.py: add rehearse_npm_publish(clone_dir, version) ((ok, reason) + mockable shape like verify_draft_release/verify_tag) running npm publish --dry-run --access public per package in dependency order (types->core->content->cli). npm ci the fresh clone first; gate behind a symmetric --skip-npm flag and soft-skip when npm is absent from PATH. Bump/assert the four package.json versions match the rehearsal version before the dry-run (item-4 assertion). Wire into run_rehearsal steps after 'verify tag' and before rollback. Add tests in tests/cli/test_release_e2e.py."
+    },
+    "items": [
+      {
+        "id": "1910-a1",
+        "title": "npm credential pre-flight gate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a release pre-flight, when the npm credential path (NPM_TOKEN or OIDC trusted publisher) is missing, then the release skill warns loudly (or fails behind a flag) before a v* tag is cut."
+        }
+      },
+      {
+        "id": "1910-a2",
+        "title": "post-publish npm registry verification",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful release, when post-publish verification runs, then it confirms and reports all four @deftai/directive* packages at the correct version with provenance, surfacing failures like the existing GitHub verification phase."
+        }
+      },
+      {
+        "id": "1910-a3",
+        "title": "tag->npm coupling + version invariant documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the release skill is read, then it states a v* tag publishes to both GitHub and npm (separate non-blocking workflow) and that the tag-derived npm version must match the skill-owned release version."
+        }
+      },
+      {
+        "id": "1910-a4",
+        "title": "release:e2e rehearses npm publish (dry-run, no live registry)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When `task release:e2e` runs, then it rehearses npm publish for all four packages against the throwaway clone via `npm publish --dry-run` in dependency order (soft-skipped when Node is absent or --skip-npm), failing loudly on a broken files allowlist, version mismatch, or dependency-order error, without publishing to the real registry."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/release_e2e.py",
+          "tests/cli/test_release_e2e.py",
+          "skills/deft-directive-release/SKILL.md"
+        ],
+        "verify_commands": [
+          "python -m pytest tests/cli/test_release_e2e.py -q"
+        ],
+        "expected_outputs": [
+          "rehearse_npm_publish helper + --skip-npm flag in scripts/release_e2e.py",
+          "npm pre-flight + post-publish verification phases + tag->npm coupling docs in the release skill",
+          "tests covering the npm rehearsal soft-skip / dependency-order / version-assert paths"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-tooling",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Maintainer-only release/CI tooling under #1669 Wave 4; closes the npm-awareness gap left by #11 S1-S7, with no spec-section trace."
+      },
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-06-23T16:19:16Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1910",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1910: Teach the release skill about npm (pre-flight token gate + post-publish registry verification + tag->npm coupling)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1669: distributable Deft (Wave 4 docs + propagation)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-23T16:19:16Z"
+  }
+}

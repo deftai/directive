@@ -96,6 +96,7 @@ describe("release-e2e branch coverage boost", () => {
         projectRoot: ".",
         dryRun: false,
         keepRepo: false,
+        skipNpm: false,
         repoSlug: "fixed-slug",
       }),
     ).toBe(EXIT_OK);

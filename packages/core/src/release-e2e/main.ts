@@ -11,9 +11,13 @@ export function runE2e(config: E2EConfig, seams: E2ESeams = {}): number {
 
   if (config.dryRun) {
     emit("Provision temp repo", `DRYRUN (would run \`gh repo create --private ${owner}/${slug}\`)`);
+    const npmPlan = config.skipNpm
+      ? "task release:rollback"
+      : "npm publish dry-run (4 packages) -> task release:rollback";
     emit(
       "Rehearsal",
-      "DRYRUN (would run pipeline-mirror rehearsal: clone -> push heads+tags -> task release -> verify draft + tag -> task release:rollback against temp repo)",
+      "DRYRUN (would run pipeline-mirror rehearsal: clone -> push heads+tags -> task release -> " +
+        `verify draft + tag -> ${npmPlan} against temp repo)`,
     );
     emit("Destroy temp repo", `DRYRUN (would run \`gh repo delete ${owner}/${slug} --yes\`)`);
     return EXIT_OK;
@@ -28,7 +32,14 @@ export function runE2e(config: E2EConfig, seams: E2ESeams = {}): number {
 
   let rehearsalRc = EXIT_OK;
   try {
-    const [ok, reason] = runRehearsal(owner, slug, config.projectRoot, undefined, seams);
+    const [ok, reason] = runRehearsal(
+      owner,
+      slug,
+      config.projectRoot,
+      undefined,
+      seams,
+      config.skipNpm,
+    );
     if (ok) {
       emit("Rehearsal", `OK (${reason})`);
     } else {
@@ -85,6 +96,7 @@ export function cmdReleaseE2e(args: readonly string[], seams: E2ESeams = {}): nu
     projectRoot,
     dryRun: flags.dryRun,
     keepRepo: flags.keepRepo,
+    skipNpm: flags.skipNpm,
     repoSlug: null,
   };
 

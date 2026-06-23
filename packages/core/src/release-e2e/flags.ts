@@ -29,6 +29,7 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
   let dryRun = false;
   let keepRepo = false;
   let projectRoot: string | null = null;
+  let skipNpm = false;
   const unknown: string[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -40,6 +41,8 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
       dryRun = true;
     } else if (arg === "--keep-repo") {
       keepRepo = true;
+    } else if (arg === "--skip-npm") {
+      skipNpm = true;
     } else if (arg === "--owner") {
       const next = argv[i + 1];
       if (next === undefined || next.startsWith("-")) {
@@ -67,5 +70,5 @@ export function parseE2EFlags(argv: readonly string[]): import("./types.js").Par
     }
   }
 
-  return { help, owner, dryRun, keepRepo, projectRoot, unknown };
+  return { help, owner, dryRun, keepRepo, projectRoot, skipNpm, unknown };
 }

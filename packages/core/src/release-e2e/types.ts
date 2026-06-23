@@ -5,6 +5,8 @@ export interface E2EConfig {
   projectRoot: string;
   dryRun: boolean;
   keepRepo: boolean;
+  /** When true, skip the npm publish dry-run rehearsal step (#1910). */
+  skipNpm: boolean;
   /** Optional override slug (test injection). If null, a fresh slug is generated per run. */
   repoSlug: string | null;
 }
@@ -15,6 +17,7 @@ export interface ParsedE2EFlags {
   dryRun: boolean;
   keepRepo: boolean;
   projectRoot: string | null;
+  skipNpm: boolean;
   unknown: string[];
 }
 
@@ -22,6 +25,8 @@ export type EntrypointFn = (argv: string[]) => number;
 
 export interface E2ESeams {
   whichGh?: (name: string) => string | null;
+  /** Generic PATH lookup for the npm publish dry-run rehearsal (#1910). */
+  which?: (name: string) => string | null;
   spawnText?: (
     cmd: string,
     args: readonly string[],
