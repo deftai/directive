@@ -1,8 +1,23 @@
+/**
+ * @deprecated This module is superseded by per-role operator model routing
+ * (`.deft/routing.local.json`) introduced in #1739 / #1863.
+ *
+ * Use `task swarm:routing-set` and `task verify:routing` instead.
+ * See `packages/core/src/swarm/routing.ts` for the current implementation.
+ *
+ * The enum and associated helpers remain functional for consumers that have not
+ * yet migrated; they will be removed in a future major cleanup tracked by #1860.
+ *
+ * @see {@link https://github.com/deftai/directive/issues/1739} Superseding PR
+ * @see {@link https://github.com/deftai/directive/issues/1860} Hard deletion tracking
+ */
+
 import { loadProjectDefinition } from "../policy/resolve.js";
 import { LEAF_CODING_WORKER_ROLE, SUBAGENT_BACKEND_SET_CMD } from "./constants.js";
 
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
+/** @deprecated Superseded by `.deft/routing.local.json` routing (#1739). Use `task swarm:routing-set`. */
 export const KNOWN_SUBAGENT_BACKEND_IDS = new Set(["composer", "grok-build", "cursor-cloud"]);
 
 const SUBAGENT_BACKEND_CATALOG: Record<string, { display_name: string; roles: readonly string[] }> =
@@ -21,6 +36,7 @@ const SUBAGENT_BACKEND_CATALOG: Record<string, { display_name: string; roles: re
     },
   };
 
+/** @deprecated Superseded by `.deft/routing.local.json` routing (#1739). Use `task swarm:routing-set`. */
 export interface SubagentBackendDescriptor {
   readonly backend_id: string;
   readonly display_name: string;
@@ -28,6 +44,7 @@ export interface SubagentBackendDescriptor {
   readonly available: boolean;
 }
 
+/** @deprecated Superseded by `.deft/routing.local.json` routing (#1739). Use `task swarm:routing-set`. */
 export interface SwarmSubagentBackendResult {
   readonly backend_id: string | null;
   readonly source: string;

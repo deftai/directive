@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Deprecation signals for `swarmSubagentBackend` enum** — the `plan.policy.swarmSubagentBackend` enum and associated `task policy:subagent-backend(s)` tasks are now visibly marked deprecated (superseded by per-role operator model routing via `.deft/routing.local.json`, introduced in #1739). Deprecation banners added to the TypeScript module (`subagent-backend.ts`), the Python twin (`scripts/policy.py`), and both task descriptions. The swarm skill (`deft-directive-swarm`) source was updated (via `packs/skills/skills-pack-0.1.json`) to demote Phase 0e to a superseded pointer and promote `task swarm:routing-set` / `task verify:routing` as the primary doctrine; the rendered SKILL.md was regenerated. The `task verify:routing --advise` output now includes a one-line enum-deprecated note. No deletion; hard removal tracked by #1860. Closes #1891.
+
 ### Fixed
 - **`directive version` now reports the installed engine version (#1918)** — `engineInfo()` previously returned a hardcoded `0.0.0`, so `directive version` and the `deft` alias always showed `@deftai/directive-core@0.0.0` even after a correct npm install. The runtime banner now reads the version from the installed `@deftai/directive-core` package.json, matching registry metadata. Refs #1918 #1909.
 

@@ -108,7 +108,7 @@ export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResul
     if (undecided.length === 0 && invalid.length === 0) {
       return {
         exitCode: EXIT_OK,
-        report: `[deft routing] provider '${provider}': all ${roles.length} gated role(s) decided.`,
+        report: `[deft routing] provider '${provider}': all ${roles.length} gated role(s) decided.\n[deft routing] NOTE: plan.policy.swarmSubagentBackend enum is deprecated (#1891); use 'task swarm:routing-set' / .deft/routing.local.json instead.`,
       };
     }
     const parts: string[] = [];
@@ -120,7 +120,7 @@ export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResul
     }
     return {
       exitCode: EXIT_OK,
-      report: `[deft routing] provider '${provider}' -- ${parts.join("; ")}. Decide before swarm dispatch: ${ROUTING_SET_CMD}`,
+      report: `[deft routing] provider '${provider}' -- ${parts.join("; ")}. Decide before swarm dispatch: ${ROUTING_SET_CMD}\n[deft routing] NOTE: plan.policy.swarmSubagentBackend enum is deprecated (#1891); use 'task swarm:routing-set' / .deft/routing.local.json instead.`,
     };
   }
 

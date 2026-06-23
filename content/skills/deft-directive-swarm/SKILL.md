@@ -140,34 +140,15 @@ Loop body, per candidate (top-of-queue first):
 
 #### Phase 0d -- Cohort dispatch
 
-- ! After the promote-fill loop exits (cap reached, queue empty, or operator `stop`), `vbrief/pending/` now holds the cohort. On the interactive path, Phase 0e below captures the intended sub-agent backend before Step 0.5 hardens lifecycle state. Then the existing Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs, #1025) moves the cohort `pending/ -> active/`, and Steps 1-5 (readiness report, blockers, allocation, present, approval) proceed against the activated set. Existing swarm Phase 1+ (Select, Setup, Launch, Monitor, Review, Close) proceeds unchanged.
+- ! After the promote-fill loop exits (cap reached, queue empty, or operator `stop`), `vbrief/pending/` now holds the cohort. Phase 0e below is now deprecated (#1891) -- per-role operator model routing (`task swarm:routing-set`, #1739) supersedes the sub-agent backend enum; `task verify:routing -- --advise` is the session-start disclosure surface. The existing Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs, #1025) moves the cohort `pending/ -> active/`, and Steps 1-5 (readiness report, blockers, allocation, present, approval) proceed against the activated set. Existing swarm Phase 1+ (Select, Setup, Launch, Monitor, Review, Close) proceeds unchanged.
 
-#### Phase 0e -- Interactive sub-agent backend selection (#1568)
+#### Phase 0e -- Interactive sub-agent backend selection (DEPRECATED -- #1568 / superseded by #1739)
 
-! On the **interactive** swarm path, before Step 0.5 hardens lifecycle state and before any `task swarm:launch` / headless launch-manifest handoff is attempted, run `task policy:subagent-backends` and inspect `plan.policy.swarmSubagentBackend`.
+> **This phase is superseded.** Per-role operator model routing (`.deft/routing.local.json`, #1739) is the current mechanism for recording which model each worker role uses. Run `task verify:routing -- --advise` at session start and `task swarm:routing-set` to configure routing decisions. The `plan.policy.swarmSubagentBackend` enum and `task policy:subagent-backend(s)` surface are still present but deprecated (#1891); do not consult them for new work.
 
-! If `plan.policy.swarmSubagentBackend` is unset, ask the operator which subagent backend they intend to use. This question captures operator preference; probe availability is supporting evidence only. Display all stable backend choices with their probed status, but do NOT rank the menu by availability and do NOT imply `cursor-cloud` is the default just because it is probe-available.
+~ If `plan.policy.swarmSubagentBackend` is already set in the project policy and no `.deft/routing.local.json` is present, surface a one-line nudge asking the operator to run `task swarm:routing-set` to migrate to the routing surface before dispatch.
 
-Render the backend-selection prompt as a deterministic numbered menu in chat (or via a host UI that visibly preserves the same numeric option labels and exact displayed option text) with `Discuss` and `Back` final per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md):
-
-1. Local Composer/Cursor subagents (`composer`) -- intended local Composer-class coding agents; probe status: `<available|unavailable|unknown>`.
-2. Cursor cloud agents (`cursor-cloud`) -- intended remote/cloud agents; probe status: `<available|unavailable|unknown>`.
-3. Grok Build subagents (`grok-build`) -- intended `spawn_subagent` workers; probe status: `<available|unavailable|unknown>`.
-4. Discuss
-5. Back
-
-! After the operator selects a backend, ask whether to persist it to project policy with `task policy:subagent-backend -- <id>` or record it as a per-run launch-context choice for this swarm only. Render the persistence/per-run follow-up as a deterministic numbered menu with `Discuss` and `Back` as the final two options:
-
-1. Persist backend to project policy with `task policy:subagent-backend -- <id>` -- use this backend for future swarms.
-2. Record backend as a per-run launch-context choice for this swarm only -- do not change project policy.
-3. Discuss
-4. Back
-
-! If the operator chooses a backend whose probe status is unavailable or unknown, surface the remediation or uncertainty for that backend (for example, switch runtime, enable `spawn_subagent`, inject cloud credentials, or rerun the probe in the target environment) and stop before launch planning unless the operator explicitly records a per-run launch-context choice for a later environment where that backend will be available or verifiable.
-
-⊗ Treat probe availability as operator intent. A single probe-available backend is not a recommendation, default, or consent token; the operator must choose the intended backend in the interactive path when policy is unset.
-
-⊗ Add an interactive prompt to the headless / autonomous `task swarm:launch` path. Autonomous/headless launch remains fail-closed when neither `plan.policy.swarmSubagentBackend` nor an explicit launch-context backend choice is present; `scripts/swarm_launch.py` is the guardrail, not a prompt surface.
+⊗ Prompt the operator to select or persist a `swarmSubagentBackend` enum value for new work -- the routing surface (#1739) supersedes the enum; using the enum steers agents into a dead configuration path.
 
 #### Phase 0f -- Greenfield swarm-ready bootstrap (#1053)
 
@@ -429,9 +410,9 @@ Cross-references: `scripts/platform_capabilities.py` (#1557a), `scripts/github_a
 
 ! **Supported backend examples (none mandatory):** Composer-class coding agents, Grok Build `spawn_subagent` workers, Cursor/cloud agents, and future adapters are all first-class examples. No single backend is required — Grok Build is one implementation of provider-neutral routing, not the only target.
 
-~ **Policy surface (#1531a):** `plan.policy.swarmSubagentBackend` (set via `task policy:subagent-backend`) records the operator's preferred coding sub-agent provider for leaf workers; `task policy:subagent-backends` probes stable provider IDs and role capabilities. The policy complements — does not replace — per-dispatch provider selection at launch time.
+! **Operator model routing (#1739):** the concrete per-role model lives in the gitignored, per-machine `.deft/routing.local.json`, keyed by `(dispatch_provider, worker_role)`. Record a decision with `task swarm:routing-set -- --role <role> (--model <slug> | --harness-default)`. `task swarm:launch` resolves the active provider's route and stamps `resolved_model` + `model_source` into each C2 manifest record. When `resolved_model` is non-null, the monitor MUST pass it as the **model argument of the actual dispatch primitive** (e.g. the Task tool's `model` field for a Cursor sub-agent) — stamping the manifest is prep; a recorded model that never reaches the spawn call is the bug #1739 closes. Run `task verify:routing` before dispatching a cohort (pre-dispatch hard gate; fails when a dispatched role is undecided) and `task verify:routing -- --advise` at session start (non-blocking disclosure). For harness-bound providers (e.g. `grok`) only `--harness-default` is recordable and `resolved_model` stays null.
 
-! **Operator model routing (#1739, supersedes the swarmSubagentBackend enum):** the concrete per-role model lives in the gitignored, per-machine `.deft/routing.local.json`, keyed by `(dispatch_provider, worker_role)`. Record a decision with `task swarm:routing-set -- --role <role> (--model <slug> | --harness-default)`. `task swarm:launch` resolves the active provider's route and stamps `resolved_model` + `model_source` into each C2 manifest record. When `resolved_model` is non-null, the monitor MUST pass it as the **model argument of the actual dispatch primitive** (e.g. the Task tool's `model` field for a Cursor sub-agent) — stamping the manifest is prep; a recorded model that never reaches the spawn call is the bug #1739 closes. Run `task verify:routing` before dispatching a cohort (pre-dispatch hard gate; fails when a dispatched role is undecided) and `task verify:routing -- --advise` at session start (non-blocking disclosure). For harness-bound providers (e.g. `grok`) only `--harness-default` is recordable and `resolved_model` stays null.
+~ **DEPRECATED — Policy surface (#1531a / #1891):** `plan.policy.swarmSubagentBackend` (set via `task policy:subagent-backend`) was the previous mechanism for recording the operator's preferred coding sub-agent provider. It is superseded by per-role operator model routing above (#1739). The enum and associated `task policy:subagent-backend(s)` tasks remain functional but deprecated; hard deletion is tracked by #1860. Use `task swarm:routing-set` instead.
 
 ! **Role boundaries for cheaper leaf agents:** Cheaper, high-context leaf agents are appropriate for **leaf implementation** work in isolated worktrees when vBRIEF scope is tight and gates (`task check`, Greptile review cycle) hold. The following roles MUST remain on strong, review-capable agents regardless of backend availability:
 

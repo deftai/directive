@@ -708,117 +708,100 @@ def test_swarm_anti_patterns_1557_token_present(token: str) -> None:
 # 8. #1568 -- interactive backend selection before launch
 # ---------------------------------------------------------------------------
 
-_PHASE0_BACKEND_HEADER = "#### Phase 0e -- Interactive sub-agent backend selection (#1568)"
-_PHASE0_BACKEND_END = "#### Manual / GitHub-issue escape hatch"
+_PHASE0_BACKEND_HEADER = (
+    "#### Phase 0e -- Interactive sub-agent backend selection"
+    " (DEPRECATED -- #1568 / superseded by #1739)"
+)
+_PHASE0_BACKEND_END = "#### Phase 0f -- Greenfield swarm-ready bootstrap (#1053)"
 
+# Tokens that MUST still be present in the deprecated Phase 0e block (#1891):
+# it becomes a supersession pointer, not an interactive menu.
 _INTERACTIVE_BACKEND_TOKENS = (
-    "task policy:subagent-backends",
+    "This phase is superseded.",
+    "Per-role operator model routing",
+    ".deft/routing.local.json",
+    "task verify:routing -- --advise",
+    "task swarm:routing-set",
     "plan.policy.swarmSubagentBackend",
-    "before any `task swarm:launch`",
-    "operator preference",
-    "probe availability is supporting evidence only",
-    "do NOT imply `cursor-cloud` is the default just because it is probe-available",
-    "Local Composer/Cursor subagents (`composer`)",
-    "Cursor cloud agents (`cursor-cloud`)",
-    "Grok Build subagents (`grok-build`)",
-    "task policy:subagent-backend -- <id>",
-    "per-run launch-context choice",
-    "unavailable or unknown",
-    "rerun the probe in the target environment",
-    "Autonomous/headless launch remains fail-closed",
-    "scripts/swarm_launch.py",
+    "#1891",
+    "do not consult them for new work",
 )
 
 
 def _phase0_backend_block(text: str) -> str:
-    """Return the #1568 interactive backend-selection block."""
+    """Return the #1568 (now deprecated #1891) backend-selection block."""
     start = text.find(_PHASE0_BACKEND_HEADER)
     assert start != -1, (
         f"{_SWARM_PATH}: missing '{_PHASE0_BACKEND_HEADER}' heading -- "
-        "interactive swarms must ask for backend intent before launch"
+        "Phase 0e must be present as a deprecated supersession pointer (#1891)"
     )
     end = text.find(_PHASE0_BACKEND_END, start)
     assert end != -1 and end > start, (
         f"{_SWARM_PATH}: '{_PHASE0_BACKEND_END}' heading not found after "
-        "the #1568 backend-selection block"
+        "the deprecated #1568 backend-selection block"
     )
     return text[start:end]
 
 
 @pytest.mark.parametrize("token", _INTERACTIVE_BACKEND_TOKENS)
 def test_swarm_phase0_backend_selection_token_present(token: str) -> None:
-    """The interactive path must ask for backend intent before headless launch."""
+    """Phase 0e must be a visible deprecation pointer to routing (#1891)."""
     block = _phase0_backend_block(_read_swarm())
     assert token in block, (
-        f"{_SWARM_PATH}: Phase 0 backend-selection block missing token "
-        f"{token!r} -- see issue #1568 acceptance criteria"
+        f"{_SWARM_PATH}: Phase 0e deprecation block missing token "
+        f"{token!r} -- see issue #1891 acceptance criteria"
     )
 
 
 def test_swarm_phase0d_routes_through_backend_selection_before_bridge() -> None:
-    """Phase 0d must hand interactive swarms to Phase 0e before Step 0.5."""
+    """Phase 0d must reference Phase 0e (deprecated) before Step 0.5."""
     text = _read_swarm()
     phase0d = text.find("#### Phase 0d -- Cohort dispatch")
     phase0e = text.find(_PHASE0_BACKEND_HEADER)
     assert phase0d != -1 and phase0e != -1 and phase0d < phase0e, (
-        f"{_SWARM_PATH}: Phase 0d must precede the #1568 backend-selection block"
+        f"{_SWARM_PATH}: Phase 0d must precede the #1568 deprecated backend-selection block"
     )
     block = text[phase0d:phase0e]
-    assert "Phase 0e below captures the intended sub-agent backend" in block
-    assert "before Step 0.5 hardens lifecycle state" in block
+    # Phase 0d should now reference Phase 0e as deprecated (#1891)
+    assert "Phase 0e below" in block
 
 
 def test_swarm_phase0_backend_menu_uses_visible_numbered_options() -> None:
-    """Backend menu must use visible numbering with Discuss and Back final."""
+    """Phase 0e is now deprecated (#1891); the menu is replaced by a routing pointer.
+
+    This test verifies the new deprecation content is present instead of the old menu.
+    """
     block = _phase0_backend_block(_read_swarm())
-    options = (
-        "1. Local Composer/Cursor subagents (`composer`)",
-        "2. Cursor cloud agents (`cursor-cloud`)",
-        "3. Grok Build subagents (`grok-build`)",
-        "4. Discuss",
-        "5. Back",
+    assert "task swarm:routing-set" in block, (
+        f"{_SWARM_PATH}: deprecated Phase 0e block must point to task swarm:routing-set"
     )
-    positions = [block.find(option) for option in options]
-    assert all(position != -1 for position in positions), (
-        f"{_SWARM_PATH}: backend menu missing one or more visible numbered "
-        f"options; positions={dict(zip(options, positions, strict=True))}"
-    )
-    assert positions == sorted(positions), (
-        f"{_SWARM_PATH}: backend menu options must appear in canonical order; "
-        f"positions={dict(zip(options, positions, strict=True))}"
+    assert "task verify:routing" in block, (
+        f"{_SWARM_PATH}: deprecated Phase 0e block must point to task verify:routing"
     )
 
 
 def test_swarm_phase0_backend_followup_menu_uses_visible_numbered_options() -> None:
-    """Persistence follow-up menu must also render explicit numbered choices."""
+    """Phase 0e is now deprecated (#1891); the follow-up persistence menu is replaced.
+
+    This test verifies the deprecation nudge for operators who have the old policy set.
+    """
     block = _phase0_backend_block(_read_swarm())
-    options = (
-        "1. Persist backend to project policy with `task policy:subagent-backend -- <id>`",
-        "2. Record backend as a per-run launch-context choice for this swarm only",
-        "3. Discuss",
-        "4. Back",
-    )
-    positions = [block.find(option) for option in options]
-    assert all(position != -1 for position in positions), (
-        f"{_SWARM_PATH}: backend follow-up menu missing one or more visible "
-        f"numbered options; positions={dict(zip(options, positions, strict=True))}"
-    )
-    assert positions == sorted(positions), (
-        f"{_SWARM_PATH}: backend follow-up menu options must appear in "
-        f"canonical order; positions={dict(zip(options, positions, strict=True))}"
+    assert "task swarm:routing-set" in block, (
+        f"{_SWARM_PATH}: deprecated Phase 0e block must point operators to task swarm:routing-set"
     )
 
 
 def test_swarm_phase0_backend_menu_keeps_discuss_back_final() -> None:
-    """Discuss and Back must be the final two backend prompt choices."""
+    """Phase 0e is now deprecated (#1891); the MUST NOT directive replaces the old menu.
+
+    Verify the deprecation 'must not use enum' directive is present.
+    """
     block = _phase0_backend_block(_read_swarm())
-    discuss = block.find("4. Discuss")
-    back = block.find("5. Back")
-    assert discuss != -1 and back != -1 and discuss < back, (
-        f"{_SWARM_PATH}: backend-selection menu must end with Discuss then Back"
+    assert "⊗" in block, (
+        f"{_SWARM_PATH}: deprecated Phase 0e block must have a MUST NOT (⊗) directive"
     )
-    assert "6. " not in block[back:], (
-        f"{_SWARM_PATH}: backend-selection menu must not add options after Back"
+    assert "swarmSubagentBackend" in block, (
+        f"{_SWARM_PATH}: deprecated Phase 0e must name swarmSubagentBackend enum"
     )
 
 

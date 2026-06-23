@@ -2113,8 +2113,17 @@ def set_policy(
 # Swarm sub-agent backend policy (#1531a)
 # ---------------------------------------------------------------------------
 #
-# ``plan.policy.swarmSubagentBackend`` stores the operator-selected coding
-# sub-agent backend for swarm leaf workers. The catalog + probe surface
+# DEPRECATED (#1891): This entire section is superseded by per-role operator
+# model routing (`.deft/routing.local.json`) introduced in #1739 / #1863.
+#
+# Use `task swarm:routing-set` and `task verify:routing` instead of
+# `plan.policy.swarmSubagentBackend` / `task policy:subagent-backend(s)`.
+#
+# The functions and constants below remain functional for consumers that have
+# not yet migrated. Hard deletion of the Python twin is tracked by #1860.
+#
+# Original: ``plan.policy.swarmSubagentBackend`` stores the operator-selected
+# coding sub-agent backend for swarm leaf workers. The catalog + probe surface
 # lists stable provider IDs and role capabilities without invoking a real
 # harness -- availability is inferred from lightweight env signals (or
 # ``DEFT_PROBE_<BACKEND>`` overrides for tests).

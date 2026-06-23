@@ -1,0 +1,32 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1891"
+  },
+  "plan": {
+    "title": "swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum",
+    "status": "running",
+    "narratives": {
+      "Description": "swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1891",
+      "Overview": "## Summary\n\nThe `swarmSubagentBackend` enum was **superseded** by per-role operator model routing (`.deft/routing.local.json`) in #1739 / #1863, but the supersession was deliberately additive: **the entire old system was left physically present and self-describing as live, with no deprecation signal on any discovery surface.** The result is a half-migrated, two-live-systems state that actively steers agents (and humans) into configuring a dead surface.\n\nThis issue is the **interim deprecation-signal fix** — independent of the eventual hard deletion (the enum's Python twin removal rides the broad #1860 Python purge, which is blocked on #1669 and far off). The fix here needs **zero deletion**; it's banners + descs + a skill-contradiction repair so the trap closes now instead of whenever #1860 lands.\n\n## Live recurrence (2026-06-22)\n\nAn agent (Cursor, on a v0.53.2 consumer) was asked \"where does directive record sub-agent types?\" It discovered the enum via a code/task search, found a coherent self-contained system (catalog + setter + enforcement gate + a probe that prints an authoritative table), and **presented `plan.policy.swarmSubagentBackend` + `task policy:subagent-backend(s)` as the current mechanism** — recommending the operator set it. The routing replacement (the actual current system) was missed. The operator had to correct the agent.\n\n## Evidence — no deprecation signal on any surface (v0.53.2)\n\n| Surface | What it shows | Deprecation signal? |\n|---|---|---|\n| `packages/core/src/swarm/subagent-backend.ts` | full enum: `KNOWN_SUBAGENT_BACKEND_IDS`, catalog, `enforceSubagentBackendPolicy` | **None** — no `@deprecated`, no pointer to `routing.ts` (its sibling in the same dir) |\n| `tasks/policy.yml` → `policy:subagent-backend` / `policy:subagent-backends` | present-tense descs citing #1531a; the probe runs and prints a clean availability table | **None** |\n| `skills/deft-directive-swarm/SKILL.md` | teaches the enum as live interactive doctrine at **Phase 3 Step 1** (lines ~147–170) | **Contradictory** (see below) |\n| `scripts/policy.py` (Python twin) | `KNOWN_SUBAGENT_BACKEND_IDS`, `validate_swarm_subagent_backend`, `probe_subagent_backends` | **None** |\n\n### The skill contradicts itself\n\nWithin the same `deft-directive-swarm/SKILL.md`:\n\n- **line ~432 (#1531a):** \"`plan.policy.swarmSubagentBackend` … records the operator's preferred coding sub-agent provider … The policy **complements — does not replace** — per-dispatch provider selection at launch time.\"\n- **line ~434 (#1739):** \"Operator model routing (#1739, **supersedes the swarmSubagentBackend enum**): the concrete per-role model lives in the gitignored … `.deft/routing.local.json` …\"\n\nSo one paragraph says the enum is superseded; the paragraph just before says it is *not* replaced. And the **prominence is inverted**: the dead enum is taught first (Step 1, interactive operator prompt), while the live replacement sits one dense paragraph deep in Step 1b.\n\n## Why #1863 didn't fix this (it caused it)\n\n#1863 was additive by design (\"makes the enum non-load-bearing by superseding it when a route file exists, keeping the PR additive and parity-green\"). It **added** routing + the Step-1b routing paragraph but **left** `subagent-backend.ts` unmarked, the `policy:subagent-backend(s)` tasks present-tense, and the Step-1 enum guidance live — producing the 432-vs-434 contradiction. Runtime is fine (a present route file supersedes the enum at dispatch); the defect is **legibility / deprecation signal**, which #1863 did not touch.\n\n## This is a concrete instance of #1882\n\n#1882 (\"treat AGENTS.md as a map, not a manual\") names the general disease: failure mode #3 — *\"rots instantly … a graveyard of stale rules; an attractive nuisance\"* — and #2 — *\"too much guidance becomes non-guidance.\"* This is that disease in a specific, fixable spot.\n\n## Proposed fix (no deletion required)\n\n1. **Code:** add a `@deprecated` banner to `subagent-backend.ts` (and the Python twin in `scripts/policy.py`) pointing at `routing.ts` / #1739, so a reader landing there gets an immediate toe-tag.\n2. **Tasks:** change `policy:subagent-backend` / `policy:subagent-backends` descs from present-tense to \"DEPRECATED (superseded by `task swarm:routing-set`, #1739)\"; optionally have `policy:subagent-backends` print a one-line runtime deprecation notice.\n3. **Skill:** resolve the line-432 vs line-434 contradiction — demote the Step-1 enum guidance to a short \"superseded; see Operator model routing\" pointer and promote the routing path as the primary Phase-3 doctrine.\n4. (Optional) Make `verify:routing`'s `--advise` session-start line explicitly note the enum is deprecated, so the disclosure channel carries the signal too.\n\n## Cross-references\n\n- #1739 / #1863 — the supersession (what made the enum non-load-bearing, and the additive choice that left the old surfaces live).\n- #1882 — the general legibility/\"map not manual\" principle this instantiates.\n- (#1860 owns the eventual hard deletion of the enum's Python twin; it is NOT a dependency of this interim signal fix.)\n",
+      "Labels": "documentation, skills, agent-experience, source-of-truth, tooling"
+    },
+    "items": [],
+    "tags": [
+      "documentation",
+      "skills",
+      "agent-experience",
+      "source-of-truth",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1891",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1891: swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum"
+      }
+    ],
+    "updated": "2026-06-23T21:00:59Z"
+  }
+}
