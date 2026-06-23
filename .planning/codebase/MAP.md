@@ -2,8 +2,8 @@
 <!-- Purpose: generated codebase MAP projection -->
 <!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json plan.architecture.codeStructure -->
 <!-- Regenerate with: task codebase:map -->
-<!-- Artifact sha256: 07404feea6bfc53cbf64dec77acd8c6ce6be591817ef2c068b13ce76eb9e3725 -->
-<!-- Source digest sha256: f96c81566241162939850c2d8ca4ce19bf37ee964e9724a5fb65dc72a7a3473b -->
+<!-- Artifact sha256: 76f3af166ef2517a2dffc742dd2225c248b37d77e8f322151f826d03e7bd28f5 -->
+<!-- Source digest sha256: def7044aff821cb00533c270abf43290808549d9b96e956418dcc1feaa52483a -->
 
 # Codebase MAP
 
@@ -14,7 +14,7 @@
 | Provider | `directive-default-extractor` `0.1` |
 | Provider mode | `default` |
 | Source | `vbrief/PROJECT-DEFINITION.vbrief.json` at `plan.architecture.codeStructure` |
-| Source digest | `f96c81566241162939850c2d8ca4ce19bf37ee964e9724a5fb65dc72a7a3473b` |
+| Source digest | `def7044aff821cb00533c270abf43290808549d9b96e956418dcc1feaa52483a` |
 
 ## Modules
 
@@ -27,7 +27,7 @@
 | `go-installer` | Go Installer | Standalone installer binary for end-user and maintainer installs. | `go.mod`, `cmd/deft-install/**/*.go` | 27 |
 | `vbrief-metadata` | vBRIEF Metadata | Structured project, scope, schema, lifecycle, and architecture metadata. | `vbrief/**/*.json`, `vbrief/**/*.md` | 746 |
 | `content-packs` | Content Packs | Curated, sliceable agent memory packs rendered and checked through the packs task namespace. | `packs/**/*.md`, `packs/**/*.json` | 0 |
-| `ci-release-automation` | CI and Release Automation | Repository automation for branch policy, hooks, GitHub Actions, PR readiness, and release publication. | `.github/**/*.yml`, `.github/**/*.yaml`, `.githooks/*` | 6 |
+| `ci-release-automation` | CI and Release Automation | Repository automation for branch policy, hooks, GitHub Actions, PR readiness, and release publication. | `.github/**/*.yml`, `.github/**/*.yaml`, `.githooks/*` | 7 |
 | `test-suite` | Test Suite | CLI, content, integration, and regression tests for framework behavior. | `tests/**/*.py`, `tests/**/*.json` | 340 |
 
 ## Coupling
@@ -143,7 +143,7 @@
 | Other | 5 |
 | Python | 457 |
 | TypeScript | 1038 |
-| YAML | 53 |
+| YAML | 54 |
 
 ## Degraded Signals
 

@@ -1,7 +1,7 @@
 {
   "name": "@deftai/directive",
   "version": "0.0.0",
-  "private": true,
+  "description": "Directive CLI — npm install path for the Deft Directive framework.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,6 +27,18 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deftai/directive.git",
+    "directory": "packages/cli"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@deftai/directive-core": "workspace:*"

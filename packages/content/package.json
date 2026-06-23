@@ -1,12 +1,20 @@
 {
   "name": "@deftai/directive-content",
   "version": "0.0.0",
-  "private": true,
   "description": "Shippable Directive framework content in the consumer .deft/core/ layout (C1 flatten). Refs #11, #1669.",
   "type": "module",
   "files": [
     "**/*"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deftai/directive.git",
+    "directory": "packages/content"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "prepack": "node --input-type=module -e \"import{cpSync,existsSync,readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));const src=join(pkg,'..','..','content');for(const name of readdirSync(src)){const from=join(src,name);const to=join(pkg,name);if(existsSync(to))rmSync(to,{recursive:true,force:true});cpSync(from,to,{recursive:true});}\"",
     "postpack": "node --input-type=module -e \"import{readdirSync,rmSync}from'node:fs';import{dirname,join}from'node:path';import{fileURLToPath}from'node:url';const pkg=dirname(fileURLToPath(import.meta.url));for(const name of readdirSync(pkg)){if(name==='package.json')continue;rmSync(join(pkg,name),{recursive:true,force:true});}\""

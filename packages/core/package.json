@@ -1,7 +1,7 @@
 {
   "name": "@deftai/directive-core",
   "version": "0.0.0",
-  "private": true,
+  "description": "TypeScript engine core for the Directive framework.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -182,6 +182,18 @@
       "types": "./dist/ts-check-lane/index.d.ts",
       "default": "./dist/ts-check-lane/index.js"
     }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deftai/directive.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@deftai/directive-types": "workspace:*"
