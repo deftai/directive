@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(render): make roadmap:render -> roadmap:check idempotent (check diffs against the same bytes render emits)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "task roadmap:check reports drift immediately after a successful task roadmap:render from the same pending/ inputs. The --check path re-renders with subtly different logic/inputs than the write path (header/preamble preservation, multi-issue references[] handling, ordering, or whitespace/newline normalization), so the comparison never matches and the task check aggregate wedges on any project whose ROADMAP touches this path. Make check diff against the exact in-memory render the write path produces.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1697",
@@ -79,8 +79,9 @@
         "file_scope_confidence": "high",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1697 (repro + root cause) under umbrella #1699, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T20:18:59Z"
     },
-    "updated": "2026-06-24T19:44:12Z"
+    "updated": "2026-06-24T20:18:59Z"
   }
 }

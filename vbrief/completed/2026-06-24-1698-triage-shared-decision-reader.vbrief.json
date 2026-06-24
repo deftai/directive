@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(triage): one shared decision-reader so summary, history, status, and reset agree on backfilled accepts",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Two readers of the triage audit log (vbrief/.eval/candidates.jsonl) disagree about what counts as a recorded decision. triage summary COUNTS accept decisions written by agent:bootstrap / agent:reconcile backfills toward the in-flight count, but the triage actions reader (reset/history/status) does NOT see those same entries and reports 'no prior decision recorded'. A backfilled accept then shows as a stale in-flight item the canonical reversibility verb (reset) cannot clear. Extract one shared latest_decision(repo, issue) reader used by both surfaces (#537 split-source-of-truth class).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1698",
@@ -82,8 +82,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1698 (repro + root cause) under umbrella #1699, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T20:18:59Z"
     },
-    "updated": "2026-06-24T19:44:13Z"
+    "updated": "2026-06-24T20:18:59Z"
   }
 }
