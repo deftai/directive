@@ -283,46 +283,55 @@ export function downloadAndRunFrozenBridge(
     return [true, `SKIP (gh not on PATH; cannot fetch the frozen bridge ${pin})`];
   }
   const mkdtemp = seams.mkdtemp ?? ((prefix: string) => mkdtempSync(join(tmpdir(), prefix)));
+  const rmTemp = seams.rmTemp ?? ((p: string) => rmSync(p, { recursive: true, force: true }));
   const assetDir = mkdtemp("deft-frozen-bridge-");
 
-  const download = spawn(
-    gh,
-    ["release", "download", pin, "--repo", GO_BRIDGE_REPO, "--dir", assetDir, "--clobber"],
-    { env: { ...process.env }, timeoutMs: 300_000 },
-  );
-  if (download.status !== 0) {
-    return [
-      false,
-      `gh release download ${pin} from ${GO_BRIDGE_REPO} failed: ${download.stderr.trim()}`,
-    ];
-  }
-
-  const assets = readdirSync(assetDir).filter((name) => /deft-install/i.test(name));
-  const binary = assets[0];
-  if (binary === undefined) {
-    return [
-      false,
-      `frozen bridge ${pin} downloaded but no deft-install asset found in ${assetDir} ` +
-        `(see ${GO_BRIDGE_RELEASES_URL})`,
-    ];
-  }
-  const binaryPath = join(assetDir, binary);
+  // Clean up the downloaded-binary temp dir on every exit path (mirrors the
+  // workRoot try/finally in runLegacyBridgeLeg). Once the SoT is pinned this
+  // runs on every --legacy-bridge CI invocation, so a leaked assetDir would
+  // accumulate full Go-bridge binaries.
   try {
-    chmodSync(binaryPath, 0o755);
-  } catch {
-    // best-effort; non-fatal on platforms that ignore the bit
+    const download = spawn(
+      gh,
+      ["release", "download", pin, "--repo", GO_BRIDGE_REPO, "--dir", assetDir, "--clobber"],
+      { env: { ...process.env }, timeoutMs: 300_000 },
+    );
+    if (download.status !== 0) {
+      return [
+        false,
+        `gh release download ${pin} from ${GO_BRIDGE_REPO} failed: ${download.stderr.trim()}`,
+      ];
+    }
+
+    const assets = readdirSync(assetDir).filter((name) => /deft-install/i.test(name));
+    const binary = assets[0];
+    if (binary === undefined) {
+      return [
+        false,
+        `frozen bridge ${pin} downloaded but no deft-install asset found in ${assetDir} ` +
+          `(see ${GO_BRIDGE_RELEASES_URL})`,
+      ];
+    }
+    const binaryPath = join(assetDir, binary);
+    try {
+      chmodSync(binaryPath, 0o755);
+    } catch {
+      // best-effort; non-fatal on platforms that ignore the bit
+    }
+    const run = spawn(binaryPath, ["--yes", "--upgrade", "--repo-root", fixtureDir], {
+      env: { ...process.env },
+      timeoutMs: 300_000,
+    });
+    if (run.status !== 0) {
+      return [false, `frozen bridge ${pin} run failed (exit ${run.status}): ${run.stderr.trim()}`];
+    }
+    if (detectLegacyLayout(fixtureDir).legacy) {
+      return [false, `frozen bridge ${pin} ran but the fixture is still a legacy layout`];
+    }
+    return [true, `frozen bridge ${pin} normalised the legacy fixture to canonical-vendored`];
+  } finally {
+    rmTemp(assetDir);
   }
-  const run = spawn(binaryPath, ["--yes", "--upgrade", "--repo-root", fixtureDir], {
-    env: { ...process.env },
-    timeoutMs: 300_000,
-  });
-  if (run.status !== 0) {
-    return [false, `frozen bridge ${pin} run failed (exit ${run.status}): ${run.stderr.trim()}`];
-  }
-  if (detectLegacyLayout(fixtureDir).legacy) {
-    return [false, `frozen bridge ${pin} ran but the fixture is still a legacy layout`];
-  }
-  return [true, `frozen bridge ${pin} normalised the legacy fixture to canonical-vendored`];
 }
 
 export interface LegacyBridgeLegSeams {

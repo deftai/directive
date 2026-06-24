@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -180,6 +180,38 @@ describe("downloadAndRunFrozenBridge", () => {
     });
     expect(okFlag).toBe(false);
     expect(reason).toContain("no deft-install asset");
+  });
+
+  it("cleans up the downloaded-binary temp dir on an early-return failure path", () => {
+    const assetDir = freshRoot("frozen-cleanup-fail-");
+    const removed: string[] = [];
+    downloadAndRunFrozenBridge("v9.9.9", "/fixture", {
+      which: whichFor("gh"),
+      spawnText: () => ({ status: 1, stdout: "", stderr: "release not found" }),
+      mkdtemp: () => assetDir,
+      rmTemp: (p) => removed.push(p),
+    });
+    expect(removed).toEqual([assetDir]);
+  });
+
+  it("cleans up the downloaded-binary temp dir on the success path", () => {
+    // Provision an assetDir holding a deft-install binary so the download +
+    // run path reaches the success return, then assert the finally cleanup ran.
+    const assetDir = freshRoot("frozen-cleanup-ok-");
+    writeFileSync(join(assetDir, "deft-install-linux-amd64"), "#!/bin/sh\n", "utf8");
+    const fixtureDir = freshRoot("frozen-cleanup-fixture-");
+    // A canonical-vendored deposit so the post-run not-legacy assertion passes.
+    provisionCanonicalVendoredDeposit(fixtureDir, null);
+    const removed: string[] = [];
+    const [okFlag, reason] = downloadAndRunFrozenBridge("v9.9.9", fixtureDir, {
+      which: whichFor("gh"),
+      spawnText: () => ok(),
+      mkdtemp: () => assetDir,
+      rmTemp: (p) => removed.push(p),
+    });
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("normalised the legacy fixture");
+    expect(removed).toEqual([assetDir]);
   });
 });
 
