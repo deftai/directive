@@ -98,10 +98,11 @@ export function createUserConfigDir(io: InitDepositIo): string {
 
 function readContentVersion(contentRoot: string, readVersion = readCorePackageVersion): string {
   try {
-    const pkg = JSON.parse(readFileSync(join(contentRoot, "package.json"), "utf8")) as {
-      version?: string;
-    };
-    if (pkg.version?.trim()) return pkg.version.trim();
+    const parsed: unknown = JSON.parse(readFileSync(join(contentRoot, "package.json"), "utf8"));
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const version = (parsed as { version?: string }).version;
+      if (version?.trim()) return version.trim();
+    }
   } catch {
     // fall through
   }

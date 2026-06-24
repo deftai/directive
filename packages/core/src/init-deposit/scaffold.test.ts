@@ -259,6 +259,21 @@ describe("init-deposit scaffold", () => {
     ).toBe(false);
   });
 
+  it("warns when git config cannot wire core.hooksPath", () => {
+    const project = freshRoot("scaffold-hooks-config-fail-");
+    const deftDir = join(project, ".deft/core");
+    seedFramework(deftDir);
+    const { lines, io } = captureIo();
+    expect(
+      writeConsumerGitHooks(project, deftDir, io, {
+        getHooksPath: () => "",
+        setHooksPath: () => false,
+      }),
+    ).toBe(true);
+    expect(lines.join("")).toContain("Warning: could not set core.hooksPath");
+    expect(lines.join("")).toContain(".githooks/ deposited");
+  });
+
   it("refreshes a stale deft-core guard and skips absent hook sources", () => {
     const project = freshRoot("scaffold-guard-refresh-");
     const deftDir = join(project, ".deft/core");

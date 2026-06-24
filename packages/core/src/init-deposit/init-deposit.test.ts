@@ -151,7 +151,11 @@ describe("runInitDeposit", () => {
     });
 
     expect(code).toBe(0);
-    const payload = JSON.parse(out.join(""));
+    const parsed: unknown = JSON.parse(out.join(""));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("expected JSON object from init --json");
+    }
+    const payload = parsed as Record<string, unknown>;
     expect(payload.success).toBe(true);
     expect(payload.action).toBe("install");
     expect(payload.taskfile_wired).toBe(true);

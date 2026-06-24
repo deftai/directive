@@ -473,7 +473,7 @@ export function writeConsumerGitHooks(
   const dstDir = join(projectDir, ".githooks");
   mkdirSync(dstDir, { recursive: true });
 
-  let deposited = false;
+  let filesDeposited = false;
   for (const name of HOOK_FILENAMES) {
     const src = join(srcDir, name);
     if (!existsSync(src)) continue;
@@ -482,14 +482,14 @@ export function writeConsumerGitHooks(
     const existing = existsSync(dst) ? readFileSync(dst) : null;
     if (!existing?.equals(data)) {
       writeFileSync(dst, data, { mode: HOOK_FILE_MODE });
-      deposited = true;
+      filesDeposited = true;
     }
     if (platform() !== "win32") {
       try {
         const mode = statSync(dst).mode & 0o777;
         if ((mode & 0o111) === 0) {
           chmodSync(dst, HOOK_FILE_MODE);
-          deposited = true;
+          filesDeposited = true;
         }
       } catch {
         // non-fatal
@@ -521,17 +521,27 @@ export function writeConsumerGitHooks(
 
   const target = ".githooks";
   const current = getHooksPath(projectDir) ?? "";
-  if (current !== target && setHooksPath(projectDir, target)) {
-    deposited = true;
-    io.printf("git hooks wired: core.hooksPath=.githooks (#1463).\n");
-  } else if (current === target) {
+  let configWired = false;
+  if (current !== target) {
+    if (setHooksPath(projectDir, target)) {
+      configWired = true;
+      io.printf("git hooks wired: core.hooksPath=.githooks (#1463).\n");
+    } else {
+      io.printf(
+        "Warning: could not set core.hooksPath=.githooks — run `git config core.hooksPath .githooks` manually.\n",
+      );
+    }
+  } else {
     io.printf("git hooks already wired — skipping core.hooksPath write.\n");
   }
 
-  if (deposited) {
+  if (filesDeposited) {
     io.printf(".githooks/ deposited at project root (#1463).\n");
+  } else if (configWired) {
+    io.printf(".githooks/ already present; git config updated (#1463).\n");
   }
-  return deposited;
+
+  return filesDeposited || configWired;
 }
 
 function escapeEre(value: string): string {
@@ -648,7 +658,11 @@ export function ensureGreptileIgnore(projectDir: string, io: InitDepositIo): boo
   if (!raw.trim()) raw = "{}";
   let obj: Record<string, unknown>;
   try {
-    obj = JSON.parse(raw) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("greptile.json root must be a JSON object");
+    }
+    obj = parsed as Record<string, unknown>;
   } catch (cause) {
     throw new Error(`could not parse greptile.json (leaving it unchanged): ${String(cause)}`);
   }
