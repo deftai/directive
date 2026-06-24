@@ -15,6 +15,7 @@ import {
   provisionCanonicalVendoredDeposit,
   provisionLegacyFixture,
   runLegacyBridgeLeg,
+  selectBridgeAsset,
 } from "./legacy-bridge-leg.js";
 import { runE2e } from "./main.js";
 import * as rehearsalModule from "./rehearsal.js";
@@ -140,6 +141,65 @@ describe("provisionCanonicalVendoredDeposit", () => {
     expect(existsSync(join(deftDir, "main.md"))).toBe(true);
     expect(agentsRendered).toBe(false);
     expect(detectLegacyLayout(project).legacy).toBe(false);
+  });
+});
+
+describe("selectBridgeAsset", () => {
+  const multi = [
+    "deft-install-darwin-amd64",
+    "deft-install-darwin-arm64",
+    "deft-install-linux-amd64",
+    "deft-install-linux-arm64",
+    "deft-install-windows-amd64.exe",
+    "checksums.txt",
+  ];
+
+  it("returns none when no deft-install asset is present", () => {
+    expect(selectBridgeAsset(["checksums.txt", "README.md"])).toEqual({ kind: "none" });
+  });
+
+  it("uses the sole deft-install asset for a single-binary release", () => {
+    expect(selectBridgeAsset(["deft-install", "checksums.txt"])).toEqual({
+      kind: "ok",
+      name: "deft-install",
+    });
+  });
+
+  it("selects the GOOS/GOARCH-matching asset, not the alphabetical first", () => {
+    // Alphabetical assets[0] would be darwin-amd64; linux/amd64 must win on a linux host.
+    expect(selectBridgeAsset(multi, "linux", "x64")).toEqual({
+      kind: "ok",
+      name: "deft-install-linux-amd64",
+    });
+    expect(selectBridgeAsset(multi, "darwin", "arm64")).toEqual({
+      kind: "ok",
+      name: "deft-install-darwin-arm64",
+    });
+    expect(selectBridgeAsset(multi, "win32", "x64")).toEqual({
+      kind: "ok",
+      name: "deft-install-windows-amd64.exe",
+    });
+  });
+
+  it("falls back to a GOOS-only match when the arch suffix is absent", () => {
+    expect(
+      selectBridgeAsset(["deft-install-linux", "deft-install-darwin"], "linux", "x64"),
+    ).toEqual({ kind: "ok", name: "deft-install-linux" });
+  });
+
+  it("reports no-platform-match (with candidates) when nothing matches the host", () => {
+    const result = selectBridgeAsset(
+      ["deft-install-darwin-arm64", "deft-install-windows-amd64.exe"],
+      "linux",
+      "x64",
+    );
+    expect(result.kind).toBe("no-platform-match");
+    if (result.kind === "no-platform-match") {
+      expect(result.candidates).toEqual([
+        "deft-install-darwin-arm64",
+        "deft-install-windows-amd64.exe",
+      ]);
+    }
   });
 });
 

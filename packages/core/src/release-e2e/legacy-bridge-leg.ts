@@ -262,6 +262,66 @@ export function assertNpmHybridMigration(
   ];
 }
 
+/** Map a Node `process.platform` value to the Go release `GOOS` asset token. */
+function goOsToken(platform: NodeJS.Platform): string {
+  if (platform === "win32") return "windows";
+  return platform; // "linux" / "darwin" line up with GOOS as-is
+}
+
+/** Map a Node `process.arch` value to the Go release `GOARCH` asset token. */
+function goArchToken(arch: string): string {
+  if (arch === "x64") return "amd64";
+  return arch; // "arm64" lines up with GOARCH as-is
+}
+
+/** The outcome of resolving which downloaded asset is the bridge binary for this host. */
+export type BridgeAssetSelection =
+  | { kind: "ok"; name: string }
+  | { kind: "none" }
+  | { kind: "no-platform-match"; candidates: string[] };
+
+/**
+ * Pick the deft-install bridge binary matching the current host platform/arch.
+ *
+ * Go releases publish one asset per OS/arch (e.g. `deft-install-linux-amd64`,
+ * `deft-install-darwin-arm64`, `deft-install-windows-amd64.exe`). Selecting
+ * `assets[0]` alphabetically silently picks the wrong binary on a multi-asset
+ * release (darwin sorts before linux), producing an exec-format failure on a
+ * non-Darwin runner. This resolves the host-matching asset instead and reports
+ * a precise outcome when none matches:
+ *   - single deft-install asset -> use it (single-binary releases, back-compat);
+ *   - prefer an asset whose name carries BOTH the GOOS and GOARCH tokens;
+ *   - else fall back to a GOOS-only match (releases that omit the arch suffix);
+ *   - else `no-platform-match` so the caller fails loudly rather than guessing.
+ */
+export function selectBridgeAsset(
+  fileNames: readonly string[],
+  platform: NodeJS.Platform = process.platform,
+  arch: string = process.arch,
+): BridgeAssetSelection {
+  const candidates = fileNames.filter((name) => /deft-install/i.test(name));
+  if (candidates.length === 0) {
+    return { kind: "none" };
+  }
+  if (candidates.length === 1) {
+    return { kind: "ok", name: candidates[0] as string };
+  }
+  const os = goOsToken(platform).toLowerCase();
+  const cpu = goArchToken(arch).toLowerCase();
+  const osArch = candidates.find((name) => {
+    const lower = name.toLowerCase();
+    return lower.includes(os) && lower.includes(cpu);
+  });
+  if (osArch !== undefined) {
+    return { kind: "ok", name: osArch };
+  }
+  const osOnly = candidates.find((name) => name.toLowerCase().includes(os));
+  if (osOnly !== undefined) {
+    return { kind: "ok", name: osOnly };
+  }
+  return { kind: "no-platform-match", candidates: [...candidates] };
+}
+
 /**
  * The frozen-mode real handoff (reached ONLY once the operator pins the SoT):
  * download the frozen Go bridge binary at the pinned tag and run it against a
@@ -303,16 +363,23 @@ export function downloadAndRunFrozenBridge(
       ];
     }
 
-    const assets = readdirSync(assetDir).filter((name) => /deft-install/i.test(name));
-    const binary = assets[0];
-    if (binary === undefined) {
+    const selection = selectBridgeAsset(readdirSync(assetDir));
+    if (selection.kind === "none") {
       return [
         false,
         `frozen bridge ${pin} downloaded but no deft-install asset found in ${assetDir} ` +
           `(see ${GO_BRIDGE_RELEASES_URL})`,
       ];
     }
-    const binaryPath = join(assetDir, binary);
+    if (selection.kind === "no-platform-match") {
+      return [
+        false,
+        `frozen bridge ${pin} downloaded but no deft-install asset matches ` +
+          `${goOsToken(process.platform)}/${goArchToken(process.arch)} ` +
+          `(candidates: ${selection.candidates.join(", ")}; see ${GO_BRIDGE_RELEASES_URL})`,
+      ];
+    }
+    const binaryPath = join(assetDir, selection.name);
     try {
       chmodSync(binaryPath, 0o755);
     } catch {
