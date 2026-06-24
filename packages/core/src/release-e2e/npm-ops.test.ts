@@ -1,10 +1,46 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
+import { runInitDeposit } from "../init-deposit/init-deposit.js";
+import { runRefreshDeposit } from "../init-deposit/refresh.js";
 import type { SpawnResult } from "../release/types.js";
 import { alignNpmPackageVersions, rehearseNpmPublish, resolvePnpm } from "./npm-ops.js";
 import type { E2ESeams } from "./types.js";
+
+function installFakeContentPackage(projectRoot: string, version = "0.53.0"): string {
+  const pkgDir = join(projectRoot, "node_modules", "@deftai", "directive-content");
+  mkdirSync(join(pkgDir, "templates"), { recursive: true });
+  mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
+  mkdirSync(join(pkgDir, ".githooks"), { recursive: true });
+  writeFileSync(
+    join(pkgDir, "package.json"),
+    JSON.stringify({ name: CONTENT_PACKAGE_NAME, version }),
+    "utf8",
+  );
+  copyFileSync(
+    join(process.cwd(), "content/templates/agents-entry.md"),
+    join(pkgDir, "templates/agents-entry.md"),
+  );
+  writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");
+  writeFileSync(join(pkgDir, "vbrief", "schemas", "cache-meta.schema.json"), "{}\n", "utf8");
+  writeFileSync(join(pkgDir, "vbrief", "vbrief.md"), "# vbrief\n", "utf8");
+  writeFileSync(join(pkgDir, ".githooks", "pre-commit"), "#!/bin/sh\nexit 0\n", "utf8");
+  chmodSync(join(pkgDir, ".githooks", "pre-commit"), 0o755);
+  writeFileSync(join(pkgDir, "Taskfile.yml"), "version: '3'\n", "utf8");
+  return pkgDir;
+}
 
 function scaffoldPackages(cloneDir: string): void {
   const manifests: Record<string, unknown> = {
@@ -35,6 +71,88 @@ function scaffoldPackages(cloneDir: string): void {
 function ok(): SpawnResult {
   return { status: 0, stdout: "", stderr: "" };
 }
+
+describe("deposit journey e2e legs (#1942 S5)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  it("greenfield leg: directive init deposits hybrid shape without Go binary", async () => {
+    const spawnSpy = vi.spyOn(spawnSync as never, "apply" as never).mockImplementation(() => {
+      throw new Error("spawnSync should not be called on TS-native init happy path");
+    });
+
+    const project = freshRoot("e2e-greenfield-");
+    const contentRoot = installFakeContentPackage(project);
+
+    const result = await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+      },
+    );
+
+    expect(result.deftDir).toBe(join(project, ".deft/core"));
+    expect(readFileSync(join(result.deftDir, "main.md"), "utf8")).toContain("# Deft");
+    expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("deft:managed-section");
+    expect(existsSync(join(project, "vbrief", "active", ".gitkeep"))).toBe(true);
+    expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft/core/");
+    expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
+    expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain(
+      "./.deft/core/Taskfile.yml",
+    );
+    expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it("upgrade leg: directive update refresh is idempotent with no spurious AGENTS.md diff", async () => {
+    const project = freshRoot("e2e-upgrade-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
+    const io = { printf: vi.fn() };
+    const seams = {
+      resolveContentRoot: async () => contentRoot,
+      readEngineVersion: () => "0.53.0",
+      nowIso: () => "2026-06-24T12:00:00Z",
+      gitPorcelain: () => "",
+    };
+    const args = {
+      projectDir: project,
+      jsonOut: false,
+      nonInteractive: true,
+      upgrade: true,
+    };
+
+    await runInitDeposit(args, io, {
+      ...seams,
+      gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+    });
+
+    io.printf.mockClear();
+    await runRefreshDeposit(args, io, seams);
+    const firstAgents = readFileSync(join(project, "AGENTS.md"), "utf8");
+
+    io.printf.mockClear();
+    const second = await runRefreshDeposit(args, io, seams);
+    const secondAgents = readFileSync(join(project, "AGENTS.md"), "utf8");
+
+    expect(secondAgents).toBe(firstAgents);
+    expect(second.agentsMdUpdated).toBe(false);
+    expect(existsSync(join(project, ".deft/core", "main.md"))).toBe(true);
+  });
+});
 
 describe("resolvePnpm", () => {
   it("prefers a pnpm binary on PATH", () => {

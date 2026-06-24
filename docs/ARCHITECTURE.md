@@ -11,7 +11,7 @@ Deft Directive is a self-dogfooded framework for AI-assisted software work. It i
 - Agent-consumed rules, skills, standards, strategies, and templates.
 - A Taskfile-first deterministic command graph.
 - Python tooling plus the TypeScript package engine for validation, rendering, lifecycle movement, cache/triage/scope automation, doctor checks, release support, codebase extraction contracts, CLI shims, and parity harnesses.
-- A Go installer that deposits and upgrades the framework payload in `.deft/core/`.
+- npm packages (`@deftai/directive` + `@deftai/directive-content`) with TS-native `directive init` / `directive update` resolve-and-copy deposit into gitignored `.deft/core/`, plus a frozen Go binary retained only as a legacy layout bridge and node-independent health gate.
 - vBRIEF files as durable project, specification, lifecycle, policy, and architecture metadata.
 - Local cache/audit surfaces for backlog triage and GitHub issue ingestion.
 - PR, release, swarm, branch-policy, and verification gates.
@@ -46,7 +46,7 @@ The loop is deliberate. Guidance tells agents how to behave, tasks make that beh
 - `~/.config/deft/USER.md` stores personal preferences, with its Personal section taking precedence for user-defined preferences.
 - `vbrief/PROJECT-DEFINITION.vbrief.json` stores project identity, policy, lifecycle registry, and authored architecture metadata.
 
-Consumer installs point agents at `.deft/core/main.md`. The canonical installer and upgrade path preserve that `.deft/core/` layout; legacy clone layouts are upgrade/migration inputs, not the preferred target state.
+Consumer installs point agents at `.deft/core/main.md`. The canonical path is `npm i -g @deftai/directive` followed by `directive init` (greenfield) or `directive update` (refresh) — both resolve the locally installed `@deftai/directive-content` package and copy it into gitignored `.deft/core/`. Legacy Go-installer and git-clone layouts are migration inputs, not the preferred target state.
 
 ## Rule Authority
 
@@ -93,20 +93,18 @@ flowchart LR
 | Task runner | `Taskfile.yml`, `tasks/*.yml` | Deterministic command contract and composable command namespaces. |
 | Python tooling | `scripts/*.py`, `run`, `run.py`, `run.bat` | Validators, renderers, lifecycle tools, issue/cache/triage automation, doctor/session gates, codebase provider contracts, and compatibility routing. |
 | TypeScript engine | `packages/`, `package.json`, `pnpm-workspace.yaml`, `tsconfig*.json`, `vitest.config.ts` | Migrated deterministic gates, CLI shims, and Python-oracle parity harnesses for the #1530 engine migration. |
-| Go installer | `cmd/deft-install/`, `go.mod` | Cross-platform installer/upgrade binary, `.deft/core` payload management, AGENTS managed section refresh, Taskfile wiring, and doctor handoff. |
+| Go installer (legacy bridge) | `cmd/deft-install/`, `go.mod` | Frozen cross-platform tarball deposit for offline/air-gapped and legacy layout migration; superseded by TS-native `directive init` / `directive update` for normal installs (#1942). |
 | vBRIEF metadata | `vbrief/**/*.json`, `vbrief/**/*.md` | Project identity, scope lifecycle, schemas, policy, specification source, and authored `codeStructure`. |
 | Content packs | `packs/` | Curated agent memory packs rendered and checked through `task packs:*`. |
 | CI/release automation | `.github/`, `.githooks/`, `tasks/pr.yml`, `tasks/release.yml`, release scripts | Branch policy, PR readiness, release, publish, rollback, and local hook enforcement. |
 | Tests | `tests/` | CLI, content, contract, lifecycle, and regression coverage. |
 
-## Wave 5 Target — npm-Native Distribution (planned, not yet implemented)
+## npm-Native Distribution (current)
 
-> **Status: target architecture, not current behavior.** Today the Go installer downloads a payload tarball and deposits a *committed* `.deft/core/`. This section describes the npm-native model Wave 5 moves toward. Tracking: [#1669](https://github.com/deftai/directive/issues/1669) (epic), [#1933](https://github.com/deftai/directive/issues/1933), [#1942](https://github.com/deftai/directive/issues/1942), [#1941](https://github.com/deftai/directive/issues/1941), [#1912](https://github.com/deftai/directive/issues/1912), [#1860](https://github.com/deftai/directive/issues/1860).
-
-Distribution splits into two npm packages and a thin local materialization step:
+Distribution splits into two npm packages and a thin local materialization step. Shipped in Wave 5 ([#1669](https://github.com/deftai/directive/issues/1669), [#1942](https://github.com/deftai/directive/issues/1942)); the frozen Go binary role is further constrained by [#1933](https://github.com/deftai/directive/issues/1933) and [#1912](https://github.com/deftai/directive/issues/1912).
 
 - **`@deftai/directive`** — the engine/CLI (Node 20+ required to *run* Deft). Binaries: `directive`, `deft`.
-- **`@deftai/directive-content`** — the framework content (skills, templates, schemas, standards) shipped pre-flattened in the consumer `.deft/core/` layout. It is a **dependency** of the engine, so npm resolves a version-coherent pair at install time.
+- **`@deftai/directive-content`** — the framework content (skills, templates, schemas, standards) shipped from the repo `content/` tree via the content package prepack. It is a **dependency** of the engine, so npm resolves a version-coherent pair at install time.
 
 ```mermaid
 flowchart LR
@@ -116,16 +114,14 @@ flowchart LR
     Gate -->|"health probe / legacy layout reshape"| Proj
 ```
 
-Key properties of the target model:
+Key properties of the current model:
 
-- **Global install ≠ project deposit.** `npm i -g` only places versioned files in the global npm tree; it never touches a project directory. `directive init` is the materialization step that **resolves the locally-installed `@deftai/directive-content` and copies its tree** into this project's `./.deft/core/`, then renders `AGENTS.md`, scaffolds `vbrief/`, installs `.githooks/`, deposits #1430 neutralization, and stamps provenance. `directive update` refreshes the same way. This is **resolve-and-copy, not re-download** — the on-machine content package is the source (the `node_modules` model).
-- **`.deft/core/` becomes gitignored** and is reconstituted by `directive init` on fresh checkouts (like `node_modules`), reversing today's committed-payload model.
+- **Global install ≠ project deposit.** `npm i -g` only places versioned files in the global npm tree; it never touches a project directory. `directive init` is the materialization step that **resolves the locally-installed `@deftai/directive-content` and copies its tree** into this project's `./.deft/core/`, then renders `AGENTS.md`, scaffolds `vbrief/`, wires `.githooks/` when present in the content tree, deposits #1430 neutralization, and stamps provenance. `directive update` refreshes the same way. This is **resolve-and-copy, not re-download** — the on-machine content package is the source (the `node_modules` model).
+- **`.deft/core/` is gitignored** on greenfield installs and is reconstituted by `directive init` on fresh checkouts (like `node_modules`). Existing tracked deposits are migrated to hybrid by [#1941](https://github.com/deftai/directive/issues/1941).
 - **Per-project version pinning** via `devDependencies` + `npx` gives teams/CI a reproducible engine↔content pair.
 - **Frozen Go binary** stays bundled per-platform inside the npm package, but only as a **node-independent, read-only health gate** (every-session pre-engine probe) and a **legacy on-disk-layout reshaper**. It no longer fetches payloads or performs first-start installs (#1933).
 - **Offline** = sideload both package tarballs, then `directive init` copies locally — no network in the happy path.
 - **No surface bakes an install/upgrade command.** The engine, the Go gate, and `deft doctor` all point to the canonical install anchor in `README.md` rather than emitting a command that can go stale (#1912).
-
-When this lands, the "today" statements elsewhere that describe the committed-vendored model (README's "the installer vendors the deft framework payload into `.deft/core/`" and `content/events/README.md`'s "`.deft/core/` is a committed payload") must flip to match.
 
 ## Command Surface
 

@@ -6,7 +6,7 @@
   "plan": {
     "id": "s5-docs-flip-e2e-legs",
     "title": "S5: docs flip + greenfield/upgrade e2e legs",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
     "narratives": {
       "Description": "Today's docs describe the Go-tarball, committed-.deft/core model, which contradicts the npm resolve-and-copy + gitignored model this epic delivers. This story flips the now-stale committed-payload statements (README, content/events/README.md) and finalizes the docs/ARCHITECTURE.md npm two-package section from a Wave 5 Target note to current behavior, then adds greenfield and upgrade legs to the pinned e2e so the deposit journeys are regression-guarded. It lands last because it documents and tests the behavior the earlier stories implement.",
@@ -17,7 +17,7 @@
       {
         "id": "s5-docs-flip-e2e-legs-a1",
         "title": "When a reader opens README and content/events/README.md, the text describes the resolve-and-copy gitignored model rather than a committed payload.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When a reader opens README and content/events/README.md, the text describes the resolve-and-copy gitignored model rather than a committed payload."
         }
@@ -25,7 +25,7 @@
       {
         "id": "s5-docs-flip-e2e-legs-a2",
         "title": "docs/ARCHITECTURE.md renders the npm two-package section as current behavior rather than a Wave 5 Target.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "docs/ARCHITECTURE.md renders the npm two-package section as current behavior rather than a Wave 5 Target."
         }
@@ -33,7 +33,7 @@
       {
         "id": "s5-docs-flip-e2e-legs-a3",
         "title": "The pinned e2e creates greenfield and upgrade deposit legs that exercise directive init and update without the Go binary.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The pinned e2e creates greenfield and upgrade deposit legs that exercise directive init and update without the Go binary."
         }
@@ -41,7 +41,7 @@
       {
         "id": "s5-docs-flip-e2e-legs-a4",
         "title": "When the e2e legs run, they validate the deposit journeys and complete green.",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When the e2e legs run, they validate the deposit journeys and complete green."
         }
@@ -106,6 +106,6 @@
         "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
       }
     ],
-    "updated": "2026-06-24T20:58:44Z"
+    "updated": "2026-06-24T21:30:00Z"
   }
 }

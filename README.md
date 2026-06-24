@@ -84,7 +84,7 @@ The Go installer is a **legacy bridge**, not the first-start installer — npm i
   chmod +x install-linux-amd64 && ./install-linux-amd64
   ```
 
-The installer vendors the deft framework payload into `.deft/core/`, wires it into your project's `AGENTS.md`, and creates your user config directory.
+The legacy Go installer deposits a tarball payload into `.deft/core/` on disk. For normal installs, use npm (`npm i -g @deftai/directive`) and then `directive init` in your project — init resolves the locally installed `@deftai/directive-content` package and copies it into gitignored `.deft/core/`, renders `AGENTS.md`, scaffolds `vbrief/`, and creates your user config directory.
 
 #### Agent / headless install
 

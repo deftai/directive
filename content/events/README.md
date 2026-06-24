@@ -58,9 +58,9 @@ emission is appended as a single JSON line.
 for pairing semantics, enforces required-payload contracts, and persists to
 `<project_root>/.deft-cache/events.jsonl` (or a path injected via `log_path` /
 `DEFT_EVENT_LOG`). The log lives under the already-gitignored `.deft-cache/`
-rather than `.deft/`, which is no longer blanket-gitignored now that
-`.deft/core/` is a committed payload (#11 / #1465). Use this helper when
-emitting behavioral events from
+rather than `.deft/`, because `.deft/` is not blanket-gitignored on hybrid
+installs (`.deft/core/` is gitignored and reconstituted by `directive init`,
+per #1942 / #1465). Use this helper when emitting behavioral events from
 skills (`python -m scripts._events emit ...`).
 
 ## Adding an event
