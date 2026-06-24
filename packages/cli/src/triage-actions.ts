@@ -146,7 +146,7 @@ export function run(argv: string[]): number {
     process.stderr.write("triage_actions: argument --reason: expected one argument\n");
     return 2;
   }
-  if (args.cmd === "mark-duplicate" && args.ofN === undefined) {
+  if (args.cmd === "mark-duplicate" && (args.ofN === undefined || Number.isNaN(args.ofN))) {
     process.stderr.write("triage_actions: argument --of: expected one argument\n");
     return 2;
   }
@@ -181,11 +181,12 @@ export function run(argv: string[]): number {
       });
       process.stdout.write(`needs-ac #${n} (${repo}) -> ${decisionId}\n`);
     } else if (args.cmd === "mark-duplicate") {
-      const decisionId = markDuplicate(n, repo, args.ofN ?? 0, deps, {
+      const ofN = args.ofN as number;
+      const decisionId = markDuplicate(n, repo, ofN, deps, {
         actor: args.actor,
         projectRoot,
       });
-      process.stdout.write(`mark-duplicate #${n} -> #${args.ofN} (${repo}) -> ${decisionId}\n`);
+      process.stdout.write(`mark-duplicate #${n} -> #${ofN} (${repo}) -> ${decisionId}\n`);
     } else if (args.cmd === "status") {
       process.stdout.write(`${formatDecision(status(n, repo, deps, { projectRoot }))}\n`);
     } else if (args.cmd === "reset") {

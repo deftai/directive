@@ -98,6 +98,12 @@ describe("run", () => {
     expect(run(["accept", "--repo", "deftai/directive"])).toBe(2);
   });
 
+  it("returns 2 for mark-duplicate with invalid --of", () => {
+    expect(
+      run(["mark-duplicate", "--issue", "7", "--repo", "deftai/directive", "--of", "abc"]),
+    ).toBe(2);
+  });
+
   it("returns 2 for mark-duplicate without --of", () => {
     expect(run(["mark-duplicate", "--issue", "7", "--repo", "deftai/directive"])).toBe(2);
   });

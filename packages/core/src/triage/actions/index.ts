@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { CacheNotFoundError } from "../../cache/errors.js";
 import { cacheGet } from "../../cache/operations.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
@@ -176,7 +177,9 @@ function findByIssue(issueNumber: number, repo: string, projectRoot: string): Au
     const stripped = line.trim();
     if (!stripped) continue;
     try {
-      const row = JSON.parse(stripped) as AuditEntry;
+      const parsed = JSON.parse(stripped) as unknown;
+      if (typeof parsed !== "object" || parsed === null) continue;
+      const row = parsed as AuditEntry;
       if (row.repo === repo && row.issue_number === issueNumber) {
         out.push(row);
       }
@@ -432,9 +435,12 @@ export function markDuplicate(
   try {
     cacheGet("github-issue", key, { allowStale: true, cacheRoot: cacheRootFor(projectRoot) });
   } catch (exc) {
-    throw new TriageError(
-      `mark-duplicate target #${ofN} not found in cache for ${repo}: ${exc instanceof Error ? exc.message : String(exc)}`,
-    );
+    if (exc instanceof CacheNotFoundError) {
+      throw new TriageError(
+        `mark-duplicate target #${ofN} not found in cache for ${repo}: ${exc.message}`,
+      );
+    }
+    throw exc;
   }
   const prior = isIdempotentRepeat(deps, issueNumber, repo, "mark-duplicate", projectRoot, ofN);
   if (prior !== null) {
