@@ -6,7 +6,7 @@
   "plan": {
     "id": "s3-directive-update-ts-native",
     "title": "S3: directive update TS-native healthy-path refresh",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
     "narratives": {
       "Description": "directive update today spawnSyncs the Go binary's upgrade path to refresh .deft/core. This story rewrites update to refresh .deft/core idempotently from the pinned @deftai/directive-content using the S1 primitive and the S2 orchestrator, re-render the AGENTS.md managed-section in place (surgical, self-healing), and honor the #1430 deft-core-guard PR separation. The refresh is engine-vs-content version-skew aware and emits the wizard's refresh side-effect disclosure.",
@@ -85,7 +85,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to cmd/deft-install/setup.go (WriteAgentsMD rewrite branch, refresh side-effects) and #1942 scope, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T20:34:01Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -115,6 +117,6 @@
         "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
       }
     ],
-    "updated": "2026-06-24T20:28:39Z"
+    "updated": "2026-06-24T20:34:01Z"
   }
 }
