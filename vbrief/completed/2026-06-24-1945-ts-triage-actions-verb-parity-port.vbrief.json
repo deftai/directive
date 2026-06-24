@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(triage,ts): port the missing triage-actions verbs to TS (needs-ac/mark-duplicate/status/reset/history)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The TypeScript triage-actions CLI implements only accept/reject/defer. The router maps five more verbs to the same module (needs-ac, mark-duplicate, status, reset, history) but the TS CLI rejects them at its arg guard, so they exist only in the Python twin scripts/triage_actions.py. Port the five missing verbs to the TS actions module + CLI with parity tests against the Python oracle. This is a hard parity prerequisite for the #1860 Python purge.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1945",
@@ -61,7 +61,7 @@
         "title": "Issue #1886 (parent finding this was split from)"
       }
     ],
-    "updated": "2026-06-24T15:57:32Z",
+    "updated": "2026-06-24T18:24:48Z",
     "id": "2026-06-24-1945-ts-triage-actions-verb-parity-port",
     "metadata": {
       "kind": "story",
@@ -91,7 +91,8 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to the Python oracle scripts/triage_actions.py via parity fixtures, not a spec section."
       },
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-06-24T18:24:48Z"
     }
   }
 }

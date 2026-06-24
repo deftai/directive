@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(triage,cache): make the triage cache faithful to upstream state (reconcile-default + self-healing ritual + drift-aware freshness gate)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The triage cache never reconciles open→closed transitions, so triage:queue surfaces closed/completed work as untriaged and verify:cache-fresh reports a materially-wrong cache as fresh. Make 'fresh' mean 'faithful to upstream state for everything in scope' rather than 'something was fetched recently': fold the existing cacheRefreshClosed reconcile into the default cache:fetch-all run, make the session ritual self-healing, and make the freshness gate completeness/drift-aware. Also fold secondary finding #1 (evaluate.ts reads d.issue but the writer emits issue_number).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1886",
@@ -57,7 +57,7 @@
         "title": "Issue #1886: Triage cache never reconciles open→closed issues; queue surfaces closed/completed work as untriaged and verify:cache-fresh can't detect the drift"
       }
     ],
-    "updated": "2026-06-24T15:57:08Z",
+    "updated": "2026-06-24T18:24:47Z",
     "id": "2026-06-24-1886-cache-faithfulness-reconcile-default-ritual-heal-drift-gate",
     "metadata": {
       "kind": "story",
@@ -88,7 +88,8 @@
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to the evidence-closed forensic investigation in issue #1886 (root-cause facts 1-4 + proposed fix) rather than a spec section."
       },
-      "capacityBucket": "bug-fix"
+      "capacityBucket": "bug-fix",
+      "completedAt": "2026-06-24T18:24:47Z"
     }
   }
 }
