@@ -145,7 +145,8 @@ function stableStringify(entry: AuditEntry): string {
   return JSON.stringify(sorted);
 }
 
-function readAll(repo: string | null, logPath: string): AuditEntry[] {
+/** Read every well-formed audit-log row in insertion order (#1698 shared reader). */
+export function readAuditLog(logPath: string, repo: string | null = null): AuditEntry[] {
   if (!existsSync(logPath)) {
     return [];
   }
@@ -160,7 +161,57 @@ function readAll(repo: string | null, logPath: string): AuditEntry[] {
       const row = obj as AuditEntry;
       if (repo !== null && row.repo !== repo) continue;
       out.push(row);
-    } catch {}
+    } catch {
+      // tolerate malformed lines — mirrors candidates_log.read_all
+    }
+  }
+  return out;
+}
+
+/** Return every entry for ``(repo, issue_number)`` in insertion order. */
+export function findByIssue(issueNumber: number, repo: string, logPath: string): AuditEntry[] {
+  return readAuditLog(logPath, repo).filter((row) => row.issue_number === issueNumber);
+}
+
+/**
+ * Canonical latest decision for ``(repo, issue_number)`` — no actor filter.
+ * Backfilled ``agent:bootstrap`` / ``agent:reconcile`` entries count equally.
+ */
+export function latestDecisionForIssue(
+  issueNumber: number,
+  repo: string,
+  logPath: string,
+): AuditEntry | null {
+  const rows = findByIssue(issueNumber, repo, logPath);
+  if (rows.length === 0) return null;
+  rows.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+  return rows.at(-1) ?? null;
+}
+
+/** Collapse audit-log entries to ``{(repo, issue_number): decision}`` by timestamp. */
+export function latestDecisions(
+  entries: Iterable<AuditEntry | Record<string, unknown>>,
+): Map<string, string> {
+  const rows: Array<[string, string, number, string]> = [];
+  for (const entry of entries) {
+    const repo = entry.repo;
+    const issueNumber = entry.issue_number;
+    const decision = entry.decision;
+    const timestamp = entry.timestamp;
+    if (
+      typeof repo === "string" &&
+      typeof issueNumber === "number" &&
+      Number.isInteger(issueNumber) &&
+      typeof decision === "string" &&
+      typeof timestamp === "string"
+    ) {
+      rows.push([timestamp, repo, issueNumber, decision]);
+    }
+  }
+  rows.sort((a, b) => a[0].localeCompare(b[0]));
+  const out = new Map<string, string>();
+  for (const [_ts, repo, n, decision] of rows) {
+    out.set(`${repo}\0${n}`, decision);
   }
   return out;
 }
@@ -182,10 +233,7 @@ export function createCandidatesLog(defaultProjectRoot: string): CandidatesLog {
       options?: { path?: string },
     ): AuditEntry | null {
       const logPath = resolveLogPath(defaultProjectRoot, options?.path);
-      const rows = readAll(repo, logPath).filter((row) => row.issue_number === issueNumber);
-      if (rows.length === 0) return null;
-      rows.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
-      return rows.at(-1) ?? null;
+      return latestDecisionForIssue(issueNumber, repo, logPath);
     },
 
     newDecisionId(): string {

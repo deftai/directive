@@ -164,6 +164,25 @@ describe("populated cache", () => {
     expect(result.untriaged).toBe(0);
     expect(formatOneLiner(result)).toContain("0 untriaged");
   });
+
+  it("counts backfilled accept toward in-flight cache scope (#1698)", () => {
+    const root = mkRoot();
+    makeCachedIssue(join(root, ".deft-cache"), "deftai/directive", 42);
+    writeAuditLog(root, [
+      {
+        actor: "agent:reconcile",
+        decision: "accept",
+        decision_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        issue_number: 42,
+        repo: "deftai/directive",
+        reason: "reconcile backfill (#1468): vBRIEF present in vbrief/proposed/",
+        timestamp: "2026-06-18T12:00:00Z",
+      },
+    ]);
+    const result = computeSummary(root);
+    expect(result.inFlightCacheScoped).toBe(1);
+    expect(result.untriaged).toBe(0);
+  });
 });
 
 describe("WIP warning glyph", () => {
