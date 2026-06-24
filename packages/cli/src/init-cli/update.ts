@@ -1,12 +1,12 @@
+import { parseUpdateArgv, runRefreshDepositCli } from "@deftai/directive-core/init-deposit";
 import type { DispatchIo } from "../dispatch.js";
 import { CANONICAL_UPDATE_ARGV } from "./constants.js";
-import { runDeftInstall } from "./run-deft-install.js";
 
-export function runUpdate(argv: readonly string[], io: DispatchIo): number {
-  return runDeftInstall({
-    verb: "update",
-    canonicalArgv: CANONICAL_UPDATE_ARGV,
-    userArgv: argv,
-    io,
+export function runUpdate(argv: readonly string[], io: DispatchIo): Promise<number> {
+  const args = parseUpdateArgv(CANONICAL_UPDATE_ARGV, argv);
+  return runRefreshDepositCli({
+    ...args,
+    writeOut: io.writeOut,
+    writeErr: io.writeErr,
   });
 }

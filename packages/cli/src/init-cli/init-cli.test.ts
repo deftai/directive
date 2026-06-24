@@ -14,6 +14,7 @@ import {
   resolveBundledDeftInstallBinary,
 } from "./resolve-binary.js";
 import { runDeftInstall } from "./run-deft-install.js";
+import { runUpdate } from "./update.js";
 
 function captureIo(): { io: DispatchIo; out: string[]; err: string[] } {
   const out: string[] = [];
@@ -137,6 +138,40 @@ describe("runInit TS-native deposit", () => {
       }),
     );
     expect(CANONICAL_INIT_ARGV).toContain("--yes");
+  });
+});
+
+describe("runUpdate TS-native refresh", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("does not spawn bundled deft-install on the happy path", async () => {
+    const spawnSpy = vi.spyOn(spawnSync as never, "apply" as never);
+    const refreshSpy = vi.spyOn(initDeposit, "runRefreshDepositCli").mockResolvedValue(0);
+    const { io } = captureIo();
+
+    const code = await runUpdate([], io);
+
+    expect(code).toBe(0);
+    expect(refreshSpy).toHaveBeenCalledOnce();
+    expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it("passes canonical update argv through parseUpdateArgv", async () => {
+    const refreshSpy = vi.spyOn(initDeposit, "runRefreshDepositCli").mockResolvedValue(0);
+    const { io } = captureIo();
+
+    await runUpdate(["--repo-root", "/tmp/custom"], io);
+
+    expect(refreshSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectDir: "/tmp/custom",
+        jsonOut: true,
+        nonInteractive: true,
+      }),
+    );
+    expect(CANONICAL_UPDATE_ARGV).toContain("--upgrade");
   });
 });
 
