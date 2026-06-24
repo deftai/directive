@@ -315,9 +315,26 @@ const REMEDIATION_NO_CACHE = ["  Recovery: run `deft triage:bootstrap` to seed t
   "\n",
 );
 
-const REMEDIATION_STALE = [
+const REMEDIATION_STALE_FORCE = [
   "  Recovery: run `deft cache:fetch-all --force` to refresh and reconcile upstream state.",
 ].join("\n");
+
+const REMEDIATION_STALE_PLAIN = [
+  "  Recovery: run `deft cache:fetch-all` to refresh and reconcile upstream state.",
+].join("\n");
+
+/**
+ * Branch-aware recovery hint (#1953 Option 3).
+ * Age-stale (or age+drift mixed) → --force bypasses TTL; drift-only → plain refetch.
+ */
+export function recoveryHintForStaleFailure(
+  causes: Readonly<{ ageStale: boolean; driftDetected: boolean }>,
+): string {
+  if (causes.ageStale) {
+    return REMEDIATION_STALE_FORCE;
+  }
+  return REMEDIATION_STALE_PLAIN;
+}
 
 function formatDriftFailure(repo: string, drift: CacheDriftProbeResult): GateResult {
   const parts: string[] = [];
@@ -333,7 +350,7 @@ function formatDriftFailure(repo: string, drift: CacheDriftProbeResult): GateRes
     code: 1,
     message: [
       `❌ deft cache-fresh: stale-by-drift -- ${parts.join("; ")} (${repo}).`,
-      REMEDIATION_STALE,
+      recoveryHintForStaleFailure({ ageStale: false, driftDetected: true }),
     ].join("\n"),
   };
 }
@@ -491,7 +508,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
       code: 1,
       message: [
         `❌ deft cache-fresh: cache is ${ageH.toFixed(1)}h old (max-age=${maxAgeHours}h); oldest in-scope entry ${display}.`,
-        REMEDIATION_STALE,
+        recoveryHintForStaleFailure({ ageStale: true, driftDetected: false }),
       ].join("\n"),
     };
   }
