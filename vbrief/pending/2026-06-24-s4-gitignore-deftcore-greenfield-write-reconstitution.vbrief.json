@@ -1,0 +1,107 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json"
+  },
+  "plan": {
+    "id": "s4-gitignore-deft-core-reconstitution",
+    "title": "S4: gitignore .deft/core greenfield write + reconstitution",
+    "status": "pending",
+    "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
+    "narratives": {
+      "Description": "In the hybrid world .deft/core becomes gitignored and reconstituted by directive init (the node_modules model), which kills the upgrade churn loop (#1672). This story makes greenfield init write the .deft/core entry into .gitignore so the deposit is born ignored and never committed (no tracked-but-ignored half-state for new users), and makes the deposit idempotently reconstitutable when .deft/core is absent. Per the locked Option B journey split, this story does NOT un-commit an existing tracked deposit; the vendored->hybrid `git rm --cached` transition is owned by #1941.",
+      "ImplementationPlan": "- Extend the init-deposit gitignore step (packages/core/src/init-deposit/gitignore.ts) so greenfield init appends the .deft/core ignore entry to the canonical baseline, while preserving the existing selective entries and the EnsureGitignoreLines heal behavior ported from cmd/deft-install setup.go.\n- Make the deposit reconstitution idempotent: when .deft/core is absent, init re-copies it from the content package; when present, it is left/refreshed without re-writing the ignore entry.\n- Add unit tests for the born-ignored greenfield path, idempotent reconstitution, and the explicit non-un-commit of an already-tracked deposit (asserting #1941 owns that transition).",
+      "UserStory": "As a new Deft user, I want .deft/core gitignored and reconstitutable by directive init, so that my repo stays clean of framework-payload churn and the deposit rebuilds like node_modules."
+    },
+    "items": [
+      {
+        "id": "s4-gitignore-deft-core-reconstitution-a1",
+        "title": "When greenfield init runs, it creates a .deft/core entry in .gitignore so the deposit is never committed.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When greenfield init runs, it creates a .deft/core entry in .gitignore so the deposit is never committed."
+        }
+      },
+      {
+        "id": "s4-gitignore-deft-core-reconstitution-a2",
+        "title": "When .deft/core is absent, directive init recreates it idempotently from the installed content package.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When .deft/core is absent, directive init recreates it idempotently from the installed content package."
+        }
+      },
+      {
+        "id": "s4-gitignore-deft-core-reconstitution-a3",
+        "title": "When an existing tracked .deft/core deposit is present, init and update leave it tracked and defer the un-commit to #1941.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When an existing tracked .deft/core deposit is present, init and update leave it tracked and defer the un-commit to #1941."
+        }
+      },
+      {
+        "id": "s4-gitignore-deft-core-reconstitution-a4",
+        "title": "When the unit tests run, they cover born-ignored greenfield, idempotent reconstitution, and the non-un-commit behavior.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the unit tests run, they cover born-ignored greenfield, idempotent reconstitution, and the non-un-commit behavior."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- gitignore",
+          "task check"
+        ],
+        "expected_outputs": [
+          ".deft/core gitignored on greenfield init; deposit reconstitutable",
+          "gitignore module with born-ignored + reconstitution unit tests"
+        ],
+        "depends_on": [
+          "s2-directive-init-ts-native"
+        ],
+        "conflict_group": "init-deposit",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to cmd/deft-install/setup.go (EnsureGitignoreLines / canonicalGitignoreLines) and the #1942 decision-G journey split, not a spec section."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/related",
+        "title": "Epic #1669 (distributable Deft) -- Wave 5"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-vbrief/related",
+        "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-vbrief/related",
+        "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1933",
+        "type": "x-vbrief/related",
+        "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json"
+  },
+  "plan": {
+    "id": "s2-directive-init-ts-native",
+    "title": "S2: directive init TS-native greenfield deposit",
+    "status": "pending",
+    "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
+    "narratives": {
+      "Description": "directive init today spawnSyncs the bundled Go deft-install, which downloads and vendors .deft/core. This story rewrites init to orchestrate a fully TS-native greenfield deposit using the S1 primitive: copy the content tree into .deft/core, render the AGENTS.md managed-section (reusing the existing TS agents-md logic), scaffold vbrief/ (schemas + lifecycle dirs), deposit .agents/skills pointers + .githooks + the #1430 neutralization, and wire the Taskfile include. The friendly wizard UX is preserved and no Go binary is invoked on the happy path.",
+      "ImplementationPlan": "- Replace the runDeftInstall delegation in packages/cli/src/init-cli/init.ts with a call into a new packages/core/src/init-deposit/init-deposit.ts orchestrator that composes the S1 copy primitive with AGENTS.md render (packages/core/src/platform/agents-md.ts), vbrief scaffold, skills/githooks/neutralization, and Taskfile wiring.\n- Port the idempotency + wizard-output behavior from cmd/deft-install setup.go (WriteAgentsMD, WriteConsumerVbrief, EnsureTaskfile, WriteAgentsSkills) into TS, keeping the existing wizard UX text.\n- Add unit tests asserting a complete greenfield deposit (.deft/core populated, AGENTS.md managed-section present, vbrief lifecycle dirs created) with no Go binary spawn.",
+      "UserStory": "As a new Deft user, I want directive init to deposit a complete .deft/core, AGENTS.md, and vbrief scaffold from the installed content package, so that I can start using Deft on a fresh repo with no Go binary and no network download."
+    },
+    "items": [
+      {
+        "id": "s2-directive-init-ts-native-a1",
+        "title": "When directive init runs on a fresh repo, it creates a complete .deft/core copied from the content package with no Go binary spawned.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When directive init runs on a fresh repo, it creates a complete .deft/core copied from the content package with no Go binary spawned."
+        }
+      },
+      {
+        "id": "s2-directive-init-ts-native-a2",
+        "title": "init renders the AGENTS.md managed-section and creates vbrief/ with schemas and the five lifecycle directories.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "init renders the AGENTS.md managed-section and creates vbrief/ with schemas and the five lifecycle directories."
+        }
+      },
+      {
+        "id": "s2-directive-init-ts-native-a3",
+        "title": "init creates .agents/skills pointers, .githooks, and the #1430 neutralization, and updates the Taskfile include idempotently.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "init creates .agents/skills pointers, .githooks, and the #1430 neutralization, and updates the Taskfile include idempotently."
+        }
+      },
+      {
+        "id": "s2-directive-init-ts-native-a4",
+        "title": "init displays the friendly wizard UX output on the greenfield deposit path for the operator.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "init displays the friendly wizard UX output on the greenfield deposit path for the operator."
+        }
+      },
+      {
+        "id": "s2-directive-init-ts-native-a5",
+        "title": "When the unit tests run, they confirm the full greenfield deposit shape and that no Go binary is spawned.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the unit tests run, they confirm the full greenfield deposit shape and that no Go binary is spawned."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/cli/src/init-cli/init.ts",
+          "packages/cli/src/init-cli/init-cli.test.ts",
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/init-deposit/init-deposit.test.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/scaffold.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- init-deposit",
+          "pnpm --filter @deftai/directive test -- init-cli",
+          "task check"
+        ],
+        "expected_outputs": [
+          "directive init deposits .deft/core + AGENTS.md + vbrief scaffold from the content package, no Go binary",
+          "init-deposit orchestrator + scaffold modules with passing unit tests"
+        ],
+        "depends_on": [
+          "s1-content-deposit-primitive"
+        ],
+        "conflict_group": "init-deposit",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to cmd/deft-install/setup.go (WriteAgentsMD, WriteConsumerVbrief, EnsureTaskfile, WriteAgentsSkills) and #1942 scope, not a spec section."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/related",
+        "title": "Epic #1669 (distributable Deft) -- Wave 5"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-vbrief/related",
+        "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-vbrief/related",
+        "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1933",
+        "type": "x-vbrief/related",
+        "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+      }
+    ]
+  }
+}

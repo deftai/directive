@@ -1,0 +1,110 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json"
+  },
+  "plan": {
+    "id": "s5-docs-flip-e2e-legs",
+    "title": "S5: docs flip + greenfield/upgrade e2e legs",
+    "status": "pending",
+    "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
+    "narratives": {
+      "Description": "Today's docs describe the Go-tarball, committed-.deft/core model, which contradicts the npm resolve-and-copy + gitignored model this epic delivers. This story flips the now-stale committed-payload statements (README, content/events/README.md) and finalizes the docs/ARCHITECTURE.md npm two-package section from a Wave 5 Target note to current behavior, then adds greenfield and upgrade legs to the pinned e2e so the deposit journeys are regression-guarded. It lands last because it documents and tests the behavior the earlier stories implement.",
+      "ImplementationPlan": "- Flip the stale current-model statements: README install/payload framing and content/events/README.md '.deft/core/ is a committed payload' to the npm resolve-and-copy + gitignored model, and un-fence the docs/ARCHITECTURE.md Wave 5 Target section to current behavior.\n- Add greenfield (nothing -> hybrid) and upgrade (hybrid -> newer hybrid) legs to the pinned release e2e exercising directive init/update deposit without the Go binary.\n- Verify the e2e legs run green and the docs no longer assert a committed payload.",
+      "UserStory": "As a Deft operator reading the docs, I want the install/architecture docs to describe the npm resolve-and-copy + gitignored model and the e2e to cover the deposit journeys, so that the documentation matches reality and the deposit path is regression-guarded."
+    },
+    "items": [
+      {
+        "id": "s5-docs-flip-e2e-legs-a1",
+        "title": "When a reader opens README and content/events/README.md, the text describes the resolve-and-copy gitignored model rather than a committed payload.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When a reader opens README and content/events/README.md, the text describes the resolve-and-copy gitignored model rather than a committed payload."
+        }
+      },
+      {
+        "id": "s5-docs-flip-e2e-legs-a2",
+        "title": "docs/ARCHITECTURE.md renders the npm two-package section as current behavior rather than a Wave 5 Target.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "docs/ARCHITECTURE.md renders the npm two-package section as current behavior rather than a Wave 5 Target."
+        }
+      },
+      {
+        "id": "s5-docs-flip-e2e-legs-a3",
+        "title": "The pinned e2e creates greenfield and upgrade deposit legs that exercise directive init and update without the Go binary.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The pinned e2e creates greenfield and upgrade deposit legs that exercise directive init and update without the Go binary."
+        }
+      },
+      {
+        "id": "s5-docs-flip-e2e-legs-a4",
+        "title": "When the e2e legs run, they validate the deposit journeys and complete green.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the e2e legs run, they validate the deposit journeys and complete green."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "docs/ARCHITECTURE.md",
+          "README.md",
+          "content/events/README.md",
+          "packages/core/src/release-e2e/npm-ops.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- release-e2e",
+          "task check"
+        ],
+        "expected_outputs": [
+          "docs describe the npm resolve-and-copy + gitignored model (no committed-payload claims)",
+          "e2e greenfield + upgrade deposit legs green"
+        ],
+        "depends_on": [
+          "s2-directive-init-ts-native",
+          "s3-directive-update-ts-native"
+        ],
+        "conflict_group": "docs-e2e",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to the #1942 documentation-acceptance comment (flip stale committed-payload statements) and docs/ARCHITECTURE.md Wave 5 Target section, not a spec section."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/related",
+        "title": "Epic #1669 (distributable Deft) -- Wave 5"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-vbrief/related",
+        "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-vbrief/related",
+        "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1933",
+        "type": "x-vbrief/related",
+        "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+      }
+    ]
+  }
+}

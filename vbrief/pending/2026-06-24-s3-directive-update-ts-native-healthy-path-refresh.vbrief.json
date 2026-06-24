@@ -1,0 +1,119 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json"
+  },
+  "plan": {
+    "id": "s3-directive-update-ts-native",
+    "title": "S3: directive update TS-native healthy-path refresh",
+    "status": "pending",
+    "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
+    "narratives": {
+      "Description": "directive update today spawnSyncs the Go binary's upgrade path to refresh .deft/core. This story rewrites update to refresh .deft/core idempotently from the pinned @deftai/directive-content using the S1 primitive and the S2 orchestrator, re-render the AGENTS.md managed-section in place (surgical, self-healing), and honor the #1430 deft-core-guard PR separation. The refresh is engine-vs-content version-skew aware and emits the wizard's refresh side-effect disclosure.",
+      "ImplementationPlan": "- Replace the runDeftInstall delegation in packages/cli/src/init-cli/update.ts with a packages/core/src/init-deposit/refresh.ts path that re-copies content into .deft/core and re-renders the managed-section via the shared agents-md logic.\n- Port the surgical managed-section rewrite + refresh side-effect disclosure semantics from cmd/deft-install setup.go (WriteAgentsMD rewrite branch) and add a version-skew check comparing the resolved content version against the recorded deposit.\n- Add unit tests for an idempotent re-run (no spurious diffs), a stale managed-section rewrite, and a version-skew notice.",
+      "UserStory": "As an existing Deft user, I want directive update to refresh .deft/core and the AGENTS.md managed-section idempotently from the pinned content package, so that upgrades are clean, repeatable, and respect the core-guard PR separation."
+    },
+    "items": [
+      {
+        "id": "s3-directive-update-ts-native-a1",
+        "title": "When directive update runs, it refreshes .deft/core from the pinned content package with no Go binary spawned.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When directive update runs, it refreshes .deft/core from the pinned content package with no Go binary spawned."
+        }
+      },
+      {
+        "id": "s3-directive-update-ts-native-a2",
+        "title": "update re-renders the AGENTS.md managed-section surgically and a second run creates no new diff (idempotent).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "update re-renders the AGENTS.md managed-section surgically and a second run creates no new diff (idempotent)."
+        }
+      },
+      {
+        "id": "s3-directive-update-ts-native-a3",
+        "title": "update honors the #1430 deft-core-guard separation and emits the refresh side-effect disclosure to the operator.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "update honors the #1430 deft-core-guard separation and emits the refresh side-effect disclosure to the operator."
+        }
+      },
+      {
+        "id": "s3-directive-update-ts-native-a4",
+        "title": "When the engine and content versions diverge, update emits a version-skew notice to the operator.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the engine and content versions diverge, update emits a version-skew notice to the operator."
+        }
+      },
+      {
+        "id": "s3-directive-update-ts-native-a5",
+        "title": "When the unit tests run, they cover idempotent re-run, stale managed-section rewrite, and the version-skew notice.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the unit tests run, they cover idempotent re-run, stale managed-section rewrite, and the version-skew notice."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/cli/src/init-cli/update.ts",
+          "packages/cli/src/init-cli/update.test.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- refresh",
+          "pnpm --filter @deftai/directive test -- update",
+          "task check"
+        ],
+        "expected_outputs": [
+          "directive update refreshes .deft/core idempotently from the content package, no Go binary",
+          "refresh module with idempotency + version-skew unit tests"
+        ],
+        "depends_on": [
+          "s1-content-deposit-primitive",
+          "s2-directive-init-ts-native"
+        ],
+        "conflict_group": "init-deposit",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to cmd/deft-install/setup.go (WriteAgentsMD rewrite branch, refresh side-effects) and #1942 scope, not a spec section."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/related",
+        "title": "Epic #1669 (distributable Deft) -- Wave 5"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-vbrief/related",
+        "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-vbrief/related",
+        "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1933",
+        "type": "x-vbrief/related",
+        "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+      }
+    ]
+  }
+}
