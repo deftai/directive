@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import {
+  deriveRegistryItemStatus,
+  registryMetadataReferencesFromScope,
+} from "../vbrief-validate/registry-status.js";
 import { PROJECT_LIFECYCLE_FOLDERS, SKELETON_NARRATIVES } from "./constants.js";
 import { splitCamel, splitWords } from "./text-utils.js";
 
@@ -32,8 +36,8 @@ export function scanLifecycleFolders(vbriefDir: string): LifecycleItem[] {
         const data = JSON.parse(readFileSync(full, "utf8")) as JsonObject;
         const plan = (data.plan ?? {}) as JsonObject;
         const title = String(plan.title ?? vbriefFile.replace(/\.vbrief\.json$/, ""));
-        const status = String(plan.status ?? folderName);
-        const references = plan.references;
+        const status = deriveRegistryItemStatus(plan.status, folderName);
+        const references = registryMetadataReferencesFromScope(plan.references);
         const item: LifecycleItem = {
           id: vbriefFile.replace(/\.vbrief\.json$/, "").replace(/\.vbrief$/, ""),
           title,
@@ -43,7 +47,7 @@ export function scanLifecycleFolders(vbriefDir: string): LifecycleItem[] {
             lifecycle_folder: folderName,
           },
         };
-        if (Array.isArray(references) && references.length > 0) {
+        if (references.length > 0) {
           item.metadata.references = references;
         }
         items.push(item);

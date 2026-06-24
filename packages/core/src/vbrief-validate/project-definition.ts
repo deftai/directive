@@ -1,82 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { pyStrRepr } from "../triage/scope/python-repr.js";
-import { isRelativeTo, resolveRefPath, scopeIdsForRefUri } from "./paths.js";
+import { isRelativeTo, resolveRefPath } from "./paths.js";
 import { runProjectDefinitionHooks } from "./plan-hooks.js";
+import { formatRegistryStatusMismatch, registryStatusScopeUris } from "./registry-status.js";
 import type { JsonObject } from "./schema.js";
 import { validateProjectDefNarratives } from "./schema.js";
-
-function itemLocalScopeUris(item: JsonObject, plan: JsonObject): string[] {
-  const uris: string[] = [];
-
-  const metadata = item.metadata;
-  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
-    const meta = metadata as JsonObject;
-    const sourcePath = meta.source_path;
-    if (typeof sourcePath === "string" && sourcePath) {
-      uris.push(sourcePath);
-    }
-    const metadataRefs = meta.references;
-    if (Array.isArray(metadataRefs)) {
-      for (const ref of metadataRefs) {
-        if (
-          typeof ref === "object" &&
-          ref !== null &&
-          !Array.isArray(ref) &&
-          (ref as JsonObject).type === "x-vbrief/plan"
-        ) {
-          const uri = (ref as JsonObject).uri;
-          if (typeof uri === "string" && uri) {
-            uris.push(uri);
-          }
-        }
-      }
-    }
-  }
-
-  const refs = item.references;
-  if (Array.isArray(refs)) {
-    for (const ref of refs) {
-      if (
-        typeof ref === "object" &&
-        ref !== null &&
-        !Array.isArray(ref) &&
-        (ref as JsonObject).type === "x-vbrief/plan"
-      ) {
-        const uri = (ref as JsonObject).uri;
-        if (typeof uri === "string" && uri) {
-          uris.push(uri);
-        }
-      }
-    }
-  }
-
-  const itemId = item.id;
-  const itemTitle = item.title;
-  const planRefs = plan.references;
-  if (Array.isArray(planRefs)) {
-    for (const ref of planRefs) {
-      if (typeof ref !== "object" || ref === null || Array.isArray(ref)) {
-        continue;
-      }
-      const refObj = ref as JsonObject;
-      if (refObj.type !== "x-vbrief/plan") {
-        continue;
-      }
-      const uri = refObj.uri;
-      if (typeof uri !== "string" || !uri) {
-        continue;
-      }
-      const titleMatches = typeof itemTitle === "string" && refObj.title === itemTitle;
-      const idMatches = typeof itemId === "string" && scopeIdsForRefUri(uri).has(itemId);
-      if (titleMatches || idMatches) {
-        uris.push(uri);
-      }
-    }
-  }
-
-  return [...new Set(uris)];
-}
 
 function validateProjectRegistryScopeStatus(
   item: JsonObject,
@@ -92,7 +20,7 @@ function validateProjectRegistryScopeStatus(
   }
 
   const resolvedRoot = resolve(vbriefDir);
-  for (const uri of itemLocalScopeUris(item, plan)) {
+  for (const uri of registryStatusScopeUris(item, plan)) {
     if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("#")) {
       continue;
     }
@@ -115,11 +43,7 @@ function validateProjectRegistryScopeStatus(
     }
     const scopeStatus = (scopePlan as JsonObject).status;
     if (typeof scopeStatus === "string" && scopeStatus !== itemStatus) {
-      errors.push(
-        `${filepath}: items[${itemIndex}] status is ${pyStrRepr(itemStatus)} ` +
-          `but referenced scope '${uri}' has plan.status ${pyStrRepr(scopeStatus)} ` +
-          "(D3 registry-status)",
-      );
+      errors.push(formatRegistryStatusMismatch(filepath, itemIndex, itemStatus, uri, scopeStatus));
     }
   }
   return errors;
