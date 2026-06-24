@@ -1,6 +1,9 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { CacheNotFoundError } from "../../cache/errors.js";
+import { cacheGet } from "../../cache/operations.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
 import { createCandidatesLog, resolveAuditLogPath, rollbackAuditEntry } from "./candidates-log.js";
@@ -46,6 +49,9 @@ export const REJECTED_LABEL_DESCRIPTION = "Issue rejected during deft triage";
 
 const TERMINAL_DECISIONS = new Set(["accept", "reject", "mark-duplicate"]);
 const DEFAULT_ACTOR = "agent:triage";
+const DEFAULT_NEEDS_AC_COMMENT =
+  "This issue lacks acceptance criteria. Please add a Test/Acceptance " +
+  "narrative before this can be triaged. (deft #845)";
 
 function resolveDeftRoot(): string {
   if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
@@ -154,6 +160,34 @@ function buildEntry(
 
 function logPathFor(projectRoot: string): string {
   return resolveAuditLogPath(projectRoot);
+}
+
+function cacheRootFor(projectRoot: string): string {
+  return join(projectRoot, ".deft-cache");
+}
+
+function findByIssue(issueNumber: number, repo: string, projectRoot: string): AuditEntry[] {
+  const logPath = logPathFor(projectRoot);
+  if (!existsSync(logPath)) {
+    return [];
+  }
+  const out: AuditEntry[] = [];
+  const raw = readFileSync(logPath, "utf8");
+  for (const line of raw.split("\n")) {
+    const stripped = line.trim();
+    if (!stripped) continue;
+    try {
+      const parsed = JSON.parse(stripped) as unknown;
+      if (typeof parsed !== "object" || parsed === null) continue;
+      const row = parsed as AuditEntry;
+      if (row.repo === repo && row.issue_number === issueNumber) {
+        out.push(row);
+      }
+    } catch {
+      // Preserve parity with candidates_log read tolerance for malformed lines.
+    }
+  }
+  return out;
 }
 
 function isIdempotentRepeat(
@@ -359,6 +393,112 @@ export function deferAction(
   });
   const logPath = logPathFor(projectRoot);
   return deps.candidatesLog.append(entry, { path: logPath });
+}
+
+/** Record a needs-ac audit entry and best-effort post an AC-request comment upstream. */
+export function needsAc(
+  issueNumber: number,
+  repo: string,
+  deps: TriageActionsDeps,
+  options: { actor?: string | null; comment?: string | null; projectRoot?: string } = {},
+): string {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const body = options.comment ?? DEFAULT_NEEDS_AC_COMMENT;
+  const actor = resolveActor(options.actor);
+  const entry = buildEntry(deps, "needs-ac", issueNumber, repo, actor, { reason: body });
+  const logPath = logPathFor(projectRoot);
+  const decisionId = deps.candidatesLog.append(entry, { path: logPath });
+  const writeErr = deps.stderr ?? ((message: string) => process.stderr.write(`${message}\n`));
+  try {
+    runGh(deps, ["issue", "comment", String(issueNumber), "--repo", repo, "--body", body]);
+  } catch (exc) {
+    writeErr(
+      `triage_actions: needs-ac comment not posted for #${issueNumber} (${repo}): ${exc instanceof Error ? exc.message : String(exc)}`,
+    );
+  }
+  return decisionId;
+}
+
+/** Validate duplicate target in cache and record a mark-duplicate audit entry. */
+export function markDuplicate(
+  issueNumber: number,
+  repo: string,
+  ofN: number,
+  deps: TriageActionsDeps,
+  options: { actor?: string | null; projectRoot?: string } = {},
+): string {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  if (ofN === issueNumber) {
+    throw new TriageError(`mark-duplicate target #${ofN} cannot equal source #${issueNumber}`);
+  }
+  const key = `${repo}/${ofN}`;
+  try {
+    cacheGet("github-issue", key, { allowStale: true, cacheRoot: cacheRootFor(projectRoot) });
+  } catch (exc) {
+    if (exc instanceof CacheNotFoundError) {
+      throw new TriageError(
+        `mark-duplicate target #${ofN} not found in cache for ${repo}: ${exc.message}`,
+      );
+    }
+    throw exc;
+  }
+  const prior = isIdempotentRepeat(deps, issueNumber, repo, "mark-duplicate", projectRoot, ofN);
+  if (prior !== null) {
+    return prior.decision_id;
+  }
+  const actor = resolveActor(options.actor);
+  const entry = buildEntry(deps, "mark-duplicate", issueNumber, repo, actor, { linked_to: ofN });
+  const logPath = logPathFor(projectRoot);
+  return deps.candidatesLog.append(entry, { path: logPath });
+}
+
+/** Return the latest decision for ``issueNumber`` in ``repo`` (null if none). */
+export function status(
+  issueNumber: number,
+  repo: string,
+  deps: TriageActionsDeps,
+  options: { projectRoot?: string } = {},
+): AuditEntry | null {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  return deps.candidatesLog.latestDecision(issueNumber, repo, {
+    path: logPathFor(projectRoot),
+  });
+}
+
+/** Record a reset audit entry referencing the prior decision_id (history is never deleted). */
+export function reset(
+  issueNumber: number,
+  repo: string,
+  deps: TriageActionsDeps,
+  options: { actor?: string | null; projectRoot?: string } = {},
+): string {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const logPath = logPathFor(projectRoot);
+  const prior = deps.candidatesLog.latestDecision(issueNumber, repo, { path: logPath });
+  if (prior === null) {
+    throw new TriageError(`cannot reset #${issueNumber}: no prior decision recorded for ${repo}`);
+  }
+  if (prior.decision === "reset") {
+    return prior.decision_id;
+  }
+  const actor = resolveActor(options.actor);
+  const entry = buildEntry(deps, "reset", issueNumber, repo, actor, {
+    prior_decision_id: prior.decision_id,
+  });
+  return deps.candidatesLog.append(entry, { path: logPath });
+}
+
+/** Return audit entries for ``issueNumber`` ordered ascending by timestamp. */
+export function history(
+  issueNumber: number,
+  repo: string,
+  _deps: TriageActionsDeps,
+  options: { projectRoot?: string } = {},
+): AuditEntry[] {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const entries = findByIssue(issueNumber, repo, projectRoot);
+  entries.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+  return entries;
 }
 
 /** Format a decision entry for CLI ``status`` / ``history`` output. */

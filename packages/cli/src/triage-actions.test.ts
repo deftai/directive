@@ -98,6 +98,42 @@ describe("run", () => {
     expect(run(["accept", "--repo", "deftai/directive"])).toBe(2);
   });
 
+  it("returns 2 for mark-duplicate with invalid --of", () => {
+    expect(
+      run(["mark-duplicate", "--issue", "7", "--repo", "deftai/directive", "--of", "abc"]),
+    ).toBe(2);
+  });
+
+  it("returns 2 for mark-duplicate without --of", () => {
+    expect(run(["mark-duplicate", "--issue", "7", "--repo", "deftai/directive"])).toBe(2);
+  });
+
+  it("returns 0 for status with no prior decision", () => {
+    const root = makeProjectRoot();
+    expect(
+      run(["status", "--issue", "7", "--repo", "deftai/directive", "--project-root", root]),
+    ).toBe(0);
+  });
+
+  it("returns 1 for reset without prior decision", () => {
+    const root = makeProjectRoot();
+    expect(
+      run(["reset", "--issue", "7", "--repo", "deftai/directive", "--project-root", root]),
+    ).toBe(1);
+  });
+
+  it("parses --of and --comment flags", () => {
+    const parsed = parseArgs([
+      "mark-duplicate",
+      "--issue=7",
+      "--repo=deftai/directive",
+      "--of=42",
+      "--comment=needs AC",
+    ]);
+    expect(parsed.ofN).toBe(42);
+    expect(parsed.comment).toBe("needs AC");
+  });
+
   it("returns 2 for unrecognized flag", () => {
     expect(parseArgs(["defer", "--bogus"]).error).toMatch(/unrecognized argument/);
   });

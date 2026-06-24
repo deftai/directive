@@ -11,6 +11,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { cachePut } from "../../core/dist/cache/operations.js";
 
 export interface CommandCapture {
   readonly exitCode: number;
@@ -21,6 +22,7 @@ export interface CommandCapture {
 export interface ParityCase {
   readonly name: string;
   readonly argv: readonly string[];
+  readonly seed?: string;
 }
 
 export interface ParityDiff {
@@ -102,8 +104,11 @@ function pythonWrapperScript(deftRoot: string, fixtureRoot: string): string {
     "sys.path.insert(0, str(deft_root / 'scripts'))",
     "import candidates_log as cl",
     "cl.DEFAULT_LOG_PATH = fixture / 'vbrief/.eval/candidates.jsonl'",
+    "import cache as cache_mod",
+    "cache_mod.DEFAULT_CACHE_ROOT = fixture / '.deft-cache'",
     "import triage_actions",
     "triage_actions.candidates_log = cl",
+    "triage_actions.cache = cache_mod",
     "raise SystemExit(triage_actions.main(sys.argv[1:]))",
   ].join("\n");
 }
@@ -193,6 +198,71 @@ export const PARITY_CASES: readonly ParityCase[] = [
     name: "accept-idempotent",
     argv: ["accept", "--issue", "9", "--repo", "deftai/directive", "--actor", "agent:test"],
   },
+  {
+    name: "needs-ac-default",
+    argv: ["needs-ac", "--issue", "10", "--repo", "deftai/directive", "--actor", "agent:test"],
+  },
+  {
+    name: "status-empty",
+    argv: ["status", "--issue", "11", "--repo", "deftai/directive"],
+  },
+  {
+    name: "status-with-defer",
+    argv: ["status", "--issue", "12", "--repo", "deftai/directive"],
+    seed: "defer-status",
+  },
+  {
+    name: "reset-no-prior",
+    argv: ["reset", "--issue", "13", "--repo", "deftai/directive"],
+  },
+  {
+    name: "reset-success",
+    argv: ["reset", "--issue", "14", "--repo", "deftai/directive", "--actor", "agent:test"],
+    seed: "defer-reset",
+  },
+  {
+    name: "reset-idempotent",
+    argv: ["reset", "--issue", "15", "--repo", "deftai/directive"],
+    seed: "reset-idempotent",
+  },
+  {
+    name: "history-empty",
+    argv: ["history", "--issue", "16", "--repo", "deftai/directive"],
+  },
+  {
+    name: "history-multi",
+    argv: ["history", "--issue", "17", "--repo", "deftai/directive"],
+    seed: "history-multi",
+  },
+  {
+    name: "mark-duplicate-missing-cache",
+    argv: ["mark-duplicate", "--issue", "18", "--repo", "deftai/directive", "--of", "99"],
+  },
+  {
+    name: "mark-duplicate-success",
+    argv: [
+      "mark-duplicate",
+      "--issue",
+      "19",
+      "--repo",
+      "deftai/directive",
+      "--of",
+      "20",
+      "--actor",
+      "agent:test",
+    ],
+    seed: "mark-duplicate-cache",
+  },
+  {
+    name: "mark-duplicate-idempotent",
+    argv: ["mark-duplicate", "--issue", "21", "--repo", "deftai/directive", "--of", "22"],
+    seed: "mark-duplicate-idempotent",
+  },
+  {
+    name: "mark-duplicate-self",
+    argv: ["mark-duplicate", "--issue", "23", "--repo", "deftai/directive", "--of", "23"],
+    seed: "mark-duplicate-cache-self",
+  },
 ];
 
 function seedAcceptFixture(fixtureRoot: string): void {
@@ -211,6 +281,81 @@ function seedAcceptFixture(fixtureRoot: string): void {
   );
 }
 
+function seedAuditEntry(
+  fixtureRoot: string,
+  issueNumber: number,
+  decision: string,
+  extras: Record<string, unknown> = {},
+): void {
+  const entry = {
+    actor: "agent:test",
+    decision,
+    decision_id: "11111111-1111-1111-1111-111111111111",
+    issue_number: issueNumber,
+    repo: "deftai/directive",
+    timestamp: "2026-06-18T12:00:00Z",
+    ...extras,
+  };
+  const path = join(fixtureRoot, "vbrief/.eval/candidates.jsonl");
+  const line = `${JSON.stringify(entry, Object.keys(entry).sort())}\n`;
+  writeFileSync(path, line, { encoding: "utf8", flag: "a" });
+}
+
+function seedCacheIssue(fixtureRoot: string, issueNumber: number): void {
+  const cacheRoot = join(fixtureRoot, ".deft-cache");
+  cachePut(
+    "github-issue",
+    `deftai/directive/${issueNumber}`,
+    { number: issueNumber, title: "parity fixture", body: "fixture body" },
+    { cacheRoot },
+  );
+}
+
+function seedFixture(fixtureRoot: string, seed: string | undefined): void {
+  if (seed === undefined) return;
+  switch (seed) {
+    case "defer-status":
+      seedAuditEntry(fixtureRoot, 12, "defer", { reason: "later" });
+      break;
+    case "defer-reset":
+      seedAuditEntry(fixtureRoot, 14, "defer", { reason: "later" });
+      break;
+    case "reset-idempotent":
+      seedAuditEntry(fixtureRoot, 15, "reset", {
+        decision_id: "22222222-2222-2222-2222-222222222222",
+        prior_decision_id: "11111111-1111-1111-1111-111111111111",
+      });
+      break;
+    case "history-multi":
+      seedAuditEntry(fixtureRoot, 17, "defer", {
+        decision_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        reason: "first",
+        timestamp: "2026-06-18T10:00:00Z",
+      });
+      seedAuditEntry(fixtureRoot, 17, "needs-ac", {
+        decision_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        reason: "needs criteria",
+        timestamp: "2026-06-18T11:00:00Z",
+      });
+      break;
+    case "mark-duplicate-cache":
+      seedCacheIssue(fixtureRoot, 20);
+      break;
+    case "mark-duplicate-idempotent":
+      seedCacheIssue(fixtureRoot, 22);
+      seedAuditEntry(fixtureRoot, 21, "mark-duplicate", {
+        decision_id: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+        linked_to: 22,
+      });
+      break;
+    case "mark-duplicate-cache-self":
+      seedCacheIssue(fixtureRoot, 23);
+      break;
+    default:
+      break;
+  }
+}
+
 /** Run all parity cases; returns aggregate result. */
 export function runParity(): ParityResult {
   const deftRoot = resolveDeftRoot();
@@ -221,6 +366,9 @@ export function runParity(): ParityResult {
     if (testCase.name === "accept-idempotent") {
       seedAcceptFixture(pyFixture);
       seedAcceptFixture(tsFixture);
+    } else {
+      seedFixture(pyFixture, testCase.seed);
+      seedFixture(tsFixture, testCase.seed);
     }
     try {
       const python = runPythonTriageAction(deftRoot, pyFixture, testCase.argv);

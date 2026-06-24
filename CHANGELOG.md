@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Triage cache now stays faithful to upstream GitHub state** — `cache:fetch-all` reconciles open→closed transitions by default (opt out with `--no-refresh-closed`), session start and `triage:welcome` self-heal stale entries on a TTL, and `verify:cache-fresh` fails on drift instead of passing when only the newest fetch is recent. Closes #1886.
+- **All triage decision verbs now work on npm-only installs** — the TypeScript triage-actions CLI implements needs-ac, mark-duplicate, status, reset, and history alongside accept/reject/defer, with parity tests against the Python oracle so these verbs keep working after the planned Python purge. Closes #1945.
 
 ### Removed
 
