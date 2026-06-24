@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Architecture docs now describe the planned npm-native distribution model** — `docs/ARCHITECTURE.md` gains a clearly-marked "Wave 5 Target" section documenting the two-package npm model (`@deftai/directive` engine + `@deftai/directive-content` source), the `directive init` resolve-and-copy deposit (gitignored `.deft/core/`, no re-download), and the frozen Go binary's reduced role as a node-independent health gate. Fenced as target architecture, not current behavior, so it can't be misread as today's flow. Refs #1669 #1942 #1933.
 
 ### Changed
 - **Installer docs are clearer that Node is always required, and that setup is directory-scoped** — the README, UPGRADING.md, QUICK-START.md, and the AGENTS.md managed-section template no longer frame the Go installer as a "no-Node bootstrap." Node 20+ is always required to *run* Deft (the live gates run on the TypeScript engine), so the Go installer is reframed consistently as a legacy/offline + layout-migration bridge with an explicit "install Node first" pointer for machines without Node. The README also gains a note that project setup writes `.deft/` and `AGENTS.md` into the current working directory, so you should `cd` into your intended project folder first. Refs #1912 #761.
