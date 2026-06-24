@@ -9,6 +9,7 @@ import { resolveCanonicalVerb } from "../dispatch.js";
 export const TOP_LEVEL_UX_VERBS = [
   "init",
   "update",
+  "migrate",
   "bootstrap",
   "check",
   "doctor",
@@ -108,7 +109,7 @@ function routeTopLevel(first: string, rest: string[]): RoutedArgv | null {
   if (first === "check" || first === "doctor") {
     return { kind: "dispatch", argv: [first, ...rest] };
   }
-  if (first === "init" || first === "update") {
+  if (first === "init" || first === "update" || first === "migrate") {
     return { kind: "dispatch", argv: [first, ...rest] };
   }
   if (STUBBED_TOP_LEVEL_VERBS.has(first)) {

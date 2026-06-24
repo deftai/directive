@@ -3,3 +3,6 @@ export const CANONICAL_INIT_ARGV = ["--yes", "--repo-root", ".", "--json"] as co
 
 /** Canonical headless upgrade argv (#1339 / #1409). */
 export const CANONICAL_UPDATE_ARGV = ["--yes", "--upgrade", "--repo-root", ".", "--json"] as const;
+
+/** Canonical migrate argv: defaults to cwd, human-readable unless --json (#1941). */
+export const CANONICAL_MIGRATE_ARGV = ["--repo-root", "."] as const;

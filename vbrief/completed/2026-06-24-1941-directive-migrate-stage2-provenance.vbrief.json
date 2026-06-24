@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(cli): directive migrate (stage-2 canonical-vendored -> npm-hybrid) -- thin provenance verb",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The legacy-layout migration to 1.0 is a two-stage bridge (#1912). Stage 1 (frozen Go installer) normalizes any old on-disk layout to canonical .deft/core/. Stage 2 -- this story -- is a NEW top-level TS verb `directive migrate` (alias `deft migrate`) that only ever covers canonical-vendored -> npm-hybrid: detect a canonical-vendored .deft/core deposit, stamp its VERSION/manifest as npm-managed (the handshake sentinel doctor/update recognize), verify the global engine resolves (signpost the README if absent, never install), idempotent + safe with a timestamped backup, three-state exit. Per the locked F decision the on-disk shape is UNCHANGED this wave -- this is a thin provenance verb, not a content engine. It blocks the #1912 freeze as prerequisite (b) and contributes the stage-2 leg of the pinned legacy -> stage-1 -> stage-2 -> npm-hybrid e2e.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1941",
@@ -123,8 +123,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1941 (scope) + #1912 / #1933 / #1670 locked decisions and the existing doctor/manifest.ts + content-root.ts surfaces, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T21:33:21Z"
     },
-    "updated": "2026-06-24T21:20:43Z"
+    "updated": "2026-06-24T21:33:21Z"
   }
 }

@@ -4,6 +4,7 @@
 
 import { type DispatchIo, dispatch } from "../dispatch.js";
 import { runInit } from "../init-cli/init.js";
+import { runMigrate } from "../init-cli/migrate.js";
 import { runUpdate } from "../init-cli/update.js";
 import { routeArgv } from "./route-argv.js";
 
@@ -48,6 +49,9 @@ export async function routeAndDispatch(argv: readonly string[], io?: DispatchIo)
   }
   if (first === "update") {
     return runUpdate(rest, io ?? defaultIo());
+  }
+  if (first === "migrate") {
+    return runMigrate(rest, io ?? defaultIo());
   }
 
   return dispatch(routed.argv, io);
