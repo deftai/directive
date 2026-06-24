@@ -316,4 +316,29 @@ describe("init-deposit scaffold", () => {
       ".deft/core/**",
     );
   });
+
+  it("appends CodeQL paths-ignore when no paths-ignore header exists", () => {
+    const project = freshRoot("scaffold-codeql-append-");
+    mkdirSync(join(project, ".github/codeql"), { recursive: true });
+    writeFileSync(
+      join(project, ".github/codeql/codeql-config.yml"),
+      "name: bare\nlanguages:\n  - javascript\n",
+      "utf8",
+    );
+    const { lines, io } = captureIo();
+    expect(ensureCodeqlPathsIgnore(project, io)).toBe(true);
+    const content = readFileSync(join(project, ".github/codeql/codeql-config.yml"), "utf8");
+    expect(content).toContain("paths-ignore");
+    expect(content).toContain(".deft/core/**");
+    expect(lines.join("")).toContain("updated");
+  });
+
+  it("continues neutralization when a step throws", async () => {
+    const project = freshRoot("scaffold-neutral-error-");
+    writeFileSync(join(project, "greptile.json"), "not-json", "utf8");
+    const { lines, io } = captureIo();
+    await depositNeutralization(project, io);
+    expect(lines.join("")).toContain("Warning: neutralization step failed");
+    expect(existsSync(join(project, ".gitattributes"))).toBe(true);
+  });
 });

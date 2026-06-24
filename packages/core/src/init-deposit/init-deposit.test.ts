@@ -188,6 +188,43 @@ describe("runInitDeposit", () => {
     expect(lines.join("")).toContain("Next steps:");
   });
 
+  it("printNextSteps notes when skills were already present", () => {
+    const lines: string[] = [];
+    printNextSteps(
+      {
+        projectDir: "/proj",
+        deftDir: "/proj/.deft/core",
+        skillsCreated: false,
+        taskfileWired: false,
+        configDir: "/cfg",
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    expect(lines.join("")).toContain("already present");
+  });
+
+  it("falls back to core package version when content package.json lacks version", async () => {
+    const project = freshRoot("init-version-fallback-");
+    const contentRoot = installFakeContentPackage(project);
+    writeFileSync(
+      join(contentRoot, "package.json"),
+      JSON.stringify({ name: CONTENT_PACKAGE_NAME }),
+      "utf8",
+    );
+
+    await runInitDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readPackageVersion: () => "0.99.0",
+        gitHooks: { getHooksPath: () => "", setHooksPath: () => true },
+      },
+    );
+
+    expect(readFileSync(join(project, ".deft/core", "VERSION"), "utf8")).toContain("0.99.0");
+  });
+
   it("returns exit code 1 when deposit fails", async () => {
     const out: string[] = [];
     const err: string[] = [];
