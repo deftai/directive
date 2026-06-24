@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(cache): branch-aware verify:cache-fresh recovery hint (Option 3 of threshold reconciliation)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Issue #1953 records the decision that the cache TTL (~7d) and the verify:cache-fresh gate max-age (24h) stay distinct, with the gate's recovery hint as the canonical unblocking path. #1949 already named `cache:fetch-all --force` in the hint. This story finishes Option 3: make the recovery hint BRANCH-AWARE so a stale-by-age failure steers to `cache:fetch-all --force` (TTL-bypassing) while a stale-by-drift failure steers to the plain `cache:fetch-all` refetch (which #1949 made drift-aware by default). The thresholds themselves are intentionally NOT changed.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1953",
@@ -87,8 +87,9 @@
         "file_scope_confidence": "high",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1953 (decision record + Option 3) and #1949, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T19:47:07Z"
     },
-    "updated": "2026-06-24T19:36:50Z"
+    "updated": "2026-06-24T19:47:07Z"
   }
 }
