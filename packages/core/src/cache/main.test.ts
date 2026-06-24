@@ -260,6 +260,64 @@ describe("fetch-all", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("maybeSelfHealCache lists open issues once per heal cycle", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-once-"));
+    const cacheRoot = join(root, ".deft-cache");
+    const base = join(cacheRoot, "github-issue/deftai/directive/6");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 6, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    let listOpenCalls = 0;
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => {
+          listOpenCalls += 1;
+          return new Set([6]);
+        },
+        refreshFn: ({ openNumbers }) => {
+          expect(openNumbers.has(6)).toBe(true);
+          return new StateRefreshReportImpl();
+        },
+      });
+      expect(result.skipped).toBe(false);
+      expect(listOpenCalls).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache treats null self-heal state JSON as TTL expired", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-null-state-"));
+    const cacheRoot = join(root, ".deft-cache");
+    const base = join(cacheRoot, "github-issue/deftai/directive/7");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 7, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    writeFileSync(join(cacheRoot, "self-heal-state.json"), "null\n", "utf8");
+    let refreshed = false;
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set([7]),
+        refreshFn: () => {
+          refreshed = true;
+          return new StateRefreshReportImpl();
+        },
+      });
+      expect(result.skipped).toBe(false);
+      expect(refreshed).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("main CLI", () => {

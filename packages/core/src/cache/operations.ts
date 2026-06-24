@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { pyRepr } from "../scm/py-format.js";
 import { ALLOWED_SOURCES, REPO_RE, SOURCE_TTL_SECONDS } from "./constants.js";
 import {
   CacheCapBreachedError,
@@ -236,12 +237,13 @@ export function cacheGet(source: string, key: string, options: CacheGetOptions =
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
   const allowStale = options.allowStale ?? true;
   const edir = entryDir(source, key, cacheRoot);
-  const metaPath = join(edir, "meta.json");
-  if (!existsSync(metaPath)) {
+  const metaRelPath = `${source}/${key}/meta.json`;
+  if (!existsSync(join(edir, "meta.json"))) {
     throw new CacheNotFoundError(
-      `cache miss for source='${source}' key='${key}' (expected meta.json at ${metaPath})`,
+      `cache miss for source=${pyRepr(source)} key=${pyRepr(key)} (expected meta.json at ${metaRelPath})`,
     );
   }
+  const metaPath = join(edir, "meta.json");
   let meta: Record<string, unknown>;
   try {
     meta = JSON.parse(readFileSync(metaPath, "utf8")) as Record<string, unknown>;
@@ -255,7 +257,7 @@ export function cacheGet(source: string, key: string, options: CacheGetOptions =
   const isStale = clock.now() > expires;
   if (isStale && !allowStale) {
     throw new CacheNotFoundError(
-      `cache entry stale for source='${source}' key='${key}'; expires_at=${meta.expires_at} (pass --allow-stale to override)`,
+      `cache entry stale for source=${pyRepr(source)} key=${pyRepr(key)}; expires_at=${meta.expires_at} (pass --allow-stale to override)`,
     );
   }
   meta.stale = isStale;

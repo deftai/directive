@@ -6,10 +6,18 @@ export class CacheError extends Error {
   }
 }
 
+/** Format like Python ``KeyError`` str() for golden parity with the oracle. */
+export function keyErrorMessage(inner: string): string {
+  return `"${inner}"`;
+}
+
 /** Cache miss for the requested (source, key). */
 export class CacheNotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
+  readonly innerMessage: string;
+
+  constructor(inner: string) {
+    super(keyErrorMessage(inner));
+    this.innerMessage = inner;
     this.name = "CacheNotFoundError";
   }
 }

@@ -480,10 +480,11 @@ def cache_get(
     """Read a cache entry. Raises :class:`CacheNotFoundError` on miss / stale-blocked."""
     edir = entry_dir(source, key, cache_root=cache_root)
     meta_path = edir / "meta.json"
+    meta_display = f"{source}/{key}/meta.json"
     if not meta_path.exists():
         raise CacheNotFoundError(
             f"cache miss for source={source!r} key={key!r} "
-            f"(expected meta.json at {meta_path})"
+            f"(expected meta.json at {meta_display})"
         )
     try:
         meta = json.loads(meta_path.read_text(encoding="utf-8"))

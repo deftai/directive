@@ -46,6 +46,11 @@ function nowMinus(hours: number): Date {
   return new Date(Date.now() - hours * 3600 * 1000);
 }
 
+const noDriftProbe = () => ({
+  stateDriftNumbers: [] as number[],
+  contentDriftNumbers: [] as number[],
+});
+
 afterEach(() => {
   // Note: actual cleanup requires rmSync -- skip for fast tests (tmp is transient)
   tmpDirs.length = 0;
@@ -95,6 +100,7 @@ describe("evaluate -- fresh cache", () => {
       allowMissingBootstrap: true,
       repo: "owner/repo",
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(0);
     expect(result.message).toContain("✓");
@@ -269,6 +275,7 @@ describe("evaluate -- for-issue gate", () => {
       repo: "owner/repo",
       forIssue: 42,
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(0);
     expect(result.message).toContain("accept");
@@ -286,6 +293,7 @@ describe("evaluate -- for-issue gate", () => {
       repo: "owner/repo",
       forIssue: 42,
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("defer");
@@ -301,6 +309,7 @@ describe("evaluate -- for-issue gate", () => {
       repo: "owner/repo",
       forIssue: 99,
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("no triage decision");
@@ -319,6 +328,7 @@ describe("evaluate -- for-issue gate", () => {
       repo: "owner/repo",
       forIssue: 5,
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(0);
   });
@@ -334,6 +344,7 @@ describe("evaluate -- audit log state messages", () => {
       repo: "owner/repo",
       allowMissingBootstrap: true,
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(0);
     expect(result.message).toContain("fresh bootstrap");
@@ -350,6 +361,7 @@ describe("evaluate -- audit log state messages", () => {
       repo: "owner/repo",
       allowMissingBootstrap: true,
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(0);
     expect(result.message).toContain("actively triaging");
@@ -380,6 +392,7 @@ describe("evaluate -- correctness edge cases", () => {
       repo: "owner/repo",
       allowMissingBootstrap: true,
       nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
     });
     expect(result.code).toBe(0);
   });

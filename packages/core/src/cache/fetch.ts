@@ -508,10 +508,18 @@ export function cacheRefreshClosed(options: {
   delayMs?: number;
   limit?: number;
   cacheRoot?: string;
+  openNumbers?: Set<number>;
+  listOpenFn?: (repo: string, limit: number) => Set<number>;
 }): StateRefreshReportImpl {
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
   const cachedOpen = scanCachedOpenEntries(options.repo, options.source, cacheRoot);
-  const openNumbers = listOpenIssueNumbers(options.repo, { limit: options.limit ?? 1000 });
+  const limit = options.limit ?? 1000;
+  const openNumbers =
+    options.openNumbers ??
+    (options.listOpenFn ?? ((repo, listLimit) => listOpenIssueNumbers(repo, { limit: listLimit })))(
+      options.repo,
+      limit,
+    );
   return runStateRefresh({
     repo: options.repo,
     openNumbers,
@@ -638,11 +646,14 @@ function readSelfHealState(cacheRoot: string): Date | null {
   const path = join(cacheRoot, SELF_HEAL_STATE_FILENAME);
   if (!existsSync(path)) return null;
   try {
-    const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
-    const stamp = data.last_reconcile_at;
+    const raw = readFileSync(path, "utf8").trim();
+    if (raw.length === 0) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const stamp = (parsed as Record<string, unknown>).last_reconcile_at;
     if (typeof stamp !== "string") return null;
-    const parsed = new Date(stamp);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    const parsedDate = new Date(stamp);
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
   } catch {
     return null;
   }
@@ -668,6 +679,7 @@ export function maybeSelfHealCache(
       source: string;
       repo: string;
       cacheRoot: string;
+      openNumbers: Set<number>;
     }) => StateRefreshReportImpl;
     writeState?: boolean;
   } = {},
@@ -688,13 +700,20 @@ export function maybeSelfHealCache(
     return { skipped: true, skipReason: "ttl-fresh-no-drift", drift: null, refresh: null };
   }
 
+  const limit = 1000;
+  const listOpen =
+    options.listOpenFn ??
+    ((repo: string, listLimit: number) => listOpenIssueNumbers(repo, { limit: listLimit }));
+  const openNumbers = listOpen(repo, limit);
+
   let drift: CacheDriftProbeResult;
   try {
     drift = probeCacheDrift({
       repo,
       source,
       cacheRoot,
-      listOpenFn: options.listOpenFn,
+      limit,
+      listOpenFn: () => openNumbers,
       fetchSingleFn: options.fetchSingleFn,
       includeContentDrift: false,
     });
@@ -709,10 +728,11 @@ export function maybeSelfHealCache(
         source: opts.source,
         repo: opts.repo,
         cacheRoot: opts.cacheRoot,
+        openNumbers: opts.openNumbers,
       }));
 
   try {
-    const refresh = refreshFn({ source, repo, cacheRoot });
+    const refresh = refreshFn({ source, repo, cacheRoot, openNumbers });
     if (options.writeState !== false && refresh.refreshFailed === 0) {
       writeSelfHealState(cacheRoot, now);
     }

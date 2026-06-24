@@ -61,6 +61,7 @@ describe("errors", () => {
       incomingBytes: 20,
     });
     expect(err.message).toContain("size_cap");
+    expect(new CacheNotFoundError("miss").message).toBe('"miss"');
     expect(new CacheNotFoundError("miss").name).toBe("CacheNotFoundError");
     expect(new CacheValidationError("bad").name).toBe("CacheValidationError");
     expect(new CacheFetchError("fail").name).toBe("CacheFetchError");
