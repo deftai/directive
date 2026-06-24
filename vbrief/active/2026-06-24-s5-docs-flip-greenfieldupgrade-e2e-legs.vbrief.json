@@ -6,7 +6,7 @@
   "plan": {
     "id": "s5-docs-flip-e2e-legs",
     "title": "S5: docs flip + greenfield/upgrade e2e legs",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
     "narratives": {
       "Description": "Today's docs describe the Go-tarball, committed-.deft/core model, which contradicts the npm resolve-and-copy + gitignored model this epic delivers. This story flips the now-stale committed-payload statements (README, content/events/README.md) and finalizes the docs/ARCHITECTURE.md npm two-package section from a Wave 5 Target note to current behavior, then adds greenfield and upgrade legs to the pinned e2e so the deposit journeys are regression-guarded. It lands last because it documents and tests the behavior the earlier stories implement.",
@@ -105,6 +105,7 @@
         "type": "x-vbrief/related",
         "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
       }
-    ]
+    ],
+    "updated": "2026-06-24T20:58:44Z"
   }
 }
