@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1945"
+  },
+  "plan": {
+    "title": "fix(triage,ts): port the missing triage-actions verbs to TS (needs-ac/mark-duplicate/status/reset/history)",
+    "status": "running",
+    "narratives": {
+      "Description": "The TypeScript triage-actions CLI implements only accept/reject/defer. The router maps five more verbs to the same module (needs-ac, mark-duplicate, status, reset, history) but the TS CLI rejects them at its arg guard, so they exist only in the Python twin scripts/triage_actions.py. Port the five missing verbs to the TS actions module + CLI with parity tests against the Python oracle. This is a hard parity prerequisite for the #1860 Python purge.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1945",
+      "Overview": "## What to build\n\nPort the five missing triage verbs from scripts/triage_actions.py to TypeScript so they no longer depend on the Python runtime.\n\nToday packages/cli/src/triage-actions.ts only accepts accept/reject/defer (arg guard at line ~95); packages/core/src/triage/actions/index.ts exports only accept/reject/deferAction/formatDecision. The router (packages/cli/src/cli-router/route-argv.ts) maps needs-ac, mark-duplicate, status, reset, and history to the same module, and the Python twin implements all of them.\n\n## Acceptance criteria\n\n- [ ] TS triage-actions implements needs-ac, mark-duplicate, status, reset, history (in addition to accept/reject/defer)\n- [ ] reset records a reversible audit entry referencing the prior decision_id (history is never deleted)\n- [ ] mark-duplicate validates the of_n target against the local cache and records linked_to\n- [ ] status returns the latest decision; history returns all entries for the issue in order\n- [ ] Parity tests vs the Python oracle (scripts/triage_actions.py) for all five verbs, cache off\n- [ ] task check passes\n\n## Type\n\nAFK\n\n## Out of scope\n\n- The cache-faithfulness fix (reconcile-default / self-healing ritual / drift-aware freshness gate) is tracked separately in #1886 and owned by a sibling worker; this story MUST NOT edit packages/core/src/cache/, packages/core/src/preflight-cache/, or the session-ritual / triage:welcome call sites.",
+      "Labels": "bug, triage, area:vbrief",
+      "ImplementationPlan": "- packages/core/src/triage/actions/index.ts: add needsAc, markDuplicate, status, reset, history exports mirroring scripts/triage_actions.py semantics (reset references prior decision_id; mark-duplicate validates of_n in cache and records linked_to).\n- packages/cli/src/triage-actions.ts: extend the arg guard + dispatch to handle the five new subcommands with their flags.\n- packages/cli/src/triage-actions-parity.ts: add parity fixtures for the five verbs against the Python oracle (cache off).\n- Unit tests in packages/core/src/triage/actions/.",
+      "UserStory": "As a deft operator on an npm-only install, I want all triage verbs implemented in TypeScript, so that needs-ac/mark-duplicate/status/reset/history keep working after the #1860 Python purge."
+    },
+    "items": [
+      {
+        "title": "TS triage-actions implements the five missing verbs",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "packages/cli/src/triage-actions.ts and packages/core/src/triage/actions/index.ts implement needs-ac, mark-duplicate, status, reset, and history alongside accept/reject/defer."
+        }
+      },
+      {
+        "title": "reset is a reversible audit entry referencing the prior decision",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "reset records a new audit entry referencing the prior decision_id without deleting history; replaying status after reset reflects the reset decision."
+        }
+      },
+      {
+        "title": "mark-duplicate validates of_n and records linked_to",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "mark-duplicate validates the of_n target exists in the local cache and records linked_to on the audit entry, with idempotency on the same target."
+        }
+      },
+      {
+        "title": "Parity vs the Python oracle for all five verbs",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "packages/cli/src/triage-actions-parity.ts emits identical output/exit codes to scripts/triage_actions.py for needs-ac/mark-duplicate/status/reset/history with cache off; task check passes."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "triage",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1945",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1945: triage-actions TS CLI ports only accept/reject/defer; needs-ac/mark-duplicate/status/reset/history are Python-only (break on #1860 Python purge)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1886",
+        "type": "x-vbrief/related",
+        "title": "Issue #1886 (parent finding this was split from)"
+      }
+    ],
+    "updated": "2026-06-24T15:57:32Z",
+    "id": "2026-06-24-1945-ts-triage-actions-verb-parity-port",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/actions/index.ts",
+          "packages/core/src/triage/actions/index.test.ts",
+          "packages/cli/src/triage-actions.ts",
+          "packages/cli/src/triage-actions.test.ts",
+          "packages/cli/src/triage-actions-parity.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "task check"
+        ],
+        "expected_outputs": [
+          "needs-ac/mark-duplicate/status/reset/history work on the TS CLI",
+          "triage-actions parity exits 0 vs the Python oracle (cache off)",
+          "task check passes with new tests"
+        ],
+        "depends_on": [],
+        "conflict_group": "ts-triage-actions",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to the Python oracle scripts/triage_actions.py via parity fixtures, not a spec section."
+      },
+      "capacityBucket": "new-capability"
+    }
+  }
+}
