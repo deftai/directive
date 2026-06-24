@@ -84,7 +84,7 @@
         "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
       },
       {
-        "uri": "active/2026-06-24-s1-content-dependency-ts-resolve-and-copy-deposit-primitive.vbrief.json",
+        "uri": "completed/2026-06-24-s1-content-dependency-ts-resolve-and-copy-deposit-primitive.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "S1: content dependency + TS resolve-and-copy deposit primitive",
         "TrustLevel": "internal"

@@ -6,7 +6,7 @@
   "plan": {
     "id": "s1-content-deposit-primitive",
     "title": "S1: content dependency + TS resolve-and-copy deposit primitive",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
     "narratives": {
       "Description": "directive init/update currently obtain framework content only via the Go binary's GitHub-tarball download, and @deftai/directive depends solely on @deftai/directive-core. This story adds @deftai/directive-content as a dependency of the engine package and builds a pure TS deposit primitive that resolves the installed content package via Node module resolution and recursively copies its tree into a target directory with file-mode preservation. It is the foundation every later init/update story builds on, and is independently buildable and testable in isolation from the CLI verbs.",
@@ -75,7 +75,9 @@
         "file_scope_confidence": "high",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to cmd/deft-install/setup.go (copyFile/copyDir, #1477) and the #1942 deposit-mechanism comment (resolve-and-copy), not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T19:23:06Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -105,6 +107,6 @@
         "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
       }
     ],
-    "updated": "2026-06-24T18:52:32Z"
+    "updated": "2026-06-24T19:23:06Z"
   }
 }
