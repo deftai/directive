@@ -15,10 +15,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import {
   buildInstallSummaryJson,
+  createUserConfigDir,
   parseInitArgv,
   printNextSteps,
   runInitDeposit,
   runInitDepositCli,
+  userConfigDir,
 } from "./init-deposit.js";
 
 describe("parseInitArgv", () => {
@@ -37,6 +39,23 @@ describe("parseInitArgv", () => {
     expect(parsed.nonInteractive).toBe(true);
     expect(parsed.jsonOut).toBe(true);
     expect(parsed.projectDir).toBe("/tmp/win");
+  });
+
+  it("honors DEFT_USER_PATH for the config directory", () => {
+    const previous = process.env.DEFT_USER_PATH;
+    const customDir = mkdtempSync(join(tmpdir(), "deft-user-"));
+    process.env.DEFT_USER_PATH = customDir;
+    try {
+      expect(userConfigDir()).toBe(customDir);
+      const lines: string[] = [];
+      writeFileSync(join(customDir, "USER.md"), "# existing\n", "utf8");
+      expect(createUserConfigDir({ printf: (text) => lines.push(text) })).toBe(customDir);
+      expect(lines.join("")).toContain("keeping existing file");
+    } finally {
+      if (previous === undefined) delete process.env.DEFT_USER_PATH;
+      else process.env.DEFT_USER_PATH = previous;
+      rmSync(customDir, { recursive: true, force: true });
+    }
   });
 });
 

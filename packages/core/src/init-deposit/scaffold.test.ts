@@ -286,4 +286,34 @@ describe("init-deposit scaffold", () => {
       CANONICAL_TASKFILE_INCLUDE,
     );
   });
+
+  it("leaves a non-deft core guard workflow untouched", () => {
+    const project = freshRoot("scaffold-guard-foreign-");
+    mkdirSync(join(project, ".github/workflows"), { recursive: true });
+    writeFileSync(
+      join(project, ".github/workflows/deft-core-guard.yml"),
+      "name: custom-guard\n",
+      "utf8",
+    );
+    const { io } = captureIo();
+    expect(ensureCoreGuardWorkflow(project, io)).toBe(false);
+    expect(readFileSync(join(project, ".github/workflows/deft-core-guard.yml"), "utf8")).toContain(
+      "custom-guard",
+    );
+  });
+
+  it("updates an existing CodeQL config paths-ignore block", () => {
+    const project = freshRoot("scaffold-codeql-update-");
+    mkdirSync(join(project, ".github/codeql"), { recursive: true });
+    writeFileSync(
+      join(project, ".github/codeql/codeql-config.yml"),
+      "name: existing\npaths-ignore:\n  - 'dist/**'\n",
+      "utf8",
+    );
+    const { io } = captureIo();
+    expect(ensureCodeqlPathsIgnore(project, io)).toBe(true);
+    expect(readFileSync(join(project, ".github/codeql/codeql-config.yml"), "utf8")).toContain(
+      ".deft/core/**",
+    );
+  });
 });
