@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(#1912 G): Tier-0 lastGoInstaller SoT (null-until-frozen) + Tier-1 freeze gate + cross-surface drift gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Freeze-prep story G of the #1912 capstone (build + freeze the last Go installer as the legacy stage-1 bridge). Builds the durability scaffolding that makes a future freeze enforceable WITHOUT cutting the tag (the literal freeze is an operator action). gate (a) (53.x adoption blockers) is treated as N/A per operator decision 2026-06-24. Three pieces: (1) Tier-0 single-source-of-truth for the bridge version (`lastGoInstaller`), null-until-frozen, so docs / release skill / doctor / e2e all read ONE source and nobody hardcodes; (2) Tier-1 freeze gate -- once the SoT is pinned, `task check`/CI refuses any attempt to release/build a Go installer past the pinned tag (inert/advisory while null); (3) Tier-1 cross-surface drift gate -- asserts every surface that references the bridge version reads the SoT rather than hardcoding a number (modeled on the AGENTS.md managed-section freshness #1308 / template-propagation #1309 gates).",
       "Origin": "Decomposed from https://github.com/deftai/directive/issues/1912 (freeze-prep, agent-buildable subset). Operator approved scaffold-now + gate-(a)=N/A on 2026-06-24.",
@@ -109,8 +109,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to #1912 Durability Tier-0/Tier-1 checklist + operator scaffold-now decision; design latitude on gate mechanics is intentional."
-      }
+      },
+      "completedAt": "2026-06-24T22:21:54Z"
     },
-    "updated": "2026-06-24T22:04:09Z"
+    "updated": "2026-06-24T22:21:54Z"
   }
 }
