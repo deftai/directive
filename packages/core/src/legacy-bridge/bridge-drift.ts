@@ -59,8 +59,14 @@ export const DEFAULT_DRIFT_SURFACES: readonly string[] = [
   "packages/core/src/legacy-bridge/bridge-drift.ts",
 ];
 
-/** Matches a hardcoded Go-installer-style semver literal (tolerates a leading `v`). */
-const SEMVER_LITERAL = /v?\d+\.\d+\.\d+/;
+/**
+ * Matches a hardcoded Go-installer-style semver literal (tolerates a leading `v`).
+ * The digit runs are length-bounded (`{1,9}`) rather than unbounded (`+`) on
+ * purpose: a real semver component is never 10+ digits, and the bound removes the
+ * quadratic-backtracking ReDoS class (`js/polynomial-redos`) that an unbounded
+ * `\d+\.\d+\.\d+` exhibits when `.test()` runs over uncontrolled file input.
+ */
+const SEMVER_LITERAL = /v?\d{1,9}\.\d{1,9}\.\d{1,9}/;
 
 export interface DriftFinding {
   readonly path: string;
