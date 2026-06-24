@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(render): project:render must emit registry items that pass vbrief:validate for mixed-status decompose groups",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "task project:render groups scope vBRIEFs by GitHub issue number and assigns the grouped registry item one status (the umbrella's, e.g. cancelled) while still attaching the completed decomposed-story scopes as references. vbrief:validate's D3 registry-status rule then hard-fails because the item status (cancelled) contradicts the referenced scope plan.status (completed). A generator emitting artifacts its own validator rejects is a single-source-of-truth violation (#537). Make render output pass validate by construction.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1696",
@@ -81,8 +81,9 @@
         "file_scope_confidence": "high",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1696 (repro + root cause) under umbrella #1699, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T20:05:21Z"
     },
-    "updated": "2026-06-24T19:44:11Z"
+    "updated": "2026-06-24T20:05:21Z"
   }
 }
