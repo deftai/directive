@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- **README installer guidance is clearer about Node and project location** — the Getting Started section no longer frames the Go installer as a "no-Node bootstrap" (Node 20+ is always required to *run* Deft, since the live gates run on the TypeScript engine); it is reframed as a legacy/offline + layout-migration bridge with an explicit "install Node first" pointer for machines without Node. A new note also explains that project setup writes `.deft/` and `AGENTS.md` into the current working directory, so you should `cd` into your intended project folder first. Refs #1912 #761.
+- **Installer docs are clearer that Node is always required, and that setup is directory-scoped** — the README, UPGRADING.md, QUICK-START.md, and the AGENTS.md managed-section template no longer frame the Go installer as a "no-Node bootstrap." Node 20+ is always required to *run* Deft (the live gates run on the TypeScript engine), so the Go installer is reframed consistently as a legacy/offline + layout-migration bridge with an explicit "install Node first" pointer for machines without Node. The README also gains a note that project setup writes `.deft/` and `AGENTS.md` into the current working directory, so you should `cd` into your intended project folder first. Refs #1912 #761.
 
 ### Fixed
 

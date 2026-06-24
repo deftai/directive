@@ -27,7 +27,7 @@ If your current install uses the frozen Go installer (`deft-install`), migrate o
 3. In your project, run `directive agents:refresh` to update AGENTS.md with the npm-based managed section.
 4. Verify with `directive doctor` — the install-integrity check confirms the npm payload is current.
 
-The frozen Go installer remains available at [GitHub Releases](https://github.com/deftai/directive/releases) as a no-Node fallback but receives no further updates (#1912). After this one-time step, `npm i -g @deftai/directive@latest` is the only upgrade command you need.
+The frozen Go installer remains available at [GitHub Releases](https://github.com/deftai/directive/releases) as a legacy / offline bridge but receives no further updates (#1912); Node ≥ 20 is still required to run Deft afterward. After this one-time step, `npm i -g @deftai/directive@latest` is the only upgrade command you need.
 
 ---
 

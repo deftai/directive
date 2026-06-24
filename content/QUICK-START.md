@@ -14,9 +14,9 @@ npm i -g @deftai/directive
 
 Once installed, run `directive` (or the `deft` alias) from your project directory. Continue with Step 1 below.
 
-### Legacy / no-Node fallback (frozen Go installer, #1912)
+### Legacy / offline install (frozen Go installer, #1912)
 
-If Node is not available, the frozen legacy Go installer is the fallback. Do NOT build from a source checkout and do NOT guess a path. Each one-liner downloads the correct release binary from `releases/latest/download`, makes it executable, then runs it headless.
+Node ≥ 20 is required to **run** Deft regardless of how it's installed — the Go installer only deposits files on disk, so install Node first ([nvm](https://github.com/nvm-sh/nvm) / your OS package manager / [nodejs.org](https://nodejs.org/)) and prefer the npm command above. Use the Go installer only for an **offline / air-gapped** deposit or to **migrate a legacy on-disk layout**. Do NOT build from a source checkout and do NOT guess a path. Each one-liner downloads the correct release binary from `releases/latest/download`, makes it executable, then runs it headless.
 
 **macOS (Intel + Apple Silicon):**
 
