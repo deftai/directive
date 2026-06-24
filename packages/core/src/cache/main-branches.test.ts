@@ -77,7 +77,7 @@ describe("main CLI branches", () => {
     expect(main(["nope"])).toBe(2);
   });
 
-  it("fetch-all via CLI with mocked lister and refresh-closed", () => {
+  it("fetch-all via CLI with mocked lister reconciles closed by default", () => {
     setPaginatedLister(() => [{ number: 12, title: "t", body: "b", state: "open" }]);
     setSingleIssueFetcher(() => ({ number: 12, state: "closed", title: "t", body: "b" }));
     try {
@@ -90,7 +90,35 @@ describe("main CLI branches", () => {
           "deftai/directive",
           "--limit",
           "1",
-          "--refresh-closed",
+        ]),
+      ).toBe(0);
+    } finally {
+      setPaginatedLister(restIssueListPaginated);
+      setSingleIssueFetcher(restIssueView);
+    }
+  });
+
+  it("fetch-all --no-refresh-closed skips closed reconcile", () => {
+    setPaginatedLister(() => []);
+    setSingleIssueFetcher(() => {
+      throw new Error("refresh fetch fail");
+    });
+    const base = join(cwd, ".deft-cache/github-issue/deftai/directive/21");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 21, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    try {
+      expect(
+        main([
+          "fetch-all",
+          "--source",
+          "github-issue",
+          "--repo",
+          "deftai/directive",
+          "--no-refresh-closed",
         ]),
       ).toBe(0);
     } finally {
@@ -172,7 +200,7 @@ describe("main CLI branches", () => {
     }
   });
 
-  it("fetch-all refresh-closed failure sets exit 1", () => {
+  it("fetch-all refresh failure sets exit 1 when reconcile runs by default", () => {
     setPaginatedLister(() => []);
     setSingleIssueFetcher(() => {
       throw new Error("refresh fetch fail");
@@ -185,16 +213,7 @@ describe("main CLI branches", () => {
       "utf8",
     );
     try {
-      expect(
-        main([
-          "fetch-all",
-          "--source",
-          "github-issue",
-          "--repo",
-          "deftai/directive",
-          "--refresh-closed",
-        ]),
-      ).toBe(1);
+      expect(main(["fetch-all", "--source", "github-issue", "--repo", "deftai/directive"])).toBe(1);
     } finally {
       setPaginatedLister(restIssueListPaginated);
       setSingleIssueFetcher(restIssueView);

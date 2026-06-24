@@ -19,4 +19,18 @@ describe("default-mode helpers", () => {
     expect(lines.some((l) => l.includes("task deft:"))).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
+
+  it("runDefaultMode invokes cache self-heal before summary", () => {
+    const root = mkdtempSync(join(tmpdir(), "welcome-heal-"));
+    let healed = false;
+    runDefaultMode(root, {
+      output: () => {},
+      writeHistory: false,
+      selfHealFn: () => {
+        healed = true;
+      },
+    });
+    expect(healed).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
 });

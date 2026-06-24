@@ -115,6 +115,45 @@ describe("evaluate -- fresh cache", () => {
     expect(result.code).toBe(1);
     expect(result.message).toContain("❌");
     expect(result.message).toContain("25.0h old");
+    expect(result.message).toContain("oldest in-scope entry");
+  });
+
+  it("uses oldest in-scope entry age when newer entries exist", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 1, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+      { issue: 2, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 1, nowMinus(30).toISOString());
+    writeCacheEntry(root, "owner/repo", 2, nowMinus(1).toISOString());
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("30.0h old");
+  });
+
+  it("returns stale-by-drift when cached-open issues are absent upstream", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 7, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 7, nowMinus(1).toISOString(), { state: "open" });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: () => ({
+        stateDriftNumbers: [7],
+        contentDriftNumbers: [],
+      }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("stale-by-drift");
   });
 
   it("respects custom maxAgeHours", () => {
@@ -156,7 +195,12 @@ describe("evaluate -- for-issue gate", () => {
   it("returns code 0 when issue has accept decision", () => {
     const root = setupProjectRoot();
     writeCandidates(root, [
-      { issue: 42, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+      {
+        issue_number: 42,
+        repo: "owner/repo",
+        decision: "accept",
+        timestamp: new Date().toISOString(),
+      },
     ]);
     writeCacheEntry(root, "owner/repo", 42, nowMinus(1).toISOString());
 

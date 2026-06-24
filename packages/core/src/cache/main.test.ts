@@ -1,12 +1,15 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   detectRateLimit,
   FetchAllReportImpl,
+  maybeSelfHealCache,
+  probeCacheDrift,
   restIssueListPaginated,
   runFetchAll,
+  StateRefreshReportImpl,
   setPaginatedLister,
   setSleepFn,
 } from "./fetch.js";
@@ -51,6 +54,74 @@ describe("fetch-all", () => {
     const json = JSON.parse(report.toJson()) as Record<string, unknown>;
     expect(json.succeeded).toBe(1);
     expect(json.skipped).toBe(2);
+  });
+
+  it("probeCacheDrift detects state and content drift", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-drift-"));
+    const freshBase = join(root, "github-issue/deftai/directive/1");
+    const staleBase = join(root, "github-issue/deftai/directive/2");
+    mkdirSync(freshBase, { recursive: true });
+    mkdirSync(staleBase, { recursive: true });
+    writeFileSync(
+      join(freshBase, "raw.json"),
+      JSON.stringify({ number: 1, state: "open", title: "old", body: "b", labels: [] }),
+      "utf8",
+    );
+    writeFileSync(
+      join(freshBase, "meta.json"),
+      JSON.stringify({ expires_at: "2099-01-01T00:00:00Z" }),
+      "utf8",
+    );
+    writeFileSync(
+      join(staleBase, "raw.json"),
+      JSON.stringify({ number: 2, state: "open", title: "t", body: "b", labels: [] }),
+      "utf8",
+    );
+    try {
+      const drift = probeCacheDrift({
+        repo: "deftai/directive",
+        cacheRoot: root,
+        listOpenFn: () => new Set([1]),
+        fetchSingleFn: () => ({
+          number: 1,
+          state: "open",
+          title: "new",
+          body: "b",
+          labels: [],
+        }),
+        isFreshFn: (metaPath) => metaPath.includes("/1/"),
+      });
+      expect(drift.stateDriftNumbers).toEqual([2]);
+      expect(drift.contentDriftNumbers).toEqual([1]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache runs refresh when drift is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-"));
+    const base = join(root, ".deft-cache/github-issue/deftai/directive/3");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 3, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    let refreshed = false;
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set<number>(),
+        refreshFn: () => {
+          refreshed = true;
+          return new StateRefreshReportImpl();
+        },
+      });
+      expect(result.skipped).toBe(false);
+      expect(refreshed).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

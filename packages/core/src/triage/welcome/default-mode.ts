@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { maybeSelfHealCache } from "../../cache/fetch.js";
 import { FIRST_TIME_NUDGE, INCOMPLETE_NUDGE_TEMPLATE } from "./constants.js";
 import { classifyOnboarding, detectPriorState } from "./prior-state.js";
 import { emitOneliner } from "./summary.js";
@@ -32,6 +33,7 @@ export interface DefaultModeOptions {
   readonly output?: (line: string) => void;
   readonly writeHistory?: boolean;
   readonly taskPrefix?: string | null;
+  readonly selfHealFn?: (projectRoot: string) => void;
 }
 
 /** Non-interactive default mode (#1309). */
@@ -51,6 +53,13 @@ export function runDefaultMode(
     exitCode: 0,
     bootstrapAction: null,
   };
+
+  const heal =
+    options.selfHealFn ??
+    ((root: string) => {
+      maybeSelfHealCache(resolve(root));
+    });
+  heal(projectRoot);
 
   emitOneliner(projectRoot, {
     writeHistory: options.writeHistory !== false,

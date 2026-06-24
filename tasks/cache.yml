@@ -53,7 +53,7 @@ tasks:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" cache invalidate {{.CLI_ARGS}}
 
   fetch-all:
-    desc: "Bulk populate -- task cache:fetch-all -- --source github-issue --repo OWNER/NAME [--batch-size N] [--delay-ms N] [--ttl-seconds N]"
+    desc: "Bulk populate -- task cache:fetch-all -- --source github-issue --repo OWNER/NAME [--batch-size N] [--delay-ms N] [--ttl-seconds N] [--no-refresh-closed to skip open→closed reconcile]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :ts:build

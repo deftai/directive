@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   GhRestError,
@@ -525,4 +525,193 @@ export function cacheRefreshClosed(options: {
       });
     },
   });
+}
+
+export const DEFAULT_SELF_HEAL_TTL_SECONDS = 3600;
+export const SELF_HEAL_STATE_FILENAME = "self-heal-state.json";
+
+export interface CacheDriftProbeResult {
+  readonly stateDriftNumbers: readonly number[];
+  readonly contentDriftNumbers: readonly number[];
+}
+
+function issueContentFingerprint(raw: Record<string, unknown>): string {
+  const labels = ((raw.labels as Array<Record<string, unknown>> | undefined) ?? [])
+    .map((label) => String(label.name ?? ""))
+    .filter(Boolean)
+    .sort();
+  return JSON.stringify({
+    body: raw.body ?? "",
+    labels,
+    state: typeof raw.state === "string" ? raw.state.toLowerCase() : raw.state,
+    title: raw.title ?? "",
+  });
+}
+
+function scanCacheForSingleRepo(cacheRoot: string, source: string): string | null {
+  const base = join(cacheRoot, source);
+  if (!existsSync(base)) return null;
+  const pairs: Array<[string, string]> = [];
+  for (const ownerEntry of readdirSync(base)) {
+    const ownerDir = join(base, ownerEntry);
+    try {
+      for (const repoEntry of readdirSync(ownerDir)) {
+        const repoDir = join(ownerDir, repoEntry);
+        if (existsSync(repoDir)) {
+          pairs.push([ownerEntry, repoEntry]);
+        }
+      }
+    } catch {
+      /* skip */
+    }
+  }
+  if (pairs.length === 1 && pairs[0]) {
+    return `${pairs[0][0]}/${pairs[0][1]}`;
+  }
+  return null;
+}
+
+/** Diff cached-open issue numbers vs the live open set and TTL-fresh content drift. */
+export function probeCacheDrift(options: {
+  repo: string;
+  source?: string;
+  cacheRoot?: string;
+  limit?: number;
+  listOpenFn?: (repo: string, limit: number) => Set<number>;
+  fetchSingleFn?: (repo: string, n: number) => Record<string, unknown>;
+  isFreshFn?: (metaPath: string) => boolean;
+}): CacheDriftProbeResult {
+  const source = options.source ?? "github-issue";
+  const cacheRoot = options.cacheRoot ?? ".deft-cache";
+  const limit = options.limit ?? 1000;
+  const listOpen =
+    options.listOpenFn ??
+    ((repo: string, listLimit: number) => listOpenIssueNumbers(repo, { limit: listLimit }));
+  const fetchSingle = options.fetchSingleFn ?? singleIssueFetcherImpl;
+  const isFreshFn = options.isFreshFn ?? ((metaPath: string) => isFresh(metaPath));
+
+  const cachedOpen = scanCachedOpenEntries(options.repo, source, cacheRoot);
+  const liveOpen = listOpen(options.repo, limit);
+  const stateDriftNumbers: number[] = [];
+  const contentDriftNumbers: number[] = [];
+
+  for (const [number, cachedRaw] of cachedOpen) {
+    if (!liveOpen.has(number)) {
+      stateDriftNumbers.push(number);
+      continue;
+    }
+    const parts = options.repo.split("/", 2);
+    const owner = parts[0] ?? "";
+    const name = parts[1] ?? "";
+    const metaPath = join(cacheRoot, source, owner, name, String(number), "meta.json");
+    if (!isFreshFn(metaPath)) continue;
+    try {
+      const live = normaliseRestIssue(fetchSingle(options.repo, number));
+      if (issueContentFingerprint(cachedRaw) !== issueContentFingerprint(live)) {
+        contentDriftNumbers.push(number);
+      }
+    } catch {
+      /* probe best-effort */
+    }
+  }
+
+  stateDriftNumbers.sort((a, b) => a - b);
+  contentDriftNumbers.sort((a, b) => a - b);
+  return { stateDriftNumbers, contentDriftNumbers };
+}
+
+export interface SelfHealResult {
+  readonly skipped: boolean;
+  readonly skipReason: string | null;
+  readonly drift: CacheDriftProbeResult | null;
+  readonly refresh: StateRefreshReportImpl | null;
+}
+
+function readSelfHealState(cacheRoot: string): Date | null {
+  const path = join(cacheRoot, SELF_HEAL_STATE_FILENAME);
+  if (!existsSync(path)) return null;
+  try {
+    const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const stamp = data.last_reconcile_at;
+    if (typeof stamp !== "string") return null;
+    const parsed = new Date(stamp);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeSelfHealState(cacheRoot: string, when: Date): void {
+  const path = join(cacheRoot, SELF_HEAL_STATE_FILENAME);
+  writeFileSync(path, `${JSON.stringify({ last_reconcile_at: when.toISOString() })}\n`, "utf8");
+}
+
+/** TTL-bounded closed-reconcile for session ritual / triage:welcome self-healing (#1886). */
+export function maybeSelfHealCache(
+  projectRoot: string,
+  options: {
+    repo?: string | null;
+    source?: string;
+    cacheRoot?: string;
+    ttlSeconds?: number;
+    nowFn?: () => Date;
+    listOpenFn?: (repo: string, limit: number) => Set<number>;
+    fetchSingleFn?: (repo: string, n: number) => Record<string, unknown>;
+    refreshFn?: (opts: {
+      source: string;
+      repo: string;
+      cacheRoot: string;
+    }) => StateRefreshReportImpl;
+    writeState?: boolean;
+  } = {},
+): SelfHealResult {
+  const source = options.source ?? "github-issue";
+  const cacheRoot = options.cacheRoot ?? join(projectRoot, ".deft-cache");
+  const now = options.nowFn?.() ?? new Date();
+  const ttlSeconds = options.ttlSeconds ?? DEFAULT_SELF_HEAL_TTL_SECONDS;
+  const repo = options.repo ?? scanCacheForSingleRepo(cacheRoot, source);
+
+  if (repo === null) {
+    return { skipped: true, skipReason: "repo-not-resolved", drift: null, refresh: null };
+  }
+
+  let drift: CacheDriftProbeResult;
+  try {
+    drift = probeCacheDrift({
+      repo,
+      source,
+      cacheRoot,
+      listOpenFn: options.listOpenFn,
+      fetchSingleFn: options.fetchSingleFn,
+    });
+  } catch {
+    return { skipped: true, skipReason: "drift-probe-failed", drift: null, refresh: null };
+  }
+
+  const hasDrift = drift.stateDriftNumbers.length > 0 || drift.contentDriftNumbers.length > 0;
+  const lastHeal = readSelfHealState(cacheRoot);
+  const ttlExpired = lastHeal === null || now.getTime() - lastHeal.getTime() >= ttlSeconds * 1000;
+
+  if (!hasDrift && !ttlExpired) {
+    return { skipped: true, skipReason: "ttl-fresh-no-drift", drift, refresh: null };
+  }
+
+  const refreshFn =
+    options.refreshFn ??
+    ((opts) =>
+      cacheRefreshClosed({
+        source: opts.source,
+        repo: opts.repo,
+        cacheRoot: opts.cacheRoot,
+      }));
+
+  try {
+    const refresh = refreshFn({ source, repo, cacheRoot });
+    if (options.writeState !== false && refresh.refreshFailed === 0) {
+      writeSelfHealState(cacheRoot, now);
+    }
+    return { skipped: false, skipReason: null, drift, refresh };
+  } catch {
+    return { skipped: true, skipReason: "refresh-failed", drift, refresh: null };
+  }
 }

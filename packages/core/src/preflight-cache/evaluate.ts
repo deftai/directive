@@ -14,6 +14,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
 
 // ---------------------------------------------------------------------------
 // Public constants (mirror preflight_cache.py)
@@ -45,6 +46,8 @@ export interface EvaluateOptions {
   allowMissingBootstrap?: boolean;
   /** Injectable clock for tests. */
   nowFn?: () => Date;
+  /** Injectable drift probe for tests. */
+  probeDriftFn?: (repo: string, cacheRoot: string, source: string) => CacheDriftProbeResult | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -278,7 +281,7 @@ function parseCandidates(candidatesPath: string): CandidateEntry[] {
         if (data !== null && typeof data === "object" && !Array.isArray(data)) {
           const d = data as Record<string, unknown>;
           entries.push({
-            issue: Number(d.issue ?? 0),
+            issue: Number(d.issue ?? d.issue_number ?? 0),
             repo: String(d.repo ?? ""),
             decision: String(d.decision ?? ""),
             ts: String(d.ts ?? d.timestamp ?? ""),
@@ -312,9 +315,44 @@ const REMEDIATION_NO_CACHE = ["  Recovery: run `deft triage:bootstrap` to seed t
   "\n",
 );
 
-const REMEDIATION_STALE = ["  Recovery: run `deft cache:fetch-all` to refresh the cache."].join(
-  "\n",
-);
+const REMEDIATION_STALE = [
+  "  Recovery: run `deft cache:fetch-all` to refresh and reconcile upstream state.",
+].join("\n");
+
+function formatDriftFailure(repo: string, drift: CacheDriftProbeResult): GateResult {
+  const parts: string[] = [];
+  if (drift.stateDriftNumbers.length > 0) {
+    parts.push(`${drift.stateDriftNumbers.length} cached-open issue(s) absent from live open set`);
+  }
+  if (drift.contentDriftNumbers.length > 0) {
+    parts.push(
+      `${drift.contentDriftNumbers.length} TTL-fresh issue(s) with upstream content drift`,
+    );
+  }
+  return {
+    code: 1,
+    message: [
+      `❌ deft cache-fresh: stale-by-drift -- ${parts.join("; ")} (${repo}).`,
+      REMEDIATION_STALE,
+    ].join("\n"),
+  };
+}
+
+function runDriftProbe(
+  resolvedRepo: string,
+  cacheRoot: string,
+  source: string,
+  options: EvaluateOptions,
+): CacheDriftProbeResult | null {
+  if (options.probeDriftFn) {
+    return options.probeDriftFn(resolvedRepo, cacheRoot, source);
+  }
+  try {
+    return probeCacheDrift({ repo: resolvedRepo, source, cacheRoot });
+  } catch {
+    return null;
+  }
+}
 
 const REMEDIATION_NO_CANDIDATES = [
   "  Recovery: run `deft triage:bootstrap` to initialise the triage log.",
@@ -409,22 +447,32 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
     scopedMetaPaths.length === 0 &&
     candState === "populated";
 
-  // Step 5: Find newest entry
-  let maxFetchedAt: Date | null = null;
-  let maxMetaPath: string | null = null;
+  // Step 5: Oldest in-scope entry age + drift probe (#1886)
+  let minFetchedAt: Date | null = null;
+  let minMetaPath: string | null = null;
 
   for (const p of scopedMetaPaths.length > 0 ? scopedMetaPaths : allMetaPaths) {
     const ts = metaFetchedAt(p);
-    if (ts !== null && (maxFetchedAt === null || ts > maxFetchedAt)) {
-      maxFetchedAt = ts;
-      maxMetaPath = p;
+    if (ts !== null && (minFetchedAt === null || ts < minFetchedAt)) {
+      minFetchedAt = ts;
+      minMetaPath = p;
     }
   }
 
   const now = nowFn();
-  const ageMs = maxFetchedAt !== null ? now.getTime() - maxFetchedAt.getTime() : Infinity;
+  const ageMs = minFetchedAt !== null ? now.getTime() - minFetchedAt.getTime() : Infinity;
   const ageH = ageMs / (1000 * 3600);
   const stale = ageH > maxAgeHours;
+
+  if (resolvedRepo !== null && !allowStale) {
+    const drift = runDriftProbe(resolvedRepo, cacheRoot, source, options);
+    if (
+      drift !== null &&
+      (drift.stateDriftNumbers.length > 0 || drift.contentDriftNumbers.length > 0)
+    ) {
+      return formatDriftFailure(resolvedRepo, drift);
+    }
+  }
 
   // Step 5b: --allow-stale bypass
   if (stale && allowStale) {
@@ -448,11 +496,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
   }
 
   if (stale) {
-    const display = maxMetaPath !== null ? relative(projectRoot, maxMetaPath) : "?";
+    const display = minMetaPath !== null ? relative(projectRoot, minMetaPath) : "?";
     return {
       code: 1,
       message: [
-        `❌ deft cache-fresh: cache is ${ageH.toFixed(1)}h old (max-age=${maxAgeHours}h); newest entry ${display}.`,
+        `❌ deft cache-fresh: cache is ${ageH.toFixed(1)}h old (max-age=${maxAgeHours}h); oldest in-scope entry ${display}.`,
         REMEDIATION_STALE,
       ].join("\n"),
     };
@@ -490,7 +538,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
   }
 
   const repoLabel = resolvedRepo ?? "unknown-repo";
-  let msg = `✓ deft cache-fresh: ${repoLabel} -- ${inScopeCount} entry/ies in scope; newest fetched ${ageH.toFixed(1)}h ago (max-age=${maxAgeHours}h); ${statePhrase}.`;
+  let msg = `✓ deft cache-fresh: ${repoLabel} -- ${inScopeCount} entry/ies in scope; oldest fetched ${ageH.toFixed(1)}h ago (max-age=${maxAgeHours}h); ${statePhrase}.`;
   if (options.forIssue !== undefined && options.forIssue !== null) {
     msg += ` Issue #${options.forIssue} latest decision = accept; in subscription scope.`;
   }
