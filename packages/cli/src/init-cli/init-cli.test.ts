@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as initDeposit from "@deftai/directive-core/init-deposit";
@@ -15,6 +15,19 @@ import {
 } from "./resolve-binary.js";
 import { runDeftInstall } from "./run-deft-install.js";
 import { runUpdate } from "./update.js";
+
+// `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
+// so a guarded parse keeps property reads from blowing up with a TypeError
+// outside the parse boundary.
+function parseJsonObject(text: string): Record<string, unknown> {
+  const value: unknown = JSON.parse(text);
+  if (value === null || typeof value !== "object") {
+    throw new Error(
+      `expected a JSON object payload, received ${value === null ? "null" : typeof value}`,
+    );
+  }
+  return value as Record<string, unknown>;
+}
 
 function captureIo(): { io: DispatchIo; out: string[]; err: string[] } {
   const out: string[] = [];
@@ -173,6 +186,39 @@ describe("runUpdate TS-native refresh", () => {
       }),
     );
     expect(CANONICAL_UPDATE_ARGV).toContain("--upgrade");
+  });
+});
+
+describe("legacy-layout refusal (end-to-end via the CLI, #1912)", () => {
+  const created: string[] = [];
+  afterEach(() => {
+    for (const dir of created.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+  function legacyProject(): string {
+    const dir = mkdtempSync(join(tmpdir(), "legacy-cli-"));
+    created.push(dir);
+    mkdirSync(join(dir, ".deft"), { recursive: true });
+    writeFileSync(join(dir, ".deft", "VERSION"), "tag: 'v0.26.0'\n", "utf8");
+    return dir;
+  }
+
+  it("runInit refuses an orphan .deft/VERSION layout with exit 2", async () => {
+    const { io, out } = captureIo();
+    const code = await runInit(["--repo-root", legacyProject()], io);
+    expect(code).toBe(2);
+    const parsed = parseJsonObject(out.join(""));
+    expect(parsed.action).toBe("refuse");
+    expect(parsed.legacy_layout).toBe(true);
+    expect(parsed.upgrading_doc_url).toContain("UPGRADING.md");
+  });
+
+  it("runUpdate refuses an orphan .deft/VERSION layout with exit 2", async () => {
+    const { io, out } = captureIo();
+    const code = await runUpdate(["--repo-root", legacyProject()], io);
+    expect(code).toBe(2);
+    const parsed = parseJsonObject(out.join(""));
+    expect(parsed.action).toBe("refuse");
+    expect(parsed.command).toBe("update");
   });
 });
 

@@ -13,13 +13,35 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
+import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildVersionSkewNotice,
   frameworkRefreshSideEffects,
   parseUpdateArgv,
   printRefreshSideEffects,
   runRefreshDeposit,
+  runRefreshDepositCli,
 } from "./refresh.js";
+
+// `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
+// so a guarded parse keeps property reads from blowing up with a TypeError
+// outside the parse boundary.
+function parseJsonObject(text: string): Record<string, unknown> {
+  const value: unknown = JSON.parse(text);
+  if (value === null || typeof value !== "object") {
+    throw new Error(
+      `expected a JSON object payload, received ${value === null ? "null" : typeof value}`,
+    );
+  }
+  return value as Record<string, unknown>;
+}
+
+const FAKE_LEGACY: LegacyLayoutDetection = {
+  legacy: true,
+  kind: "legacy-deft-prefixed",
+  detail: "Found a legacy deft/-prefixed framework install.",
+  evidence: ["deft/"],
+};
 
 describe("parseUpdateArgv", () => {
   it("records --upgrade from canonical argv", () => {
@@ -226,5 +248,61 @@ describe("runRefreshDeposit", () => {
     expect(lines.join("")).toContain("Version skew");
     expect(lines.join("")).toContain("directive-core is v0.53.0");
     expect(lines.join("")).toContain("directive-content is v0.52.0");
+  });
+
+  it("throws LegacyLayoutRefusedError on a legacy layout (no refresh)", async () => {
+    await expect(
+      runRefreshDeposit(
+        { projectDir: "/proj-legacy", jsonOut: false, nonInteractive: true, upgrade: true },
+        { printf: () => {} },
+        {
+          detectLegacy: () => FAKE_LEGACY,
+          resolveContentRoot: async () => {
+            throw new Error("resolveContentRoot must not be reached when refusing");
+          },
+        },
+      ),
+    ).rejects.toBeInstanceOf(LegacyLayoutRefusedError);
+  });
+});
+
+describe("runRefreshDepositCli legacy refusal", () => {
+  it("update refuses a legacy layout with the two-step recovery (json mode)", async () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: "/proj-legacy",
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      seams: { detectLegacy: () => FAKE_LEGACY },
+    });
+
+    expect(code).toBe(2);
+    const parsed = parseJsonObject(out.join(""));
+    expect(parsed.action).toBe("refuse");
+    expect(parsed.command).toBe("update");
+    expect(parsed.legacy_layout).toBe(true);
+    expect(parsed.legacy_layout_kind).toBe("legacy-deft-prefixed");
+    expect(err.join("")).toContain("refusing to refresh");
+    expect(err.join("")).toContain("npx @deftai/directive update");
+  });
+
+  it("update refuses a legacy layout in interactive mode (message on stdout)", async () => {
+    const out: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: "/proj-legacy",
+      jsonOut: false,
+      nonInteractive: true,
+      upgrade: true,
+      writeOut: (text) => out.push(text),
+      writeErr: () => {},
+      seams: { detectLegacy: () => FAKE_LEGACY },
+    });
+
+    expect(code).toBe(2);
+    expect(out.join("")).toContain("refusing to refresh");
   });
 });

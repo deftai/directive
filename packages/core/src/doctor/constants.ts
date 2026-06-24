@@ -1,5 +1,15 @@
 export const UV_INSTALL_URL = "https://docs.astral.sh/uv/";
 
+// Stable, version-neutral upgrade signposts (#1912). Core principle: never bake
+// the upgrade command/version into the artifact being upgraded -- bake in a
+// stable pointer resolved fresh. These URLs carry NO Go-installer version and
+// NO literal upgrade command; they point at the canonical docs + the frozen
+// final Go bridge release so the npm CLI / doctor can signpost the
+// legacy -> bridge -> npm recovery without going stale.
+export const UPGRADING_DOC_URL =
+  "https://github.com/deftai/directive/blob/master/content/UPGRADING.md";
+export const GO_BRIDGE_RELEASES_URL = "https://github.com/deftai/directive/releases";
+
 export const AGENTS_MANAGED_CLOSE = "<!-- /deft:managed-section -->";
 
 export const DEPRECATED_REDIRECT_SENTINEL = "<!-- deft:deprecated-redirect -->";

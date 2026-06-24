@@ -1,9 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   checkInstallPathConsistency,
+  checkLegacyLayout,
   checkManifestAgreement,
   checkQuickStartResolves,
   checkSkillPathsResolve,
@@ -122,6 +123,46 @@ describe("checks", () => {
   it("install path consistency pass", () => {
     const result = checkInstallPathConsistency("/tmp", ".deft/core", { isDir: () => true });
     expect(result.status).toBe("pass");
+  });
+
+  it("checkLegacyLayout skips a canonical .deft/core layout", () => {
+    const result = checkLegacyLayout("/proj", { isDir: (p) => p.endsWith(".deft/core") });
+    expect(result.status).toBe("skip");
+    expect(result.data?.legacy_layout).toBe(false);
+  });
+
+  it("checkLegacyLayout fails with a stable-URL signpost on a legacy layout", () => {
+    const result = checkLegacyLayout("/proj", {
+      isDir: () => false,
+      isFile: (p) => p.endsWith(".deft/VERSION"),
+    });
+    expect(result.status).toBe("fail");
+    expect(result.detail).toContain("Legacy Deft layout detected");
+    expect(result.detail).toContain("UPGRADING.md");
+    expect(result.data?.legacy_layout).toBe(true);
+    expect(result.data?.legacy_layout_kind).toBe("orphan-deft-version");
+  });
+
+  it("runChecksImpl flags a legacy orphan .deft/VERSION layout (exit 1)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-legacy-"));
+    try {
+      mkdirSync(join(root, ".deft"), { recursive: true });
+      writeFileSync(join(root, ".deft", "VERSION"), "tag: 'v0.26.0'\n", "utf8");
+      writeFileSync(join(root, "AGENTS.md"), "Deft is installed in .deft/core.\n", "utf8");
+      const isDir = (p: string) => {
+        try {
+          return statSync(p).isDirectory();
+        } catch {
+          return false;
+        }
+      };
+      const result = runChecksImpl(root, { isDir });
+      const legacy = result.checks.find((c) => c.name === "legacy-layout");
+      expect(legacy?.status).toBe("fail");
+      expect(result.exitCode).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("runChecksImpl config error for missing project root", () => {

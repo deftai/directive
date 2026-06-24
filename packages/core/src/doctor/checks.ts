@@ -1,5 +1,11 @@
 import { join } from "node:path";
+import {
+  detectLegacyLayout,
+  type LegacyDetectSeams,
+  legacyLayoutSignpostLine,
+} from "../init-deposit/legacy-detect.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
+import { GO_BRIDGE_RELEASES_URL, UPGRADING_DOC_URL } from "./constants.js";
 import {
   isDeprecationRedirectStub,
   locateManifest,
@@ -317,6 +323,40 @@ export function checkInstallPathConsistency(
   };
 }
 
+/**
+ * #1912: signpost a legacy on-disk layout. Carries the STABLE UPGRADING.md URL
+ * only -- no baked Go-installer version or literal upgrade command. Returns
+ * `skip` for the canonical / greenfield layout (nothing to signpost).
+ */
+export function checkLegacyLayout(projectRoot: string, seams: CheckSeams = {}): CheckResult {
+  const legacySeams: LegacyDetectSeams = {
+    ...(seams.readText ? { readText: seams.readText } : {}),
+    ...(seams.isFile ? { isFile: seams.isFile } : {}),
+    ...(seams.isDir ? { isDir: seams.isDir } : {}),
+  };
+  const detection = detectLegacyLayout(projectRoot, legacySeams);
+  if (!detection.legacy) {
+    return {
+      name: "legacy-layout",
+      status: "skip",
+      detail: "No legacy Deft layout detected (canonical .deft/core/ or greenfield).",
+      data: { legacy_layout: false },
+    };
+  }
+  return {
+    name: "legacy-layout",
+    status: "fail",
+    detail: legacyLayoutSignpostLine(detection),
+    data: {
+      legacy_layout: true,
+      legacy_layout_kind: detection.kind,
+      evidence: [...detection.evidence],
+      upgrading_doc_url: UPGRADING_DOC_URL,
+      go_bridge_releases_url: GO_BRIDGE_RELEASES_URL,
+    },
+  };
+}
+
 export function deriveExitCode(checks: readonly CheckResult[], errors: readonly string[]): number {
   if (errors.length > 0 || checks.some((c) => c.status === "error")) {
     return 2;
@@ -358,6 +398,7 @@ export function runChecksImpl(
       data: { agents_md_path: agentsMdPath },
     });
     checks.push(checkManifestAgreement(projectRoot, null, seams));
+    checks.push(checkLegacyLayout(projectRoot, seams));
     return {
       projectRoot,
       installRoot: null,
@@ -370,6 +411,7 @@ export function runChecksImpl(
   checks.push(checkSkillPathsResolve(projectRoot, agentsMdText, seams));
   checks.push(checkManifestAgreement(projectRoot, installRoot, seams));
   checks.push(checkInstallPathConsistency(projectRoot, installRoot, seams));
+  checks.push(checkLegacyLayout(projectRoot, seams));
   return {
     projectRoot,
     installRoot,

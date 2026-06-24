@@ -1,0 +1,105 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Freeze-prep story P decomposed from GitHub issue #1912 (Tier-2 npm CLI legacy-layout refuse-preflight + signposts)"
+  },
+  "plan": {
+    "title": "feat(#1912 P): npm CLI legacy-layout refuse-preflight (two-step) + signpost-only stable-URL surfaces",
+    "status": "completed",
+    "narratives": {
+      "Description": "Freeze-prep story P of the #1912 capstone. Implements the Tier-2 runtime surface: the `npx @deftai/directive` CLI (init / update), fetched fresh at use-time, detects a LEGACY on-disk layout (git-clone / submodule / legacy `deft/`-prefixed / pre-v0.27 sentinel-only AGENTS.md / orphan `.deft/VERSION`) and REFUSES with the two-step recovery -- (1) run the frozen Go bridge installer, (2) re-run the npm path. The installed doctor / AGENTS / update-check surfaces are SIGNPOSTS ONLY: they carry a STABLE UPGRADING.md URL, never a baked command or version. Core principle (locked): never bake the upgrade command/version into the artifact being upgraded -- bake in a stable pointer resolved fresh. Today the npm deposit path hardcodes `legacy_layout: false` (init-deposit.ts / refresh.ts); this story makes that detection real and wires the refusal.",
+      "Origin": "Decomposed from https://github.com/deftai/directive/issues/1912 (freeze-prep, agent-buildable subset). Independent of the Tier-0 SoT (story G) because the refusal points at a stable URL, not a baked version.",
+      "Overview": "## What to build\n\n### Legacy-layout detection (npm CLI)\nReplace the `legacy_layout: false` stub in `packages/core/src/init-deposit/init-deposit.ts` and `packages/core/src/init-deposit/refresh.ts` with a real detector that recognizes the legacy shapes: git-clone / submodule deposit, legacy `deft/`-prefixed paths, pre-v0.27 sentinel-only AGENTS.md (no managed-section), orphan `.deft/VERSION` (no `.deft/core/`). Reuse the manifest/AGENTS heuristics already in `packages/core/src/doctor/manifest.ts` (parseInstallRootFromAgentsMd, extractManagedSection, locateManifest) -- do NOT reinvent.\n\n### Refuse-preflight (two-step)\nWhen `directive init` / `directive update` detect a legacy layout, REFUSE (do not deposit/refresh) and print the two-step recovery:\n  1. Download + run the frozen Go bridge installer (stage 1) -- point at the stable UPGRADING.md URL for the exact command (do NOT bake a version).\n  2. Re-run `npx @deftai/directive init` (stage 2) once the layout is canonical-vendored.\nExit non-zero (needs-action). This is the active gate -- it runs fresh from npm at use-time.\n\n### Signpost-only surfaces (stable URL)\n- Installed `deft doctor`: when it detects a legacy layout, emit a signpost line carrying the STABLE UPGRADING.md URL (no baked command/version).\n- UPGRADING.md (root + content/UPGRADING.md): document the two-step legacy->bridge->npm path, referencing the bridge generically (the actual pinned version is the Tier-0 SoT owned by story G; do NOT hardcode a number here -- describe it as 'the frozen final Go installer, see releases').\n- AGENTS.md / update-check signpost text: stable URL only.\n\n## Must NOT\n- Bake a Go-installer version number or a literal upgrade command into any installed artifact (doctor / AGENTS / update-check) -- stable URL only.\n- Touch the Tier-0 SoT module or the freeze/drift gates (story G owns those).\n- Attempt to normalize the legacy layout from the npm side (that is stage 1's job -- npm REFUSES, it does not migrate).",
+      "Labels": "enhancement, ci-cd, installer, Wave 5",
+      "ImplementationPlan": "- packages/core/src/init-deposit/legacy-detect.ts (new): the legacy-layout classifier (reuses doctor/manifest.ts heuristics) + a typed result.\n- packages/core/src/init-deposit/init-deposit.ts + refresh.ts: call the detector; on legacy, return a refuse result (drop the hardcoded `legacy_layout: false`).\n- packages/cli/src/init-cli/init.ts + update.ts: on a refuse result, print the two-step + stable URL and exit non-zero.\n- packages/core/src/doctor/checks.ts (+ constants.ts): legacy-layout signpost carrying the stable UPGRADING.md URL.\n- UPGRADING.md + content/UPGRADING.md: two-step legacy->bridge->npm section (version-neutral).\n- Tests: legacy-detect.test.ts (each legacy shape + the canonical-vendored negative), init/update refuse-path tests, doctor signpost test.",
+      "UserStory": "As a consumer on a legacy (clone/submodule/pre-v0.27) Deft layout, when I run the npm CLI it should refuse cleanly with a two-step recovery pointing me at a stable URL, so I run the frozen Go bridge first and then the npm path -- without the npm CLI ever guessing at migration or baking a stale command."
+    },
+    "items": [
+      {
+        "title": "real legacy-layout detection replaces the stub",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the on-disk layout is a legacy shape (clone/submodule/legacy-prefix/pre-v0.27/orphan VERSION), the detector reports legacy; canonical-vendored reports not-legacy."
+        }
+      },
+      {
+        "title": "npm CLI refuses legacy with the two-step",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When directive init/update detect a legacy layout, they refuse (no deposit), print the two-step recovery, and exit non-zero."
+        }
+      },
+      {
+        "title": "signposts carry a stable URL, never a baked command/version",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When doctor/AGENTS/update-check signpost the upgrade, they carry the stable UPGRADING.md URL with no hardcoded Go-installer version or command."
+        }
+      },
+      {
+        "title": "UPGRADING.md documents the version-neutral two-step path",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When a user reads UPGRADING.md, the legacy->bridge->npm two-step is documented without a hardcoded bridge version number."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "installer",
+      "Wave 5"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1912: build + freeze the last Go installer (parent capstone)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/related",
+        "title": "Epic #1669 distributable Deft -- Wave 5"
+      }
+    ],
+    "id": "2026-06-24-1912p-npm-legacy-refuse-preflight",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "feature",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/legacy-detect.ts",
+          "packages/core/src/init-deposit/legacy-detect.test.ts",
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/cli/src/init-cli/init.ts",
+          "packages/cli/src/init-cli/update.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/constants.ts",
+          "UPGRADING.md",
+          "content/UPGRADING.md"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- legacy-detect",
+          "pnpm --filter @deftai/directive test -- init",
+          "pnpm --filter @deftai/directive test -- update",
+          "task check"
+        ],
+        "expected_outputs": [
+          "npm CLI detects legacy layouts and refuses with a two-step stable-URL recovery; installed signposts carry stable URL only (no baked version); UPGRADING.md documents version-neutral two-step"
+        ],
+        "depends_on": [],
+        "conflict_group": "init-deposit-legacy",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to #1912 Tier-2 corrected-design checklist + operator scaffold-now decision."
+      },
+      "completedAt": "2026-06-24T22:22:37Z"
+    },
+    "updated": "2026-06-24T22:22:37Z"
+  }
+}

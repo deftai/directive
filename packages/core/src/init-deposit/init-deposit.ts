@@ -14,6 +14,14 @@ import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
 import {
+  buildLegacyRefusalJson,
+  buildLegacyRefusalMessage,
+  detectLegacyLayout,
+  LEGACY_LAYOUT_REFUSED_EXIT_CODE,
+  type LegacyLayoutDetection,
+  LegacyLayoutRefusedError,
+} from "./legacy-detect.js";
+import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
   ensureTaskfile,
@@ -38,6 +46,7 @@ export interface InitDepositResult {
   readonly skillsCreated: boolean;
   readonly taskfileWired: boolean;
   readonly configDir: string;
+  readonly legacyLayout: boolean;
 }
 
 export interface InitDepositSeams {
@@ -46,6 +55,7 @@ export interface InitDepositSeams {
   readPackageVersion?: () => string;
   nowIso?: () => string;
   gitHooks?: Parameters<typeof writeConsumerGitHooks>[3];
+  detectLegacy?: (projectDir: string) => LegacyLayoutDetection;
 }
 
 export function parseInitArgv(
@@ -120,7 +130,7 @@ export function buildInstallSummaryJson(
     version: readCorePackageVersion(),
     project_dir: result.projectDir,
     deft_dir: result.deftDir,
-    legacy_layout: false,
+    legacy_layout: result.legacyLayout,
     update: false,
     non_interactive: options.nonInteractive,
     upgrade: false,
@@ -165,6 +175,15 @@ export async function runInitDeposit(
 ): Promise<InitDepositResult> {
   const projectDir = args.projectDir;
   const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
+
+  // #1912: refuse a legacy on-disk layout BEFORE any deposit. The npm CLI never
+  // migrates -- the frozen Go bridge does (stage 1), then the npm path (stage 2).
+  const detectLegacy = seams.detectLegacy ?? detectLegacyLayout;
+  const legacy = detectLegacy(projectDir);
+  if (legacy.legacy) {
+    throw new LegacyLayoutRefusedError(legacy);
+  }
+
   const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
   const copyContent = seams.copyContent ?? copyTree;
 
@@ -206,6 +225,7 @@ export async function runInitDeposit(
     skillsCreated,
     taskfileWired,
     configDir,
+    legacyLayout: false,
   };
 }
 
@@ -237,6 +257,15 @@ export async function runInitDepositCli(options: RunInitDepositCliOptions): Prom
     }
     return 0;
   } catch (cause) {
+    if (cause instanceof LegacyLayoutRefusedError) {
+      io.printf(buildLegacyRefusalMessage("init", cause.detection));
+      if (options.jsonOut) {
+        options.writeOut(
+          `${JSON.stringify(buildLegacyRefusalJson("init", resolve(options.projectDir), cause.detection), null, 2)}\n`,
+        );
+      }
+      return LEGACY_LAYOUT_REFUSED_EXIT_CODE;
+    }
     const message = cause instanceof Error ? cause.message : String(cause);
     options.writeErr(`directive init: ${message}\n`);
     if (options.jsonOut) {

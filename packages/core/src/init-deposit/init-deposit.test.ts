@@ -22,6 +22,27 @@ import {
   runInitDepositCli,
   userConfigDir,
 } from "./init-deposit.js";
+import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
+
+// `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
+// so a guarded parse keeps property reads from blowing up with a TypeError
+// outside the parse boundary.
+function parseJsonObject(text: string): Record<string, unknown> {
+  const value: unknown = JSON.parse(text);
+  if (value === null || typeof value !== "object") {
+    throw new Error(
+      `expected a JSON object payload, received ${value === null ? "null" : typeof value}`,
+    );
+  }
+  return value as Record<string, unknown>;
+}
+
+const FAKE_LEGACY: LegacyLayoutDetection = {
+  legacy: true,
+  kind: "orphan-deft-version",
+  detail: "Found an orphan .deft/VERSION manifest with no .deft/core/ directory.",
+  evidence: [".deft/VERSION"],
+};
 
 describe("parseInitArgv", () => {
   it("merges canonical and user argv", () => {
@@ -248,6 +269,59 @@ describe("runInitDeposit", () => {
     expect(code).toBe(1);
     expect(out.join("")).toContain("init_deposit_failed");
     expect(err.join("")).toContain("content package missing");
+  });
+
+  it("runInitDeposit throws LegacyLayoutRefusedError on a legacy layout (no deposit)", async () => {
+    await expect(
+      runInitDeposit(
+        { projectDir: "/proj-legacy", jsonOut: false, nonInteractive: true },
+        { printf: () => {} },
+        {
+          detectLegacy: () => FAKE_LEGACY,
+          resolveContentRoot: async () => {
+            throw new Error("resolveContentRoot must not be reached when refusing");
+          },
+        },
+      ),
+    ).rejects.toBeInstanceOf(LegacyLayoutRefusedError);
+  });
+
+  it("init refuses a legacy layout with the two-step recovery (json mode)", async () => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = await runInitDepositCli({
+      projectDir: "/proj-legacy",
+      jsonOut: true,
+      nonInteractive: true,
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      seams: { detectLegacy: () => FAKE_LEGACY },
+    });
+
+    expect(code).toBe(2);
+    const parsed = parseJsonObject(out.join(""));
+    expect(parsed.action).toBe("refuse");
+    expect(parsed.legacy_layout).toBe(true);
+    expect(parsed.legacy_layout_kind).toBe("orphan-deft-version");
+    expect(parsed.upgrading_doc_url).toContain("UPGRADING.md");
+    expect(err.join("")).toContain("refusing to deposit");
+    expect(err.join("")).toContain("github.com/deftai/directive/blob/master/content/UPGRADING.md");
+  });
+
+  it("init refuses a legacy layout in interactive mode (message on stdout)", async () => {
+    const out: string[] = [];
+    const code = await runInitDepositCli({
+      projectDir: "/proj-legacy",
+      jsonOut: false,
+      nonInteractive: true,
+      writeOut: (text) => out.push(text),
+      writeErr: () => {},
+      seams: { detectLegacy: () => FAKE_LEGACY },
+    });
+
+    expect(code).toBe(2);
+    expect(out.join("")).toContain("refusing to deposit");
+    expect(out.join("")).toContain("npx @deftai/directive init");
   });
 
   it("prints wizard UX to stdout in interactive mode", async () => {
