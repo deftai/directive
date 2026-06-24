@@ -2,13 +2,19 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { cachePut } from "../../cache/operations.js";
 import { createCandidatesLog, resolveAuditLogPath, rollbackAuditEntry } from "./candidates-log.js";
 import { CandidatesLogError } from "./errors.js";
 import {
   accept,
   createDefaultDeps,
   deferAction,
+  history,
+  markDuplicate,
+  needsAc,
   reject,
+  reset,
+  status,
   TriageError,
   UpstreamCloseError,
 } from "./index.js";
@@ -428,5 +434,182 @@ describe("deferAction", () => {
     deferAction(7, "deftai/directive", "later", deps, { projectRoot: root });
     const text = readFileSync(resolveAuditLogPath(root), "utf8");
     expect(text).toMatch(/"actor":"(agent:triage|[^"]+)"/);
+  });
+});
+
+describe("needsAc", () => {
+  it("records needs-ac audit entry and tolerates gh comment failure", () => {
+    const root = makeRepo();
+    const stderrLines: string[] = [];
+    const deps = fakeDeps(root);
+    deps.stderr = (line) => stderrLines.push(line);
+    deps.scm = {
+      call() {
+        throw new UpstreamCloseError("gh issue comment failed: forbidden");
+      },
+    };
+    const id = needsAc(10, "deftai/directive", deps, { actor: "agent:test", projectRoot: root });
+    expect(id).toBe("11111111-1111-1111-1111-111111111111");
+    const text = readFileSync(resolveAuditLogPath(root), "utf8");
+    expect(text).toContain('"decision":"needs-ac"');
+    expect(stderrLines.some((line) => line.includes("needs-ac comment not posted"))).toBe(true);
+  });
+});
+
+describe("markDuplicate", () => {
+  it("rejects when target equals source", () => {
+    const root = makeRepo();
+    const deps = fakeDeps(root);
+    expect(() => markDuplicate(5, "deftai/directive", 5, deps, { projectRoot: root })).toThrow(
+      /cannot equal source/,
+    );
+  });
+
+  it("rejects when cache target is missing", () => {
+    const root = makeRepo();
+    const deps = fakeDeps(root);
+    expect(() => markDuplicate(5, "deftai/directive", 6, deps, { projectRoot: root })).toThrow(
+      /not found in cache/,
+    );
+  });
+
+  it("records mark-duplicate when cache target exists", () => {
+    const root = makeRepo();
+    cachePut(
+      "github-issue",
+      "deftai/directive/6",
+      { number: 6, title: "dup", body: "body" },
+      { cacheRoot: join(root, ".deft-cache") },
+    );
+    const deps = fakeDeps(root);
+    const id = markDuplicate(5, "deftai/directive", 6, deps, { projectRoot: root });
+    expect(id).toBe("11111111-1111-1111-1111-111111111111");
+    const text = readFileSync(resolveAuditLogPath(root), "utf8");
+    expect(text).toContain('"decision":"mark-duplicate"');
+    expect(text).toContain('"linked_to":6');
+  });
+
+  it("is idempotent for the same duplicate target", () => {
+    const root = makeRepo();
+    cachePut(
+      "github-issue",
+      "deftai/directive/6",
+      { number: 6, title: "dup", body: "body" },
+      { cacheRoot: join(root, ".deft-cache") },
+    );
+    const prior: AuditEntry = {
+      decision_id: "prior-dup",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 5,
+      decision: "mark-duplicate",
+      actor: "agent:test",
+      linked_to: 6,
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    expect(markDuplicate(5, "deftai/directive", 6, deps, { projectRoot: root })).toBe("prior-dup");
+  });
+});
+
+describe("status", () => {
+  it("returns null when no decision exists", () => {
+    const root = makeRepo();
+    const deps = fakeDeps(root);
+    expect(status(7, "deftai/directive", deps, { projectRoot: root })).toBeNull();
+  });
+
+  it("returns the latest decision", () => {
+    const root = makeRepo();
+    const prior: AuditEntry = {
+      decision_id: "prior-id",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 7,
+      decision: "defer",
+      actor: "agent:test",
+      reason: "later",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    expect(status(7, "deftai/directive", deps, { projectRoot: root })?.decision).toBe("defer");
+  });
+});
+
+describe("reset", () => {
+  it("rejects when no prior decision exists", () => {
+    const root = makeRepo();
+    const deps = fakeDeps(root);
+    expect(() => reset(7, "deftai/directive", deps, { projectRoot: root })).toThrow(
+      /no prior decision/,
+    );
+  });
+
+  it("records reset referencing prior decision_id", () => {
+    const root = makeRepo();
+    const prior: AuditEntry = {
+      decision_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 7,
+      decision: "defer",
+      actor: "agent:test",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    const id = reset(7, "deftai/directive", deps, { projectRoot: root });
+    expect(id).toBe("11111111-1111-1111-1111-111111111111");
+    const text = readFileSync(resolveAuditLogPath(root), "utf8");
+    expect(text).toContain('"decision":"reset"');
+    expect(text).toContain('"prior_decision_id":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"');
+  });
+
+  it("is idempotent when already reset", () => {
+    const root = makeRepo();
+    const prior: AuditEntry = {
+      decision_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 7,
+      decision: "reset",
+      actor: "agent:test",
+      prior_decision_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    };
+    const deps = fakeDeps(root, { latest: prior });
+    expect(reset(7, "deftai/directive", deps, { projectRoot: root })).toBe(
+      "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    );
+  });
+});
+
+describe("history", () => {
+  it("returns entries ordered by timestamp", () => {
+    const root = makeRepo();
+    const log = createCandidatesLog(root);
+    const path = resolveAuditLogPath(root);
+    log.append(
+      {
+        decision_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        timestamp: "2026-06-18T10:00:00Z",
+        repo: "deftai/directive",
+        issue_number: 7,
+        decision: "defer",
+        actor: "agent:test",
+        reason: "first",
+      },
+      { path },
+    );
+    log.append(
+      {
+        decision_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        timestamp: "2026-06-18T11:00:00Z",
+        repo: "deftai/directive",
+        issue_number: 7,
+        decision: "needs-ac",
+        actor: "agent:test",
+        reason: "needs criteria",
+      },
+      { path },
+    );
+    const deps = fakeDeps(root);
+    const entries = history(7, "deftai/directive", deps, { projectRoot: root });
+    expect(entries.map((e) => e.decision)).toEqual(["defer", "needs-ac"]);
   });
 });
