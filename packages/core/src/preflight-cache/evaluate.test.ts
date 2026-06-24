@@ -156,6 +156,47 @@ describe("evaluate -- fresh cache", () => {
     expect(result.message).toContain("stale-by-drift");
   });
 
+  it("returns stale-by-drift for TTL-fresh content drift only", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 8, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 8, nowMinus(1).toISOString(), { state: "open" });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: () => ({
+        stateDriftNumbers: [],
+        contentDriftNumbers: [8],
+      }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("TTL-fresh issue(s) with upstream content drift");
+  });
+
+  it("allows stale cache with drift when allowStale=true", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 1, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 1, nowMinus(48).toISOString());
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      allowStale: true,
+      nowFn: () => new Date(),
+      probeDriftFn: () => ({
+        stateDriftNumbers: [99],
+        contentDriftNumbers: [],
+      }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("⚠");
+  });
+
   it("respects custom maxAgeHours", () => {
     const root = setupProjectRoot();
     writeCandidates(root, [

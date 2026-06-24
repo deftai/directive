@@ -123,6 +123,108 @@ describe("fetch-all", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("maybeSelfHealCache skips when TTL fresh and no drift", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-skip-"));
+    const cacheRoot = join(root, ".deft-cache");
+    const base = join(cacheRoot, "github-issue/deftai/directive/4");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 4, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    writeFileSync(
+      join(cacheRoot, "self-heal-state.json"),
+      JSON.stringify({ last_reconcile_at: new Date().toISOString() }),
+      "utf8",
+    );
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set([4]),
+        nowFn: () => new Date(),
+      });
+      expect(result.skipped).toBe(true);
+      expect(result.skipReason).toBe("ttl-fresh-no-drift");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache skips when repo cannot be resolved", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-norepo-"));
+    try {
+      const result = maybeSelfHealCache(root);
+      expect(result.skipped).toBe(true);
+      expect(result.skipReason).toBe("repo-not-resolved");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache refreshes when TTL expired even without drift", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-ttl-"));
+    const cacheRoot = join(root, ".deft-cache");
+    const base = join(cacheRoot, "github-issue/deftai/directive/5");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 5, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    writeFileSync(
+      join(cacheRoot, "self-heal-state.json"),
+      JSON.stringify({ last_reconcile_at: "2020-01-01T00:00:00Z" }),
+      "utf8",
+    );
+    let refreshed = false;
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set([5]),
+        refreshFn: () => {
+          refreshed = true;
+          return new StateRefreshReportImpl();
+        },
+      });
+      expect(result.skipped).toBe(false);
+      expect(refreshed).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("probeCacheDrift ignores fetch failures for content probe", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-drift-fetch-"));
+    const base = join(root, "github-issue/deftai/directive/8");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 8, state: "open", title: "t", body: "b", labels: [] }),
+      "utf8",
+    );
+    writeFileSync(
+      join(base, "meta.json"),
+      JSON.stringify({ expires_at: "2099-01-01T00:00:00Z" }),
+      "utf8",
+    );
+    try {
+      const drift = probeCacheDrift({
+        repo: "deftai/directive",
+        cacheRoot: root,
+        listOpenFn: () => new Set([8]),
+        fetchSingleFn: () => {
+          throw new Error("network down");
+        },
+        isFreshFn: () => true,
+      });
+      expect(drift.stateDriftNumbers).toEqual([]);
+      expect(drift.contentDriftNumbers).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("main CLI", () => {
