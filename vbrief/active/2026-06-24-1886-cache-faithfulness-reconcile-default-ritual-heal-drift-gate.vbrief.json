@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1886"
+  },
+  "plan": {
+    "title": "fix(triage,cache): make the triage cache faithful to upstream state (reconcile-default + self-healing ritual + drift-aware freshness gate)",
+    "status": "running",
+    "narratives": {
+      "Description": "The triage cache never reconciles open→closed transitions, so triage:queue surfaces closed/completed work as untriaged and verify:cache-fresh reports a materially-wrong cache as fresh. Make 'fresh' mean 'faithful to upstream state for everything in scope' rather than 'something was fetched recently': fold the existing cacheRefreshClosed reconcile into the default cache:fetch-all run, make the session ritual self-healing, and make the freshness gate completeness/drift-aware. Also fold secondary finding #1 (evaluate.ts reads d.issue but the writer emits issue_number).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1886",
+      "Overview": "## What to build\n\nMake the triage cache faithful to upstream state. Principle: 'fresh' must mean 'faithful to upstream for everything in scope', not 'something was fetched recently'.\n\n1. Make closed-reconcile the DEFAULT in cache:fetch-all (the cacheRefreshClosed code path already exists in packages/core/src/cache/; invert the opt-in --refresh-closed to a --no-refresh-closed opt-out).\n2. Make the session ritual / triage:welcome self-healing: trigger a TTL-bounded reconcile or drift probe at startup so it heals the cache instead of reading and reporting stale state.\n3. Make the freshness gate (packages/core/src/preflight-cache/evaluate.ts) completeness/drift-aware: replace 'age of newest entry' with (a) age of the OLDEST in-scope entry and (b) a drift probe diffing cached-open numbers vs the live open set, reporting stale-by-drift. Also cover the TTL-skip content-drift gap (in-window open entries whose body/labels changed are skipped today).\n4. Fold secondary finding #1: evaluate.ts parseCandidates reads Number(d.issue ?? 0) but the audit writer emits issue_number; add the d.issue_number fallback so verify:cache-fresh --for-issue N matches real decisions (the ts twin already has ?? d.timestamp).\n\n## Acceptance criteria\n\n- [ ] cache:fetch-all reconciles open→closed by default; opt-out via --no-refresh-closed\n- [ ] Session ritual / triage:welcome self-heals (TTL-bounded reconcile or drift probe) instead of reading stale cache\n- [ ] Freshness gate is completeness/drift-aware: oldest-in-scope age + drift probe, reports stale-by-drift; covers TTL-skip content drift\n- [ ] evaluate.ts reads d.issue ?? d.issue_number so verify:cache-fresh --for-issue N matches\n- [ ] task check passes with new tests\n\n## Type\n\nAFK\n\n## Out of scope\n\n- The TS triage-actions verb-parity port (needs-ac/mark-duplicate/status/reset/history) is tracked separately in #1945 and owned by a sibling worker; this story MUST NOT edit packages/core/src/triage/actions/ or packages/cli/src/triage-actions*.",
+      "Labels": "bug, triage, source-of-truth, area:vbrief",
+      "ImplementationPlan": "- cache/main.ts + cache/fetch.ts: fold cacheRefreshClosed into the default cmdFetchAll path; invert --refresh-closed to --no-refresh-closed; update tasks/cache.yml desc.\n- preflight-cache/evaluate.ts: completeness-aware staleness (oldest in-scope entry) + cached-open-vs-live-open drift probe emitting stale-by-drift; add d.issue_number fallback in parseCandidates.\n- session ritual / triage:welcome call site: TTL-bounded reconcile or drift probe at startup (self-heal).\n- Tests across cache, preflight-cache, and the ritual/welcome call site.",
+      "UserStory": "As a deft operator, I want the triage cache to reconcile closed issues and self-heal at session start, so that the queue and verify:cache-fresh never lie about upstream state."
+    },
+    "items": [
+      {
+        "title": "cache:fetch-all reconciles open→closed by default (opt-out --no-refresh-closed)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "cache:fetch-all folds cacheRefreshClosed into its default run so closed-upstream issues are rewritten to state=closed without a flag; the rare opt-out is --no-refresh-closed."
+        }
+      },
+      {
+        "title": "Session ritual / triage:welcome self-heals the cache",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "session:start / triage:welcome triggers a TTL-bounded reconcile or drift probe at startup so the cache is healed rather than read-and-reported stale."
+        }
+      },
+      {
+        "title": "Freshness gate is completeness/drift-aware",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "verify:cache-fresh measures the oldest in-scope entry age plus a cached-open-vs-live-open drift probe and reports stale-by-drift; it also detects TTL-skip content drift on in-window open entries instead of passing on newest-fetch recency alone."
+        }
+      },
+      {
+        "title": "evaluate.ts reads d.issue_number fallback (fold finding #1)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "preflight-cache/evaluate.ts parseCandidates reads Number(d.issue ?? d.issue_number ?? 0) so verify:cache-fresh --for-issue N matches real accept decisions (the ts twin already falls back to d.timestamp)."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "triage",
+      "source-of-truth",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1886",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1886: Triage cache never reconciles open→closed issues; queue surfaces closed/completed work as untriaged and verify:cache-fresh can't detect the drift"
+      }
+    ],
+    "updated": "2026-06-24T15:57:08Z",
+    "id": "2026-06-24-1886-cache-faithfulness-reconcile-default-ritual-heal-drift-gate",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/cache/main.ts",
+          "packages/core/src/cache/fetch.ts",
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "packages/core/src/cache/main.test.ts",
+          "packages/core/src/preflight-cache/evaluate.test.ts",
+          "tasks/cache.yml"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "task check"
+        ],
+        "expected_outputs": [
+          "cache:fetch-all reconciles closed-by-default; --no-refresh-closed opts out",
+          "verify:cache-fresh reports stale-by-drift when cached-open issues are closed upstream",
+          "task check passes with new tests"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-cache-faithfulness",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to the evidence-closed forensic investigation in issue #1886 (root-cause facts 1-4 + proposed fix) rather than a spec section."
+      },
+      "capacityBucket": "bug-fix"
+    }
+  }
+}
