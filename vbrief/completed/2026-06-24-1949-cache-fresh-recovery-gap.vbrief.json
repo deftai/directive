@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(cache): make cache:fetch-all actually satisfy the freshness gate (force + drift-aware refresh)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "verify:cache-fresh has two failure states whose recovery hint (run cache:fetch-all) cannot satisfy, because fetch-all skips entries by their stored expires_at TTL while the gate judges by fetched_at age (24h default) and by upstream drift. An entry written ~6 days ago is stale to the 24h gate but TTL-fresh to fetch-all, so fetch-all re-skips it; and a TTL-fresh entry with upstream content drift is never re-fetched even though the #1886 drift gate flags it. Add a force/no-skip refresh path to cache:fetch-all so the documented recovery actually clears both states, and align the recovery hint wording.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1949",
@@ -90,8 +90,9 @@
         "file_scope_confidence": "high",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to GitHub issue #1949 (repro + root cause) and the #1886 drift-aware gate, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T19:28:10Z"
     },
-    "updated": "2026-06-24T19:16:17Z"
+    "updated": "2026-06-24T19:28:10Z"
   }
 }
