@@ -45,6 +45,27 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-content-manifest --project-root "{{.DEFT_ROOT}}"
 
+  go-freeze:
+    desc: "Tier-1 freeze gate for the legacy Go-installer bridge (#1912). Advisory while the Tier-0 SoT (lastGoInstaller) is null; once the operator pins it, fails when cmd/deft-install is bumped above the frozen tag. Three-state exit (0 ok / 1 violation / 2 config error). Emergency bypass: DEFT_ALLOW_GO_INSTALLER_BUMP=1."
+    deps:
+      - _ts-build
+    # Framework-source-only gate: it inspects THIS repo's cmd/deft-install
+    # version constant + the Tier-0 SoT, so it targets DEFT_ROOT (not
+    # USER_WORKING_DIR) -- a consumer install has no Go-installer source to
+    # freeze. Mirrors verify:content-manifest.
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-go-freeze --project-root "{{.DEFT_ROOT}}"
+
+  bridge-drift:
+    desc: "Tier-1 cross-surface drift gate for the legacy Go-installer bridge (#1912). Asserts no surface marked with the bridge sentinel hardcodes a Go-installer version instead of reading the Tier-0 SoT (lastGoInstaller). Three-state exit (0 clean / 1 drift / 2 config error). Passes whether or not the UPGRADING/doctor surfaces exist yet."
+    deps:
+      - _ts-build
+    # Framework-source-only gate: it scans THIS repo's bridge-version surfaces
+    # against the Tier-0 SoT, so it targets DEFT_ROOT. Mirrors
+    # verify:content-manifest / verify:scm-boundary.
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-bridge-drift --project-root "{{.DEFT_ROOT}}"
+
   branch:
     desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
     dir: '{{.USER_WORKING_DIR}}'

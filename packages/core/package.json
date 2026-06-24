@@ -146,6 +146,10 @@
       "types": "./dist/intake/parity-scenarios.d.ts",
       "default": "./dist/intake/parity-scenarios.js"
     },
+    "./legacy-bridge": {
+      "types": "./dist/legacy-bridge/index.d.ts",
+      "default": "./dist/legacy-bridge/index.js"
+    },
     "./lifecycle": {
       "types": "./dist/lifecycle/index.d.ts",
       "default": "./dist/lifecycle/index.js"

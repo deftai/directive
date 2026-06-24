@@ -53,6 +53,7 @@ export default defineConfig({
         import.meta.dirname,
         "packages/core/src/intake/parity-scenarios.ts",
       ),
+      "@deftai/directive-core/legacy-bridge": sub("core", "legacy-bridge"),
       "@deftai/directive-core/lifecycle": sub("core", "lifecycle"),
       "@deftai/directive-core/orchestration": sub("core", "orchestration"),
       "@deftai/directive-core/packs": sub("core", "packs"),

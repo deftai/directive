@@ -337,6 +337,8 @@ tasks:
       - verify:links
       - verify:rule-ownership
       - verify:content-manifest
+      - verify:go-freeze
+      - verify:bridge-drift
       - verify:branch
       - verify:encoding
       - verify:vbrief-conformance
