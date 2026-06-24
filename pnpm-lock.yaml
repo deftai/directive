@@ -26,6 +26,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@deftai/directive-content':
+        specifier: workspace:*
+        version: link:../content
       '@deftai/directive-core':
         specifier: workspace:*
         version: link:../core

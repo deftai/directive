@@ -42,7 +42,8 @@
     "provenance": true
   },
   "dependencies": {
-    "@deftai/directive-core": "workspace:*"
+    "@deftai/directive-core": "workspace:*",
+    "@deftai/directive-content": "workspace:*"
   },
   "scripts": {
     "build": "tsc -b"
