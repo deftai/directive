@@ -19,8 +19,14 @@ export function checkCodebaseMapFresh(
   const resolvedOutput = isAbsolute(options.outputPath)
     ? options.outputPath
     : join(projectRoot, options.outputPath);
+  // #1932: the generated MAP is an on-demand, gitignored artifact. An absent
+  // projection is OK (advisory) -- the gate must not force per-branch regeneration
+  // + commit, which guaranteed mechanical MAP.md collisions across concurrent
+  // branches. When a MAP IS present locally the freshness check below still flags
+  // it if stale; the durable plan.architecture.codeStructure stays gated by
+  // codebase:validate-structure.
   if (!existsSync(resolvedOutput)) {
-    return [`generated codebase MAP is missing: ${resolvedOutput}`];
+    return [];
   }
 
   let current: string;

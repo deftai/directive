@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Release rehearsal no longer false-fails on npm dry-run after real packages are published (#1925)** — `task release:e2e` now passes a throwaway `e2e-rehearsal` dist-tag to `npm publish --dry-run`, so the fixed rehearsal version `0.0.1` no longer trips npm's implicit-`latest` check once `@deftai/directive*` is live at a higher version. Refs #1925.
 
+- **Concurrent branches no longer collide on the generated codebase MAP (#1932)** — `.planning/codebase/MAP.md` is now a gitignored, on-demand artifact (regenerate with `task codebase:map`) instead of a tracked file, and the freshness gate treats an absent MAP as fresh. Previously every source-changing branch was forced to regenerate and commit the file, so swarm cohorts hit a mechanical merge conflict on it at every rebase. The durable source of truth (`plan.architecture.codeStructure`) is unchanged and still validated. Closes #1932.
+
 ### Removed
 
 ## [0.55.1] - 2026-06-23

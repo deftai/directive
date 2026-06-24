@@ -120,6 +120,14 @@ history/post-issue.py
 poll-fetch.ps1
 vbrief/PROJECT-DEFINITION.vbrief.json.lock
 
+# Generated codebase MAP projection (#1932) -- a per-project, code-derived
+# artifact (filesystem-walk fileCount/contentHash) that churns on any source
+# change. Tracking it forced every concurrent branch to regenerate + commit it,
+# guaranteeing mechanical merge conflicts across cohorts. The durable source of
+# truth is plan.architecture.codeStructure (validated by codebase:validate-structure);
+# regenerate the projection on demand with `task codebase:map`.
+.planning/codebase/MAP.md
+
 # Per-session scratch root files left by orchestrator/swarm handoffs --
 # move to history/ or delete; never committed.
 .deft-scratch/

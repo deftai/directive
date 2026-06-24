@@ -22,8 +22,14 @@ def check_codebase_map_fresh(
 ) -> list[str]:
     """Return freshness errors for the generated MAP projection."""
     resolved_output = output_path if output_path.is_absolute() else project_root / output_path
+    # #1932: the generated MAP is an on-demand, gitignored artifact. An absent
+    # projection is OK (advisory) -- the gate must not force per-branch
+    # regeneration + commit, which guaranteed mechanical MAP.md collisions across
+    # concurrent branches. When a MAP IS present locally the freshness check below
+    # still flags it if stale; the durable plan.architecture.codeStructure stays
+    # gated by codebase:validate-structure.
     if not resolved_output.exists():
-        return [f"generated codebase MAP is missing: {resolved_output}"]
+        return []
     try:
         current = resolved_output.read_text(encoding="utf-8")
     except OSError as exc:

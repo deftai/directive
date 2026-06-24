@@ -95,7 +95,9 @@ def test_freshness_fails_when_source_digest_changes(tmp_path: Path) -> None:
     assert fresh.main(["--project-root", str(tmp_path)]) == 1
 
 
-def test_freshness_fails_when_projection_is_missing(tmp_path: Path) -> None:
+def test_freshness_treats_missing_projection_as_fresh(tmp_path: Path) -> None:
+    # #1932: the generated MAP is an on-demand, gitignored artifact, so an absent
+    # projection is OK (advisory) rather than an error.
     _write_project(tmp_path)
     _write_code(tmp_path)
 
@@ -104,6 +106,4 @@ def test_freshness_fails_when_projection_is_missing(tmp_path: Path) -> None:
         output_path=Path(".planning/codebase/MAP.md"),
     )
 
-    assert errors == [
-        f"generated codebase MAP is missing: {tmp_path / '.planning/codebase/MAP.md'}"
-    ]
+    assert errors == []

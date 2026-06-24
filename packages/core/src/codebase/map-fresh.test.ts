@@ -86,15 +86,13 @@ describe("codebase MAP freshness", () => {
     expect(runCodebaseMapFreshCli(["--project-root", root]).exitCode).toBe(1);
   });
 
-  it("fails when projection is missing", () => {
+  it("treats a missing projection as fresh (on-demand artifact, #1932)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-map-fresh-"));
     writeProject(root);
     writeCode(root);
 
     const errors = checkCodebaseMapFresh(root, { outputPath: ".planning/codebase/MAP.md" });
 
-    expect(errors).toEqual([
-      `generated codebase MAP is missing: ${join(root, ".planning", "codebase", "MAP.md")}`,
-    ]);
+    expect(errors).toEqual([]);
   });
 });

@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1932"
+  },
+  "plan": {
+    "title": "Generated .planning/codebase/MAP.md digest causes guaranteed merge conflicts across concurrent branches",
+    "status": "completed",
+    "narratives": {
+      "Description": "The tracked, generated codebase MAP projection churns on any source change and is required fresh by the blocking task check, forcing every concurrent branch to regenerate + commit it, so every rebase/merge after the first collides on MAP.md.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1932",
+      "Overview": "## Root cause\nThe default extractor (packages/core/src/codebase/default-extractor.ts, scripts/) WALKS the repository filesystem (fileCount per module, contentHash over walked files), so the rendered .planning/codebase/MAP.md changes on ANY source change. verify:codebase-map-fresh is wired into the blocking `task check` aggregate and re-renders + byte-compares, so a source-changing branch must run `task codebase:map` to pass -> rewrites the digest + body -> concurrent branches collide on MAP.md at every rebase/merge (observed on all 4 rebases of the 2026-06-23 Wave-4 cohort).\n\nThe durable source of truth is plan.architecture.codeStructure (tracked, validated by codebase:validate-structure), per the #1595/#1498 rule that the rendered projection must NOT be more authoritative than the metadata.\n\n## Fix (issue Option 2 + softened gate)\n1. Untrack `.planning/codebase/MAP.md` (git rm --cached) and gitignore it -- it is a per-project generated artifact, regenerated on demand via `task codebase:map`.\n2. Make the freshness gate treat an ABSENT MAP as OK/advisory (not an error) in BOTH the TS gate (packages/core/src/codebase/map-fresh.ts) and the Python oracle (scripts/codebase_map_fresh.py); update the two unit tests. Parity stays green because both engines agree. The gate stays in `task check` and still flags a genuinely stale MAP whenever one is present locally; the durable metadata stays gated by codebase:validate-structure.\n\n## Acceptance\n- N concurrent source-changing branches rebase/merge sequentially with no manual MAP.md conflict.\n- verify:codebase-map-fresh still flags a stale present MAP; durable plan.architecture.codeStructure still validated.\n\nFound during the Wave-4 cohort merge cascade. Refs #1595 #1498 #1669"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1932",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1932: Generated .planning/codebase/MAP.md digest causes guaranteed merge conflicts across concurrent branches"
+      }
+    ],
+    "updated": "2026-06-24T01:04:04Z",
+    "metadata": {
+      "completedAt": "2026-06-24T01:04:04Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
