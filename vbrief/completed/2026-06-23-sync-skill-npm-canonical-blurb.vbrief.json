@@ -1,0 +1,27 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Sync skill canonical bootstrap/update blurb still describes the Go installer as canonical, contradicting the #761 npm cutover."
+  },
+  "plan": {
+    "title": "Sync skill canonical-path blurb still Go-installer-canonical (post-#761 leftover)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The deft-directive-sync skill's 'Canonical bootstrap / update path' blockquote still tells operators to use the Go installer (`deft-install --yes --upgrade`) as the canonical update path, contradicting the #761 npm cutover that already reframed README/UPGRADING/RELEASING/QUICK-START/AGENTS.md (and agents-entry.md) around `npm i -g @deftai/directive@latest`. The sync skill is read every session on 'good morning'/'update deft', so the stale blurb is high-visibility.",
+      "Overview": "## Scope\n#761 reframed install/upgrade docs around npm but did NOT touch the sync skill. The skill's source-of-truth pack body (content/packs/skills/skills-pack-0.1.json) and its rendered projection (content/skills/deft-directive-sync/SKILL.md) still carry the pre-#761 'Use the published Go installer binary ... canonical headless ... deft-install --yes --upgrade' blurb.\n\n## Fix\nUpdate the blurb in the pack source (source of truth) to mirror agents-entry.md:67 (npm canonical install/upgrade; frozen Go installer as no-Node bootstrap bridge #1912; deft doctor reports staleness and recommends `npm i -g @deftai/directive@latest`; legacy run upgrade/task upgrade metadata-only; submodule/framework:doctor back-compat only), then run `task packs:render` to regenerate the SKILL.md projection. Verified by `task verify:pack-drift` + `task check`.\n\n## Out of scope (Wave 5 / installer-retirement)\nThe sync skill's Phase 1-2 submodule mechanism (`git submodule update --remote --merge deft`) is the legacy update flow and is gated behind the installer-retirement / Python-purge work (#1860, #1933, #1669 Wave 5); not rewritten here.\n\nRefs #761 #1912 #1669"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/761",
+        "type": "x-vbrief/refs",
+        "title": "Issue #761: reframe install/upgrade docs around npm"
+      }
+    ],
+    "updated": "2026-06-24T01:10:07Z",
+    "metadata": {
+      "completedAt": "2026-06-24T01:10:07Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
