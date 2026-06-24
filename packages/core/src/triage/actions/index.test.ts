@@ -646,30 +646,30 @@ describe("backfilled accept (#1698)", () => {
     );
   }
 
-  it.each(["agent:bootstrap", "agent:reconcile"])(
-    "status/history/reset see sole backfill accept from %s",
-    (actor) => {
-      const root = makeRepo();
-      seedBackfillAccept(root, 42, actor);
-      const deps = createDefaultDeps(root);
+  it.each([
+    "agent:bootstrap",
+    "agent:reconcile",
+  ])("status/history/reset see sole backfill accept from %s", (actor) => {
+    const root = makeRepo();
+    seedBackfillAccept(root, 42, actor);
+    const deps = createDefaultDeps(root);
 
-      const latest = status(42, "deftai/directive", deps, { projectRoot: root });
-      expect(latest?.decision).toBe("accept");
-      expect(latest?.actor).toBe(actor);
+    const latest = status(42, "deftai/directive", deps, { projectRoot: root });
+    expect(latest?.decision).toBe("accept");
+    expect(latest?.actor).toBe(actor);
 
-      const entries = history(42, "deftai/directive", deps, { projectRoot: root });
-      expect(entries).toHaveLength(1);
-      expect(entries[0]?.decision).toBe("accept");
+    const entries = history(42, "deftai/directive", deps, { projectRoot: root });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.decision).toBe("accept");
 
-      const resetId = reset(42, "deftai/directive", deps, {
-        projectRoot: root,
-        actor: "agent:test",
-      });
-      expect(resetId).toMatch(
-        /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
-      );
-      const afterReset = status(42, "deftai/directive", deps, { projectRoot: root });
-      expect(afterReset?.decision).toBe("reset");
-    },
-  );
+    const resetId = reset(42, "deftai/directive", deps, {
+      projectRoot: root,
+      actor: "agent:test",
+    });
+    expect(resetId).toMatch(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+    );
+    const afterReset = status(42, "deftai/directive", deps, { projectRoot: root });
+    expect(afterReset?.decision).toBe("reset");
+  });
 });

@@ -5,7 +5,12 @@ import { CacheNotFoundError } from "../../cache/errors.js";
 import { cacheGet } from "../../cache/operations.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
-import { createCandidatesLog, findByIssue, resolveAuditLogPath, rollbackAuditEntry } from "./candidates-log.js";
+import {
+  createCandidatesLog,
+  findByIssue,
+  resolveAuditLogPath,
+  rollbackAuditEntry,
+} from "./candidates-log.js";
 import { TriageError, UpstreamCloseError } from "./errors.js";
 import { parseResumeOn } from "./resume-on.js";
 import type {

@@ -2,11 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from
 import { join, resolve as pathResolve } from "node:path";
 import { loadProjectDefinition, PROJECT_DEFINITION_REL_PATH } from "../../policy/resolve.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
-import {
-  AUDIT_LOG_REL_PATH,
-  latestDecisions,
-  readAuditLog,
-} from "../actions/candidates-log.js";
+import { AUDIT_LOG_REL_PATH, latestDecisions, readAuditLog } from "../actions/candidates-log.js";
 import { countReconcilable } from "./reconcilable.js";
 import { computeScopeDriftTotal } from "./scope-drift.js";
 

@@ -191,21 +191,17 @@ describe("shared decision reader (#1698)", () => {
     };
   }
 
-  it.each(["agent:bootstrap", "agent:reconcile"] as const)(
-    "latestDecisionForIssue sees backfilled accept from %s",
-    (actor) => {
-      const root = makeRepo();
-      const path = resolveAuditLogPath(root);
-      writeFileSync(
-        path,
-        `${JSON.stringify(backfillAccept(actor, `${actor} backfill`))}\n`,
-        "utf8",
-      );
-      const latest = latestDecisionForIssue(42, "deftai/directive", path);
-      expect(latest?.decision).toBe("accept");
-      expect(latest?.actor).toBe(actor);
-    },
-  );
+  it.each([
+    "agent:bootstrap",
+    "agent:reconcile",
+  ] as const)("latestDecisionForIssue sees backfilled accept from %s", (actor) => {
+    const root = makeRepo();
+    const path = resolveAuditLogPath(root);
+    writeFileSync(path, `${JSON.stringify(backfillAccept(actor, `${actor} backfill`))}\n`, "utf8");
+    const latest = latestDecisionForIssue(42, "deftai/directive", path);
+    expect(latest?.decision).toBe("accept");
+    expect(latest?.actor).toBe(actor);
+  });
 
   it("findByIssue and readAuditLog include backfill entries without actor filter", () => {
     const root = makeRepo();
