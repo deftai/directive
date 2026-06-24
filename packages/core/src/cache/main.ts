@@ -124,7 +124,7 @@ function cmdGet(args: string[]): number {
     return 0;
   } catch (err) {
     if (err instanceof CacheNotFoundError) {
-      process.stderr.write(`cache:get miss: ${JSON.stringify(err.message)}\n`);
+      process.stderr.write(`cache:get miss: ${err.message}\n`);
       return 1;
     }
     throw err;
