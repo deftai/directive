@@ -17,6 +17,14 @@ import { readCorePackageVersion } from "../engine-version.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
 import {
+  buildLegacyRefusalJson,
+  buildLegacyRefusalMessage,
+  detectLegacyLayout,
+  LEGACY_LAYOUT_REFUSED_EXIT_CODE,
+  type LegacyLayoutDetection,
+  LegacyLayoutRefusedError,
+} from "./legacy-detect.js";
+import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
   type InitDepositIo,
@@ -37,6 +45,7 @@ export interface RefreshDepositResult {
   readonly previousDepositVersion: string | null;
   readonly agentsMdUpdated: boolean;
   readonly versionSkewNotice: string | null;
+  readonly legacyLayout: boolean;
 }
 
 export interface RefreshDepositSeams {
@@ -46,6 +55,7 @@ export interface RefreshDepositSeams {
   readEngineVersion?: () => string;
   nowIso?: () => string;
   gitPorcelain?: (projectRoot: string) => string | null;
+  detectLegacy?: (projectDir: string) => LegacyLayoutDetection;
 }
 
 const INSTALLER_MANAGED_EXACT = new Set([
@@ -205,7 +215,7 @@ export function buildUpdateSummaryJson(
     version: result.engineVersion,
     project_dir: result.projectDir,
     deft_dir: result.deftDir,
-    legacy_layout: false,
+    legacy_layout: result.legacyLayout,
     update: true,
     non_interactive: options.nonInteractive,
     upgrade: options.upgrade,
@@ -247,6 +257,15 @@ export async function runRefreshDeposit(
 ): Promise<RefreshDepositResult> {
   const projectDir = resolve(args.projectDir);
   const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
+
+  // #1912: refuse a legacy on-disk layout BEFORE any refresh. The npm CLI never
+  // migrates -- the frozen Go bridge does (stage 1), then the npm path (stage 2).
+  const detectLegacy = seams.detectLegacy ?? detectLegacyLayout;
+  const legacy = detectLegacy(projectDir);
+  if (legacy.legacy) {
+    throw new LegacyLayoutRefusedError(legacy);
+  }
+
   const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
   const copyContent = seams.copyContent ?? copyTree;
   const readEngine = seams.readEngineVersion ?? readCorePackageVersion;
@@ -294,6 +313,7 @@ export async function runRefreshDeposit(
     previousDepositVersion,
     agentsMdUpdated,
     versionSkewNotice,
+    legacyLayout: false,
   };
 }
 
@@ -325,6 +345,15 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
     }
     return 0;
   } catch (cause) {
+    if (cause instanceof LegacyLayoutRefusedError) {
+      io.printf(buildLegacyRefusalMessage("update", cause.detection));
+      if (options.jsonOut) {
+        options.writeOut(
+          `${JSON.stringify(buildLegacyRefusalJson("update", resolve(options.projectDir), cause.detection), null, 2)}\n`,
+        );
+      }
+      return LEGACY_LAYOUT_REFUSED_EXIT_CODE;
+    }
     const message = cause instanceof Error ? cause.message : String(cause);
     options.writeErr(`directive update: ${message}\n`);
     if (options.jsonOut) {

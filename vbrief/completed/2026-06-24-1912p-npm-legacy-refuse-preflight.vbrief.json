@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(#1912 P): npm CLI legacy-layout refuse-preflight (two-step) + signpost-only stable-URL surfaces",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Freeze-prep story P of the #1912 capstone. Implements the Tier-2 runtime surface: the `npx @deftai/directive` CLI (init / update), fetched fresh at use-time, detects a LEGACY on-disk layout (git-clone / submodule / legacy `deft/`-prefixed / pre-v0.27 sentinel-only AGENTS.md / orphan `.deft/VERSION`) and REFUSES with the two-step recovery -- (1) run the frozen Go bridge installer, (2) re-run the npm path. The installed doctor / AGENTS / update-check surfaces are SIGNPOSTS ONLY: they carry a STABLE UPGRADING.md URL, never a baked command or version. Core principle (locked): never bake the upgrade command/version into the artifact being upgraded -- bake in a stable pointer resolved fresh. Today the npm deposit path hardcodes `legacy_layout: false` (init-deposit.ts / refresh.ts); this story makes that detection real and wires the refusal.",
       "Origin": "Decomposed from https://github.com/deftai/directive/issues/1912 (freeze-prep, agent-buildable subset). Independent of the Tier-0 SoT (story G) because the refusal points at a stable URL, not a baked version.",
@@ -97,8 +97,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to #1912 Tier-2 corrected-design checklist + operator scaffold-now decision."
-      }
+      },
+      "completedAt": "2026-06-24T22:22:37Z"
     },
-    "updated": "2026-06-24T22:04:21Z"
+    "updated": "2026-06-24T22:22:37Z"
   }
 }

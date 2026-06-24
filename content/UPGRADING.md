@@ -31,6 +31,52 @@ The frozen Go installer remains available at [GitHub Releases](https://github.co
 
 ---
 
+## Legacy layout refused by the npm CLI (#1912)
+
+If you run `npx @deftai/directive init` (or `update`) on a project that still
+uses a **legacy on-disk layout**, the npm CLI **refuses** and exits non-zero
+**without depositing or refreshing anything**. The npm path never migrates a
+legacy layout; the frozen final Go installer is the one-and-only migration
+bridge. This is the run-from-npm, use-time gate that backs the one-time
+migration above.
+
+**Legacy layouts the npm CLI refuses:**
+
+- a git-clone or git-submodule deposit of the framework;
+- a legacy `deft/`-prefixed install root (the canonical root is `.deft/core/`);
+- a pre-v0.27 AGENTS.md with a sentinel-only managed-section (no v2/v3
+  managed-section markers);
+- an orphan `.deft/VERSION` manifest with no `.deft/core/` directory.
+
+**The two-step recovery (version-neutral):**
+
+1. **Run the frozen final Go bridge installer** to migrate the old layout to the
+   canonical `.deft/core/` vendored layout. Download the binary for your
+   platform from [GitHub Releases](https://github.com/deftai/directive/releases)
+   (see [Legacy and offline install](https://github.com/deftai/directive#legacy-and-offline-install-go-installer-1912))
+   and run it from your project directory. The bridge is **frozen** — always
+   the latest published release; there is no version to memorise.
+2. **Re-run the npm path** once the layout is canonical-vendored:
+
+   ```bash
+   npx @deftai/directive init      # or: npx @deftai/directive update
+   ```
+
+After step 1 the layout is `.deft/core/`, so the npm CLI takes over cleanly and
+`npm i -g @deftai/directive@latest` is your only future upgrade command.
+
+> **Why a pointer, not a baked command?** The npm CLI, `directive doctor`, and
+> AGENTS.md never bake a Go-installer version number or a literal upgrade command
+> into your installed files. They signpost this stable doc + the Releases page so
+> the bridge always resolves fresh — the upgrade instructions can never go stale
+> inside the artifact being upgraded.
+
+`directive doctor` emits the same signpost (a `legacy-layout` check that fails
+with this URL) whenever it detects a legacy layout, so an agent or operator who
+runs the doctor first gets pointed at this exact two-step before touching `init`.
+
+---
+
 ## Big-jump triage — multi-version upgrades (start here)
 
 > **Multi-version jump?** Start here. This guide is ordered newest-first, so a consumer jumping several minor versions otherwise has to read every section to infer which ones apply and in what order. This entry point maps **version-range buckets** to the sections that apply and the **apply-order** to run them in.
