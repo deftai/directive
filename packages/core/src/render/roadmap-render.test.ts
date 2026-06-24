@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   checkDrift,
+  generateRoadmapContent,
   renderRoadmap,
   renderRoadmapToBuffer,
   main as roadmapRenderMain,
@@ -128,5 +129,174 @@ describe("roadmap-render idempotency", () => {
 
     expect(roadmapRenderMain([pending, outPath])).toBe(0);
     expect(roadmapRenderMain(["--check", pending, outPath])).toBe(0);
+  });
+
+  it("checkDrift detects stale ROADMAP.md content", () => {
+    const { pending, outPath } = makeFixture();
+    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
+    writeFileSync(outPath, "stale content\n", "utf8");
+    const [ok, msg] = checkDrift(pending, outPath);
+    expect(ok).toBe(false);
+    expect(msg).toContain("drifted");
+  });
+
+  it("checkDrift accepts missing ROADMAP when no vBRIEFs exist", () => {
+    const { pending, outPath } = makeFixture();
+    const [ok, msg] = checkDrift(pending, outPath);
+    expect(ok).toBe(true);
+    expect(msg).toContain("No ROADMAP.md needed");
+  });
+
+  it("checkDrift rejects missing ROADMAP when pending vBRIEFs exist", () => {
+    const { pending, outPath } = makeFixture();
+    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
+    const [ok, msg] = checkDrift(pending, outPath);
+    expect(ok).toBe(false);
+    expect(msg).toContain("does not exist");
+  });
+
+  it("checkDrift rejects missing ROADMAP when only completed vBRIEFs exist", () => {
+    const { pending, completed, outPath } = makeFixture();
+    writeVbrief(completed, "2026-01-01-done.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Done scope",
+        status: "completed",
+        references: [{ id: "#50" }, { id: "#51" }],
+      },
+    });
+    const [ok, msg] = checkDrift(pending, outPath);
+    expect(ok).toBe(false);
+    expect(msg).toContain("does not exist");
+  });
+
+  it("renderRoadmap returns false when output path is not writable", () => {
+    const { pending } = makeFixture();
+    const [ok, msg] = renderRoadmap(pending, "/nonexistent/subdir/ROADMAP.md");
+    expect(ok).toBe(false);
+    expect(msg).toContain("Failed");
+  });
+
+  it("generateRoadmapContent alias matches renderRoadmapToBuffer", () => {
+    const { pending, completed } = makeFixture();
+    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(completed, "2026-01-01-done.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: { title: "Done", status: "completed", references: [{ id: "#99" }] },
+    });
+    expect(generateRoadmapContent(pending, completed)).toBe(
+      renderRoadmapToBuffer(pending, completed),
+    );
+  });
+
+  it("renders dependency ordering and completed section", () => {
+    const { pending, completed, outPath } = makeFixture();
+    writeVbrief(pending, "2026-01-01-deps.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Dependency Test",
+        status: "pending",
+        edges: [{ from: "task-a", to: "task-b" }],
+        items: [
+          {
+            id: "phase-1",
+            title: "Phase 1",
+            status: "pending",
+            subItems: [
+              { id: "task-b", title: "Task B", status: "pending" },
+              { id: "task-a", title: "Task A", status: "pending" },
+            ],
+          },
+        ],
+      },
+    });
+    writeVbrief(completed, "2026-01-01-done.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Completed item",
+        status: "completed",
+        references: [{ id: "#50" }, { id: "#51" }],
+      },
+    });
+    renderRoadmap(pending, outPath, completed);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("(depends on: task-a)");
+    expect(content.indexOf("Task A")).toBeLessThan(content.indexOf("Task B"));
+    expect(content).toContain("## Completed");
+    expect(content).toContain("#50");
+    expect(checkDrift(pending, outPath, completed)[0]).toBe(true);
+  });
+
+  it("main --check returns 1 when ROADMAP has drifted", () => {
+    const { pending, outPath } = makeFixture();
+    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
+    writeFileSync(outPath, "stale\n", "utf8");
+    expect(roadmapRenderMain(["--check", pending, outPath])).toBe(1);
+  });
+
+  it("groups legacy narrative Phase labels and tier subgroups", () => {
+    const { pending, outPath } = makeFixture();
+    writeVbrief(pending, "2026-01-01-tiered.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Tiered scope",
+        status: "pending",
+        narratives: { Phase: "Phase 1 -- Foundation", Tier: "Tier 1 -- Core" },
+        references: [{ id: "#10" }, { uri: "https://github.com/o/r/issues/11" }],
+      },
+    });
+    writeVbrief(pending, "2026-02-01-untiered.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Untiered scope",
+        status: "pending",
+        narratives: { Phase: "Phase 1 -- Foundation" },
+        references: [{ url: "https://github.com/o/r/issues/12" }],
+      },
+    });
+    writeFileSync(join(pending, "bad.vbrief.json"), "{not json", "utf8");
+    renderRoadmap(pending, outPath);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("### Tier 1 -- Core");
+    expect(content).toContain("Untiered scope");
+    expect(content).toContain("**#10**");
+    expect(checkDrift(pending, outPath)[0]).toBe(true);
+  });
+
+  it("orders ranked scopes and renders phase narratives", () => {
+    const { pending, outPath } = makeFixture();
+    writeVbrief(pending, "2026-06-04-a.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Alpha",
+        status: "pending",
+        metadata: { rank: 3 },
+        references: [{ id: "#1" }],
+        items: [
+          {
+            id: "p1",
+            title: "Phase",
+            status: "running",
+            narrative: { Description: "Phase narrative body", Acceptance: "hidden" },
+          },
+        ],
+      },
+    });
+    writeVbrief(pending, "2026-06-04-b.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Bravo",
+        status: "pending",
+        metadata: { rank: 1 },
+        references: [{ id: "#2" }],
+        items: [],
+      },
+    });
+    renderRoadmap(pending, outPath);
+    const content = readFileSync(outPath, "utf8");
+    expect(content.indexOf("Bravo")).toBeLessThan(content.indexOf("Alpha"));
+    expect(content).toContain("Phase narrative body");
+    expect(content).not.toContain("hidden");
+    expect(checkDrift(pending, outPath)[0]).toBe(true);
   });
 });
