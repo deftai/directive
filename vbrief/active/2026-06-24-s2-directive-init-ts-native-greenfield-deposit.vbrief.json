@@ -6,7 +6,7 @@
   "plan": {
     "id": "s2-directive-init-ts-native",
     "title": "S2: directive init TS-native greenfield deposit",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
     "narratives": {
       "Description": "directive init today spawnSyncs the bundled Go deft-install, which downloads and vendors .deft/core. This story rewrites init to orchestrate a fully TS-native greenfield deposit using the S1 primitive: copy the content tree into .deft/core, render the AGENTS.md managed-section (reusing the existing TS agents-md logic), scaffold vbrief/ (schemas + lifecycle dirs), deposit .agents/skills pointers + .githooks + the #1430 neutralization, and wire the Taskfile include. The friendly wizard UX is preserved and no Go binary is invoked on the happy path.",
@@ -115,6 +115,7 @@
         "type": "x-vbrief/related",
         "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
       }
-    ]
+    ],
+    "updated": "2026-06-24T19:36:47Z"
   }
 }
