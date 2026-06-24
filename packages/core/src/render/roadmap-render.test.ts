@@ -299,4 +299,61 @@ describe("roadmap-render idempotency", () => {
     expect(content).not.toContain("hidden");
     expect(checkDrift(pending, outPath)[0]).toBe(true);
   });
+
+  it("covers rank parsing and numeric phase ordering branches", () => {
+    const { pending, outPath } = makeFixture();
+    writeVbrief(pending, "2026-04-15-a-phase6.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Widget 6",
+        status: "pending",
+        metadata: { "x-migrator": { Phase: "Phase 6" }, rank: "-5" },
+        references: [{ id: "#600" }],
+      },
+    });
+    writeVbrief(pending, "2026-04-15-b-phase1.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Widget 1",
+        status: "pending",
+        metadata: { "x-migrator": { Phase: "Phase 1" }, rank: true },
+        references: [{ id: "#100" }],
+      },
+    });
+    renderRoadmap(pending, outPath);
+    const content = readFileSync(outPath, "utf8");
+    expect(content.indexOf("## Phase 1")).toBeLessThan(content.indexOf("## Phase 6"));
+    expect(checkDrift(pending, outPath)[0]).toBe(true);
+  });
+
+  it("renders legacy source/target edges and phase headings without ids", () => {
+    const { pending, outPath } = makeFixture();
+    writeVbrief(pending, "2026-04-15-c-hier.vbrief.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "Legacy edges",
+        status: "pending",
+        edges: [
+          { source: "task-a", target: "task-b" },
+          { from: "task-a", to: "task-c", source: "ignored", target: "ignored" },
+        ],
+        items: [
+          {
+            title: "Untitled Phase",
+            status: "pending",
+            subItems: [
+              { id: "task-b", title: "Task B", status: "pending" },
+              { id: "task-c", title: "Task C", status: "pending" },
+              { id: "task-a", title: "Task A", status: "pending" },
+            ],
+          },
+        ],
+      },
+    });
+    renderRoadmap(pending, outPath);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("### Untitled Phase");
+    expect(content).toContain("(depends on: task-a)");
+    expect(checkDrift(pending, outPath)[0]).toBe(true);
+  });
 });
