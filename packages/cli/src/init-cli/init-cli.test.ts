@@ -169,6 +169,7 @@ describe("runUpdate TS-native refresh", () => {
         projectDir: "/tmp/custom",
         jsonOut: true,
         nonInteractive: true,
+        upgrade: true,
       }),
     );
     expect(CANONICAL_UPDATE_ARGV).toContain("--upgrade");

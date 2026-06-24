@@ -16,9 +16,19 @@ import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
 import {
   buildVersionSkewNotice,
   frameworkRefreshSideEffects,
+  parseUpdateArgv,
   printRefreshSideEffects,
   runRefreshDeposit,
 } from "./refresh.js";
+
+describe("parseUpdateArgv", () => {
+  it("records --upgrade from canonical argv", () => {
+    const parsed = parseUpdateArgv(["--yes", "--upgrade", "--repo-root", ".", "--json"], []);
+    expect(parsed.upgrade).toBe(true);
+    expect(parsed.nonInteractive).toBe(true);
+    expect(parsed.jsonOut).toBe(true);
+  });
+});
 
 describe("buildVersionSkewNotice", () => {
   it("notices engine vs content divergence", () => {
@@ -45,6 +55,11 @@ describe("frameworkRefreshSideEffects", () => {
     expect(frameworkRefreshSideEffects("/proj", () => porcelain).sort()).toEqual(
       [".deft/core/VERSION", "AGENTS.md"].sort(),
     );
+  });
+
+  it("strips git-quoted porcelain paths", () => {
+    const porcelain = ' M ".deft/core/VERSION"';
+    expect(frameworkRefreshSideEffects("/proj", () => porcelain)).toEqual([".deft/core/VERSION"]);
   });
 
   it("returns empty outside git", () => {
@@ -112,7 +127,7 @@ describe("runRefreshDeposit", () => {
 
     const lines: string[] = [];
     const result = await runRefreshDeposit(
-      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
       { printf: (text) => lines.push(text) },
       {
         resolveContentRoot: async () => contentRoot,
@@ -143,7 +158,12 @@ describe("runRefreshDeposit", () => {
       gitPorcelain: () => "",
     };
 
-    const args = { projectDir: project, jsonOut: false, nonInteractive: true };
+    const args = {
+      projectDir: project,
+      jsonOut: false,
+      nonInteractive: true,
+      upgrade: true,
+    };
     await runRefreshDeposit(args, io, seams);
     const firstAgents = readFileSync(join(project, "AGENTS.md"), "utf8");
 
@@ -156,13 +176,44 @@ describe("runRefreshDeposit", () => {
     expect(io.printf.mock.calls.flat().join("")).toContain("already advertises install root");
   });
 
+  it("discloses core side-effects when AGENTS.md is already current", async () => {
+    const project = freshRoot("refresh-core-disclosure-");
+    const contentRoot = installFakeContentPackage(project);
+    const lines: string[] = [];
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: (text) => lines.push(text) },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitPorcelain: () => " M .deft/core/VERSION\n",
+      },
+    );
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: (text) => lines.push(text) },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitPorcelain: () => " M .deft/core/VERSION\n",
+      },
+    );
+
+    expect(lines.join("")).toContain("refresh side effects (#1671)");
+    expect(lines.join("")).toContain(".deft/core/VERSION");
+  });
+
   it("emits a version-skew notice when engine and content diverge", async () => {
     const project = freshRoot("refresh-skew-");
     const contentRoot = installFakeContentPackage(project, "0.52.0");
     const lines: string[] = [];
 
     await runRefreshDeposit(
-      { projectDir: project, jsonOut: false, nonInteractive: true },
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
       { printf: (text) => lines.push(text) },
       {
         resolveContentRoot: async () => contentRoot,

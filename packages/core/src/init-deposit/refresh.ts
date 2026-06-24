@@ -25,7 +25,9 @@ import {
   writeInstallManifest,
 } from "./scaffold.js";
 
-export interface RefreshDepositArgs extends InitDepositArgs {}
+export interface RefreshDepositArgs extends InitDepositArgs {
+  readonly upgrade: boolean;
+}
 
 export interface RefreshDepositResult {
   readonly projectDir: string;
@@ -101,6 +103,17 @@ function isInstallerManagedPath(path: string): boolean {
   return INSTALLER_MANAGED_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
+function unquoteGitPath(path: string): string {
+  if (path.length >= 2 && path.startsWith('"') && path.endsWith('"')) {
+    try {
+      return JSON.parse(path) as string;
+    } catch {
+      return path.slice(1, -1);
+    }
+  }
+  return path;
+}
+
 function porcelainStatusPaths(porcelain: string): string[] {
   const paths: string[] = [];
   for (const line of porcelain.split("\n")) {
@@ -108,7 +121,7 @@ function porcelainStatusPaths(porcelain: string): string[] {
     let rest = line.slice(3);
     const arrow = rest.indexOf(" -> ");
     if (arrow >= 0) rest = rest.slice(arrow + 4);
-    const trimmed = rest.trim();
+    const trimmed = unquoteGitPath(rest.trim());
     if (!trimmed) continue;
     paths.push(trimmed.replace(/\\/g, "/"));
   }
@@ -195,7 +208,7 @@ export function buildUpdateSummaryJson(
     legacy_layout: false,
     update: true,
     non_interactive: options.nonInteractive,
-    upgrade: true,
+    upgrade: options.upgrade,
     taskfile_wired: false,
     missing_tools: [],
     maintainer_mode: false,
@@ -263,12 +276,11 @@ export async function runRefreshDeposit(
   writeInstallManifest(projectDir, deftDir, manifestFields);
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
-  if (agentsMdUpdated) {
-    const readPorcelain = seams.gitPorcelain ?? gitPorcelain;
-    printRefreshSideEffects(io, frameworkRefreshSideEffects(projectDir, readPorcelain));
-  }
 
   await depositNeutralization(projectDir, io);
+
+  const readPorcelain = seams.gitPorcelain ?? gitPorcelain;
+  printRefreshSideEffects(io, frameworkRefreshSideEffects(projectDir, readPorcelain));
 
   if (versionSkewNotice) {
     io.printf(`${versionSkewNotice}\n`);
@@ -324,4 +336,17 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
   }
 }
 
-export { parseInitArgv as parseUpdateArgv };
+export function parseUpdateArgv(
+  canonicalArgv: readonly string[],
+  userArgv: readonly string[] = [],
+): RefreshDepositArgs {
+  const base = parseInitArgv(canonicalArgv, userArgv);
+  const args = [...canonicalArgv, ...userArgv];
+  let upgrade = false;
+  for (const arg of args) {
+    if (arg === "--upgrade" || arg === "/upgrade") {
+      upgrade = true;
+    }
+  }
+  return { ...base, upgrade };
+}
