@@ -2,7 +2,13 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { CACHE_DIR_NAME, CANDIDATES_RELPATH, DEFAULT_SOURCE, evaluate } from "./evaluate.js";
+import {
+  CACHE_DIR_NAME,
+  CANDIDATES_RELPATH,
+  DEFAULT_SOURCE,
+  evaluate,
+  recoveryHintForStaleFailure,
+} from "./evaluate.js";
 
 /** Create a temp dir, return its path. Cleaned up in afterEach via tmpDirs. */
 const tmpDirs: string[] = [];
@@ -180,7 +186,8 @@ describe("evaluate -- fresh cache", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("stale-by-drift");
-    expect(result.message).toContain("cache:fetch-all --force");
+    expect(result.message).toContain("cache:fetch-all");
+    expect(result.message).not.toContain("cache:fetch-all --force");
   });
 
   it("returns stale-by-drift for TTL-fresh content drift only", () => {
@@ -201,7 +208,8 @@ describe("evaluate -- fresh cache", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("TTL-fresh issue(s) with upstream content drift");
-    expect(result.message).toContain("cache:fetch-all --force");
+    expect(result.message).toContain("cache:fetch-all");
+    expect(result.message).not.toContain("cache:fetch-all --force");
   });
 
   it("allows stale cache with drift when allowStale=true", () => {
@@ -257,6 +265,24 @@ describe("evaluate -- fresh cache", () => {
     });
     expect(result.code).toBe(0);
     expect(result.message).toContain("⚠");
+  });
+});
+
+describe("recoveryHintForStaleFailure -- branch-aware (#1953)", () => {
+  it("age-only failure names cache:fetch-all --force", () => {
+    const hint = recoveryHintForStaleFailure({ ageStale: true, driftDetected: false });
+    expect(hint).toContain("cache:fetch-all --force");
+  });
+
+  it("drift-only failure names plain cache:fetch-all", () => {
+    const hint = recoveryHintForStaleFailure({ ageStale: false, driftDetected: true });
+    expect(hint).toContain("cache:fetch-all");
+    expect(hint).not.toContain("cache:fetch-all --force");
+  });
+
+  it("mixed age+drift prefers cache:fetch-all --force", () => {
+    const hint = recoveryHintForStaleFailure({ ageStale: true, driftDetected: true });
+    expect(hint).toContain("cache:fetch-all --force");
   });
 });
 
