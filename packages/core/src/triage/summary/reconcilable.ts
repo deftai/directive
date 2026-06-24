@@ -1,10 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { AUDIT_LOG_REL_PATH, readAuditLog } from "../actions/candidates-log.js";
 
 /** Lifecycle folders scanned for reconcilable vBRIEFs (#1468). */
 export const BACKFILL_FOLDERS = ["proposed", "pending", "active"] as const;
 
-export const CANDIDATES_LOG_REL_PATH = "vbrief/.eval/candidates.jsonl";
+export const CANDIDATES_LOG_REL_PATH = AUDIT_LOG_REL_PATH;
 
 function parseGithubIssueUri(uri: unknown): [string | null, number | null] {
   if (typeof uri !== "string" || uri.length === 0) {
@@ -52,38 +53,8 @@ function extractIssueRef(data: Record<string, unknown>): [string | null, number 
 
 function existingAuditRefs(auditPath: string): Set<string> {
   const seen = new Set<string>();
-  if (!existsSync(auditPath)) {
-    return seen;
-  }
-  let text: string;
-  try {
-    text = readFileSync(auditPath, { encoding: "utf8" });
-  } catch {
-    return seen;
-  }
-  for (const raw of text.split("\n")) {
-    const stripped = raw.trim();
-    if (stripped.length === 0) {
-      continue;
-    }
-    try {
-      const entry = JSON.parse(stripped) as unknown;
-      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
-        continue;
-      }
-      const obj = entry as Record<string, unknown>;
-      const repo = obj.repo;
-      const issueNumber = obj.issue_number;
-      if (
-        typeof repo === "string" &&
-        typeof issueNumber === "number" &&
-        Number.isInteger(issueNumber)
-      ) {
-        seen.add(`${repo}\0${issueNumber}`);
-      }
-    } catch {
-      // tolerate malformed lines
-    }
+  for (const entry of readAuditLog(auditPath)) {
+    seen.add(auditKey(entry.repo, entry.issue_number));
   }
   return seen;
 }

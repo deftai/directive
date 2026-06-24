@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1698"
+  },
+  "plan": {
+    "title": "fix(triage): one shared decision-reader so summary, history, status, and reset agree on backfilled accepts",
+    "status": "running",
+    "narratives": {
+      "Description": "Two readers of the triage audit log (vbrief/.eval/candidates.jsonl) disagree about what counts as a recorded decision. triage summary COUNTS accept decisions written by agent:bootstrap / agent:reconcile backfills toward the in-flight count, but the triage actions reader (reset/history/status) does NOT see those same entries and reports 'no prior decision recorded'. A backfilled accept then shows as a stale in-flight item the canonical reversibility verb (reset) cannot clear. Extract one shared latest_decision(repo, issue) reader used by both surfaces (#537 split-source-of-truth class).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1698",
+      "Overview": "## What to build\n\nMake triage summary and triage actions read the audit log through ONE shared decision-reader that treats backfilled (agent:bootstrap / agent:reconcile) entries identically to interactively-authored ones, so anything summary counts is visible to history/status and actionable by reset.\n\n## Where\n\n- packages/core/src/triage/actions/candidates-log.ts -- the actions-side reader (reset/history/status) that currently filters out backfill entries.\n- packages/core/src/triage/summary/reconcilable.ts + packages/core/src/triage/summary/index.ts -- the summary-side reader/counter.\n- Extract/reuse a single canonical latest_decision reader consumed by both.\n\n## Out of scope\n\n- Do NOT touch the render modules (owned by in-flight #1696/#1697).\n- Do NOT change the audit-log write format or the backfill actors; this is a read-side reconciliation only.",
+      "Labels": "bug, triage, source-of-truth",
+      "ImplementationPlan": "- Extract a single canonical latest_decision(repo, issue) reader (likely in packages/core/src/triage/actions/candidates-log.ts or a shared module) that does NOT filter out agent:bootstrap / agent:reconcile actors.\n- Route both the summary counter (packages/core/src/triage/summary/) and the actions reader (reset/history/status) through it.\n- Add a test: a backfilled accept entry is visible to summary, history, status, and is reset-able.",
+      "UserStory": "As a deft operator clearing stale triage state, I want a backfilled accept that summary counts to also be visible to history/status and clearable by reset, so that the session-start in-flight count has a supported reconciliation path."
+    },
+    "items": [
+      {
+        "title": "backfilled accept visible to history and status",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When an issue's only candidates.jsonl entry is an agent:reconcile/bootstrap backfill accept, triage history and status report it rather than 'no prior decision recorded'."
+        }
+      },
+      {
+        "title": "backfilled accept is reset-able",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When reset runs on an issue whose only decision is a backfilled accept, it records the reset rather than refusing with 'no prior decision recorded'."
+        }
+      },
+      {
+        "title": "summary and actions share one reader",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When summary counts an entry as in-flight, the same shared decision-reader makes that entry visible to the actions surfaces (no divergent actor filter)."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "triage",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1698",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1698: split audit-log readers (summary vs reset/history/status)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1699",
+        "type": "x-vbrief/related",
+        "title": "Umbrella #1699: lifecycle/triage round-trip divergence"
+      }
+    ],
+    "id": "2026-06-24-1698-triage-shared-decision-reader",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "maintenance",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/actions/candidates-log.ts",
+          "packages/core/src/triage/summary/reconcilable.ts",
+          "packages/core/src/triage/summary/index.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- triage",
+          "node packages/cli/dist/triage-actions-parity.js",
+          "task check"
+        ],
+        "expected_outputs": [
+          "backfilled accept visible to summary, history, status; reset-able",
+          "single shared latest_decision reader consumed by both surfaces"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-readers",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #1698 (repro + root cause) under umbrella #1699, not a spec section."
+      }
+    },
+    "updated": "2026-06-24T19:44:13Z"
+  }
+}

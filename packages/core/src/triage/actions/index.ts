@@ -1,12 +1,16 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CacheNotFoundError } from "../../cache/errors.js";
 import { cacheGet } from "../../cache/operations.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
-import { createCandidatesLog, resolveAuditLogPath, rollbackAuditEntry } from "./candidates-log.js";
+import {
+  createCandidatesLog,
+  findByIssue,
+  resolveAuditLogPath,
+  rollbackAuditEntry,
+} from "./candidates-log.js";
 import { TriageError, UpstreamCloseError } from "./errors.js";
 import { parseResumeOn } from "./resume-on.js";
 import type {
@@ -22,6 +26,10 @@ import type {
 export {
   AUDIT_LOG_REL_PATH,
   createCandidatesLog,
+  findByIssue,
+  latestDecisionForIssue,
+  latestDecisions,
+  readAuditLog,
   resolveAuditLogPath,
   rollbackAuditEntry,
 } from "./candidates-log.js";
@@ -177,28 +185,17 @@ function cacheRootFor(projectRoot: string): string {
   return join(projectRoot, ".deft-cache");
 }
 
-function findByIssue(issueNumber: number, repo: string, projectRoot: string): AuditEntry[] {
-  const logPath = logPathFor(projectRoot);
-  if (!existsSync(logPath)) {
-    return [];
-  }
-  const out: AuditEntry[] = [];
-  const raw = readFileSync(logPath, "utf8");
-  for (const line of raw.split("\n")) {
-    const stripped = line.trim();
-    if (!stripped) continue;
-    try {
-      const parsed = JSON.parse(stripped) as unknown;
-      if (typeof parsed !== "object" || parsed === null) continue;
-      const row = parsed as AuditEntry;
-      if (row.repo === repo && row.issue_number === issueNumber) {
-        out.push(row);
-      }
-    } catch {
-      // Preserve parity with candidates_log read tolerance for malformed lines.
-    }
-  }
-  return out;
+/** Return audit entries for ``issueNumber`` ordered ascending by timestamp. */
+export function history(
+  issueNumber: number,
+  repo: string,
+  _deps: TriageActionsDeps,
+  options: { projectRoot?: string } = {},
+): AuditEntry[] {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const entries = findByIssue(issueNumber, repo, logPathFor(projectRoot));
+  entries.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+  return entries;
 }
 
 function isIdempotentRepeat(
@@ -497,19 +494,6 @@ export function reset(
     prior_decision_id: prior.decision_id,
   });
   return deps.candidatesLog.append(entry, { path: logPath });
-}
-
-/** Return audit entries for ``issueNumber`` ordered ascending by timestamp. */
-export function history(
-  issueNumber: number,
-  repo: string,
-  _deps: TriageActionsDeps,
-  options: { projectRoot?: string } = {},
-): AuditEntry[] {
-  const projectRoot = options.projectRoot ?? process.cwd();
-  const entries = findByIssue(issueNumber, repo, projectRoot);
-  entries.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
-  return entries;
 }
 
 /** Format a decision entry for CLI ``status`` / ``history`` output. */

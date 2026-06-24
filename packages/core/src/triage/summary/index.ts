@@ -2,6 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from
 import { join, resolve as pathResolve } from "node:path";
 import { loadProjectDefinition, PROJECT_DEFINITION_REL_PATH } from "../../policy/resolve.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
+import { AUDIT_LOG_REL_PATH, latestDecisions, readAuditLog } from "../actions/candidates-log.js";
 import { countReconcilable } from "./reconcilable.js";
 import { computeScopeDriftTotal } from "./scope-drift.js";
 
@@ -13,7 +14,8 @@ export const MAX_LINE_CHARS = 120;
 export { DEFAULT_WIP_CAP, PROJECT_DEFINITION_REL_PATH };
 export const CACHE_DIR_NAME = ".deft-cache";
 export const CACHE_SOURCE = "github-issue";
-export const CANDIDATES_LOG_REL_PATH = "vbrief/.eval/candidates.jsonl";
+export const CANDIDATES_LOG_REL_PATH = AUDIT_LOG_REL_PATH;
+export { latestDecisions, readAuditLog } from "../actions/candidates-log.js";
 export const SUMMARY_HISTORY_REL_PATH = "vbrief/.eval/summary-history.jsonl";
 export const SUMMARY_HISTORY_SCHEMA = "deft.triage.summary.v1";
 export const EMPTY_CACHE_LINE = "[triage] cache empty -- run task triage:bootstrap";
@@ -120,65 +122,6 @@ export function iterCachedIssues(cacheRoot: string): Array<[string, number]> {
   return out;
 }
 
-export function readAuditLog(logPath: string): Record<string, unknown>[] {
-  if (!existsSync(logPath)) {
-    return [];
-  }
-  let text: string;
-  try {
-    text = readFileSync(logPath, { encoding: "utf8" });
-  } catch {
-    return [];
-  }
-  const out: Record<string, unknown>[] = [];
-  for (const raw of text.split("\n")) {
-    const stripped = raw.trim();
-    if (stripped.length === 0) {
-      continue;
-    }
-    try {
-      const obj = JSON.parse(stripped) as unknown;
-      if (typeof obj === "object" && obj !== null && !Array.isArray(obj)) {
-        out.push(obj as Record<string, unknown>);
-      }
-    } catch {
-      // tolerate malformed lines
-    }
-  }
-  return out;
-}
-
-/** Collapse audit-log entries to `{(repo, issue_number): decision}`. */
-export function latestDecisions(entries: Iterable<Record<string, unknown>>): Map<string, string> {
-  const rows: Array<[string, string, number, string]> = [];
-  for (const entry of entries) {
-    const repo = entry.repo;
-    const issueNumber = entry.issue_number;
-    const decision = entry.decision;
-    const timestamp = entry.timestamp;
-    if (
-      typeof repo !== "string" ||
-      typeof issueNumber !== "number" ||
-      !Number.isInteger(issueNumber) ||
-      typeof decision !== "string" ||
-      typeof timestamp !== "string"
-    ) {
-      continue;
-    }
-    rows.push([timestamp, repo, issueNumber, decision]);
-  }
-  rows.sort((a, b) => a[0].localeCompare(b[0]));
-  const out = new Map<string, string>();
-  for (const [_ts, repo, n, decision] of rows) {
-    out.set(`${repo}\0${n}`, decision);
-  }
-  return out;
-}
-
-function decisionKey(repo: string, issueNumber: number): string {
-  return `${repo}\0${issueNumber}`;
-}
-
 // ---------------------------------------------------------------------------
 // vBRIEF counters
 // ---------------------------------------------------------------------------
@@ -248,6 +191,10 @@ export function isTriageScopeExplicitlyConfigured(projectRoot: string): boolean 
 /** Read `plan.policy.wipCap`; always returns an integer cap. */
 export function resolveWipCapInt(projectRoot: string): number {
   return resolveWipCap(projectRoot).cap;
+}
+
+function decisionKey(repo: string, issueNumber: number): string {
+  return `${repo}\0${issueNumber}`;
 }
 
 // ---------------------------------------------------------------------------

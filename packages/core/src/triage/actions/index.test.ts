@@ -627,3 +627,49 @@ describe("history", () => {
     expect(entries.map((e) => e.decision)).toEqual(["defer", "needs-ac"]);
   });
 });
+
+describe("backfilled accept (#1698)", () => {
+  function seedBackfillAccept(root: string, issueNumber: number, actor: string): void {
+    const path = resolveAuditLogPath(root);
+    const log = createCandidatesLog(root);
+    log.append(
+      {
+        decision_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        timestamp: "2026-06-18T12:00:00Z",
+        repo: "deftai/directive",
+        issue_number: issueNumber,
+        decision: "accept",
+        actor,
+        reason: `${actor} backfill (#1468)`,
+      },
+      { path },
+    );
+  }
+
+  it.each([
+    "agent:bootstrap",
+    "agent:reconcile",
+  ])("status/history/reset see sole backfill accept from %s", (actor) => {
+    const root = makeRepo();
+    seedBackfillAccept(root, 42, actor);
+    const deps = createDefaultDeps(root);
+
+    const latest = status(42, "deftai/directive", deps, { projectRoot: root });
+    expect(latest?.decision).toBe("accept");
+    expect(latest?.actor).toBe(actor);
+
+    const entries = history(42, "deftai/directive", deps, { projectRoot: root });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.decision).toBe("accept");
+
+    const resetId = reset(42, "deftai/directive", deps, {
+      projectRoot: root,
+      actor: "agent:test",
+    });
+    expect(resetId).toMatch(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+    );
+    const afterReset = status(42, "deftai/directive", deps, { projectRoot: root });
+    expect(afterReset?.decision).toBe("reset");
+  });
+});

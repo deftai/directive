@@ -2,7 +2,15 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createCandidatesLog, resolveAuditLogPath, rollbackAuditEntry } from "./candidates-log.js";
+import {
+  createCandidatesLog,
+  findByIssue,
+  latestDecisionForIssue,
+  latestDecisions,
+  readAuditLog,
+  resolveAuditLogPath,
+  rollbackAuditEntry,
+} from "./candidates-log.js";
 import { CandidatesLogError } from "./errors.js";
 
 const temps: string[] = [];
@@ -164,5 +172,44 @@ describe("createCandidatesLog latestDecision", () => {
     );
     expect(log.latestDecision(5, "deftai/directive", { path })?.decision).toBe("accept");
     expect(log.latestDecision(5, "other/repo", { path })).toBeNull();
+  });
+});
+
+describe("shared decision reader (#1698)", () => {
+  function backfillAccept(
+    actor: "agent:bootstrap" | "agent:reconcile",
+    reason: string,
+  ): Record<string, unknown> {
+    return {
+      decision_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      timestamp: "2026-06-18T12:00:00Z",
+      repo: "deftai/directive",
+      issue_number: 42,
+      decision: "accept",
+      actor,
+      reason,
+    };
+  }
+
+  it.each([
+    "agent:bootstrap",
+    "agent:reconcile",
+  ] as const)("latestDecisionForIssue sees backfilled accept from %s", (actor) => {
+    const root = makeRepo();
+    const path = resolveAuditLogPath(root);
+    writeFileSync(path, `${JSON.stringify(backfillAccept(actor, `${actor} backfill`))}\n`, "utf8");
+    const latest = latestDecisionForIssue(42, "deftai/directive", path);
+    expect(latest?.decision).toBe("accept");
+    expect(latest?.actor).toBe(actor);
+  });
+
+  it("findByIssue and readAuditLog include backfill entries without actor filter", () => {
+    const root = makeRepo();
+    const path = resolveAuditLogPath(root);
+    const entry = backfillAccept("agent:reconcile", "reconcile backfill (#1468)");
+    writeFileSync(path, `${JSON.stringify(entry)}\n`, "utf8");
+    expect(readAuditLog(path)).toHaveLength(1);
+    expect(findByIssue(42, "deftai/directive", path)).toHaveLength(1);
+    expect(latestDecisions(readAuditLog(path)).get(`deftai/directive\0${42}`)).toBe("accept");
   });
 });
