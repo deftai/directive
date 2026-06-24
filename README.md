@@ -41,6 +41,8 @@ npm i -g @deftai/directive
 
 Run `directive` (or the `deft` alias) from any project directory — for example `directive doctor`, `directive session:start`, or `npx @deftai/directive <verb>` without a global install.
 
+**Where your project lands:** the global install above is location-independent, but project **setup** writes `.deft/` and your project's `AGENTS.md` into the **current working directory**. Before you run setup (or ask your agent to set the project up), `cd` into the folder you want the project to live in — create it first if it doesn't exist yet.
+
 **Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
 
 > **🔄 Upgrading?** Run `npm i -g @deftai/directive@latest`. Read [UPGRADING.md](./content/UPGRADING.md) before proceeding if coming from a Go-installer install. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
@@ -49,9 +51,11 @@ Run `directive` (or the `deft` alias) from any project directory — for example
 
 > **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
 
-#### Legacy / offline / no-Node bootstrap (frozen Go installer, #1912)
+#### Legacy and offline install (Go installer, #1912)
 
-For machines without Node or when migrating from an old on-disk layout, the **final frozen Go installer** is available as a stage-1 legacy bridge. Use it only when `npm i -g @deftai/directive` is not an option — once Node is available, move to the npm path.
+> **Node is always required to *run* Deft.** Its live gates run through the TypeScript engine, so there is no Node-free way to actually use the framework — the Go installer only deposits files on disk. On a machine without Node, install **Node 20+** first (via [nvm](https://github.com/nvm-sh/nvm), your OS package manager, or [nodejs.org](https://nodejs.org/)), then run the `npm i -g @deftai/directive` command above.
+
+The Go installer is a **legacy bridge**, not the first-start installer — npm is canonical (above). Reach for it only when npm isn't an option: an **offline / air-gapped** deposit, or **migrating an existing old on-disk layout** (git-clone / submodule / legacy `deft/`-prefixed install) to the canonical `.deft/core/` layout so the npm path can take over. The final Go installer release will be frozen as the permanent stage-1 bridge (#1912).
 
 > **⬇️ Legacy binaries** — from the [latest GitHub Release](https://github.com/deftai/directive/releases/latest):
 > - **Windows:** [`install-windows-amd64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe) | [`install-windows-arm64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-arm64.exe) (Surface / Copilot+ PCs)
@@ -90,7 +94,7 @@ Asked to **"install Deft into this directory"** — for example by an AI agent o
 npm i -g @deftai/directive
 ```
 
-For environments where Node is unavailable, the frozen legacy Go-installer binaries remain available from [GitHub Releases](https://github.com/deftai/directive/releases/latest) (see the [Legacy bootstrap](#legacy--offline--no-node-bootstrap-frozen-go-installer-1912) section above).
+Node 20+ is required to run Deft (see the note above). For **offline / air-gapped** deposits or **migrating a legacy on-disk layout**, the Go-installer binaries remain available from [GitHub Releases](https://github.com/deftai/directive/releases/latest) (see the [Legacy and offline install](#legacy-and-offline-install-go-installer-1912) section above) — Node is still required to run the framework afterward.
 
 **Building from source (developers only):** requires Go 1.22+
 
