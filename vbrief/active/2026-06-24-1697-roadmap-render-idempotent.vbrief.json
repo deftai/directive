@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1697"
+  },
+  "plan": {
+    "title": "fix(render): make roadmap:render -> roadmap:check idempotent (check diffs against the same bytes render emits)",
+    "status": "running",
+    "narratives": {
+      "Description": "task roadmap:check reports drift immediately after a successful task roadmap:render from the same pending/ inputs. The --check path re-renders with subtly different logic/inputs than the write path (header/preamble preservation, multi-issue references[] handling, ordering, or whitespace/newline normalization), so the comparison never matches and the task check aggregate wedges on any project whose ROADMAP touches this path. Make check diff against the exact in-memory render the write path produces.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1697",
+      "Overview": "## What to build\n\nMake `roadmap:render` -> `roadmap:check` idempotent: immediately after render, check MUST exit 0.\n\nStructural fix: --check diffs against the SAME in-memory render the write path produces (one shared render function; check = render-to-buffer + byte-compare). Eliminate any divergence in header/preamble preservation, multi-issue references[] handling, ordering, and trailing-whitespace/newline normalization.\n\n## Where\n\n- packages/core/src/render/roadmap-render.ts -- both the write path and the --check path.\n\n## Out of scope\n\n- Do NOT touch packages/core/src/render/project-render.ts (owned by in-flight #1696) or any triage reader (owned by #1698).",
+      "Labels": "bug, source-of-truth, determinism",
+      "ImplementationPlan": "- packages/core/src/render/roadmap-render.ts: route both write and --check through one shared render-to-buffer function; --check compares the on-disk bytes against that buffer, normalizing nothing differently between the two.\n- Add an idempotency test: render then check exits 0, including a fixture with a scope carrying multiple issue numbers in references[].",
+      "UserStory": "As a deft operator running task check, I want roadmap:check to pass immediately after roadmap:render, so that the aggregate gate is not permanently wedged by a render that disagrees with its own checker."
+    },
+    "items": [
+      {
+        "title": "render then check exits 0",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When roadmap:render runs and roadmap:check runs immediately after on the same inputs, check exits 0 with no drift reported."
+        }
+      },
+      {
+        "title": "shared render-to-buffer for write and check",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When --check evaluates drift, it compares against the same in-memory render the write path emits rather than a separately-computed rendering."
+        }
+      },
+      {
+        "title": "multi-issue references idempotency test",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the idempotency test renders a fixture whose scope lists multiple issue numbers in references[], the subsequent check exits 0."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "source-of-truth",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1697",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1697: roadmap:render output fails roadmap:check immediately after rendering"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1699",
+        "type": "x-vbrief/related",
+        "title": "Umbrella #1699: lifecycle/triage round-trip divergence"
+      }
+    ],
+    "id": "2026-06-24-1697-roadmap-render-idempotent",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "maintenance",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/render/roadmap-render.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- roadmap-render",
+          "task check"
+        ],
+        "expected_outputs": [
+          "render -> check idempotent (check exits 0 immediately after render)",
+          "single shared render-to-buffer function for write + check"
+        ],
+        "depends_on": [],
+        "conflict_group": "render-roadmap",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #1697 (repro + root cause) under umbrella #1699, not a spec section."
+      }
+    },
+    "updated": "2026-06-24T19:44:12Z"
+  }
+}
