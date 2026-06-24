@@ -7,6 +7,13 @@ export interface E2EConfig {
   keepRepo: boolean;
   /** When true, skip the npm publish dry-run rehearsal step (#1910). */
   skipNpm: boolean;
+  /**
+   * When true, run the opt-in pinned legacy->bridge->npm-hybrid migration leg
+   * (#1912). Default OFF (optional) so the field is absent on existing callers
+   * and the default `task release:e2e` budget is unaffected; mirrors `skipNpm`
+   * as an opt-in knob rather than a default-on step.
+   */
+  legacyBridge?: boolean;
   /** Optional override slug (test injection). If null, a fresh slug is generated per run. */
   repoSlug: string | null;
 }
@@ -18,6 +25,8 @@ export interface ParsedE2EFlags {
   keepRepo: boolean;
   projectRoot: string | null;
   skipNpm: boolean;
+  /** Opt-in: run the pinned legacy->bridge->npm-hybrid migration leg (#1912). */
+  legacyBridge: boolean;
   unknown: string[];
 }
 

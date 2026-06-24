@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(#1912 E): pinned legacy->bridge->npm-hybrid e2e leg (reads Tier-0 SoT, pending-pin until frozen)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Freeze-prep story E of the #1912 capstone. Adds the Tier-1 pinned migration e2e leg: legacy on-disk layout (pre-v0.27 / git-clone / submodule) -> the frozen Go bridge installer (stage 1) -> npm hybrid via `directive migrate` + `directive init`/`update` (stage 2). Mirrors the existing `task release:e2e` harness shape (packages/core/src/release-e2e/). The leg reads the Tier-0 SoT (`lastGoInstaller()` from packages/core/src/legacy-bridge/sot.ts, landed in story G #1969) for which bridge tag to pin. SEMANTICS: pending-pin -- while the SoT is null (unfrozen, today), the leg cannot download/run a real frozen bridge binary, so it runs the fixture-shape assertions it can and SKIPS the real frozen-binary download with a clear advisory ('pending SoT pin'); once the operator freezes (SoT set), the same leg runs the real pinned bridge->npm handoff. This satisfies the #1912 'pinned migration e2e' Tier-1 checkbox and the 'freeze-on-real-handoff' sequencing intent without itself cutting the freeze.",
       "Origin": "Decomposed from https://github.com/deftai/directive/issues/1912 (freeze-prep). Depends on story G (the SoT module) which is now merged on master.",
@@ -91,8 +91,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to #1912 Tier-1 'pinned migration e2e' checkbox + freeze-on-real-handoff sequencing; depends on the now-merged story G SoT module."
-      }
+      },
+      "completedAt": "2026-06-24T23:10:28Z"
     },
-    "updated": "2026-06-24T22:50:44Z"
+    "updated": "2026-06-24T23:10:28Z"
   }
 }
