@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1953"
+  },
+  "plan": {
+    "title": "fix(cache): branch-aware verify:cache-fresh recovery hint (Option 3 of threshold reconciliation)",
+    "status": "running",
+    "narratives": {
+      "Description": "Issue #1953 records the decision that the cache TTL (~7d) and the verify:cache-fresh gate max-age (24h) stay distinct, with the gate's recovery hint as the canonical unblocking path. #1949 already named `cache:fetch-all --force` in the hint. This story finishes Option 3: make the recovery hint BRANCH-AWARE so a stale-by-age failure steers to `cache:fetch-all --force` (TTL-bypassing) while a stale-by-drift failure steers to the plain `cache:fetch-all` refetch (which #1949 made drift-aware by default). The thresholds themselves are intentionally NOT changed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1953",
+      "Overview": "## What to build\n\nMake the `verify:cache-fresh` recovery hint depend on WHY the gate failed:\n\n- stale-by-age (entry older than DEFAULT_MAX_AGE_HOURS but TTL-fresh) -> hint names `cache:fetch-all --force` (must bypass TTL to refresh fetched_at).\n- stale-by-drift (#1886 drift probe flags upstream content drift) -> hint names plain `cache:fetch-all` (already drift-aware by default after #1949; --force is unnecessary).\n\n## Where\n\npackages/core/src/preflight-cache/evaluate.ts emits the recovery hint string(s). Today it names `--force` unconditionally (post-#1949). Split the wording by the failure branch the evaluator already computes.\n\n## Out of scope\n\n- Do NOT change DEFAULT_MAX_AGE_HOURS (24h) or the cache TTL constant (~7d) -- Option 3 keeps them distinct on purpose.\n- Do NOT touch packages/core/src/cache/fetch.ts behavior or packages/cli init/deposit paths (the in-flight #1942 S2 worker owns init-deposit).",
+      "Labels": "bug, area:cache",
+      "ImplementationPlan": "- packages/core/src/preflight-cache/evaluate.ts: identify the stale-by-age vs stale-by-drift branches already present in the evaluator output; emit `cache:fetch-all --force` for the age branch and plain `cache:fetch-all` for the drift branch. If a single result mixes both causes, prefer `--force` (it clears both).\n- packages/core/src/preflight-cache/*.test.ts: assert the age-branch message contains `--force` and the drift-only-branch message does NOT, plus the mixed-cause case prefers `--force`.",
+      "UserStory": "As a deft operator blocked by verify:cache-fresh, I want the recovery hint to name the command that actually clears MY failure mode, so that I run the right refetch (force vs plain) the first time instead of guessing."
+    },
+    "items": [
+      {
+        "title": "age-branch hint names --force",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the gate fails stale-by-age (TTL-fresh but older than the 24h max-age), the recovery hint names `cache:fetch-all --force`."
+        }
+      },
+      {
+        "title": "drift-branch hint names plain refetch",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the gate fails only stale-by-drift, the recovery hint names plain `cache:fetch-all` and does not require `--force`."
+        }
+      },
+      {
+        "title": "mixed-cause prefers force",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When a failure has both age and drift causes, the recovery hint prefers `cache:fetch-all --force` since it clears both states."
+        }
+      },
+      {
+        "title": "thresholds unchanged",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the change lands, DEFAULT_MAX_AGE_HOURS and the cache TTL constant retain their existing values (no threshold edit)."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:cache"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1953",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1953: reconcile cache TTL vs gate max-age (Option 3 preferred)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1949",
+        "type": "x-vbrief/related",
+        "title": "Issue #1949: made cache:fetch-all recovery effective (--force + drift-aware default)"
+      }
+    ],
+    "id": "2026-06-24-1953-cache-fresh-hint-reconcile",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "maintenance",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "packages/core/src/preflight-cache/evaluate.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- preflight-cache",
+          "node packages/cli/dist/cache-parity.js",
+          "task check"
+        ],
+        "expected_outputs": [
+          "age-branch hint names --force; drift-branch names plain refetch; mixed prefers --force",
+          "no threshold constants changed; parity stays green"
+        ],
+        "depends_on": [],
+        "conflict_group": "cache-freshness",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #1953 (decision record + Option 3) and #1949, not a spec section."
+      }
+    },
+    "updated": "2026-06-24T19:36:50Z"
+  }
+}
