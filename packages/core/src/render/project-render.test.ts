@@ -97,9 +97,13 @@ describe("project-render decompose round-trip", () => {
     expect(ok).toBe(true);
     expect(message).toContain("3 scope items");
 
-    const projectDef = JSON.parse(
+    const parsed: unknown = JSON.parse(
       readFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "utf8"),
-    ) as { plan: { items: Array<{ metadata?: { references?: unknown[] } }> } };
+    );
+    expect(parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)).toBe(true);
+    const projectDef = parsed as {
+      plan: { items: Array<{ metadata?: { references?: unknown[] } }> };
+    };
 
     const umbrella = projectDef.plan.items.find(
       (item) =>
