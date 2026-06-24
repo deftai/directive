@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   checkDrift,
-  main as roadmapRenderMain,
   renderRoadmap,
   renderRoadmapToBuffer,
+  main as roadmapRenderMain,
 } from "./roadmap-render.js";
 
 const temps: string[] = [];
@@ -62,10 +62,7 @@ const HIERARCHICAL_MULTI_REF = {
   plan: {
     title: "Dependency Test",
     status: "pending",
-    references: [
-      { id: "#311" },
-      { url: "https://github.com/deftai/directive/issues/309" },
-    ],
+    references: [{ id: "#311" }, { url: "https://github.com/deftai/directive/issues/309" }],
     items: [
       {
         id: "phase-1",
