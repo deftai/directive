@@ -380,6 +380,75 @@ describe("fetch-all", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("maybeSelfHealCache skips when refresh fails", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-refresh-fail-"));
+    const cacheRoot = join(root, ".deft-cache");
+    mkdirSync(join(cacheRoot, "github-issue/deftai/directive/12"), { recursive: true });
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set<number>(),
+        refreshFn: () => {
+          throw new Error("refresh failed");
+        },
+      });
+      expect(result.skipped).toBe(true);
+      expect(result.skipReason).toBe("refresh-failed");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache treats invalid self-heal timestamps as TTL expired", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-bad-ts-"));
+    const cacheRoot = join(root, ".deft-cache");
+    const base = join(cacheRoot, "github-issue/deftai/directive/13");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 13, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    writeFileSync(
+      join(cacheRoot, "self-heal-state.json"),
+      JSON.stringify({ last_reconcile_at: "not-a-date" }),
+      "utf8",
+    );
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set([13]),
+        refreshFn: () => new StateRefreshReportImpl(),
+      });
+      expect(result.skipped).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache treats corrupt self-heal JSON as TTL expired", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-corrupt-"));
+    const cacheRoot = join(root, ".deft-cache");
+    const base = join(cacheRoot, "github-issue/deftai/directive/14");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 14, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    writeFileSync(join(cacheRoot, "self-heal-state.json"), "{not-json", "utf8");
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set([14]),
+        refreshFn: () => new StateRefreshReportImpl(),
+      });
+      expect(result.skipped).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("main CLI", () => {

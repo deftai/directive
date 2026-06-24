@@ -30,9 +30,23 @@ describe("diffCase", () => {
   });
 
   it("reports stderr mismatch", () => {
-    const py: CommandCapture = { exitCode: 1, stdout: "", stderr: "a" };
-    const ts: CommandCapture = { exitCode: 1, stdout: "", stderr: "b" };
+    const py: CommandCapture = {
+      exitCode: 1,
+      stdout: "",
+      stderr: "triage_actions: boom a\n",
+    };
+    const ts: CommandCapture = {
+      exitCode: 1,
+      stdout: "",
+      stderr: "triage_actions: boom b\n",
+    };
     expect(diffCase(py, ts, "x").stderrMismatch).toBe(true);
+  });
+
+  it("ignores non-triage stderr noise after normalisation", () => {
+    const py: CommandCapture = { exitCode: 0, stdout: "", stderr: "Downloading uv\n" };
+    const ts: CommandCapture = { exitCode: 0, stdout: "", stderr: "" };
+    expect(diffCase(py, ts, "x").stderrMismatch).toBe(false);
   });
 });
 

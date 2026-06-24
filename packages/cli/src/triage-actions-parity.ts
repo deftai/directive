@@ -58,6 +58,14 @@ export function normalizeOutput(text: string): string {
     );
 }
 
+/** Keep only operator-facing triage stderr; drop uv/tooling noise from Python spawns. */
+export function normalizeStderr(text: string): string {
+  return normalizeOutput(text)
+    .split("\n")
+    .filter((line) => line.length === 0 || line.startsWith("triage_actions:"))
+    .join("\n");
+}
+
 interface Capture {
   status: number;
   stdout: string;
@@ -70,7 +78,13 @@ function runCapture(
   cwd: string,
   env: Record<string, string | undefined> = {},
 ): Capture {
-  const merged = { ...process.env, ...env };
+  const merged: Record<string, string | undefined> = {
+    ...process.env,
+    ...env,
+    GITHUB_TOKEN: "",
+    GH_TOKEN: "",
+    GH_ENTERPRISE_TOKEN: "",
+  };
   for (const key of Object.keys(merged)) {
     if (merged[key] === undefined) delete merged[key];
   }
@@ -155,8 +169,8 @@ function runTsTriageAction(
 export function diffCase(python: CommandCapture, ts: CommandCapture, caseName: string): ParityDiff {
   const pyOut = normalizeOutput(python.stdout);
   const tsOut = normalizeOutput(ts.stdout);
-  const pyErr = normalizeOutput(python.stderr);
-  const tsErr = normalizeOutput(ts.stderr);
+  const pyErr = normalizeStderr(python.stderr);
+  const tsErr = normalizeStderr(ts.stderr);
   return {
     caseName,
     exitMismatch: python.exitCode !== ts.exitCode,
