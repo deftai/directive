@@ -168,6 +168,7 @@ function cmdFetchAll(args: string[]): number {
   const labels: string[] = [];
   let author: string | undefined;
   let skipRefreshClosed = false;
+  let force = false;
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -200,6 +201,8 @@ function cmdFetchAll(args: string[]): number {
       i += 1;
     } else if (arg === "--no-refresh-closed") {
       skipRefreshClosed = true;
+    } else if (arg === "--force" || arg === "--ignore-ttl") {
+      force = true;
     }
   }
 
@@ -218,6 +221,7 @@ function cmdFetchAll(args: string[]): number {
     limit,
     labels: normaliseLabelFilter(labels),
     author: author ?? null,
+    force,
   });
   process.stdout.write(`${report.toJson()}\n`);
   let rc = report.issuesFailed === 0 ? 0 : 1;

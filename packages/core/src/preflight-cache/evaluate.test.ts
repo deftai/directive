@@ -141,6 +141,7 @@ describe("evaluate -- fresh cache", () => {
     expect(result.message).toContain("❌");
     expect(result.message).toContain("25.0h old");
     expect(result.message).toContain("oldest in-scope entry");
+    expect(result.message).toContain("cache:fetch-all --force");
   });
 
   it("uses oldest in-scope entry age when newer entries exist", () => {
@@ -179,6 +180,7 @@ describe("evaluate -- fresh cache", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("stale-by-drift");
+    expect(result.message).toContain("cache:fetch-all --force");
   });
 
   it("returns stale-by-drift for TTL-fresh content drift only", () => {
@@ -199,6 +201,7 @@ describe("evaluate -- fresh cache", () => {
     });
     expect(result.code).toBe(1);
     expect(result.message).toContain("TTL-fresh issue(s) with upstream content drift");
+    expect(result.message).toContain("cache:fetch-all --force");
   });
 
   it("allows stale cache with drift when allowStale=true", () => {

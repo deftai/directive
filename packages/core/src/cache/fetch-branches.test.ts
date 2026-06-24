@@ -464,4 +464,88 @@ describe("fetch branches", () => {
       setPaginatedLister(restIssueListPaginated);
     }
   });
+
+  it("runFetchAll --force rewrites TTL-fresh entries", () => {
+    setPaginatedLister(() => [{ number: 17, title: "t", body: "b", state: "open" }]);
+    const root = mkdtempSync(join(tmpdir(), "deft-force-rewrite-"));
+    try {
+      cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+      });
+      const withoutForce = cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+      });
+      expect(withoutForce.alreadyFresh).toBe(1);
+      expect(withoutForce.issuesWritten).toBe(0);
+
+      const withForce = cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+        force: true,
+      });
+      expect(withForce.alreadyFresh).toBe(0);
+      expect(withForce.issuesWritten).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+    }
+  });
+
+  it("runFetchAll rewrites TTL-fresh entries flagged by content drift", () => {
+    setPaginatedLister(() => [{ number: 18, title: "live", body: "b", state: "open", labels: [] }]);
+    const root = mkdtempSync(join(tmpdir(), "deft-drift-rewrite-"));
+    try {
+      cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+      });
+      const rawPath = join(root, "github-issue/deftai/directive/18/raw.json");
+      writeFileSync(
+        rawPath,
+        JSON.stringify({ number: 18, state: "open", title: "cached", body: "b", labels: [] }),
+        "utf8",
+      );
+
+      const report = cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+        contentDriftNumbers: [18],
+      });
+      expect(report.alreadyFresh).toBe(0);
+      expect(report.issuesWritten).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+    }
+  });
+
+  it("runFetchAll skips TTL-fresh non-drifted entries by default", () => {
+    setPaginatedLister(() => [{ number: 19, title: "t", body: "b", state: "open" }]);
+    const root = mkdtempSync(join(tmpdir(), "deft-default-skip-"));
+    try {
+      cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+      });
+      const report = cacheFetchAll({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+        contentDriftNumbers: [],
+      });
+      expect(report.alreadyFresh).toBe(1);
+      expect(report.issuesWritten).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+    }
+  });
 });

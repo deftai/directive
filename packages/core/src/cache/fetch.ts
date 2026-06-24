@@ -273,6 +273,38 @@ function listIssuesRest(
   }
 }
 
+function resolveContentDriftNumbers(options: {
+  force?: boolean;
+  repo: string;
+  source: string;
+  cacheRoot: string;
+  contentDriftNumbers?: readonly number[];
+  probeDriftFn?: typeof probeCacheDrift;
+  fetchSingleFn?: (repo: string, n: number) => Record<string, unknown>;
+  listOpenNumbers?: Set<number>;
+}): Set<number> {
+  if (options.force) return new Set();
+  if (options.contentDriftNumbers !== undefined) {
+    return new Set(options.contentDriftNumbers);
+  }
+  try {
+    const probeOpts: Parameters<typeof probeCacheDrift>[0] = {
+      repo: options.repo,
+      source: options.source,
+      cacheRoot: options.cacheRoot,
+    };
+    if (options.fetchSingleFn) probeOpts.fetchSingleFn = options.fetchSingleFn;
+    const listOpenNumbers = options.listOpenNumbers;
+    if (listOpenNumbers) {
+      probeOpts.listOpenFn = () => listOpenNumbers;
+    }
+    const drift = (options.probeDriftFn ?? probeCacheDrift)(probeOpts);
+    return new Set(drift.contentDriftNumbers);
+  } catch {
+    return new Set();
+  }
+}
+
 export function runFetchAll(options: {
   repo: string;
   source: string;
@@ -284,6 +316,9 @@ export function runFetchAll(options: {
   limit?: number;
   labels?: readonly string[];
   author?: string | null;
+  force?: boolean;
+  contentDriftNumbers?: readonly number[];
+  probeDriftFn?: typeof probeCacheDrift;
   isFresh?: (metaPath: string) => boolean;
   doPut?: (key: string, raw: Record<string, unknown>) => void;
 }): FetchAllReportImpl {
@@ -293,6 +328,13 @@ export function runFetchAll(options: {
     labels: options.labels ?? [],
     author: options.author ?? null,
   });
+  const issueByNumber = new Map<number, Record<string, unknown>>();
+  for (const issue of issues) {
+    const number = issue.number;
+    if (typeof number === "number" && number > 0) {
+      issueByNumber.set(number, issue);
+    }
+  }
   const report = new FetchAllReportImpl();
   const total = issues.length;
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
@@ -306,6 +348,20 @@ export function runFetchAll(options: {
     ((key: string, raw: Record<string, unknown>) => {
       cachePut(source, key, raw, { ttlSeconds, cacheRoot });
     });
+  const contentDriftNumbers = resolveContentDriftNumbers({
+    force: options.force,
+    repo: options.repo,
+    source,
+    cacheRoot,
+    contentDriftNumbers: options.contentDriftNumbers,
+    probeDriftFn: options.probeDriftFn,
+    fetchSingleFn: (repo, n) => {
+      const fromList = issueByNumber.get(n);
+      if (fromList !== undefined) return normaliseRestIssue(fromList);
+      return singleIssueFetcherImpl(repo, n);
+    },
+    listOpenNumbers: new Set(issueByNumber.keys()),
+  });
 
   if (total >= PROGRESS_EVERY_N) {
     emitFetchProgress(options.repo, "enumerated", 0, total, report);
@@ -324,7 +380,9 @@ export function runFetchAll(options: {
     } else {
       const key = `${options.repo}/${number}`;
       const edir = entryDir(source, key, cacheRoot);
-      if (isFreshFn(join(edir, "meta.json"))) {
+      const metaPath = join(edir, "meta.json");
+      const skipFresh = !options.force && isFreshFn(metaPath) && !contentDriftNumbers.has(number);
+      if (skipFresh) {
         report.alreadyFresh += 1;
       } else {
         try {
@@ -360,6 +418,9 @@ export function cacheFetchAll(options: {
   labels?: readonly string[];
   author?: string | null;
   cacheRoot?: string;
+  force?: boolean;
+  contentDriftNumbers?: readonly number[];
+  probeDriftFn?: typeof probeCacheDrift;
 }): FetchAllReportImpl {
   if (options.source !== "github-issue") {
     throw new CacheError(
@@ -386,6 +447,9 @@ export function cacheFetchAll(options: {
     limit: options.limit,
     labels: options.labels,
     author: options.author,
+    force: options.force,
+    contentDriftNumbers: options.contentDriftNumbers,
+    probeDriftFn: options.probeDriftFn,
   });
 }
 

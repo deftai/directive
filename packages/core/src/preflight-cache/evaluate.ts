@@ -316,7 +316,7 @@ const REMEDIATION_NO_CACHE = ["  Recovery: run `deft triage:bootstrap` to seed t
 );
 
 const REMEDIATION_STALE = [
-  "  Recovery: run `deft cache:fetch-all` to refresh and reconcile upstream state.",
+  "  Recovery: run `deft cache:fetch-all --force` to refresh and reconcile upstream state.",
 ].join("\n");
 
 function formatDriftFailure(repo: string, drift: CacheDriftProbeResult): GateResult {
