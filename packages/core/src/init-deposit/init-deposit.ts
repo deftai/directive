@@ -261,7 +261,7 @@ export async function runInitDepositCli(options: RunInitDepositCliOptions): Prom
       io.printf(buildLegacyRefusalMessage("init", cause.detection));
       if (options.jsonOut) {
         options.writeOut(
-          `${JSON.stringify(buildLegacyRefusalJson("init", options.projectDir, cause.detection), null, 2)}\n`,
+          `${JSON.stringify(buildLegacyRefusalJson("init", resolve(options.projectDir), cause.detection), null, 2)}\n`,
         );
       }
       return LEGACY_LAYOUT_REFUSED_EXIT_CODE;

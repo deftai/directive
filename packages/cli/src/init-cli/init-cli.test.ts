@@ -16,6 +16,19 @@ import {
 import { runDeftInstall } from "./run-deft-install.js";
 import { runUpdate } from "./update.js";
 
+// `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
+// so a guarded parse keeps property reads from blowing up with a TypeError
+// outside the parse boundary.
+function parseJsonObject(text: string): Record<string, unknown> {
+  const value: unknown = JSON.parse(text);
+  if (value === null || typeof value !== "object") {
+    throw new Error(
+      `expected a JSON object payload, received ${value === null ? "null" : typeof value}`,
+    );
+  }
+  return value as Record<string, unknown>;
+}
+
 function captureIo(): { io: DispatchIo; out: string[]; err: string[] } {
   const out: string[] = [];
   const err: string[] = [];
@@ -193,7 +206,7 @@ describe("legacy-layout refusal (end-to-end via the CLI, #1912)", () => {
     const { io, out } = captureIo();
     const code = await runInit(["--repo-root", legacyProject()], io);
     expect(code).toBe(2);
-    const parsed = JSON.parse(out.join("")) as Record<string, unknown>;
+    const parsed = parseJsonObject(out.join(""));
     expect(parsed.action).toBe("refuse");
     expect(parsed.legacy_layout).toBe(true);
     expect(parsed.upgrading_doc_url).toContain("UPGRADING.md");
@@ -203,7 +216,7 @@ describe("legacy-layout refusal (end-to-end via the CLI, #1912)", () => {
     const { io, out } = captureIo();
     const code = await runUpdate(["--repo-root", legacyProject()], io);
     expect(code).toBe(2);
-    const parsed = JSON.parse(out.join("")) as Record<string, unknown>;
+    const parsed = parseJsonObject(out.join(""));
     expect(parsed.action).toBe("refuse");
     expect(parsed.command).toBe("update");
   });

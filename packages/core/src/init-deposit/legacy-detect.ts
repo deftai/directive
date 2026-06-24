@@ -185,7 +185,12 @@ export function detectLegacyLayout(
         evidence: ["AGENTS.md (install root: deft)"],
       };
     }
-    const hasManagedMarker = agentsText.includes("deft:managed-section");
+    // Match the OPEN tag only (`<!-- deft:managed-section ...`). A bare
+    // `deft:managed-section` substring also appears in the close tag
+    // (`<!-- /deft:managed-section -->`), so a truncated / mid-write AGENTS.md
+    // carrying only the close tag (or an open tag with no extractable body)
+    // would otherwise be misclassified as a pre-v0.27 legacy layout.
+    const hasManagedMarker = agentsText.includes("<!-- deft:managed-section");
     if (hasManagedMarker && extractManagedSection(agentsText) === null) {
       return {
         legacy: true,

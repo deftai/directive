@@ -62,6 +62,22 @@ describe("detectLegacyLayout — not legacy", () => {
     );
     expect(result.legacy).toBe(false);
   });
+
+  it("a truncated AGENTS.md with only the close tag is corruption, not legacy", () => {
+    // The bare `deft:managed-section` substring also appears in the close tag,
+    // so a mid-write / truncated file carrying only `<!-- /deft:managed-section -->`
+    // must not be misclassified as a pre-v0.27 sentinel layout (#1970 review).
+    const result = detectLegacyLayout(
+      PROJ,
+      seamsFor({
+        texts: {
+          "AGENTS.md": "# Project\nbody with no open tag\n<!-- /deft:managed-section -->\n",
+        },
+      }),
+    );
+    expect(result.legacy).toBe(false);
+    expect(result.kind).toBeNull();
+  });
 });
 
 describe("detectLegacyLayout — legacy shapes", () => {
