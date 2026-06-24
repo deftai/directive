@@ -129,6 +129,9 @@ function pythonWrapperScript(deftRoot: string, fixtureRoot: string): string {
     "import triage_actions",
     "triage_actions.candidates_log = cl",
     "triage_actions.cache = cache_mod",
+    "def _parity_gh(args):",
+    "    raise triage_actions.UpstreamCloseError('gh disabled for parity')",
+    "triage_actions._run_gh = _parity_gh",
     "raise SystemExit(triage_actions.main(sys.argv[1:]))",
   ].join("\n");
 }
@@ -142,7 +145,7 @@ function runPythonTriageAction(
     "uv",
     ["run", "python", "-c", pythonWrapperScript(deftRoot, fixtureRoot), ...argv],
     deftRoot,
-    { TRIAGE_PARITY_FIXTURE: fixtureRoot },
+    { TRIAGE_PARITY_FIXTURE: fixtureRoot, DEFT_TRIAGE_ACTIONS_PARITY: "1" },
   );
   return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
 }
@@ -161,6 +164,7 @@ function runTsTriageAction(
       fixtureRoot,
     ],
     deftRoot,
+    { DEFT_TRIAGE_ACTIONS_PARITY: "1" },
   );
   return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
 }

@@ -129,13 +129,24 @@ function defaultIssueIngest(deftRoot: string): IssueIngest {
 /** Default dependency bundle for production CLI use. */
 export function createDefaultDeps(projectRoot: string): TriageActionsDeps {
   const deftRoot = resolveDeftRoot();
-  return {
+  const deps: TriageActionsDeps = {
     candidatesLog: createCandidatesLog(projectRoot),
     issueIngest: defaultIssueIngest(deftRoot),
     scm: defaultScmRunner(),
     nowIso: defaultNowIso,
     stderr: (message) => process.stderr.write(`${message}\n`),
   };
+  if (process.env.DEFT_TRIAGE_ACTIONS_PARITY === "1") {
+    return {
+      ...deps,
+      scm: {
+        call() {
+          throw new UpstreamCloseError("gh disabled for parity");
+        },
+      },
+    };
+  }
+  return deps;
 }
 
 function buildEntry(

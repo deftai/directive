@@ -108,6 +108,20 @@ describe("createDefaultDeps", () => {
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
     );
   });
+
+  it("disables upstream gh calls in parity harness mode", () => {
+    const prev = process.env.DEFT_TRIAGE_ACTIONS_PARITY;
+    process.env.DEFT_TRIAGE_ACTIONS_PARITY = "1";
+    try {
+      const deps = createDefaultDeps(makeRepo());
+      expect(() => deps.scm.call("github-issue", "issue", ["view", "1"])).toThrow(
+        /gh disabled for parity/,
+      );
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_TRIAGE_ACTIONS_PARITY;
+      else process.env.DEFT_TRIAGE_ACTIONS_PARITY = prev;
+    }
+  });
 });
 
 describe("parseResumeOn", () => {
