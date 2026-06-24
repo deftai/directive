@@ -62,6 +62,7 @@ describe("errors", () => {
     });
     expect(err.message).toContain("size_cap");
     expect(new CacheNotFoundError("miss").message).toBe('"miss"');
+    expect(new CacheNotFoundError('say "hi"').message).toBe('"say \\"hi\\""');
     expect(new CacheNotFoundError("miss").name).toBe("CacheNotFoundError");
     expect(new CacheValidationError("bad").name).toBe("CacheValidationError");
     expect(new CacheFetchError("fail").name).toBe("CacheFetchError");

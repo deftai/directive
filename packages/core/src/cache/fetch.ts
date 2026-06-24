@@ -704,7 +704,12 @@ export function maybeSelfHealCache(
   const listOpen =
     options.listOpenFn ??
     ((repo: string, listLimit: number) => listOpenIssueNumbers(repo, { limit: listLimit }));
-  const openNumbers = listOpen(repo, limit);
+  let openNumbers: Set<number>;
+  try {
+    openNumbers = listOpen(repo, limit);
+  } catch {
+    return { skipped: true, skipReason: "drift-probe-failed", drift: null, refresh: null };
+  }
 
   let drift: CacheDriftProbeResult;
   try {

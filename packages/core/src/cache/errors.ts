@@ -8,7 +8,7 @@ export class CacheError extends Error {
 
 /** Format like Python ``KeyError`` str() for golden parity with the oracle. */
 export function keyErrorMessage(inner: string): string {
-  return `"${inner}"`;
+  return `"${inner.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 /** Cache miss for the requested (source, key). */

@@ -49,7 +49,13 @@ export function normalizeOutput(text: string): string {
     .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g, "<TS>")
     .replace(/Using CPython[^\n]*\n/g, "")
     .replace(/Creating virtual environment[^\n]*\n/g, "")
-    .replace(/Installed \d+ packages[^\n]*\n/g, "");
+    .replace(/Installed \d+ packages[^\n]*\n/g, "")
+    .replace(/Downloading[^\n]*\n/g, "")
+    .replace(/Built[^\n]*\n/g, "")
+    .replace(
+      /triage_actions: needs-ac comment not posted[^\n]*/g,
+      "triage_actions: needs-ac comment not posted <GH-FAIL>",
+    );
 }
 
 interface Capture {

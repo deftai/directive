@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  cacheRefreshClosed,
   detectRateLimit,
   FetchAllReportImpl,
   maybeSelfHealCache,
@@ -314,6 +315,67 @@ describe("fetch-all", () => {
       });
       expect(result.skipped).toBe(false);
       expect(refreshed).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache skips malformed self-heal state shapes", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-bad-state-"));
+    const cacheRoot = join(root, ".deft-cache");
+    const base = join(cacheRoot, "github-issue/deftai/directive/9");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 9, state: "open", title: "t", body: "b" }),
+      "utf8",
+    );
+    writeFileSync(join(cacheRoot, "self-heal-state.json"), "[]\n", "utf8");
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => new Set([9]),
+        refreshFn: () => new StateRefreshReportImpl(),
+      });
+      expect(result.skipped).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("maybeSelfHealCache skips when drift probe fails", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-heal-probe-fail-"));
+    const cacheRoot = join(root, ".deft-cache");
+    mkdirSync(join(cacheRoot, "github-issue/deftai/directive/11"), { recursive: true });
+    try {
+      const result = maybeSelfHealCache(root, {
+        repo: "deftai/directive",
+        listOpenFn: () => {
+          throw new Error("list open failed");
+        },
+      });
+      expect(result.skipped).toBe(true);
+      expect(result.skipReason).toBe("drift-probe-failed");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("cacheRefreshClosed reuses provided openNumbers without relisting", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-refresh-open-"));
+    let listCalls = 0;
+    try {
+      cacheRefreshClosed({
+        source: "github-issue",
+        repo: "deftai/directive",
+        cacheRoot: root,
+        openNumbers: new Set<number>(),
+        listOpenFn: () => {
+          listCalls += 1;
+          return new Set<number>();
+        },
+      });
+      expect(listCalls).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
