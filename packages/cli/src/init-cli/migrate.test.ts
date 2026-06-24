@@ -60,6 +60,24 @@ describe("runMigrate handler", () => {
     const { io } = captureIo();
     expect(runMigrate([], io)).toBe(1);
   });
+
+  it("acknowledges --yes as a no-op rather than silently swallowing it", () => {
+    vi.spyOn(initDeposit, "runMigrateCli").mockReturnValue(0);
+    const { io, err } = captureIo();
+
+    runMigrate(["--yes"], io);
+
+    expect(err.join("")).toContain("--yes/--non-interactive has no effect");
+  });
+
+  it("emits no no-op note when neither confirmation flag is passed", () => {
+    vi.spyOn(initDeposit, "runMigrateCli").mockReturnValue(0);
+    const { io, err } = captureIo();
+
+    runMigrate(["--repo-root", "."], io);
+
+    expect(err.join("")).toBe("");
+  });
 });
 
 describe("migrate routing parity (directive / deft)", () => {

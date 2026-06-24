@@ -153,6 +153,13 @@ describe("runMigrate three-state", () => {
     expect(result.exitCode).toBe(2);
   });
 
+  it("config error: a failed manifest read (readText null) exits 2", () => {
+    const root = makeProject(VENDORED_MANIFEST);
+    const result = runMigrate(root, { resolveEngine: enginePresent, readText: () => null });
+    expect(result.outcome).toBe("manifest-unreadable");
+    expect(result.exitCode).toBe(2);
+  });
+
   it("does not move/rename .deft/core content (shape unchanged)", () => {
     const root = makeProject(VENDORED_MANIFEST);
     const skillPath = join(root, ".deft", "core", "skills", "marker.txt");
@@ -209,7 +216,10 @@ describe("runMigrateCli", () => {
       seams: { resolveEngine: enginePresent, nowIso: () => "2026-06-24T21:20:43Z" },
     });
     expect(code).toBe(0);
-    const parsed = JSON.parse(out.join("")) as Record<string, unknown>;
+    const parsedUnknown: unknown = JSON.parse(out.join(""));
+    expect(parsedUnknown).not.toBeNull();
+    expect(typeof parsedUnknown).toBe("object");
+    const parsed = parsedUnknown as Record<string, unknown>;
     expect(parsed.action).toBe("migrate");
     expect(parsed.outcome).toBe("migrated");
     expect(parsed.sentinel_key).toBe(NPM_MANAGED_SENTINEL_KEY);

@@ -162,8 +162,11 @@ export function runMigrate(projectRoot: string, seams: MigrateSeams = {}): Migra
   }
 
   const text = readText(manifestPath);
-  const manifest = text === null ? null : parseInstallManifest(text);
-  if (text === null || manifest === null || Object.keys(manifest).length === 0) {
+  // `parseInstallManifest` always returns a record (never null), so the only
+  // unreadable/empty cases are a failed read or a manifest with no key/value
+  // lines; both map to the same config error.
+  const manifest = text === null ? {} : parseInstallManifest(text);
+  if (text === null || Object.keys(manifest).length === 0) {
     return {
       outcome: "manifest-unreadable",
       exitCode: 2,
