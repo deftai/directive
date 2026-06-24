@@ -1,9 +1,12 @@
+import { spawnSync } from "node:child_process";
 import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import * as initDeposit from "@deftai/directive-core/init-deposit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DispatchIo } from "../dispatch.js";
 import { CANONICAL_INIT_ARGV, CANONICAL_UPDATE_ARGV } from "./constants.js";
+import { runInit } from "./init.js";
 import {
   bundledBinaryCandidates,
   cliPackageRoot,
@@ -62,27 +65,24 @@ describe("runDeftInstall delegation", () => {
     vi.restoreAllMocks();
   });
 
-  it("init invokes bundled binary with canonical install argv and passthrough JSON", () => {
-    const { io, out } = captureIo();
+  it("update invokes bundled binary with canonical upgrade argv", () => {
+    const { io } = captureIo();
     const runBinary = vi.fn((): { status: number; stdout: string; stderr: string } => ({
       status: 0,
-      stdout: '{"ok":true,"action":"install"}\n',
+      stdout: '{"ok":true,"action":"upgrade"}\n',
       stderr: "",
     }));
 
     const code = runDeftInstall({
-      verb: "init",
-      canonicalArgv: CANONICAL_INIT_ARGV,
+      verb: "update",
+      canonicalArgv: CANONICAL_UPDATE_ARGV,
       io,
       resolveBinaryDetailed: () => ({ ok: true, path: "/bundled/deft-install" }),
       runBinary,
     });
 
     expect(code).toBe(0);
-    expect(runBinary).toHaveBeenCalledOnce();
-    expect(runBinary.mock.calls[0]?.[0]).toBe("/bundled/deft-install");
-    expect(runBinary.mock.calls[0]?.[1]).toEqual([...CANONICAL_INIT_ARGV]);
-    expect(out.join("")).toContain('"action":"install"');
+    expect(runBinary.mock.calls[0]?.[1]).toEqual([...CANONICAL_UPDATE_ARGV]);
   });
 
   it("update maps non-zero binary exit to non-zero CLI exit", () => {
@@ -102,49 +102,41 @@ describe("runDeftInstall delegation", () => {
     });
 
     expect(code).toBe(3);
-    expect(runBinary.mock.calls[0]?.[1]).toEqual([...CANONICAL_UPDATE_ARGV]);
     expect(err.join("")).toContain("upgrade refused");
   });
+});
 
-  it("emits remediation when bundled binary cannot be located", () => {
-    const { io, err } = captureIo();
-    const code = runDeftInstall({
-      verb: "init",
-      canonicalArgv: CANONICAL_INIT_ARGV,
-      io,
-      resolveBinaryDetailed: () => ({
-        ok: false,
-        reason: "not-found",
-        packageRoot: "/pkg/root",
-        platform: "linux",
-        arch: "x64",
-      }),
-    });
-
-    expect(code).toBe(2);
-    const message = err.join("");
-    expect(message).toContain("directive init:");
-    expect(message).toContain("bundled deft-install binary not found");
-    expect(message).toContain("/pkg/root/vendor/deft-install/install-linux-amd64");
-    expect(message).toContain("DEFT_INSTALL_BINARY");
-    expect(message).not.toContain("ENOENT");
+describe("runInit TS-native deposit", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it("reports unreadable DEFT_INSTALL_BINARY override distinctly", () => {
-    const { io, err } = captureIo();
-    const code = runDeftInstall({
-      verb: "update",
-      canonicalArgv: CANONICAL_UPDATE_ARGV,
-      io,
-      resolveBinaryDetailed: () => ({
-        ok: false,
-        reason: "override-unreadable",
-        path: "/bad/deft-install",
-      }),
-    });
+  it("does not spawn bundled deft-install on the happy path", async () => {
+    const spawnSpy = vi.spyOn(spawnSync as never, "apply" as never);
+    const depositSpy = vi.spyOn(initDeposit, "runInitDepositCli").mockResolvedValue(0);
+    const { io } = captureIo();
 
-    expect(code).toBe(2);
-    expect(err.join("")).toContain("DEFT_INSTALL_BINARY is set to /bad/deft-install");
+    const code = await runInit([], io);
+
+    expect(code).toBe(0);
+    expect(depositSpy).toHaveBeenCalledOnce();
+    expect(spawnSpy).not.toHaveBeenCalled();
+  });
+
+  it("passes canonical init argv through parseInitArgv", async () => {
+    const depositSpy = vi.spyOn(initDeposit, "runInitDepositCli").mockResolvedValue(0);
+    const { io } = captureIo();
+
+    await runInit(["--repo-root", "/tmp/custom"], io);
+
+    expect(depositSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectDir: "/tmp/custom",
+        jsonOut: true,
+        nonInteractive: true,
+      }),
+    );
+    expect(CANONICAL_INIT_ARGV).toContain("--yes");
   });
 });
 

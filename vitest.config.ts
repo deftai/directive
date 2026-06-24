@@ -58,6 +58,7 @@ export default defineConfig({
       "@deftai/directive-core/packs": sub("core", "packs"),
       "@deftai/directive-core/swarm": sub("core", "swarm"),
       "@deftai/directive-core/platform": sub("core", "platform"),
+      "@deftai/directive-core/init-deposit": sub("core", "init-deposit"),
       "@deftai/directive-core/ts-check-lane": sub("core", "ts-check-lane"),
       "@deftai/directive-core": src("core"),
     },

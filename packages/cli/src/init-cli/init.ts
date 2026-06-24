@@ -1,12 +1,12 @@
+import { parseInitArgv, runInitDepositCli } from "@deftai/directive-core/init-deposit";
 import type { DispatchIo } from "../dispatch.js";
 import { CANONICAL_INIT_ARGV } from "./constants.js";
-import { runDeftInstall } from "./run-deft-install.js";
 
-export function runInit(argv: readonly string[], io: DispatchIo): number {
-  return runDeftInstall({
-    verb: "init",
-    canonicalArgv: CANONICAL_INIT_ARGV,
-    userArgv: argv,
-    io,
+export function runInit(argv: readonly string[], io: DispatchIo): number | Promise<number> {
+  const args = parseInitArgv(CANONICAL_INIT_ARGV, argv);
+  return runInitDepositCli({
+    ...args,
+    writeOut: io.writeOut,
+    writeErr: io.writeErr,
   });
 }

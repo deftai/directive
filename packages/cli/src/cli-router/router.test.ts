@@ -1,3 +1,4 @@
+import * as initDeposit from "@deftai/directive-core/init-deposit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatch, resetHandlerCacheForTests } from "../dispatch.js";
 import {
@@ -141,26 +142,16 @@ describe("routeAndDispatch", () => {
     expect(out.join("")).toContain("@deftai/directive");
   });
 
-  it("returns exit code 2 when bundled deft-install is missing", async () => {
-    const previous = process.env.DEFT_INSTALL_BINARY;
-    delete process.env.DEFT_INSTALL_BINARY;
-    try {
-      const err: string[] = [];
-      const code = await routeAndDispatch(["init"], {
-        writeOut: () => {},
-        writeErr: (text) => {
-          err.push(text);
-        },
-      });
-      expect(code).toBe(2);
-      expect(err.join("")).toContain("bundled deft-install binary not found");
-    } finally {
-      if (previous === undefined) {
-        delete process.env.DEFT_INSTALL_BINARY;
-      } else {
-        process.env.DEFT_INSTALL_BINARY = previous;
-      }
-    }
+  it("routes init through the TS-native deposit path", async () => {
+    vi.spyOn(initDeposit, "runInitDepositCli").mockResolvedValue(0);
+    const out: string[] = [];
+    const code = await routeAndDispatch(["init"], {
+      writeOut: (text) => {
+        out.push(text);
+      },
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
   });
 
   it("routes verify branch to the same handler as verify:branch", async () => {

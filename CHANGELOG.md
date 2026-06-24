@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`directive init` now deposits locally from the npm content package with no Go binary** — greenfield init resolves `@deftai/directive-content`, copies it into `.deft/core`, renders the AGENTS.md managed-section, scaffolds `vbrief/`, wires `.agents/skills`, `.githooks`, the #1430 neutralization, and the Taskfile include, while preserving the friendly wizard UX. Refs #1942.
 - **TypeScript deposit primitives resolve and copy npm content locally** — the engine package now depends on `@deftai/directive-content`, and new core helpers resolve the installed content package via Node module resolution and recursively copy its tree with file-mode preservation (executable hooks included). This is the foundation for TS-native `directive init`/`update` without GitHub tarball downloads. Refs #1942.
 - **Architecture docs now describe the planned npm-native distribution model** — a clearly-marked "Wave 5 Target" section records the two-package npm model, the resolve-and-copy materialization step, and the frozen Go binary's reduced role as a health gate. Fenced as target architecture, not current behavior, so it cannot be misread as today's flow. Refs #1669 #1942 #1933.
 

@@ -181,6 +181,10 @@
     "./ts-check-lane": {
       "types": "./dist/ts-check-lane/index.d.ts",
       "default": "./dist/ts-check-lane/index.js"
+    },
+    "./init-deposit": {
+      "types": "./dist/init-deposit/index.d.ts",
+      "default": "./dist/init-deposit/index.js"
     }
   },
   "files": [
