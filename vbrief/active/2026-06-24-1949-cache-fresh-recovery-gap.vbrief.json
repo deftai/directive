@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1949"
+  },
+  "plan": {
+    "title": "fix(cache): make cache:fetch-all actually satisfy the freshness gate (force + drift-aware refresh)",
+    "status": "running",
+    "narratives": {
+      "Description": "verify:cache-fresh has two failure states whose recovery hint (run cache:fetch-all) cannot satisfy, because fetch-all skips entries by their stored expires_at TTL while the gate judges by fetched_at age (24h default) and by upstream drift. An entry written ~6 days ago is stale to the 24h gate but TTL-fresh to fetch-all, so fetch-all re-skips it; and a TTL-fresh entry with upstream content drift is never re-fetched even though the #1886 drift gate flags it. Add a force/no-skip refresh path to cache:fetch-all so the documented recovery actually clears both states, and align the recovery hint wording.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1949",
+      "Overview": "## What to build\n\nClose the gap where the cache-fresh recovery command is a no-op for TTL-fresh-but-gate-stale and TTL-fresh-but-drifted entries.\n\nRoot cause: packages/core/src/cache/fetch.ts skips writes when isFresh(meta) is true (now <= expires_at), but packages/core/src/preflight-cache/evaluate.ts judges by fetched_at age (DEFAULT_MAX_AGE_HOURS=24) and by upstream drift. The two thresholds disagree, so the recovery hint cannot clear the gate.\n\n## Fix\n\n- Add a --force (alias --ignore-ttl) flag to cache:fetch-all that rewrites entries regardless of expires_at, so the recovery the hint promises actually refreshes fetched_at.\n- Make fetch-all drift-aware on the WRITE side: when the drift probe (the #1886 signal the gate already uses) shows upstream drift for an entry, re-fetch it even if TTL-fresh.\n- Update the recovery-hint wording in evaluate.ts to name the unblocking command (e.g. cache:fetch-all --force) once it exists.\n\n## Out of scope\n\n- Do NOT change the gate's default max-age or the cache TTL value (a threshold-reconciliation design choice tracked separately on #1949); this story makes the recovery command effective, not the thresholds equal.\n- Do NOT touch packages/core/src/deposit/ or packages/cli/package.json (owned by the in-flight #1942 S1 worker).",
+      "Labels": "bug, area:cache",
+      "ImplementationPlan": "- packages/core/src/cache/main.ts: parse a new --force / --ignore-ttl flag for the fetch-all subcommand and thread it into the fetch options.\n- packages/core/src/cache/fetch.ts: when force is set OR the drift probe reports upstream drift for an entry, bypass the isFresh skip and re-write the entry (refreshing fetched_at/expires_at); keep the default behavior unchanged when neither applies.\n- packages/core/src/preflight-cache/evaluate.ts: update the recovery hint string(s) to name the effective unblocking command.\n- Unit tests in packages/core/src/cache/ for force-rewrites-TTL-fresh and drift-triggers-rewrite; assert the default still skips TTL-fresh non-drifted entries.",
+      "UserStory": "As a deft operator wedged behind a stale cache-fresh gate, I want cache:fetch-all to actually refresh TTL-fresh-but-stale and drifted entries, so that the documented recovery command clears the gate instead of being a no-op."
+    },
+    "items": [
+      {
+        "title": "fetch-all --force rewrites TTL-fresh entries",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When cache:fetch-all runs with --force, it rewrites entries regardless of expires_at and refreshes their fetched_at so the 24h gate passes."
+        }
+      },
+      {
+        "title": "fetch-all re-fetches drifted entries by default",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When an entry is TTL-fresh but the drift probe reports upstream drift, fetch-all re-fetches and rewrites it so the drift gate clears."
+        }
+      },
+      {
+        "title": "default skip behavior preserved",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When neither --force nor drift applies, fetch-all still skips TTL-fresh non-drifted entries (no behavior regression)."
+        }
+      },
+      {
+        "title": "recovery hint names the effective command",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the gate fails, the recovery message names the unblocking command (cache:fetch-all --force) rather than the no-op form."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:cache"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1949",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1949: cache freshness gate has two unsatisfiable-by-recovery states"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1886",
+        "type": "x-vbrief/related",
+        "title": "Issue #1886 (drift-aware gate + reconcile-closed) -- this is a residual follow-up"
+      }
+    ],
+    "id": "2026-06-24-1949-cache-fresh-recovery-gap",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "maintenance",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/cache/fetch.ts",
+          "packages/core/src/cache/fetch-branches.test.ts",
+          "packages/core/src/cache/main.ts",
+          "packages/core/src/cache/main.test.ts",
+          "packages/core/src/preflight-cache/evaluate.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- cache",
+          "node packages/cli/dist/cache-parity.js",
+          "task check"
+        ],
+        "expected_outputs": [
+          "cache:fetch-all --force rewrites TTL-fresh entries; drift triggers re-fetch by default",
+          "cache-parity stays green; default skip behavior unchanged"
+        ],
+        "depends_on": [],
+        "conflict_group": "cache-freshness",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #1949 (repro + root cause) and the #1886 drift-aware gate, not a spec section."
+      }
+    },
+    "updated": "2026-06-24T19:16:17Z"
+  }
+}
