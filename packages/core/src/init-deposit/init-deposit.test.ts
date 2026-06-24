@@ -127,6 +127,7 @@ describe("runInitDeposit", () => {
       "./.deft/core/Taskfile.yml",
     );
     expect(readFileSync(join(project, "greptile.json"), "utf8")).toContain(".deft/core/**");
+    expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft/core/");
     expect(result.taskfileWired).toBe(true);
     expect(lines.join("")).toContain("AGENTS.md created");
     expect(spawnSpy).not.toHaveBeenCalled();

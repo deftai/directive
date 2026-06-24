@@ -6,7 +6,7 @@
   "plan": {
     "id": "s4-gitignore-deft-core-reconstitution",
     "title": "S4: gitignore .deft/core greenfield write + reconstitution",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
     "narratives": {
       "Description": "In the hybrid world .deft/core becomes gitignored and reconstituted by directive init (the node_modules model), which kills the upgrade churn loop (#1672). This story makes greenfield init write the .deft/core entry into .gitignore so the deposit is born ignored and never committed (no tracked-but-ignored half-state for new users), and makes the deposit idempotently reconstitutable when .deft/core is absent. Per the locked Option B journey split, this story does NOT un-commit an existing tracked deposit; the vendored->hybrid `git rm --cached` transition is owned by #1941.",
@@ -73,7 +73,9 @@
         "file_scope_confidence": "high",
         "model_tier": "leaf-implementation",
         "missing_traces_justification": "Traced to cmd/deft-install/setup.go (EnsureGitignoreLines / canonicalGitignoreLines) and the #1942 decision-G journey split, not a spec section."
-      }
+      },
+      "completedAt": "2026-06-24T20:51:14Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -103,6 +105,6 @@
         "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
       }
     ],
-    "updated": "2026-06-24T20:47:46Z"
+    "updated": "2026-06-24T20:51:14Z"
   }
 }

@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
@@ -168,7 +169,8 @@ export async function runInitDeposit(
   const copyContent = seams.copyContent ?? copyTree;
 
   const contentRoot = await resolveContent();
-  await copyContent(contentRoot, deftDir);
+  await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
+  ensureInitGitignoreLines(projectDir, io);
 
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const version = readContentVersion(
