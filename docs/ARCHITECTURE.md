@@ -113,7 +113,7 @@ flowchart LR
     npm["npm i -g @deftai/directive"] --> Global["Global npm tree<br/>node_modules/@deftai/directive + @deftai/directive-content"]
     Global -->|"directive init / update<br/>resolve-and-copy (no re-download)"| Proj["Project ./.deft/core/<br/>+ AGENTS.md, vbrief/, .githooks/"]
     Global --> Gate["Frozen Go gate (bundled)<br/>node-independent pre-engine health probe"]
-    Gate --> Proj
+    Gate -->|"health probe / legacy layout reshape"| Proj
 ```
 
 Key properties of the target model:
