@@ -225,6 +225,41 @@ describe("fetch-all", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("probeCacheDrift respects maxContentDriftChecks cap", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-drift-cap-"));
+    for (let n = 1; n <= 3; n += 1) {
+      const base = join(root, "github-issue/deftai/directive", String(n));
+      mkdirSync(base, { recursive: true });
+      writeFileSync(
+        join(base, "raw.json"),
+        JSON.stringify({ number: n, state: "open", title: "old", body: "b", labels: [] }),
+        "utf8",
+      );
+      writeFileSync(
+        join(base, "meta.json"),
+        JSON.stringify({ expires_at: "2099-01-01T00:00:00Z" }),
+        "utf8",
+      );
+    }
+    let fetchCount = 0;
+    try {
+      probeCacheDrift({
+        repo: "deftai/directive",
+        cacheRoot: root,
+        listOpenFn: () => new Set([1, 2, 3]),
+        maxContentDriftChecks: 1,
+        fetchSingleFn: () => {
+          fetchCount += 1;
+          return { number: 1, state: "open", title: "new", body: "b", labels: [] };
+        },
+        isFreshFn: () => true,
+      });
+      expect(fetchCount).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("main CLI", () => {

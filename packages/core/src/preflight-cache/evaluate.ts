@@ -464,16 +464,6 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
   const ageH = ageMs / (1000 * 3600);
   const stale = ageH > maxAgeHours;
 
-  if (resolvedRepo !== null && !allowStale) {
-    const drift = runDriftProbe(resolvedRepo, cacheRoot, source, options);
-    if (
-      drift !== null &&
-      (drift.stateDriftNumbers.length > 0 || drift.contentDriftNumbers.length > 0)
-    ) {
-      return formatDriftFailure(resolvedRepo, drift);
-    }
-  }
-
   // Step 5b: --allow-stale bypass
   if (stale && allowStale) {
     const warning = [
@@ -504,6 +494,16 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
         REMEDIATION_STALE,
       ].join("\n"),
     };
+  }
+
+  if (resolvedRepo !== null && !allowStale) {
+    const drift = runDriftProbe(resolvedRepo, cacheRoot, source, options);
+    if (
+      drift !== null &&
+      (drift.stateDriftNumbers.length > 0 || drift.contentDriftNumbers.length > 0)
+    ) {
+      return formatDriftFailure(resolvedRepo, drift);
+    }
   }
 
   // Step 6: --for-issue

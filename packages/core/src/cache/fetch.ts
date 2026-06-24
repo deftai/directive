@@ -529,6 +529,7 @@ export function cacheRefreshClosed(options: {
 
 export const DEFAULT_SELF_HEAL_TTL_SECONDS = 3600;
 export const SELF_HEAL_STATE_FILENAME = "self-heal-state.json";
+export const DEFAULT_MAX_CONTENT_DRIFT_CHECKS = 25;
 
 export interface CacheDriftProbeResult {
   readonly stateDriftNumbers: readonly number[];
@@ -552,14 +553,13 @@ function scanCacheForSingleRepo(cacheRoot: string, source: string): string | nul
   const base = join(cacheRoot, source);
   if (!existsSync(base)) return null;
   const pairs: Array<[string, string]> = [];
-  for (const ownerEntry of readdirSync(base)) {
-    const ownerDir = join(base, ownerEntry);
+  for (const ownerEntry of readdirSync(base, { withFileTypes: true })) {
+    if (!ownerEntry.isDirectory()) continue;
+    const ownerDir = join(base, ownerEntry.name);
     try {
-      for (const repoEntry of readdirSync(ownerDir)) {
-        const repoDir = join(ownerDir, repoEntry);
-        if (existsSync(repoDir)) {
-          pairs.push([ownerEntry, repoEntry]);
-        }
+      for (const repoEntry of readdirSync(ownerDir, { withFileTypes: true })) {
+        if (!repoEntry.isDirectory()) continue;
+        pairs.push([ownerEntry.name, repoEntry.name]);
       }
     } catch {
       /* skip */
@@ -577,6 +577,8 @@ export function probeCacheDrift(options: {
   source?: string;
   cacheRoot?: string;
   limit?: number;
+  includeContentDrift?: boolean;
+  maxContentDriftChecks?: number;
   listOpenFn?: (repo: string, limit: number) => Set<number>;
   fetchSingleFn?: (repo: string, n: number) => Record<string, unknown>;
   isFreshFn?: (metaPath: string) => boolean;
@@ -584,6 +586,8 @@ export function probeCacheDrift(options: {
   const source = options.source ?? "github-issue";
   const cacheRoot = options.cacheRoot ?? ".deft-cache";
   const limit = options.limit ?? 1000;
+  const includeContentDrift = options.includeContentDrift !== false;
+  const maxContentDriftChecks = options.maxContentDriftChecks ?? DEFAULT_MAX_CONTENT_DRIFT_CHECKS;
   const listOpen =
     options.listOpenFn ??
     ((repo: string, listLimit: number) => listOpenIssueNumbers(repo, { limit: listLimit }));
@@ -594,17 +598,20 @@ export function probeCacheDrift(options: {
   const liveOpen = listOpen(options.repo, limit);
   const stateDriftNumbers: number[] = [];
   const contentDriftNumbers: number[] = [];
+  let contentChecks = 0;
 
   for (const [number, cachedRaw] of cachedOpen) {
     if (!liveOpen.has(number)) {
       stateDriftNumbers.push(number);
       continue;
     }
+    if (!includeContentDrift || contentChecks >= maxContentDriftChecks) continue;
     const parts = options.repo.split("/", 2);
     const owner = parts[0] ?? "";
     const name = parts[1] ?? "";
     const metaPath = join(cacheRoot, source, owner, name, String(number), "meta.json");
     if (!isFreshFn(metaPath)) continue;
+    contentChecks += 1;
     try {
       const live = normaliseRestIssue(fetchSingle(options.repo, number));
       if (issueContentFingerprint(cachedRaw) !== issueContentFingerprint(live)) {
@@ -675,6 +682,12 @@ export function maybeSelfHealCache(
     return { skipped: true, skipReason: "repo-not-resolved", drift: null, refresh: null };
   }
 
+  const lastHeal = readSelfHealState(cacheRoot);
+  const ttlExpired = lastHeal === null || now.getTime() - lastHeal.getTime() >= ttlSeconds * 1000;
+  if (!ttlExpired) {
+    return { skipped: true, skipReason: "ttl-fresh-no-drift", drift: null, refresh: null };
+  }
+
   let drift: CacheDriftProbeResult;
   try {
     drift = probeCacheDrift({
@@ -683,17 +696,10 @@ export function maybeSelfHealCache(
       cacheRoot,
       listOpenFn: options.listOpenFn,
       fetchSingleFn: options.fetchSingleFn,
+      includeContentDrift: false,
     });
   } catch {
     return { skipped: true, skipReason: "drift-probe-failed", drift: null, refresh: null };
-  }
-
-  const hasDrift = drift.stateDriftNumbers.length > 0 || drift.contentDriftNumbers.length > 0;
-  const lastHeal = readSelfHealState(cacheRoot);
-  const ttlExpired = lastHeal === null || now.getTime() - lastHeal.getTime() >= ttlSeconds * 1000;
-
-  if (!hasDrift && !ttlExpired) {
-    return { skipped: true, skipReason: "ttl-fresh-no-drift", drift, refresh: null };
   }
 
   const refreshFn =

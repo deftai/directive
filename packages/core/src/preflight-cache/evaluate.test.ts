@@ -100,6 +100,25 @@ describe("evaluate -- fresh cache", () => {
     expect(result.message).toContain("✓");
   });
 
+  it("returns code 1 for cache fetched 25h ago without running drift probe", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 1, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 1, nowMinus(25).toISOString());
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: () => {
+        throw new Error("drift probe should not run for age-stale cache");
+      },
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("25.0h old");
+  });
+
   it("returns code 1 for cache fetched 25h ago (stale)", () => {
     const root = setupProjectRoot();
     writeCandidates(root, [
