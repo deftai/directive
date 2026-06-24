@@ -24,6 +24,7 @@ export {
   generateRoadmapContent,
   main as roadmapRenderMain,
   renderRoadmap,
+  renderRoadmapToBuffer,
 } from "./roadmap-render.js";
 export * as specRender from "./spec-render.js";
 export { main as specRenderMain, parseIncludeScopesFlag, renderSpec } from "./spec-render.js";

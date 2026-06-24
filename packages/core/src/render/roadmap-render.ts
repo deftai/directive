@@ -238,10 +238,14 @@ function renderScopeItem(vbriefData: JsonObject): string[] {
   return [`- ${parts.join(" -- ")}`];
 }
 
-/** Generate ROADMAP.md content (mirrors ``scripts/roadmap_render.generate_roadmap_content``). */
-export function generateRoadmapContent(pendingDir: string, completedDir?: string): string {
+function resolveCompletedDir(pendingDir: string, completedDir?: string): string {
+  return completedDir ?? join(dirname(pendingDir), "completed");
+}
+
+/** Single render-to-buffer entry used by both write and --check (mirrors ``scripts/roadmap_render.generate_roadmap_content``). */
+export function renderRoadmapToBuffer(pendingDir: string, completedDir?: string): string {
   const vbriefs = loadVbriefs(pendingDir);
-  const resolvedCompleted = completedDir ?? join(dirname(pendingDir), "completed");
+  const resolvedCompleted = resolveCompletedDir(pendingDir, completedDir);
   const completedVbriefs = loadVbriefs(resolvedCompleted);
 
   const lines: string[] = [ROADMAP_BANNER, "# Roadmap\n"];
@@ -346,6 +350,11 @@ export function generateRoadmapContent(pendingDir: string, completedDir?: string
   return `${lines.join("\n")}\n`;
 }
 
+/** @deprecated Prefer ``renderRoadmapToBuffer`` — kept for existing imports and parity harnesses. */
+export function generateRoadmapContent(pendingDir: string, completedDir?: string): string {
+  return renderRoadmapToBuffer(pendingDir, completedDir);
+}
+
 export type RenderRoadmapResult = readonly [boolean, string];
 
 export function renderRoadmap(
@@ -354,7 +363,7 @@ export function renderRoadmap(
   completedDir?: string,
 ): RenderRoadmapResult {
   try {
-    const content = generateRoadmapContent(pendingDir, completedDir);
+    const content = renderRoadmapToBuffer(pendingDir, completedDir);
     writeFileSync(outPath, content, "utf8");
     return [true, `✓ Rendered ROADMAP.md to ${outPath}`];
   } catch (exc) {
@@ -362,12 +371,16 @@ export function renderRoadmap(
   }
 }
 
-export function checkDrift(pendingDir: string, roadmapPath: string): RenderRoadmapResult {
-  const expected = generateRoadmapContent(pendingDir);
+export function checkDrift(
+  pendingDir: string,
+  roadmapPath: string,
+  completedDir?: string,
+): RenderRoadmapResult {
+  const expected = renderRoadmapToBuffer(pendingDir, completedDir);
   if (!existsSync(roadmapPath)) {
     const hasPending =
       existsSync(pendingDir) && readdirSync(pendingDir).some((n) => n.endsWith(".vbrief.json"));
-    const inferredCompleted = join(dirname(pendingDir), "completed");
+    const inferredCompleted = resolveCompletedDir(pendingDir, completedDir);
     const hasCompleted =
       existsSync(inferredCompleted) &&
       readdirSync(inferredCompleted).some((n) => n.endsWith(".vbrief.json"));
