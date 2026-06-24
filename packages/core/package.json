@@ -197,6 +197,7 @@
     "provenance": true
   },
   "dependencies": {
+    "@deftai/directive-content": "workspace:*",
     "@deftai/directive-types": "workspace:*"
   },
   "scripts": {

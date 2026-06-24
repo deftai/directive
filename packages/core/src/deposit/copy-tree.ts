@@ -38,10 +38,10 @@ async function copyDirContents(src: string, dst: string): Promise<void> {
   for (const entry of entries) {
     const srcPath = join(src, entry.name);
     const dstPath = join(dst, entry.name);
-    if (entry.isDirectory()) {
+    const srcStat = await stat(srcPath);
+    if (srcStat.isDirectory()) {
       await copyDirContents(srcPath, dstPath);
-    } else if (entry.isFile() || entry.isSymbolicLink()) {
-      // Copy regular files; symlinks are copied as file bodies (same as Go walk copyFile).
+    } else {
       await copyFilePreserveMode(srcPath, dstPath);
     }
   }

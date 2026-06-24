@@ -88,6 +88,21 @@ describe("contentPackageRootFromResolvedEntry", () => {
     }
   });
 
+  it("skips package.json files whose JSON root is null", () => {
+    const root = mkdtempSync(join(tmpdir(), "resolve-entry-null-"));
+    created.push(root);
+    const pkgDir = join(root, "node_modules", "@deftai", "directive-content");
+    mkdirSync(pkgDir, { recursive: true });
+    writeFileSync(join(root, "package.json"), "null", "utf-8");
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({ name: CONTENT_PACKAGE_NAME }),
+      "utf-8",
+    );
+
+    expect(contentPackageRootFromResolvedEntry(join(pkgDir, "package.json"))).toBe(pkgDir);
+  });
+
   it("returns the directory when resolved entry is package.json", () => {
     const root = mkdtempSync(join(tmpdir(), "resolve-entry-"));
     created.push(root);

@@ -37,6 +37,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@deftai/directive-content':
+        specifier: workspace:*
+        version: link:../content
       '@deftai/directive-types':
         specifier: workspace:*
         version: link:../types

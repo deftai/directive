@@ -36,8 +36,12 @@ export function contentPackageRootFromResolvedEntry(resolvedEntry: string): stri
     const pkgJsonPath = join(dir, "package.json");
     try {
       if (statSync(pkgJsonPath).isFile()) {
-        const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as { name?: string };
-        if (pkg.name === CONTENT_PACKAGE_NAME) {
+        const parsed: unknown = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          (parsed as { name?: string }).name === CONTENT_PACKAGE_NAME
+        ) {
           return dir;
         }
       }
