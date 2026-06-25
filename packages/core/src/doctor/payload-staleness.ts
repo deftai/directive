@@ -80,7 +80,11 @@ function semverLessThan(left: string, right: string): boolean {
 
 function manifestVersion(ref: string, tag: string): string {
   const candidate = (tag || ref).trim().replace(/^refs\/tags\//, "");
-  return candidate.replace(/^v/i, "");
+  const normalized = candidate.replace(/^v/i, "");
+  if (!/^\d+(?:\.\d+)*/.test(normalized)) {
+    return "";
+  }
+  return normalized;
 }
 
 function defaultNpmViewVersion(): { ok: boolean; version: string } {

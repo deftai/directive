@@ -53,6 +53,26 @@ describe("payload-staleness (#2003 / #2004)", () => {
     }
   });
 
+  it("does not npm-compare branch-pinned refs like master", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      seedManifest(root, "c".repeat(40), "master");
+      const findings: Finding[] = [];
+      const sink = createPlainSink();
+      runPayloadStalenessCheck(root, sink, (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION") ? `sha: ${"c".repeat(40)}\nref: master\n` : null,
+        runGitLsRemote: () => ({ ok: true, stdout: "" }),
+        runNpmViewVersion: () => ({ ok: true, version: "0.56.2" }),
+      });
+      expect(findings.find((f) => f.status === "stale")).toBeUndefined();
+      expect(findings.find((f) => f.status === "unverified")).toBeDefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("surfaces unverified advisory when both resolvers fail", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
     try {

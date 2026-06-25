@@ -1535,12 +1535,11 @@ def _emit_doctor_throttle_skip(decision, *, json_mode: bool, project_root: Path)
         entry.update(extras)
         signpost_findings.append(entry)
 
-    if not json_mode:
-        _run_local_signpost_checks(
-            project_root,
-            emit_warn=warn,
-            add_finding=_add_signpost,
-        )
+    _run_local_signpost_checks(
+        project_root,
+        emit_warn=warn if not json_mode else (lambda _m: None),
+        add_finding=_add_signpost,
+    )
 
     hint = (
         "run `deft doctor --full` to re-probe or address findings"
@@ -1556,8 +1555,9 @@ def _emit_doctor_throttle_skip(decision, *, json_mode: bool, project_root: Path)
             "last_finding_count": decision.last_finding_count,
             "next_eligible_at": _format_iso_z(decision.next_eligible_at),
             "hint": hint,
-            "signpost_findings": signpost_findings,
         }
+        if signpost_findings:
+            payload["signpost_findings"] = signpost_findings
         print(json.dumps(payload, sort_keys=True))
     else:
         print(_render_doctor_status_line(decision))
@@ -1751,11 +1751,6 @@ def _semver_less_than(left: str, right: str) -> bool:
     return _parse_semver(left) < _parse_semver(right)
 
 
-def _manifest_version(ref: str, tag: str) -> str:
-    candidate = (tag or ref).strip().replace("refs/tags/", "")
-    return candidate.lstrip("vV")
-
-
 def _npm_view_version() -> tuple[bool, str]:
     try:
         proc = subprocess.run(
@@ -1768,6 +1763,14 @@ def _npm_view_version() -> tuple[bool, str]:
         return False, ""
     version = (proc.stdout or "").strip().splitlines()[0].strip() if proc.stdout else ""
     return proc.returncode == 0 and bool(version), version
+
+
+def _manifest_version(ref: str, tag: str) -> str:
+    candidate = (tag or ref).strip().replace("refs/tags/", "")
+    normalized = candidate.lstrip("vV")
+    if not re.match(r"^\d+(?:\.\d+)*", normalized):
+        return ""
+    return normalized
 
 
 def _run_payload_staleness_check(

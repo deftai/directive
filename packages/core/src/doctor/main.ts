@@ -80,7 +80,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
           last_error_count: decision.lastErrorCount,
           next_eligible_at: formatIsoZ(decision.nextEligibleAt),
           hint,
-          signpost_findings: throttleFindings,
+          ...(throttleFindings.length > 0 ? { signpost_findings: throttleFindings } : {}),
         };
         process.stdout.write(`${pythonJsonDump(payload)}\n`);
       } else {
