@@ -61,6 +61,11 @@ _SKIP_DIRS = {
     "dist",
     "tests",
     ".deft-cache",
+    # Third-party dependency markdown is not framework content; scanning it
+    # produced volatile, version-pinned cases that broke CI on dep drift
+    # (#1993 follow-up). The Python oracle runs in a node-free env today, but
+    # exclude it explicitly so a node_modules-present run stays symmetric.
+    "node_modules",
 }
 
 

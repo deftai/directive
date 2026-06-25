@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface ParsedArgs {
   projectRoot: string;
@@ -21,11 +21,13 @@ export interface ParsedArgs {
 type BootstrapModule = typeof import("@deftai/directive-core/dist/triage/bootstrap/index.js");
 
 async function loadBootstrapModule(): Promise<BootstrapModule> {
-  const corePath = join(
-    dirname(fileURLToPath(import.meta.url)),
-    "@deftai/directive-core/dist/triage/bootstrap/index.js",
-  );
-  return import(pathToFileURL(corePath).href) as Promise<BootstrapModule>;
+  // Direct dynamic import of the published package subpath -- resolves via core's
+  // "./dist/*.js" export map in both the monorepo and a flat npm install (#1993).
+  // The prior hand-built relative path broke once published (and my mechanical
+  // import rewrite turned it into a non-existent path under packages/cli/dist).
+  return import(
+    "@deftai/directive-core/dist/triage/bootstrap/index.js"
+  ) as Promise<BootstrapModule>;
 }
 
 /** Parse triage-bootstrap CLI args, mirroring the Python argparse surface. */

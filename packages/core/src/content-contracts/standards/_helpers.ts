@@ -87,6 +87,10 @@ const SKIP_DIRS = new Set([
   "dist",
   "tests",
   ".deft-cache",
+  // node_modules holds third-party markdown (dependency READMEs) that is not
+  // framework content; scanning it produced volatile, version-pinned cases that
+  // broke CI when dependency versions drifted (#1993 follow-up).
+  "node_modules",
 ]);
 
 const MIGRATION_ARTIFACT_TREES = ["vbrief/migration"];
