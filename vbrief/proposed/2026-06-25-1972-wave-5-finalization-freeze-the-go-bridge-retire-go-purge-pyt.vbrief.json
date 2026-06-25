@@ -1,0 +1,77 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1972"
+  },
+  "plan": {
+    "title": "Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1972",
+      "Overview": "## Why this issue\n\nWave 5 of #1669 (distributable Deft) is now a short, linear finish line. The npm-native init/update/migrate work has landed (#1942, #1941 / #1968) and the #1912 freeze-prep scaffolding is merged: #1969 (Tier-0 `lastGoInstaller` SoT + `verify:go-freeze` + `verify:bridge-drift`), #1970 (npm CLI legacy-layout refuse-preflight + stable-URL signposts), #1971 (pinned `--legacy-bridge` e2e leg). This issue consolidates everything that remains into one ordered runbook plus a standing recovery protocol, so the #1669 umbrella can be retired — its design work is done; only execution remains.\n\n**Freeze prerequisites:** (a) 53.x adoption blockers — **N/A** (maintainer decision 2026-06-24; no real 53.x adoption to clear); (b) stage-2 `directive migrate` — **done** (#1968); (c) npm published/live — **done** (#1909).\n\n> **Note (restructured 2026-06-25):** the Go *source/pipeline deletion* (originally step 4) is now a deferred decision tracked in #1979 — the Go installer is the bootstrap/legacy bridge and is more plausibly revived than Python, so the default is *keep* and revisit ~2mo post-freeze. #1967 moved into step 1 (npm must be feature-complete before npm becomes the blessed path). Python purge (#1860) is gated on the soak (step 3), not on the umbrella or on Go deletion.\n\n## Checklist (ordered)\n\n- [ ] **1. Freeze-build prep (npm must be feature-complete before the freeze blesses it as the path).**\n  - (a) **Reconcile the `verify:go-freeze` version source.** Coupling lives in `packages/core/src/legacy-bridge/freeze-gate.ts` (`DEFAULT_INSTALLER_VERSION_PATH = \"cmd/deft-install/main.go\"`, `parseInstallerVersion` reads the `var version = \"...\"` literal, today `1.0.0`). The real installer version is injected at build via ldflags (`-X main.version=<tag>`) and we are on the `0.x` line, so comparing the pin against the literal would false-fail (`1.0.0 > 0.x`). Preferred fix: move freeze enforcement to a `release.yml` tag check that refuses a Go build above the pinned SoT and drop/neutralize the source-literal comparison.\n  - (b) **npm-handoff messaging** in the installer success path (`cmd/deft-install/main.go`): \"this is the last Go installer; upgrades are now npm — run `npx @deftai/directive init`.\"\n  - (c) **`.deft/core/VERSION` handshake** — the installer must write a VERSION that `directive migrate` (#1968) accepts as canonical-ready before stamping `managed_by: npm`. Assert end-to-end in the `--legacy-bridge` e2e leg (`packages/core/src/release-e2e/legacy-bridge-leg.ts`).\n  - (d) **#1967 — npm feature-completeness.** Bundle `.githooks/` + the consumer Taskfile into `@deftai/directive-content` so npm-installed projects get hooks + tasks. The freeze makes npm the blessed path; it must deliver everything the Go installer used to *before* we freeze. This is a freeze prerequisite, not a later gate.\n- [ ] **2. Freeze release.** Choose the next `v0.x` version. In the release commit, pin `LAST_GO_INSTALLER = \"v0.x\"` in `packages/core/src/legacy-bridge/sot.ts` (and align `var version` only if step 1a kept the literal relevant). Run the **pre-cut rehearsal**: `task release -- 0.x --dry-run --skip-tag --skip-release`, `task release:e2e -- --legacy-bridge`, and the bundled `npm publish --dry-run`. Then cut the real tag (`task release -- 0.x`) — one tag ships the npm packages **and** the final Go installer binaries (the permanent frozen bridge).\n- [ ] **3. Soak / validate** the published release in the wild. This is the gate for step 4 and for the deferred Go-deletion decision (#1979).\n- [ ] **4. Python purge — #1860 (closes #1530).** Gated on step 3 (npm path proven), #1967 (step 1d), and an explicit **pre-0.20 migration decision** (see Gotchas): `task migrate:vbrief` is still Python (`scripts/migrate_vbrief.py`), so the purge must first either port it to TS or consciously declare pre-0.20 projects must migrate on an older Deft version. NOT gated on #1669 or on Go deletion.\n\n**Deferred (not a step):** Go installer source + build-pipeline deletion → #1979 (default *keep*; revisit ~2mo post-freeze).\n\n## Recovery protocol (forward-only)\n\nA bad published release is recoverable without unpublishing — this is the standing plan that makes an agent-cut freeze acceptable:\n\n- **Never `npm unpublish`** (breaks lockfiles; npm discourages it). Instead `npm deprecate @deftai/directive@<bad> \"superseded by <next>; see this issue\"` so installs of the bad version print a steer-away warning.\n- **Keep `latest` good:** `npm dist-tag add @deftai/directive@<good> latest` re-points consumers away from a bad version immediately, even before the fix ships.\n- **Ship the fix forward** as the next patch (`0.x.y+1`).\n- **The freeze is re-cuttable.** The SoT pins the *latest* frozen Go installer, not one tag forever. A bad frozen build is fixed by cutting a new frozen tag and re-pinning `LAST_GO_INSTALLER`; the gates and bridge follow the new pin. The freeze decision is reversible-by-forward-motion like any other release.\n\n**Pre-cut insurance (cheap):** rehearsal (dry-run + `--legacy-bridge` e2e + `npm publish --dry-run`) green, and the npm credential/provenance path confirmed live, before pushing the tag.\n\n## Gotchas (recorded so they aren't rediscovered)\n\n- `verify:go-freeze` keys off `cmd/deft-install/main.go` `var version` (`1.0.0` today). Pinning the SoT before step 1a reconciles this will false-fail the gate.\n- The `v*` tag triggers **two** workflows: `release.yml` (the GitHub release lands as a **draft**, operator-gated, reversible) and `npm-publish.yml` (publishes to the **public registry immediately**, NOT draft-gated). The npm publish is the irreversible moment — all reversible testing must happen in pre-cut rehearsal.\n- **Pre-0.20 migration is Python.** The frozen Go installer still migrates pre-0.20 projects fine (it deposits a payload that carries `task migrate:vbrief`), but `scripts/migrate_vbrief.py` runs via `uv ... run python`. The Python purge (#1860), not the Go freeze, is what removes this capability — so before #1860, decide explicitly: port `migrate:vbrief` to TS, or declare pre-0.20 projects must migrate on an older Deft version first.\n\n## Supersedes\n\nConsolidates the remaining Wave-5 tail of #1669 and the freeze execution of #1912. Dependencies tracked separately: #1967 (folded into step 1d), #1860 (step 4), #1979 (deferred Go-source deletion).\n\nRefs #1669 #1912 #1967 #1860 #1979 #1909\n",
+      "Labels": "enhancement, ci-cd, installer"
+    },
+    "items": [
+      {
+        "title": "**1. Freeze-build prep (npm must be feature-complete before the freeze blesses it as the path).**",
+        "status": "proposed"
+      },
+      {
+        "title": "**2. Freeze release.** Choose the next  version. In the release commit, pin  in  (and align  only if step 1a kept the literal relevant). Run the **pre-cut rehearsal**: , , and the bundled . Then cut the real tag () — one tag ships the npm packages **and** the final Go installer binaries (the permanent frozen bridge).",
+        "status": "proposed"
+      },
+      {
+        "title": "**3. Soak / validate** the published release in the wild. This is the gate for step 4 and for the deferred Go-deletion decision (#1979).",
+        "status": "proposed"
+      },
+      {
+        "title": "**4. Python purge — #1860 (closes #1530).** Gated on step 3 (npm path proven), #1967 (step 1d), and an explicit **pre-0.20 migration decision** (see Gotchas):  is still Python (), so the purge must first either port it to TS or consciously declare pre-0.20 projects must migrate on an older Deft version. NOT gated on #1669 or on Go deletion.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1972",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/closes",
+        "title": "Issue #1530"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1669"
+      },
+      {
+        "uri": "pending/2026-06-25-reconcile-verifygo-freeze-version-source-to-a-release-tag-ch.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Reconcile verify:go-freeze version source to a release-tag check",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-25-add-npm-handoff-messaging-to-the-go-installer-success-path.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Add npm-handoff messaging to the Go installer success path",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "pending/2026-06-25-assert-the-installer-version-is-migrate-acceptable-in-the-le.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Assert the installer VERSION is migrate-acceptable in the legacy-bridge e2e leg",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

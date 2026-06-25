@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1972-s1a-freeze-gate-version-source",
+    "title": "Reconcile verify:go-freeze version source to a release-tag check",
+    "status": "pending",
+    "planRef": "proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json",
+    "narratives": {
+      "Description": "The freeze gate currently compares the pinned SoT against the `var version` literal in cmd/deft-install/main.go, but the real installer version is injected via ldflags at build time, so pinning the SoT to a 0.x tag would false-fail the gate. This story moves freeze enforcement to a release.yml tag check that refuses a Go installer build above the pinned SoT and neutralizes the brittle source-literal comparison in freeze-gate.ts.",
+      "ImplementationPlan": "- Change the comparison in packages/core/src/legacy-bridge/freeze-gate.ts so evaluateGoFreeze keys off the release tag input rather than the parseInstallerVersion source literal, keeping readInstallerVersion only where a release-time value is genuinely needed.\n- Add a guard step to the Go build job in .github/workflows/release.yml that reads lastGoInstaller() and fails the build when github.ref_name is above the pinned SoT.\n- Update packages/core/src/legacy-bridge/freeze-gate.test.ts to assert the tag-based comparison passes a 0.x tag at or below the pin and rejects a tag above it.",
+      "UserStory": "As a Deft release maintainer, I want the freeze gate to compare the release tag against the pinned installer SoT, so that pinning a 0.x freeze tag does not false-fail the gate against a stale source literal.",
+      "Traces": "Issue #1972 step 1a; #1912 freeze gate; #1969 SoT + verify:go-freeze"
+    },
+    "items": [
+      {
+        "id": "1972-s1a-freeze-gate-version-source-a1",
+        "title": "Given the SoT is pinned to a 0.x tag, when verify:go-freeze evaluates an equal-or-lower release tag, then the gate returns exit code 0.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the SoT is pinned to a 0.x tag, when verify:go-freeze evaluates an equal-or-lower release tag, then the gate returns exit code 0."
+        }
+      },
+      {
+        "id": "1972-s1a-freeze-gate-version-source-a2",
+        "title": "Given the SoT is pinned, when a release tag above the pinned tag is evaluated, then the gate fails and emits the above-the-line violation message.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the SoT is pinned, when a release tag above the pinned tag is evaluated, then the gate fails and emits the above-the-line violation message."
+        }
+      },
+      {
+        "id": "1972-s1a-freeze-gate-version-source-a3",
+        "title": "Given the SoT is null, when verify:go-freeze runs, then the gate returns an advisory pass and does not read the installer source literal.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the SoT is null, when verify:go-freeze runs, then the gate returns an advisory pass and does not read the installer source literal."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/legacy-bridge/freeze-gate.ts",
+          "packages/core/src/legacy-bridge/freeze-gate.test.ts",
+          ".github/workflows/release.yml"
+        ],
+        "verify_commands": [
+          "pnpm --dir packages/core test -- freeze-gate",
+          "task verify:go-freeze"
+        ],
+        "expected_outputs": [
+          "freeze-gate.ts keyed off the release tag instead of the source literal",
+          "release.yml refuses a Go build above the pinned SoT",
+          "freeze-gate.test.ts covers at/below/above the pinned tag"
+        ],
+        "depends_on": [],
+        "conflict_group": "freeze-gate",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1972",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/closes",
+        "title": "Issue #1530"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1669"
+      }
+    ]
+  }
+}

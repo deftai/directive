@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1967"
+  },
+  "plan": {
+    "title": "Bundle .githooks/ + consumer Taskfile into @deftai/directive-content (npm-only deposit parity)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Bundle .githooks/ + consumer Taskfile into @deftai/directive-content (npm-only deposit parity)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1967",
+      "Overview": "Surfaced by #1942 S5 (PR #1966) while adding the greenfield e2e leg.\n\n## Problem\n`@deftai/directive-content`'s prepack copies only the repo-root `content/` tree (`files: **/*`). After simulating prepack:\n- **`.githooks/` is NOT in the published content tree** (hooks live at repo root, outside `content/`).\n- **root `Taskfile.yml` is NOT in the published content tree** (also outside `content/`).\n\nSo a pure-npm `directive init` deposits a `.deft/core/` WITHOUT `.deft/core/.githooks` or a `.deft/core/Taskfile.yml`. Today `directive init` skips hook wiring gracefully (`writeConsumerGitHooks` logs \"absent — skipping\") and `ensureTaskfile` writes a project Taskfile with an include that won't resolve — so npm-only installs are missing the pre-commit/pre-push branch-policy hooks and the `.deft/core` Taskfile include the unit tests assume.\n\n## Why it matters / sequencing\nThis is currently masked because the **Go installer** still deposits hooks + Taskfile. But Wave 5 retires the Go `deft-install` source + pipeline (#1669 self-work) and the final Python purge (#1860). **The Go-delete MUST NOT land until this is fixed**, or npm-only installs silently lose branch-policy hook enforcement. Treat this as a gate on the Go-source-delete step.\n\n## Fix options\n1. Extend `@deftai/directive-content` packaging to include `.githooks/` + the consumer Taskfile (move them under `content/`, or add them to the prepack copy set), so the deposited tree matches what `init` expects.\n2. Or have `init` synthesize the consumer Taskfile + hooks from a TS template rather than copying from the content tree.\n\n## Acceptance\n- A pure-npm `directive init` (no Go binary) deposits `.deft/core/.githooks` + a resolvable `.deft/core/Taskfile.yml`, and `directive init` wires the hooks (no \"absent — skipping\").\n- The greenfield e2e leg (npm-ops.test.ts) asserts hooks + Taskfile presence rather than graceful-skip.\n\nRefs #1942 #1669 #1860"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1967",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1967: Bundle .githooks/ + consumer Taskfile into @deftai/directive-content (npm-only deposit parity)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1942"
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1972-s1b-installer-npm-handoff",
+    "title": "Add npm-handoff messaging to the Go installer success path",
+    "status": "pending",
+    "planRef": "proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json",
+    "narratives": {
+      "Description": "The frozen Go installer is the last one consumers will run, so they must learn that future upgrades now come from the npm package. This story prints a handoff line on the installer success path in cmd/deft-install/main.go directing users to run npx @deftai/directive init for subsequent upgrades.",
+      "ImplementationPlan": "- Add a handoff message to the success summary path in cmd/deft-install/main.go so a completed install or upgrade prints the npm upgrade guidance to stderr.\n- Define the message text as a constant near the existing installer source constants so the script keeps one definition, and gate it behind the non-error success path only.\n- Add a Go test in cmd/deft-install that asserts the success output contains the npx @deftai/directive init handoff string and that an error path omits it.",
+      "UserStory": "As a consumer running the final Go installer, I want a clear handoff message, so that I know future Deft upgrades come from the npm package rather than re-running the installer.",
+      "Traces": "Issue #1972 step 1b; #1912 freeze prerequisite; #1942 npm-native init/update"
+    },
+    "items": [
+      {
+        "id": "1972-s1b-installer-npm-handoff-a1",
+        "title": "Given a successful install or upgrade, when the installer finishes, then it prints a handoff line instructing the user to run npx @deftai/directive init.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful install or upgrade, when the installer finishes, then it prints a handoff line instructing the user to run npx @deftai/directive init."
+        }
+      },
+      {
+        "id": "1972-s1b-installer-npm-handoff-a2",
+        "title": "Given an install that errors out, when the installer exits non-zero, then it does not print the npm handoff message.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an install that errors out, when the installer exits non-zero, then it does not print the npm handoff message."
+        }
+      },
+      {
+        "id": "1972-s1b-installer-npm-handoff-a3",
+        "title": "Given the success path runs under test, when the output is captured, then the test asserts the npm handoff string is present.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the success path runs under test, when the output is captured, then the test asserts the npm handoff string is present."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/main.go",
+          "cmd/deft-install/handoff_test.go"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/...",
+          "go build ./cmd/deft-install/"
+        ],
+        "expected_outputs": [
+          "installer success output includes the npm handoff line",
+          "Go test asserting the handoff string on success and its absence on error"
+        ],
+        "depends_on": [],
+        "conflict_group": "go-installer",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1972",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/closes",
+        "title": "Issue #1530"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1669"
+      }
+    ]
+  }
+}

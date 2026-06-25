@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "1972-s1c-version-handshake-e2e",
+    "title": "Assert the installer VERSION is migrate-acceptable in the legacy-bridge e2e leg",
+    "status": "pending",
+    "planRef": "proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json",
+    "narratives": {
+      "Description": "The freeze hinges on the Go installer writing a .deft/core/VERSION that directive migrate accepts as canonical-ready before stamping managed_by npm. Today the legacy-bridge e2e leg provisions a synthetic manifest, so this story drives an installer-shaped VERSION through parseInstallManifest and runMigrate so the handshake is asserted end to end rather than assumed.",
+      "ImplementationPlan": "- Extend packages/core/src/release-e2e/legacy-bridge-leg.ts so provisionCanonicalVendoredDeposit writes a VERSION matching the Go installer manifest field shape rather than a hand-built manifest.\n- Add an assertion in the stage-2 npm-hybrid step that parseInstallManifest accepts the installer-shaped VERSION and runMigrate returns migrated, then already-hybrid on the second run.\n- Cover the new path with a release-e2e test/fixture so the leg fails when the VERSION field shape drifts from what migrate accepts.",
+      "UserStory": "As a Deft release maintainer, I want the legacy-bridge e2e leg to assert the real installer VERSION is migrate-acceptable, so that the frozen-bridge to npm-hybrid handshake cannot silently break at freeze time.",
+      "Traces": "Issue #1972 step 1c; #1971 pinned legacy-bridge e2e leg; #1968 directive migrate"
+    },
+    "items": [
+      {
+        "id": "1972-s1c-version-handshake-e2e-a1",
+        "title": "Given a canonical-vendored deposit with an installer-shaped VERSION, when the e2e leg runs, then parseInstallManifest accepts it and runMigrate returns migrated.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a canonical-vendored deposit with an installer-shaped VERSION, when the e2e leg runs, then parseInstallManifest accepts it and runMigrate returns migrated."
+        }
+      },
+      {
+        "id": "1972-s1c-version-handshake-e2e-a2",
+        "title": "Given the VERSION field shape drifts from what migrate accepts, when the e2e leg runs, then the leg fails with a handshake mismatch reason.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the VERSION field shape drifts from what migrate accepts, when the e2e leg runs, then the leg fails with a handshake mismatch reason."
+        }
+      },
+      {
+        "id": "1972-s1c-version-handshake-e2e-a3",
+        "title": "Given the SoT is still null, when the e2e leg runs, then the stage-2 assertion still validates the VERSION handshake without downloading a binary.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the SoT is still null, when the e2e leg runs, then the stage-2 assertion still validates the VERSION handshake without downloading a binary."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-e2e/legacy-bridge-leg.ts",
+          "packages/core/src/release-e2e/legacy-bridge-leg.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --dir packages/core test -- legacy-bridge",
+          "task release:e2e -- --legacy-bridge"
+        ],
+        "expected_outputs": [
+          "e2e leg drives an installer-shaped VERSION through directive migrate",
+          "handshake mismatch fails the leg with a clear reason"
+        ],
+        "depends_on": [],
+        "conflict_group": "e2e-legacy-bridge",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1972",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-vbrief/closes",
+        "title": "Issue #1530"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1669"
+      }
+    ]
+  }
+}
