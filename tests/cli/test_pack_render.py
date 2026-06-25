@@ -867,6 +867,21 @@ def test_pack_filter_limits_to_strategies() -> None:
     assert "roadmap.md" not in expected
 
 
+_RELEASE_SKILL_PATH = "skills/deft-directive-release/SKILL.md"
+
+
+def test_release_skill_no_phase5_npm_authority_gate() -> None:
+    """#2002: Phase 5 must not frame user-only publish authority for npm."""
+    pack = json.loads(_REAL_SKILLS_SOURCE.read_text(encoding="utf-8"))
+    release = next(s for s in pack["skills"] if s["id"] == "deft-directive-release")
+    body = release["body"]
+    assert "Draft review gate (user-only authority)" not in body
+    assert "## Phase 5 — GitHub draft QA" in body
+    assert "npm irrevocability" in body
+    assert "task release:rollback` does NOT retract npm" in body
+    assert "auto-proceed to Phase 6 Publish branch" in body
+
+
 def test_lessons_and_skills_proofs_still_byte_identical() -> None:
     """Regression guard (#1296): adding rules + strategies must keep the
     lessons + skills proofs byte-identical."""

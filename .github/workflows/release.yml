@@ -285,13 +285,17 @@ jobs:
   # -----------------------------------------------------------------------
   # Create / update the GitHub Release as a DRAFT and attach binaries.
   #
-  # Per #716 (Phase 5 user-only authority gate) and #733: this workflow
-  # MUST NOT auto-publish releases. Publish authority belongs exclusively
-  # to `task release:publish` (which runs `gh release edit --draft=false`
-  # under operator review). The `softprops/action-gh-release@v2` step
-  # therefore sets `draft: true` -- this preserves the draft state created
-  # by `task release` (which uses `gh release create --draft`) and never
-  # flips `isDraft: false` on its own.
+  # Per #716 / #733: this workflow MUST NOT auto-publish GitHub releases.
+  # Publish authority for the GitHub release belongs to `task release:publish`
+  # (which runs `gh release edit --draft=false` after draft QA). The
+  # `softprops/action-gh-release@v2` step therefore sets `draft: true` --
+  # this preserves the draft state created by `task release` (which uses
+  # `gh release create --draft`) and never flips `isDraft: false` on its own.
+  #
+  # npm tag coupling (#1910 / #1972 / #2002): a `v*` tag push ALSO fires
+  # `.github/workflows/npm-publish.yml` in a SEPARATE workflow that is NOT
+  # draft-gated. npm packages ship irrevocably at tag push; the GitHub draft
+  # gate above controls release visibility only, not npm publish authority.
   # -----------------------------------------------------------------------
   release:
     needs: [smoke-test, verify-run-version]

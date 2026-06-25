@@ -1,0 +1,57 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2002"
+  },
+  "plan": {
+    "title": "Release skill: drop Phase 5 human publish gate — npm is already irrevocable at tag push",
+    "status": "completed",
+    "narratives": {
+      "Description": "Release skill: drop Phase 5 human publish gate — npm is already irrevocable at tag push",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2002",
+      "Overview": "## Problem\n\n`deft-directive-release` Phase 5 is framed as a **user-only authority gate** before anything goes public (#716): after `task release` lands a **draft** GitHub release, the operator must explicitly choose `publish` / `rollback` / `defer` before Phase 6 runs `task release:publish`.\n\nThat model made sense when the GitHub release was the only consumer-visible channel. It is **misleading after #1910 / #1909**:\n\n> A `v*` tag is a **two-channel** action. `.github/workflows/npm-publish.yml` runs on tag push and performs **`npm publish --provenance`** for all four `@deftai/directive*` packages. That workflow is **separate** from the GitHub release draft gate and is **not draft-gated**.\n\nPer #1972 recovery protocol, **npm publish is the irreversible moment** — never `npm unpublish`. By the time the skill reaches Phase 5 (draft review + human `publish` prompt), **the npm channel has typically already shipped** (or already failed). Phase 6 `task release:publish` only flips the **GitHub release** `isDraft → false`; it does **not** gate npm and does **not** undo a published package.\n\nPhase 7 then verifies npm publish **after** Phase 6 — too late for the authority gate to mean anything for the registry.\n\n## Symptom (operator/agent confusion)\n\n- Phase 5 copy implies the operator still controls \"going live\" — they do not, for npm.\n- `rollback` in Phase 6 unwinds the GitHub release artifact; **npm packages remain on the registry**.\n- Agents following the skill may pause for human `publish` approval on a channel that is already public, while treating the GitHub draft as the safety boundary.\n- Frontmatter still says: \"lands a draft on the real repo, **gates on user review, then publishes**\" — the second half is only true for GitHub, not npm.\n\n## Proposed direction\n\nRe-baseline the skill around **two irreversible surfaces with different timing**:\n\n| Surface | Irreversible when | Current human gate |\n|---------|-------------------|-------------------|\n| **npm** (`npm-publish.yml`) | `v*` tag pushed (Phase 4) | Phase 1 dry-run + Phase 2 `yes` only |\n| **GitHub release** (`release.yml` draft) | `task release:publish` (Phase 6) | Phase 5 `publish` / `rollback` / `defer` |\n\n### Skill changes (acceptance)\n\n- [ ] **Remove or demote Phase 5 as a publish authority gate for the release as a whole.** Reframe it as optional **GitHub draft QA** (assets, notes, binaries) — not \"user-only authority before going live.\"\n- [ ] **Move npm irrevocability disclosure** to Phase 1 / Phase 2 / immediately pre-tag (Phase 4): explicit warning that **tag push = npm publish**; the last human `yes` before `task release` is the real npm gate.\n- [ ] **Default Phase 6 publish path** when npm workflow succeeded: auto-run `task release:publish` after draft assets verify (or collapse Phase 5–6 for the happy path). Human `publish` prompt is redundant if npm already shipped.\n- [ ] **Rollback branch**: document that `task release:rollback` does **not** retract npm; recovery is forward-only (#1972: deprecate / dist-tag / ship patch).\n- [ ] **Phase 7 ordering**: verify npm workflow status **before** or **in parallel with** GitHub publish flip — not only after Phase 6.\n- [ ] Update skill frontmatter + `packs/skills` source; run `task packs:render`.\n- [ ] Cross-check `.github/workflows/release.yml` comment block (#716 / #733) — GitHub draft gate comment remains valid; add npm tag-coupling note if needed.\n\n### Non-goals (separate issues if needed)\n\n- Changing `npm-publish.yml` to draft-gate npm (likely impossible / wrong — registry has no draft).\n- Re-architecting tag → publish coupling (tag *is* the trigger by design).\n\n## Why now\n\nWave 5 freeze (#1972) treats npm publish as the standing irreversible risk. The release skill should match that reality so agents and operators do not treat Phase 5 as protecting the registry.\n\n## Refs\n\n- Skill: `content/skills/deft-directive-release/SKILL.md` (Phase 4–7, frontmatter)\n- #716 — original Phase 5 user-only authority (GitHub-only context)\n- #724 — post-create isDraft verify\n- #733 — release.yml must not auto-publish\n- #1910 / #1909 — tag → npm coupling\n- #1972 — npm irrevocability + recovery protocol\n- `scripts/release.py`, `scripts/release_publish.py`, `.github/workflows/npm-publish.yml`"
+    },
+    "items": [
+      {
+        "title": "**Remove or demote Phase 5 as a publish authority gate for the release as a whole.** Reframe it as optional **GitHub draft QA** (assets, notes, binaries) — not \"user-only authority before going live.\"",
+        "status": "proposed"
+      },
+      {
+        "title": "**Move npm irrevocability disclosure** to Phase 1 / Phase 2 / immediately pre-tag (Phase 4): explicit warning that **tag push = npm publish**; the last human  before  is the real npm gate.",
+        "status": "proposed"
+      },
+      {
+        "title": "**Default Phase 6 publish path** when npm workflow succeeded: auto-run  after draft assets verify (or collapse Phase 5–6 for the happy path). Human  prompt is redundant if npm already shipped.",
+        "status": "proposed"
+      },
+      {
+        "title": "**Rollback branch**: document that  does **not** retract npm; recovery is forward-only (#1972: deprecate / dist-tag / ship patch).",
+        "status": "proposed"
+      },
+      {
+        "title": "**Phase 7 ordering**: verify npm workflow status **before** or **in parallel with** GitHub publish flip — not only after Phase 6.",
+        "status": "proposed"
+      },
+      {
+        "title": "Update skill frontmatter +  source; run .",
+        "status": "proposed"
+      },
+      {
+        "title": "Cross-check  comment block (#716 / #733) — GitHub draft gate comment remains valid; add npm tag-coupling note if needed.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2002",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2002: Release skill: drop Phase 5 human publish gate — npm is already irrevocable at tag push"
+      }
+    ],
+    "updated": "2026-06-25T20:17:54Z",
+    "metadata": {
+      "completedAt": "2026-06-25T20:17:54Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
