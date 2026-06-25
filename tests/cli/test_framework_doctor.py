@@ -97,6 +97,7 @@ def _write_manifest(install_root_path: Path, tag: str = "0.27.1") -> None:
         f"tag: 'v{tag}'\n"
         "fetched_at: '2026-05-11T15:30:52Z'\n"
         "fetched_by: 'run-install'\n"
+        "managed_by: 'npm'\n"
     )
     (install_root_path / "VERSION").write_text(body, encoding="utf-8")
 

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { CANONICAL_UPGRADE_COMMAND } from "./constants.js";
+import { CANONICAL_UPGRADE_COMMAND, NPM_PACKAGE_NAME } from "./constants.js";
 import { locateManifest, parseInstallManifest } from "./manifest.js";
 import type { OutputSink } from "./output.js";
 import { readTextSafe, resolveDefaultFrameworkRoot } from "./paths.js";
@@ -11,13 +11,14 @@ export interface PayloadStalenessSeams {
   readonly isFile?: (path: string) => boolean;
   readonly frameworkRoot?: string;
   readonly runGitLsRemote?: (deftDir: string, ref: string) => { ok: boolean; stdout: string };
+  readonly runNpmViewVersion?: () => { ok: boolean; version: string };
 }
 
 function isDeftFrameworkRepo(projectRoot: string, readText = readTextSafe): boolean {
   try {
     const agents = join(projectRoot, "AGENTS.md");
     const text = readText(agents);
-    return text !== null && text.includes("Deft — Development Framework (deft repo)");
+    return text?.includes("Deft — Development Framework (deft repo)") ?? false;
   } catch {
     return false;
   }
@@ -47,6 +48,90 @@ function parseRemoteSha(stdout: string): string {
   return firstLine.trim().split(/\s+/)[0] ?? "";
 }
 
+function parseSemver(version: string): number[] {
+  const normalized = version.trim().replace(/^v/i, "");
+  const parts: number[] = [];
+  for (const segment of normalized.split(".")) {
+    const numeric = Number.parseInt(segment.split("-")[0] ?? "", 10);
+    if (Number.isNaN(numeric)) {
+      break;
+    }
+    parts.push(numeric);
+  }
+  return parts.length > 0 ? parts : [0];
+}
+
+function semverLessThan(left: string, right: string): boolean {
+  const a = parseSemver(left);
+  const b = parseSemver(right);
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i += 1) {
+    const av = a[i] ?? 0;
+    const bv = b[i] ?? 0;
+    if (av < bv) {
+      return true;
+    }
+    if (av > bv) {
+      return false;
+    }
+  }
+  return false;
+}
+
+function manifestVersion(ref: string, tag: string): string {
+  const candidate = (tag || ref).trim().replace(/^refs\/tags\//, "");
+  return candidate.replace(/^v/i, "");
+}
+
+function defaultNpmViewVersion(): { ok: boolean; version: string } {
+  const proc = spawnSync("npm", ["view", NPM_PACKAGE_NAME, "version"], {
+    encoding: "utf8",
+    timeout: 15_000,
+  });
+  const version = (proc.stdout ?? "").trim().split("\n")[0]?.trim() ?? "";
+  return { ok: proc.status === 0 && version.length > 0, version };
+}
+
+function emitUnverified(
+  checkName: string,
+  reason: string,
+  sink: OutputSink,
+  addFinding: (finding: Finding) => void,
+): void {
+  const msg = `payload currency UNVERIFIED — ${reason}`;
+  sink.warn(msg);
+  addFinding({
+    severity: "warning",
+    message: msg,
+    check: checkName,
+    status: "unverified",
+  });
+}
+
+function emitStale(
+  checkName: string,
+  installedLabel: string,
+  remoteLabel: string,
+  ref: string,
+  sink: OutputSink,
+  addFinding: (finding: Finding) => void,
+  extras: Record<string, unknown> = {},
+): void {
+  const msg =
+    `Framework payload is stale (installed ${installedLabel} behind remote ${remoteLabel} for ref '${ref}'). ` +
+    `Recommendation: run \`${CANONICAL_UPGRADE_COMMAND}\` from any shell with Node ≥ 20, then start a fresh agent session.`;
+  sink.warn(msg);
+  addFinding({
+    severity: "warning",
+    message: msg,
+    check: checkName,
+    status: "stale",
+    ref,
+    suggestion: CANONICAL_UPGRADE_COMMAND,
+    ...extras,
+  });
+}
+
 export function runPayloadStalenessCheck(
   projectRoot: string,
   sink: OutputSink,
@@ -64,6 +149,7 @@ export function runPayloadStalenessCheck(
       message: "inside framework repo (no install manifest)",
       check: checkName,
       status: "skip",
+      reason: "not-applicable",
     });
     return;
   }
@@ -81,7 +167,13 @@ export function runPayloadStalenessCheck(
   }
   if (manifestPath === null || !isFile(manifestPath)) {
     sink.info(`${checkName}: skip -- no install manifest found (pre-v0.28 or legacy state)`);
-    addFinding({ severity: "skip", message: "no manifest", check: checkName, status: "skip" });
+    addFinding({
+      severity: "skip",
+      message: "no manifest",
+      check: checkName,
+      status: "skip",
+      reason: "not-applicable",
+    });
     return;
   }
 
@@ -93,6 +185,7 @@ export function runPayloadStalenessCheck(
       message: "manifest unreadable",
       check: checkName,
       status: "skip",
+      reason: "not-applicable",
     });
     return;
   }
@@ -100,6 +193,7 @@ export function runPayloadStalenessCheck(
   const manifest = parseInstallManifest(text);
   const installedSha = (manifest.sha ?? "").trim();
   const ref = (manifest.ref ?? manifest.tag ?? "").trim();
+  const tag = (manifest.tag ?? "").trim();
   if (!installedSha) {
     sink.info(`${checkName}: skip -- manifest has no sha (incomplete provenance)`);
     addFinding({
@@ -107,6 +201,7 @@ export function runPayloadStalenessCheck(
       message: "no sha in manifest",
       check: checkName,
       status: "skip",
+      reason: "not-applicable",
     });
     return;
   }
@@ -117,6 +212,7 @@ export function runPayloadStalenessCheck(
       message: "no ref/tag in manifest",
       check: checkName,
       status: "skip",
+      reason: "not-applicable",
     });
     return;
   }
@@ -131,59 +227,57 @@ export function runPayloadStalenessCheck(
       });
       return { ok: proc.status === 0, stdout: proc.stdout ?? "" };
     });
+  const runNpmView = seams.runNpmViewVersion ?? defaultNpmViewVersion;
 
   let remoteResult: { ok: boolean; stdout: string };
   try {
     remoteResult = runLsRemote(deftDir, ref);
   } catch {
-    sink.info(`${checkName}: skip -- could not probe remote (Error)`);
-    addFinding({
-      severity: "skip",
-      message: "remote probe failed",
-      check: checkName,
-      status: "skip",
-    });
+    remoteResult = { ok: false, stdout: "" };
+  }
+
+  if (remoteResult.ok) {
+    const remoteSha = parseRemoteSha(remoteResult.stdout);
+    if (remoteSha) {
+      if (installedSha === remoteSha) {
+        sink.info(`${checkName}: current (sha matches remote)`);
+        return;
+      }
+      emitStale(
+        checkName,
+        `sha ${installedSha.slice(0, 8)}...`,
+        `sha ${remoteSha.slice(0, 8)}...`,
+        ref,
+        sink,
+        addFinding,
+        { installed_sha: installedSha, remote_sha: remoteSha, resolver: "git-ls-remote" },
+      );
+      return;
+    }
+  }
+
+  const npmResult = runNpmView();
+  const installedVersion = manifestVersion(ref, tag);
+  if (npmResult.ok && installedVersion) {
+    if (semverLessThan(installedVersion, npmResult.version)) {
+      emitStale(checkName, `v${installedVersion}`, `v${npmResult.version}`, ref, sink, addFinding, {
+        installed_version: installedVersion,
+        remote_version: npmResult.version,
+        resolver: "npm-view",
+      });
+      return;
+    }
+    if (installedVersion === npmResult.version.replace(/^v/i, "")) {
+      sink.info(`${checkName}: current (version matches npm registry)`);
+      return;
+    }
+    sink.info(`${checkName}: current (installed version >= npm registry)`);
     return;
   }
 
-  if (!remoteResult.ok) {
-    sink.info(`${checkName}: skip -- git ls-remote failed (no network or no origin)`);
-    addFinding({
-      severity: "skip",
-      message: "ls-remote unavailable",
-      check: checkName,
-      status: "skip",
-    });
-    return;
-  }
-
-  const remoteSha = parseRemoteSha(remoteResult.stdout);
-  if (!remoteSha) {
-    sink.info(`${checkName}: skip -- ls-remote produced no sha`);
-    addFinding({
-      severity: "skip",
-      message: "no remote sha",
-      check: checkName,
-      status: "skip",
-    });
-    return;
-  }
-
-  if (installedSha === remoteSha) {
-    sink.info(`${checkName}: current (sha matches remote)`);
-    return;
-  }
-
-  const msg = `Framework payload is stale (installed sha ${installedSha.slice(0, 8)}... behind remote ${remoteSha.slice(0, 8)}... for ref '${ref}'). Recommendation: run the canonical headless upgrader \`${CANONICAL_UPGRADE_COMMAND}\` from your project root to pull the latest payload (drop \`--json\` for human-readable output). On an installer binary predating the headless flags, download the latest deft-install from GitHub Releases first.`;
-  sink.warn(msg);
-  addFinding({
-    severity: "warning",
-    message: msg,
-    check: checkName,
-    status: "stale",
-    installed_sha: installedSha,
-    remote_sha: remoteSha,
-    ref,
-    suggestion: CANONICAL_UPGRADE_COMMAND,
-  });
+  const reason = remoteResult.ok
+    ? "ls-remote produced no sha and npm registry fallback unavailable"
+    : "could not reach remote (git ls-remote / npm view both unavailable)";
+  sink.info(`${checkName}: skip -- ${reason}`);
+  emitUnverified(checkName, reason, sink, addFinding);
 }

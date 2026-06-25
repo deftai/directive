@@ -131,6 +131,14 @@ VERSION = _resolve_version()
 # UV url constant (the _check_uv_available helper remains in run for other callers)
 UV_INSTALL_URL = "https://docs.astral.sh/uv/"
 
+# Post-freeze npm canonical path (#1997 / #2003 / #1912).
+CANONICAL_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest"
+NPM_PACKAGE_NAME = "@deftai/directive"
+UPGRADING_DOC_URL = "https://github.com/deftai/directive/blob/master/content/UPGRADING.md"
+GO_BRIDGE_RELEASES_URL = "https://github.com/deftai/directive/releases"
+NPM_MANAGED_SENTINEL_KEY = "managed_by"
+NPM_MANAGED_SENTINEL_VALUE = "npm"
+
 # --- Install-integrity checks (ported from retired framework_doctor.py #1336) ---
 # Symbols (EXIT_*, run_checks, main, CheckResult, DoctorResult + 4 checks + impl)
 # are inserted below in small batches. Once complete, _run_install_integrity_checks
@@ -766,6 +774,207 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
 
 
 # ---------------------------------------------------------------------------
+# Legacy-layout + canonical-vendored npm signpost (#1912 / #1997)
+# ---------------------------------------------------------------------------
+
+
+def _gitmodules_references_framework(text: str) -> bool:
+    normalized = text.replace("\r\n", "\n").lower()
+    if "deftai/directive" in normalized:
+        return True
+    return bool(re.search(r"(^|\n)\s*path\s*=\s*\.?deft(/|\s|$)", normalized))
+
+
+def _detect_legacy_layout(project_root: Path) -> tuple[bool, str | None, str, list[str]]:
+    """Mirror packages/core/src/init-deposit/legacy-detect.ts heuristics."""
+    if (project_root / ".deft" / "core").is_dir():
+        return False, None, "", []
+    orphan = project_root / ".deft" / "VERSION"
+    if orphan.is_file():
+        return (
+            True,
+            "orphan-deft-version",
+            "Found an orphan .deft/VERSION manifest with no .deft/core/ directory -- "
+            "this is a pre-.deft/core/ layout the npm CLI does not migrate.",
+            [".deft/VERSION"],
+        )
+    deft_dir = project_root / "deft"
+    deft_markers = [
+        deft_dir / "VERSION",
+        deft_dir / "main.md",
+        deft_dir / "Taskfile.yml",
+    ]
+    deft_is_framework = deft_dir.is_dir() and (
+        any(p.is_file() for p in deft_markers) or (deft_dir / "skills").is_dir()
+    )
+    if deft_is_framework:
+        if (deft_dir / ".git").exists():
+            return (
+                True,
+                "git-clone-or-submodule",
+                "Found a deft/ framework directory backed by its own .git (clone or "
+                "git submodule) -- the npm CLI does not migrate a clone/submodule deposit.",
+                ["deft/", "deft/.git"],
+            )
+        return (
+            True,
+            "legacy-deft-prefixed",
+            "Found a legacy deft/-prefixed framework install -- the canonical layout "
+            "is .deft/core/. The npm CLI does not migrate the deft/ -> .deft/core/ move.",
+            ["deft/"],
+        )
+    gitmodules = project_root / ".gitmodules"
+    if gitmodules.is_file():
+        text = _read_text_safe(gitmodules)
+        if text is not None and _gitmodules_references_framework(text):
+            return (
+                True,
+                "git-clone-or-submodule",
+                "Found a .gitmodules entry referencing the Deft framework -- a submodule "
+                "deposit the npm CLI does not migrate.",
+                [".gitmodules"],
+            )
+    agents_text = _read_text_safe(project_root / "AGENTS.md")
+    if agents_text is not None:
+        install_root = _parse_install_root_from_agents_md(agents_text)
+        if install_root == "deft":
+            return (
+                True,
+                "legacy-deft-prefixed",
+                "AGENTS.md declares the legacy deft/ install root -- the canonical layout "
+                "is .deft/core/. The npm CLI does not migrate the deft/ -> .deft/core/ move.",
+                ["AGENTS.md (install root: deft)"],
+            )
+        if (
+            "<!-- deft:managed-section" in agents_text
+            and _extract_managed_section(agents_text) is None
+        ):
+            return (
+                True,
+                "pre-v0.27-sentinel-agents-md",
+                "AGENTS.md carries a pre-v0.27 sentinel-only managed-section (no v2/v3 "
+                "managed-section markers) -- run the Go bridge to migrate before the npm CLI.",
+                ["AGENTS.md (sentinel-only managed-section)"],
+            )
+    return False, None, "", []
+
+
+def _legacy_layout_signpost_line(kind: str | None, detail: str) -> str:
+    return (
+        f"Legacy Deft layout detected ({kind or 'unknown'}): {detail} "
+        "Run the frozen Go bridge installer to migrate to .deft/core/, then use the npm "
+        f"CLI (`npx @deftai/directive update`). See {UPGRADING_DOC_URL} "
+        f"(frozen bridge: {GO_BRIDGE_RELEASES_URL})."
+    )
+
+
+def _check_legacy_layout(project_root: Path) -> CheckResult:
+    legacy, kind, detail, evidence = _detect_legacy_layout(project_root)
+    if not legacy:
+        return CheckResult(
+            name="legacy-layout",
+            status="skip",
+            detail="No legacy Deft layout detected (canonical .deft/core/ or greenfield).",
+            data={"legacy_layout": False},
+        )
+    signpost = _legacy_layout_signpost_line(kind, detail)
+    return CheckResult(
+        name="legacy-layout",
+        status="fail",
+        detail=signpost,
+        data={
+            "legacy_layout": True,
+            "legacy_layout_kind": kind,
+            "evidence": evidence,
+            "upgrading_doc_url": UPGRADING_DOC_URL,
+            "go_bridge_releases_url": GO_BRIDGE_RELEASES_URL,
+        },
+    )
+
+
+def _detect_canonical_vendored_manifest(project_root: Path) -> Path | None:
+    canonical = project_root / ".deft" / "core" / "VERSION"
+    located = _locate_manifest(project_root, ".deft/core")
+    return located if located == canonical else None
+
+
+def _is_npm_managed(manifest: dict) -> bool:
+    return manifest.get(NPM_MANAGED_SENTINEL_KEY) == NPM_MANAGED_SENTINEL_VALUE
+
+
+def _check_canonical_vendored_npm_signpost(project_root: Path) -> CheckResult:
+    manifest_path = _detect_canonical_vendored_manifest(project_root)
+    if manifest_path is None:
+        return CheckResult(
+            name="canonical-vendored-npm-signpost",
+            status="skip",
+            detail="No canonical-vendored .deft/core/ deposit (nothing to signpost).",
+            data={"canonical_vendored": False},
+        )
+    text = _read_text_safe(manifest_path)
+    if text is None:
+        return CheckResult(
+            name="canonical-vendored-npm-signpost",
+            status="skip",
+            detail="Canonical-vendored manifest unreadable.",
+            data={"canonical_vendored": True},
+        )
+    manifest = _parse_manifest(text)
+    if _is_npm_managed(manifest):
+        return CheckResult(
+            name="canonical-vendored-npm-signpost",
+            status="skip",
+            detail="Deposit is already npm-managed (hybrid).",
+            data={"canonical_vendored": True, "npm_managed": True},
+        )
+    detail = (
+        "Canonical-vendored install (.deft/core/) is not yet npm-managed. "
+        "Post-freeze upgrades run via npm: install the engine with "
+        f"`{CANONICAL_UPGRADE_COMMAND}`, then run `directive migrate` "
+        f"to stamp provenance. See {UPGRADING_DOC_URL}."
+    )
+    return CheckResult(
+        name="canonical-vendored-npm-signpost",
+        status="fail",
+        detail=detail,
+        data={
+            "canonical_vendored": True,
+            "npm_managed": False,
+            "manifest_path": str(manifest_path),
+            "sentinel_key": NPM_MANAGED_SENTINEL_KEY,
+            "sentinel_value": NPM_MANAGED_SENTINEL_VALUE,
+            "upgrading_doc_url": UPGRADING_DOC_URL,
+        },
+    )
+
+
+def _run_local_signpost_checks(
+    project_root: Path,
+    *,
+    emit_warn,
+    add_finding,
+) -> None:
+    """Lightweight local signposts on throttle-skip (#1997)."""
+    if _running_inside_deft_repo(project_root):
+        return
+    for check in (
+        _check_legacy_layout(project_root),
+        _check_canonical_vendored_npm_signpost(project_root),
+    ):
+        if check.status == "skip":
+            continue
+        if check.status == "fail":
+            emit_warn(check.detail)
+            add_finding(
+                "warning",
+                check.detail,
+                check=check.name,
+                status=check.status,
+                data=check.data,
+            )
+
+
+# ---------------------------------------------------------------------------
 # Top-level driver (ported) -- provides run_checks for tests + internal use
 # ---------------------------------------------------------------------------
 
@@ -820,6 +1029,8 @@ def _run_checks_impl(project_root: Path) -> DoctorResult:
         # Still attempt the manifest agreement check (it can run without
         # AGENTS.md for the greenfield case).
         checks.append(_check_manifest_agreement(project_root, None))
+        checks.append(_check_legacy_layout(project_root))
+        checks.append(_check_canonical_vendored_npm_signpost(project_root))
         return DoctorResult(
             project_root=str(project_root),
             install_root=None,
@@ -832,6 +1043,8 @@ def _run_checks_impl(project_root: Path) -> DoctorResult:
     checks.append(_check_skill_paths_resolve(project_root, agents_md_text))
     checks.append(_check_manifest_agreement(project_root, install_root))
     checks.append(_check_install_path_consistency(project_root, install_root))
+    checks.append(_check_legacy_layout(project_root))
+    checks.append(_check_canonical_vendored_npm_signpost(project_root))
 
     return DoctorResult(
         project_root=str(project_root),
@@ -846,7 +1059,10 @@ def _derive_exit_code(checks: list[CheckResult], errors: list[str]) -> int:
     """Three-state exit code from check results + errors."""
     if errors or any(c.status == "error" for c in checks):
         return EXIT_CONFIG_ERROR
-    if any(c.status == "fail" for c in checks):
+    if any(
+        c.status == "fail" and c.name != "canonical-vendored-npm-signpost"
+        for c in checks
+    ):
         return EXIT_DRIFT
     return EXIT_CLEAN
 
@@ -1310,8 +1526,22 @@ def _render_doctor_status_line(decision) -> str:
     )
 
 
-def _emit_doctor_throttle_skip(decision, *, json_mode: bool) -> int:
+def _emit_doctor_throttle_skip(decision, *, json_mode: bool, project_root: Path) -> int:
     """Print the throttle-skip surface and return the gated exit code (#1308)."""
+    signpost_findings: list[dict] = []
+
+    def _add_signpost(severity: str, message: str, **extras: object) -> None:
+        entry: dict = {"severity": severity, "message": message}
+        entry.update(extras)
+        signpost_findings.append(entry)
+
+    if not json_mode:
+        _run_local_signpost_checks(
+            project_root,
+            emit_warn=warn,
+            add_finding=_add_signpost,
+        )
+
     hint = (
         "run `deft doctor --full` to re-probe or address findings"
         if decision.dirty
@@ -1326,10 +1556,17 @@ def _emit_doctor_throttle_skip(decision, *, json_mode: bool) -> int:
             "last_finding_count": decision.last_finding_count,
             "next_eligible_at": _format_iso_z(decision.next_eligible_at),
             "hint": hint,
+            "signpost_findings": signpost_findings,
         }
         print(json.dumps(payload, sort_keys=True))
     else:
         print(_render_doctor_status_line(decision))
+        signpost_warnings = sum(1 for f in signpost_findings if f.get("severity") == "warning")
+        if signpost_warnings:
+            warn(
+                f"Signpost advisory: {signpost_warnings} local layout / npm-migration "
+                "note(s) above (throttle-skipped full probe)."
+            )
     return 1 if decision.dirty else 0
 
 
@@ -1403,6 +1640,17 @@ def _run_install_integrity_checks(
             continue
         if status == "skip":
             emit_info(f"{name}: skip -- {detail}")
+            continue
+        if name in ("legacy-layout", "canonical-vendored-npm-signpost") and status == "fail":
+            emit_warn(f"{name}: {detail}")
+            add_finding(
+                "warning",
+                detail or f"{name} {status}",
+                check=f"install-integrity:{name}",
+                install_check=name,
+                status=status,
+                data=entry.get("data", {}),
+            )
             continue
         if status == "error":
             emit_error(f"{name}: error -- {detail}")
@@ -1488,6 +1736,40 @@ def _run_agents_md_freshness_check(
     add_finding("warning", message, check=check_name, status=state)
 
 
+def _parse_semver(version: str) -> tuple[int, ...]:
+    normalized = version.strip().lstrip("vV")
+    parts: list[int] = []
+    for segment in normalized.split("."):
+        try:
+            parts.append(int(segment.split("-")[0]))
+        except ValueError:
+            break
+    return tuple(parts) if parts else (0,)
+
+
+def _semver_less_than(left: str, right: str) -> bool:
+    return _parse_semver(left) < _parse_semver(right)
+
+
+def _manifest_version(ref: str, tag: str) -> str:
+    candidate = (tag or ref).strip().replace("refs/tags/", "")
+    return candidate.lstrip("vV")
+
+
+def _npm_view_version() -> tuple[bool, str]:
+    try:
+        proc = subprocess.run(
+            ["npm", "view", NPM_PACKAGE_NAME, "version"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except Exception:  # noqa: BLE001
+        return False, ""
+    version = (proc.stdout or "").strip().splitlines()[0].strip() if proc.stdout else ""
+    return proc.returncode == 0 and bool(version), version
+
+
 def _run_payload_staleness_check(
     project_root: Path,
     *,
@@ -1495,17 +1777,8 @@ def _run_payload_staleness_check(
     emit_info,
     add_finding,
 ) -> None:
-    """#1339 (Epic-5): Detect when the installed framework payload is behind its
-    manifest-recorded ref/sha. Reads the canonical <deftDir>/VERSION manifest
-    (single source of truth per #1062), resolves the corresponding remote SHA
-    via git ls-remote, and surfaces the canonical headless upgrade command
-    `deft-install --yes --upgrade --repo-root . --json` (#1409) when the shas
-    diverge. Skips gracefully inside the deft repo or when git / network /
-    manifest unavailable (non-fatal, best-effort).
-    """
+    """#1339 / #2003 / #2004: payload staleness with npm canonical upgrade path."""
     check_name = "payload-staleness"
-    # Self-contained "inside deft repo" probe (avoids dependency on private
-    # _running_inside_deft_repo helper that may be scoped inside cmd_doctor).
     try:
         agents = project_root / "AGENTS.md"
         is_deft = agents.exists() and (
@@ -1516,40 +1789,28 @@ def _run_payload_staleness_check(
             emit_info(f"{check_name}: skip -- running inside deft framework repo")
             add_finding(
                 "skip", "inside framework repo (no install manifest)",
-                check=check_name, status="skip",
+                check=check_name, status="skip", reason="not-applicable",
             )
             return
     except Exception:
         pass
 
-    # Locate a plausible manifest. Prefer the one next to the scripts/doctor.py
-    # we are running from (when invoked via the installed layout); fall back to
-    # common canonical/legacy locations under project_root.
     manifest_path = None
     try:
-        # When doctor.py lives at <deftDir>/scripts/doctor.py the manifest is at <deftDir>/VERSION
         candidate = get_script_dir().parent / "VERSION"
         if candidate.exists():
             manifest_path = candidate
     except Exception:
         pass
     if manifest_path is None:
-        # #1427: probe canonical-first via the shared helper so a
-        # webinstaller-vendored ``.deft/VERSION`` manifest is found too
-        # (the prior list probed only ``.deft/core/VERSION`` and legacy
-        # ``deft/VERSION``).
         manifest_path = _locate_manifest(project_root, None)
     if manifest_path is None:
-        # Legacy bare marker -- not a full manifest, but the last-resort
-        # provenance source for a pre-v0.28 install. Kept out of
-        # ``_locate_manifest`` because that helper returns VERSION-manifest
-        # paths only.
         legacy_marker = project_root / ".deft-version"
         if legacy_marker.exists():
             manifest_path = legacy_marker
     if manifest_path is None or not manifest_path.exists():
         emit_info(f"{check_name}: skip -- no install manifest found (pre-v0.28 or legacy state)")
-        add_finding("skip", "no manifest", check=check_name, status="skip")
+        add_finding("skip", "no manifest", check=check_name, status="skip", reason="not-applicable")
         return
 
     try:
@@ -1557,106 +1818,134 @@ def _run_payload_staleness_check(
         manifest = _parse_install_manifest(text)
     except Exception as exc:  # noqa: BLE001
         emit_info(f"{check_name}: skip -- could not read manifest: {exc}")
-        add_finding("skip", f"manifest unreadable: {exc}", check=check_name, status="skip")
+        add_finding(
+            "skip",
+            f"manifest unreadable: {exc}",
+            check=check_name,
+            status="skip",
+            reason="not-applicable",
+        )
         return
 
     installed_sha = manifest.get("sha", "").strip()
-    # Greptile P1 on #1384: do NOT fall back to "HEAD" when ref/tag are
-    # absent. `git ls-remote origin HEAD` returns the current remote
-    # default-branch tip, which almost certainly differs from the locally
-    # installed sha for development builds without a ref/tag pinned, and
-    # the check would then emit a permanent false-stale warning. Skip
-    # cleanly when the manifest does not declare a ref/tag.
     ref = (manifest.get("ref") or manifest.get("tag") or "").strip()
+    tag = (manifest.get("tag") or "").strip()
     if not installed_sha:
         emit_info(f"{check_name}: skip -- manifest has no sha (incomplete provenance)")
-        add_finding("skip", "no sha in manifest", check=check_name, status="skip")
+        add_finding(
+            "skip",
+            "no sha in manifest",
+            check=check_name,
+            status="skip",
+            reason="not-applicable",
+        )
         return
     if not ref:
         emit_info(
             f"{check_name}: skip -- manifest has no ref or tag (cannot resolve remote sha)"
         )
-        add_finding("skip", "no ref/tag in manifest", check=check_name, status="skip")
+        add_finding(
+            "skip",
+            "no ref/tag in manifest",
+            check=check_name,
+            status="skip",
+            reason="not-applicable",
+        )
         return
 
-    # Resolve current remote SHA for the ref (best effort, may be tag or branch).
-    # Use ls-remote to avoid needing a local fetch or modifying state.
+    deft_dir = manifest_path.parent
+    ls_remote_ok = False
+    remote_sha = ""
     try:
-        # Determine the deft dir from manifest location (parent of VERSION)
-        deft_dir = manifest_path.parent
-        # ls-remote origin <ref> (works for branches and tags)
         proc = subprocess.run(
             ["git", "-C", str(deft_dir), "ls-remote", "origin", ref],
             capture_output=True,
             text=True,
             timeout=15,
         )
-        if proc.returncode != 0:
-            emit_info(f"{check_name}: skip -- git ls-remote failed (no network or no origin)")
-            add_finding("skip", "ls-remote unavailable", check=check_name, status="skip")
-            return
-        # Output is "<sha>\t<refname>"
-        # For annotated tags, ls-remote returns TWO lines:
-        #   <tag-object-sha>	refs/tags/<tag>
-        #   <commit-sha>	refs/tags/<tag>^{}
-        # Prefer the peeled ^{} commit SHA when present (the one that matches
-        # what the installer recorded in the manifest). Fall back to first line.
-        # See Greptile P1 on #1384 (annotated-tag false-positive staleness).
-        remote_sha = ""
-        peeled_sha = ""
-        for line in proc.stdout.splitlines():
-            parts = line.strip().split()
-            if len(parts) >= 2:
-                refname = parts[1]
-                if refname.endswith("^{}"):
-                    peeled_sha = parts[0]
-                elif not remote_sha:
+        ls_remote_ok = proc.returncode == 0
+        if ls_remote_ok:
+            peeled_sha = ""
+            for line in proc.stdout.splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 2:
+                    refname = parts[1]
+                    if refname.endswith("^{}"):
+                        peeled_sha = parts[0]
+                    elif not remote_sha:
+                        remote_sha = parts[0]
+            if peeled_sha:
+                remote_sha = peeled_sha
+            elif not remote_sha:
+                first_line = next((ln for ln in proc.stdout.splitlines() if ln.strip()), "")
+                parts = first_line.strip().split()
+                if parts:
                     remote_sha = parts[0]
-        if peeled_sha:
-            remote_sha = peeled_sha
-        elif not remote_sha:
-            # last-resort: first token of first line
-            first_line = next((ln for ln in proc.stdout.splitlines() if ln.strip()), "")
-            parts = first_line.strip().split()
-            if parts:
-                remote_sha = parts[0]
-        if not remote_sha:
-            emit_info(f"{check_name}: skip -- ls-remote produced no sha")
-            add_finding("skip", "no remote sha", check=check_name, status="skip")
+    except Exception:  # noqa: BLE001
+        ls_remote_ok = False
+
+    if ls_remote_ok and remote_sha:
+        if installed_sha == remote_sha:
+            emit_info(f"{check_name}: current (sha matches remote)")
             return
-    except Exception as exc:  # noqa: BLE001 -- network/git optional
-        emit_info(f"{check_name}: skip -- could not probe remote ({type(exc).__name__})")
-        add_finding("skip", f"remote probe failed: {exc}", check=check_name, status="skip")
+        msg = (
+            f"Framework payload is stale (installed sha {installed_sha[:8]}... "
+            f"behind remote {remote_sha[:8]}... for ref '{ref}'). "
+            f"Recommendation: run `{CANONICAL_UPGRADE_COMMAND}` from any shell with Node ≥ 20."
+        )
+        emit_warn(msg)
+        add_finding(
+            "warning",
+            msg,
+            check=check_name,
+            status="stale",
+            installed_sha=installed_sha,
+            remote_sha=remote_sha,
+            ref=ref,
+            suggestion=CANONICAL_UPGRADE_COMMAND,
+            resolver="git-ls-remote",
+        )
         return
 
-    if installed_sha == remote_sha:
-        # Current
-        emit_info(f"{check_name}: current (sha matches remote)")
+    npm_ok, npm_version = _npm_view_version()
+    installed_version = _manifest_version(ref, tag)
+    if npm_ok and installed_version:
+        if _semver_less_than(installed_version, npm_version):
+            msg = (
+                f"Framework payload is stale (installed v{installed_version} "
+                f"behind npm registry v{npm_version} for ref '{ref}'). "
+                f"Recommendation: run `{CANONICAL_UPGRADE_COMMAND}` from any shell with Node ≥ 20."
+            )
+            emit_warn(msg)
+            add_finding(
+                "warning",
+                msg,
+                check=check_name,
+                status="stale",
+                installed_version=installed_version,
+                remote_version=npm_version,
+                ref=ref,
+                suggestion=CANONICAL_UPGRADE_COMMAND,
+                resolver="npm-view",
+            )
+            return
+        emit_info(f"{check_name}: current (version matches npm registry)")
         return
 
-    # Stale! Emit the EXACT canonical headless upgrade command (#1409) so a
-    # normal consumer can copy-paste one line and end up with a fresh payload
-    # plus updated metadata -- not just the metadata-only `task upgrade` ack.
-    recommended_command = "deft-install --yes --upgrade --repo-root . --json"
-    msg = (
-        f"Framework payload is stale (installed sha {installed_sha[:8]}... "
-        f"behind remote {remote_sha[:8]}... for ref '{ref}'). "
-        f"Recommendation: run the canonical headless upgrader "
-        f"`{recommended_command}` from your project root to pull the latest "
-        f"payload (drop `--json` for human-readable output). On an installer "
-        f"binary predating the headless flags, download the latest deft-install "
-        f"from GitHub Releases first."
+    reason = (
+        "ls-remote produced no sha and npm registry fallback unavailable"
+        if ls_remote_ok
+        else "could not reach remote (git ls-remote / npm view both unavailable)"
     )
-    emit_warn(msg)
+    emit_info(f"{check_name}: skip -- {reason}")
+    unverified_msg = f"payload currency UNVERIFIED — {reason}"
+    emit_warn(unverified_msg)
     add_finding(
         "warning",
-        msg,
+        unverified_msg,
         check=check_name,
-        status="stale",
-        installed_sha=installed_sha,
-        remote_sha=remote_sha,
-        ref=ref,
-        suggestion=recommended_command,
+        status="unverified",
+        reason=reason,
     )
 
 
@@ -1791,7 +2080,9 @@ def cmd_doctor(args: list[str]):
     if not full_mode:
         decision = _evaluate_doctor_throttle(project_root)
         if decision is not None and decision.skip:
-            return _emit_doctor_throttle_skip(decision, json_mode=json_mode)
+            return _emit_doctor_throttle_skip(
+                decision, json_mode=json_mode, project_root=project_root
+            )
 
     # Findings are the single source of truth for the summary, the
     # JSON payload, and the exit code (#1303 review #1 / #4). Replaces

@@ -1,0 +1,38 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1997"
+  },
+  "plan": {
+    "title": "Post-freeze doctor: surface npm-migration signpost on a normal run + npm payload-staleness command + Python doctor legacy-layout parity",
+    "status": "completed",
+    "narratives": {
+      "Description": "Post-freeze doctor: surface npm-migration signpost on a normal run + npm payload-staleness command + Python doctor legacy-layout parity",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1997",
+      "Overview": "Child of #1993 (sub-problem 5). Split out from the live Cartograph consumer report.\n\nThree doctor gaps post-freeze:\n- **Throttle hides the signpost**: on a normal (non-`--full`) run the 24h clean-window throttle (`packages/core/src/doctor/main.ts:56-78`, `constants.ts` CLEAN_WINDOW_HOURS) can skip the legacy-layout signpost entirely. The frozen-final v0.56.0 canonical-vendored layout is a known terminal state and should be detectable/surfaced without a networked `--full` run.\n- **Payload-staleness still recommends the Go bridge**: `CANONICAL_UPGRADE_COMMAND` (`doctor/constants.ts:55`) / `payload-staleness.ts:177` emit `deft-install --yes --upgrade ...`. Post-freeze the canonical path is npm — update the recommendation.\n- **Python doctor lacks legacy-layout**: `scripts/doctor.py` has no `legacy-layout` check, so the vendored Python doctor never emits the npm signpost (only the TS doctor does). UPGRADING claims parity; close the gap or adjust the claim.\n\nRefs #1993, #1912, #1411.",
+      "Labels": "enhancement, installer"
+    },
+    "items": [],
+    "tags": [
+      "enhancement",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1997",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1997: Post-freeze doctor: surface npm-migration signpost on a normal run + npm payload-staleness command + Python doctor legacy-layout parity"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1993",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1993"
+      }
+    ],
+    "updated": "2026-06-25T20:23:04Z",
+    "metadata": {
+      "completedAt": "2026-06-25T20:23:04Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

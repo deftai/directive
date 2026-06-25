@@ -421,6 +421,38 @@ def test_cmd_doctor_corrupt_state_runs_full(
     assert "Checking system dependencies" in result.stdout
 
 
+def test_cmd_doctor_throttle_skip_surfaces_local_signpost(
+    run_command, doctor_env, doctor_state_module, monkeypatch, deft_run_module
+):
+    """#1997: throttle skip still emits legacy/npm signposts without --full."""
+    orphan = doctor_env.project / ".deft"
+    orphan.mkdir(parents=True, exist_ok=True)
+    (orphan / "VERSION").write_text("tag: v0.26.0\n", encoding="utf-8")
+    _seed_state(
+        doctor_state_module,
+        doctor_env.project,
+        last_error_count=0,
+        age_hours=1.0,
+    )
+    monkeypatch.setattr(
+        deft_run_module,
+        "_run_install_integrity_checks",
+        lambda *a, **kw: None,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        deft_run_module,
+        "_run_agents_md_freshness_check",
+        lambda *a, **kw: None,
+        raising=False,
+    )
+    result = run_command("cmd_doctor", [])
+    assert result.return_code == 0
+    assert "[doctor]" in result.stdout
+    assert "Legacy Deft layout detected" in result.stdout
+    assert "Signpost advisory" in result.stdout
+
+
 # ---------------------------------------------------------------------------
 # #1316 -- skip-severity findings must not inflate the persisted warning tally
 # ---------------------------------------------------------------------------

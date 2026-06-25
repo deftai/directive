@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Vendored `run update` now points at npm instead of dead-ending** — the compatibility `run update` stub no longer tells operators to manually replace the deft directory; it signposts `npm i -g @deftai/directive@latest` and `npx @deftai/directive update` so future deposits steer consumers to the post-freeze upgrade path. Closes #1998.
+- **Doctor now recommends npm upgrades and surfaces layout advisories on throttled runs** — payload-staleness emits `npm i -g @deftai/directive@latest` (matching AGENTS.md), falls back to the npm registry when GitHub `ls-remote` is unreachable, and warns when payload currency is UNVERIFIED instead of silently passing; legacy-layout and canonical-vendored npm-migration signposts run on normal throttled doctor runs and in the Python doctor. Closes #1997, #2003, #2004.
 
 ### Removed
 

@@ -26,6 +26,7 @@ import {
   runningInsideDeftRepo,
 } from "./paths.js";
 import { runPayloadStalenessCheck } from "./payload-staleness.js";
+import { runLocalSignpostChecks } from "./signpost-checks.js";
 import {
   classifyTaskfileInclude,
   formatMissingIncludeSnippet,
@@ -57,6 +58,16 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     const state = (seams.readState ?? readState)(projectRoot);
     const decision = decideThrottle(state, nowFn());
     if (decision.skip) {
+      const throttleFindings: Finding[] = [];
+      const throttleSink = createPlainSink({ jsonMode, quietMode });
+      runLocalSignpostChecks(
+        projectRoot,
+        throttleSink,
+        (finding) => {
+          throttleFindings.push(finding);
+        },
+        seams,
+      );
       const hint = decision.dirty
         ? "run `deft doctor --full` to re-probe or address findings"
         : "--full forces";
@@ -69,10 +80,17 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
           last_error_count: decision.lastErrorCount,
           next_eligible_at: formatIsoZ(decision.nextEligibleAt),
           hint,
+          signpost_findings: throttleFindings,
         };
         process.stdout.write(`${pythonJsonDump(payload)}\n`);
       } else {
         process.stdout.write(`${renderDoctorStatusLine(decision, nowFn())}\n`);
+      }
+      const signpostWarnings = throttleFindings.filter((f) => f.severity === "warning").length;
+      if (signpostWarnings > 0 && !jsonMode) {
+        throttleSink.finalWarn(
+          `Signpost advisory: ${signpostWarnings} local layout / npm-migration note(s) above (throttle-skipped full probe).`,
+        );
       }
       return decision.dirty ? 1 : 0;
     }
@@ -282,6 +300,21 @@ function runInstallIntegrityChecks(
       }
       if (status === "skip") {
         sink.info(`${name}: skip -- ${detail}`);
+        continue;
+      }
+      if (
+        (name === "legacy-layout" || name === "canonical-vendored-npm-signpost") &&
+        status === "fail"
+      ) {
+        sink.warn(`${name}: ${detail}`);
+        addFinding({
+          severity: "warning",
+          message: detail || `${name} ${status}`,
+          check: `install-integrity:${name}`,
+          install_check: name,
+          status,
+          data: (entry.data as Record<string, unknown>) ?? {},
+        });
         continue;
       }
       if (status === "error") {

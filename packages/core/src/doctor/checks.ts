@@ -4,13 +4,24 @@ import {
   type LegacyDetectSeams,
   legacyLayoutSignpostLine,
 } from "../init-deposit/legacy-detect.js";
+import {
+  detectCanonicalVendoredManifest,
+  isNpmManaged,
+  NPM_MANAGED_SENTINEL_KEY,
+  NPM_MANAGED_SENTINEL_VALUE,
+} from "../init-deposit/migrate.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
-import { GO_BRIDGE_RELEASES_URL, UPGRADING_DOC_URL } from "./constants.js";
+import {
+  CANONICAL_UPGRADE_COMMAND,
+  GO_BRIDGE_RELEASES_URL,
+  UPGRADING_DOC_URL,
+} from "./constants.js";
 import {
   isDeprecationRedirectStub,
   locateManifest,
   manifestCandidatePaths,
   manifestTagToVersion,
+  parseInstallManifest,
   parseInstallRootFromAgentsMd,
   parseManifest,
 } from "./manifest.js";
@@ -357,11 +368,68 @@ export function checkLegacyLayout(projectRoot: string, seams: CheckSeams = {}): 
   };
 }
 
+/**
+ * #1997: signpost a canonical-vendored `.deft/core/` deposit that has not yet
+ * been stamped npm-managed. Local-only (no network).
+ */
+export function checkCanonicalVendoredNpmSignpost(
+  projectRoot: string,
+  seams: CheckSeams = {},
+): CheckResult {
+  const readText = seams.readText ?? readTextSafe;
+  const isFile = seams.isFile ?? ((p: string) => readText(p) !== null);
+  const manifestPath = detectCanonicalVendoredManifest(projectRoot, isFile);
+  if (manifestPath === null) {
+    return {
+      name: "canonical-vendored-npm-signpost",
+      status: "skip",
+      detail: "No canonical-vendored .deft/core/ deposit (nothing to signpost).",
+      data: { canonical_vendored: false },
+    };
+  }
+  const text = readText(manifestPath);
+  if (text === null) {
+    return {
+      name: "canonical-vendored-npm-signpost",
+      status: "skip",
+      detail: "Canonical-vendored manifest unreadable.",
+      data: { canonical_vendored: true },
+    };
+  }
+  const manifest = parseInstallManifest(text);
+  if (isNpmManaged(manifest)) {
+    return {
+      name: "canonical-vendored-npm-signpost",
+      status: "skip",
+      detail: "Deposit is already npm-managed (hybrid).",
+      data: { canonical_vendored: true, npm_managed: true },
+    };
+  }
+  const detail =
+    "Canonical-vendored install (.deft/core/) is not yet npm-managed. " +
+    "Post-freeze upgrades run via npm: install the engine with " +
+    `\`${CANONICAL_UPGRADE_COMMAND}\`, then run \`directive migrate\` ` +
+    `to stamp provenance. See ${UPGRADING_DOC_URL}.`;
+  return {
+    name: "canonical-vendored-npm-signpost",
+    status: "fail",
+    detail,
+    data: {
+      canonical_vendored: true,
+      npm_managed: false,
+      manifest_path: manifestPath,
+      sentinel_key: NPM_MANAGED_SENTINEL_KEY,
+      sentinel_value: NPM_MANAGED_SENTINEL_VALUE,
+      upgrading_doc_url: UPGRADING_DOC_URL,
+    },
+  };
+}
+
 export function deriveExitCode(checks: readonly CheckResult[], errors: readonly string[]): number {
   if (errors.length > 0 || checks.some((c) => c.status === "error")) {
     return 2;
   }
-  if (checks.some((c) => c.status === "fail")) {
+  if (checks.some((c) => c.status === "fail" && c.name !== "canonical-vendored-npm-signpost")) {
     return 1;
   }
   return 0;
@@ -399,6 +467,7 @@ export function runChecksImpl(
     });
     checks.push(checkManifestAgreement(projectRoot, null, seams));
     checks.push(checkLegacyLayout(projectRoot, seams));
+    checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
     return {
       projectRoot,
       installRoot: null,
@@ -412,6 +481,7 @@ export function runChecksImpl(
   checks.push(checkManifestAgreement(projectRoot, installRoot, seams));
   checks.push(checkInstallPathConsistency(projectRoot, installRoot, seams));
   checks.push(checkLegacyLayout(projectRoot, seams));
+  checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
   return {
     projectRoot,
     installRoot,

@@ -6,7 +6,6 @@ import {
   buildFixtureRepo,
   diffCase,
   normalizeOutput,
-  PARITY_CASES,
   renderReport,
   resolveDeftRoot,
   runParity,

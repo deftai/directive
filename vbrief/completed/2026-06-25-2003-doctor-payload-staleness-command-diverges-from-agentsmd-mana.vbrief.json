@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2003"
+  },
+  "plan": {
+    "title": "doctor payload-staleness command diverges from AGENTS.md / managed-section docs",
+    "status": "completed",
+    "narratives": {
+      "Description": "doctor payload-staleness command diverges from AGENTS.md / managed-section docs",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2003",
+      "Overview": "## Summary\n\nTwo different \"canonical upgrade command\" strings are live across surfaces, and the AGENTS.md / managed-section narrative attributes the **wrong** one to `scripts/doctor.py`.\n\nThe managed-section template (and therefore every consumer-installed `AGENTS.md`) states:\n\n> The canonical `scripts/doctor.py` ... when behind, emits the canonical upgrade command `npm i -g @deftai/directive@latest` (#1339 / #1409 / #1912).\n\nBut the doctor's payload-staleness path actually emits a **different** command.\n\n## Evidence\n\nDocumentation side (claims `npm i -g @deftai/directive@latest`):\n- `templates/agents-entry.md` (managed-section source) → propagates to every consumer `AGENTS.md`\n- `AGENTS.md` (maintainer copy)\n- `skills/deft-directive-sync/SKILL.md`, `README.md`\n\nSource side (actually emits `deft-install --yes --upgrade --repo-root . --json`):\n- `scripts/doctor.py:1640` — `recommended_command = \"deft-install --yes --upgrade --repo-root . --json\"` (docstring at :1502 confirms this is the payload-staleness emission, #1409)\n- `packages/core/src/doctor/constants.ts:55` — `CANONICAL_UPGRADE_COMMAND = \"deft-install --yes --upgrade --repo-root . --json\"`\n- Release notes for v0.56.1 / v0.56.2 also cite `deft-install --yes --upgrade --repo-root . --json`\n\n## Why it matters\n\n`npm i -g ...` and `deft-install --yes --upgrade ...` are **different operations**: the former refreshes the globally-installed CLI, the latter refreshes the *vendored* `.deft/core` payload in a project. The doctor's payload-staleness check is specifically about the vendored payload, so the source command (`deft-install --yes --upgrade`) is the correct one for that emission — which means the AGENTS.md narrative citing the npm command for that exact code path is inaccurate. A consumer who copy-pastes the npm command after a payload-staleness warning updates the wrong thing and the warning persists.\n\n## Suggested resolution\n\nReconcile the managed-section narrative with the doctor source. Either:\n1. Correct `templates/agents-entry.md` (and re-run `task agents:refresh`) so the doctor-attributed command matches `CANONICAL_UPGRADE_COMMAND` (`deft-install --yes --upgrade --repo-root . --json`), keeping `npm i -g @deftai/directive@latest` only where it correctly refers to refreshing the global CLI; or\n2. If npm is intended to be the single canonical path post-freeze, update `doctor.py` + `constants.ts` to emit the npm command and adjust the release-notes template accordingly.\n\nA small contract test asserting the doctor-emitted command string matches the string quoted in `templates/agents-entry.md` would prevent regression (cf. the existing `tests/content/test_agents_entry_contract.py` marker mechanism).\n\n## Discovered\n\nFound during a routine version-staleness investigation on a vendored install (cartograph, payload `v0.56.0`)."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2003",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2003: doctor payload-staleness command diverges from AGENTS.md / managed-section docs"
+      }
+    ],
+    "updated": "2026-06-25T20:23:05Z",
+    "metadata": {
+      "completedAt": "2026-06-25T20:23:05Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

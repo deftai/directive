@@ -363,6 +363,15 @@ def _classify_command(
             return True, f"run subcommand `{subcmd}`"
         return False, f"unknown run subcommand `{subcmd}`"
 
+    if cmd.startswith("npm i -g @deftai/directive"):
+        return True, "canonical npm upgrade command (#2003)"
+
+    if cmd.startswith("npx @deftai/directive "):
+        return True, "canonical npx npm CLI invocation (#1912)"
+
+    if head == "directive":
+        return True, "directive CLI verb (#2003)"
+
     # Not a command shape we recognise -- the regex picked up something
     # else (an inline-code literal like `v0.27.1` or a file path). The
     # caller filters these out via the explicit-command-prefixes check.
@@ -372,16 +381,18 @@ def _classify_command(
 def _looks_like_command(cmd: str) -> bool:
     """Heuristic: does this backticked literal LOOK like a command vs a value?
 
-    Commands always start with ``task ``, ``.deft/core/run ``,
-    ``.deft\\core\\run ``, or ``run ``. Anything else (e.g. inline-code
-    literals citing a version string, a file path, or a YAML field name)
-    is excluded from the command-string contract.
+    Commands start with ``task ``, ``.deft/core/run ``,
+    ``.deft\\core\\run ``, ``run ``, the post-freeze npm upgrade one-liner,
+    ``npx @deftai/directive ...``, or ``directive ...`` CLI verbs.
     """
     return cmd.startswith((
         "task ",
         ".deft/core/run ",
         ".deft\\core\\run ",
         "run ",
+        "npm i -g ",
+        "npx @deftai/directive ",
+        "directive ",
     ))
 
 

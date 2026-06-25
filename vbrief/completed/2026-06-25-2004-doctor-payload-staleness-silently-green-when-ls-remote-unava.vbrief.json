@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2004"
+  },
+  "plan": {
+    "title": "doctor payload-staleness silently green when ls-remote unavailable (false 'System check passed!')",
+    "status": "completed",
+    "narratives": {
+      "Description": "doctor payload-staleness silently green when ls-remote unavailable (false 'System check passed!')",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2004",
+      "Overview": "## Summary\n\n`scripts/doctor.py`'s payload-staleness check degrades to a silent, invisible `skip` whenever its `git ls-remote` probe can't resolve a remote SHA (no network, no origin, restricted/allowlist network, or empty output). Because `skip` findings do not affect the doctor's overall verdict, the doctor prints `✓ System check passed!` even when the installed payload is genuinely behind. In any network-restricted environment (CI, sandboxed agents, corporate egress filtering) the staleness guard is effectively blind and reports a false \"all clear\".\n\n## Reproduction (observed live)\n\nVendored install on a project (cartograph), payload `v0.56.0`; latest published was `v0.56.2` (two patches behind, same day). `doctor.py --full` output:\n\n```\nℹ Checking payload staleness from install manifest...\nℹ payload-staleness: skip -- ls-remote produced no sha\n...\n✓ System check passed!\n```\n\nThe only reason the staleness was caught at all was an independent `npm view @deftai/directive version` (the npm registry was reachable in the same environment where `git ls-remote origin <ref>` to GitHub was not).\n\n## Root cause\n\nAll network/resolution failure branches emit `add_finding(..., status=\"skip\")` and `return`, which is non-fatal and does not downgrade the green summary:\n\n- `scripts/doctor.py:1594-1597` — `git ls-remote failed (no network or no origin)`\n- `scripts/doctor.py:1624-1626` — `ls-remote produced no sha` (the branch hit here)\n- `scripts/doctor.py:1627-1630` — `could not probe remote (<Exc>)`\n\nThe docstring (`:1503-1504`) documents this as intentional best-effort behavior (\"Skips gracefully ... when git / network / manifest unavailable (non-fatal)\"). The problem is the *consequence*: a skip is indistinguishable from a confirmed-current result in the headline verdict, so \"couldn't verify\" reads as \"verified fresh\".\n\n## Why it matters\n\n- The payload-staleness guard is the canonical surface that tells consumers they're behind. When it silent-skips, consumers (and headless agents that key off doctor's exit/verdict) believe they're current when they're not.\n- This is most likely to fire exactly where it's most dangerous: automated/sandboxed/CI contexts that can't reach GitHub directly.\n\n## Suggested resolution\n\n1. **Make the skip visible in the summary.** When payload-staleness can't verify, surface a distinct advisory line in the final summary (e.g. `⚠ payload currency UNVERIFIED — could not reach remote`) rather than folding into a clean `✓ System check passed!`. Keep it non-fatal, but not invisible.\n2. **Add a network-independent fallback resolver.** Post-freeze the canonical distribution is npm, and the npm registry is often reachable when GitHub `ls-remote` is not (demonstrated above). The doctor could compare the manifest `ref`/`tag` against `npm view @deftai/directive version` as a fallback when `ls-remote` yields nothing — which would have caught the `v0.56.0` vs `v0.56.2` gap.\n3. Optionally distinguish \"skip: no manifest / inside repo\" (genuinely not applicable) from \"skip: could not verify currency\" (applicable but unverifiable) so only the latter raises the advisory.\n\n## Related\n\nSurfaced alongside #2003 (doctor-emitted upgrade-command string diverging from AGENTS.md docs) during the same version-staleness investigation."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2004",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2004: doctor payload-staleness silently green when ls-remote unavailable (false 'System check passed!')"
+      }
+    ],
+    "updated": "2026-06-25T20:23:06Z",
+    "metadata": {
+      "completedAt": "2026-06-25T20:23:06Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

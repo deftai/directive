@@ -52,7 +52,10 @@ export const DEFT_REPO_POSITIVE_MARKERS = [
 // consumer deposit (<dir>).
 export const EXPECTED_CONTENT_DIRS = ["languages", "strategies", "skills", "templates"] as const;
 
-export const CANONICAL_UPGRADE_COMMAND = "deft-install --yes --upgrade --repo-root . --json";
+/** Post-freeze canonical upgrade path (#1997 / #2003 / #1912). */
+export const CANONICAL_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest";
+
+export const NPM_PACKAGE_NAME = "@deftai/directive";
 
 export const CLEAN_WINDOW_HOURS = 24;
 export const DIRTY_WINDOW_HOURS = 4;

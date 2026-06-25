@@ -106,7 +106,7 @@ describe("payload staleness", () => {
         stdout: "cafebabe refs/heads/main\n",
       }),
     });
-    expect(lines.join("")).toContain("deft-install --yes --upgrade");
+    expect(lines.join("")).toContain("npm i -g @deftai/directive@latest");
   });
 });
 

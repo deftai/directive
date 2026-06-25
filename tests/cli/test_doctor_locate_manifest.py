@@ -289,7 +289,7 @@ class TestPayloadStalenessDeftVersion:
         )
         warnings, findings = _collect_staleness(doctor_module, tmp_path)
         assert [f for f in findings if f.get("status") == "stale"], findings
-        assert any("deft-install" in w for w in warnings), warnings
+        assert any("npm i -g @deftai/directive@latest" in w for w in warnings), warnings
 
     def test_current_from_deft_version_emits_no_stale(
         self, doctor_module, tmp_path, monkeypatch
