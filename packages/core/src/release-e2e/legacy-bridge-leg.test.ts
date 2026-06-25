@@ -3,14 +3,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { detectLegacyLayout, type LegacyLayoutKind } from "../init-deposit/legacy-detect.js";
+import { buildInstallManifestText } from "../init-deposit/scaffold.js";
 import type { SpawnResult } from "../release/types.js";
 import { EXIT_OK, EXIT_VIOLATION } from "./constants.js";
 import { parseE2EFlags } from "./flags.js";
 import * as ghOps from "./gh-ops.js";
 import {
+  assertInstallerVersionMigrateAcceptable,
   assertLegacyFixturesDetectedAndRefused,
   assertNpmHybridMigration,
+  CANONICAL_INSTALLER_MANIFEST_FIELDS,
   downloadAndRunFrozenBridge,
+  installerManifestFieldKeys,
   LEGACY_FIXTURES,
   provisionCanonicalVendoredDeposit,
   provisionLegacyFixture,
@@ -109,6 +113,29 @@ describe("assertNpmHybridMigration", () => {
     expect(reason).toContain("managed_by: 'npm'");
   });
 
+  it("asserts the installer VERSION is migrate-acceptable before stamping (a1)", () => {
+    const work = freshRoot("hybrid-handshake-");
+    const [okFlag, reason] = assertNpmHybridMigration(work, null, {
+      resolveEngine: () => "npm",
+      nowIso: () => "2026-06-24T00:00:00Z",
+    });
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("installer VERSION migrate-acceptable");
+  });
+
+  it("FAILs with a handshake mismatch when the installer VERSION field shape drifts (a2)", () => {
+    const work = freshRoot("hybrid-drift-");
+    const [okFlag, reason] = assertNpmHybridMigration(work, null, {
+      resolveEngine: () => "npm",
+      // A drifted VERSION missing the install_root / fetched_* installer fields:
+      // migrate alone would still stamp it, so the handshake assertion must catch it.
+      versionTextOverride: "ref: 'v0.0.1'\nsha: 'content-package'\ntag: 'v0.0.1'\n",
+    });
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("handshake mismatch");
+    expect(reason).toContain("install_root");
+  });
+
   it("renders + asserts the AGENTS.md managed-section when the template is available", () => {
     if (!existsSync(REAL_AGENTS_TEMPLATE)) {
       return; // not a source checkout -- the template-less path is covered above
@@ -136,11 +163,74 @@ describe("assertNpmHybridMigration", () => {
 describe("provisionCanonicalVendoredDeposit", () => {
   it("writes a canonical-vendored .deft/core deposit the detector treats as not-legacy", () => {
     const project = freshRoot("canonical-");
-    const { deftDir, agentsRendered } = provisionCanonicalVendoredDeposit(project, null);
+    const { deftDir, agentsRendered, manifestPath } = provisionCanonicalVendoredDeposit(
+      project,
+      null,
+    );
     expect(existsSync(join(deftDir, "VERSION"))).toBe(true);
     expect(existsSync(join(deftDir, "main.md"))).toBe(true);
     expect(agentsRendered).toBe(false);
+    expect(manifestPath).toBe(join(deftDir, "VERSION"));
     expect(detectLegacyLayout(project).legacy).toBe(false);
+  });
+
+  it("writes an installer-shaped VERSION carrying every installer manifest field", () => {
+    const project = freshRoot("canonical-shape-");
+    const { manifestPath } = provisionCanonicalVendoredDeposit(project, null);
+    const version = readFileSync(manifestPath, "utf8");
+    for (const key of installerManifestFieldKeys()) {
+      expect(version).toContain(`${key}:`);
+    }
+    const [okFlag, reason] = assertInstallerVersionMigrateAcceptable(version);
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("migrate-acceptable");
+  });
+
+  it("writes the raw override VERSION verbatim when versionTextOverride is supplied", () => {
+    const project = freshRoot("canonical-override-");
+    const drifted = "ref: 'v0.0.1'\nsha: 'content-package'\n"; // missing tag/install_root/...
+    const { manifestPath } = provisionCanonicalVendoredDeposit(project, null, drifted);
+    expect(readFileSync(manifestPath, "utf8")).toBe(drifted);
+  });
+});
+
+describe("assertInstallerVersionMigrateAcceptable", () => {
+  it("accepts a canonical installer-shaped VERSION (the buildInstallManifestText shape)", () => {
+    const version = buildInstallManifestText(CANONICAL_INSTALLER_MANIFEST_FIELDS);
+    const [okFlag, reason] = assertInstallerVersionMigrateAcceptable(version);
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("installer VERSION migrate-acceptable");
+    for (const key of installerManifestFieldKeys()) {
+      expect(reason).toContain(key);
+    }
+  });
+
+  it("rejects an empty / fieldless VERSION as a handshake mismatch", () => {
+    const [okFlag, reason] = assertInstallerVersionMigrateAcceptable("\n# no key/value lines\n");
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("handshake mismatch");
+    expect(reason).toContain("empty manifest");
+  });
+
+  it("rejects a VERSION whose installer field shape drifted (missing fields)", () => {
+    const drifted = "ref: 'v0.0.1'\nsha: 'content-package'\ntag: 'v0.0.1'\n";
+    const [okFlag, reason] = assertInstallerVersionMigrateAcceptable(drifted);
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("handshake mismatch");
+    expect(reason).toContain("install_root");
+    expect(reason).toContain("fetched_at");
+    expect(reason).toContain("fetched_by");
+  });
+
+  it("rejects a VERSION with a renamed installer key (camelCase drift)", () => {
+    // installRoot is the TS field name; the on-disk manifest key is install_root.
+    const renamed =
+      "ref: 'v0.0.1'\nsha: 'content-package'\ntag: 'v0.0.1'\n" +
+      "installRoot: '.deft/core'\nfetched_at: '2026-06-24T00:00:00Z'\nfetched_by: 'frozen-go-bridge'\n";
+    const [okFlag, reason] = assertInstallerVersionMigrateAcceptable(renamed);
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("handshake mismatch");
+    expect(reason).toContain("install_root");
   });
 });
 
@@ -303,6 +393,41 @@ describe("runLegacyBridgeLeg", () => {
     });
     expect(okFlag).toBe(true);
     expect(reason).toContain("PENDING (SoT unfrozen)");
+  });
+
+  it("validates the VERSION handshake on the SoT-null path with no binary download (a3)", () => {
+    // SoT null (pending-pin) means no frozen-binary download; the stage-2
+    // handshake must still run. A drifted VERSION must fail the leg even though
+    // the real frozen bridge is skipped -- proving the handshake is asserted
+    // end-to-end without a network/binary dependency.
+    let frozenDownloadAttempts = 0;
+    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+      which: whichFor("npm"),
+      lastGoInstaller: () => null,
+      resolveEngine: () => "npm",
+      agentsTemplatePath: null,
+      versionTextOverride: "ref: 'v0.0.1'\nsha: 'content-package'\ntag: 'v0.0.1'\n",
+      runFrozenBridge: () => {
+        frozenDownloadAttempts += 1;
+        return [true, "should not be reached on the SoT-null path"];
+      },
+    });
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("npm-hybrid");
+    expect(reason).toContain("handshake mismatch");
+    expect(frozenDownloadAttempts).toBe(0);
+  });
+
+  it("passes the SoT-null path when the installer-shaped VERSION is migrate-acceptable (a3)", () => {
+    const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
+      which: whichFor("npm"),
+      lastGoInstaller: () => null,
+      resolveEngine: () => "npm",
+      agentsTemplatePath: null,
+    });
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("PENDING (SoT unfrozen)");
+    expect(reason).toContain("stage-2 npm-hybrid");
   });
 
   it("runs the real pinned handoff when the SoT is frozen", () => {

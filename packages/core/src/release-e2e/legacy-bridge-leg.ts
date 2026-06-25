@@ -20,6 +20,7 @@ import {
 } from "../init-deposit/legacy-detect.js";
 import { isNpmManaged, NPM_MANAGED_SENTINEL_VALUE, runMigrate } from "../init-deposit/migrate.js";
 import {
+  buildInstallManifestText,
   CANONICAL_INSTALL_ROOT,
   type InitDepositIo,
   type InstallManifestFields,
@@ -175,28 +176,88 @@ export function assertLegacyFixturesDetectedAndRefused(workRoot: string): [boole
 }
 
 /**
+ * The canonical installer manifest fields the frozen Go bridge writes into
+ * `.deft/core/VERSION`. Field names + order come from the installer's
+ * `buildInstallManifestText` (the TS port of the Go `BuildInstallManifestText`),
+ * so this fixture is the same shape a real frozen-bridge run deposits.
+ */
+export const CANONICAL_INSTALLER_MANIFEST_FIELDS: InstallManifestFields = {
+  ref: "v0.0.1",
+  sha: "content-package",
+  tag: "v0.0.1",
+  installRoot: CANONICAL_INSTALL_ROOT,
+  fetchedAt: "2026-06-24T00:00:00Z",
+  fetchedBy: "frozen-go-bridge",
+};
+
+/**
+ * The install-manifest field keys a canonical installer VERSION carries, derived
+ * from the installer's own `buildInstallManifestText` output so the handshake
+ * expectation tracks the real installer field shape rather than restating it.
+ * `directive migrate` consumes this VERSION; a drift away from these keys is the
+ * handshake break this leg now asserts against.
+ */
+export function installerManifestFieldKeys(): string[] {
+  return Object.keys(
+    parseInstallManifest(buildInstallManifestText(CANONICAL_INSTALLER_MANIFEST_FIELDS)),
+  );
+}
+
+/**
+ * Assert an installer-shaped VERSION is migrate-acceptable: `parseInstallManifest`
+ * accepts it AND it carries every canonical installer manifest field
+ * ({@link installerManifestFieldKeys}) with a non-empty value. A drifted field
+ * shape (missing or renamed key, empty value) returns a handshake mismatch
+ * reason so the leg fails loudly rather than letting `directive migrate` stamp a
+ * non-installer VERSION npm-managed. This is the stage-2 handshake the #1912
+ * freeze hinges on (the installer VERSION the npm CLI accepts as canonical-ready).
+ */
+export function assertInstallerVersionMigrateAcceptable(versionText: string): [boolean, string] {
+  const manifest = parseInstallManifest(versionText);
+  if (Object.keys(manifest).length === 0) {
+    return [false, "handshake mismatch: installer VERSION parsed to an empty manifest"];
+  }
+  const required = installerManifestFieldKeys();
+  const missing = required.filter((key) => {
+    const value = manifest[key];
+    return value === undefined || value.trim() === "";
+  });
+  if (missing.length > 0) {
+    return [
+      false,
+      `handshake mismatch: installer VERSION missing migrate-required field(s): ${missing.join(", ")}`,
+    ];
+  }
+  return [true, `installer VERSION migrate-acceptable (${required.join(", ")})`];
+}
+
+/**
  * Provision a canonical-vendored `.deft/core` deposit -- the shape the stage-1
- * bridge produces from a legacy layout. Optionally renders AGENTS.md when the
- * agents-entry template is available (so the npm-hybrid end-state check can
- * assert the managed-section the way `directive init`/`update` do).
+ * bridge produces from a legacy layout. Writes an installer-shaped VERSION (via
+ * the installer's own `writeInstallManifest`) unless `versionTextOverride` is
+ * supplied, in which case the raw override text is written verbatim so a test can
+ * drive a drifted VERSION through the stage-2 handshake. Optionally renders
+ * AGENTS.md when the agents-entry template is available (so the npm-hybrid
+ * end-state check can assert the managed-section the way `directive init`/`update`
+ * do). Returns the VERSION manifest path so the caller can assert the handshake.
  */
 export function provisionCanonicalVendoredDeposit(
   projectDir: string,
   agentsTemplatePath: string | null,
-): { deftDir: string; agentsRendered: boolean } {
+  versionTextOverride: string | null = null,
+): { deftDir: string; agentsRendered: boolean; manifestPath: string } {
   const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
   mkdirSync(join(deftDir, "templates"), { recursive: true });
   writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
 
-  const fields: InstallManifestFields = {
-    ref: "v0.0.1",
-    sha: "content-package",
-    tag: "v0.0.1",
-    installRoot: CANONICAL_INSTALL_ROOT,
-    fetchedAt: "2026-06-24T00:00:00Z",
-    fetchedBy: "frozen-go-bridge",
-  };
-  writeInstallManifest(projectDir, deftDir, fields);
+  let manifestPath: string;
+  if (versionTextOverride !== null) {
+    mkdirSync(deftDir, { recursive: true });
+    manifestPath = join(deftDir, "VERSION");
+    writeFileSync(manifestPath, versionTextOverride, "utf8");
+  } else {
+    manifestPath = writeInstallManifest(projectDir, deftDir, CANONICAL_INSTALLER_MANIFEST_FIELDS);
+  }
 
   let agentsRendered = false;
   if (agentsTemplatePath !== null && existsSync(agentsTemplatePath)) {
@@ -204,7 +265,7 @@ export function provisionCanonicalVendoredDeposit(
     writeAgentsMd(projectDir, deftDir, NOOP_IO);
     agentsRendered = true;
   }
-  return { deftDir, agentsRendered };
+  return { deftDir, agentsRendered, manifestPath };
 }
 
 /**
@@ -221,7 +282,24 @@ export function assertNpmHybridMigration(
   const projectDir = join(workRoot, "post-bridge");
   mkdirSync(projectDir, { recursive: true });
 
-  const { agentsRendered } = provisionCanonicalVendoredDeposit(projectDir, agentsTemplatePath);
+  const { agentsRendered, manifestPath } = provisionCanonicalVendoredDeposit(
+    projectDir,
+    agentsTemplatePath,
+    seams.versionTextOverride ?? null,
+  );
+
+  // Stage-2 handshake: the installer-shaped VERSION must be migrate-acceptable
+  // (parseInstallManifest accepts it AND it carries the canonical installer
+  // fields) BEFORE `directive migrate` stamps managed_by. migrate itself only
+  // appends the sentinel and would happily stamp a drifted VERSION, so asserting
+  // the installer field shape here is what makes the freeze handshake end-to-end
+  // rather than assumed. Runs regardless of the SoT pin (the pending-pin path
+  // still validates the handshake without any binary download).
+  const versionText = readFileSync(manifestPath, "utf8");
+  const [handshakeOk, handshakeReason] = assertInstallerVersionMigrateAcceptable(versionText);
+  if (!handshakeOk) {
+    return [false, `npm-hybrid FAIL: ${handshakeReason}`];
+  }
 
   if (agentsRendered) {
     const agents = readFileSync(join(projectDir, "AGENTS.md"), "utf8");
@@ -258,6 +336,7 @@ export function assertNpmHybridMigration(
   return [
     true,
     `npm-hybrid deposit valid (canonical ${CANONICAL_INSTALL_ROOT}${agentsNote}; ` +
+      `installer VERSION migrate-acceptable; ` +
       `directive migrate -> managed_by: '${NPM_MANAGED_SENTINEL_VALUE}', idempotent)`,
   ];
 }
@@ -412,6 +491,12 @@ export interface LegacyBridgeLegSeams {
   runFrozenBridge?: (pin: string, fixtureDir: string) => [boolean, string];
   /** Override the agents-entry template path (default: <projectRoot>/content/templates/agents-entry.md). */
   agentsTemplatePath?: string | null;
+  /**
+   * Test seam: write this raw text to the stage-2 `.deft/core/VERSION` instead of
+   * the installer-shaped manifest, to drive a drifted VERSION through the
+   * migrate-acceptable handshake assertion (default: installer-shaped manifest).
+   */
+  versionTextOverride?: string;
 }
 
 /**
