@@ -351,6 +351,27 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
     expect(calls.some((c) => c.cmd.some((part) => String(part).includes("bin.js")))).toBe(true);
   });
 
+  it("skipWorkspacePrep omits pnpm install/build when publish dry-run already prepared", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-install-run-skip-"));
+    scaffoldPackages(clone);
+    const calls: string[][] = [];
+    const seams: E2ESeams = {
+      which: (n) => `/usr/bin/${n}`,
+      spawnText: (cmd, args) => {
+        const full = [cmd, ...args];
+        calls.push(full);
+        if (full.some((part) => String(part).includes("bin.js"))) {
+          return { status: 0, stdout: "Usage: directive doctor\n", stderr: "" };
+        }
+        return ok();
+      },
+    };
+    const [okFlag] = rehearseNpmInstallAndRun(clone, "0.0.1", seams, { skipWorkspacePrep: true });
+    expect(okFlag).toBe(true);
+    expect(calls.some((c) => c.includes("build"))).toBe(false);
+    expect(calls.some((c) => c.includes("frozen-lockfile"))).toBe(false);
+  });
+
   it("fails loudly on ERR_MODULE_NOT_FOUND from the installed CLI", () => {
     const clone = mkdtempSync(join(tmpdir(), "deft-npm-install-run-fail-"));
     scaffoldPackages(clone);

@@ -214,6 +214,7 @@ export function rehearseNpmInstallAndRun(
   cloneDir: string,
   version: string,
   seams: E2ESeams = {},
+  options: { skipWorkspacePrep?: boolean } = {},
 ): [boolean, string] {
   const which = resolveWhich(seams);
   const npmPath = which("npm");
@@ -231,26 +232,31 @@ export function rehearseNpmInstallAndRun(
   }
 
   const env: NodeJS.ProcessEnv = { ...process.env, DEFT_PROJECT_ROOT: cloneDir };
-  let [ok, reason] = runNpmStep(
-    [...pnpmCmd, "install", "--frozen-lockfile"],
-    cloneDir,
-    env,
-    "pnpm install",
-    NPM_INSTALL_TIMEOUT_SECONDS,
-    seams,
-  );
-  if (!ok) return [false, reason];
-  [ok, reason] = runNpmStep(
-    [...pnpmCmd, "-w", "run", "build"],
-    cloneDir,
-    env,
-    "pnpm build",
-    NPM_BUILD_TIMEOUT_SECONDS,
-    seams,
-  );
-  if (!ok) return [false, reason];
-  [ok, reason] = alignNpmPackageVersions(cloneDir, version);
-  if (!ok) return [false, reason];
+  let ok = true;
+  let reason = "";
+
+  if (!options.skipWorkspacePrep) {
+    let [ok, reason] = runNpmStep(
+      [...pnpmCmd, "install", "--frozen-lockfile"],
+      cloneDir,
+      env,
+      "pnpm install",
+      NPM_INSTALL_TIMEOUT_SECONDS,
+      seams,
+    );
+    if (!ok) return [false, reason];
+    [ok, reason] = runNpmStep(
+      [...pnpmCmd, "-w", "run", "build"],
+      cloneDir,
+      env,
+      "pnpm build",
+      NPM_BUILD_TIMEOUT_SECONDS,
+      seams,
+    );
+    if (!ok) return [false, reason];
+    [ok, reason] = alignNpmPackageVersions(cloneDir, version);
+    if (!ok) return [false, reason];
+  }
 
   const packDir = join(cloneDir, ".deft-e2e-packs");
   mkdirSync(packDir, { recursive: true });
@@ -267,10 +273,17 @@ export function rehearseNpmInstallAndRun(
     );
     if (!ok) return [false, reason];
     const manifest = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")) as {
-      name: string;
-      version: string;
-    };
-    const scoped = manifest.name.replace("@", "").replace("/", "-");
+      name?: string;
+      version?: string;
+    } | null;
+    if (
+      manifest === null ||
+      typeof manifest.name !== "string" ||
+      typeof manifest.version !== "string"
+    ) {
+      return [false, `version-align FAIL: invalid manifest in packages/${pkg}`];
+    }
+    const scoped = manifest.name.replaceAll("@", "").replaceAll("/", "-");
     tgzPaths.push(join(packDir, `${scoped}-${manifest.version}.tgz`));
   }
 
@@ -308,7 +321,7 @@ export function rehearseNpmInstallAndRun(
       `install+run smoke: module resolution error (${resolutionHit}): ${doctorOut.trim().slice(-800)}`,
     ];
   }
-  if (doctor.status !== 0 && doctor.status !== 1) {
+  if (doctor.status !== 0) {
     return [
       false,
       `install+run smoke: directive doctor --help exited ${doctor.status}: ${doctorOut.trim().slice(-500)}`,

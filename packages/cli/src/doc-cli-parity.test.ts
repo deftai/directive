@@ -60,6 +60,12 @@ describe("doc ↔ CLI parity gate (#1996)", () => {
     }
   });
 
+  it("does not allowlist colon-verbs whose stem matches a legacy key", () => {
+    const reason = validateDocCliCommand("core:upgrade");
+    expect(reason).not.toBeNull();
+    expect(reason).toContain("unregistered handler");
+  });
+
   it("accepts npm top-level init/update/migrate invocations", () => {
     expect(validateDocCliCommand("init")).toBeNull();
     expect(validateDocCliCommand("update")).toBeNull();

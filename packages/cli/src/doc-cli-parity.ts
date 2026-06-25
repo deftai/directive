@@ -77,6 +77,18 @@ export function extractDocCliReferences(
   );
 }
 
+function stripAnglePlaceholders(text: string): string {
+  let out = text;
+  let start = out.indexOf("<");
+  while (start >= 0) {
+    const end = out.indexOf(">", start + 1);
+    if (end < 0) break;
+    out = `${out.slice(0, start)}${out.slice(end + 1)}`;
+    start = out.indexOf("<");
+  }
+  return out.trim();
+}
+
 /** Strip flags/placeholders; return null when the literal is not a CLI verb invocation. */
 export function normalizeDocCommand(raw: string): string | null {
   let rest = raw.replace(CLI_PREFIX_RE, "").trim();
@@ -87,7 +99,7 @@ export function normalizeDocCommand(raw: string): string | null {
 
   rest = rest.replace(/\s+\[[^\]]*\]/g, "").trim();
   rest = rest.replace(/\s+--[^\s]+(\s+[^\s]+)?/g, "").trim();
-  rest = rest.replace(/<[^>]+>/g, "").trim();
+  rest = stripAnglePlaceholders(rest);
 
   if (rest.includes("/") || rest.includes(".md") || rest.includes("*")) return null;
   if (/^deft-install\b/.test(rest)) return null;
@@ -127,8 +139,7 @@ function isRegisteredHandler(flatVerb: string): boolean {
 export function validateDocCliCommand(normalized: string): string | null {
   const colonKey = colonKeyFromNormalized(normalized);
   if (colonKey !== null) {
-    const legacyStem = colonKey.includes(":") ? colonKey.split(":")[1] : colonKey;
-    if (LEGACY_DOC_VERB_KEYS.has(colonKey) || LEGACY_DOC_VERB_KEYS.has(legacyStem ?? "")) {
+    if (LEGACY_DOC_VERB_KEYS.has(colonKey)) {
       return null;
     }
     if (colonKey in VERB_ALIASES || hasCommand(colonKey)) {

@@ -36,7 +36,7 @@ export function runRehearsal(
       steps.push(["npm publish dry-run", () => rehearseNpmPublish(cloneDir, version, seams)]);
       steps.push([
         "npm install+run smoke",
-        () => rehearseNpmInstallAndRun(cloneDir, version, seams),
+        () => rehearseNpmInstallAndRun(cloneDir, version, seams, { skipWorkspacePrep: true }),
       ]);
     }
     steps.push([
