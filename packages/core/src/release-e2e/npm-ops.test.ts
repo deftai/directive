@@ -394,4 +394,51 @@ describe("rehearseNpmInstallAndRun (#1996)", () => {
     expect(reason).toContain("module resolution error");
     expect(reason).toContain("ERR_MODULE_NOT_FOUND");
   });
+
+  it("passes when doctor exits non-zero in a bare consumer layout but --version is clean (#2010)", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-install-run-benign-"));
+    scaffoldPackages(clone);
+    const seams: E2ESeams = {
+      which: (n) => `/usr/bin/${n}`,
+      spawnText: (cmd, args) => {
+        const full = [cmd, ...args];
+        if (full.some((part) => String(part).includes("bin.js"))) {
+          if (full.includes("--version")) {
+            return { status: 0, stdout: "@deftai/directive (engine: core@0.0.1)\n", stderr: "" };
+          }
+          // doctor: benign non-zero verdict in a bare consumer layout (#2010)
+          return {
+            status: 1,
+            stdout: "\u2717 System check failed with 1 error(s) and 1 warning(s).\n",
+            stderr: "",
+          };
+        }
+        return ok();
+      },
+    };
+    const [okFlag, reason] = rehearseNpmInstallAndRun(clone, "0.0.1", seams);
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("without module-not-found");
+  });
+
+  it("fails when the --version liveness probe exits non-zero (#2010)", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-install-run-liveness-"));
+    scaffoldPackages(clone);
+    const seams: E2ESeams = {
+      which: (n) => `/usr/bin/${n}`,
+      spawnText: (cmd, args) => {
+        const full = [cmd, ...args];
+        if (full.some((part) => String(part).includes("bin.js")) && full.includes("--version")) {
+          return { status: 7, stdout: "", stderr: "boom" };
+        }
+        if (full.some((part) => String(part).includes("bin.js"))) {
+          return { status: 0, stdout: "", stderr: "" };
+        }
+        return ok();
+      },
+    };
+    const [okFlag, reason] = rehearseNpmInstallAndRun(clone, "0.0.1", seams);
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("directive --version exited 7");
+  });
 });

@@ -205,10 +205,14 @@ function moduleResolutionFailure(output: string): string | null {
 }
 
 /**
- * Publish-layout install+run smoke (#1996): pack the four @deftai/directive*
- * packages, install the tarballs into a clean flat node_modules, and run
- * `directive doctor --help` so import-resolution bugs like #1993 sub-problem 1
- * surface before a real npm publish.
+ * Publish-layout install+run smoke (#1996, #2010): pack the four
+ * @deftai/directive* packages, install the tarballs into a clean flat
+ * node_modules, then run `directive --version` (exit-0 liveness) and
+ * `directive doctor` (deep-import coverage) so import-resolution bugs like
+ * #1993 sub-problem 1 surface before a real npm publish. The smoke gates on
+ * module-not-found markers, NOT on the doctor's pass/fail verdict -- a full
+ * doctor check exits non-zero in a bare consumer layout, which is benign
+ * (#2010).
  */
 export function rehearseNpmInstallAndRun(
   cloneDir: string,
@@ -308,28 +312,53 @@ export function rehearseNpmInstallAndRun(
 
   const spawn = seams.spawnText ?? spawnText;
   const cliBin = join(consumerDir, "node_modules", "@deftai", "directive", "dist", "bin.js");
-  const doctor = spawn(process.execPath, [cliBin, "doctor", "--help"], {
+
+  // Liveness probe (#2010): `--version` loads the cli + core engine via
+  // engineInfo(), exercising the cross-package import path that #1993 broke,
+  // and reliably exits 0 on a healthy install. This is the clean exit-0 gate;
+  // gating the smoke on the doctor's exit code instead is a false positive
+  // because a full doctor check exits non-zero in a bare consumer layout.
+  const versionRun = spawn(process.execPath, [cliBin, "--version"], {
     cwd: consumerDir,
     env,
     timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
   });
-  const doctorOut = `${doctor.stdout ?? ""}\n${doctor.stderr ?? ""}`;
-  const resolutionHit = moduleResolutionFailure(doctorOut);
+  const versionOut = `${versionRun.stdout ?? ""}\n${versionRun.stderr ?? ""}`;
+  let resolutionHit = moduleResolutionFailure(versionOut);
   if (resolutionHit !== null) {
     return [
       false,
-      `install+run smoke: module resolution error (${resolutionHit}): ${doctorOut.trim().slice(-800)}`,
+      `install+run smoke: module resolution error on --version (${resolutionHit}): ${versionOut.trim().slice(-800)}`,
     ];
   }
-  if (doctor.status !== 0) {
+  if (versionRun.status !== 0) {
     return [
       false,
-      `install+run smoke: directive doctor --help exited ${doctor.status}: ${doctorOut.trim().slice(-500)}`,
+      `install+run smoke: directive --version exited ${versionRun.status}: ${versionOut.trim().slice(-500)}`,
+    ];
+  }
+
+  // Deep-import probe (#2010): run the doctor verb to exercise the deeper
+  // cross-package import graph that #1993 sub-problem 1 broke. The doctor
+  // legitimately exits non-zero in a bare consumer layout (e.g. no root
+  // Taskfile.yml), so gate ONLY on the module-not-found markers, NOT on the
+  // doctor's pass/fail verdict.
+  const doctorRun = spawn(process.execPath, [cliBin, "doctor"], {
+    cwd: consumerDir,
+    env,
+    timeoutMs: NPM_INSTALL_RUN_TIMEOUT_SECONDS * 1000,
+  });
+  const doctorOut = `${doctorRun.stdout ?? ""}\n${doctorRun.stderr ?? ""}`;
+  resolutionHit = moduleResolutionFailure(doctorOut);
+  if (resolutionHit !== null) {
+    return [
+      false,
+      `install+run smoke: module resolution error on doctor (${resolutionHit}): ${doctorOut.trim().slice(-800)}`,
     ];
   }
 
   return [
     true,
-    `packed + installed 4 packages at v${version} and ran directive doctor without module-not-found`,
+    `packed + installed 4 packages at v${version}; ran directive --version (exit 0) + doctor without module-not-found`,
   ];
 }

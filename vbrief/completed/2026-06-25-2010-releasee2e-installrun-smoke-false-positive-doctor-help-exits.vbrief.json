@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2010"
+  },
+  "plan": {
+    "title": "release:e2e install+run smoke false-positive: doctor --help exits 1 in bare consumer layout (#1996 follow-up)",
+    "status": "completed",
+    "narratives": {
+      "Description": "release:e2e install+run smoke false-positive: doctor --help exits 1 in bare consumer layout (#1996 follow-up)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2010",
+      "Overview": "## Summary\n\nThe `release:e2e` \"npm install+run smoke\" step added in #1996 (PR #2008) has a false-positive failure: it runs `directive doctor --help` against a freshly-installed clean consumer layout and asserts exit code 0, but the `doctor` subcommand ignores `--help`, runs the full system check, and legitimately exits 1 in a bare consumer dir (e.g. the expected \"no root Taskfile.yml\" warning + a benign error). This blocks `task release:e2e` even though packaging and import resolution are healthy.\n\n## Evidence\n\n`task release:e2e` output:\n\n```\n[e2e]   rehearsal step: npm publish dry-run... OK (4 packages)\n[e2e]   rehearsal step: npm install+run smoke... FAIL (install+run smoke: directive doctor --help exited 1: ... ✗ System check failed with 1 error(s) and 1 warning(s).)\n```\n\nThe module-not-found check (the actual goal of #1996, guarding the #1993 import-resolution regression) PASSED — no `Cannot find module` / `ERR_MODULE_NOT_FOUND` marker hit. Only the over-strict `doctor.status !== 0` assertion in `packages/core/src/release-e2e/npm-ops.ts` (`rehearseNpmInstallAndRun`) tripped.\n\n## Root cause\n\n`rehearseNpmInstallAndRun` invokes `directive doctor --help` as a liveness probe and treats any non-zero exit as a smoke failure. A full doctor system check in a throwaway consumer layout is *expected* to exit non-zero, so the gate fires on a benign verdict rather than a real import/packaging defect.\n\n## Suggested resolution\n\n- Use `directive --version` as the exit-0 liveness probe (it loads the cli + core engine via `engineInfo()`, exercising the cross-package import path that #1993 broke, and reliably exits 0 on a healthy install).\n- Keep running `directive doctor` for deeper import coverage, but gate ONLY on the module-not-found markers — do NOT assert the doctor's pass/fail verdict.\n- Add a regression test: doctor exits 1 with benign (non-module-not-found) output + `--version` exits 0 ⇒ smoke PASSES.\n\nTS-only (no Python parity for this smoke). Discovered while cutting v0.57.0; the e2e gate is currently red and blocking the release.\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2010",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2010: release:e2e install+run smoke false-positive: doctor --help exits 1 in bare consumer layout (#1996 follow-up)"
+      }
+    ],
+    "updated": "2026-06-25T21:47:35Z",
+    "metadata": {
+      "completedAt": "2026-06-25T21:47:35Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
