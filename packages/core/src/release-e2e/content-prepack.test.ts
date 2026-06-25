@@ -23,8 +23,11 @@ const REQUIRED_ENGINE_ENTRIES = [".githooks", "Taskfile.yml", "tasks", "scripts"
 function readPrepackScript(): string {
   const manifest = JSON.parse(
     readFileSync(join(process.cwd(), "packages/content/package.json"), "utf8"),
-  ) as { scripts?: { prepack?: string } };
-  const prepack = manifest.scripts?.prepack;
+  ) as { scripts?: { prepack?: string } } | null;
+  // JSON.parse can yield a non-throwing top-level null; optional-chain through
+  // manifest so a malformed package.json surfaces the explicit error below
+  // rather than a bare TypeError.
+  const prepack = manifest?.scripts?.prepack;
   if (typeof prepack !== "string" || prepack.length === 0) {
     throw new Error("packages/content/package.json has no prepack script");
   }
