@@ -120,10 +120,11 @@ function emitStale(
   sink: OutputSink,
   addFinding: (finding: Finding) => void,
   extras: Record<string, unknown> = {},
+  behindWord: "remote" | "npm registry" = "remote",
 ): void {
   const msg =
-    `Framework payload is stale (installed ${installedLabel} behind remote ${remoteLabel} for ref '${ref}'). ` +
-    `Recommendation: run \`${CANONICAL_UPGRADE_COMMAND}\` from any shell with Node ≥ 20, then start a fresh agent session.`;
+    `Framework payload is stale (installed ${installedLabel} behind ${behindWord} ${remoteLabel} for ref '${ref}'). ` +
+    `Recommendation: run \`${CANONICAL_UPGRADE_COMMAND}\` from any shell with Node ≥ 20.`;
   sink.warn(msg);
   addFinding({
     severity: "warning",
@@ -268,7 +269,7 @@ export function runPayloadStalenessCheck(
         installed_version: installedVersion,
         remote_version: npmResult.version,
         resolver: "npm-view",
-      });
+      }, "npm registry");
       return;
     }
     if (installedVersion === npmResult.version.replace(/^v/i, "")) {

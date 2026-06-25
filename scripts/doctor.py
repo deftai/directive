@@ -1558,7 +1558,7 @@ def _emit_doctor_throttle_skip(decision, *, json_mode: bool, project_root: Path)
         }
         if signpost_findings:
             payload["signpost_findings"] = signpost_findings
-        print(json.dumps(payload, sort_keys=True))
+        print(json.dumps(payload, sort_keys=True, ensure_ascii=False))
     else:
         print(_render_doctor_status_line(decision))
         signpost_warnings = sum(1 for f in signpost_findings if f.get("severity") == "warning")
@@ -2426,7 +2426,7 @@ def cmd_doctor(args: list[str]):
             },
             "project_root": str(project_root),
         }
-        print(json.dumps(payload, sort_keys=True))
+        print(json.dumps(payload, sort_keys=True, ensure_ascii=False))
         return exit_code
 
     print()
@@ -2536,7 +2536,7 @@ def main(argv: list[str] | None = None) -> int:
     project_root = Path(args.project_root).resolve()
     result = _run_checks_impl(project_root)
     if args.json:
-        print(json.dumps(result.to_dict(), sort_keys=True))
+        print(json.dumps(result.to_dict(), sort_keys=True, ensure_ascii=False))
     else:
         if not (args.quiet and result.exit_code == EXIT_CLEAN):
             print(_format_text_report(result))
