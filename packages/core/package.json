@@ -189,6 +189,10 @@
     "./init-deposit": {
       "types": "./dist/init-deposit/index.d.ts",
       "default": "./dist/init-deposit/index.js"
+    },
+    "./dist/*.js": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
   "files": [

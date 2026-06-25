@@ -12,7 +12,7 @@ import {
   renderQueue,
   resolveRankingLabels,
   resolveRepo,
-} from "../../core/dist/triage/queue/index.js";
+} from "@deftai/directive-core/dist/triage/queue/index.js";
 
 interface ParsedArgs {
   projectRoot: string;

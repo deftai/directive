@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdDoctor } from "../../core/dist/doctor/main.js";
+import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 
 export function run(argv: string[]): number {
   return cmdDoctor(argv);

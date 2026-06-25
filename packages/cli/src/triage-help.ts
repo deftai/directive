@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { runHelp } from "../../core/dist/triage/help/index.js";
+import { runHelp } from "@deftai/directive-core/dist/triage/help/index.js";
 
 export function run(argv: string[]): number {
   return runHelp(argv);

@@ -269,7 +269,7 @@ describe("dispatch", () => {
 
   it("routes core-only verbs such as scm", async () => {
     const main = vi.fn(() => 5);
-    vi.doMock("../../core/dist/scm/main.js", () => ({ main }));
+    vi.doMock("@deftai/directive-core/dist/scm/main.js", () => ({ main }));
     resetHandlerCacheForTests();
 
     const code = await dispatch(["scm", "issue", "list"], {

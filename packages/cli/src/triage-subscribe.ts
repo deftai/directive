@@ -2,8 +2,12 @@
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { interceptHelp } from "../../core/dist/triage/help/index.js";
-import { RECONCILE_HINT, subscribe, unsubscribe } from "../../core/dist/triage/subscribe/index.js";
+import { interceptHelp } from "@deftai/directive-core/dist/triage/help/index.js";
+import {
+  RECONCILE_HINT,
+  subscribe,
+  unsubscribe,
+} from "@deftai/directive-core/dist/triage/subscribe/index.js";
 
 interface ParsedArgs {
   op: string;

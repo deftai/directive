@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdRollback } from "../../core/dist/release-rollback/main.js";
+import { cmdRollback } from "@deftai/directive-core/dist/release-rollback/main.js";
 
 export function run(argv: string[]): number {
   return cmdRollback(argv);

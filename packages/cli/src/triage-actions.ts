@@ -14,7 +14,7 @@ import {
   status,
   TriageError,
   UpstreamCloseError,
-} from "../../core/dist/triage/actions/index.js";
+} from "@deftai/directive-core/dist/triage/actions/index.js";
 
 const VALID_CMDS = new Set([
   "accept",

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("../../core/dist/doctor/main.js", () => ({
+vi.mock("@deftai/directive-core/dist/doctor/main.js", () => ({
   cmdDoctor: vi.fn(() => 0),
 }));
 
-import { cmdDoctor } from "../../core/dist/doctor/main.js";
+import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 import { run } from "./doctor.js";
 
 describe("doctor CLI", () => {

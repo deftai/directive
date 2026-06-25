@@ -6,7 +6,7 @@ import {
   emitReconcileJson,
   reconcile,
   reconcileSummary,
-} from "../../core/dist/triage/reconcile/index.js";
+} from "@deftai/directive-core/dist/triage/reconcile/index.js";
 
 export interface ParsedArgs {
   projectRoot: string;

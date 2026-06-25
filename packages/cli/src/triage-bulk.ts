@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { bulkActionWithDefaults, CacheEmptyError } from "../../core/dist/triage/bulk/index.js";
-import { interceptHelp } from "../../core/dist/triage/help/index.js";
+import {
+  bulkActionWithDefaults,
+  CacheEmptyError,
+} from "@deftai/directive-core/dist/triage/bulk/index.js";
+import { interceptHelp } from "@deftai/directive-core/dist/triage/help/index.js";
 
 interface ParsedArgs {
   action: string;

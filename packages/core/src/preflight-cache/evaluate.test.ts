@@ -94,6 +94,62 @@ describe("evaluate -- missing cache", () => {
   });
 });
 
+describe("evaluate -- terminal-closed entries (#1991)", () => {
+  it("does not flag stale on an old CLOSED entry (--force can't refresh it)", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 1, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    // Open entry fresh; closed entry old. Pre-#1991 the closed entry was the
+    // oldest in-scope entry and wedged the gate with no working recovery.
+    writeCacheEntry(root, "owner/repo", 1, nowMinus(1).toISOString(), { state: "open" });
+    writeCacheEntry(root, "owner/repo", 1033, nowMinus(72).toISOString(), { state: "closed" });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("✓");
+  });
+
+  it("treats an all-closed cache as fresh (nothing open to age out)", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 1033, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 1033, nowMinus(72).toISOString(), { state: "closed" });
+    writeCacheEntry(root, "owner/repo", 1055, nowMinus(96).toISOString(), { state: "closed" });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("still flags stale when an OPEN entry is old (closed exclusion is narrow)", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      { issue: 2, repo: "owner/repo", decision: "accept", ts: new Date().toISOString() },
+    ]);
+    writeCacheEntry(root, "owner/repo", 1033, nowMinus(96).toISOString(), { state: "closed" });
+    writeCacheEntry(root, "owner/repo", 2, nowMinus(25).toISOString(), { state: "open" });
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      nowFn: () => new Date(),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("25.0h old");
+  });
+});
+
 describe("evaluate -- fresh cache", () => {
   it("returns code 0 for cache fetched 1h ago (within 24h)", () => {
     const root = setupProjectRoot();

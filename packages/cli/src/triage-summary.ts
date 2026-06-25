@@ -9,7 +9,7 @@ import {
   SUMMARY_HISTORY_REL_PATH,
   summaryResultToRecord,
   utcIso,
-} from "../../core/dist/triage/summary/index.js";
+} from "@deftai/directive-core/dist/triage/summary/index.js";
 
 interface ParsedArgs {
   projectRoot: string;

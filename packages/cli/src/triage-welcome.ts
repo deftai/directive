@@ -2,7 +2,7 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runDefaultMode } from "../../core/dist/triage/welcome/default-mode.js";
+import { runDefaultMode } from "@deftai/directive-core/dist/triage/welcome/default-mode.js";
 
 interface ParsedArgs {
   projectRoot: string;

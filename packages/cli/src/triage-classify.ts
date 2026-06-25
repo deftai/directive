@@ -2,7 +2,7 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { listProject, validateProject } from "../../core/dist/triage/classify/index.js";
+import { listProject, validateProject } from "@deftai/directive-core/dist/triage/classify/index.js";
 
 interface ParsedArgs {
   projectRoot: string;

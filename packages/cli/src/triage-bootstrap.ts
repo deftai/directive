@@ -18,12 +18,12 @@ export interface ParsedArgs {
   error?: string;
 }
 
-type BootstrapModule = typeof import("../../core/dist/triage/bootstrap/index.js");
+type BootstrapModule = typeof import("@deftai/directive-core/dist/triage/bootstrap/index.js");
 
 async function loadBootstrapModule(): Promise<BootstrapModule> {
   const corePath = join(
     dirname(fileURLToPath(import.meta.url)),
-    "../../core/dist/triage/bootstrap/index.js",
+    "@deftai/directive-core/dist/triage/bootstrap/index.js",
   );
   return import(pathToFileURL(corePath).href) as Promise<BootstrapModule>;
 }

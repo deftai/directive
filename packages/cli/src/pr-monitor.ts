@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdPrMonitor } from "../../core/dist/pr-monitor/main.js";
+import { cmdPrMonitor } from "@deftai/directive-core/dist/pr-monitor/main.js";
 
 export function run(argv: string[]): number {
   return cmdPrMonitor(argv);

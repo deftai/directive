@@ -11,7 +11,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cachePut } from "../../core/dist/cache/operations.js";
+import { cachePut } from "@deftai/directive-core/dist/cache/operations.js";
 
 export interface CommandCapture {
   readonly exitCode: number;

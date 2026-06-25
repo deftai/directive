@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdReleaseE2e } from "../../core/dist/release-e2e/main.js";
+import { cmdReleaseE2e } from "@deftai/directive-core/dist/release-e2e/main.js";
 
 export function run(argv: string[]): number {
   return cmdReleaseE2e(argv);

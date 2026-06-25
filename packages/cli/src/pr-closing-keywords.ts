@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdPrCheckClosingKeywords } from "../../core/dist/pr-closing-keywords/main.js";
+import { cmdPrCheckClosingKeywords } from "@deftai/directive-core/dist/pr-closing-keywords/main.js";
 
 export function run(argv: string[]): number {
   return cmdPrCheckClosingKeywords(argv);

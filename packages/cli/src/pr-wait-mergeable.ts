@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdPrWaitMergeable } from "../../core/dist/pr-wait-mergeable/main.js";
+import { cmdPrWaitMergeable } from "@deftai/directive-core/dist/pr-wait-mergeable/main.js";
 
 export function run(argv: string[]): number {
   return cmdPrWaitMergeable(argv);

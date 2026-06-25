@@ -372,57 +372,67 @@ function loadPythonScriptHandler(scriptName: string): CommandHandler {
 async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<CommandHandler> {
   switch (verb) {
     case "scm": {
-      const { main } = await import("../../core/dist/scm/main.js");
+      const { main } = await import("@deftai/directive-core/dist/scm/main.js");
       return (argv) => main(argv);
     }
     case "github-auth-modes": {
-      const { mainEntry } = await import("../../core/dist/intake/github-auth-modes-cli.js");
+      const { mainEntry } = await import(
+        "@deftai/directive-core/dist/intake/github-auth-modes-cli.js"
+      );
       return mainEntry;
     }
     case "github-body": {
-      const { mainEntry } = await import("../../core/dist/intake/github-body-cli.js");
+      const { mainEntry } = await import("@deftai/directive-core/dist/intake/github-body-cli.js");
       return mainEntry;
     }
     case "issue-emit": {
-      const { mainEntry } = await import("../../core/dist/intake/issue-emit-cli.js");
+      const { mainEntry } = await import("@deftai/directive-core/dist/intake/issue-emit-cli.js");
       return mainEntry;
     }
     case "issue-ingest": {
-      const { mainEntry } = await import("../../core/dist/intake/issue-ingest-cli.js");
+      const { mainEntry } = await import("@deftai/directive-core/dist/intake/issue-ingest-cli.js");
       return mainEntry;
     }
     case "reconcile-issues": {
-      const { mainEntry } = await import("../../core/dist/intake/reconcile-issues-cli.js");
+      const { mainEntry } = await import(
+        "@deftai/directive-core/dist/intake/reconcile-issues-cli.js"
+      );
       return mainEntry;
     }
     case "swarm-launch": {
-      const { launchMain } = await import("../../core/dist/swarm/launch-cli.js");
+      const { launchMain } = await import("@deftai/directive-core/dist/swarm/launch-cli.js");
       return launchMain;
     }
     case "swarm-complete-cohort": {
-      const { completeCohortMain } = await import("../../core/dist/swarm/complete-cohort-cli.js");
+      const { completeCohortMain } = await import(
+        "@deftai/directive-core/dist/swarm/complete-cohort-cli.js"
+      );
       return completeCohortMain;
     }
     case "swarm-readiness": {
-      const { readinessMain } = await import("../../core/dist/swarm/readiness-cli.js");
+      const { readinessMain } = await import("@deftai/directive-core/dist/swarm/readiness-cli.js");
       return readinessMain;
     }
     case "swarm-routing-verify": {
-      const { routingVerifyMain } = await import("../../core/dist/swarm/routing-verify-cli.js");
+      const { routingVerifyMain } = await import(
+        "@deftai/directive-core/dist/swarm/routing-verify-cli.js"
+      );
       return routingVerifyMain;
     }
     case "swarm-routing-set": {
-      const { routingSetMain } = await import("../../core/dist/swarm/routing-set-cli.js");
+      const { routingSetMain } = await import(
+        "@deftai/directive-core/dist/swarm/routing-set-cli.js"
+      );
       return routingSetMain;
     }
     case "swarm-verify-review-clean": {
       const { verifyReviewCleanMain } = await import(
-        "../../core/dist/swarm/verify-review-clean-cli.js"
+        "@deftai/directive-core/dist/swarm/verify-review-clean-cli.js"
       );
       return verifyReviewCleanMain;
     }
     case "swarm-worktrees": {
-      const { worktreesMain } = await import("../../core/dist/swarm/worktrees-cli.js");
+      const { worktreesMain } = await import("@deftai/directive-core/dist/swarm/worktrees-cli.js");
       return worktreesMain;
     }
     case "framework-commands": {
@@ -430,15 +440,15 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       return (argv) => frameworkCommandsMain(argv);
     }
     case "pack-render": {
-      const { main } = await import("../../core/dist/packs/pack-render.js");
+      const { main } = await import("@deftai/directive-core/dist/packs/pack-render.js");
       return (argv) => main([...argv]);
     }
     case "packs-slice": {
-      const { main } = await import("../../core/dist/packs/packs-slice.js");
+      const { main } = await import("@deftai/directive-core/dist/packs/packs-slice.js");
       return (argv) => main([...argv]);
     }
     case "roadmap-render": {
-      const { main } = await import("../../core/dist/render/roadmap-render.js");
+      const { main } = await import("@deftai/directive-core/dist/render/roadmap-render.js");
       return (argv) => main(argv);
     }
     case "spec-validate": {
@@ -488,26 +498,26 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     case "policy-set":
       return loadPythonScriptHandler("policy_set.py");
     case "scope-undo": {
-      const { undoMain } = await import("../../core/dist/scope/main.js");
+      const { undoMain } = await import("@deftai/directive-core/dist/scope/main.js");
       return undoMain;
     }
     case "scope-demote": {
-      const { demoteMain } = await import("../../core/dist/scope/main.js");
+      const { demoteMain } = await import("@deftai/directive-core/dist/scope/main.js");
       return demoteMain;
     }
     case "scope-decompose": {
-      const { decomposeMain } = await import("../../core/dist/scope/decompose.js");
+      const { decomposeMain } = await import("@deftai/directive-core/dist/scope/decompose.js");
       return decomposeMain;
     }
     case "changelog-resolve-unreleased": {
       const { changelogResolveUnreleasedMain } = await import(
-        "../../core/dist/platform/changelog-cli.js"
+        "@deftai/directive-core/dist/platform/changelog-cli.js"
       );
       return changelogResolveUnreleasedMain;
     }
     case "architecture-preflight-sor": {
       const { architecturePreflightSorMain } = await import(
-        "../../core/dist/architecture/sor-preflight.js"
+        "@deftai/directive-core/dist/architecture/sor-preflight.js"
       );
       return architecturePreflightSorMain;
     }

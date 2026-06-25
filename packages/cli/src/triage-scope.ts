@@ -4,11 +4,17 @@
  * Delegates to the core implementation at packages/core/dist/triage/scope/cli.js.
  */
 import { spawnSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+const require = createRequire(import.meta.url);
+
+// Resolve the core CLI by its published package name so it works both in the
+// source monorepo and under a flattened npm install (#1993). The bare specifier
+// resolves via @deftai/directive-core's "./dist/*.js" export map; a hand-built
+// relative path would point at the non-existent "@deftai/core" once published.
 function coreCliPath(): string {
-  return join(dirname(fileURLToPath(import.meta.url)), "../../core/dist/triage/scope/cli.js");
+  return require.resolve("@deftai/directive-core/dist/triage/scope/cli.js");
 }
 
 /** Run triage:scope with argv; returns process exit code. */

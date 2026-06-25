@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdPrProtectedIssues } from "../../core/dist/pr-protected-issues/main.js";
+import { cmdPrProtectedIssues } from "@deftai/directive-core/dist/pr-protected-issues/main.js";
 
 export function run(argv: string[]): number {
   return cmdPrProtectedIssues(argv);

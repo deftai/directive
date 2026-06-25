@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { cmdPrMergeReadiness } from "../../core/dist/pr-merge-readiness/main.js";
+import { cmdPrMergeReadiness } from "@deftai/directive-core/dist/pr-merge-readiness/main.js";
 
 export function run(argv: string[]): number {
   return cmdPrMergeReadiness(argv);

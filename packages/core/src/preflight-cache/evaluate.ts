@@ -173,6 +173,31 @@ function metaFetchedAt(metaPath: string): Date | null {
   }
 }
 
+/**
+ * #1991: report whether a cache entry's upstream issue is terminal-closed.
+ *
+ * Reads the sibling raw.json (the cached issue payload) and returns true only
+ * when its `state` is positively "closed". Unknown / missing state returns
+ * false so we never exclude an entry we are not sure about. Closed issues are
+ * terminal: their `fetched_at` age is irrelevant to dispatch-queue freshness,
+ * and `cache:fetch-all --force` (open-only enumeration) can never refresh them,
+ * so the age gate must not wedge on them.
+ */
+function metaEntryIsTerminalClosed(metaPath: string): boolean {
+  const rawPath = join(metaPath, "..", "raw.json");
+  if (!existsSync(rawPath)) return false;
+  try {
+    const raw = JSON.parse(readFileSync(rawPath, "utf8")) as unknown;
+    if (raw !== null && typeof raw === "object" && !Array.isArray(raw)) {
+      const state = (raw as Record<string, unknown>).state;
+      return typeof state === "string" && state.toLowerCase() === "closed";
+    }
+  } catch {
+    /* unknown state -> keep in scope */
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Subscription-aware scope filtering
 // ---------------------------------------------------------------------------
@@ -464,11 +489,18 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
     scopedMetaPaths.length === 0 &&
     candState === "populated";
 
-  // Step 5: Oldest in-scope entry age + drift probe (#1886)
+  // Step 5: Oldest in-scope entry age + drift probe (#1886).
+  // #1991: judge age over OPEN entries only. Terminal-closed entries are
+  // excluded because `cache:fetch-all --force` (open-only enumeration) can never
+  // refresh their `fetched_at`, so including them would let a stale closed entry
+  // wedge the gate with no working recovery command.
+  const rawCandidatePaths = scopedMetaPaths.length > 0 ? scopedMetaPaths : allMetaPaths;
+  const ageCandidatePaths = rawCandidatePaths.filter((p) => !metaEntryIsTerminalClosed(p));
+
   let minFetchedAt: Date | null = null;
   let minMetaPath: string | null = null;
 
-  for (const p of scopedMetaPaths.length > 0 ? scopedMetaPaths : allMetaPaths) {
+  for (const p of ageCandidatePaths) {
     const ts = metaFetchedAt(p);
     if (ts !== null && (minFetchedAt === null || ts < minFetchedAt)) {
       minFetchedAt = ts;
@@ -479,7 +511,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
   const now = nowFn();
   const ageMs = minFetchedAt !== null ? now.getTime() - minFetchedAt.getTime() : Infinity;
   const ageH = ageMs / (1000 * 3600);
-  const stale = ageH > maxAgeHours;
+  // When every candidate is terminal-closed (non-empty input, no open entry to
+  // judge) there is nothing open whose age can be stale -> fresh. The truly
+  // empty-cache case (no entries at all) preserves its prior staleness result.
+  const allCandidatesClosed = minFetchedAt === null && rawCandidatePaths.length > 0;
+  const stale = allCandidatesClosed ? false : ageH > maxAgeHours;
 
   // Step 5b: --allow-stale bypass
   if (stale && allowStale) {

@@ -1,7 +1,7 @@
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { parseSmoketestArgs } from "@deftai/directive-core/dist/triage/smoketest/index.js";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { parseSmoketestArgs } from "../../core/dist/triage/smoketest/index.js";
 import {
   buildFixtureRepo,
   diffCase,

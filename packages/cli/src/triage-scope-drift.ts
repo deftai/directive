@@ -6,7 +6,7 @@ import {
   addIgnore,
   computeDrift,
   renderDriftReport,
-} from "../../core/dist/triage/scope-drift/index.js";
+} from "@deftai/directive-core/dist/triage/scope-drift/index.js";
 
 export interface ParsedArgs {
   projectRoot: string;

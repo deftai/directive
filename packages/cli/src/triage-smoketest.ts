@@ -2,12 +2,12 @@
 import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { interceptHelp } from "../../core/dist/triage/help/index.js";
+import { interceptHelp } from "@deftai/directive-core/dist/triage/help/index.js";
 import {
   DEFAULT_FIXTURE_REL,
   parseSmoketestArgs,
   runSmoketest,
-} from "../../core/dist/triage/smoketest/index.js";
+} from "@deftai/directive-core/dist/triage/smoketest/index.js";
 
 function resolveDeftRoot(): string {
   if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {

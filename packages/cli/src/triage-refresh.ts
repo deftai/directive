@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { refreshActive } from "../../core/dist/triage/refresh/index.js";
+import { refreshActive } from "@deftai/directive-core/dist/triage/refresh/index.js";
 
 export function parseArgs(argv: string[]): { projectRoot: string; error?: string } {
   let projectRoot = ".";
