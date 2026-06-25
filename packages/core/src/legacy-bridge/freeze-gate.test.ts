@@ -71,9 +71,11 @@ describe("readInstallerVersion", () => {
   });
 });
 
-describe("evaluateGoFreeze (three-state)", () => {
-  it("passes advisory when the SoT is null (unfrozen) and never reads the installer", () => {
-    // No installer source at all -- proves the null path short-circuits.
+describe("evaluateGoFreeze (release-tag, three-state)", () => {
+  // a3: SoT null -> advisory pass, installer source not read. The root has NO
+  // installer source at all, so a 0 result proves the null path short-circuits
+  // before any source read.
+  it("passes advisory when the SoT is null (unfrozen) and never reads the installer source", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-freeze-null-"));
     temps.push(root);
     const res = evaluateGoFreeze(root, { pinned: null });
@@ -82,38 +84,50 @@ describe("evaluateGoFreeze (three-state)", () => {
     expect(res.message).toMatch(/advisory/i);
   });
 
-  it("passes when frozen and the installer is at or below the pinned tag", () => {
-    const root = repoWithInstaller("0.32.5");
-    expect(evaluateGoFreeze(root, { pinned: "0.32.5" }).code).toBe(0);
-    expect(evaluateGoFreeze(root, { pinned: "0.40.0" }).code).toBe(0);
+  // a1: SoT pinned to a 0.x tag + an equal-or-lower release tag -> exit 0. The
+  // `v` prefix is tolerated (release tags are `vX.Y.Z`).
+  it("passes when frozen and the release tag is at or below the pinned 0.x tag", () => {
+    expect(evaluateGoFreeze(".", { pinned: "0.32.5", releaseTag: "v0.32.5" }).code).toBe(0);
+    expect(evaluateGoFreeze(".", { pinned: "v0.32.5", releaseTag: "v0.32.4" }).code).toBe(0);
+    expect(evaluateGoFreeze(".", { pinned: "0.40.0", releaseTag: "0.32.5" }).code).toBe(0);
   });
 
-  it("fails (exit 1) when frozen and the installer is bumped above the pinned tag", () => {
-    const root = repoWithInstaller("0.32.6");
-    const res = evaluateGoFreeze(root, { pinned: "0.32.5" });
+  // a2: SoT pinned + a release tag above the pin -> exit 1 with the
+  // above-the-line violation message.
+  it("fails (exit 1) when frozen and the release tag is above the pinned tag", () => {
+    const res = evaluateGoFreeze(".", { pinned: "0.32.5", releaseTag: "v0.32.6" });
     expect(res.code).toBe(1);
     expect(res.stream).toBe("stderr");
     expect(res.message).toMatch(/ABOVE the frozen/i);
   });
 
-  it("honors the bypass to downgrade a violation to advisory", () => {
+  // Frozen but no release tag supplied (the local `task verify:go-freeze` /
+  // `task check` path): advisory pass -- enforcement lives in the release guard.
+  it("passes advisory when frozen but no release tag is supplied", () => {
+    const res = evaluateGoFreeze(".", { pinned: "0.32.5" });
+    expect(res.code).toBe(0);
+    expect(res.stream).toBe("stdout");
+    expect(res.message).toMatch(/advisory/i);
+  });
+
+  it("honors the bypass to downgrade a release-tag violation to advisory", () => {
     const res = evaluateGoFreeze(".", {
       pinned: "0.32.5",
-      installerVersion: "0.40.0",
+      releaseTag: "0.40.0",
       allowBump: true,
     });
     expect(res.code).toBe(0);
     expect(res.message).toMatch(/bypass/i);
   });
 
-  it("returns config error (exit 2) when frozen but the installer source is missing", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-freeze-noinstaller-"));
-    temps.push(root);
-    expect(evaluateGoFreeze(root, { pinned: "0.32.5" }).code).toBe(2);
+  it("returns config error (exit 2) when the SoT value is unparseable", () => {
+    const res = evaluateGoFreeze(".", { pinned: "garbage", releaseTag: "0.1.0" });
+    expect(res.code).toBe(2);
+    expect(res.stream).toBe("stderr");
   });
 
-  it("returns config error (exit 2) when the SoT value is unparseable", () => {
-    const res = evaluateGoFreeze(".", { pinned: "garbage", installerVersion: "0.1.0" });
+  it("returns config error (exit 2) when the release tag is unparseable", () => {
+    const res = evaluateGoFreeze(".", { pinned: "0.32.5", releaseTag: "not-a-version" });
     expect(res.code).toBe(2);
     expect(res.stream).toBe("stderr");
   });

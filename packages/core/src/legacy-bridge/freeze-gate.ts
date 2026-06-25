@@ -1,26 +1,37 @@
 /**
  * freeze-gate.ts -- Tier-1 freeze gate for the legacy Go-installer bridge (#1912).
  *
- * Reads the Tier-0 SoT (`lastGoInstaller`) and the in-repo Go-installer source
- * version constant (`var version = "..."` in `cmd/deft-install/main.go`) and
- * enforces the freeze line:
+ * Reads the Tier-0 SoT (`lastGoInstaller`) and weighs a candidate RELEASE TAG
+ * against the frozen line:
  *
  *   - SoT null (NOT yet frozen): PASS (advisory). Go-installer development is
- *     still allowed up to the cut; the gate does not even read the installer
- *     source in this state.
- *   - SoT pinned (frozen): FAIL when the `cmd/deft-install` version is ABOVE the
- *     pinned tag -- i.e. someone is preparing a Go-installer release past the
- *     frozen line. At-or-below the line PASSES (re-publishing the pinned tag is
- *     allowed).
+ *     still allowed up to the cut; the gate does not read the installer source
+ *     in this state.
+ *   - SoT pinned (frozen) + a release tag supplied: FAIL when the release tag is
+ *     ABOVE the pinned tag -- i.e. someone is cutting a Go-installer release past
+ *     the frozen line. At-or-below the line PASSES (re-publishing the pinned tag
+ *     is allowed).
+ *   - SoT pinned (frozen) + NO release tag supplied: PASS (advisory). There is no
+ *     release being cut, so there is nothing to weigh; the enforcing teeth live
+ *     in the release.yml tag guard, which runs only on a `v*.*.*` tag push.
+ *
+ * Why a release tag and not the installer source literal (#1972): the real
+ * installer version is injected via `-ldflags "-X main.version=<tag>"` at build
+ * time, so the `var version = "..."` literal in `cmd/deft-install/main.go` does
+ * NOT reflect the released version. Comparing the pinned SoT against that stale
+ * literal would false-fail the moment the SoT is pinned to a real 0.x tag. The
+ * gate therefore keys off the release tag (`github.ref_name` in CI). The source
+ * parsers below (`parseInstallerVersion` / `readInstallerVersion`) are retained
+ * as release-time utilities but are no longer the freeze-decision input.
  *
  * Three-state exit (mirrors verify-source/content-manifest + scm-boundary):
- *   0 -- ok (advisory-when-null, or at/below the line when frozen).
- *   1 -- violation: frozen and the installer version is above the pinned tag.
- *   2 -- config error: installer source missing / unparseable, or the SoT value
- *        is pinned to an unparseable version.
+ *   0 -- ok (advisory-when-null / advisory-when-no-tag, or at/below the line).
+ *   1 -- violation: frozen and the release tag is above the pinned tag.
+ *   2 -- config error: the SoT value or the release tag is unparseable.
  *
  * No version number is hardcoded here: the frozen tag comes from the SoT module
- * and the installer version is parsed from `cmd/deft-install/main.go` at runtime.
+ * and the candidate tag is supplied by the caller (the release pipeline) at
+ * runtime.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -118,20 +129,28 @@ export interface FreezeResult {
 export interface FreezeEvaluateOptions {
   /** Test seam: override the SoT value (undefined = read the live SoT module). */
   readonly pinned?: string | null;
-  /** Test seam: override the parsed installer version (undefined = read the source). */
-  readonly installerVersion?: string;
-  /** Override the repo-relative installer source path. */
-  readonly installerVersionPath?: string;
+  /**
+   * The candidate release tag to weigh against the frozen line (CI:
+   * `github.ref_name`). When undefined / null the gate is advisory: there is no
+   * release being cut, so there is nothing to enforce -- the teeth live in the
+   * release.yml tag guard. This replaces the brittle source-literal comparison
+   * (#1972): the real installer version is ldflags-injected at build time, so
+   * the `var version` source literal does not reflect the released version.
+   */
+  readonly releaseTag?: string | null;
   /** When true, downgrade a violation to an advisory pass (emergency bypass). */
   readonly allowBump?: boolean;
 }
 
 /**
- * Evaluate the freeze gate. Pure-ish: reads the installer source only when the
- * SoT is pinned (frozen) and no `installerVersion` override is supplied.
+ * Evaluate the freeze gate against a candidate release tag.
+ *
+ * The first parameter is retained for call-site signature compatibility (the
+ * `verify-go-freeze` CLI passes a project root positionally); the gate no longer
+ * reads the installer source, so the value is unused here (#1972).
  */
 export function evaluateGoFreeze(
-  projectRoot: string,
+  _projectRoot: string,
   options: FreezeEvaluateOptions = {},
 ): FreezeResult {
   const pinned = options.pinned !== undefined ? options.pinned : lastGoInstaller();
@@ -146,54 +165,56 @@ export function evaluateGoFreeze(
     };
   }
 
-  try {
-    const installer =
-      options.installerVersion !== undefined
-        ? options.installerVersion
-        : readInstallerVersion(resolve(projectRoot), options.installerVersionPath);
-
-    let cmp: -1 | 0 | 1;
-    try {
-      cmp = compareInstallerVersions(installer, pinned);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return {
-        code: EXIT_CONFIG_ERROR,
-        message: `Error: cannot compare versions (${msg}). Check the SoT value and the cmd/deft-install version constant.`,
-        stream: "stderr",
-      };
-    }
-
-    if (cmp > 0) {
-      if (options.allowBump) {
-        return {
-          code: EXIT_OK,
-          message:
-            `OK (bypass): cmd/deft-install version ${installer} is ABOVE the frozen bridge tag ${pinned}, ` +
-            `but ${FREEZE_BYPASS_ENV}=1 downgraded the violation to advisory.`,
-          stream: "stdout",
-        };
-      }
-      return {
-        code: EXIT_VIOLATION,
-        message:
-          `FAIL: cmd/deft-install version ${installer} is ABOVE the frozen bridge tag ${pinned}.\n` +
-          "  The last Go installer was frozen as the legacy stage-1 bridge (#1912); no Go-installer\n" +
-          "  release past the pinned tag is allowed. Roll the cmd/deft-install version back to the\n" +
-          `  frozen tag (${pinned}) or below. Emergency bypass: ${FREEZE_BYPASS_ENV}=1.`,
-        stream: "stderr",
-      };
-    }
-
+  const releaseTag = options.releaseTag ?? null;
+  if (releaseTag === null) {
     return {
       code: EXIT_OK,
       message:
-        `OK: the Go installer is frozen at ${pinned}; cmd/deft-install version ${installer} ` +
-        "is at or below the frozen line.",
+        `OK (advisory): the Go installer is frozen at ${pinned}, but no release tag was supplied ` +
+        "to weigh against the frozen line. Freeze enforcement runs in the release.yml tag guard " +
+        "on a v*.*.* push; this local gate is advisory.",
       stream: "stdout",
     };
+  }
+
+  let cmp: -1 | 0 | 1;
+  try {
+    cmp = compareInstallerVersions(releaseTag, pinned);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { code: EXIT_CONFIG_ERROR, message: `Error: ${msg}`, stream: "stderr" };
+    return {
+      code: EXIT_CONFIG_ERROR,
+      message: `Error: cannot compare versions (${msg}). Check the SoT value and the release tag.`,
+      stream: "stderr",
+    };
   }
+
+  if (cmp > 0) {
+    if (options.allowBump) {
+      return {
+        code: EXIT_OK,
+        message:
+          `OK (bypass): release tag ${releaseTag} is ABOVE the frozen bridge tag ${pinned}, ` +
+          `but ${FREEZE_BYPASS_ENV}=1 downgraded the violation to advisory.`,
+        stream: "stdout",
+      };
+    }
+    return {
+      code: EXIT_VIOLATION,
+      message:
+        `FAIL: release tag ${releaseTag} is ABOVE the frozen bridge tag ${pinned}.\n` +
+        "  The last Go installer was frozen as the legacy stage-1 bridge (#1912); no Go-installer\n" +
+        "  release past the pinned tag is allowed. Cut the release at or below the frozen tag\n" +
+        `  (${pinned}), or roll the freeze SoT forward. Emergency bypass: ${FREEZE_BYPASS_ENV}=1.`,
+      stream: "stderr",
+    };
+  }
+
+  return {
+    code: EXIT_OK,
+    message:
+      `OK: the Go installer is frozen at ${pinned}; release tag ${releaseTag} ` +
+      "is at or below the frozen line.",
+    stream: "stdout",
+  };
 }
