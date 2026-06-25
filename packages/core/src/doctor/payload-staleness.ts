@@ -265,11 +265,20 @@ export function runPayloadStalenessCheck(
   const installedVersion = manifestVersion(ref, tag);
   if (npmResult.ok && installedVersion) {
     if (semverLessThan(installedVersion, npmResult.version)) {
-      emitStale(checkName, `v${installedVersion}`, `v${npmResult.version}`, ref, sink, addFinding, {
-        installed_version: installedVersion,
-        remote_version: npmResult.version,
-        resolver: "npm-view",
-      }, "npm registry");
+      emitStale(
+        checkName,
+        `v${installedVersion}`,
+        `v${npmResult.version}`,
+        ref,
+        sink,
+        addFinding,
+        {
+          installed_version: installedVersion,
+          remote_version: npmResult.version,
+          resolver: "npm-view",
+        },
+        "npm registry",
+      );
       return;
     }
     if (installedVersion === npmResult.version.replace(/^v/i, "")) {
