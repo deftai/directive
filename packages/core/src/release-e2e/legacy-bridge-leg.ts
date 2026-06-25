@@ -342,10 +342,19 @@ export function assertNpmHybridMigration(
   ];
 }
 
-/** Map a Node `process.platform` value to the Go release `GOOS` asset token. */
+/**
+ * Map a Node `process.platform` value to the published release OS asset token.
+ *
+ * The release workflow (.github/workflows/release.yml) uploads assets named
+ * `install-<os>-<arch>` where <os> is `windows` / `macos` / `linux` -- NOT the Go
+ * `GOOS` token. In particular macOS publishes a single `install-macos-universal`
+ * binary (the lipo'd fat binary), so a darwin host must look for `macos`, not
+ * `darwin`.
+ */
 function goOsToken(platform: NodeJS.Platform): string {
   if (platform === "win32") return "windows";
-  return platform; // "linux" / "darwin" line up with GOOS as-is
+  if (platform === "darwin") return "macos"; // assets are install-macos-universal
+  return platform; // "linux" lines up as-is
 }
 
 /** Map a Node `process.arch` value to the Go release `GOARCH` asset token. */
@@ -361,17 +370,26 @@ export type BridgeAssetSelection =
   | { kind: "no-platform-match"; candidates: string[] };
 
 /**
- * Pick the deft-install bridge binary matching the current host platform/arch.
+ * Match an installer binary asset. The release workflow uploads
+ * `install-<os>-<arch>` (e.g. `install-linux-amd64`, `install-windows-amd64.exe`,
+ * `install-macos-universal`); the legacy single-binary / `deft-install-` naming is
+ * also accepted for back-compat. Anchored at the start of the basename so sibling
+ * assets like `checksums.txt` / `README.md` are excluded.
+ */
+const INSTALLER_ASSET_RE = /^(?:deft-)?install(?:-|\.exe$|$)/i;
+
+/**
+ * Pick the installer bridge binary matching the current host platform/arch.
  *
- * Go releases publish one asset per OS/arch (e.g. `deft-install-linux-amd64`,
- * `deft-install-darwin-arm64`, `deft-install-windows-amd64.exe`). Selecting
- * `assets[0]` alphabetically silently picks the wrong binary on a multi-asset
- * release (darwin sorts before linux), producing an exec-format failure on a
- * non-Darwin runner. This resolves the host-matching asset instead and reports
- * a precise outcome when none matches:
- *   - single deft-install asset -> use it (single-binary releases, back-compat);
- *   - prefer an asset whose name carries BOTH the GOOS and GOARCH tokens;
- *   - else fall back to a GOOS-only match (releases that omit the arch suffix);
+ * The release publishes one asset per OS (`install-<os>-<arch>`, with macOS as a
+ * single `install-macos-universal` fat binary). Selecting `assets[0]`
+ * alphabetically silently picks the wrong binary on a multi-asset release,
+ * producing an exec-format failure on a mismatched runner. This resolves the
+ * host-matching asset instead and reports a precise outcome when none matches:
+ *   - single installer asset -> use it (single-binary releases, back-compat);
+ *   - prefer an asset whose name carries BOTH the OS and arch tokens;
+ *   - else fall back to an OS-only match (e.g. the macOS universal binary, which
+ *     carries no arch suffix, or releases that omit the arch suffix);
  *   - else `no-platform-match` so the caller fails loudly rather than guessing.
  */
 export function selectBridgeAsset(
@@ -379,7 +397,7 @@ export function selectBridgeAsset(
   platform: NodeJS.Platform = process.platform,
   arch: string = process.arch,
 ): BridgeAssetSelection {
-  const candidates = fileNames.filter((name) => /deft-install/i.test(name));
+  const candidates = fileNames.filter((name) => INSTALLER_ASSET_RE.test(name));
   if (candidates.length === 0) {
     return { kind: "none" };
   }
@@ -447,14 +465,14 @@ export function downloadAndRunFrozenBridge(
     if (selection.kind === "none") {
       return [
         false,
-        `frozen bridge ${pin} downloaded but no deft-install asset found in ${assetDir} ` +
+        `frozen bridge ${pin} downloaded but no installer asset (install-*) found in ${assetDir} ` +
           `(see ${GO_BRIDGE_RELEASES_URL})`,
       ];
     }
     if (selection.kind === "no-platform-match") {
       return [
         false,
-        `frozen bridge ${pin} downloaded but no deft-install asset matches ` +
+        `frozen bridge ${pin} downloaded but no installer asset matches ` +
           `${goOsToken(process.platform)}/${goArchToken(process.arch)} ` +
           `(candidates: ${selection.candidates.join(", ")}; see ${GO_BRIDGE_RELEASES_URL})`,
       ];

@@ -235,59 +235,77 @@ describe("assertInstallerVersionMigrateAcceptable", () => {
 });
 
 describe("selectBridgeAsset", () => {
+  // The real published release asset names (release.yml softprops upload):
+  // install-<os>-<arch>, with macOS shipping a single universal fat binary.
   const multi = [
-    "deft-install-darwin-amd64",
-    "deft-install-darwin-arm64",
-    "deft-install-linux-amd64",
-    "deft-install-linux-arm64",
-    "deft-install-windows-amd64.exe",
+    "install-linux-amd64",
+    "install-linux-arm64",
+    "install-macos-universal",
+    "install-windows-amd64.exe",
+    "install-windows-arm64.exe",
     "checksums.txt",
   ];
 
-  it("returns none when no deft-install asset is present", () => {
+  it("returns none when no installer asset is present", () => {
     expect(selectBridgeAsset(["checksums.txt", "README.md"])).toEqual({ kind: "none" });
   });
 
-  it("uses the sole deft-install asset for a single-binary release", () => {
-    expect(selectBridgeAsset(["deft-install", "checksums.txt"])).toEqual({
+  it("uses the sole installer asset for a single-binary release", () => {
+    expect(selectBridgeAsset(["install", "checksums.txt"])).toEqual({
       kind: "ok",
-      name: "deft-install",
+      name: "install",
     });
   });
 
-  it("selects the GOOS/GOARCH-matching asset, not the alphabetical first", () => {
-    // Alphabetical assets[0] would be darwin-amd64; linux/amd64 must win on a linux host.
-    expect(selectBridgeAsset(multi, "linux", "x64")).toEqual({
+  it("accepts the legacy deft-install- prefix for back-compat", () => {
+    expect(selectBridgeAsset(["deft-install-linux-amd64", "checksums.txt"], "linux", "x64")).toEqual(
+      { kind: "ok", name: "deft-install-linux-amd64" },
+    );
+  });
+
+  it("selects the OS/arch-matching asset, not the alphabetical first", () => {
+    // Alphabetical assets[0] would be install-linux-amd64; the host match must win.
+    expect(selectBridgeAsset(multi, "linux", "arm64")).toEqual({
       kind: "ok",
-      name: "deft-install-linux-amd64",
-    });
-    expect(selectBridgeAsset(multi, "darwin", "arm64")).toEqual({
-      kind: "ok",
-      name: "deft-install-darwin-arm64",
+      name: "install-linux-arm64",
     });
     expect(selectBridgeAsset(multi, "win32", "x64")).toEqual({
       kind: "ok",
-      name: "deft-install-windows-amd64.exe",
+      name: "install-windows-amd64.exe",
     });
   });
 
-  it("falls back to a GOOS-only match when the arch suffix is absent", () => {
-    expect(
-      selectBridgeAsset(["deft-install-linux", "deft-install-darwin"], "linux", "x64"),
-    ).toEqual({ kind: "ok", name: "deft-install-linux" });
+  it("resolves the macOS universal binary on a darwin host (any arch)", () => {
+    // install-macos-universal carries no arch token, so the OS-only fallback
+    // picks it for both amd64 and arm64 darwin hosts.
+    expect(selectBridgeAsset(multi, "darwin", "arm64")).toEqual({
+      kind: "ok",
+      name: "install-macos-universal",
+    });
+    expect(selectBridgeAsset(multi, "darwin", "x64")).toEqual({
+      kind: "ok",
+      name: "install-macos-universal",
+    });
+  });
+
+  it("falls back to an OS-only match when the arch suffix is absent", () => {
+    expect(selectBridgeAsset(["install-linux", "install-macos"], "linux", "x64")).toEqual({
+      kind: "ok",
+      name: "install-linux",
+    });
   });
 
   it("reports no-platform-match (with candidates) when nothing matches the host", () => {
     const result = selectBridgeAsset(
-      ["deft-install-darwin-arm64", "deft-install-windows-amd64.exe"],
+      ["install-macos-universal", "install-windows-amd64.exe"],
       "linux",
       "x64",
     );
     expect(result.kind).toBe("no-platform-match");
     if (result.kind === "no-platform-match") {
       expect(result.candidates).toEqual([
-        "deft-install-darwin-arm64",
-        "deft-install-windows-amd64.exe",
+        "install-macos-universal",
+        "install-windows-amd64.exe",
       ]);
     }
   });
@@ -321,7 +339,7 @@ describe("downloadAndRunFrozenBridge", () => {
     expect(reason).toContain("release not found");
   });
 
-  it("FAILs when no deft-install asset is present in the download", () => {
+  it("FAILs when no installer asset is present in the download", () => {
     const emptyDir = freshRoot("frozen-empty-");
     const [okFlag, reason] = downloadAndRunFrozenBridge("v9.9.9", "/fixture", {
       which: whichFor("gh"),
@@ -329,7 +347,7 @@ describe("downloadAndRunFrozenBridge", () => {
       mkdtemp: () => emptyDir,
     });
     expect(okFlag).toBe(false);
-    expect(reason).toContain("no deft-install asset");
+    expect(reason).toContain("no installer asset");
   });
 
   it("cleans up the downloaded-binary temp dir on an early-return failure path", () => {
@@ -385,14 +403,19 @@ describe("runLegacyBridgeLeg", () => {
     expect(reason).toContain("skipped the real frozen-binary download");
   });
 
-  it("uses the real SoT reader by default (null today -> PENDING)", () => {
+  it("uses the real SoT reader by default (frozen at the pinned tag -> frozen path)", () => {
+    // Post-freeze (#1912) the real Tier-0 SoT is pinned, so the default reader
+    // takes the frozen stage-1 path. With gh absent (whichFor("npm")) the real
+    // frozen-binary download soft-skips while still reporting the frozen pin --
+    // proving the leg reads the live SoT rather than a stale null assumption.
     const [okFlag, reason] = runLegacyBridgeLeg(process.cwd(), {
       which: whichFor("npm"),
       resolveEngine: () => "npm",
       agentsTemplatePath: null,
     });
     expect(okFlag).toBe(true);
-    expect(reason).toContain("PENDING (SoT unfrozen)");
+    expect(reason).toContain("frozen pin");
+    expect(reason).toContain("SKIP");
   });
 
   it("validates the VERSION handshake on the SoT-null path with no binary download (a3)", () => {

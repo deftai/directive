@@ -17,9 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **The Go installer is now frozen at v0.56.0 — future Deft upgrades come from npm** — the legacy stage-1 bridge is pinned to its final published Go-installer release (`v0.56.0`). From here, the release pipeline's freeze gate enforces the line: tags at or below v0.56.0 still build Go binaries, anything above skips the Go build cleanly (per #1987) and ships via npm only. Existing legacy on-disk layouts are still migrated by the frozen v0.56.0 installer, which then hands off to `npx @deftai/directive` for all subsequent updates. Closes #1912. Refs #1972.
 
 ### Fixed
 - **A frozen Go installer no longer makes every later release show up as failed** — once the Go-installer bridge is frozen, the release pipeline's freeze gate now skips the Go binary build cleanly (a green run with a clear annotation) for any release above the frozen line, instead of hard-failing the whole Release workflow with a red X. npm publishing and the GitHub release notes were never affected; this just stops the post-freeze noise that looked like a broken release. An unparseable freeze setting still fails loudly. Closes #1987.
+- **The release rehearsal's frozen-bridge handoff now finds the published installer binary** — the legacy-bridge end-to-end leg matched assets named `deft-install-darwin-*`, but releases publish `install-<os>-<arch>` (with a single `install-macos-universal` fat binary for macOS). The asset matcher now resolves the real names on every host, so the pinned `legacy → bridge → npm` rehearsal exercises the actual v0.56.0 binary instead of failing to locate it. Refs #1912.
 
 ### Removed
 

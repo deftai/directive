@@ -38,7 +38,7 @@
  * at freeze time. Leave it `null` otherwise. This is the only edit required to
  * pin the bridge version; the freeze + drift gates pick it up automatically.
  */
-export const LAST_GO_INSTALLER: string | null = null;
+export const LAST_GO_INSTALLER: string | null = "v0.56.0";
 
 /** Returns the frozen final Go-installer tag, or `null` while unfrozen. */
 export function lastGoInstaller(): string | null {
