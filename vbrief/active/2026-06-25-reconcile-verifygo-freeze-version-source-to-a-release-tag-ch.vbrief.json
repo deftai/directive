@@ -6,7 +6,7 @@
   "plan": {
     "id": "1972-s1a-freeze-gate-version-source",
     "title": "Reconcile verify:go-freeze version source to a release-tag check",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json",
     "narratives": {
       "Description": "The freeze gate currently compares the pinned SoT against the `var version` literal in cmd/deft-install/main.go, but the real installer version is injected via ldflags at build time, so pinning the SoT to a 0.x tag would false-fail the gate. This story moves freeze enforcement to a release.yml tag check that refuses a Go installer build above the pinned SoT and neutralizes the brittle source-literal comparison in freeze-gate.ts.",
@@ -83,6 +83,7 @@
         "type": "x-vbrief/refs",
         "title": "Issue #1669"
       }
-    ]
+    ],
+    "updated": "2026-06-25T13:03:29Z"
   }
 }

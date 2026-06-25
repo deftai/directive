@@ -52,7 +52,7 @@
         "title": "Issue #1669"
       },
       {
-        "uri": "pending/2026-06-25-reconcile-verifygo-freeze-version-source-to-a-release-tag-ch.vbrief.json",
+        "uri": "active/2026-06-25-reconcile-verifygo-freeze-version-source-to-a-release-tag-ch.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Reconcile verify:go-freeze version source to a release-tag check",
         "TrustLevel": "internal"
