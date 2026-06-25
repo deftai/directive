@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Exclude __pycache__/*.pyc from @deftai/directive-content prepack",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Exclude __pycache__/*.pyc from @deftai/directive-content prepack",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1985",
@@ -29,9 +29,10 @@
         "title": "Issue #1972"
       }
     ],
-    "updated": "2026-06-25T14:49:33Z",
+    "updated": "2026-06-25T14:53:08Z",
     "metadata": {
-      "capacityBucket": "maintenance"
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-25T14:53:08Z"
     }
   }
 }
