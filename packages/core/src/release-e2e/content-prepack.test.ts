@@ -71,6 +71,15 @@ function buildFakeRepo(options: { withScripts?: boolean } = {}): { root: string;
   if (options.withScripts !== false) {
     mkdirSync(join(root, "scripts"), { recursive: true });
     writeFileSync(join(root, "scripts", "preflight_branch.py"), "# branch gate\n", "utf8");
+    // Compiled bytecode that must NOT ship: a __pycache__ dir (the common case)
+    // plus a stray top-level .pyc (exercises the endsWith('.pyc') branch).
+    mkdirSync(join(root, "scripts", "__pycache__"), { recursive: true });
+    writeFileSync(
+      join(root, "scripts", "__pycache__", "preflight_branch.cpython-314.pyc"),
+      "\x00bytecode\n",
+      "utf8",
+    );
+    writeFileSync(join(root, "scripts", "legacy.pyc"), "\x00bytecode\n", "utf8");
   }
 
   return { root, pkgDir };
@@ -120,6 +129,18 @@ describe("@deftai/directive-content prepack (#1967)", () => {
     expect(existsSync(join(pkgDir, "tasks", "swarm.yml"))).toBe(true);
     // ...and the helper scripts the hooks invoke at .deft/core/scripts/.
     expect(existsSync(join(pkgDir, "scripts", "preflight_branch.py"))).toBe(true);
+  });
+
+  it("excludes __pycache__ directories and .pyc bytecode from the bundle (#1985)", () => {
+    const { root, pkgDir } = buildFakeRepo();
+    created.push(root);
+    runPrepack(pkgDir);
+    // The .py source is still needed (engine invokes it via the bundled
+    // Taskfile until the Python purge #1860)...
+    expect(existsSync(join(pkgDir, "scripts", "preflight_branch.py"))).toBe(true);
+    // ...but compiled bytecode is pure bloat and must never publish.
+    expect(existsSync(join(pkgDir, "scripts", "__pycache__"))).toBe(false);
+    expect(existsSync(join(pkgDir, "scripts", "legacy.pyc"))).toBe(false);
   });
 
   it("skips an engine entry that is absent from the repo root", () => {
