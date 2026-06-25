@@ -252,7 +252,8 @@ export function provisionCanonicalVendoredDeposit(
 
   let manifestPath: string;
   if (versionTextOverride !== null) {
-    mkdirSync(deftDir, { recursive: true });
+    // deftDir already exists: the `mkdirSync(join(deftDir, "templates"))` above
+    // created it as an ancestor (recursive). Just write the override VERSION.
     manifestPath = join(deftDir, "VERSION");
     writeFileSync(manifestPath, versionTextOverride, "utf8");
   } else {
