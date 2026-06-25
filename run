@@ -3942,11 +3942,27 @@ def cmd_doctor(args: List[str]):
 # ===
 
 def cmd_update(args: List[str]):
-    """Update command - update deft framework"""
+    """Update command -- redirect to the canonical npm upgrade path (#1998).
+
+    Post-freeze (#1912) the vendored ``run update`` surface does not replace
+    the framework payload. It signposts the npm CLI instead of dead-ending with
+    a manual directory swap.
+    """
     print_header(f"Deft CLI v{VERSION} - Update")
     print()
-    info("Deft update functionality not yet implemented")
-    warn("Manual update: Replace deft directory with latest version from repository")
+    info(
+        "Framework payload updates are delivered via npm post-freeze (#1912). "
+        "This vendored `run update` command does not replace the payload."
+    )
+    info(
+        "Install and upgrade via npm: `npm i -g @deftai/directive` (install) or "
+        "`npm i -g @deftai/directive@latest` (upgrade). Node >= 20 is required."
+    )
+    info("Refresh this project's vendored payload: `npx @deftai/directive update`")
+    info(
+        "If you still use a legacy on-disk layout, see content/UPGRADING.md "
+        "for the two-step Go-bridge -> npm migration."
+    )
     return 0
 
 def cmd_reset(args: List[str]):

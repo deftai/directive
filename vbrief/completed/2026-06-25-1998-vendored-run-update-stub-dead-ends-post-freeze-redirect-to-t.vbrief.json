@@ -1,0 +1,37 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1998"
+  },
+  "plan": {
+    "title": "Vendored `run update` stub dead-ends post-freeze — redirect to the canonical npm path (template fix)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Vendored `run update` stub dead-ends post-freeze — redirect to the canonical npm path (template fix)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1998",
+      "Overview": "Child of #1993 (sub-problem 4). Split out from the live Cartograph consumer report.\n\nThe vendored `run update` (`run:3944-3950`, registered at `run:5398`) prints \"Deft update functionality not yet implemented / Manual update: Replace deft directory with latest version from repository\" — a first-class command that dead-ends.\n\nVendored-only artifact: we can't fix it on existing v0.56.0 installs (the payload is frozen), but the template should be corrected so future deposits print the exact canonical next step (`npx @deftai/directive update`, or `npm i -g @deftai/directive@latest` then the migration step) instead of \"replace the directory\". Lowest priority of the #1993 children.\n\nRefs #1993.",
+      "Labels": "installer"
+    },
+    "items": [],
+    "tags": [
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1998",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1998: Vendored `run update` stub dead-ends post-freeze — redirect to the canonical npm path (template fix)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1993",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1993"
+      }
+    ],
+    "updated": "2026-06-25T20:15:40Z",
+    "metadata": {
+      "completedAt": "2026-06-25T20:15:40Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

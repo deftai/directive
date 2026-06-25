@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Vendored `run update` now points at npm instead of dead-ending** — the compatibility `run update` stub no longer tells operators to manually replace the deft directory; it signposts `npm i -g @deftai/directive@latest` and `npx @deftai/directive update` so future deposits steer consumers to the post-freeze upgrade path. Closes #1998.
+
 ### Removed
 
 ## [0.56.2] - 2026-06-25
