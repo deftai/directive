@@ -148,6 +148,14 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
     return { kind: "dispatch", argv: [colonKey, ...rest] };
   }
 
+  if (ns === "framework" && verb === "doctor") {
+    return { kind: "dispatch", argv: ["doctor", ...rest] };
+  }
+
+  if (ns === "agents" && verb === "refresh") {
+    return { kind: "dispatch", argv: ["agents-refresh", ...rest] };
+  }
+
   if (ns === "scope") {
     if (SCOPE_LIFECYCLE_VERBS.has(verb)) {
       return { kind: "dispatch", argv: ["scope-lifecycle", verb, ...rest] };

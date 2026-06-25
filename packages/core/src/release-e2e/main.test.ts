@@ -426,6 +426,10 @@ describe("runRehearsal", () => {
       order.push("npm");
       return [true, "ok"];
     });
+    vi.spyOn(npmOps, "rehearseNpmInstallAndRun").mockImplementation(() => {
+      order.push("npm-install-run");
+      return [true, "ok"];
+    });
     const seams: E2ESeams = {
       mkdtemp: () => mkdtempSync(join(tmpdir(), "deft-e2e-")),
       releaseEntrypoint: () => 0,
@@ -437,8 +441,8 @@ describe("runRehearsal", () => {
     const [ok, reason] = runRehearsal("deftai", "x", "/proj", REHEARSAL_VERSION, seams);
     expect(ok).toBe(true);
     expect(reason).toContain("npm publish dry-run");
-    // npm step lands between verify tag and rollback.
-    expect(order).toEqual(["clone", "verify tag", "npm", "rollback"]);
+    // npm steps land between verify tag and rollback.
+    expect(order).toEqual(["clone", "verify tag", "npm", "npm-install-run", "rollback"]);
   });
 
   it("task release failure short-circuits before verify", () => {

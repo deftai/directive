@@ -6,7 +6,7 @@ import { dispatchTaskRelease, dispatchTaskReleaseRollback } from "./entrypoint.j
 import { emit } from "./flags.js";
 import { verifyDraftRelease } from "./gh-ops.js";
 import { cloneRepoToTemp, pushMirror, setOriginToTempRepo, verifyTag } from "./git-ops.js";
-import { rehearseNpmPublish } from "./npm-ops.js";
+import { rehearseNpmInstallAndRun, rehearseNpmPublish } from "./npm-ops.js";
 import type { E2ESeams } from "./types.js";
 
 export function runRehearsal(
@@ -34,6 +34,10 @@ export function runRehearsal(
     ];
     if (!skipNpm) {
       steps.push(["npm publish dry-run", () => rehearseNpmPublish(cloneDir, version, seams)]);
+      steps.push([
+        "npm install+run smoke",
+        () => rehearseNpmInstallAndRun(cloneDir, version, seams),
+      ]);
     }
     steps.push([
       "task release:rollback",
@@ -48,7 +52,9 @@ export function runRehearsal(
       }
     }
 
-    const npmNote = skipNpm ? " (npm dry-run skipped)" : " -> npm publish dry-run";
+    const npmNote = skipNpm
+      ? " (npm dry-run skipped)"
+      : " -> npm publish dry-run -> npm install+run smoke";
     return [
       true,
       `pipeline-mirror rehearsal succeeded against ${repoFull} ` +

@@ -16,7 +16,12 @@ import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { runInitDeposit } from "../init-deposit/init-deposit.js";
 import { runRefreshDeposit } from "../init-deposit/refresh.js";
 import type { SpawnResult } from "../release/types.js";
-import { alignNpmPackageVersions, rehearseNpmPublish, resolvePnpm } from "./npm-ops.js";
+import {
+  alignNpmPackageVersions,
+  rehearseNpmInstallAndRun,
+  rehearseNpmPublish,
+  resolvePnpm,
+} from "./npm-ops.js";
 import type { E2ESeams } from "./types.js";
 
 function installFakeContentPackage(projectRoot: string, version = "0.53.0"): string {
@@ -313,5 +318,59 @@ describe("rehearseNpmPublish", () => {
     expect(reason).toContain("packages/core");
     expect(publishCwds).not.toContain(join(clone, "packages", "content"));
     expect(publishCwds).not.toContain(join(clone, "packages", "cli"));
+  });
+});
+
+describe("rehearseNpmInstallAndRun (#1996)", () => {
+  it("soft-skips when npm is absent", () => {
+    const [okFlag, reason] = rehearseNpmInstallAndRun("/proj", "0.0.1", { which: () => null });
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("SKIP");
+  });
+
+  it("packs, installs, and runs doctor without module-not-found", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-install-run-"));
+    scaffoldPackages(clone);
+    const calls: Array<{ cmd: string[]; cwd?: string }> = [];
+    const seams: E2ESeams = {
+      which: (n) => `/usr/bin/${n}`,
+      spawnText: (cmd, args, options) => {
+        calls.push({ cmd: [cmd, ...args], cwd: options?.cwd });
+        const full = [cmd, ...args];
+        if (full.some((part) => String(part).includes("bin.js"))) {
+          return { status: 0, stdout: "Usage: directive doctor\n", stderr: "" };
+        }
+        return ok();
+      },
+    };
+    const [okFlag, reason] = rehearseNpmInstallAndRun(clone, "0.0.1", seams);
+    expect(okFlag).toBe(true);
+    expect(reason).toContain("without module-not-found");
+    expect(calls.some((c) => c.cmd.includes("pack"))).toBe(true);
+    expect(calls.some((c) => c.cmd.includes("install"))).toBe(true);
+    expect(calls.some((c) => c.cmd.some((part) => String(part).includes("bin.js")))).toBe(true);
+  });
+
+  it("fails loudly on ERR_MODULE_NOT_FOUND from the installed CLI", () => {
+    const clone = mkdtempSync(join(tmpdir(), "deft-npm-install-run-fail-"));
+    scaffoldPackages(clone);
+    const seams: E2ESeams = {
+      which: (n) => `/usr/bin/${n}`,
+      spawnText: (cmd, args) => {
+        const full = [cmd, ...args];
+        if (full.some((part) => String(part).includes("bin.js"))) {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "Error [ERR_MODULE_NOT_FOUND]: Cannot find module '@deftai/missing'",
+          };
+        }
+        return ok();
+      },
+    };
+    const [okFlag, reason] = rehearseNpmInstallAndRun(clone, "0.0.1", seams);
+    expect(okFlag).toBe(false);
+    expect(reason).toContain("module resolution error");
+    expect(reason).toContain("ERR_MODULE_NOT_FOUND");
   });
 });

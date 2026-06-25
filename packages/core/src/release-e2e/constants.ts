@@ -19,6 +19,14 @@ export const NPM_E2E_REHEARSAL_TAG = "e2e-rehearsal";
 export const NPM_INSTALL_TIMEOUT_SECONDS = 600;
 export const NPM_BUILD_TIMEOUT_SECONDS = 600;
 export const NPM_PUBLISH_DRYRUN_TIMEOUT_SECONDS = 180;
+export const NPM_PACK_TIMEOUT_SECONDS = 300;
+export const NPM_INSTALL_RUN_TIMEOUT_SECONDS = 300;
+/** Fail the install+run smoke when stderr/stdout carries a module-resolution error. */
+export const MODULE_NOT_FOUND_MARKERS = [
+  "Cannot find module",
+  "ERR_MODULE_NOT_FOUND",
+  "MODULE_NOT_FOUND",
+] as const;
 
 export const RELEASE_ENTRYPOINT_TIMEOUT_SECONDS = 600.0;
 export const ROLLBACK_ENTRYPOINT_TIMEOUT_SECONDS = 300.0;

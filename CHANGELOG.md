@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Doc and release rehearsals now catch npm CLI drift before publish** — a new check compares every `directive` / `deft` command cited in UPGRADING.md and the AGENTS.md managed section against the live CLI router so documented verbs cannot outpace registration, and the release end-to-end rehearsal packs all four npm packages, installs them into a clean layout, and runs `directive doctor` to fail on module-not-found import bugs like the #1993 regression. Closes #1996.
 
 ### Changed
 

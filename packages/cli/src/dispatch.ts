@@ -33,6 +33,7 @@ const HANDLER_KEYS = [
 
 /** CLI modules in packages/cli/src (excluding parity harnesses and bin/index). */
 export const CLI_MODULE_VERBS = [
+  "agents-refresh",
   "cache",
   "check",
   "capacity-backfill",
@@ -176,6 +177,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "triage:scope": "triage-scope",
   "triage:accept": "triage-actions",
   "triage:status": "triage-actions",
+  "agents:refresh": "agents-refresh",
   "session:start": "framework-commands",
   "toolchain:check": "toolchain-check",
   "ts:check-lane": "ts-check-lane",

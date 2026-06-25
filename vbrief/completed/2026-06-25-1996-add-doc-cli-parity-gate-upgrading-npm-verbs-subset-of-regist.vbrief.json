@@ -1,0 +1,38 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1996"
+  },
+  "plan": {
+    "title": "Add doc<->CLI parity gate (UPGRADING npm verbs subset of registered verbs) + install+run smoke in release-e2e",
+    "status": "completed",
+    "narratives": {
+      "Description": "Add doc<->CLI parity gate (UPGRADING npm verbs subset of registered verbs) + install+run smoke in release-e2e",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1996",
+      "Overview": "Child of #1993 (sub-problems 1 + 6). Hardening so the npm-CLI breakage and doc drift can't recur.\n\nTwo complementary gates:\n1. **Doc<->CLI parity**: extract `directive <verb>` / `npx @deftai/directive <verb>` references from `content/UPGRADING.md` (and the AGENTS.md managed section) and assert each is in `registeredVerbs()` (`packages/cli/src/dispatch.ts:553`) + the top-level router. No existing gate does this (`tests/cli/test_framework_doctor_prose.py` is partial).\n2. **Install+run smoke in release-e2e**: the v0.56.2 fix added a static lint (`packages/cli/src/cross-package-imports.test.ts`) that catches the specific `../../core/dist` pattern. Add a broader publish-layout smoke to `release-e2e`: pack the 4 packages, install into a clean flat `node_modules`, and run a verb (e.g. `doctor`) asserting no module-not-found. `npm publish --dry-run` (current e2e) validates packaging but does NOT install+run, so it cannot catch import-resolution bugs like #1993 sub-problem 1.\n\nRefs #1993.",
+      "Labels": "enhancement, installer"
+    },
+    "items": [],
+    "tags": [
+      "enhancement",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1996",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1996: Add doc<->CLI parity gate (UPGRADING npm verbs subset of registered verbs) + install+run smoke in release-e2e"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1993",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1993"
+      }
+    ],
+    "updated": "2026-06-25T20:18:47Z",
+    "metadata": {
+      "completedAt": "2026-06-25T20:18:47Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
