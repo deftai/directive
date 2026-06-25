@@ -24,6 +24,11 @@ function installFakeContentPackage(projectRoot: string, version = "0.53.0"): str
   mkdirSync(join(pkgDir, "templates"), { recursive: true });
   mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
   mkdirSync(join(pkgDir, ".githooks"), { recursive: true });
+  // tasks/ + scripts/ mirror the engine dirs the #1967 prepack bundles
+  // alongside .githooks/ + Taskfile.yml so the deposited .deft/core/Taskfile.yml
+  // is genuinely resolvable and the hooks can resolve .deft/core/scripts/.
+  mkdirSync(join(pkgDir, "tasks"), { recursive: true });
+  mkdirSync(join(pkgDir, "scripts"), { recursive: true });
   writeFileSync(
     join(pkgDir, "package.json"),
     JSON.stringify({ name: CONTENT_PACKAGE_NAME, version }),
@@ -38,7 +43,11 @@ function installFakeContentPackage(projectRoot: string, version = "0.53.0"): str
   writeFileSync(join(pkgDir, "vbrief", "vbrief.md"), "# vbrief\n", "utf8");
   writeFileSync(join(pkgDir, ".githooks", "pre-commit"), "#!/bin/sh\nexit 0\n", "utf8");
   chmodSync(join(pkgDir, ".githooks", "pre-commit"), 0o755);
+  writeFileSync(join(pkgDir, ".githooks", "pre-push"), "#!/bin/sh\nexit 0\n", "utf8");
+  chmodSync(join(pkgDir, ".githooks", "pre-push"), 0o755);
   writeFileSync(join(pkgDir, "Taskfile.yml"), "version: '3'\n", "utf8");
+  writeFileSync(join(pkgDir, "tasks", "swarm.yml"), "version: '3'\n", "utf8");
+  writeFileSync(join(pkgDir, "scripts", "preflight_branch.py"), "# branch gate\n", "utf8");
   return pkgDir;
 }
 
@@ -111,6 +120,14 @@ describe("deposit journey e2e legs (#1942 S5)", () => {
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("deft:managed-section");
     expect(existsSync(join(project, "vbrief", "active", ".gitkeep"))).toBe(true);
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft/core/");
+    // #1967: the deposited .deft/core carries the branch-policy hooks and a
+    // resolvable Taskfile (with its tasks/ fragments + helper scripts), not a
+    // graceful "absent — skipping" deposit.
+    expect(existsSync(join(result.deftDir, ".githooks", "pre-commit"))).toBe(true);
+    expect(existsSync(join(result.deftDir, "Taskfile.yml"))).toBe(true);
+    expect(existsSync(join(result.deftDir, "tasks", "swarm.yml"))).toBe(true);
+    expect(existsSync(join(result.deftDir, "scripts", "preflight_branch.py"))).toBe(true);
+    // ...and `directive init` wires the hooks to the consumer root + include.
     expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
     expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain(
       "./.deft/core/Taskfile.yml",
