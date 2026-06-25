@@ -6,7 +6,7 @@
   "plan": {
     "id": "1972-s1b-installer-npm-handoff",
     "title": "Add npm-handoff messaging to the Go installer success path",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json",
     "narratives": {
       "Description": "The frozen Go installer is the last one consumers will run, so they must learn that future upgrades now come from the npm package. This story prints a handoff line on the installer success path in cmd/deft-install/main.go directing users to run npx @deftai/directive init for subsequent upgrades.",
@@ -62,7 +62,9 @@
         "size": "S",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-25T13:11:06Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -82,6 +84,6 @@
         "title": "Issue #1669"
       }
     ],
-    "updated": "2026-06-25T13:03:35Z"
+    "updated": "2026-06-25T13:11:06Z"
   }
 }

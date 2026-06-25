@@ -42,6 +42,23 @@ var version = "1.0.0"
 // User-provided --branch / /branch flag takes precedence.
 var defaultBranch = ""
 
+// npmHandoffMessage is printed to stderr on the installer success path so a
+// consumer running this frozen Go installer learns that future Deft upgrades
+// now come from the npm package rather than re-running the installer (#1972).
+// It is emitted only on the non-error (exit-zero) success path -- every error
+// path returns before printNpmHandoff is reached, so an errored install never
+// prints it.
+const npmHandoffMessage = "Deft is installed. This Go installer is frozen -- for future upgrades run: npx @deftai/directive init"
+
+// printNpmHandoff writes the npm-upgrade handoff line to stderr. install()
+// calls it only immediately before a successful (exit-zero) return, on both the
+// prose and the --json success paths; routing to stderr keeps stdout a single
+// clean JSON object in --json mode while still surfacing the handoff to humans
+// and agents (#1972 s1b).
+func printNpmHandoff() {
+	fmt.Fprintln(os.Stderr, npmHandoffMessage)
+}
+
 // resolveBranch returns the effective branch to use for clone/update.
 // A user-provided --branch value takes precedence over the build-time
 // defaultBranch. An empty result means "origin default branch".
@@ -548,6 +565,7 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		PrintNextSteps(wErr, result, configDir, skillsCreated)
 		printCommitGuidance(wErr, stagePaths, staged)
 		doHandoffToDoctor(wErr, result, jsonOut)
+		printNpmHandoff()
 		return 0
 	}
 
@@ -566,6 +584,7 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// above also calls doHandoffToDoctor (routed to stderr) so the Epic-5
 	// staleness verdict reaches agents on every path.
 	doHandoffToDoctor(w, result, jsonOut)
+	printNpmHandoff()
 	return 0
 }
 
