@@ -6,7 +6,7 @@
   "plan": {
     "id": "1972-s1c-version-handshake-e2e",
     "title": "Assert the installer VERSION is migrate-acceptable in the legacy-bridge e2e leg",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json",
     "narratives": {
       "Description": "The freeze hinges on the Go installer writing a .deft/core/VERSION that directive migrate accepts as canonical-ready before stamping managed_by npm. Today the legacy-bridge e2e leg provisions a synthetic manifest, so this story drives an installer-shaped VERSION through parseInstallManifest and runMigrate so the handshake is asserted end to end rather than assumed.",
@@ -81,6 +81,7 @@
         "type": "x-vbrief/refs",
         "title": "Issue #1669"
       }
-    ]
+    ],
+    "updated": "2026-06-25T13:03:41Z"
   }
 }

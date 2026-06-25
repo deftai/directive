@@ -64,7 +64,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-25-assert-the-installer-version-is-migrate-acceptable-in-the-le.vbrief.json",
+        "uri": "active/2026-06-25-assert-the-installer-version-is-migrate-acceptable-in-the-le.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Assert the installer VERSION is migrate-acceptable in the legacy-bridge e2e leg",
         "TrustLevel": "internal"
