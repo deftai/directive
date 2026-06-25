@@ -258,9 +258,9 @@ describe("selectBridgeAsset", () => {
   });
 
   it("accepts the legacy deft-install- prefix for back-compat", () => {
-    expect(selectBridgeAsset(["deft-install-linux-amd64", "checksums.txt"], "linux", "x64")).toEqual(
-      { kind: "ok", name: "deft-install-linux-amd64" },
-    );
+    expect(
+      selectBridgeAsset(["deft-install-linux-amd64", "checksums.txt"], "linux", "x64"),
+    ).toEqual({ kind: "ok", name: "deft-install-linux-amd64" });
   });
 
   it("selects the OS/arch-matching asset, not the alphabetical first", () => {
@@ -303,10 +303,7 @@ describe("selectBridgeAsset", () => {
     );
     expect(result.kind).toBe("no-platform-match");
     if (result.kind === "no-platform-match") {
-      expect(result.candidates).toEqual([
-        "install-macos-universal",
-        "install-windows-amd64.exe",
-      ]);
+      expect(result.candidates).toEqual(["install-macos-universal", "install-windows-amd64.exe"]);
     }
   });
 });

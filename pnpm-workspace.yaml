@@ -1,6 +1,17 @@
 packages:
   - "packages/*"
 
+# Force the transitive esbuild pin out of the vulnerable range
+# (>=0.27.3,<0.28.1; low-sev dev-server arbitrary file read on Windows). esbuild
+# arrives via vite (<- vitest); vite@7.3.5 caps it at ^0.27.0, while vite@7.3.6
+# widened to "^0.27.0 || ^0.28.0", so we also lift vite to its patched line.
+# The pin propagates to every consumer that vendors .deft/core/, clearing the
+# recurring downstream Dependabot alert (#1989). pnpm 11 reads overrides here,
+# not from package.json's `pnpm` field.
+overrides:
+  vite: "^7.3.6"
+  esbuild: "^0.28.1"
+
 # pnpm 11 defaults to strictDepBuilds and blocks dependency build scripts
 # unless explicitly allowed via the `allowBuilds` map (it replaced the old
 # `onlyBuiltDependencies` list). esbuild (a vitest dependency) links its
@@ -8,3 +19,6 @@ packages:
 # a clean `pnpm install` to exit 0 locally and in CI (#1717).
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - vite@7.3.6

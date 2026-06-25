@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A frozen Go installer no longer makes every later release show up as failed** — once the Go-installer bridge is frozen, the release pipeline's freeze gate now skips the Go binary build cleanly (a green run with a clear annotation) for any release above the frozen line, instead of hard-failing the whole Release workflow with a red X. npm publishing and the GitHub release notes were never affected; this just stops the post-freeze noise that looked like a broken release. An unparseable freeze setting still fails loudly. Closes #1987.
 - **The release rehearsal's frozen-bridge handoff now finds the published installer binary** — the legacy-bridge end-to-end leg matched assets named `deft-install-darwin-*`, but releases publish `install-<os>-<arch>` (with a single `install-macos-universal` fat binary for macOS). The asset matcher now resolves the real names on every host, so the pinned `legacy → bridge → npm` rehearsal exercises the actual v0.56.0 binary instead of failing to locate it. Refs #1912.
 
+### Security
+- **Cleared the recurring `esbuild` Dependabot alert that propagated to projects vendoring the framework** — the bundled dependency lockfile pinned `esbuild` in a range with a low-severity dev-server advisory (arbitrary file read via the esbuild dev server on Windows). `esbuild` is now pinned to `>=0.28.1` (and `vite` to its `>=7.3.6` line that supports it), so the fix flows down to consumers on their next framework update. Dev-scope only; no runtime exposure. Closes #1989.
+
 ### Removed
 
 ## [0.56.0] - 2026-06-25

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Bump esbuild to >=0.28.1 in framework pnpm-lock (low-sev dev advisory)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Bump the transitive esbuild pin out of the vulnerable range so the patched version flows down to every consumer that vendors the framework payload.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1989 (filed from a downstream deftai/cartograph upgrade session).",
@@ -19,9 +19,10 @@
         "title": "Issue #1989: bump esbuild to >=0.28.1 in framework pnpm-lock"
       }
     ],
-    "updated": "2026-06-25T17:34:53Z",
+    "updated": "2026-06-25T17:40:30Z",
     "metadata": {
-      "capacityBucket": "maintenance"
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-25T17:40:30Z"
     }
   }
 }
