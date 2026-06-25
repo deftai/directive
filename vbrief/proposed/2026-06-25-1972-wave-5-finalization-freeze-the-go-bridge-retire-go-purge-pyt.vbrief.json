@@ -58,7 +58,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-25-add-npm-handoff-messaging-to-the-go-installer-success-path.vbrief.json",
+        "uri": "active/2026-06-25-add-npm-handoff-messaging-to-the-go-installer-success-path.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add npm-handoff messaging to the Go installer success path",
         "TrustLevel": "internal"
