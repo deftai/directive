@@ -99,3 +99,23 @@ describe("test_release_workflow.py", () => {
     expect(releasingDocText).toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT");
   });
 });
+
+describe("#1987 freeze-gate graceful skip", () => {
+  it("freeze-gate job declares the frozen_skip output from the gate step", () => {
+    expect(workflowText).toContain("frozen_skip: ${{ steps.gate.outputs.frozen_skip }}");
+  });
+  it("the above-the-line branch sets frozen_skip=true and exits 0 (no hard-fail)", () => {
+    expect(workflowText).toContain('echo "frozen_skip=true" >> "$GITHUB_OUTPUT"');
+    // The old hard-fail wording for a tag above the frozen line must be gone.
+    expect(workflowText).not.toContain("No Go-installer release past the frozen line is allowed");
+  });
+  it("the build job is gated on frozen_skip so it skips cleanly when frozen", () => {
+    expect(workflowText).toContain("needs.freeze-gate.outputs.frozen_skip != 'true'");
+  });
+  it("the unparseable-SoT case still fails loud (fail-closed, never fail-open)", () => {
+    const codeOnly = stripYamlComments(workflowText);
+    // The "Refusing to fail open" branch must still exit 1 on an unparseable SoT.
+    expect(codeOnly).toContain("Refusing to fail open");
+    expect(/Refusing to fail open[\s\S]*?exit 1/m.test(codeOnly)).toBe(true);
+  });
+});

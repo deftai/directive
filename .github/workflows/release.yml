@@ -11,20 +11,30 @@ permissions:
 
 jobs:
   # -----------------------------------------------------------------------
-  # Freeze gate (#1972 / #1912): refuse a Go-installer release ABOVE the pinned
-  # Tier-0 SoT. Runs ONCE in a dedicated job (not per build-matrix leg) and the
-  # build job gates on it via needs:, so a violation fails fast -- once -- before
-  # any platform build starts. The real installer version is ldflags-injected in
-  # the build job (`-X main.version=${{ github.ref_name }}`), so the freeze line
-  # is the release TAG vs the SoT -- not the stale `var version` source literal.
-  # Reads the pinned value from sot.ts (no version hardcoded here); advisory while
-  # the SoT is null (unfrozen).
+  # Freeze gate (#1972 / #1912): weigh a Go-installer release tag against the
+  # pinned Tier-0 SoT. Runs ONCE in a dedicated job (not per build-matrix leg).
+  # When the tag is ABOVE the frozen line the gate does NOT fail the workflow
+  # (#1987); it emits frozen_skip=true and the build job (+ its downstream Go
+  # jobs, via the needs chain) skip cleanly so the run stays green -- npm publish
+  # (npm-publish.yml) is a separate workflow and ships regardless. The only
+  # hard-fail left is an unparseable SoT (fail-loud, never fail-open). The real
+  # installer version is ldflags-injected in the build job
+  # (`-X main.version=${{ github.ref_name }}`), so the freeze line is the release
+  # TAG vs the SoT -- not the stale `var version` source literal. Reads the
+  # pinned value from sot.ts (no version hardcoded here); advisory while the SoT
+  # is null (unfrozen).
   # -----------------------------------------------------------------------
   freeze-gate:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    # frozen_skip (#1987): "true" when the release tag is ABOVE the pinned SoT, so
+    # the Go binary build + release-asset upload skip cleanly (green) instead of
+    # hard-failing the workflow. Unset/empty on every other path (build runs).
+    outputs:
+      frozen_skip: ${{ steps.gate.outputs.frozen_skip }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Refuse a Go-installer release above the frozen SoT
+        id: gate
         shell: bash
         run: |
           set -euo pipefail
@@ -55,8 +65,15 @@ jobs:
           pin_core="$(core "${pinned}")"
           highest="$(printf '%s\n%s\n' "$pin_core" "$tag_core" | sort -V | tail -n1)"
           if [ "$tag_core" != "$pin_core" ] && [ "$highest" = "$tag_core" ]; then
-            echo "::error::FAIL: release tag ${GITHUB_REF_NAME} is ABOVE the frozen Go-installer bridge tag ${pinned} (#1912/#1972). No Go-installer release past the frozen line is allowed; cut at or below ${pinned}, or roll the freeze SoT forward in sot.ts."
-            exit 1
+            # #1987: the Go installer is frozen (SoT pinned) and this tag is past
+            # the line. Rather than hard-fail the whole Release workflow (a red X
+            # on every post-freeze tag, even though npm still ships), skip the Go
+            # binary build + release-asset upload cleanly. The build job gates on
+            # this output via `if:`, and its downstream Go jobs skip via the needs
+            # chain, so the run stays green.
+            echo "::notice::release tag ${GITHUB_REF_NAME} is ABOVE the frozen Go-installer bridge tag ${pinned} (#1912/#1972). The Go installer is frozen; skipping the Go binary build + release-asset upload. npm publish (npm-publish.yml) is unaffected. To resume Go builds, roll the freeze SoT forward in sot.ts."
+            echo "frozen_skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           echo "OK: release tag ${GITHUB_REF_NAME} is at or below the frozen line (${pinned})."
 
@@ -65,6 +82,10 @@ jobs:
   # -----------------------------------------------------------------------
   build:
     needs: freeze-gate
+    # #1987: skip the Go binary build (and, via the needs chain, every downstream
+    # Go job incl. the release-asset upload) when the freeze gate flagged the tag
+    # as above the frozen line. npm publish runs in a separate workflow regardless.
+    if: ${{ needs.freeze-gate.outputs.frozen_skip != 'true' }}
     runs-on: blacksmith-4vcpu-ubuntu-2404
     strategy:
       matrix:

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Freeze gate should skip Go build gracefully (green) instead of hard-failing release.yml post-freeze",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Freeze gate should skip Go build gracefully (green) instead of hard-failing release.yml post-freeze",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1987",
@@ -29,9 +29,10 @@
         "title": "Issue #1972"
       }
     ],
-    "updated": "2026-06-25T16:26:45Z",
+    "updated": "2026-06-25T16:29:59Z",
     "metadata": {
-      "capacityBucket": "maintenance"
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-25T16:29:59Z"
     }
   }
 }

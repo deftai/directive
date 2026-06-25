@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **A frozen Go installer no longer makes every later release show up as failed** — once the Go-installer bridge is frozen, the release pipeline's freeze gate now skips the Go binary build cleanly (a green run with a clear annotation) for any release above the frozen line, instead of hard-failing the whole Release workflow with a red X. npm publishing and the GitHub release notes were never affected; this just stops the post-freeze noise that looked like a broken release. An unparseable freeze setting still fails loudly. Closes #1987.
 
 ### Removed
 
