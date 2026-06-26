@@ -625,6 +625,17 @@ describe("native pack-migrate handlers (#2022)", () => {
     expect(readFileSync(out, "utf8")).toBe(EXPECT_SKILLS);
   });
 
+  // Parse a written pack and map entry id -> body, guarding against a non-object
+  // / null JSON payload before any property access (JSON.parse can return null).
+  function bodyById(jsonText: string, key: "skills" | "strategies"): Record<string, unknown> {
+    const parsed: unknown = JSON.parse(jsonText);
+    expect(parsed === null || typeof parsed !== "object").toBe(false);
+    const entries = (parsed as Record<string, unknown>)[key];
+    expect(Array.isArray(entries)).toBe(true);
+    const rows = entries as Array<{ id: string; body: unknown }>;
+    return Object.fromEntries(rows.map((row) => [row.id, row.body]));
+  }
+
   // --proof-skill captures only the named skill's body; the others are metadata-only.
   it("captures only the named proof skill body", async () => {
     writeFixture(
@@ -649,10 +660,7 @@ describe("native pack-migrate handlers (#2022)", () => {
       out,
     ]);
     expect(result.code).toBe(0);
-    const pack = JSON.parse(readFileSync(out, "utf8")) as {
-      skills: Array<{ id: string; body: string | null }>;
-    };
-    const byId = Object.fromEntries(pack.skills.map((s) => [s.id, s.body]));
+    const byId = bodyById(readFileSync(out, "utf8"), "skills");
     expect(byId.one).not.toBeNull();
     expect(byId.two).toBeNull();
   });
@@ -676,10 +684,7 @@ describe("native pack-migrate handlers (#2022)", () => {
       out,
     ]);
     expect(result.code).toBe(0);
-    const pack = JSON.parse(readFileSync(out, "utf8")) as {
-      strategies: Array<{ id: string; body: string | null }>;
-    };
-    const byId = Object.fromEntries(pack.strategies.map((s) => [s.id, s.body]));
+    const byId = bodyById(readFileSync(out, "utf8"), "strategies");
     expect(byId.a).not.toBeNull();
     expect(byId.b).toBeNull();
   });
