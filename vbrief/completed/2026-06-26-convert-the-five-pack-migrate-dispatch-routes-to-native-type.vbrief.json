@@ -6,7 +6,7 @@
   "plan": {
     "id": "py-purge-pack-migrate-ts",
     "title": "Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The pack-migrate-skills, -rules, -strategies, -patterns, and -swarm-spec verbs are still served by loadPythonScriptHandler routes in packages/cli/src/dispatch.ts (lines ~491-499), shelling into Python pack_migrate_*.py scripts. This story replaces those five routes with native TypeScript handlers so the pack-render surface no longer depends on bundled Python.",
@@ -61,7 +61,9 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-26T18:47:42Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -71,6 +73,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-26T18:08:57Z"
+    "updated": "2026-06-26T18:47:42Z"
   }
 }

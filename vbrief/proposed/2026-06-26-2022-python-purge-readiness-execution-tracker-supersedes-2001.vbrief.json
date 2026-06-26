@@ -96,7 +96,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-26-convert-the-five-pack-migrate-dispatch-routes-to-native-type.vbrief.json",
+        "uri": "completed/2026-06-26-convert-the-five-pack-migrate-dispatch-routes-to-native-type.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)",
         "TrustLevel": "internal"
