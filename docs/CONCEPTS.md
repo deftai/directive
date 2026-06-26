@@ -2,7 +2,7 @@
 
 Core principles behind the current Deft workflow: Taskfile-first automation, vBRIEF as source of truth, deterministic gates, cache-backed triage, source/projection boundaries, and small auditable changes.
 
-> **See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) | [FILES.md](./FILES.md) | [codebase-map-source-of-truth.md](./codebase-map-source-of-truth.md) | [../README.md](../README.md)
+> **See also**: [ARCHITECTURE.md](./ARCHITECTURE.md) | [FILES.md](./FILES.md) | [codebase-map-source-of-truth.md](./codebase-map-source-of-truth.md) | [directive-lifecycle.md](../content/docs/directive-lifecycle.md) | [../README.md](../README.md)
 
 ## From Vibe To Repeatable Practice
 

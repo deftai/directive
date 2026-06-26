@@ -1,0 +1,72 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Ship the conception-to-ship Directive lifecycle conceptual diagram into consumer installs by relocating it from the maintainer-only docs/ tree into the shipped content/docs/ tree."
+  },
+  "plan": {
+    "id": "ship-lifecycle-diagram-to-consumers",
+    "title": "Ship the Directive lifecycle conceptual diagram to consumer installs",
+    "status": "completed",
+    "narratives": {
+      "Description": "The single-picture conception-to-ship lifecycle overview (Concept -> Strategy Analysis -> Specification + Artifacts feeding the recurring Session Start -> Triage/Refine -> Slice -> Swarm -> Review/Fix -> Ship loop) lives at docs/directive-lifecycle.md with its PNG at docs/assets/. The top-level docs/ tree is NOT part of the npm consumer payload (packages/content prepack copies only content/ -> .deft/core/ plus engine surfaces), so consumers never receive this orientation diagram. content/docs/ DOES ship (it becomes .deft/core/docs/). This scope relocates the doc and its asset into content/docs/, rewrites the relative links for the shipped layout, and cross-links it from the consumer-facing getting-started guide so new adopters can see the overall shape of the framework.",
+      "ImplementationPlan": "- git mv docs/directive-lifecycle.md -> content/docs/directive-lifecycle.md and docs/assets/directive-lifecycle-diagram.png -> content/docs/assets/directive-lifecycle-diagram.png.\n- Rewrite the relocated doc's relative links for the content/docs/ position: content-tree siblings (strategies/, skills/) via ../, framework-only docs (CONCEPTS/ARCHITECTURE/FILES) via ../../docs/ matching the existing content/docs/getting-started.md convention, image via ./assets/.\n- Add a cross-link to the lifecycle diagram from content/docs/getting-started.md so the consumer orientation layer surfaces it.\n- Add a back-reference from docs/CONCEPTS.md (or ARCHITECTURE.md See also) to the relocated path so maintainer discoverability is preserved.\n- Add a CHANGELOG [Unreleased] entry.",
+      "UserStory": "As a developer who has just installed Deft Directive into my project, I want the conception-to-ship lifecycle diagram available in my install, so that I can understand the overall shape of the framework without visiting the upstream framework repo.",
+      "Traces": "Follow-up from conversational finding that docs/directive-lifecycle.md does not ship to consumer repos."
+    },
+    "items": [
+      {
+        "id": "ship-lifecycle-diagram-to-consumers-a1",
+        "title": "Given a consumer npm install, when the payload is built, then content/docs/directive-lifecycle.md and its PNG asset are present (they land in .deft/core/docs/).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a consumer npm install, when the payload is built, then content/docs/directive-lifecycle.md and its PNG asset are present (they land in .deft/core/docs/)."
+        }
+      },
+      {
+        "id": "ship-lifecycle-diagram-to-consumers-a2",
+        "title": "Given the relocated doc, when its links are followed from content/docs/, then content-tree references resolve and the image renders.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the relocated doc, when its links are followed from content/docs/, then content-tree references (strategies/, skills/) resolve and the embedded image renders via ./assets/."
+        }
+      },
+      {
+        "id": "ship-lifecycle-diagram-to-consumers-a3",
+        "title": "Given content/docs/getting-started.md, when read, then it cross-links the lifecycle diagram so the consumer orientation layer surfaces it.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given content/docs/getting-started.md, when read, then it cross-links the lifecycle diagram so the consumer orientation layer surfaces it."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "docs/directive-lifecycle.md",
+          "content/docs/directive-lifecycle.md",
+          "content/docs/assets/directive-lifecycle-diagram.png",
+          "content/docs/getting-started.md",
+          "docs/CONCEPTS.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [],
+        "expected_outputs": [
+          "lifecycle diagram doc + asset relocated into content/docs/ (ships to .deft/core/docs/)",
+          "consumer getting-started cross-links the diagram"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-lifecycle",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-26T21:50:00Z",
+      "capacityBucket": "docs"
+    },
+    "references": [],
+    "updated": "2026-06-26T21:50:00Z"
+  }
+}

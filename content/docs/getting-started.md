@@ -2,7 +2,11 @@
 
 Deft Directive is a Taskfile-first framework for AI-assisted software work. It combines agent guidance, deterministic gates, vBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide walks through installation, preferences, project setup, and the first scope workflow.
 
-> **Note**: This guide is an orientation layer. For current architecture details, see [ARCHITECTURE.md](../../docs/ARCHITECTURE.md); for command behavior, see [commands.md](../commands.md).
+> **Note**: This guide is an orientation layer. For a single-picture mental model of how Directive turns an idea into shipped work, see [the Directive lifecycle](./directive-lifecycle.md); for command behavior, see [commands.md](../commands.md); for current architecture details, see [ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+
+## The shape of the workflow
+
+Before the mechanics below, it helps to see the whole loop. Directive is two connected phases that repeat: an **inception** phase (Concept → Strategy Analysis → Specification + Artifacts) that feeds a recurring **per-session** phase (Session Start → Triage/Refine → Slice → Swarm → Review/Fix → Ship), where shipping surfaces new issues and features that flow back into the queue. The full picture, with a stage-to-real-command mapping table, lives in [the Directive lifecycle overview](./directive-lifecycle.md).
 
 ## Deft & Directive (naming)
 
