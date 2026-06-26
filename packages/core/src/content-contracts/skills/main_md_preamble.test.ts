@@ -4,7 +4,11 @@ import { readRepoFile, repoFileExists } from "./helpers.js";
 /** Port of tests/content/test_main_md_preamble.py (#1838 #1530) */
 
 const PREAMBLE_MARKER = "<!-- DEFT-PREAMBLE-V1 -->";
-const GATE_INSTRUCTION_CANONICAL = "python3 .deft/core/run gate";
+// #2001 / #1933 (Option 3): canonical carriers (main.md, SKILL.md) repointed
+// off the Python `python3 .deft/core/run gate` shim to the node-independent Go
+// gate in the frozen installer binary. Legacy redirect stubs keep the pre-flip
+// `python3 deft/run gate` form (#411).
+const GATE_INSTRUCTION_CANONICAL = "deft-install gate";
 const GATE_INSTRUCTION_LEGACY = "python3 deft/run gate";
 const UPGRADING_REFERENCE_CANONICAL = ".deft/core/UPGRADING.md";
 const UPGRADING_REFERENCE_LEGACY = "deft/UPGRADING.md";

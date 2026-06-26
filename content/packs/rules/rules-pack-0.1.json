@@ -4031,7 +4031,7 @@
       "id": "main-001",
       "tier": "MUST",
       "domain": "main",
-      "text": "Before any other instruction in this file or in the consumer AGENTS.md, run `python3 .deft/core/run gate`.",
+      "text": "Before any other instruction in this file or in the consumer AGENTS.md, run `deft-install gate` (the node-independent read-only health gate in the frozen installer binary; #1933 Option 3).",
       "path": "main.md",
       "body": null
     },

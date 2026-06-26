@@ -90,7 +90,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-26-repoint-preamble-rules-pack-and-agents-entry-from-the-python.vbrief.json",
+        "uri": "active/2026-06-26-repoint-preamble-rules-pack-and-agents-entry-from-the-python.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Repoint preamble, rules pack, and agents-entry from the Python gate to the Go gate",
         "TrustLevel": "internal"

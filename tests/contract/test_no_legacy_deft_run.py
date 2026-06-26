@@ -352,9 +352,14 @@ def test_canonical_token_present_in_documented_surfaces() -> None:
     full inventory.
     """
     canonical = ".deft/core/run"
+    # #2001 / #1933 (Option 3): `main.md` was repointed off the Python
+    # `python3 .deft/core/run gate` shim to the node-independent Go gate
+    # (`deft-install gate`). That preamble line was main.md's only
+    # `.deft/core/run` occurrence, so main.md is no longer a canonical-token
+    # carrier and is dropped from this spot-check. The remaining surfaces still
+    # legitimately reference `.deft/core/run` (skill paths, migration docs).
     documented_surfaces = (
         "content/templates/agents-entry.md",
-        "main.md",
         "README.md",
         "content/UPGRADING.md",
         "docs/ARCHITECTURE.md",

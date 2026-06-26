@@ -6,7 +6,7 @@
   "plan": {
     "id": "preamble-pack-migration",
     "title": "Repoint preamble, rules pack, and agents-entry from the Python gate to the Go gate",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.vbrief.json",
     "narratives": {
       "Description": "The DEFT-PREAMBLE in main.md, the main-001 rule in the rules pack, and content/templates/agents-entry.md all currently mandate the Python `run gate` invocation. This story repoints every load-bearing gate citation at the Go gate and scrubs setup/sync skills and CONTRIBUTING for stale `run` operator paths that already have a replacement.",
@@ -88,6 +88,7 @@
         "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-26T01:15:43Z"
   }
 }

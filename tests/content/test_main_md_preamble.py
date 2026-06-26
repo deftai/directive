@@ -44,7 +44,13 @@ _PREAMBLE_MARKER = "<!-- DEFT-PREAMBLE-V1 -->"
 # v0.20 redirect contract continues to resolve. The per-file expectation
 # helpers below mirror the `_expected_gate_instruction` pattern so the two
 # split axes (gate-command path, UPGRADING.md path) stay aligned.
-_GATE_INSTRUCTION_CANONICAL = "python3 .deft/core/run gate"
+# #2001 / #1933 (Option 3): the canonical carriers (`main.md`, `SKILL.md`) were
+# repointed off the Python `python3 .deft/core/run gate` shim to the
+# node-independent Go gate in the frozen installer binary (`deft-install gate`).
+# The two legacy v0.19 -> v0.20 redirect stubs keep the pre-flip
+# `python3 deft/run gate` form so stale `AGENTS.md` references still resolve
+# through the deprecation-redirect contract (#411).
+_GATE_INSTRUCTION_CANONICAL = "deft-install gate"
 _GATE_INSTRUCTION_LEGACY = "python3 deft/run gate"
 _UPGRADING_REFERENCE_CANONICAL = ".deft/core/UPGRADING.md"
 _UPGRADING_REFERENCE_LEGACY = "deft/UPGRADING.md"
