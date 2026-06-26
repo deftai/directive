@@ -166,6 +166,15 @@ func normalizeArgs(args []string) []string {
 }
 
 func main() {
+	// Read-only health-gate subcommand (#1933 Option 3 / #2001 §1): the
+	// node-independent npm-era replacement for `python3 .deft/core/run gate`.
+	// Dispatched BEFORE flag parsing so `deft-install gate [--json]` is a clean
+	// positional subcommand and the gate's own exit code (0 healthy /
+	// 1 needs-upgrade / 2 config error) propagates directly.
+	if len(os.Args) > 1 && os.Args[1] == "gate" {
+		os.Exit(runGate(os.Args[2:]))
+	}
+
 	// Rewrite Windows-style /flags to --flags so the flag package handles them.
 	os.Args = append(os.Args[:1], normalizeArgs(os.Args[1:])...)
 
