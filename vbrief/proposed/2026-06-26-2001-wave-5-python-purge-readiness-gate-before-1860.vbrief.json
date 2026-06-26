@@ -84,7 +84,7 @@
         "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)"
       },
       {
-        "uri": "pending/2026-06-26-add-a-read-only-gate-subcommand-to-the-frozen-go-binary-deft.vbrief.json",
+        "uri": "active/2026-06-26-add-a-read-only-gate-subcommand-to-the-frozen-go-binary-deft.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add a read-only `gate` subcommand to the frozen Go binary (deft-install) per #1933 Option 3",
         "TrustLevel": "internal"

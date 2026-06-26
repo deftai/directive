@@ -6,7 +6,7 @@
   "plan": {
     "id": "go-gate-shipped",
     "title": "Add a read-only `gate` subcommand to the frozen Go binary (deft-install) per #1933 Option 3",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.vbrief.json",
     "narratives": {
       "Description": "#1933 locked Option 3 on 2026-06-24: the frozen Go binary (deft-install) gains a node-independent read-only health-gate role alongside its existing reshaper role, so consumers run a prebuilt static binary needing no Python and no Go toolchain. This story carves the read-only state-vector probe (`OK v<current>` / `NEEDS-UPGRADE recorded=… current=… precutover=… agents-md=…`, exit 0 healthy / 1 needs-upgrade) into the Go binary, because the bootstrap paradox forbids a Node-engine CLI verb from probing the very engine that may be missing or broken.",
@@ -85,6 +85,7 @@
         "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-06-26T01:04:16Z"
   }
 }
