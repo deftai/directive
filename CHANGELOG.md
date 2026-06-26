@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **The frozen installer binary can now self-check an install without Node** — `deft-install gate` is a new read-only health probe that prints a one-line state vector (`OK v<version>`, or `NEEDS-UPGRADE` with the recorded/current version, pre-cutover files, and AGENTS.md freshness) and exits 0 (healthy) or 1 (needs upgrade). Because it ships in the frozen Go binary it runs even when the Node engine is missing or broken — the node-independent replacement for the old Python gate. Refs #2001, #1933.
+- **Maintainers now have a runbook for rebuilding the frozen Go installer at release time** — `docs/RELEASING.md` gains a "Frozen Go-installer bridge" section that names where the freeze line lives (the `LAST_GO_INSTALLER` constant in `sot.ts`), explains how the CI freeze gate decides whether to build the Go binaries, and gives the exact before/after-release steps to roll the freeze forward and re-pin. The release skill's pre-flight now points operators to it. Refs #2001, #1912.
 
 ### Changed
 - **The session-start health gate now points at the node-independent installer binary** — the DEFT-PREAMBLE that agents run before anything else (in `main.md`, the root `SKILL.md`, and the `main-001` rule) now invokes `deft-install gate` instead of `python3 .deft/core/run gate`, so the gate still fires on a broken or Node-less install. Refs #2001, #1933.

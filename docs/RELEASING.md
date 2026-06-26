@@ -79,3 +79,78 @@ Manual runs skip the release job automatically (guarded by `if: startsWith(githu
 5. Each release includes: `install-windows-amd64.exe`, `install-windows-arm64.exe`, `install-macos-universal`, `install-linux-amd64`, `install-linux-arm64`
 
 > **Note:** The frozen legacy Go-installer binaries are not code-signed. macOS users may need to bypass Gatekeeper (see [Getting Started in the README](../README.md#-getting-started)). Windows users may see a SmartScreen warning. The canonical npm package (`@deftai/directive`) is published with keyless OIDC provenance and does not have this restriction.
+
+## Frozen Go-installer bridge: releasing past the freeze line (#1912 / #1972 / #1987)
+
+The Go installer (`deft-install`) is **frozen** as the legacy stage-1 bridge. By default a release tag *above* the frozen line will **not** rebuild the Go binaries — the npm packages still ship (they run in a separate workflow), but the 6 Go binaries + macOS universal asset are skipped. To make a release rebuild the Go installer, you roll the freeze line forward; this section is the runbook.
+
+### Where the freeze lives (the files)
+
+There is exactly **one** place the version literal lives. Everything else reads it.
+
+| File | Role |
+|------|------|
+| `packages/core/src/legacy-bridge/sot.ts` | **Tier-0 source of truth.** The `LAST_GO_INSTALLER` constant (a quoted tag like `"v0.56.0"`, or `null` while unfrozen). **This is the only file an operator edits to freeze / unfreeze / re-pin.** |
+| `.github/workflows/release.yml` | The `freeze-gate` job. This is the **enforcing teeth** — it parses `LAST_GO_INSTALLER` out of `sot.ts`, compares it to the pushed tag, and (when the tag is above the line) sets `frozen_skip=true` so the `build` job and its downstream Go jobs skip cleanly (green run). |
+| `packages/core/src/legacy-bridge/freeze-gate.ts` | The TypeScript port of the same comparison logic (`evaluateGoFreeze`), surfaced locally via `task verify:go-freeze`. **Advisory only** locally — it passes no release tag, so once frozen it never fails a local run; CI is where enforcement happens. |
+| `packages/core/src/legacy-bridge/bridge-drift.ts` | The `task verify:bridge-drift` gate. Asserts no other doc/code surface hardcodes a competing version literal — every surface must read the Tier-0 SoT. |
+
+Task wiring for both gates is in `tasks/verify.yml` (`verify:go-freeze`, `verify:bridge-drift`).
+
+### How the gate decides
+
+The `freeze-gate` job runs **first** in the release workflow (`build` declares `needs: freeze-gate`). It compares the pushed tag's numeric `major.minor.patch` core against the pinned SoT core:
+
+| `LAST_GO_INSTALLER` | Pushed tag vs SoT | Go binaries |
+|---|---|---|
+| `null` | any | **build** (advisory — unfrozen) |
+| pinned `vX` | tag **above** `vX` | **skip** (green; npm still ships) |
+| pinned `vX` | tag **at or below** `vX` (incl. equal) | **build** |
+| unparseable | any | **hard-fail** (never fail-open) |
+
+The real installer version is injected at build time via ldflags (`-X main.version=${{ github.ref_name }}`), so the freeze line is the **release tag vs the SoT** — not the `var version` literal in `cmd/deft-install/main.go`.
+
+### Key insight: pinning *is* the release
+
+`LAST_GO_INSTALLER` pins the **latest** frozen installer, not one tag forever. Because the gate builds when `tag <= pin`, pinning the SoT to the *exact tag you are about to cut* both releases the gate for that build **and** leaves the bridge frozen at the new line — in one move. You do **not** need a separate unfreeze-then-re-freeze dance.
+
+### Before the release starts
+
+Do this on your release feature branch, as part of the release commit, **before** tagging:
+
+1. Choose the version you are cutting (e.g. `v0.57.0`).
+2. Edit the single constant in `packages/core/src/legacy-bridge/sot.ts`:
+   ```ts
+   export const LAST_GO_INSTALLER: string | null = "v0.57.0";
+   ```
+3. Run the gates locally (advisory, but they catch drift and parse errors before CI):
+   ```bash
+   task verify:go-freeze
+   task verify:bridge-drift
+   ```
+4. Pre-cut rehearsal:
+   ```bash
+   task release -- 0.57.0 --dry-run --skip-tag --skip-release
+   task release:e2e -- --legacy-bridge
+   ```
+5. Merge the branch, then proceed with the normal [Release Process](#release-process) above (tag `master` with `v0.57.0`).
+
+In CI the `freeze-gate` job sees `tag (0.57.0) == pin (0.57.0)` → does not skip → the `build` matrix rebuilds all 6 Go binaries + the macOS universal binary.
+
+### After the release is done (re-pin)
+
+- **If you pinned to the exact cut tag (the step above):** nothing more to do. The SoT *is* the new frozen line; the bridge is re-frozen at `v0.57.0` automatically.
+- **If you temporarily unfroze** (set `LAST_GO_INSTALLER = null` to build regardless of tag ordering): after the tag is published, re-pin the SoT to the just-published tag, re-run both gates, and merge on a branch:
+   ```ts
+   export const LAST_GO_INSTALLER: string | null = "v0.57.0";
+   ```
+   ```bash
+   task verify:go-freeze
+   task verify:bridge-drift
+   ```
+
+### Caveats
+
+- A `v*` tag fires **two** workflows: `release.yml` (Go binaries; the GitHub Release lands as a reversible **draft**) and `.github/workflows/npm-publish.yml` (publishes to the public registry **immediately** — irreversible). The freeze gate only governs the Go build; npm ships regardless. Do all reversible testing in the pre-cut rehearsal.
+- Edit **only** `sot.ts`. Hardcoding the version anywhere else fails `task verify:bridge-drift`. The pinned `--legacy-bridge` e2e leg and every doc surface read the SoT and follow the new pin automatically.
+- The local `DEFT_ALLOW_GO_INSTALLER_BUMP=1` bypass only downgrades the *local* `verify:go-freeze` gate to advisory — it has **no effect** on the CI `freeze-gate` job. Editing `sot.ts` is the only way to make CI rebuild the Go installer.

@@ -73,6 +73,8 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ! Validate the local + remote state before any irreversible action.
 
+~ **Frozen Go-installer bridge (#1912 / #1972 / #1987):** by default a release tag *above* the frozen line (the `LAST_GO_INSTALLER` constant in `packages/core/src/legacy-bridge/sot.ts`) will NOT rebuild the 6 Go binaries -- the CI `freeze-gate` job in `.github/workflows/release.yml` skips the build (the run stays green; npm still ships from the separate `npm-publish.yml`). If this release must rebuild the Go installer, follow the runbook in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge: roll `LAST_GO_INSTALLER` forward to the cut tag BEFORE tagging (pinning to the exact cut tag both releases the gate AND re-freezes at the new line), then see that section's "After the release" step for the re-pin.
+
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
 2. ! Confirm the next version number (`X.Y.Z`) with the user. Major / minor / patch decision flows from the `[Unreleased]` content (breaking change → major; new feature → minor; fix-only → patch)
 3. ! Inspect `[Unreleased]` content vs the proposed version bump. If a breaking change appears in `### Changed` / `### Removed` but only a patch is proposed, surface the mismatch and ask the user to choose
