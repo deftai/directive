@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **`deft pack-migrate` now runs without Python installed** — the five pack-migrate verbs (skills, rules, strategies, patterns, swarm-spec) are now served by native TypeScript handlers instead of shelling out to bundled Python scripts, so pack rendering works on a machine that has no Python. Output is byte-for-byte identical to the previous Python contract. Refs #2022.
 
 ### Fixed
 
