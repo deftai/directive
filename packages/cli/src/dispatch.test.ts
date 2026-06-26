@@ -504,4 +504,183 @@ describe("native pack-migrate handlers (#2022)", () => {
     expect(result.code).toBe(2);
     expect(result.err).toContain("unrecognized argument");
   });
+
+  it("reports a flag given without a value with exit code 2", async () => {
+    const result = await runVerb(["pack-migrate-patterns", "--patterns-dir"]);
+    expect(result.code).toBe(2);
+    expect(result.err).toContain("expected one argument");
+  });
+
+  // Each non-skills verb has its own missing-directory guard.
+  it("reports a missing input directory for every non-skills verb", async () => {
+    const out = join(root, "missing-each.json");
+    const cases: Array<[string, string, string]> = [
+      ["pack-migrate-rules", "--coding-dir", "coding directory not found"],
+      ["pack-migrate-strategies", "--strategies-dir", "strategies directory not found"],
+      ["pack-migrate-patterns", "--patterns-dir", "patterns directory not found"],
+      ["pack-migrate-swarm-spec", "--swarm-dir", "swarm directory not found"],
+    ];
+    for (const [verb, dirFlag, message] of cases) {
+      const result = await runVerb([verb, dirFlag, join(root, "nope"), "--out", out]);
+      expect(result.code, verb).toBe(1);
+      expect(result.err, verb).toContain(message);
+    }
+  });
+
+  it("reports a missing AGENTS.md for pack-migrate-skills", async () => {
+    const out = join(root, "missing-agents.json");
+    const result = await runVerb([
+      "pack-migrate-skills",
+      "--skills-dir",
+      skillsDir,
+      "--agents-md",
+      join(root, "no-agents.md"),
+      "--out",
+      out,
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.err).toContain("AGENTS.md not found");
+  });
+
+  // Empty input directories produce an empty pack, which is an error for every verb.
+  it("reports an empty pack with a non-zero exit for every verb", async () => {
+    const emptySkills = join(root, "empty/skills");
+    const emptyCoding = join(root, "empty/coding");
+    const emptyStrategies = join(root, "empty/strategies");
+    const emptyPatterns = join(root, "empty/patterns");
+    const emptySwarm = join(root, "empty/swarm");
+    for (const dir of [emptySkills, emptyCoding, emptyStrategies, emptyPatterns, emptySwarm]) {
+      mkdirSync(dir, { recursive: true });
+    }
+    // A directive-free extra source keeps the rules verb hermetic (no default repo sources).
+    writeFixture("empty/plain.md", "# Plain\n\nNo directives here.\n");
+    const plain = join(root, "empty/plain.md");
+    const out = join(root, "empty/out.json");
+
+    const skills = await runVerb([
+      "pack-migrate-skills",
+      "--skills-dir",
+      emptySkills,
+      "--agents-md",
+      agentsMd,
+      "--out",
+      out,
+    ]);
+    expect(skills.code).toBe(1);
+    expect(skills.err).toContain("no skills with frontmatter");
+
+    const rules = await runVerb([
+      "pack-migrate-rules",
+      "--coding-dir",
+      emptyCoding,
+      "--extra-source",
+      plain,
+      "--out",
+      out,
+    ]);
+    expect(rules.code).toBe(1);
+    expect(rules.err).toContain("no directives discovered");
+
+    const strategies = await runVerb([
+      "pack-migrate-strategies",
+      "--strategies-dir",
+      emptyStrategies,
+      "--out",
+      out,
+    ]);
+    expect(strategies.code).toBe(1);
+    expect(strategies.err).toContain("no strategies discovered");
+
+    const patterns = await runVerb([
+      "pack-migrate-patterns",
+      "--patterns-dir",
+      emptyPatterns,
+      "--out",
+      out,
+    ]);
+    expect(patterns.code).toBe(1);
+    expect(patterns.err).toContain("no patterns discovered");
+
+    const swarm = await runVerb([
+      "pack-migrate-swarm-spec",
+      "--swarm-dir",
+      emptySwarm,
+      "--out",
+      out,
+    ]);
+    expect(swarm.code).toBe(1);
+    expect(swarm.err).toContain("no swarm-spec docs discovered");
+  });
+
+  // The argparse-compatible reader also accepts the `--flag=value` inline form.
+  it("accepts the --flag=value inline form (skills)", async () => {
+    const out = join(root, "inline-skills.json");
+    const result = await runVerb([
+      "pack-migrate-skills",
+      `--skills-dir=${skillsDir}`,
+      `--agents-md=${agentsMd}`,
+      `--out=${out}`,
+    ]);
+    expect(result.code).toBe(0);
+    expect(readFileSync(out, "utf8")).toBe(EXPECT_SKILLS);
+  });
+
+  // --proof-skill captures only the named skill's body; the others are metadata-only.
+  it("captures only the named proof skill body", async () => {
+    writeFixture(
+      "proof/skills/one/SKILL.md",
+      "---\nname: one\ndescription: First.\n---\n\n# One\n\nBody one.\n",
+    );
+    writeFixture(
+      "proof/skills/two/SKILL.md",
+      "---\nname: two\ndescription: Second.\n---\n\n# Two\n\nBody two.\n",
+    );
+    const proofSkillsDir = join(root, "proof/skills");
+    const out = join(root, "proof/skills.json");
+    const result = await runVerb([
+      "pack-migrate-skills",
+      "--skills-dir",
+      proofSkillsDir,
+      "--agents-md",
+      agentsMd,
+      "--proof-skill",
+      "one",
+      "--out",
+      out,
+    ]);
+    expect(result.code).toBe(0);
+    const pack = JSON.parse(readFileSync(out, "utf8")) as {
+      skills: Array<{ id: string; body: string | null }>;
+    };
+    const byId = Object.fromEntries(pack.skills.map((s) => [s.id, s.body]));
+    expect(byId.one).not.toBeNull();
+    expect(byId.two).toBeNull();
+  });
+
+  // --proof-strategy switches body capture from "all non-redirect" to a single match.
+  it("captures only the named proof strategy body", async () => {
+    writeFixture(
+      "ps/strategies/a.md",
+      "# Alpha S\n\nAlpha description.\n\n## More\n\nAlpha body.\n",
+    );
+    writeFixture("ps/strategies/b.md", "# Beta S\n\nBeta description.\n\n## More\n\nBeta body.\n");
+    const proofStrategiesDir = join(root, "ps/strategies");
+    const out = join(root, "ps/strategies.json");
+    const result = await runVerb([
+      "pack-migrate-strategies",
+      "--strategies-dir",
+      proofStrategiesDir,
+      "--proof-strategy",
+      "strategies/a.md",
+      "--out",
+      out,
+    ]);
+    expect(result.code).toBe(0);
+    const pack = JSON.parse(readFileSync(out, "utf8")) as {
+      strategies: Array<{ id: string; body: string | null }>;
+    };
+    const byId = Object.fromEntries(pack.strategies.map((s) => [s.id, s.body]));
+    expect(byId.a).not.toBeNull();
+    expect(byId.b).toBeNull();
+  });
 });
