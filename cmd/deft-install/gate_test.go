@@ -85,6 +85,113 @@ func TestGate_Healthy_RecordedMatchesCurrent(t *testing.T) {
 	}
 }
 
+// withVersion temporarily overrides the package-level ldflags `version` for a
+// test and restores it afterward. These gate tests do not call t.Parallel(), so
+// mutating the global is safe within a single sequential test.
+func withVersion(t *testing.T, v string) {
+	t.Helper()
+	orig := version
+	version = v
+	t.Cleanup(func() { version = orig })
+}
+
+// writeInstallManifest writes a minimal canonical <root>/.deft/core/VERSION
+// manifest carrying the given tag, mirroring BuildInstallManifestText's shape.
+func writeInstallManifest(t *testing.T, root, tag string) {
+	t.Helper()
+	coreDir := filepath.Join(root, ".deft", "core")
+	if err := os.MkdirAll(coreDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "ref: '" + tag + "'\ntag: '" + tag + "'\n"
+	if err := os.WriteFile(filepath.Join(coreDir, "VERSION"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestGate_Healthy_ProductionVPrefixedVersion is the regression for the bug
+// where release CI sets the binary version via `-X main.version=${github.ref_name}`
+// (e.g. `v0.57.0`, WITH the leading `v`) while the installer writes the
+// `vbrief/.deft-version` marker BARE (`0.57.0`). Before the fix, `current`
+// carried the `v` and the raw string compare `recorded != current` always
+// failed, so every healthy production-built install reported NEEDS-UPGRADE.
+func TestGate_Healthy_ProductionVPrefixedVersion(t *testing.T) {
+	withVersion(t, "v0.57.0")
+	root := t.TempDir()
+	writeCurrentAgentsMD(t, root)
+	vbrief := filepath.Join(root, "vbrief")
+	if err := os.MkdirAll(vbrief, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(vbrief, ".deft-version"), []byte("0.57.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	if code := runGateInDir(root, false, &buf); code != 0 {
+		t.Fatalf("exit code = %d, want 0 (v-prefixed binary version vs bare marker)\nline=%q", code, buf.String())
+	}
+	if got := strings.TrimSpace(buf.String()); got != "OK v0.57.0" {
+		t.Errorf("line = %q, want %q", got, "OK v0.57.0")
+	}
+}
+
+// TestGate_Healthy_ManifestAheadOfFrozenBinary asserts `current` is resolved
+// from the INSTALLED payload manifest, not the frozen binary. An npm-era
+// project can move its payload ahead of the frozen installer; sourcing `current`
+// from the binary would false-report drift. Here the binary is a stale v0.50.0
+// but the installed manifest + marker are 0.57.0, so the gate is healthy.
+func TestGate_Healthy_ManifestAheadOfFrozenBinary(t *testing.T) {
+	withVersion(t, "v0.50.0")
+	root := t.TempDir()
+	writeCurrentAgentsMD(t, root)
+	writeInstallManifest(t, root, "v0.57.0")
+	vbrief := filepath.Join(root, "vbrief")
+	if err := os.MkdirAll(vbrief, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(vbrief, ".deft-version"), []byte("0.57.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	if code := runGateInDir(root, false, &buf); code != 0 {
+		t.Fatalf("exit code = %d, want 0 (current must come from manifest, not binary)\nline=%q", code, buf.String())
+	}
+	if got := strings.TrimSpace(buf.String()); got != "OK v0.57.0" {
+		t.Errorf("line = %q, want %q (current from .deft/core/VERSION)", got, "OK v0.57.0")
+	}
+}
+
+// TestGateResolveCurrentVersion covers the resolver directly: manifest wins
+// (bare), a non-semver branch ref falls through to the normalized binary
+// version, and the binary fallback strips a leading `v`.
+func TestGateResolveCurrentVersion(t *testing.T) {
+	t.Run("manifest tag wins, bare", func(t *testing.T) {
+		withVersion(t, "v0.50.0")
+		root := t.TempDir()
+		writeInstallManifest(t, root, "v0.57.0")
+		if got := gateResolveCurrentVersion(root); got != "0.57.0" {
+			t.Errorf("current = %q, want %q (from manifest, v stripped)", got, "0.57.0")
+		}
+	})
+	t.Run("branch ref manifest falls through to binary", func(t *testing.T) {
+		withVersion(t, "v0.57.0")
+		root := t.TempDir()
+		writeInstallManifest(t, root, "master")
+		if got := gateResolveCurrentVersion(root); got != "0.57.0" {
+			t.Errorf("current = %q, want %q (non-semver manifest -> normalized binary)", got, "0.57.0")
+		}
+	})
+	t.Run("no manifest, binary v stripped", func(t *testing.T) {
+		withVersion(t, "v1.2.3")
+		root := t.TempDir()
+		if got := gateResolveCurrentVersion(root); got != "1.2.3" {
+			t.Errorf("current = %q, want %q (binary fallback, v stripped)", got, "1.2.3")
+		}
+	})
+}
+
 // --- Needs-upgrade vectors --------------------------------------------------
 
 func TestGate_NeedsUpgrade_VersionDrift(t *testing.T) {

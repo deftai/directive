@@ -60,7 +60,7 @@ const (
 // gateState is the read-only state vector computed by buildGateState. It is the
 // Go analogue of the dict returned by the Python `_build_gate_state`.
 type gateState struct {
-	current        string // the frozen binary's build-time version (main.version)
+	current        string // the installed framework version (bare semver; see gateResolveCurrentVersion)
 	recorded       string // contents of the version marker, when present
 	recordedSet    bool   // whether a version marker was found at all
 	precutover     []string
@@ -102,6 +102,64 @@ func gateReadVersionMarker(projectRoot string) (string, bool) {
 		return strings.TrimSpace(string(data)), true
 	}
 	return "", false
+}
+
+// gateManifestVersionRE pulls the bare semver core from a `tag:` / `ref:` line
+// in the canonical <install>/VERSION manifest, stripping a single leading `v`.
+// Mirrors run::_VERSION_MANIFEST_TAG_RE. A non-semver value (e.g. a branch ref
+// like `master`) does NOT match -- the leading `[\d.]` requirement forces the
+// resolver to fall through, matching the Python behaviour for branch builds.
+var gateManifestVersionRE = regexp.MustCompile(`(?m)^(?:tag|ref):\s*['"]?v?([\d.][\w.-]*)['"]?\s*$`)
+
+// gateNormalizeVersion strips a single leading `v` (and surrounding space) so
+// the frozen binary's ldflags version compares equal to the BARE marker the
+// installer writes. Release CI sets the binary version via
+// `-X main.version=${github.ref_name}` (e.g. `v0.57.0`, WITH the `v`), while
+// `vbrief/.deft-version` is written bare (`0.57.0`). Mirrors run::_resolve_version,
+// which lstrips `v` from the git-describe tag so VERSION is always bare.
+func gateNormalizeVersion(v string) string {
+	return strings.TrimPrefix(strings.TrimSpace(v), "v")
+}
+
+// gateVersionFromInstallManifest returns the bare semver recorded in the first
+// readable <install>/VERSION manifest under projectRoot, or "" when none
+// resolves. Candidate order mirrors run::_read_vendored_manifest
+// (.deft/core/VERSION, then .deft/VERSION, then deft/VERSION).
+func gateVersionFromInstallManifest(projectRoot string) string {
+	candidates := []string{
+		filepath.Join(projectRoot, ".deft", "core", "VERSION"),
+		filepath.Join(projectRoot, ".deft", "VERSION"),
+		filepath.Join(projectRoot, "deft", "VERSION"),
+	}
+	for _, candidate := range candidates {
+		if !gateIsRegularFile(candidate) {
+			continue
+		}
+		data, err := os.ReadFile(candidate)
+		if err != nil {
+			continue
+		}
+		if m := gateManifestVersionRE.FindStringSubmatch(string(data)); m != nil {
+			return m[1]
+		}
+	}
+	return ""
+}
+
+// gateResolveCurrentVersion resolves the version the gate treats as `current`,
+// mirroring run::_build_gate_state (which uses VERSION resolved from the
+// installed <install>/VERSION manifest for a vendored install). The gate must
+// reflect the INSTALLED framework payload, NOT the frozen binary: an npm-era
+// project whose payload moved ahead of the frozen installer would otherwise
+// false-report drift. It prefers the installed payload manifest in projectRoot,
+// falling back to the frozen binary's own ldflags version (normalized to bare)
+// when no manifest is present. The result is always bare so it compares equal
+// to the bare `.deft-version` marker (gateReadVersionMarker).
+func gateResolveCurrentVersion(projectRoot string) string {
+	if fromManifest := gateVersionFromInstallManifest(projectRoot); fromManifest != "" {
+		return fromManifest
+	}
+	return gateNormalizeVersion(version)
 }
 
 // gateIsDeprecationRedirect mirrors `_precutover.is_deprecation_redirect`.
@@ -303,7 +361,7 @@ func gateRunningInsideDeftRepo(projectRoot string) bool {
 func buildGateState(projectRoot string) gateState {
 	recorded, recordedSet := gateReadVersionMarker(projectRoot)
 	return gateState{
-		current:        version,
+		current:        gateResolveCurrentVersion(projectRoot),
 		recorded:       recorded,
 		recordedSet:    recordedSet,
 		precutover:     gateDetectPreCutoverLegacy(projectRoot),

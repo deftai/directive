@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The session-start health gate now points at the node-independent installer binary** — the DEFT-PREAMBLE that agents run before anything else (in `main.md`, the root `SKILL.md`, and the `main-001` rule) now invokes `deft-install gate` instead of `python3 .deft/core/run gate`, so the gate still fires on a broken or Node-less install. Refs #2001, #1933.
 
 ### Fixed
+- **`deft-install gate` no longer false-reports `NEEDS-UPGRADE` on healthy installs** — the node-independent health gate now resolves the current framework version from the installed `<install>/VERSION` payload manifest (bare semver) instead of the frozen binary's `v`-prefixed build version. Production binaries (built with `-X main.version=vX.Y.Z`) previously compared `vX.Y.Z` against the bare `.deft-version` marker and always exited 1, so every healthy install looked like it needed an upgrade. Closes #2015.
 
 ### Removed
 
