@@ -1,4 +1,11 @@
 export * from "./constants.js";
+export {
+  type ExportAudience,
+  type ExportSpecOptions,
+  exportSpec,
+  exportSpecMain,
+  parseExportSpecArgv,
+} from "./export-spec.js";
 export * as frameworkCommands from "./framework-commands.js";
 export {
   availableCommands,
@@ -31,6 +38,7 @@ export {
   renderRoadmap,
   renderRoadmapToBuffer,
 } from "./roadmap-render.js";
+export { aggregateScopeSection, buildScopeOutlookSection } from "./scope-outlook.js";
 export * as specRender from "./spec-render.js";
 export { main as specRenderMain, parseIncludeScopesFlag, renderSpec } from "./spec-render.js";
 export * as specValidate from "./spec-validate.js";

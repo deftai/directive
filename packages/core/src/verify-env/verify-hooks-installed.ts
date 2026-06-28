@@ -1,5 +1,5 @@
 import * as childProcess from "node:child_process";
-import { accessSync, constants, statSync } from "node:fs";
+import { accessSync, constants, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 export type OutputStream = "stdout" | "stderr" | "none";
@@ -11,13 +11,19 @@ export interface EvaluateResult {
 }
 
 export const REQUIRED_HOOKS = ["pre-commit", "pre-push"] as const;
-export const SCRIPTS_PROBE = "preflight_branch.py";
-export const GATE_SCRIPTS = [
-  "preflight_branch.py",
-  "verify_encoding.py",
-  "preflight_gh.py",
+
+/** Substrings each hook must contain when it dispatches through the deft CLI (#2049). */
+export const PRE_COMMIT_DEFT_COMMANDS = ["verify:branch", "verify:encoding"] as const;
+export const PRE_PUSH_DEFT_COMMANDS = ["preflight-gh"] as const;
+
+/** Patterns that indicate legacy Python-dispatched hooks (pre-#2049). */
+const LEGACY_HOOK_PATTERNS = [
+  /\.py\b/i,
+  /\bpython\b/i,
+  /\bdeft_py\b/,
+  /\bSCRIPTS_DIR\b/,
+  /\bpreflight_branch\.py\b/,
 ] as const;
-export const SCRIPTS_DIR_CANDIDATES = ["scripts", ".deft/core/scripts", "deft/scripts"] as const;
 
 export type GitConfigReader = (projectRoot: string) => {
   hooksPath: string | null;
@@ -72,16 +78,6 @@ function isDirectory(path: string): boolean {
   }
 }
 
-function resolveScriptsDir(projectRoot: string): string | null {
-  for (const rel of SCRIPTS_DIR_CANDIDATES) {
-    const candidate = join(projectRoot, rel);
-    if (isFile(join(candidate, SCRIPTS_PROBE))) {
-      return candidate;
-    }
-  }
-  return null;
-}
-
 function isPosix(platform: NodeJS.Platform): boolean {
   return platform !== "win32";
 }
@@ -93,6 +89,41 @@ function hookExecutable(hookPath: string): boolean {
   } catch {
     return false;
   }
+}
+
+function readHookContent(hookPath: string): string | null {
+  try {
+    return readFileSync(hookPath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function usesLegacyPythonDispatch(content: string): boolean {
+  return LEGACY_HOOK_PATTERNS.some((pattern) => pattern.test(content));
+}
+
+function hookInvokesDeftCli(content: string, requiredCommands: readonly string[]): boolean {
+  if (!/\bdeft\b/.test(content)) return false;
+  if (usesLegacyPythonDispatch(content)) return false;
+  return requiredCommands.every((cmd) => content.includes(cmd));
+}
+
+function validateHookContent(
+  hookName: string,
+  content: string | null,
+  requiredCommands: readonly string[],
+): string | null {
+  if (content === null) {
+    return `${hookName}: unreadable hook file`;
+  }
+  if (usesLegacyPythonDispatch(content)) {
+    return `${hookName}: still dispatches through Python scripts (expected deft CLI only, #2049)`;
+  }
+  if (!hookInvokesDeftCli(content, requiredCommands)) {
+    return `${hookName}: missing required deft CLI gate(s): ${requiredCommands.join(", ")}`;
+  }
+  return null;
 }
 
 /** Pure evaluator mirroring scripts/verify_hooks_installed.py::evaluate. */
@@ -173,26 +204,38 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     }
   }
 
-  const scriptsDir = resolveScriptsDir(root);
-  if (scriptsDir === null) {
+  const preCommitIssue = validateHookContent(
+    "pre-commit",
+    readHookContent(join(hooksDir, "pre-commit")),
+    PRE_COMMIT_DEFT_COMMANDS,
+  );
+  if (preCommitIssue) {
     return {
       code: 1,
       message:
-        "❌ deft hooks wired but NON-FUNCTIONAL: the gate scripts cannot be resolved.\n" +
-        `  Looked for ${SCRIPTS_PROBE} under: ${SCRIPTS_DIR_CANDIDATES.join(", ")} (relative to ${root}).\n` +
-        "  Recovery: re-run the deft installer so the payload is present.",
+        `❌ deft hooks wired but NON-FUNCTIONAL: ${preCommitIssue} (#2049).\n` +
+        "  Recovery: re-run the deft installer / `task setup` to refresh .githooks/.",
       stream: "stderr",
     };
   }
 
-  const missingScripts = GATE_SCRIPTS.filter((s) => !isFile(join(scriptsDir, s)));
-  if (missingScripts.length > 0) {
+  const prePushContent = readHookContent(join(hooksDir, "pre-push"));
+  const prePushIssue = validateHookContent("pre-push", prePushContent, PRE_PUSH_DEFT_COMMANDS);
+  if (prePushIssue) {
     return {
       code: 1,
       message:
-        `❌ deft hooks wired but NON-FUNCTIONAL: ${scriptsDir} is missing ` +
-        `gate script(s): ${missingScripts.join(", ")} (#1463 false-green).\n` +
-        "  Recovery: re-run the deft installer to restore the payload.",
+        `❌ deft hooks wired but NON-FUNCTIONAL: ${prePushIssue} (#2049).\n` +
+        "  Recovery: re-run the deft installer / `task setup` to refresh .githooks/.",
+      stream: "stderr",
+    };
+  }
+  if (prePushContent?.includes("verify:branch")) {
+    return {
+      code: 1,
+      message:
+        "❌ deft hooks wired but NON-FUNCTIONAL: pre-push must not invoke verify:branch (#1814).\n" +
+        "  Recovery: re-run the deft installer / `task setup` to refresh .githooks/.",
       stream: "stderr",
     };
   }
@@ -201,7 +244,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     code: 0,
     message:
       `✓ deft hooks installed and functional: core.hooksPath=${hooksPath}, ` +
-      `hooks ${REQUIRED_HOOKS.join(", ")} present, gate scripts resolve under ${scriptsDir}.`,
+      `hooks ${REQUIRED_HOOKS.join(", ")} present and dispatch via deft CLI (#2049).`,
     stream: "stdout",
   };
 }

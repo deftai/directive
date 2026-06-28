@@ -53,7 +53,7 @@ SPECIFICATION_NARRATIVE_KEY_ORDER = [
 
 # Lifecycle folders walked by the scope aggregator, in render order (#435).
 LIFECYCLE_BUCKETS: tuple[tuple[str, str], ...] = (
-    ("pending", "Pending"),
+    ("pending", "Accepted backlog (pending)"),
     ("active", "Active"),
     ("completed", "Completed"),
 )
@@ -278,7 +278,7 @@ def _render_scope_block(stem: str, vbrief: dict) -> list[str]:
 
 
 def _aggregate_scope_section(vbrief_dir: Path) -> list[str]:
-    """Build the Implementation Plan section from vbrief/{pending,active,completed}.
+    """Build the Scope outlook section from vbrief/{pending,active,completed}.
 
     Returns an empty list if no scope vBRIEFs exist in any lifecycle folder.
     """
@@ -299,7 +299,7 @@ def _aggregate_scope_section(vbrief_dir: Path) -> list[str]:
     if not buckets:
         return []
 
-    lines: list[str] = ["## Implementation Plan\n"]
+    lines: list[str] = ["## Scope outlook\n"]
     for _folder, heading, scopes in buckets:
         dep_map = _cross_scope_dep_map(scopes)
         ordered = _topo_sort_scopes(scopes, dep_map)

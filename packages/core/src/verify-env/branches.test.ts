@@ -5,14 +5,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { defaultCommandRunner, runToolchainCheck } from "./toolchain-check.js";
 import { evaluate } from "./verify-hooks-installed.js";
-import { defaultPythonFiles, formatScanResult, scan } from "./verify-no-task-runtime.js";
-import {
-  defaultProbe,
-  defaultRun,
-  detectPlatform,
-  verificationResultToJson,
-  verifyRequiredTools,
-} from "./verify-tools.js";
+import { defaultPythonFiles, scan } from "./verify-no-task-runtime.js";
+import { defaultProbe, defaultRun, detectPlatform, verifyRequiredTools } from "./verify-tools.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -95,7 +89,7 @@ describe("verify-tools branches", () => {
       includeTask: true,
       platformId: "linux",
       probe: (c) => (available.has(c) ? `/usr/bin/${c}` : null),
-      runFn: (cmd) => {
+      runFn: (_cmd) => {
         available.add("task");
         return { returncode: 0, stdout: "ok", stderr: "" };
       },
@@ -148,6 +142,25 @@ describe("verify-tools branches", () => {
 });
 
 describe("verify-hooks-installed branches", () => {
+  const deftPreCommit = `#!/usr/bin/env sh
+deft verify:branch --project-root "$REPO_ROOT"
+deft verify:encoding --staged --project-root "$REPO_ROOT"
+`;
+  const deftPrePush = `#!/usr/bin/env sh
+deft preflight-gh --pre-push-stdin
+`;
+
+  function writeDeftHooks(hooksDir: string, mode = 0o755): void {
+    for (const [name, body] of [
+      ["pre-commit", deftPreCommit],
+      ["pre-push", deftPrePush],
+    ] as const) {
+      const hook = join(hooksDir, name);
+      writeFileSync(hook, body, "utf8");
+      chmodSync(hook, mode);
+    }
+  }
+
   it("covers missing hooks dir and hook files", () => {
     const root = makeRepo();
     const resultMissingDir = evaluate(root, {
@@ -166,16 +179,7 @@ describe("verify-hooks-installed branches", () => {
     const root = makeRepo();
     const hooks = join(root, ".githooks");
     mkdirSync(hooks, { recursive: true });
-    for (const name of ["pre-commit", "pre-push"]) {
-      const hook = join(hooks, name);
-      writeFileSync(hook, "#!/bin/sh\n", "utf8");
-      chmodSync(hook, 0o644);
-    }
-    const scripts = join(root, "scripts");
-    mkdirSync(scripts, { recursive: true });
-    writeFileSync(join(scripts, "preflight_branch.py"), "#", "utf8");
-    writeFileSync(join(scripts, "verify_encoding.py"), "#", "utf8");
-    writeFileSync(join(scripts, "preflight_gh.py"), "#", "utf8");
+    writeDeftHooks(hooks, 0o644);
     const result = evaluate(root, {
       platform: "linux",
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
@@ -184,43 +188,31 @@ describe("verify-hooks-installed branches", () => {
     expect(result.message).toContain("not executable");
   });
 
-  it("covers unresolved and partial gate scripts", () => {
+  it("covers legacy python hooks and missing deft commands", () => {
     const root = makeRepo();
     const hooks = join(root, ".githooks");
     mkdirSync(hooks, { recursive: true });
-    for (const name of ["pre-commit", "pre-push"]) {
-      const hook = join(hooks, name);
-      writeFileSync(hook, "#!/bin/sh\n", "utf8");
-      chmodSync(hook, 0o755);
-    }
-    const unresolved = evaluate(root, {
+    writeFileSync(join(hooks, "pre-commit"), "python3 scripts/preflight_branch.py\n", "utf8");
+    writeFileSync(join(hooks, "pre-push"), deftPrePush, "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const legacy = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
-    expect(unresolved.message).toContain("gate scripts cannot be resolved");
+    expect(legacy.message).toContain("Python scripts");
 
-    const scripts = join(root, "scripts");
-    mkdirSync(scripts, { recursive: true });
-    writeFileSync(join(scripts, "preflight_branch.py"), "#", "utf8");
+    writeFileSync(join(hooks, "pre-commit"), "deft verify:encoding\n", "utf8");
     const partial = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
-    expect(partial.message).toContain("verify_encoding.py");
+    expect(partial.message).toContain("verify:branch");
   });
 
   it("reads hooks path via git config", () => {
     const root = makeRepo();
     const hooks = join(root, ".githooks");
     mkdirSync(hooks, { recursive: true });
-    for (const name of ["pre-commit", "pre-push"]) {
-      const hook = join(hooks, name);
-      writeFileSync(hook, "#!/bin/sh\n", "utf8");
-      chmodSync(hook, 0o755);
-    }
-    const scripts = join(root, "scripts");
-    mkdirSync(scripts, { recursive: true });
-    for (const name of ["preflight_branch.py", "verify_encoding.py", "preflight_gh.py"]) {
-      writeFileSync(join(scripts, name), "#", "utf8");
-    }
+    writeDeftHooks(hooks);
     childProcess.execFileSync("git", ["init", "-q"], { cwd: root });
     childProcess.execFileSync("git", ["config", "core.hooksPath", ".githooks"], { cwd: root });
     expect(evaluate(root).code).toBe(0);
@@ -230,16 +222,7 @@ describe("verify-hooks-installed branches", () => {
     const root = makeRepo();
     const hooks = join(root, ".githooks");
     mkdirSync(hooks, { recursive: true });
-    for (const name of ["pre-commit", "pre-push"]) {
-      const hook = join(hooks, name);
-      writeFileSync(hook, "#!/bin/sh\n", "utf8");
-      chmodSync(hook, 0o644);
-    }
-    const scripts = join(root, "scripts");
-    mkdirSync(scripts, { recursive: true });
-    for (const name of ["preflight_branch.py", "verify_encoding.py", "preflight_gh.py"]) {
-      writeFileSync(join(scripts, name), "#", "utf8");
-    }
+    writeDeftHooks(hooks, 0o644);
     const result = evaluate(root, {
       platform: "win32",
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
@@ -247,20 +230,11 @@ describe("verify-hooks-installed branches", () => {
     expect(result.code).toBe(0);
   });
 
-  it("covers absolute hooks path and vendored scripts layout", () => {
+  it("covers absolute hooks path without scripts directory", () => {
     const root = makeRepo();
     const hooks = join(root, "custom-hooks");
     mkdirSync(hooks, { recursive: true });
-    for (const name of ["pre-commit", "pre-push"]) {
-      const hook = join(hooks, name);
-      writeFileSync(hook, "#!/bin/sh\n", "utf8");
-      chmodSync(hook, 0o755);
-    }
-    const scripts = join(root, ".deft", "core", "scripts");
-    mkdirSync(scripts, { recursive: true });
-    for (const name of ["preflight_branch.py", "verify_encoding.py", "preflight_gh.py"]) {
-      writeFileSync(join(scripts, name), "#", "utf8");
-    }
+    writeDeftHooks(hooks);
     const result = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: hooks, error: null }),
     });

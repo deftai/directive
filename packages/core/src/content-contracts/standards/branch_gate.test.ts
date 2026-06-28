@@ -4,16 +4,18 @@ import { readText } from "./_helpers.js";
 describe("test_branch_gate.py", () => {
   it("test_pre_commit_hook_exists_and_calls_script", () => {
     const text = readText(".githooks/pre-commit");
-    expect(text).toContain("preflight_branch.py");
+    expect(text).toContain("deft verify:branch");
+    expect(text).toContain("deft verify:encoding");
     expect(text).toContain("git rev-parse --show-toplevel");
-    expect(text).toContain("SCRIPTS_DIR");
-    expect(text).toContain(".deft/core/scripts");
+    expect(text).toContain("command -v deft");
+    expect(text).not.toContain("preflight_branch.py");
   });
   it("test_pre_push_hook_exists_and_calls_script", () => {
     const text = readText(".githooks/pre-push");
-    expect(text).toContain("preflight_branch.py");
-    expect(text).toContain("SCRIPTS_DIR");
-    expect(text).toContain(".deft/core/scripts");
+    expect(text).toContain("deft preflight-gh --pre-push-stdin");
+    expect(text).toContain("command -v deft");
+    expect(text).not.toContain("preflight_branch.py");
+    expect(text).not.toContain("deft verify:branch");
   });
   it("test_taskfile_check_includes_verify_branch", () => {
     const text = readText("Taskfile.yml");

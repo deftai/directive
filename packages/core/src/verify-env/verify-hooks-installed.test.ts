@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -12,41 +12,47 @@ afterEach(() => {
   temps.length = 0;
 });
 
+const DEFT_PRE_COMMIT = `#!/usr/bin/env sh
+deft verify:branch --project-root "$REPO_ROOT"
+deft verify:encoding --staged --project-root "$REPO_ROOT"
+deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT"
+`;
+
+const DEFT_PRE_PUSH = `#!/usr/bin/env sh
+deft preflight-gh --pre-push-stdin
+`;
+
+const LEGACY_PYTHON_PRE_COMMIT = `#!/usr/bin/env sh
+python3 scripts/preflight_branch.py --project-root "$REPO_ROOT"
+`;
+
 function makeRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-hooks-"));
   temps.push(root);
   return root;
 }
 
-function makeHooks(root: string, rel = ".githooks"): string {
+function makeDeftHooks(root: string, rel = ".githooks"): string {
   const hooks = join(root, rel);
   mkdirSync(hooks, { recursive: true });
-  for (const name of ["pre-commit", "pre-push"]) {
-    const hook = join(hooks, name);
-    writeFileSync(hook, "#!/usr/bin/env sh\n", "utf8");
-    chmodSync(hook, 0o755);
-  }
+  const preCommit = join(hooks, "pre-commit");
+  const prePush = join(hooks, "pre-push");
+  writeFileSync(preCommit, DEFT_PRE_COMMIT, "utf8");
+  writeFileSync(prePush, DEFT_PRE_PUSH, "utf8");
+  chmodSync(preCommit, 0o755);
+  chmodSync(prePush, 0o755);
   return hooks;
 }
 
-function makeScripts(root: string, rel = "scripts"): void {
-  const scripts = join(root, rel);
-  mkdirSync(scripts, { recursive: true });
-  for (const name of ["preflight_branch.py", "verify_encoding.py", "preflight_gh.py"]) {
-    writeFileSync(join(scripts, name), "# gate\n", "utf8");
-  }
-}
-
 describe("evaluate", () => {
-  it("passes for functional own-repo layout", () => {
+  it("passes for functional deft-cli hooks without scripts/", () => {
     const root = makeRepo();
-    makeHooks(root);
-    makeScripts(root);
+    makeDeftHooks(root);
     const result = evaluate(root, {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
     expect(result.code).toBe(0);
-    expect(result.message).toContain("installed and functional");
+    expect(result.message).toContain("dispatch via deft CLI");
   });
 
   it("returns config error for missing project root", () => {
@@ -74,5 +80,186 @@ describe("evaluate", () => {
     });
     expect(result.code).toBe(2);
     expect(result.message).toContain("cannot read core.hooksPath");
+  });
+
+  it("fails when hooks still dispatch through Python (#2049)", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), LEGACY_PYTHON_PRE_COMMIT, "utf8");
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("Python scripts");
+  });
+
+  it("fails when pre-commit omits required deft gates", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), "deft verify:encoding --staged\n", "utf8");
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("verify:branch");
+  });
+
+  it("fails when pre-push omits preflight-gh", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
+    writeFileSync(join(hooks, "pre-push"), "deft verify:encoding\n", "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("preflight-gh");
+  });
+
+  it("fails when hooks wired but directory missing", () => {
+    const root = makeRepo();
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("does not exist");
+  });
+
+  it("fails when posix hooks are not executable", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o644);
+    chmodSync(join(hooks, "pre-push"), 0o644);
+    const result = evaluate(root, {
+      platform: "linux",
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("not executable");
+  });
+
+  it("fails when hook body lacks deft CLI dispatch", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), "echo noop\n", "utf8");
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("verify:branch");
+  });
+
+  it("fails when hook references legacy SCRIPTS_DIR dispatch", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(
+      join(hooks, "pre-commit"),
+      "SCRIPTS_DIR=foo\ndeft verify:branch\ndeft verify:encoding\n",
+      "utf8",
+    );
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("Python scripts");
+  });
+
+  it("passes with absolute hooks path", () => {
+    const root = makeRepo();
+    const hooks = makeDeftHooks(root, "custom-hooks");
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: hooks, error: null }),
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("fails when pre-commit hook file is missing (directory placeholder)", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    mkdirSync(join(hooks, "pre-commit"));
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("missing pre-commit");
+  });
+
+  it("fails when hook references preflight_branch.py shim", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(
+      join(hooks, "pre-commit"),
+      "deft verify:branch\ndeft verify:encoding\npreflight_branch.py\n",
+      "utf8",
+    );
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("Python scripts");
+  });
+
+  it("fails when pre-push invokes verify:branch (#1814)", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(join(hooks, "pre-commit"), DEFT_PRE_COMMIT, "utf8");
+    writeFileSync(
+      join(hooks, "pre-push"),
+      "deft verify:branch --project-root x\ndeft preflight-gh --pre-push-stdin\n",
+      "utf8",
+    );
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain("pre-push must not invoke verify:branch");
+  });
+
+  it("greenfield smoke: passes with no scripts/ on PATH (Python-free deposit)", () => {
+    const root = makeRepo();
+    makeDeftHooks(root);
+    let scriptsPresent = false;
+    try {
+      scriptsPresent = statSync(join(root, "scripts")).isDirectory();
+    } catch {
+      scriptsPresent = false;
+    }
+    expect(scriptsPresent).toBe(false);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(0);
   });
 });

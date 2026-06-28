@@ -1,19 +1,11 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { checkSpecMigrationFidelity } from "../spec-authority/migration-fidelity.js";
+import { isFullSpecState } from "../spec-authority/resolver.js";
 import { isDatePrefixedVbriefFilename } from "./filename.js";
 import type { EvaluateResult } from "./types.js";
 
-const GENERATED_SPEC_PURPOSE = "<!-- Purpose: rendered specification -->";
-const GENERATED_SPEC_SOURCE = "<!-- Source of truth: vbrief/specification.vbrief.json -->";
 const LIFECYCLE_DIRS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
-
-function readTextSafe(path: string): string {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return "";
-  }
-}
 
 function isDirSafe(path: string): boolean {
   try {
@@ -33,24 +25,6 @@ function isDeftFrameworkRoot(projectRoot: string): boolean {
     existsSync(join(projectRoot, "Taskfile.yml")) &&
     (isDirSafe(join(projectRoot, "content", "strategies")) ||
       isDirSafe(join(projectRoot, "strategies")))
-  );
-}
-
-function hasCompleteLifecycle(vbriefDir: string): boolean {
-  return LIFECYCLE_DIRS.every((folder) => {
-    const p = join(vbriefDir, folder);
-    return existsSync(p) && statSync(p).isDirectory();
-  });
-}
-
-function isPostCutoverFullSpecState(projectRoot: string): boolean {
-  const vbriefDir = join(projectRoot, "vbrief");
-  const specMd = readTextSafe(join(projectRoot, "SPECIFICATION.md"));
-  return (
-    existsSync(join(vbriefDir, "PROJECT-DEFINITION.vbrief.json")) &&
-    hasCompleteLifecycle(vbriefDir) &&
-    specMd.includes(GENERATED_SPEC_PURPOSE) &&
-    specMd.includes(GENERATED_SPEC_SOURCE)
   );
 }
 
@@ -80,7 +54,7 @@ export function validateStrategyOutput(projectRoot: string, strict = false): str
   }
 
   const specLegacy = join(vbriefDir, "specification.vbrief.json");
-  if (existsSync(specLegacy) && !isDeftFrameworkRoot(root) && !isPostCutoverFullSpecState(root)) {
+  if (existsSync(specLegacy) && !isDeftFrameworkRoot(root) && !isFullSpecState(root)) {
     errors.push(
       "Legacy artifact vbrief/specification.vbrief.json present. " +
         "v0.20 strategies MUST NOT dual-write the old specification.vbrief.json " +
@@ -105,6 +79,8 @@ export function validateStrategyOutput(projectRoot: string, strict = false): str
       }
     }
   }
+
+  errors.push(...checkSpecMigrationFidelity(root));
 
   return errors;
 }

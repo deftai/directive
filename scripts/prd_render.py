@@ -26,7 +26,22 @@ from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 
 reconfigure_stdio()
 
-# Narrative key ordering for PRD output -- most important first.
+# Narrative keys excluded from stakeholder PRD exports (#2013 Wave 0 §5).
+_STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS = frozenset(
+    {
+        "projectconfig",
+        "techstack",
+        "tech stack",
+        "configuration",
+    }
+)
+
+
+def _is_excluded_narrative_key(key: str) -> bool:
+    normalized = key.lower().replace(" ", "")
+    return normalized in _STAKEHOLDER_EXCLUDED_NARRATIVE_KEYS
+
+
 NARRATIVE_KEY_ORDER = [
     "Overview",
     "ProblemStatement",
@@ -95,7 +110,11 @@ def render_prd(spec_path: Path, output_path: Path, *, force: bool = False) -> No
 
     plan = data.get("plan", {})
     title = plan.get("title", "Project")
-    narratives = plan.get("narratives", {})
+    narratives = {
+        k: v
+        for k, v in plan.get("narratives", {}).items()
+        if isinstance(v, str) and v.strip() and not _is_excluded_narrative_key(k)
+    }
 
     if not narratives:
         print(f"Warning: no narratives found in {spec_path}", file=sys.stderr)

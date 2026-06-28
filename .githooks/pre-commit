@@ -1,143 +1,25 @@
 #!/usr/bin/env sh
-# .githooks/pre-commit -- detection-bound branch-protection gate (#747).
+# .githooks/pre-commit -- deft CLI gates (#2049 / #747 / #798 / #1620).
 #
-# Activated by `git config core.hooksPath .githooks` -- idempotent setup
-# performed by `task setup` (the directive repo itself) OR by the deft
-# installer, which copies this hook to the consumer root .githooks/ and sets
-# core.hooksPath for vendored consumer projects (#1463). Verify with:
-#
-#     task verify:hooks-installed
-#
-# Pure POSIX-shell so this runs from MSYS / Git for Windows without bash
-# being on PATH. The Python script itself is stdlib-only so it does NOT
-# require `uv` or a virtualenv to be active.
+# Activated by `git config core.hooksPath .githooks` via `task setup` or the
+# deft installer (#1463). Pure POSIX shell; requires `deft` on PATH (no Python).
 
-# Resolve repo root (this hook lives at <core.hooksPath>/pre-commit).
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then
     echo "deft pre-commit: unable to resolve repo root via 'git rev-parse'." >&2
     exit 1
 fi
 
-# Layout-aware helper resolution (#1463). In the directive repo the gate
-# scripts live at $REPO_ROOT/scripts/; in a vendored consumer the framework
-# payload (and its scripts/) lives at $REPO_ROOT/.deft/core/ (canonical) or
-# $REPO_ROOT/deft/ (legacy). Because the installer copies this hook to the
-# consumer root .githooks/, it MUST locate the helpers relative to the install
-# root rather than assuming $REPO_ROOT/scripts/. Probe the known layouts and
-# use the first that resolves so the hook works in BOTH layouts.
-SCRIPTS_DIR=""
-for candidate in "$REPO_ROOT/scripts" "$REPO_ROOT/.deft/core/scripts" "$REPO_ROOT/deft/scripts"; do
-    if [ -f "$candidate/preflight_branch.py" ]; then
-        SCRIPTS_DIR="$candidate"
-        break
-    fi
-done
-if [ -z "$SCRIPTS_DIR" ]; then
-    echo "deft pre-commit: unable to locate the deft scripts directory." >&2
-    echo "  Looked in scripts/, .deft/core/scripts/, deft/scripts/ under $REPO_ROOT." >&2
-    echo "  Re-run the deft installer or 'task setup' to wire the hooks correctly." >&2
+if ! command -v deft >/dev/null 2>&1; then
+    echo "deft pre-commit: 'deft' not found on PATH." >&2
+    echo "  Install: npm i -g @deftai/directive" >&2
     exit 1
 fi
 
-# Resolve a usable Python interpreter (#1668). On Windows `python3` is usually
-# absent (only `python.exe` / the `py` launcher exist), and a bare `python3` on
-# PATH is often the Microsoft Store App-Execution-Alias stub that prints
-# "Python was not found" and exits non-zero. Probe DEFT_PYTHON -> python3 ->
-# python -> the `py -3` launcher, validating each candidate by running
-# `--version`, rejecting the alias stub, AND enforcing the framework's Python
-# 3.11+ floor (#1676 -- framework scripts import `from datetime import UTC`,
-# added in 3.11). PY_PREFIX carries the launcher selector (`-3`) when needed.
-PYTHON_BIN=""
-PY_PREFIX=""
+deft verify:branch --project-root "$REPO_ROOT" || exit $?
 
-# _deft_try BIN [PREFIX] -- probe a candidate. Succeeds (and sets PYTHON_BIN /
-# PY_PREFIX) only when the candidate runs, is not the Windows alias stub, and
-# reports a Python version >= 3.11.
-_deft_try() {
-    _bin="$1"
-    _pre="${2:-}"
-    command -v "$_bin" >/dev/null 2>&1 || return 1
-    if [ -n "$_pre" ]; then
-        _out=$("$_bin" "$_pre" --version 2>&1) || return 1
-    else
-        _out=$("$_bin" --version 2>&1) || return 1
-    fi
-    case "$_out" in
-        *"Microsoft Store"*|*"was not found"*|*"execution alias"*) return 1 ;;
-    esac
-    case "$_out" in
-        *Python\ [0-9]*) ;;
-        *) return 1 ;;
-    esac
-    # Enforce the 3.11+ floor using POSIX parameter expansion (no sed/awk
-    # dependency). Parse major.minor from the "Python X.Y.Z" banner.
-    _rest=${_out#*Python }
-    _major=${_rest%%.*}
-    _rest=${_rest#*.}
-    _minor=${_rest%%.*}
-    case "$_major" in ''|*[!0-9]*) return 1 ;; esac
-    case "$_minor" in ''|*[!0-9]*) return 1 ;; esac
-    if [ "$_major" -gt 3 ]; then
-        PYTHON_BIN="$_bin"; PY_PREFIX="$_pre"; return 0
-    fi
-    if [ "$_major" -eq 3 ] && [ "$_minor" -ge 11 ]; then
-        PYTHON_BIN="$_bin"; PY_PREFIX="$_pre"; return 0
-    fi
-    return 1
-}
+deft verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
 
-if [ -n "${DEFT_PYTHON:-}" ]; then
-    # DEFT_PYTHON is the explicit override, but still version-checked so the
-    # hooks enforce the same 3.11+ floor as the installer (#1676).
-    _deft_try "$DEFT_PYTHON" || true
-    if [ -z "$PYTHON_BIN" ]; then
-        echo "deft pre-commit: DEFT_PYTHON ($DEFT_PYTHON) is not a usable Python 3.11+ interpreter." >&2
-        echo "  Point DEFT_PYTHON at a Python 3.11+ executable." >&2
-        exit 1
-    fi
-else
-    _deft_try python3 || _deft_try python || _deft_try py "-3" || true
-fi
-
-if [ -z "$PYTHON_BIN" ]; then
-    echo "deft pre-commit: no usable Python 3.11+ interpreter found." >&2
-    echo "  Probed python3, python, and the 'py' launcher (rejecting the Windows" >&2
-    echo "  App-Execution-Alias stub and interpreters older than 3.11)." >&2
-    echo "  Set DEFT_PYTHON=<absolute python 3.11+ path> or install Python 3.11+." >&2
-    exit 1
-fi
-
-# deft_py forwards args to the resolved interpreter, preserving quoting for
-# paths that may contain spaces (common on Windows).
-deft_py() {
-    if [ -n "$PY_PREFIX" ]; then
-        "$PYTHON_BIN" "$PY_PREFIX" "$@"
-    else
-        "$PYTHON_BIN" "$@"
-    fi
-}
-
-# Step 1: branch-protection gate (#747).
-deft_py "$SCRIPTS_DIR/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
-
-# Step 2: PS 5.1 non-ASCII round-trip corruption gate (#798). Scans staged
-# files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM.
-# Three-state exit propagates: 0 allowed / 1 corruption blocked with diagnostic
-# / 2 config error. Recurrence chain documented in scripts/verify_encoding.py.
-deft_py "$SCRIPTS_DIR/verify_encoding.py" --project-root "$REPO_ROOT" --staged || exit $?
-
-# Step 3: vBRIEF 0.6 conformance gate (#1620). Scans staged vbrief/**/*.vbrief.json
-# for bare keys that are neither 0.6 spec-core nor x-directive/ / x-vbrief/
-# namespaced. Three-state exit propagates: 0 clean / 1 bare key blocked with
-# diagnostic / 2 config error. Rule body lives in scripts/verify_vbrief_conformance.py.
-# Guarded on a present vbrief/ corpus so a fresh consumer repo that has not yet
-# created the vBRIEF lifecycle folders is not blocked by the gate's intentional
-# exit-2-on-missing-vbrief/ config-error contract. Also guarded on the gate
-# script being present so a vendored consumer whose .deft/core/scripts/ payload
-# predates this gate (stale-payload upgrade window) is not blocked by a missing
-# script; payload-staleness is surfaced separately by `task doctor`.
-if [ -d "$REPO_ROOT/vbrief" ] && [ -f "$SCRIPTS_DIR/verify_vbrief_conformance.py" ]; then
-    deft_py "$SCRIPTS_DIR/verify_vbrief_conformance.py" --project-root "$REPO_ROOT" --staged
-    exit $?
+if [ -d "$REPO_ROOT/vbrief" ]; then
+    deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
 fi

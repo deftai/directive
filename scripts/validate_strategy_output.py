@@ -39,9 +39,13 @@ Story: s2-deterministic-gate under #1166
 from __future__ import annotations
 
 import argparse
+import contextlib
+import json
 import re
 import sys
 from pathlib import Path
+
+from _precutover import is_full_spec_state
 
 # Filename pattern for v0.20-conformant scope vBRIEFs (date-prefixed).
 # Matches the convention in vbrief/vbrief.md and conventions/vbrief-filenames.md
@@ -74,24 +78,8 @@ def _has_complete_lifecycle(vbrief_dir: Path) -> bool:
 
 
 def _is_post_cutover_full_spec_state(project_root: Path) -> bool:
-    """Return True for canonical consumer full-spec state.
-
-    This is deliberately stricter than "specification.vbrief.json exists" so
-    the gate still catches strategy-generated legacy dual-writes. A consumer
-    may keep ``vbrief/specification.vbrief.json`` as the source of truth only
-    after the vBRIEF-centric shape is complete and the root SPECIFICATION.md is
-    a rendered export from that source.
-    """
-    vbrief_dir = project_root / "vbrief"
-    spec_md = _read_text_safe(project_root / "SPECIFICATION.md")
-    return (
-        # Caller already confirmed specification.vbrief.json exists; the
-        # remaining conditions separate canonical state from a legacy dual-write.
-        (vbrief_dir / "PROJECT-DEFINITION.vbrief.json").is_file()
-        and _has_complete_lifecycle(vbrief_dir)
-        and GENERATED_SPEC_PURPOSE in spec_md
-        and GENERATED_SPEC_SOURCE in spec_md
-    )
+    """Return True for canonical consumer full-spec state (#2013)."""
+    return is_full_spec_state(project_root)
 
 
 def validate_strategy_output(project_root: Path, strict: bool = False) -> list[str]:
@@ -154,11 +142,85 @@ def validate_strategy_output(project_root: Path, strict: bool = False) -> list[s
                         "vbrief/vbrief.md filename convention."
                     )
 
-    # 4. If proposed/ exists it must not be empty for a strategy that claims to have emitted scope.
-    #    (light check; real emptiness is often valid for trivial specs)
-    #    We rely primarily on the filename rule above.
+    # 4. Migration fidelity (#2005): premigrate snapshot without canonical landing.
+    errors.extend(_check_spec_migration_fidelity(project_root, vbrief_dir))
 
     return errors
+
+
+PRODUCT_NARRATIVE_KEYS = frozenset(
+    {
+        "problemstatement",
+        "goals",
+        "userstories",
+        "requirements",
+        "successmetrics",
+        "functionalrequirements",
+        "nonfunctionalrequirements",
+        "acceptancecriteria",
+        "architecture",
+        "edgecases",
+    }
+)
+
+
+def _plan_narrative_keys(doc: dict) -> set[str]:
+    keys: set[str] = set()
+    plan = doc.get("plan")
+    if not isinstance(plan, dict):
+        return keys
+    narratives = plan.get("narratives")
+    if not isinstance(narratives, dict):
+        return keys
+    for key, val in narratives.items():
+        if isinstance(val, str) and val.strip():
+            keys.add(str(key).lower())
+    return keys
+
+
+def _collect_canonical_narrative_keys(vbrief_dir: Path) -> set[str]:
+    keys: set[str] = set()
+    pd_path = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
+    if pd_path.is_file():
+        with contextlib.suppress(OSError, json.JSONDecodeError):
+            keys |= _plan_narrative_keys(json.loads(pd_path.read_text(encoding="utf-8")))
+    for folder in LIFECYCLE_DIRS:
+        dpath = vbrief_dir / folder
+        if not dpath.is_dir():
+            continue
+        for f in dpath.glob("*.vbrief.json"):
+            with contextlib.suppress(OSError, json.JSONDecodeError):
+                keys |= _plan_narrative_keys(json.loads(f.read_text(encoding="utf-8")))
+    return keys
+
+
+def _check_spec_migration_fidelity(project_root: Path, vbrief_dir: Path) -> list[str]:
+    if (vbrief_dir / "specification.vbrief.json").is_file():
+        return []
+    premigrate = vbrief_dir / "specification.premigrate.vbrief.json"
+    if not premigrate.is_file():
+        return []
+
+    try:
+        premigrate_doc = json.loads(premigrate.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    premigrate_keys = _plan_narrative_keys(premigrate_doc)
+    product_keys = {k for k in premigrate_keys if k in PRODUCT_NARRATIVE_KEYS}
+    if not product_keys:
+        return []
+    canonical = _collect_canonical_narrative_keys(vbrief_dir)
+    missing = sorted(k for k in product_keys if k not in canonical)
+    if not missing:
+        return []
+    return [
+        "vbrief/specification.vbrief.json is absent but "
+        "vbrief/specification.premigrate.vbrief.json retains product narratives not found "
+        f"in PROJECT-DEFINITION or lifecycle scope vBRIEFs: {', '.join(missing)}. "
+        "Do not delete the legacy spec without migrating content. "
+        "Run `task migrate:vbrief` or merge narratives into PROJECT-DEFINITION / scope vBRIEFs "
+        "before removing the premigrate snapshot. See #2005."
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:
