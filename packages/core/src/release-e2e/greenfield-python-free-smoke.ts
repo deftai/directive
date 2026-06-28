@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { collectPythonArtifacts, isRepoRootPythonRunShim } from "../deposit/python-free.js";
@@ -23,6 +23,23 @@ function pythonFreePathEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.Proces
     DEFT_PYTHON: "",
     PYTHON: "",
   };
+}
+
+function seedMinimalProjectDefinition(projectDir: string): void {
+  const vbriefDir = join(projectDir, "vbrief");
+  mkdirSync(vbriefDir, { recursive: true });
+  writeFileSync(
+    join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+    `${JSON.stringify(
+      {
+        vBRIEFInfo: { version: "0.6", description: "greenfield smoke fixture (#2022 Phase 3)" },
+        plan: { title: "PROJECT-DEFINITION", status: "running", policy: {} },
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
 }
 
 function packTarballPath(packDir: string, pkgDir: string): string | null {
@@ -72,6 +89,10 @@ export function rehearseGreenfieldPythonFreeSmoke(
   if (!npm) {
     return [true, "SKIP greenfield-python-free-smoke: npm not on PATH"];
   }
+  const task = which("task");
+  if (!task) {
+    return [true, "SKIP greenfield-python-free-smoke: task (go-task) not on PATH"];
+  }
   const pnpmPrefix = resolvePnpm(seams);
   if (!pnpmPrefix || pnpmPrefix.length === 0) {
     return [false, "greenfield-python-free-smoke FAIL: neither pnpm nor corepack on PATH"];
@@ -79,10 +100,6 @@ export function rehearseGreenfieldPythonFreeSmoke(
   const [pnpmCmd, ...pnpmArgs] = pnpmPrefix;
   if (pnpmCmd === undefined) {
     return [false, "greenfield-python-free-smoke FAIL: pnpm command prefix is empty"];
-  }
-  const task = which("task");
-  if (!task) {
-    return [true, "SKIP greenfield-python-free-smoke: task (go-task) not on PATH"];
   }
 
   const spawn = seams.spawnText ?? spawnText;
@@ -166,6 +183,8 @@ export function rehearseGreenfieldPythonFreeSmoke(
     );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
+    seedMinimalProjectDefinition(projectDir);
+
     const depositDir = join(projectDir, ".deft", "core");
     const artifacts = collectPythonArtifacts(depositDir);
     if (artifacts.length > 0) {
@@ -182,13 +201,11 @@ export function rehearseGreenfieldPythonFreeSmoke(
       ...pyFree,
       PATH: `${join(npmPrefix, "bin")}:${pyFree.PATH ?? ""}`,
     };
-    [ok, reason] = runStep(
-      spawn,
-      "task check",
-      task,
-      ["check", "--taskfile", join(depositDir, "Taskfile.yml")],
-      { cwd: projectDir, env: checkEnv, timeoutMs: 180_000 },
-    );
+    [ok, reason] = runStep(spawn, "task check", task, ["check"], {
+      cwd: projectDir,
+      env: checkEnv,
+      timeoutMs: 180_000,
+    });
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     return [
