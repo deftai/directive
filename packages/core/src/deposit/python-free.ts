@@ -6,7 +6,7 @@
  * `scripts/` tree, `.py` files, and Python `run` shims.
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { type Dirent, existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { readdir, readFile, rm, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -18,14 +18,14 @@ export interface PythonArtifact {
   readonly kind: "py-file" | "scripts-tree" | "run-shim";
 }
 
-function isPythonRunShim(path: string, head: string): boolean {
+function isPythonRunShim(_path: string, head: string): boolean {
   if (!head.startsWith("#!")) return false;
   const bang = head.split("\n", 1)[0] ?? head;
   return /python/i.test(bang);
 }
 
 function walkForPyFilesSync(root: string, base: string, found: PythonArtifact[]): void {
-  let entries;
+  let entries: Dirent[];
   try {
     entries = readdirSync(root, { withFileTypes: true });
   } catch {
@@ -39,30 +39,6 @@ function walkForPyFilesSync(root: string, base: string, found: PythonArtifact[])
         continue;
       }
       walkForPyFilesSync(full, base, found);
-      continue;
-    }
-    if (!entry.isFile()) continue;
-    if (entry.name.endsWith(PY_SUFFIX) || entry.name.endsWith(PYC_SUFFIX)) {
-      found.push({ path: relative(base, full), kind: "py-file" });
-    }
-  }
-}
-
-async function walkForPyFiles(root: string, base: string, found: PythonArtifact[]): Promise<void> {
-  let entries;
-  try {
-    entries = await readdir(root, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    const full = join(root, entry.name);
-    if (entry.isDirectory()) {
-      if (entry.name === "__pycache__") {
-        found.push({ path: relative(base, full), kind: "py-file" });
-        continue;
-      }
-      await walkForPyFiles(full, base, found);
       continue;
     }
     if (!entry.isFile()) continue;
@@ -136,7 +112,7 @@ export async function prunePythonArtifactsFromDeposit(
   }
 
   async function walkRemovePy(root: string): Promise<void> {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(root, { withFileTypes: true });
     } catch {

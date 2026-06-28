@@ -28,7 +28,8 @@ function latestPackTarball(packDir: string, token: string): string | null {
   const matches = readdirSync(packDir)
     .filter((name) => name.endsWith(".tgz") && name.includes(token))
     .sort();
-  return matches.length > 0 ? join(packDir, matches[matches.length - 1]!) : null;
+  const last = matches.at(-1);
+  return last !== undefined ? join(packDir, last) : null;
 }
 
 function runStep(
@@ -62,8 +63,12 @@ export function rehearseGreenfieldPythonFreeSmoke(
     return [true, "SKIP greenfield-python-free-smoke: npm not on PATH"];
   }
   const pnpmPrefix = resolvePnpm(seams);
-  if (!pnpmPrefix) {
+  if (!pnpmPrefix || pnpmPrefix.length === 0) {
     return [false, "greenfield-python-free-smoke FAIL: neither pnpm nor corepack on PATH"];
+  }
+  const [pnpmCmd, ...pnpmArgs] = pnpmPrefix;
+  if (pnpmCmd === undefined) {
+    return [false, "greenfield-python-free-smoke FAIL: pnpm command prefix is empty"];
   }
   const task = which("task");
   if (!task) {
@@ -84,14 +89,20 @@ export function rehearseGreenfieldPythonFreeSmoke(
     let ok: boolean;
     let reason: string;
 
-    [ok, reason] = runStep(spawn, "pnpm install", pnpmPrefix[0]!, [...pnpmPrefix.slice(1), "install", "--frozen-lockfile"], {
-      cwd: repoRoot,
-      env: envBase,
-      timeoutMs: 120_000,
-    });
+    [ok, reason] = runStep(
+      spawn,
+      "pnpm install",
+      pnpmCmd,
+      [...pnpmArgs, "install", "--frozen-lockfile"],
+      {
+        cwd: repoRoot,
+        env: envBase,
+        timeoutMs: 120_000,
+      },
+    );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
-    [ok, reason] = runStep(spawn, "pnpm build", pnpmPrefix[0]!, [...pnpmPrefix.slice(1), "run", "build"], {
+    [ok, reason] = runStep(spawn, "pnpm build", pnpmCmd, [...pnpmArgs, "run", "build"], {
       cwd: repoRoot,
       env: envBase,
       timeoutMs: 120_000,
@@ -103,8 +114,8 @@ export function rehearseGreenfieldPythonFreeSmoke(
       [ok, reason] = runStep(
         spawn,
         `pnpm pack ${pkg}`,
-        pnpmPrefix[0]!,
-        [...pnpmPrefix.slice(1), "pack", "--pack-destination", packDir],
+        pnpmCmd,
+        [...pnpmArgs, "pack", "--pack-destination", packDir],
         { cwd: join(repoRoot, "packages", pkg), env: envBase, timeoutMs: 120_000 },
       );
       if (!ok) return [false, `greenfield smoke: ${reason}`];
@@ -125,11 +136,17 @@ export function rehearseGreenfieldPythonFreeSmoke(
     }
 
     const pyFree = pythonFreePathEnv(envBase);
-    [ok, reason] = runStep(spawn, "directive init", deft, ["init", "--yes", "--repo-root", projectDir], {
-      cwd: work,
-      env: pyFree,
-      timeoutMs: 120_000,
-    });
+    [ok, reason] = runStep(
+      spawn,
+      "directive init",
+      deft,
+      ["init", "--yes", "--repo-root", projectDir],
+      {
+        cwd: work,
+        env: pyFree,
+        timeoutMs: 120_000,
+      },
+    );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     const depositDir = join(projectDir, ".deft", "core");
@@ -157,7 +174,10 @@ export function rehearseGreenfieldPythonFreeSmoke(
     );
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
-    return [true, "greenfield-python-free-smoke: directive init + task check passed with Python absent from PATH"];
+    return [
+      true,
+      "greenfield-python-free-smoke: directive init + task check passed with Python absent from PATH",
+    ];
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
