@@ -6,7 +6,7 @@
   "plan": {
     "id": "story-task-surface-migrate-install",
     "title": "Rewire migrate and install task entrypoints off Python on the consumer path",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
     "narratives": {
       "Description": "Consumer migrate and install tasks still invoke uv run python for migrate_preflight, migrate_vbrief, and legacy run upgrade. This story replaces consumer-path invocations with native deft verbs where TS handlers exist, documents the #2013 migrate_vbrief holdout if it must remain, and removes install upgrade's Python run shim from the default consumer surface.",
@@ -65,7 +65,9 @@
         "size": "M",
         "file_scope_confidence": "high",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-28T15:37:28Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -75,6 +77,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-28T15:21:57Z"
+    "updated": "2026-06-28T15:37:28Z"
   }
 }
