@@ -1247,6 +1247,57 @@ describe("directive bootstrap (#2022 Phase 4)", () => {
     expect(parsed.error).toContain("unrecognized argument");
   });
 
+  it("prints help and exits 0 for --help", async () => {
+    const { io, out } = captureIo();
+    const code = await runDirectiveBootstrap(["--help"], io, {
+      deftCorePresent: () => true,
+      userMdPresent: () => false,
+      projectDefPresent: () => false,
+      runInitDeposit: async () => 0,
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("Usage: directive bootstrap");
+  });
+
+  it("emits re_entry prompt when USER.md already exists at phase 1", async () => {
+    const { io, out } = captureIo();
+    const code = await runDirectiveBootstrap(["--project-root", root], io, {
+      deftCorePresent: () => true,
+      userMdPresent: () => true,
+      projectDefPresent: () => true,
+      runInitDeposit: async () => 0,
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("phase: 3 (spec)");
+    expect(out.join("")).toContain("re_entry: prompt");
+  });
+
+  it("emits re_entry prompt when returning to an existing USER.md", async () => {
+    const { io, out } = captureIo();
+    const code = await runDirectiveBootstrap(["--project-root", root], io, {
+      deftCorePresent: () => true,
+      userMdPresent: () => true,
+      projectDefPresent: () => false,
+      runInitDeposit: async () => 0,
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("phase: 2 (project)");
+    expect(out.join("")).toContain("re_entry: none");
+  });
+
+  it("returns exit code 2 when init deposit fails", async () => {
+    rmSync(join(root, ".deft"), { recursive: true, force: true });
+    const { io, err } = captureIo();
+    const code = await runDirectiveBootstrap(["--project-root", root], io, {
+      deftCorePresent: () => false,
+      userMdPresent: () => false,
+      projectDefPresent: () => false,
+      runInitDeposit: async () => 1,
+    });
+    expect(code).toBe(1);
+    expect(err.join("")).toBe("");
+  });
+
   it("routeAndDispatch routes top-level bootstrap without stub error", async () => {
     const { io, out, err } = captureIo();
 
