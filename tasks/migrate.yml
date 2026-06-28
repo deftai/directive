@@ -10,9 +10,12 @@ tasks:
   _ts-build:
     internal: true
     desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
-    dir: '{{.DEFT_ROOT}}'
+    # Match scope.yml _ensure-ts: run from USER_WORKING_DIR with pnpm --dir so
+    # Windows consumer invocations via `-t <abs Taskfile>` do not double-prefix
+    # DEFT_ROOT under go-task's dir: handling (#566 / Windows CI regression).
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - pnpm run build
+      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   preflight:
     # Agent-side environment preflight for `task migrate:vbrief` (#793).

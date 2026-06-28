@@ -10,9 +10,9 @@ describe("install/migrate CLI tail coverage map", () => {
 
   it("tags retarget entries with vitest spec paths", () => {
     const retarget = INSTALL_CLI_TAIL_COVERAGE_MAP.filter((e) => e.classification === "retarget");
-    expect(retarget).toHaveLength(2);
+    expect(retarget).toHaveLength(3);
     for (const entry of retarget) {
-      expect(entry.vitestSpec).toContain("install-cli/");
+      expect(entry.vitestSpec).toMatch(/^packages\/cli\/src\/.+\.test\.ts$/);
     }
   });
 

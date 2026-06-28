@@ -10,9 +10,9 @@ tasks:
   _ts-build:
     internal: true
     desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
-    dir: '{{.DEFT_ROOT}}'
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - pnpm run build
+      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   install:
     desc: Install deft (dev convenience -- end users should use the compiled binary from GitHub Releases)
