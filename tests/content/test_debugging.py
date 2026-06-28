@@ -257,7 +257,7 @@ class TestDebugSkillRouting1621:
 
     def test_template_routing(self) -> None:
         text = _read(AGENTS_ENTRY)
-        assert ".deft/core/skills/deft-directive-debug/SKILL.md" in text, (
+        assert ".deft/core/.agents/skills/deft-directive-debug/SKILL.md" in text, (
             "templates/agents-entry.md Skill Routing must route to "
-            "deft-directive-debug (#1309 propagation)"
+            "deft-directive-debug (#1309 propagation, #1404 runtime paths)"
         )

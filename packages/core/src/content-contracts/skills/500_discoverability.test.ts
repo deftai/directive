@@ -102,7 +102,7 @@ describe("test_500_discoverability", () => {
 
   it("agents_entry_template_routes_to_setup_skill", () => {
     const text = readRepoFile(AGENTS_ENTRY_TEMPLATE);
-    expect(text).toContain(".deft/core/skills/deft-directive-setup/SKILL.md");
+    expect(text).toContain(".deft/core/.agents/skills/deft-directive-setup/SKILL.md");
     expect(text).toContain("Pre-Cutover Detection Guard");
   });
 

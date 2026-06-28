@@ -34,6 +34,15 @@ describe("manifest helpers", () => {
   it("isDeprecationRedirectStub", () => {
     expect(isDeprecationRedirectStub("<!-- deft:deprecated-redirect -->\n")).toBe(true);
     expect(isDeprecationRedirectStub("# real skill\n")).toBe(false);
+    const docWithSentinelInBody = [
+      "---",
+      "name: deft-directive-setup",
+      "---",
+      "# Setup",
+      "",
+      "Docs mention `<!-- deft:deprecated-redirect -->` in pre-cutover guard prose.",
+    ].join("\n");
+    expect(isDeprecationRedirectStub(docWithSentinelInBody)).toBe(false);
   });
 
   it("locateManifest canonical-first", () => {

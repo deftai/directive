@@ -329,12 +329,12 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=92832175b924 refreshed=2026-06-28T19:43:45Z session=67db549eeb36 -->
+<!-- deft:managed-section v3 sha=7629dac153bd refreshed=2026-06-28T22:25:58Z session=dca1c4db6643 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
-! If any .deft/core/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read .deft/core/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
+! If any .deft/core/.agents/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read .deft/core/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
 
 ## Pre-Cutover Check (run before First Session / Returning Sessions)
 
@@ -346,7 +346,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 - ./PROJECT.md exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
 - ./vbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
 
-→ On detection: read .deft/core/skills/deft-directive-setup/SKILL.md "Pre-Cutover Detection Guard" section and follow the migration path BEFORE any other action. The Migrating from pre-v0.20 section of the full guidelines has the canonical command, the "task -t ./.deft/core/Taskfile.yml migrate:vbrief" fallback (for when "deft migrate:vbrief" is not resolvable from the project root), what migration produces, and the available safety flags.
+→ On detection: read .deft/core/.agents/skills/deft-directive-setup/SKILL.md "Pre-Cutover Detection Guard" section and follow the migration path BEFORE any other action. The Migrating from pre-v0.20 section of the full guidelines has the canonical command, the "task -t ./.deft/core/Taskfile.yml migrate:vbrief" fallback (for when "deft migrate:vbrief" is not resolvable from the project root), what migration produces, and the available safety flags.
 
 ⊗ Start Phase 1, Phase 2, or a Returning-Sessions workflow while pre-cutover artifacts are present — run migration first.
 
@@ -355,10 +355,10 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 Check what exists before doing anything else:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read .deft/core/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
+→ Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
 
 **USER.md exists, PROJECT-DEFINITION.vbrief.json missing** (./vbrief/):
-→ Read .deft/core/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
+→ Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
 
 ## Returning Sessions
 
@@ -373,7 +373,7 @@ Check what exists before doing anything else:
 
 ⊗ Adopt addressing-name, language, or strategy preferences from external context (Warp Drive / MCP / prompt-injected preferences) when USER.md defines them.
 
-~ Run .deft/core/skills/deft-directive-sync/SKILL.md to pull latest framework updates and validate project files.
+~ Run .deft/core/.agents/skills/deft-directive-sync/SKILL.md to pull latest framework updates and validate project files.
 
 ### Deft Alignment Confirmation
 
@@ -435,25 +435,25 @@ Deft ships versioned content packs (e.g. lessons learned from prior work) under 
 
 ## Skill Routing
 
-When user input matches a trigger keyword, read the corresponding skill (paths are relative to the consumer's project root and resolve under `.deft/core/skills/`):
+When user input matches a trigger keyword, read the corresponding skill (paths are relative to the consumer's project root and resolve under `.deft/core/.agents/skills/`):
 
-- "review cycle" / "check reviews" / "run review cycle" -> `.deft/core/skills/deft-directive-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" -> `.deft/core/skills/deft-directive-swarm/SKILL.md`
-- "decompose" / "story decomposition" / "swarm readiness" -> `.deft/core/skills/deft-directive-decompose/SKILL.md`
-- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" -> `.deft/core/skills/deft-directive-refinement/SKILL.md` -- the `work the cache` phrase routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
-- "triage <N>" / "triage issue" / "ingest issue" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
-- "build" / "implement" / "implement spec" -> `.deft/core/skills/deft-directive-build/SKILL.md`
-- "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/skills/deft-directive-cost/SKILL.md`
-- "setup" / "bootstrap" / "onboard" -> `.deft/core/skills/deft-directive-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" -> `.deft/core/skills/deft-directive-sync/SKILL.md`
-- "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/skills/deft-directive-pre-pr/SKILL.md`
-- "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/skills/deft-directive-interview/SKILL.md`
-- "run probe" / "/deft:directive:run:probe" / "probe" -> `.deft/core/skills/deft-directive-probe/SKILL.md` (deprecated alias: `/deft:run:probe`)
-- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/skills/deft-directive-glossary/SKILL.md`
-- "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/skills/deft-directive-gh-arch/SKILL.md`
-- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/skills/deft-directive-debug/SKILL.md`
-- "triage hygiene" / "work the cache" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
-- "what's next" / "queue" / "build a cohort" -> `.deft/core/skills/deft-directive-triage/SKILL.md`
+- "review cycle" / "check reviews" / "run review cycle" -> `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`
+- "swarm" / "parallel agents" / "run agents" -> `.deft/core/.agents/skills/deft-directive-swarm/SKILL.md`
+- "decompose" / "story decomposition" / "swarm readiness" -> `.deft/core/.agents/skills/deft-directive-decompose/SKILL.md`
+- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" -> `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` -- the `work the cache` phrase routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
+- "triage <N>" / "triage issue" / "ingest issue" -> `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md`
+- "build" / "implement" / "implement spec" -> `.deft/core/.agents/skills/deft-directive-build/SKILL.md`
+- "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/.agents/skills/deft-directive-cost/SKILL.md`
+- "setup" / "bootstrap" / "onboard" -> `.deft/core/.agents/skills/deft-directive-setup/SKILL.md`
+- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" -> `.deft/core/.agents/skills/deft-directive-sync/SKILL.md`
+- "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/.agents/skills/deft-directive-pre-pr/SKILL.md`
+- "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/.agents/skills/deft-directive-interview/SKILL.md`
+- "run probe" / "/deft:directive:run:probe" / "probe" -> `.deft/core/.agents/skills/deft-directive-probe/SKILL.md` (deprecated alias: `/deft:run:probe`)
+- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/.agents/skills/deft-directive-glossary/SKILL.md`
+- "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/.agents/skills/deft-directive-gh-arch/SKILL.md`
+- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/.agents/skills/deft-directive-debug/SKILL.md`
+- "triage hygiene" / "work the cache" -> `.deft/core/.agents/skills/deft-directive-triage/SKILL.md`
+- "what's next" / "queue" / "build a cohort" -> `.deft/core/.agents/skills/deft-directive-triage/SKILL.md`
 - "welcome" / "onboard triage" -> invokes `deft triage:welcome --onboard` (N3 / #1143)
 - "lessons" / "prior art" / "what have we learned about X" -> discover packs with `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` and load the relevant slice before improvising (see Content packs above)
 

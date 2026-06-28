@@ -232,9 +232,9 @@ def test_agents_entry_template_routes_to_setup_skill() -> None:
     guard section. Path is the canonical .deft/core/ install layout (#1020,
     flipped from the legacy deft/ path)."""
     text = _AGENTS_ENTRY_TEMPLATE.read_text(encoding="utf-8")
-    assert ".deft/core/skills/deft-directive-setup/SKILL.md" in text, (
+    assert ".deft/core/.agents/skills/deft-directive-setup/SKILL.md" in text, (
         "templates/agents-entry.md: pre-cutover branch must route agents "
-        "to .deft/core/skills/deft-directive-setup/SKILL.md (#1020)"
+        "to .deft/core/.agents/skills/deft-directive-setup/SKILL.md (#1404)"
     )
     assert "Pre-Cutover Detection Guard" in text, (
         "templates/agents-entry.md: pre-cutover branch must name the "

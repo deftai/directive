@@ -73,6 +73,32 @@ describe("checks", () => {
     expect(result.status).toBe("pass");
   });
 
+  it("passes when deprecated-redirect sentinel appears only in documentation (#1408)", () => {
+    const text = "see .deft/core/skills/deft-directive-build/SKILL.md\n";
+    const docBody = [
+      "---",
+      "name: deft-directive-build",
+      "---",
+      "# Skill",
+      "",
+      "Pre-cutover docs mention `<!-- deft:deprecated-redirect -->` in prose.",
+    ].join("\n");
+    const result = checkSkillPathsResolve("/tmp", text, {
+      isFile: () => true,
+      readText: () => docBody,
+    });
+    expect(result.status).toBe("pass");
+  });
+
+  it("passes .agents/skills runtime paths when files resolve (#1404)", () => {
+    const text = "-> `.deft/core/.agents/skills/deft-directive-build/SKILL.md`\n";
+    const result = checkSkillPathsResolve("/tmp", text, {
+      isFile: () => true,
+      readText: () => "Read and follow: skills/deft-directive-build/SKILL.md\n",
+    });
+    expect(result.status).toBe("pass");
+  });
+
   it("manifest agreement skip on greenfield", () => {
     const result = checkManifestAgreement("/tmp", null, { isFile: () => false });
     expect(result.status).toBe("skip");

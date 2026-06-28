@@ -286,7 +286,7 @@ class TestQuickStartUpgradeDetection:
 class TestAgentsEntryFallbackRule:
     """templates/agents-entry.md and setup.go agentsMDEntry must carry the
     fallback rule that redirects agents to QUICK-START.md when a
-    .deft/core/skills/ path is unreadable (#411 item 2, paths flipped to
+    .deft/core/.agents/skills/ path is unreadable (#411 item 2, paths flipped to
     canonical layout in #1020)."""
 
     TEMPLATE = _REPO_ROOT / "content/templates/agents-entry.md"
@@ -294,9 +294,9 @@ class TestAgentsEntryFallbackRule:
 
     def test_template_has_fallback_rule(self) -> None:
         content = self.TEMPLATE.read_text(encoding="utf-8")
-        assert ".deft/core/skills/" in content, (
-            "templates/agents-entry.md must mention .deft/core/skills/ in the "
-            "fallback rule (#1020)."
+        assert ".deft/core/.agents/skills/" in content, (
+            "templates/agents-entry.md must mention .deft/core/.agents/skills/ in the "
+            "fallback rule (#1404)."
         )
         assert ".deft/core/QUICK-START.md" in content, (
             "templates/agents-entry.md must tell agents to read "
@@ -326,9 +326,9 @@ class TestAgentsEntryFallbackRule:
         # Assert the fallback rule exists in the canonical template, which
         # IS the body the installer writes into consumer AGENTS.md.
         template = self.TEMPLATE.read_text(encoding="utf-8")
-        assert ".deft/core/skills/" in template, (
+        assert ".deft/core/.agents/skills/" in template, (
             "templates/agents-entry.md must carry the fallback rule "
-            "(mentions .deft/core/skills/)."
+            "(mentions .deft/core/.agents/skills/)."
         )
         assert ".deft/core/QUICK-START.md" in template, (
             "templates/agents-entry.md fallback rule must point at "

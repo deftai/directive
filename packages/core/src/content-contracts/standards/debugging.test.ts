@@ -121,7 +121,7 @@ describe("test_debugging.py", () => {
     });
     it("test_template_routing", () => {
       expect(readText("templates/agents-entry.md")).toContain(
-        ".deft/core/skills/deft-directive-debug/SKILL.md",
+        ".deft/core/.agents/skills/deft-directive-debug/SKILL.md",
       );
     });
   });

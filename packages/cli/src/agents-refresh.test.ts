@@ -31,6 +31,14 @@ describe("agents-refresh CLI (#1996)", () => {
     expect(text).toContain("deft:managed-section");
   });
 
+  it("emits runtime .agents/skills paths not legacy stubs (#1404)", () => {
+    const project = freshProject();
+    expect(runAgentsRefresh(["--project-root", project])).toBe(0);
+    const text = readFileSync(join(project, "AGENTS.md"), "utf8");
+    expect(text).toContain(".deft/core/.agents/skills/deft-directive-build/SKILL.md");
+    expect(text).not.toMatch(/-> `\.deft\/core\/skills\/deft-directive-/);
+  });
+
   it("--check exits 0 when current", () => {
     const project = freshProject();
     expect(runAgentsRefresh(["--project-root", project])).toBe(0);

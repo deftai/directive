@@ -168,7 +168,7 @@ def test_canonical_install_path_tokens_present() -> None:
     text = _TEMPLATE_PATH.read_text(encoding="utf-8")
     canonical_tokens = (
         ".deft/core/main.md",
-        ".deft/core/skills/",
+        ".deft/core/.agents/skills/",
         ".deft/core/run",
     )
     missing = [token for token in canonical_tokens if token not in text]

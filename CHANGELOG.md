@@ -20,9 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Post-upgrade doctor no longer fails on stale skill paths or doc-only redirect mentions** — `deft agents:refresh` now writes runtime skill routes under `.deft/core/.agents/skills/` instead of legacy stub paths, and `deft doctor` skill-paths-resolve ignores deprecation sentinels that appear only in skill documentation prose. Closes #1404, #1408.
+
 ### Removed
 
-## [0.61.1] - 2026-06-28
 
 > Consumer npm upgrades now complete in one consistent path: version markers and managed_by provenance stay in sync, and task upgrade works on vendored installs.
 
