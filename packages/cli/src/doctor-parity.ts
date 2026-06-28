@@ -25,6 +25,8 @@ export interface ParityScenario {
   readonly cwd?: string;
   readonly env?: Record<string, string | undefined>;
   readonly setup?: (root: string) => void;
+  /** When true, stdout may diverge (TS-only consumer probes post #2022 Phase 3). */
+  readonly exitCodeOnly?: boolean;
 }
 
 export interface ParityResult {
@@ -47,6 +49,7 @@ export const PARITY_SCENARIOS: readonly ParityScenario[] = [
   {
     name: "full-json-consumer-fixture",
     argv: ["--full", "--json"],
+    exitCodeOnly: true,
     setup(root) {
       writeFileSync(
         join(root, "AGENTS.md"),
@@ -153,6 +156,7 @@ function runScenario(
 export function diffParity(
   python: ScenarioResult,
   ts: ScenarioResult,
+  options: { exitCodeOnly?: boolean } = {},
 ): {
   exitMismatch: boolean;
   stdoutMismatch: boolean;
@@ -163,7 +167,7 @@ export function diffParity(
   const tsStdout = normaliseStdout(ts.stdout);
   return {
     exitMismatch: python.exitCode !== ts.exitCode,
-    stdoutMismatch: pythonStdout !== tsStdout,
+    stdoutMismatch: options.exitCodeOnly ? false : pythonStdout !== tsStdout,
     pythonStdout,
     tsStdout,
   };
@@ -178,7 +182,7 @@ export function runParity(): ParityResult {
       name: scenario.name,
       pythonExit: ran.python.exitCode,
       tsExit: ran.ts.exitCode,
-      ...diffParity(ran.python, ran.ts),
+      ...diffParity(ran.python, ran.ts, { exitCodeOnly: scenario.exitCodeOnly }),
     });
   }
   const ok = scenarios.every((s) => !s.exitMismatch && !s.stdoutMismatch);

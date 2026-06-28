@@ -25,6 +25,15 @@ describe("doctor-parity helpers", () => {
     expect(diff.stdoutMismatch).toBe(true);
   });
 
+  it("diffParity exitCodeOnly skips stdout comparison", () => {
+    const diff = diffParity(
+      { name: "a", exitCode: 0, stdout: "x", stderr: "" },
+      { name: "a", exitCode: 0, stdout: "y", stderr: "" },
+      { exitCodeOnly: true },
+    );
+    expect(diff.stdoutMismatch).toBe(false);
+  });
+
   it("renderReport clean", () => {
     expect(renderReport({ ok: true, scenarios: [] })).toContain("CLEAN");
   });
