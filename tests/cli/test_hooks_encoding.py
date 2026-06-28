@@ -77,9 +77,9 @@ HOOK_SCRIPTS: list[tuple[str, str, list[str], dict[str, str]]] = [
         {"_init_git_repo": "1"},
     ),
     (
-        # #1019: detection-bound gate for destructive ``gh`` verbs. Invoked
-        # from .githooks/pre-push AFTER preflight_branch via
-        # ``preflight_gh.py --pre-push-stdin``. Pinned to the same UTF-8
+        # #1019 / #1814: refspec-aware default-branch push gate. Invoked from
+        # .githooks/pre-push via ``preflight_gh.py --pre-push-stdin`` (the
+        # sole pre-push gate after #1814 Option A). Pinned to the same UTF-8
         # self-reconfigure contract; the --self-test mode is exercised here
         # because it deterministically prints the U+2713 success glyph
         # without depending on git pre-push stdin shape.
@@ -140,10 +140,11 @@ def test_audit_only_preflight_branch_is_hook_invoked():
     """Defence-in-depth: if a future hook script lands, this test fails loudly.
 
     The audit surface is the union of scripts under ``scripts/`` referenced
-    from any file in ``.githooks/``. Today that set is exactly
-    ``scripts/preflight_branch.py``. When a new hook script is added, the
-    HOOK_SCRIPTS registry above MUST grow a corresponding entry so the
-    contract test runs against it. This test detects the gap structurally
+    from any file in ``.githooks/``. Pre-commit invokes
+    ``scripts/preflight_branch.py``; pre-push invokes
+    ``scripts/preflight_gh.py`` (#1814 Option A). When a new hook script is
+    added, the HOOK_SCRIPTS registry above MUST grow a corresponding entry so
+    the contract test runs against it. This test detects the gap structurally
     by re-doing the audit at test time.
     """
     referenced: set[str] = set()

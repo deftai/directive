@@ -255,6 +255,39 @@ def test_evaluate_pre_push_feature_branch_passes(preflight, monkeypatch):
     assert "no pushes to default branches" in msg
 
 
+def test_evaluate_pre_push_feature_branch_deletion_passes(preflight, monkeypatch):
+    """#1814: deleting a feature branch while HEAD is main must not block.
+
+    Simulates ``git push origin --delete feature-x`` checked out on main:
+    local OID is zero, remote_ref is the feature branch (not default).
+    """
+    monkeypatch.delenv(preflight.ENV_BYPASS, raising=False)
+    refs = [("(delete)", _ZERO, "refs/heads/feature-x", _SHA_B)]
+    code, msg = preflight.evaluate_pre_push(refs)
+    assert code == 0
+    assert "no pushes to default branches" in msg
+
+
+def test_evaluate_pre_push_main_update_from_main_head_blocks(preflight, monkeypatch):
+    """#1814: gate #2 still blocks pushing commits to refs/heads/main."""
+    monkeypatch.delenv(preflight.ENV_BYPASS, raising=False)
+    refs = [("refs/heads/main", _SHA_A, "refs/heads/main", _SHA_B)]
+    code, msg = preflight.evaluate_pre_push(refs)
+    assert code == 1
+    assert "refusing to push" in msg
+    assert "main" in msg
+
+
+def test_main_pre_push_stdin_feature_delete_passes(preflight, monkeypatch, capsys):
+    """End-to-end: --pre-push-stdin allows feature-branch deletion on default HEAD."""
+    monkeypatch.delenv(preflight.ENV_BYPASS, raising=False)
+    stdin = io.StringIO(f"(delete) {_ZERO} refs/heads/feature-x {_SHA_B}\n")
+    code = preflight.main(["--pre-push-stdin"], stdin=stdin)
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "no pushes to default branches" in out
+
+
 def test_evaluate_pre_push_default_branch_update_blocks(preflight, monkeypatch):
     monkeypatch.delenv(preflight.ENV_BYPASS, raising=False)
     refs = [("refs/heads/feat/x", _SHA_A, "refs/heads/master", _SHA_B)]

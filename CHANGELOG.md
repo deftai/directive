@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The conception-to-ship lifecycle diagram now ships with your install** — the single-picture overview of how Directive turns an idea into shipped work (inception strategy analysis feeding the recurring per-session triage→slice→swarm→review→ship loop) moved into the installed `.deft/core/docs/` payload and is cross-linked from the getting-started guide, so adopters can see the framework's overall shape without visiting the upstream repo. Documentation only.
 
 ### Fixed
+- **Pre-push no longer blocks branch hygiene on the default branch** — deleting merged feature branches or pushing non-default refs while checked out on `main`/`master` no longer hits a misleading default-branch refusal from the HEAD-only hook; pre-push now relies on refspec-aware protection so only pushes that actually touch the default branch are blocked. Closes #1814.
 
 ### Removed
 

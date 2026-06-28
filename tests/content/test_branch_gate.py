@@ -3,8 +3,8 @@
 Asserts the surfaces around `scripts/preflight_branch.py` exist and
 reference each other consistently:
 
-- ``.githooks/pre-commit`` and ``.githooks/pre-push`` exist and call the
-  preflight script.
+- ``.githooks/pre-commit`` calls ``preflight_branch.py``; ``.githooks/pre-push``
+  calls ``preflight_gh.py --pre-push-stdin`` only (#1814 Option A).
 - ``Taskfile.yml`` aggregate ``check`` task includes ``verify:branch``.
 - ``tasks/verify.yml`` declares ``branch`` and ``hooks-installed`` tasks.
 - ``tasks/policy.yml`` declares the policy:* surface.
@@ -39,10 +39,13 @@ def test_pre_commit_hook_exists_and_calls_script():
     assert ".deft/core/scripts" in text
 
 
-def test_pre_push_hook_exists_and_calls_script():
+def test_pre_push_hook_exists_and_calls_refspec_gate():
     text = _read(".githooks/pre-push")
-    # #1463: layout-aware resolution (see test_pre_commit_hook above).
-    assert "preflight_branch.py" in text
+    # #1814 Option A: pre-push skips HEAD-only preflight_branch invocation; gate #2
+    # is refspec-aware via preflight_gh --pre-push-stdin.
+    assert 'deft_py "$SCRIPTS_DIR/preflight_branch.py"' not in text
+    assert "preflight_gh.py" in text
+    assert "--pre-push-stdin" in text
     assert "SCRIPTS_DIR" in text
     assert ".deft/core/scripts" in text
 

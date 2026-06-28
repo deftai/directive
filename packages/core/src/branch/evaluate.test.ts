@@ -158,6 +158,24 @@ describe("evaluate", () => {
     expect(result.message).toContain("cannot determine current branch");
     expect(result.message).toContain("install git");
   });
+
+  describe("pre-commit HEAD gate unchanged (#1814)", () => {
+    it("still blocks commits on master when policy disallows direct commits", () => {
+      const r = root();
+      writeProjectDef(r, { policy: { allowDirectCommitsToMaster: false } });
+      const result = evaluate(r, { branchOverride: { branch: "master", detached: false } });
+      expect(result.exitCode).toBe(1);
+      expect(result.message).toContain("refusing to commit/push");
+    });
+
+    it("still passes on feature branches for pre-commit", () => {
+      const r = root();
+      writeProjectDef(r, { policy: { allowDirectCommitsToMaster: false } });
+      const result = evaluate(r, { branchOverride: { branch: "feat/hygiene", detached: false } });
+      expect(result.exitCode).toBe(0);
+      expect(result.message).toContain("feature branch");
+    });
+  });
 });
 
 describe("currentBranch", () => {

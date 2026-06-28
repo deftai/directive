@@ -1,9 +1,10 @@
 """test_release_branch_gate.py -- regression coverage for #867.
 
 The #747 detection-bound branch gate (`.githooks/pre-commit` ->
-`scripts/preflight_branch.py`, also `.githooks/pre-push`) refuses
-unauthorised commits / pushes on the default branch. The release
-pipeline (`scripts/release.py`) is the canonical authorised
+`scripts/preflight_branch.py`) refuses unauthorised commits on the
+default branch. Pre-push no longer invokes `preflight_branch.py` (#1814
+Option A); refspec-aware protection is `preflight_gh.py --pre-push-stdin`.
+The release pipeline (`scripts/release.py`) is the canonical authorised
 commit-on-master path: by design it commits release artifacts
 (CHANGELOG.md, ROADMAP.md, pyproject.toml, uv.lock) on master and then
 tags + pushes that commit.

@@ -278,3 +278,15 @@ def test_git_not_found_returns_config_error(preflight, tmp_path, monkeypatch):
     assert code == 2
     assert "cannot determine current branch" in msg
     assert "install git" in msg
+
+
+def test_pre_commit_blocks_master_unchanged_after_1814(preflight, tmp_path, monkeypatch):
+    """#1814: pre-commit still uses HEAD-only gate; master commits remain blocked."""
+    _write_project_def(tmp_path, {"policy": {"allowDirectCommitsToMaster": False}})
+    _stub_branch(monkeypatch, preflight, "master")
+    monkeypatch.delenv(preflight.ENV_SETUP_EXEMPTION, raising=False)
+    monkeypatch.delenv("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT", raising=False)
+    code, msg = preflight.evaluate(tmp_path)
+    assert code == 1
+    assert "refusing to commit/push" in msg
+    assert "master" in msg
