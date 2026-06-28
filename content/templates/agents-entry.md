@@ -134,7 +134,7 @@ Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):
 
 - `deft check` -- authoritative consumer pre-commit quality gate. In vendored `.deft/core` installs it runs consumer-safe Deft install/lifecycle gates and does NOT run framework source-repo self-tests. Run `deft check:framework-source` only when explicitly validating the vendored framework payload itself (#1519).
 - `deft verify:branch` -- branch gate wired into the `deft check` aggregate; refuses a commit on the default branch unless `plan.policy.allowDirectCommitsToMaster = true` (typed) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is set.
-- `.githooks/pre-commit` / `pre-push` -- local hooks installed via `deft setup`; verify via `deft verify:hooks-installed`.
+- `.githooks/pre-commit` / `pre-push` -- local hooks installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `deft update` to refresh hook templates to the current TS-native `deft verify:*` / `deft preflight-gh` wiring (#2049).
 - `deft policy:show --field=allowDirectCommitsToMaster` -- inspect the resolved policy; `deft policy:allow-direct-commits -- --confirm` writes the typed override with an audit row.
 
 ## Branch Policy Disclosure (#746)

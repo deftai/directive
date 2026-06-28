@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { readRepoFile } from "./helpers.js";
 
-/** Port of tests/content/test_phase3_export_prompt.py (#1838 #433) */
+/** Port of tests/content/test_phase3_export_prompt.py (#1838 #433 #2050) */
 
 const speckitText = readRepoFile("strategies/speckit.md");
 const setupText = readRepoFile("skills/deft-directive-setup/SKILL.md");
 
 describe("test_phase3_export_prompt", () => {
   describe("TestSpeckitArtifactsSummary3c", () => {
-    it("artifacts_summary_has_3b_spec_render", () => {
-      // Historical marker — 3b row intentionally removed (#1166 s5).
+    it("artifacts_summary_has_3b_project_export_spec", () => {
+      expect(speckitText).toContain("3b.");
+      expect(speckitText).toContain("task project:export-spec");
     });
 
     it("artifacts_summary_has_3c_prd_render", () => {
@@ -23,11 +24,13 @@ describe("test_phase3_export_prompt", () => {
 
   describe("TestSetupSkillExportPrompt", () => {
     it("prompt_asks_for_prd_or_specification", () => {
-      expect(/Generate `SPECIFICATION\.md` and\/or `PRD\.md`/.test(setupText)).toBe(true);
+      expect(/spec export|SPECIFICATION\.md/.test(setupText)).toBe(true);
     });
 
     it("prompt_offers_four_numbered_choices", () => {
-      expect(setupText).toContain("`SPECIFICATION.md` only");
+      expect(
+        setupText.includes("Spec export only") || setupText.includes("SPECIFICATION.md"),
+      ).toBe(true);
       expect(setupText).toContain("`PRD.md` only");
     });
 
@@ -41,6 +44,10 @@ describe("test_phase3_export_prompt", () => {
       expect(promptIdx).not.toBe(-1);
       expect(handoffIdx).not.toBe(-1);
       expect(promptIdx).toBeLessThan(handoffIdx);
+    });
+
+    it("prompt_references_project_export_spec", () => {
+      expect(setupText).toContain("task project:export-spec");
     });
   });
 });

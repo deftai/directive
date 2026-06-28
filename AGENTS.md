@@ -329,7 +329,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=bf54983c4214 refreshed=2026-06-26T18:34:25Z session=f95c7684574f -->
+<!-- deft:managed-section v3 sha=92832175b924 refreshed=2026-06-28T19:43:45Z session=67db549eeb36 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -465,7 +465,7 @@ Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):
 
 - `deft check` -- authoritative consumer pre-commit quality gate. In vendored `.deft/core` installs it runs consumer-safe Deft install/lifecycle gates and does NOT run framework source-repo self-tests. Run `deft check:framework-source` only when explicitly validating the vendored framework payload itself (#1519).
 - `deft verify:branch` -- branch gate wired into the `deft check` aggregate; refuses a commit on the default branch unless `plan.policy.allowDirectCommitsToMaster = true` (typed) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is set.
-- `.githooks/pre-commit` / `pre-push` -- local hooks installed via `deft setup`; verify via `deft verify:hooks-installed`.
+- `.githooks/pre-commit` / `pre-push` -- local hooks installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `deft update` to refresh hook templates to the current TS-native `deft verify:*` / `deft preflight-gh` wiring (#2049).
 - `deft policy:show --field=allowDirectCommitsToMaster` -- inspect the resolved policy; `deft policy:allow-direct-commits -- --confirm` writes the typed override with an audit row.
 
 ## Branch Policy Disclosure (#746)

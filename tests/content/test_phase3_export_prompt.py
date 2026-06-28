@@ -1,13 +1,13 @@
-"""test_phase3_export_prompt.py -- Content tests for #433.
+"""test_phase3_export_prompt.py -- Content tests for #433 / #2050.
 
 Verifies:
-- strategies/speckit.md Artifacts Summary has both a 3b Render SPECIFICATION
-  row AND a 3c Render PRD row so greenfield users see both export options.
+- strategies/speckit.md Artifacts Summary has both a 3b export row AND a 3c
+  Render PRD row so greenfield users see both export options.
 - skills/deft-directive-setup/SKILL.md emits an end-of-Phase-3 export prompt
-  asking whether to generate SPECIFICATION.md and/or PRD.md, with numbered
-  options covering both / spec-only / PRD-only / skip.
+  asking whether to generate spec export and/or PRD.md, with numbered options
+  covering both / spec-only / PRD-only / skip.
 
-Story: #433 (Greenfield PRD/SPECIFICATION export prompt)
+Story: #433 (Greenfield PRD/SPECIFICATION export prompt), #2050 (project:export-spec)
 """
 
 from __future__ import annotations
@@ -25,11 +25,10 @@ def _read(relpath: str) -> str:
 class TestSpeckitArtifactsSummary3c:
     _text = _read("content/strategies/speckit.md")
 
-    def test_artifacts_summary_has_3b_spec_render(self) -> None:
-        # Post s5 migration + v0.20 contract: strategies SHOULD omit writing real SPECIFICATION.md.
-        # The old 3b row is therefore no longer required (or present) in the Artifacts Summary.
-        # This test is retained as a historical marker but no longer asserts presence.
-        pass  # 3b row intentionally removed as part of #1166 s5 + contract work.
+    def test_artifacts_summary_has_3b_project_export_spec(self) -> None:
+        assert "3b." in self._text and "task project:export-spec" in self._text, (
+            "Artifacts Summary 3b row must reference task project:export-spec (#2050)"
+        )
 
     def test_artifacts_summary_has_3c_prd_render(self) -> None:
         assert "3c. Render PRD" in self._text, (
@@ -37,7 +36,6 @@ class TestSpeckitArtifactsSummary3c:
         )
 
     def test_3c_references_task_prd_render(self) -> None:
-        # The 3c row must reference the task command so users can run it.
         assert "task prd:render" in self._text, (
             "Artifacts Summary 3c row must reference `task prd:render` (#433)"
         )
@@ -48,17 +46,16 @@ class TestSetupSkillExportPrompt:
 
     def test_prompt_asks_for_prd_or_specification(self) -> None:
         assert re.search(
-            r"Generate `SPECIFICATION\.md` and/or `PRD\.md`",
+            r"spec export|SPECIFICATION\.md",
             self._text,
         ), (
             "Setup skill must include an end-of-Phase-3 prompt asking whether "
-            "to generate SPECIFICATION.md and/or PRD.md (#433)"
+            "to generate a spec export and/or PRD.md (#433, #2050)"
         )
 
     def test_prompt_offers_four_numbered_choices(self) -> None:
-        # The prompt enumerates 4 choices: both / spec-only / PRD-only / skip.
-        assert "`SPECIFICATION.md` only" in self._text, (
-            "Export prompt must offer a SPECIFICATION.md-only option (#433)"
+        assert "Spec export only" in self._text or "SPECIFICATION.md" in self._text, (
+            "Export prompt must offer a spec-export-only option (#433, #2050)"
         )
         assert "`PRD.md` only" in self._text, (
             "Export prompt must offer a PRD.md-only option (#433)"
@@ -71,8 +68,6 @@ class TestSetupSkillExportPrompt:
         )
 
     def test_prompt_runs_before_handoff_to_build(self) -> None:
-        # The prompt must be ordered BEFORE the 'Handoff to deft-directive-build'
-        # section so greenfield users see it before the skill hands off.
         prompt_idx = self._text.find("End-of-Phase-3 Export Prompt")
         handoff_idx = self._text.find("Handoff to deft-directive-build")
         assert prompt_idx != -1, "Export prompt section must exist (#433)"
@@ -80,4 +75,9 @@ class TestSetupSkillExportPrompt:
         assert prompt_idx < handoff_idx, (
             "Export prompt must appear BEFORE the deft-directive-build handoff "
             "so users see it before leaving Phase 3 (#433)"
+        )
+
+    def test_prompt_references_project_export_spec(self) -> None:
+        assert "task project:export-spec" in self._text, (
+            "Export prompt must reference task project:export-spec (#2050)"
         )

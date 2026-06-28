@@ -234,9 +234,22 @@ task setup:ghx -- --yes      # non-interactive CI / scripted approval
 - ! Use live `gh` for mutations (POST/PATCH/PUT/DELETE) and for immediate read-back after a mutation — ghx is a cached GET proxy only
 - ⊗ Use `ghx api` for multi-arg write invocations — ghx accepts a single positional path arg; writes fall through to `gh`
 
+## Local git hooks (#747 / #2049)
+
+Project-root `.githooks/` enforce branch policy and encoding gates through the **`deft` CLI only** — no Python `scripts/*.py` dispatch (#2049). Hooks are installed idempotently via `deft setup` (`git config core.hooksPath .githooks`).
+
+| Hook | Dispatches | Purpose |
+|------|------------|---------|
+| `pre-commit` | `deft verify:branch`, `deft verify:encoding`, `deft verify:vbrief-conformance` (when `vbrief/` exists) | Default-branch commit refusal (#747), encoding gate (#798), staged vBRIEF conformance (#1620) |
+| `pre-push` | `deft preflight-gh --pre-push-stdin` | Refspec-aware default-branch push refusal + destructive gh verb gate (#1019) |
+
+- ! Verify wiring after install or framework upgrade: `deft verify:hooks-installed` (also wired into `deft check`).
+- ! After upgrading the framework payload, run `deft update` from the project root to refresh `.githooks/` to the current TS-native templates (#2049). Stale hooks that still invoke `python scripts/preflight_branch.py` or other legacy paths fail `deft verify:hooks-installed`.
+- ~ Recovery when hooks are stale or broken: `deft setup` (re-installs hooks path) or `deft update` (refreshes hook files from the deposited payload).
+
 ## Destructive gh verbs (#1019)
 
-A detection-bound gate (`scripts/preflight_gh.py`) refuses three classes of destructive surface before they execute, complementing the #747 branch-protection gate which already refuses commits to the default branch:
+A detection-bound gate (`deft preflight-gh`) refuses three classes of destructive surface before they execute, complementing the #747 branch-protection gate which already refuses commits to the default branch:
 
 - `delete_repo` -- `gh repo delete <owner/repo>` and `gh api -X DELETE repos/<owner>/<repo>[/...]`. Irreversible.
 - `force_push_default` -- `git push --force` / `--force-with-lease` / `+refspec` targeting `master` or `main`.
@@ -244,9 +257,9 @@ A detection-bound gate (`scripts/preflight_gh.py`) refuses three classes of dest
 
 Three enforcement surfaces back the gate:
 
-1. `.githooks/pre-push` invokes `preflight_gh.py --pre-push-stdin` after the #747 branch gate, refusing any push that touches the default branch (force-push or otherwise). Install via `task setup` (idempotent `git config core.hooksPath .githooks`); verify via `task verify:hooks-installed`.
-2. `task verify:destructive-gh-verbs` is wired into the `task check` aggregate. It runs `preflight_gh.py --self-test`, which drives a built-in fixture table through the classifier so a future edit that introduces a false negative / false positive fails CI immediately.
-3. Agent pre-execution callers can invoke `python scripts/preflight_gh.py --command "<full command>"` to classify a candidate verb before it executes. Three-state exit (0 allowed / 1 destructive refused / 2 config error) mirrors `scripts/preflight_branch.py`.
+1. `.githooks/pre-push` invokes `deft preflight-gh --pre-push-stdin` after the #747 branch gate (on pre-commit), refusing any push that touches the default branch (force-push or otherwise). Install via `deft setup` (idempotent `git config core.hooksPath .githooks`); verify via `deft verify:hooks-installed`.
+2. `deft verify:destructive-gh-verbs` (or `task verify:destructive-gh-verbs` in framework source repos) is wired into the `deft check` aggregate. It runs `deft preflight-gh --self-test`, which drives a built-in fixture table through the classifier so a future edit that introduces a false negative / false positive fails CI immediately.
+3. Agent pre-execution callers can invoke `deft preflight-gh --command "<full command>"` to classify a candidate verb before it executes. Three-state exit (0 allowed / 1 destructive refused / 2 config error) mirrors `deft verify:branch`.
 
 **Override paths:**
 

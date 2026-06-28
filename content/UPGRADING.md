@@ -16,7 +16,7 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical upgr
 npm i -g @deftai/directive@latest
 ```
 
-Run from any shell with Node ≥ 20. After upgrading, start a new agent session so the refreshed AGENTS.md and skills load from a clean context. Run `directive doctor` to confirm the install state.
+Run from any shell with Node ≥ 20. After upgrading, run `deft update` from your project root to refresh the vendored `.deft/core/` payload and project-root `.githooks/` (#2049), then start a new agent session so the refreshed AGENTS.md and skills load from a clean context. Run `deft doctor` to confirm the install state.
 
 ### One-time migration from the Go installer (legacy → npm)
 
@@ -94,6 +94,7 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 - **From v0.25.x — manual (breaking).** The deft-cache on-disk layout changed: [From v0.25.x → v0.26.0](#from-v025x--v0260-deft-cache-unified-layer-breaking).
 - **From v0.26.x — auto-handled (interactive).** Run the triage adoption ritual: [From v0.26.x → v0.27](#from-v026x---v027-triage-adoption-via-task-triagewelcome).
 - **From v0.27.x — mostly auto-handled.** Pick up the install manifest and the `deft/` → `.deft/core/` layout: [From v0.27.x → v0.28](#from-v027x---v028-canonical-install-manifest-at-installversion), [From deft/ → .deft/core/](#from-deft---deftcore), and [From drifted AGENTS.md → current install](#from-drifted-agentsmd---current-install-task-upgrade-repair-path-1061).
+- **From v0.60.x — manual (hook refresh).** After #2049, consumer `.githooks/` dispatch through the `deft` CLI only. Run [From v0.60.0 → v0.61.x (refresh project-root git hooks, #2049)](#from-v0600--v061x-refresh-project-root-git-hooks-2049) after every framework upgrade that touches hook templates.
 - **From v0.28–v0.36 (and the final hop to current) — auto-handled.** If still on the Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) above, then `npm i -g @deftai/directive@latest` for all future upgrades.
 
 **Final step for every bucket.** Finish on the canonical upgrade command, then let the doctor confirm you are current:
@@ -102,7 +103,22 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 npm i -g @deftai/directive@latest
 ```
 
-Then run `directive doctor`: it checks install integrity and tells you whether any further hop is still due. If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
+Then run `deft update` in your project root (refreshes `.deft/core/` and `.githooks/`), then `deft doctor`: it checks install integrity and tells you whether any further hop is still due. If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
+
+---
+
+## From v0.60.0 → v0.61.x (refresh project-root git hooks, #2049)
+
+- **Applies when:** your project was on deft v0.60.x (or earlier) with `.githooks/` installed via `deft setup` / the npm deposit path, and hooks still invoke legacy Python scripts (`scripts/preflight_branch.py`, `scripts/preflight_gh.py`, etc.). Detection: `deft verify:hooks-installed` fails with "still dispatches through Python scripts (expected deft CLI only, #2049)" or pre-commit/pre-push errors mentioning missing `scripts/*.py` on Python-free installs.
+- **Safe to auto-run:** Yes. `deft update` from the project root re-deposits the current `.githooks/` templates and refreshes the vendored `.deft/core/` payload. No manual hook editing required when the update completes cleanly.
+- **Restart required:** No for hook wiring — but start a **new agent session** after update so AGENTS.md and skills reflect the refreshed managed section.
+- **Commands:**
+  - `npm i -g @deftai/directive@latest` (upgrade the global CLI/engine)
+  - `deft update` (from project root — refreshes `.deft/core/` + `.githooks/`)
+  - `deft verify:hooks-installed` (confirm pre-commit/pre-push dispatch via `deft verify:branch`, `deft verify:encoding`, `deft preflight-gh`)
+  - `deft doctor` (install integrity + managed-section freshness)
+
+If `deft update` is unavailable (older deposit), fall back to `deft setup` to re-install the hooks path and copy current hook templates.
 
 ---
 

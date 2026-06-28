@@ -76,6 +76,17 @@ All five lifecycle folders MUST be present (even if empty). This is the cutover 
 - ⊗ No v0.20 strategy may create or dual-write `vbrief/specification.vbrief.json` alongside the new model artifacts.
 - Existing legacy files are handled only by `task migrate:vbrief` (which ingests them into scope vBRIEFs + PROJECT-DEFINITION and leaves a redirect stub at root if needed).
 
+### Greenfield spec export (#2013 / #1502)
+
+Greenfield projects (no `vbrief/specification.vbrief.json`) export stakeholder-facing spec text via `task project:export-spec`:
+
+- ! Source of truth: `vbrief/PROJECT-DEFINITION.vbrief.json` product narratives + lifecycle scope bodies (never the legacy singular spec file).
+- ! Default audience is **stakeholder** — proposed scopes are omitted; only pending/active/completed scopes appear under `## Scope outlook`.
+- ! Internal handoff (setup Phase 3, speckit Phase 3→4 when proposed scopes must be visible) uses `task project:export-spec -- --audience=internal`, which adds `### Not yet accepted (proposed)` under `## Scope outlook` with a fixed disclaimer that proposed scopes are ideas, not approved backlog.
+- ! Phase 3→4 transition gate: **export succeeded** (exit 0), not spec-file `approved` status — PROJECT-DEFINITION has no spec-approval lifecycle on greenfield trees.
+- ~ Legacy migrated trees with `vbrief/specification.vbrief.json` MAY continue using `task spec:render` until fully cut over.
+- ⊗ Invoke `task spec:render` on a greenfield tree that lacks `specification.vbrief.json` — use `task project:export-spec` instead.
+
 ### plan.vbrief.json and continue.vbrief.json
 - Session/tactical state files are permitted at vbrief/ root (they carry `planRef` links). They are not part of the "spec output" contract but strategies that maintain chaining state (e.g. interview) update them per their own rules.
 
@@ -85,7 +96,7 @@ All five lifecycle folders MUST be present (even if empty). This is the cutover 
 |--------------|------------------|-------------------------------|-------------------------------|-----------------------------------------|-----------------------------|----------------------------------------|
 | interview    | spec-generating  | Yes                           | Yes (narratives + items)      | proposed/YYYY-MM-DD-*.vbrief.json only  | Never (post-migration)      | Omit or deprecation redirect only      |
 | yolo         | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.vbrief.json only  | Never                       | Omit or deprecation redirect only      |
-| speckit      | spec-generating  | Yes                           | Yes (Phase 1+)                | proposed/YYYY-MM-DD-*.vbrief.json only (phases + stories) | Never             | Omit (use task spec:render post)       |
+| speckit      | spec-generating  | Yes                           | Yes (Phase 1+)                | proposed/YYYY-MM-DD-*.vbrief.json only (phases + stories) | Never             | Omit or `task project:export-spec` (legacy: `task spec:render` on migrated trees) |
 | rapid        | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.vbrief.json only  | Never                       | Omit or deprecation redirect only      |
 | enterprise   | spec-generating  | Yes                           | Yes                           | proposed/YYYY-MM-DD-*.vbrief.json only  | Never                       | Omit or deprecation redirect only      |
 | preparatory (research, discuss, map, etc.) | preparatory | Yes (if first touch)         | No (unless also spec path)    | proposed/YYYY-MM-DD-*.vbrief.json (context/decision vBRIEFs) | N/A                    | N/A (preparatory only)                 |

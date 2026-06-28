@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Setup and strategy docs steer greenfield export through `project:export-spec`** — Phase 3 export prompts, speckit Phase 3→4 gates, and the v0.20 contract now document `task project:export-spec` (with `--audience=internal` for proposed scopes) instead of legacy `task spec:render`; upgrade guidance tells v0.60.x consumers to run `deft update` for TS-native git hook refresh (#2049). Closes #2050.
+
 ### Fixed
 
 ### Removed
