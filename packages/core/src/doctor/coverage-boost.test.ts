@@ -106,7 +106,7 @@ describe("doctor branch coverage boost", () => {
         "utf8",
       );
       const code = cmdDoctor(["--full", "--json", "--project-root", root], {
-        whichFn: () => "/bin/x",
+        whichFn: (c) => (c === "node" ? null : "/bin/x"),
         isDir: (p) => p === root,
         isFile: () => true,
         readText: (p) =>

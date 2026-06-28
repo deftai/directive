@@ -1,11 +1,10 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { contentRoot } from "../content-root.js";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import { runChecks } from "./checks.js";
 import {
   EXPECTED_CONTENT_DIRS,
-  CONSUMER_FRAMEWORK_DIRS,
   EXPECTED_FRAMEWORK_DIRS,
   TASKFILE_INCLUDE_SNIPPET,
   UV_INSTALL_URL,
@@ -19,7 +18,6 @@ import {
 } from "./doctor-state.js";
 import { formatAllowedFlagsHint, formatUnknownFlagsError, parseDoctorFlags } from "./flags.js";
 import { pythonJsonDump } from "./json.js";
-import { parseInstallRootFromAgentsMd } from "./manifest.js";
 import { createPlainSink } from "./output.js";
 import {
   resolveDefaultFrameworkRoot,
@@ -53,7 +51,6 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const fullMode = flags.full;
   const projectRoot = resolvePath(flags.projectRoot ?? process.cwd());
   const frameworkRoot = seams.frameworkRoot ?? resolveDefaultFrameworkRoot();
-  const consumerContext = resolve(projectRoot) !== resolve(frameworkRoot);
   const whichFn = seams.whichFn ?? defaultWhich;
   const nowFn = seams.now ?? (() => new Date());
 
@@ -146,13 +143,11 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     });
   };
 
-  if (!consumerContext) {
-    checkCommand("uv", "uv (Astral Python runner)", true, UV_INSTALL_URL);
-    checkCommand("python3", "python3");
-    checkCommand("go", "go");
-  }
+  checkCommand("uv", "uv (Astral Python runner)", true, UV_INSTALL_URL);
   checkCommand("git", "git", true);
-  checkCommand("node", "node", consumerContext);
+  checkCommand("python3", "python3");
+  checkCommand("go", "go");
+  checkCommand("node", "node");
 
   if (!jsonMode) {
     sink.blank();
@@ -193,19 +188,10 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   // #1875: shippable-content dirs resolve under content/ in a source checkout
   // and at the root in a flattened consumer deposit; engine/lifecycle dirs stay
   // at the framework root in both layouts.
-  let agentsMdText = "";
-  try {
-    agentsMdText = readFileSync(join(projectRoot, "AGENTS.md"), "utf8");
-  } catch {
-    agentsMdText = "";
-  }
-  const installRootRel = parseInstallRootFromAgentsMd(agentsMdText) ?? ".deft/core";
-  const depositRoot = consumerContext ? join(projectRoot, installRootRel) : frameworkRoot;
-  const contentBase = contentRoot(depositRoot);
-  const frameworkDirs = consumerContext ? CONSUMER_FRAMEWORK_DIRS : EXPECTED_FRAMEWORK_DIRS;
+  const contentBase = contentRoot(frameworkRoot);
   const layoutChecks: Array<[dirName: string, base: string]> = [
     ...EXPECTED_CONTENT_DIRS.map((d) => [d, contentBase] as [string, string]),
-    ...frameworkDirs.map((d) => [d, depositRoot] as [string, string]),
+    ...EXPECTED_FRAMEWORK_DIRS.map((d) => [d, frameworkRoot] as [string, string]),
   ];
   for (const [dirName, base] of layoutChecks) {
     const dirPath = join(base, dirName);
