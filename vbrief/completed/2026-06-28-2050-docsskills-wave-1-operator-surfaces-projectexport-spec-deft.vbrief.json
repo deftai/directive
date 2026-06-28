@@ -6,7 +6,7 @@
   "plan": {
     "id": "story-2050-wave-1-docs-followup",
     "title": "docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2050",
@@ -71,8 +71,10 @@
         "depends_on": [],
         "conflict_group": "2013-wave-1-docs",
         "size": "S"
-      }
+      },
+      "completedAt": "2026-06-28T19:51:45Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-06-28T19:38:31Z"
+    "updated": "2026-06-28T19:51:45Z"
   }
 }
