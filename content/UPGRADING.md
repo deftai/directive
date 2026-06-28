@@ -103,7 +103,7 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 npm i -g @deftai/directive@latest
 ```
 
-Then run `deft update` in your project root (refreshes `.deft/core/` and `.githooks/`), then `deft doctor`: it checks install integrity and tells you whether any further hop is still due. If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
+Then run `deft update` in your project root (refreshes `.deft/core/` and `.githooks/`), then `directive doctor`: it checks install integrity and tells you whether any further hop is still due. If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
 
 ---
 

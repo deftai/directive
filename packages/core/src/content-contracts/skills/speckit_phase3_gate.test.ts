@@ -16,8 +16,7 @@ describe("test_speckit_phase3_gate", () => {
     it("gate_is_numbered_list_mirroring_phase2_approval", () => {
       expect(speckitText).toContain("task project:export-spec");
       expect(
-        speckitText.includes("export **succeeded**") ||
-          speckitText.includes("export succeeded"),
+        speckitText.includes("export **succeeded**") || speckitText.includes("export succeeded"),
       ).toBe(true);
     });
 

@@ -28,9 +28,9 @@ describe("test_phase3_export_prompt", () => {
     });
 
     it("prompt_offers_four_numbered_choices", () => {
-      expect(
-        setupText.includes("Spec export only") || setupText.includes("SPECIFICATION.md"),
-      ).toBe(true);
+      expect(setupText.includes("Spec export only") || setupText.includes("SPECIFICATION.md")).toBe(
+        true,
+      );
       expect(setupText).toContain("`PRD.md` only");
     });
 
