@@ -145,6 +145,8 @@ directive doctor               # Check install integrity and dependencies
 directive agents:refresh       # Refresh AGENTS.md managed section
 ```
 
+> **Legacy note:** Other `.deft/core/run` verbs (`validate`, `reset`, `upgrade`) remain available during the Python-purge transition; prefer `directive <verb>` where a native handler exists.
+
 ### 4. Build With AI
 
 Ask your AI to build the product/project from your scope vBRIEFs and away you go:
