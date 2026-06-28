@@ -1011,7 +1011,11 @@ describe("native policy-set handler (#2022)", () => {
 // ---------------------------------------------------------------------------
 
 describe("native setup:ghx handler (#2022)", () => {
-  function captureIo(): { io: { writeOut: (t: string) => void; writeErr: (t: string) => void }; out: string[]; err: string[] } {
+  function captureIo(): {
+    io: { writeOut: (t: string) => void; writeErr: (t: string) => void };
+    out: string[];
+    err: string[];
+  } {
     const out: string[] = [];
     const err: string[] = [];
     return {
