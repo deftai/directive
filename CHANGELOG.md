@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **npm consumer upgrades complete in one consistent path** — On a vendored `.deft/core/` install, `directive update` now also syncs the bare `.deft-version` marker and keeps the `managed_by: npm` provenance stamp, so `deft doctor` no longer reports version drift or re-nudges a migrate step after each upgrade. `deft install-upgrade` resolves the real version from the project's install manifest (instead of misreporting `0.0.0-dev`) when run from a global npm install, and `task upgrade` now works on vendored installs instead of failing on a missing build script. Closes #2053, #2054, #2055, #2056. Refs #2057.
+
 ### Removed
 
 ## [0.61.0] - 2026-06-28

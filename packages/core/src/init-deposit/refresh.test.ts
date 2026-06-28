@@ -250,6 +250,53 @@ describe("runRefreshDeposit", () => {
     expect(lines.join("")).toContain("directive-content is v0.52.0");
   });
 
+  it("syncs vbrief/.deft-version to the deposited content version (#2055)", async () => {
+    const project = freshRoot("refresh-marker-");
+    const contentRoot = installFakeContentPackage(project, "0.61.0");
+    mkdirSync(join(project, "vbrief"), { recursive: true });
+    writeFileSync(join(project, "vbrief", ".deft-version"), "0.60.0\n", "utf8");
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.61.0",
+        nowIso: () => "2026-06-28T12:00:00Z",
+        gitPorcelain: () => null,
+      },
+    );
+
+    expect(readFileSync(join(project, "vbrief", ".deft-version"), "utf8").trim()).toBe("0.61.0");
+  });
+
+  it("preserves managed_by: npm across a payload refresh (#2056)", async () => {
+    const project = freshRoot("refresh-managed-");
+    const contentRoot = installFakeContentPackage(project, "0.61.0");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "ref: 'v0.60.0'\ntag: 'v0.60.0'\nsha: 'content-package'\ninstall_root: '.deft/core'\nmanaged_by: 'npm'\n",
+      "utf8",
+    );
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.61.0",
+        nowIso: () => "2026-06-28T12:00:00Z",
+        gitPorcelain: () => null,
+      },
+    );
+
+    const manifest = readFileSync(join(deftDir, "VERSION"), "utf8");
+    expect(manifest).toContain("tag: 'v0.61.0'");
+    expect(manifest).toContain("managed_by: 'npm'");
+  });
+
   it("throws LegacyLayoutRefusedError on a legacy layout (no refresh)", async () => {
     await expect(
       runRefreshDeposit(

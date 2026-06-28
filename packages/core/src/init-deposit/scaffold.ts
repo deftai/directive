@@ -213,6 +213,13 @@ export interface InstallManifestFields {
   installRoot: string;
   fetchedAt: string;
   fetchedBy: string;
+  /**
+   * Provenance sentinel (#2056). When the prior manifest was stamped
+   * `managed_by: 'npm'` by the npm-migration path, callers thread it through a
+   * manifest rebuild so a routine `directive update` / `install-upgrade` does not
+   * regress provenance and re-arm the doctor signpost.
+   */
+  managedBy?: string;
 }
 
 const BARE_SEMVER = /^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$/;
@@ -223,14 +230,18 @@ export function buildInstallManifestText(fields: InstallManifestFields): string 
     effectiveTag = `v${effectiveTag}`;
   }
   const effectiveRef = fields.ref || effectiveTag;
-  return (
+  let body =
     `ref: '${effectiveRef}'\n` +
     `sha: '${fields.sha}'\n` +
     `tag: '${effectiveTag}'\n` +
     `install_root: '${fields.installRoot}'\n` +
     `fetched_at: '${fields.fetchedAt}'\n` +
-    `fetched_by: '${fields.fetchedBy}'\n`
-  );
+    `fetched_by: '${fields.fetchedBy}'\n`;
+  const managedBy = fields.managedBy?.trim();
+  if (managedBy) {
+    body += `managed_by: '${managedBy}'\n`;
+  }
+  return body;
 }
 
 export function writeInstallManifest(

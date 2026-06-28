@@ -8,13 +8,14 @@
  * Refs #1942, #1430, #1671.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { DEV_FALLBACK } from "../platform/constants.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
 import {
@@ -106,6 +107,44 @@ function readRecordedDepositVersion(deftDir: string): string | null {
     return manifestTagToVersion(parseInstallManifest(readFileSync(manifestPath, "utf8")));
   } catch {
     return null;
+  }
+}
+
+/** Prior `managed_by` provenance sentinel from the deposit manifest, if any (#2056). */
+function readRecordedManagedBy(deftDir: string): string | null {
+  const manifestPath = join(deftDir, "VERSION");
+  if (!existsSync(manifestPath)) return null;
+  try {
+    const value = (
+      parseInstallManifest(readFileSync(manifestPath, "utf8")).managed_by ?? ""
+    ).trim();
+    return value || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Regenerate the bare `.deft-version` derivative from the deposited content
+ * version in the same transaction as the payload swap (#2055). The canonical
+ * marker lives at `vbrief/.deft-version`; fall back to the project root only
+ * when `vbrief/` is absent. Never persist the dev fallback.
+ */
+function syncBareVersionMarker(projectDir: string, version: string): void {
+  const normalized = normalizeVersion(version);
+  if (!normalized || normalized === DEV_FALLBACK) return;
+  const vbriefDir = join(projectDir, "vbrief");
+  let targetDir = projectDir;
+  try {
+    if (statSync(vbriefDir).isDirectory()) targetDir = vbriefDir;
+  } catch {
+    // vbrief/ absent — write the root-level derivative instead
+  }
+  try {
+    mkdirSync(targetDir, { recursive: true });
+    writeFileSync(join(targetDir, ".deft-version"), `${normalized}\n`, "utf8");
+  } catch {
+    // best-effort, mirrors install-upgrade marker write
   }
 }
 
@@ -274,6 +313,7 @@ export async function runRefreshDeposit(
 
   const contentRoot = await resolveContent();
   const previousDepositVersion = readRecordedDepositVersion(deftDir);
+  const previousManagedBy = readRecordedManagedBy(deftDir);
   const engineVersion = readEngine();
   const contentVersion = readContentPackageVersion(contentRoot, readPackageVersion);
   const versionSkewNotice = buildVersionSkewNotice(
@@ -293,8 +333,14 @@ export async function runRefreshDeposit(
     installRoot: CANONICAL_INSTALL_ROOT,
     fetchedAt: nowIso(),
     fetchedBy: "directive-update",
+    ...(previousManagedBy ? { managedBy: previousManagedBy } : {}),
   };
   writeInstallManifest(projectDir, deftDir, manifestFields);
+
+  // #2055: regenerate the bare .deft-version derivative so it agrees with the
+  // freshly written manifest tag (otherwise doctor's manifest-agreement check
+  // fails and the operator must hand-edit the marker).
+  syncBareVersionMarker(projectDir, contentVersion);
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
 

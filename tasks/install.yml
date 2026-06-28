@@ -51,11 +51,20 @@ tasks:
   # on PR #1067 -- the upgrade handler does not currently accept flags; future
   # flag additions land deliberately, not implicitly via Taskfile drift).
   upgrade:
-    desc: "Upgrade deft framework: refresh AGENTS.md to current marker, write canonical install manifest, regenerate .deft-version derivative (#1061). Dispatches via deft-ts install-upgrade."
+    desc: "Upgrade deft framework: refresh AGENTS.md to current marker, write canonical install manifest, regenerate .deft-version derivative (#1061). Dispatches via deft-ts install-upgrade (vendored bin.js in source checkouts, global deft on npm consumer deposits -- #2054)."
     dir: '{{.USER_WORKING_DIR}}'
     vars:
       CLI_ARGS: ""
+    # #2054: route through the consumer-aware engine dispatch (engine:_ts-build is a
+    # no-op on vendored deposits; engine:invoke falls back to global `deft`). The
+    # previous `_ts-build` dep unconditionally ran `pnpm run build` inside the
+    # `@deftai/directive-content` payload -- which has no `build` script -- so
+    # `task upgrade` failed on the primary npm consumer workflow. Framework-root is
+    # intentionally omitted: install-upgrade auto-detects the consumer's
+    # `.deft/core/VERSION` (#2053) when run from the global engine.
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" install-upgrade --project-root "{{.USER_WORKING_DIR}}" --framework-root "{{.DEFT_ROOT}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'install-upgrade --project-root "{{.USER_WORKING_DIR}}"'

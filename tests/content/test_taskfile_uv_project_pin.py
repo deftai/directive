@@ -155,9 +155,13 @@ def test_migrate_preflight_uses_deft_ts_not_python() -> None:
 
 
 def test_install_upgrade_uses_deft_ts_not_run_py() -> None:
-    """install:upgrade must not shell into scripts/run.py (#2022)."""
+    """install:upgrade must route through the consumer-aware engine dispatch, not run.py (#2054)."""
     install_text = (TASKS_DIR / "install.yml").read_text(encoding="utf-8")
-    assert 'node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" install-upgrade' in install_text
+    # #2054: dispatch goes through :engine:invoke (vendored bin.js in source
+    # checkouts, global `deft` on npm consumer deposits) so `task upgrade` no
+    # longer fails on vendored installs that lack a buildable source tree.
+    assert ":engine:invoke" in install_text
+    assert "ENGINE_CMD: 'install-upgrade" in install_text
     assert 'run" upgrade' not in install_text
     assert "scripts/run.py" not in install_text
 

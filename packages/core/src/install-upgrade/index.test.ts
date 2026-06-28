@@ -11,7 +11,10 @@ afterEach(() => {
   }
 });
 
-function scaffoldProject(base: string): { project: string; deftDir: string } {
+function scaffoldProject(
+  base: string,
+  version = "0.0.0-dev",
+): { project: string; deftDir: string } {
   const project = join(base, "consumer");
   const deftDir = join(project, ".deft", "core");
   mkdirSync(join(deftDir, "templates"), { recursive: true });
@@ -20,7 +23,7 @@ function scaffoldProject(base: string): { project: string; deftDir: string } {
     "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->\n",
     "utf8",
   );
-  writeFileSync(join(deftDir, "VERSION"), "tag: v0.0.0-dev\n", "utf8");
+  writeFileSync(join(deftDir, "VERSION"), `tag: v${version}\n`, "utf8");
   mkdirSync(join(project, "vbrief"), { recursive: true });
   return { project, deftDir };
 }
@@ -44,7 +47,7 @@ describe("install-upgrade", () => {
   it("records a new version marker when recorded version differs", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
     temps.push(base);
-    const { project, deftDir } = scaffoldProject(base);
+    const { project, deftDir } = scaffoldProject(base, "1.2.3");
     writeFileSync(join(project, "vbrief", ".deft-version"), "0.0.0-old\n", "utf8");
 
     const lines: string[] = [];
@@ -53,7 +56,7 @@ describe("install-upgrade", () => {
       { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
     );
     expect([0, 2]).toContain(code);
-    expect(lines.join("")).toContain("Updated .deft-version from 0.0.0-old to 0.0.0-dev");
+    expect(lines.join("")).toContain("Updated .deft-version from 0.0.0-old to 1.2.3");
   });
 
   it("surfaces pre-cutover legacy guidance", () => {
@@ -74,7 +77,7 @@ describe("install-upgrade", () => {
   it("records first-time version marker when none exists", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
     temps.push(base);
-    const { project, deftDir } = scaffoldProject(base);
+    const { project, deftDir } = scaffoldProject(base, "1.2.3");
 
     const lines: string[] = [];
     const code = runInstallUpgrade(
@@ -82,7 +85,74 @@ describe("install-upgrade", () => {
       { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
     );
     expect([0, 2]).toContain(code);
-    expect(lines.join("")).toContain("Recorded framework version");
+    expect(lines.join("")).toContain("Recorded framework version 1.2.3");
+  });
+
+  it("auto-detects the consumer .deft/core manifest when framework-root has no version (#2053)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
+    temps.push(base);
+    const { project } = scaffoldProject(base, "0.61.0");
+    writeFileSync(join(project, "vbrief", ".deft-version"), "0.60.0\n", "utf8");
+
+    // Simulate an npm-global engine root: has the AGENTS.md template but no
+    // install manifest / .deft-version / git — so resolveVersion dead-ends at
+    // the dev fallback and the consumer-manifest auto-detect must recover it.
+    const fakeGlobal = join(base, "global-npm");
+    mkdirSync(join(fakeGlobal, "templates"), { recursive: true });
+    writeFileSync(
+      join(fakeGlobal, "templates", "agents-entry.md"),
+      "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+
+    const lines: string[] = [];
+    runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: fakeGlobal },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+    );
+    const out = lines.join("");
+    expect(out).toContain("Deft CLI v0.61.0 - Upgrade");
+    expect(out).toContain("Updated .deft-version from 0.60.0 to 0.61.0");
+    expect(out).not.toContain("0.0.0-dev");
+    expect(readFileSync(join(project, "vbrief", ".deft-version"), "utf8").trim()).toBe("0.61.0");
+  });
+
+  it("does not claim a marker update when the version stays at the dev fallback (#2053)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
+    temps.push(base);
+    const { project, deftDir } = scaffoldProject(base, "0.0.0-dev");
+    writeFileSync(join(project, "vbrief", ".deft-version"), "0.0.0-old\n", "utf8");
+
+    const lines: string[] = [];
+    runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: deftDir },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+    );
+    const out = lines.join("");
+    expect(out).toContain("Could not resolve a published framework version");
+    expect(out).not.toContain("Updated .deft-version from 0.0.0-old to 0.0.0-dev");
+    // The marker write is a no-op on the dev fallback, so the stale value remains.
+    expect(readFileSync(join(project, "vbrief", ".deft-version"), "utf8").trim()).toBe("0.0.0-old");
+  });
+
+  it("preserves managed_by: npm in the rewritten install manifest (#2056)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
+    temps.push(base);
+    const { project, deftDir } = scaffoldProject(base, "1.2.3");
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "ref: 'v1.2.3'\ntag: 'v1.2.3'\nsha: 'content-package'\ninstall_root: '.deft/core'\nmanaged_by: 'npm'\n",
+      "utf8",
+    );
+    writeFileSync(join(project, "vbrief", ".deft-version"), "1.0.0\n", "utf8");
+
+    runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: deftDir },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    const manifest = readFileSync(join(deftDir, "VERSION"), "utf8");
+    expect(manifest).toContain("fetched_by: 'deft-upgrade'");
+    expect(manifest).toContain("managed_by: 'npm'");
   });
 
   it("writes install manifest under legacy deft/ deposit", () => {

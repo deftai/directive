@@ -18,9 +18,13 @@ describe("migrate/install task surface (#2022 Phase 2)", () => {
     expect(text).not.toContain("migrate_preflight.py");
   });
 
-  it("install.yml upgrade avoids scripts/run.py", () => {
+  it("install.yml upgrade avoids scripts/run.py and routes through the consumer-aware engine dispatch (#2054)", () => {
     const text = readFileSync(join(repoRoot(), "tasks", "install.yml"), "utf8");
-    expect(text).toContain('bin.js" install-upgrade');
+    // #2054: dispatch goes through :engine:invoke (vendored bin.js in source
+    // checkouts, global `deft` on npm consumer deposits) rather than an
+    // unconditional `node bin.js` that fails on vendored installs.
+    expect(text).toContain(":engine:invoke");
+    expect(text).toContain("ENGINE_CMD: 'install-upgrade");
     expect(text).not.toContain('run" upgrade');
     expect(text).not.toContain("scripts/run.py");
   });
