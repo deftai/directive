@@ -247,6 +247,14 @@ describe("shouldEmitMigrateNudge / printMigrateNudgeIfNeeded (#2059)", () => {
     expect(shouldEmitMigrateNudge(root)).toBe(false);
   });
 
+  it("returns false when manifest is empty or unreadable", () => {
+    const emptyRoot = makeProject("");
+    expect(shouldEmitMigrateNudge(emptyRoot)).toBe(false);
+
+    const root = makeProject(VENDORED_MANIFEST);
+    expect(shouldEmitMigrateNudge(root, { readText: () => null })).toBe(false);
+  });
+
   it("printMigrateNudgeIfNeeded emits the one-line nudge when needed", () => {
     const root = makeProject(VENDORED_MANIFEST);
     const lines: string[] = [];

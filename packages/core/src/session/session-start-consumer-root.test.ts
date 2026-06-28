@@ -68,4 +68,16 @@ describe("runSessionStart consumer project root (#2032)", () => {
     expect(result.code).toBe(0);
     expect(result.lines.join("\n")).toContain("directive migrate");
   });
+
+  it("skips migrate nudge when deposit is already npm-managed", () => {
+    const root = seedConsumerProject();
+    writeFileSync(
+      join(root, ".deft", "core", "VERSION"),
+      "tag: 'v0.59.0'\nsha: abc\ninstall_root: '.deft/core'\nmanaged_by: 'npm'\n",
+      "utf8",
+    );
+    const result = runSessionStart(root, { writeHistory: false });
+    expect(result.code).toBe(0);
+    expect(result.lines.join("\n")).not.toContain("directive migrate");
+  });
 });
