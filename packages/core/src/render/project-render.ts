@@ -311,7 +311,6 @@ export function acknowledgeProjectDefinitionStaleness(
     completedItems,
     parseStalenessReview(planMetadata),
   );
-  plan.items = items;
   if (typeof projectDef.vBRIEFInfo !== "object" || projectDef.vBRIEFInfo === null) {
     projectDef.vBRIEFInfo = {};
   }
