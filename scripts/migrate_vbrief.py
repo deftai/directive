@@ -227,6 +227,22 @@ _TRACES_SECTION_HEADER = "## Traces lines stripped from LegacyArtifacts (#529)"
 # Lifecycle folders per RFC #309 D13
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
+# Tracked placeholder so empty lifecycle folders survive clone/worktree (#1159).
+# Content mirrors ``packages/core/src/init-deposit/scaffold.ts`` ``VBRIEF_LIFECYCLE_GITKEEP``.
+LIFECYCLE_GITKEEP_NAME = ".gitkeep"
+LIFECYCLE_GITKEEP_CONTENT = (
+    "# This file keeps the lifecycle directory present in version control and\n"
+    "# survives installer packaging so the deft-directive-setup pre-cutover guard\n"
+    "# (condition 3, see skills/deft-directive-setup/SKILL.md:32 and main.md:159)\n"
+    "# does not fire on a fresh install. See #1179.\n"
+)
+
+# Minimal YAML-ish manifest line parser for ``.deft-version`` stamping (#1157).
+# Mirrors ``scripts/doctor.py::_parse_manifest`` / ``_manifest_tag_to_version``.
+_MANIFEST_LINE_RE = re.compile(
+    r"^\s*(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?P<value>.*?)\s*$"
+)
+
 # Migrator-managed subdirectories under ``vbrief/`` that are created lazily by
 # sidecar emission (``vbrief/legacy/``, #505) and reporting (``vbrief/migration/``)
 # paths. Tracked in the safety manifest's ``created_dirs`` when the migrator
@@ -1143,6 +1159,131 @@ def _write_traces_stripped_note(
 # --- end traces strip helpers ---
 
 
+def _parse_install_manifest(text: str) -> dict[str, str]:
+    """Parse ``key: value`` lines from a framework VERSION manifest."""
+    parsed: dict[str, str] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = _MANIFEST_LINE_RE.match(stripped)
+        if match is None:
+            continue
+        key = match.group("key").strip().lower()
+        value = match.group("value").strip().strip("'\"")
+        if key:
+            parsed[key] = value
+    return parsed
+
+
+def _bare_version_from_manifest(manifest: dict[str, str]) -> str | None:
+    """Derive the bare ``vbrief/.deft-version`` value from a manifest dict."""
+    for key in ("tag", "ref"):
+        raw = manifest.get(key)
+        if not isinstance(raw, str):
+            continue
+        candidate = raw.strip().lstrip("v")
+        if candidate:
+            return candidate
+    return None
+
+
+def _framework_version_manifest_path(project_root: Path) -> Path | None:
+    """Return the first existing framework VERSION manifest, canonical-first."""
+    for candidate in (
+        project_root / ".deft" / "core" / "VERSION",
+        project_root / ".deft" / "VERSION",
+        project_root / "deft" / "VERSION",
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _ensure_lifecycle_gitkeep(
+    project_root: Path,
+    folder_name: str,
+    *,
+    dry_run: bool,
+    created_files: list[str],
+    actions: list[str],
+) -> None:
+    """Write a tracked ``.gitkeep`` sentinel when a lifecycle folder is empty (#1159)."""
+    folder = project_root / "vbrief" / folder_name
+    gitkeep_rel = f"vbrief/{folder_name}/{LIFECYCLE_GITKEEP_NAME}"
+    gitkeep_path = folder / LIFECYCLE_GITKEEP_NAME
+
+    if gitkeep_path.is_file():
+        actions.append(f"SKIP  lifecycle gitkeep already exists: {gitkeep_rel}")
+        return
+
+    if folder.is_dir() and any(folder.iterdir()):
+        # Folder already carries tracked scope vBRIEFs -- no placeholder needed.
+        return
+
+    if dry_run:
+        actions.append(f"DRYRUN CREATE lifecycle gitkeep: {gitkeep_rel}")
+        return
+
+    folder.mkdir(parents=True, exist_ok=True)
+    gitkeep_path.write_text(LIFECYCLE_GITKEEP_CONTENT, encoding="utf-8")
+    created_files.append(gitkeep_rel)
+    actions.append(f"CREATE lifecycle gitkeep: {gitkeep_rel}")
+
+
+def _stamp_deft_version_marker(
+    project_root: Path,
+    vbrief_dir: Path,
+    *,
+    dry_run: bool,
+    created_files: list[str],
+    stub_hashes: dict[str, str],
+    actions: list[str],
+) -> None:
+    """Sync ``vbrief/.deft-version`` from the installed framework VERSION manifest (#1157)."""
+    rel = "vbrief/.deft-version"
+    marker_path = vbrief_dir / ".deft-version"
+    manifest_path = _framework_version_manifest_path(project_root)
+    if manifest_path is None:
+        actions.append(
+            "SKIP  vbrief/.deft-version (no framework VERSION manifest found)"
+        )
+        return
+
+    try:
+        manifest = _parse_install_manifest(
+            manifest_path.read_text(encoding="utf-8")
+        )
+    except OSError as exc:
+        actions.append(
+            f"SKIP  vbrief/.deft-version (cannot read {manifest_path}: {exc})"
+        )
+        return
+
+    bare = _bare_version_from_manifest(manifest)
+    if not bare or bare == "0.0.0-dev":
+        actions.append(
+            "SKIP  vbrief/.deft-version (manifest has no usable tag/ref)"
+        )
+        return
+
+    manifest_rel = manifest_path.relative_to(project_root).as_posix()
+    if dry_run:
+        actions.append(
+            f"DRYRUN STAMP vbrief/.deft-version from {manifest_rel} ({bare})"
+        )
+        return
+
+    already_exists = marker_path.is_file()
+    vbrief_dir.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text(f"{bare}\n", encoding="utf-8")
+    if not already_exists:
+        created_files.append(rel)
+    stub_hashes[rel] = sha256_of(marker_path)
+    verb = "UPDATE" if already_exists else "STAMP"
+    actions.append(f"{verb} vbrief/.deft-version ({bare}) from {manifest_rel}")
+
+
 def _track_managed_subdir(
     project_root: Path,
     subdir_name: str,
@@ -1342,6 +1483,13 @@ def migrate(
             folder.mkdir(parents=True, exist_ok=True)
             created_dirs.append(rel)
             actions.append(f"CREATE lifecycle folder: vbrief/{folder_name}/")
+        _ensure_lifecycle_gitkeep(
+            project_root,
+            folder_name,
+            dry_run=dry_run,
+            created_files=created_files,
+            actions=actions,
+        )
 
     # ---- Step 2: Read existing sources ----
     spec_vbrief_path = vbrief_dir / "specification.vbrief.json"
@@ -2209,6 +2357,15 @@ def migrate(
             managed_subdir_pre_existed,
             created_dirs,
         )
+
+    _stamp_deft_version_marker(
+        project_root,
+        vbrief_dir,
+        dry_run=dry_run,
+        created_files=created_files,
+        stub_hashes=stub_hashes,
+        actions=actions,
+    )
 
     # --- safety (Agent C, #497) ---
     # Persist a safety manifest for --rollback.  The manifest lives under

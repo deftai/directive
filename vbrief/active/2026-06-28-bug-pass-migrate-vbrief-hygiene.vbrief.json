@@ -51,11 +51,11 @@
         "parallel_safe": true,
         "file_scope": [
           "scripts/migrate_vbrief.py",
-          "tests/test_migrate_vbrief.py",
+          "tests/cli/test_migrate_vbrief.py",
           "CHANGELOG.md"
         ],
         "verify_commands": [
-          "uv run pytest tests/test_migrate_vbrief.py -q",
+          "uv run pytest tests/cli/test_migrate_vbrief.py -q",
           "task check"
         ],
         "expected_outputs": [

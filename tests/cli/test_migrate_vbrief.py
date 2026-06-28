@@ -23,6 +23,8 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 from migrate_vbrief import (  # noqa: E402, I001
     DEPRECATION_SENTINEL,
     LIFECYCLE_FOLDERS,
+    LIFECYCLE_GITKEEP_CONTENT,
+    LIFECYCLE_GITKEEP_NAME,
     _PRETTIER_BREADCRUMB_MARKER,
     _PRETTIER_BREADCRUMB_PATHS,
     _build_project_definition,
@@ -81,6 +83,18 @@ def _make_project(tmp_path: Path, **kwargs) -> Path:
         (tmp_path / "PRD.md").write_text(kwargs["prd_md"], encoding="utf-8")
 
     return tmp_path
+
+
+def _write_framework_version_manifest(
+    project: Path, *, tag: str = "v0.61.1", sha: str = "abc123"
+) -> None:
+    """Lay down a minimal ``.deft/core/VERSION`` manifest for migration tests."""
+    manifest_dir = project / ".deft" / "core"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    (manifest_dir / "VERSION").write_text(
+        f"tag: {tag}\nsha: {sha}\n",
+        encoding="utf-8",
+    )
 
 
 SAMPLE_SPEC_VBRIEF = {
@@ -614,6 +628,70 @@ class TestMigrateLifecycleFolders:
         assert ok
         skip_count = sum(1 for a in actions if "SKIP  lifecycle folder" in a)
         assert skip_count == 5
+
+    def test_creates_gitkeep_in_empty_lifecycle_folders(self, tmp_path):
+        project = _make_project(tmp_path)
+        ok, actions = migrate(project)
+        assert ok
+        for folder in LIFECYCLE_FOLDERS:
+            gitkeep = project / "vbrief" / folder / LIFECYCLE_GITKEEP_NAME
+            assert gitkeep.is_file(), f"missing gitkeep in vbrief/{folder}/"
+            assert gitkeep.read_text(encoding="utf-8") == LIFECYCLE_GITKEEP_CONTENT
+        assert any("CREATE lifecycle gitkeep" in a for a in actions)
+
+    def test_gitkeep_backfill_on_rerun_when_folder_exists(self, tmp_path):
+        project = _make_project(tmp_path)
+        for folder in LIFECYCLE_FOLDERS:
+            (project / "vbrief" / folder).mkdir(parents=True, exist_ok=True)
+        ok, actions = migrate(project)
+        assert ok
+        for folder in LIFECYCLE_FOLDERS:
+            assert (
+                project / "vbrief" / folder / LIFECYCLE_GITKEEP_NAME
+            ).is_file()
+        assert any("CREATE lifecycle gitkeep" in a for a in actions)
+
+    def test_dry_run_announces_gitkeep_creation(self, tmp_path):
+        project = _make_project(tmp_path)
+        ok, actions = migrate(project, dry_run=True)
+        assert ok
+        gitkeep_dryruns = [
+            a for a in actions if "DRYRUN CREATE lifecycle gitkeep" in a
+        ]
+        assert len(gitkeep_dryruns) == len(LIFECYCLE_FOLDERS)
+
+
+class TestMigrateDeftVersionStamp:
+    """Tests for vbrief/.deft-version stamping (#1157)."""
+
+    def test_stamps_deft_version_from_framework_manifest(self, tmp_path):
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF)
+        _write_framework_version_manifest(project, tag="v0.61.1")
+        ok, actions = migrate(project)
+        assert ok
+        marker = project / "vbrief" / ".deft-version"
+        assert marker.is_file()
+        assert marker.read_text(encoding="utf-8") == "0.61.1\n"
+        assert any("STAMP vbrief/.deft-version" in a for a in actions)
+
+    def test_skips_deft_version_when_no_framework_manifest(self, tmp_path):
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF)
+        ok, actions = migrate(project)
+        assert ok
+        assert not (project / "vbrief" / ".deft-version").exists()
+        assert any(
+            "SKIP  vbrief/.deft-version (no framework VERSION manifest found)"
+            in a
+            for a in actions
+        )
+
+    def test_dry_run_announces_deft_version_stamp(self, tmp_path):
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF)
+        _write_framework_version_manifest(project, tag="v0.61.1")
+        ok, actions = migrate(project, dry_run=True)
+        assert ok
+        assert not (project / "vbrief" / ".deft-version").exists()
+        assert any("DRYRUN STAMP vbrief/.deft-version" in a for a in actions)
 
 
 class TestMigrateProjectDefinition:
@@ -2071,6 +2149,23 @@ class TestSafetyRollback:
         # Migrator-created lifecycle folders should also be gone -- they were
         # created by this run and are empty post-rollback.
         assert not (project / "vbrief" / "pending").exists()
+
+    def test_rollback_removes_lifecycle_gitkeep_sentinels(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+        for folder in LIFECYCLE_FOLDERS:
+            gitkeep = project / "vbrief" / folder / LIFECYCLE_GITKEEP_NAME
+            folder_path = project / "vbrief" / folder
+            # Empty folders get gitkeep; pending may hold scope vBRIEFs only.
+            if folder_path.exists() and gitkeep.is_file():
+                assert gitkeep.read_text(encoding="utf-8") == LIFECYCLE_GITKEEP_CONTENT
+
+        ok, actions = safety_rollback(project, force=True)
+        assert ok, actions
+        for folder in LIFECYCLE_FOLDERS:
+            assert not (project / "vbrief" / folder / LIFECYCLE_GITKEEP_NAME).exists()
+        assert any("REMOVE vbrief/" in a and ".gitkeep" in a for a in actions)
 
     def test_rollback_removes_backup_files(self, tmp_path):
         project = _make_safety_project(tmp_path)
