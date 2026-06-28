@@ -1162,7 +1162,8 @@ class TestTaskCheckWiring:
     def test_verify_cache_fresh_task_defined_in_verify_fragment(self):
         text = (REPO_ROOT / "tasks" / "verify.yml").read_text(encoding="utf-8")
         assert "cache-fresh:" in text
-        assert "preflight_cache.py" in text
+        assert "preflight-cache" in text
+        assert "engine:invoke" in text
         assert "--allow-missing-bootstrap" in text
 
 

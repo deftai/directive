@@ -1,0 +1,39 @@
+version: '3'
+
+# Consumer engine resolution (#2022 Phase 3).
+#
+# Framework-source checkouts invoke the vendored `packages/cli/dist/bin.js`.
+# npm consumer deposits copy @deftai/directive-content only — no bundled CLI —
+# so tasks fall back to the globally installed `deft` / `directive` command.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  _ts-build:
+    internal: true
+    desc: "Build CLI dist when running from the framework source checkout; no-op on npm consumer deposits (#2022 Phase 3)."
+    dir: '{{.DEFT_ROOT}}'
+    cmds:
+      - |
+        set -eu
+        if [ -f packages/cli/dist/bin.js ]; then
+          pnpm run build
+        fi
+
+  invoke:
+    internal: true
+    desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (npm consumer deposit)."
+    cmds:
+      - |
+        set -eu
+        bin="{{.DEFT_ROOT}}/packages/cli/dist/bin.js"
+        if [ -f "$bin" ]; then
+          node "$bin" {{.ENGINE_CMD}}
+        elif command -v deft >/dev/null 2>&1; then
+          deft {{.ENGINE_CMD}}
+        else
+          echo "deft: neither {{.DEFT_ROOT}}/packages/cli/dist/bin.js nor a global deft command is available." >&2
+          echo "  Install with: npm i -g @deftai/directive" >&2
+          exit 2
+        fi

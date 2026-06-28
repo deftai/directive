@@ -314,6 +314,11 @@ includes:
     taskfile: ./tasks/ci.yml
     optional: true
     internal: true
+  # npm consumer deposits resolve verbs through global `deft` when the vendored
+  # packages/cli/dist/bin.js is absent (#2022 Phase 3).
+  engine:
+    taskfile: ./tasks/engine.yml
+    optional: true
 
 tasks:
   default:
@@ -327,10 +332,11 @@ tasks:
     desc: "Run the context-appropriate pre-commit gate: full framework self-check in this repo, consumer-safe gate from vendored installs (#1519)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: verify:_ts-build
+      - task: engine:_ts-build
     cmds:
-      # Oracle/fallback (parity): scripts/_project_context.py --dispatch-task-check (#1854 s5).
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"' 
 
   check:framework-source:
     desc: "Run all framework source-repo pre-commit checks explicitly (skips @pytest.mark.slow tests via pyproject addopts -- run `task check:slow` for the slow lane, #975). Sole wired consumer of maintainer-only core:* / ci:* Python lanes (#2022 Phase 2)."
@@ -403,12 +409,11 @@ tasks:
     desc: "Deterministic v0.20 strategy output shape gate (#1166 s2). Fails on non-date-prefixed vBRIEFs in lifecycle dirs, missing PROJECT-DEFINITION.vbrief.json, or legacy specification.vbrief.json in user projects."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: verify:_ts-build
-        vars:
-          DEFT_ROOT: "{{.TASKFILE_DIR}}"
+      - task: engine:_ts-build
     cmds:
-      # Oracle/fallback (parity): scripts/validate_strategy_output.py (#1854 s3).
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" validate-strategy-output --project-root "{{.USER_WORKING_DIR}}"
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'validate-strategy-output --project-root "{{.USER_WORKING_DIR}}"' 
 
   # Pack-projection drift gate (#1294 / #1283, ADR-001). User-facing alias for
   # `packs:verify-drift`, defined at the root Taskfile so it carries the
@@ -490,12 +495,12 @@ tasks:
   # in ``tasks/framework.yml`` now prints a redaction notice pointing
   # the operator at this surface.
   doctor:
-    desc: "Canonical doctor surface (#1272) -- task doctor [-- --session | --fix | --json | --quiet]. Shim for `.deft/core/run doctor`."
+    desc: "Canonical doctor surface (#1272) -- task doctor [-- --session | --fix | --json | --quiet]. Uses vendored bin.js in source checkouts or global deft on npm consumer deposits (#2022 Phase 3)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run --frozen python "{{.TASKFILE_DIR}}/run" doctor {{.CLI_ARGS}}
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'doctor {{.CLI_ARGS}}'
 
   setup:
     desc: "Idempotent local-dev setup: configure git hooks (#747); detect-and-prompt ghx (#884). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."

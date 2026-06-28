@@ -1,0 +1,164 @@
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { collectPythonArtifacts, isRepoRootPythonRunShim } from "../deposit/python-free.js";
+import { defaultWhich, spawnText } from "../release/spawn.js";
+import { alignNpmPackageVersions, resolvePnpm } from "./npm-ops.js";
+import type { E2ESeams } from "./types.js";
+
+const SMOKE_VERSION = "9.9.9-smoke";
+
+function pythonFreePathEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const pathKey = base.PATH !== undefined ? "PATH" : base.Path !== undefined ? "Path" : "PATH";
+  const current = base[pathKey] ?? "";
+  const filtered = current
+    .split(":")
+    .filter((entry) => !/(^|\/)python[0-9]*(?:\.\d+)?$/.test(entry))
+    .filter((entry) => !entry.includes("/pyenv/"))
+    .join(":");
+  return {
+    ...base,
+    [pathKey]: filtered,
+    DEFT_PYTHON: "",
+    PYTHON: "",
+  };
+}
+
+function latestPackTarball(packDir: string, token: string): string | null {
+  const matches = readdirSync(packDir)
+    .filter((name) => name.endsWith(".tgz") && name.includes(token))
+    .sort();
+  return matches.length > 0 ? join(packDir, matches[matches.length - 1]!) : null;
+}
+
+function runStep(
+  spawn: typeof spawnText,
+  label: string,
+  cmd: string,
+  args: string[],
+  options: { cwd?: string; env?: NodeJS.ProcessEnv; timeoutMs?: number } = {},
+): [boolean, string] {
+  const result = spawn(cmd, args, options);
+  if (result.status !== 0) {
+    const detail = (result.stderr || result.stdout || "").trim();
+    return [false, `${label} failed (exit ${result.status}): ${detail.slice(-800)}`];
+  }
+  return [true, `${label} OK`];
+}
+
+export interface GreenfieldSmokeSeams extends E2ESeams {}
+
+/**
+ * Greenfield npm smoke (#2022 Phase 3): pack/install directive, run init +
+ * task check in a Python-free PATH, and assert the deposit carries no Python.
+ */
+export function rehearseGreenfieldPythonFreeSmoke(
+  repoRoot: string,
+  seams: GreenfieldSmokeSeams = {},
+): [boolean, string] {
+  const which = seams.which ?? seams.whichGh ?? defaultWhich;
+  const npm = which("npm");
+  if (!npm) {
+    return [true, "SKIP greenfield-python-free-smoke: npm not on PATH"];
+  }
+  const pnpmPrefix = resolvePnpm(seams);
+  if (!pnpmPrefix) {
+    return [false, "greenfield-python-free-smoke FAIL: neither pnpm nor corepack on PATH"];
+  }
+  const task = which("task");
+  if (!task) {
+    return [true, "SKIP greenfield-python-free-smoke: task (go-task) not on PATH"];
+  }
+
+  const spawn = seams.spawnText ?? spawnText;
+  const [alignOk, alignReason] = alignNpmPackageVersions(repoRoot, SMOKE_VERSION);
+  if (!alignOk) return [false, alignReason];
+
+  const work = mkdtempSync(join(tmpdir(), "deft-greenfield-smoke-"));
+  const packDir = join(work, "packs");
+  const projectDir = join(work, "project");
+  const npmPrefix = join(work, "npm-prefix");
+  const envBase = { ...process.env, npm_config_prefix: npmPrefix };
+
+  try {
+    let ok: boolean;
+    let reason: string;
+
+    [ok, reason] = runStep(spawn, "pnpm install", pnpmPrefix[0]!, [...pnpmPrefix.slice(1), "install", "--frozen-lockfile"], {
+      cwd: repoRoot,
+      env: envBase,
+      timeoutMs: 120_000,
+    });
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    [ok, reason] = runStep(spawn, "pnpm build", pnpmPrefix[0]!, [...pnpmPrefix.slice(1), "run", "build"], {
+      cwd: repoRoot,
+      env: envBase,
+      timeoutMs: 120_000,
+    });
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    const packed: string[] = [];
+    for (const pkg of ["types", "core", "content", "cli"] as const) {
+      [ok, reason] = runStep(
+        spawn,
+        `pnpm pack ${pkg}`,
+        pnpmPrefix[0]!,
+        [...pnpmPrefix.slice(1), "pack", "--pack-destination", packDir],
+        { cwd: join(repoRoot, "packages", pkg), env: envBase, timeoutMs: 120_000 },
+      );
+      if (!ok) return [false, `greenfield smoke: ${reason}`];
+      const tgz = latestPackTarball(packDir, pkg);
+      if (!tgz) return [false, `greenfield smoke: missing pack tarball for ${pkg}`];
+      packed.push(tgz);
+    }
+
+    [ok, reason] = runStep(spawn, "npm install -g", npm, ["install", "-g", ...packed], {
+      env: envBase,
+      timeoutMs: 120_000,
+    });
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    const deft = join(npmPrefix, "bin", "deft");
+    if (!existsSync(deft)) {
+      return [false, `greenfield smoke: expected global deft at ${deft}`];
+    }
+
+    const pyFree = pythonFreePathEnv(envBase);
+    [ok, reason] = runStep(spawn, "directive init", deft, ["init", "--yes", "--repo-root", projectDir], {
+      cwd: work,
+      env: pyFree,
+      timeoutMs: 120_000,
+    });
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    const depositDir = join(projectDir, ".deft", "core");
+    const artifacts = collectPythonArtifacts(depositDir);
+    if (artifacts.length > 0) {
+      return [
+        false,
+        `greenfield smoke: deposit still contains Python artifacts: ${artifacts.map((a) => a.path).join(", ")}`,
+      ];
+    }
+    if (isRepoRootPythonRunShim(projectDir)) {
+      return [false, "greenfield smoke: repo-root Python run shim present after init"];
+    }
+
+    const checkEnv = {
+      ...pyFree,
+      PATH: `${join(npmPrefix, "bin")}:${pyFree.PATH ?? ""}`,
+    };
+    [ok, reason] = runStep(
+      spawn,
+      "task check",
+      task,
+      ["check", "--taskfile", join(depositDir, "Taskfile.yml")],
+      { cwd: projectDir, env: checkEnv, timeoutMs: 180_000 },
+    );
+    if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+    return [true, "greenfield-python-free-smoke: directive init + task check passed with Python absent from PATH"];
+  } finally {
+    rmSync(work, { recursive: true, force: true });
+  }
+}

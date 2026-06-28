@@ -140,11 +140,11 @@ def test_uv_project_env_set_at_root() -> None:
 
 
 def test_read_only_preflight_and_doctor_use_frozen_uv() -> None:
-    """Safety probes must not rewrite uv.lock as a side effect."""
+    """Doctor on the consumer path must not shell into uv/python (#2022 Phase 3)."""
     root_text = ROOT_TASKFILE.read_text(encoding="utf-8")
-    assert (
-        'uv --project "{{.TASKFILE_DIR}}" run --frozen python ' '"{{.TASKFILE_DIR}}/run" doctor'
-    ) in root_text
+    assert "task: engine:invoke" in root_text
+    assert "ENGINE_CMD: 'doctor" in root_text
+    assert 'run --frozen python "{{.TASKFILE_DIR}}/run" doctor' not in root_text
 
 
 def test_migrate_preflight_uses_deft_ts_not_python() -> None:

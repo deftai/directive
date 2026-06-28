@@ -1,0 +1,35 @@
+name: greenfield-python-free-smoke
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install go-task
+        run: |
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript workspace
+        run: pnpm run build
+
+      - name: Greenfield Python-free smoke (#2022 Phase 3)
+        run: node packages/core/dist/release-e2e/greenfield-python-free-smoke-cli.js

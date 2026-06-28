@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join, resolve } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
+import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
@@ -189,6 +190,7 @@ export async function runInitDeposit(
 
   const contentRoot = await resolveContent();
   await reconstituteDepositFromContent(contentRoot, deftDir, copyContent);
+  await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
   ensureInitGitignoreLines(projectDir, io);
 
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));

@@ -11,6 +11,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
+import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
@@ -282,6 +283,7 @@ export async function runRefreshDeposit(
   );
 
   await copyContent(contentRoot, deftDir);
+  await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
 
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const manifestFields: InstallManifestFields = {

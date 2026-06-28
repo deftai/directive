@@ -72,7 +72,8 @@ def test_verify_yml_declares_branch_and_hooks_installed():
     text = _read("tasks/verify.yml")
     assert "branch:" in text
     assert "hooks-installed:" in text
-    assert "preflight_branch.py" in text
+    assert "verify:branch" in text
+    assert "engine:invoke" in text
     assert "core.hooksPath" in text
 
 

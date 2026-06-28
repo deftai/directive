@@ -15,10 +15,11 @@ tasks:
     desc: Validate vBRIEF lifecycle folder structure and cross-file consistency
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      # Oracle/fallback (parity): scripts/vbrief_validate.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief:validate --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'vbrief:validate --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"'
 
   preflight:
     # Implementation-intent preflight wrapper (#810 / PR #812 fixup;

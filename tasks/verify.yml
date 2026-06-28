@@ -70,15 +70,11 @@ tasks:
     desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      # Oracle/fallback (parity): scripts/preflight_branch.py (#1828 Wave 8).
-      # `--allow-missing-project-definition` keeps the framework's own check
-      # green for fresh checkouts that have not yet run `task setup` (the
-      # bootstrap fallback path documented in #746 acceptance criterion E).
-      # Production projects with PROJECT-DEFINITION present will still get
-      # the full enforcement -- the flag is a no-op when the file exists.
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:branch --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:branch --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition'
 
   routing:
     desc: "Operator coding sub-agent model routing gate (#1739). Pre-dispatch (default): fails when a dispatched worker role has no decision in .deft/routing.local.json. Pass --advise for the non-blocking session-start disclosure; --roles a,b to widen the gated set; --provider to override the runtime."
@@ -145,7 +141,7 @@ tasks:
     desc: "Pre-`start_agent` cache-freshness gate (#1127). Refuses implementation dispatch when the triage cache is stale, missing, or the target issue's latest decision is not `accept`. Subscription-aware via plan.policy.triageScope[] (D12 / #1131). Flags: --for-issue N / --max-age-hours N / --allow-stale / --repo OWNER/NAME / --allow-missing-bootstrap (consumed by the framework's own `task check` so a fresh checkout passes -- consumers leave it OFF)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--for-issue / --max-age-hours / --allow-stale / --repo) that
@@ -155,8 +151,9 @@ tasks:
     # `task triage:bootstrap`; consumer projects leave it off so a
     # missing cache fails their `task check` loudly.
     cmds:
-      # Oracle/fallback (parity): scripts/preflight_cache.py --allow-missing-bootstrap (#1854 s5).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" preflight-cache --project-root "{{.USER_WORKING_DIR}}" --allow-missing-bootstrap {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'preflight-cache --project-root "{{.USER_WORKING_DIR}}" --allow-missing-bootstrap {{.CLI_ARGS}}'
 
   codebase-map-fresh:
     desc: "Drift gate for the generated .planning/codebase/MAP.md projection (#1595 PR4)."
@@ -276,7 +273,7 @@ tasks:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` /
     # `generates:` because the gate forwards user-facing flags via
     # {{.CLI_ARGS}} (--allow-over-cap / --quiet) that go-task's
@@ -288,5 +285,6 @@ tasks:
     # OFF so a stale-branch / --force-merge over-cap state fails their
     # `task check` loudly.
     cmds:
-      # Oracle/fallback (parity): scripts/preflight_wip_cap.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:wip-cap --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:wip-cap --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
