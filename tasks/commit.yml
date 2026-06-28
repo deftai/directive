@@ -3,28 +3,21 @@ version: '3'
 vars:
   # Per ../Taskfile.yml header: joinPath is evaluated eagerly by go-task
   # templating and yields a native-separator absolute path so {{.DEFT_ROOT}}
-  # resolves correctly under uv on Windows (#566). Used here to pin
-  # `uv --project` against ancestor pyproject.toml leakage (#1011).
+  # resolves correctly under node on Windows (#566).
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
+  _ts-build:
+    internal: true
+    desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - pnpm --dir "{{.DEFT_ROOT}}" run build
+
   commit:lint:
     desc: Validate HEAD commit message against conventional commit format
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
     cmds:
-      - cmd: >-
-          uv --project "{{.DEFT_ROOT}}" run python -c
-          "import sys, re, subprocess;
-          result = subprocess.run(['git', 'log', '--format=%B', '-1'], capture_output=True, text=True);
-          (result.returncode != 0) and (print('FAIL: Could not read HEAD commit message'), sys.exit(1));
-          msg = result.stdout.strip();
-          subject = msg.splitlines()[0] if msg else '';
-          types = 'feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert';
-          pattern = r'^(' + types + r')(\(.+\))?!?: .+';
-          ok = re.match(pattern, subject);
-          (not ok) and (print('FAIL: Commit message does not match conventional commit format'),
-          print(f'  Got:      {subject}'),
-          print(f'  Expected: type(scope): description'),
-          print(f'  Types:    feat, fix, docs, chore, refactor, test, style, perf, ci, build, revert'),
-          sys.exit(1));
-          print(f'OK: Commit message is valid conventional commit');
-          print(f'  Subject: {subject}')"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" commit-lint --project-root "{{.USER_WORKING_DIR}}"

@@ -13,6 +13,9 @@ version: '3'
 # `cmds:` skip would silently discard the recovery flag.
 
 vars:
+  # Per ../Taskfile.yml header: joinPath is evaluated eagerly by go-task
+  # templating and yields a native-separator absolute path so {{.DEFT_ROOT}}
+  # resolves correctly under node on Windows (#566).
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:

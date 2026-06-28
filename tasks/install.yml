@@ -21,15 +21,11 @@ tasks:
 
   uninstall:
     desc: Remove deft entry from AGENTS.md
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
     cmds:
-      - cmd: >-
-          uv --project "{{.DEFT_ROOT}}" run python -c "from pathlib import Path;
-          f=Path('AGENTS.md');
-          t=f.read_text('utf-8') if f.exists() else '';
-          lines=t.splitlines(keepends=True);
-          out=''.join(l for l in lines if not l.startswith('See deft/main.md') and not l.startswith('Skills: deft/skills/'));
-          f.write_text(out,'utf-8') if f.exists() else None;
-          print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" install-uninstall --project-root "{{.USER_WORKING_DIR}}"
 
   # User-facing upgrade entrypoint (#1061). Native deft-ts handler (#2022 Phase 2):
   #   1. Writes / refreshes the bare ``.deft-version`` marker.

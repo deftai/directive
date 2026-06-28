@@ -198,6 +198,10 @@
       "types": "./dist/install-upgrade/index.d.ts",
       "default": "./dist/install-upgrade/index.js"
     },
+    "./task-surface": {
+      "types": "./dist/task-surface/index.d.ts",
+      "default": "./dist/task-surface/index.js"
+    },
     "./dist/*.js": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
