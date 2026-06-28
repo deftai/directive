@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json"
+  },
+  "plan": {
+    "id": "story-task-surface-maintainer-separation",
+    "title": "Move maintainer-only Python tasks behind check:framework-source",
+    "status": "completed",
+    "planRef": "proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
+    "narratives": {
+      "Description": "tasks/core.yml and tasks/ci.yml still run pytest, ruff, and ci_local.py via uv on paths that ship to consumer installs. This story ensures those tasks are not reachable from the default consumer check aggregate — only from check:framework-source or an explicit maintainer include — so operators on npm installs never hit Python through task.",
+      "ImplementationPlan": "Confirm Taskfile.yml consumer check aggregate excludes core.yml and ci.yml Python lanes; wire maintainer-only includes to check:framework-source only.\nRemove or relocate tasks/ci.yml ci:local python bridge if still consumer-visible; align with completed py-purge-ci-local-ts release pre-flight story.\nRun task verify:no-task-runtime and task check on consumer projection paths.",
+      "UserStory": "As a framework maintainer, I want Python-heavy self-test tasks isolated from the consumer task surface, so that consumer installs never accidentally invoke pytest or ci_local.py.",
+      "Traces": "deftai/directive#2022 Phase 2, #1813"
+    },
+    "items": [
+      {
+        "id": "story-task-surface-maintainer-separation-a1",
+        "title": "Given task check on a consumer deposit layout, when it runs, then no subprocess invokes uv run python, pytest, ruff, or ci_local.py.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task check on a consumer deposit layout, when it runs, then no subprocess invokes uv run python, pytest, ruff, or ci_local.py.",
+          "Traces": "deftai/directive#2022 Phase 2, #1813"
+        }
+      },
+      {
+        "id": "story-task-surface-maintainer-separation-a2",
+        "title": "Given task check:framework-source, when run from the framework repo, then maintainer Python self-test lanes remain available.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task check:framework-source, when run from the framework repo, then maintainer Python self-test lanes remain available.",
+          "Traces": "deftai/directive#2022 Phase 2, #1813"
+        }
+      },
+      {
+        "id": "story-task-surface-maintainer-separation-a3",
+        "title": "Given tasks/core.yml and tasks/ci.yml, when included from Taskfile.yml, then they are optional/maintainer-only with clear comments.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given tasks/core.yml and tasks/ci.yml, when included from Taskfile.yml, then they are optional/maintainer-only with clear comments.",
+          "Traces": "deftai/directive#2022 Phase 2, #1813"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/core.yml",
+          "tasks/ci.yml",
+          "Taskfile.yml"
+        ],
+        "verify_commands": [
+          "task verify:no-task-runtime",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "maintainer Python tasks gated behind framework-source"
+        ],
+        "depends_on": [],
+        "conflict_group": "task-surface-maintainer",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-28T15:29:17Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-28T15:29:17Z"
+  }
+}
