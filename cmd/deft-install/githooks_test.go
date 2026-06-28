@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -328,35 +329,36 @@ func TestFrameworkStagePaths_IncludesGithooks(t *testing.T) {
 
 // TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit is the headline #1463
 // regression: in a VENDORED consumer layout (framework at .deft/core/), the
-// installer-wired hooks must (a) resolve their helper scripts under
-// .deft/core/scripts/ and (b) block a commit to the default branch, while
-// honoring the documented DEFT_ALLOW_DEFAULT_BRANCH_COMMIT opt-out. It exercises
-// the REAL hook scripts end to end via `git commit`, so it is skipped when git
-// or a python interpreter is unavailable.
+// installer-wired hooks must (a) dispatch through the deft CLI (#2049) and (b)
+// block a commit to the default branch, while honoring the documented
+// DEFT_ALLOW_DEFAULT_BRANCH_COMMIT opt-out. It exercises the REAL hook scripts
+// end to end via `git commit`, so it is skipped when git or node is unavailable.
 func TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit(t *testing.T) {
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		t.Skip("git not available; skipping vendored real-git hook test")
 	}
-	pyPath := lookPython(t)
-	if pyPath == "" {
-		t.Skip("no python interpreter on PATH; skipping vendored real-git hook test")
+	nodePath, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping vendored real-git hook test")
 	}
 
 	repoRoot := repoRootDir(t)
+	binJS := filepath.Join(repoRoot, "packages", "cli", "dist", "bin.js")
+	if !pathExists(binJS) {
+		t.Skip("packages/cli/dist/bin.js missing; build TS before go test")
+	}
+
 	proj := t.TempDir()
 	deftDir := filepath.Join(proj, ".deft", "core")
 
 	// Build the vendored payload: copy the real (LF-normalized) hooks into
-	// .deft/core/.githooks/ and the real gate scripts into .deft/core/scripts/.
+	// .deft/core/.githooks/ (#2049: hooks dispatch deft CLI only).
 	copyHookLF(t, filepath.Join(repoRoot, ".githooks", "pre-commit"), filepath.Join(deftDir, ".githooks", "pre-commit"))
 	copyHookLF(t, filepath.Join(repoRoot, ".githooks", "pre-push"), filepath.Join(deftDir, ".githooks", "pre-push"))
-	for _, s := range []string{"preflight_branch.py", "policy.py", "verify_encoding.py", "preflight_gh.py"} {
-		copyFileRaw(t, filepath.Join(repoRoot, "scripts", s), filepath.Join(deftDir, "scripts", s))
-	}
 
 	// A consumer PROJECT-DEFINITION that does NOT allow direct commits to the
-	// default branch -- so preflight_branch.py blocks (exit 1) by policy.
+	// default branch -- so verify:branch blocks (exit 1) by policy.
 	writeFile(t, filepath.Join(proj, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
 		`{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"T","status":"running","items":[],"policy":{"allowDirectCommitsToMaster":false}}}`)
 
@@ -380,16 +382,17 @@ func TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit(t *testing.T) {
 	writeFile(t, filepath.Join(proj, "app.txt"), "hello\n")
 	runGitIn(t, gitPath, proj, "add", "app.txt")
 
-	env := append(os.Environ(), "DEFT_PYTHON="+pyPath)
+	deftBinDir := writeDeftCLIWrapper(t, nodePath, binJS)
+	env := append(os.Environ(), "PATH="+deftBinDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	// (a) A `git commit` on master with policy=false MUST be blocked by the wired
-	// hook, proving the helper resolved under .deft/core/scripts/ in the vendored layout.
+	// hook, proving the deft CLI gate runs in the vendored layout (#2049).
 	out, err := gitCommitWithEnv(gitPath, proj, env, "should be blocked")
 	if err == nil {
 		t.Fatalf("expected the pre-commit hook to BLOCK a master commit in the vendored layout; commit succeeded.\nHook output:\n%s", out)
 	}
 	if !strings.Contains(out, "branch-protection") {
-		t.Fatalf("block output should come from preflight_branch.py (resolved under .deft/core/scripts/); got:\n%s", out)
+		t.Fatalf("block output should come from deft verify:branch; got:\n%s", out)
 	}
 
 	// (b) The documented opt-out env-var lets the same commit through, proving
@@ -403,6 +406,23 @@ func TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit(t *testing.T) {
 // ---------------------------------------------------------------------------
 // real-git test helpers
 // ---------------------------------------------------------------------------
+
+// writeDeftCLIWrapper deposits a `deft` executable on PATH that forwards to the
+// built TypeScript CLI (#2049 consumer hook contract).
+func writeDeftCLIWrapper(t *testing.T, nodePath, binJS string) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "deft-bin")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	wrapper := filepath.Join(dir, "deft")
+	content := fmt.Sprintf("#!/bin/sh\nexec %q %q \"$@\"\n", nodePath, binJS)
+	writeFile(t, wrapper, content)
+	if err := os.Chmod(wrapper, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
 
 // lookPython returns a path to a WORKING python interpreter, or "" when none
 // is usable. It validates each candidate by actually running it (so the Windows
