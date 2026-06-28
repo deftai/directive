@@ -8,7 +8,7 @@
   "plan": {
     "id": "bug-pass-migrate-vbrief-hygiene",
     "title": "migrate:vbrief: stamp .deft-version and track lifecycle folders in git",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Greenfield and migrate:vbrief paths leave vbrief/.deft-version unstamped so gates report recorded=unknown (#1157). migrate:vbrief also creates empty lifecycle folders that git does not track, so fresh clones and swarm worktrees lack vbrief/proposed|pending|active|completed|cancelled (#1159). This story stamps the version marker during migration and adds tracked .gitkeep sentinels so lifecycle layout survives clone/worktree.",
       "ImplementationPlan": "1. In scripts/migrate_vbrief.py cmd_migrate path, after successful migration, write/sync vbrief/.deft-version from .deft/core/VERSION install manifest fields (#1157). 2. During lifecycle folder mkdir in migrate_vbrief.py, write tracked .gitkeep sentinel files in each vbrief lifecycle directory and record them in the safety manifest for rollback (#1159). 3. Add pytest cases in tests/test_migrate_vbrief.py asserting .deft-version content and .gitkeep files on disk. 4. Run uv run pytest tests/test_migrate_vbrief.py and task check as verification evidence.",
@@ -67,7 +67,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-28T22:35:30Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -81,6 +83,6 @@
         "title": "Issue #1159: empty lifecycle folders vanish in clones"
       }
     ],
-    "updated": "2026-06-28T22:24:12Z"
+    "updated": "2026-06-28T22:35:30Z"
   }
 }
