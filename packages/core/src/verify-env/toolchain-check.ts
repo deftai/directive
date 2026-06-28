@@ -6,7 +6,7 @@ export interface ToolCheck {
   readonly command: readonly string[];
 }
 
-export const TOOLS: readonly ToolCheck[] = [
+export const MAINTAINER_TOOLS: readonly ToolCheck[] = [
   { name: "go", command: ["go", "version"] },
   { name: "uv", command: ["uv", "--version"] },
   { name: "git", command: ["git", "--version"] },
@@ -14,6 +14,18 @@ export const TOOLS: readonly ToolCheck[] = [
   { name: "node", command: ["node", "--version"] },
   { name: "pnpm", command: ["pnpm", "--version"] },
 ];
+
+/** Consumer npm-deposit toolchain (#2022 Phase 3) -- no Python/go/uv maintainer tools. */
+export const CONSUMER_TOOLS: readonly ToolCheck[] = [
+  { name: "git", command: ["git", "--version"] },
+  { name: "gh", command: ["gh", "--version"] },
+  { name: "node", command: ["node", "--version"] },
+  { name: "pnpm", command: ["pnpm", "--version"] },
+  { name: "task", command: ["task", "--version"] },
+];
+
+/** @deprecated use MAINTAINER_TOOLS */
+export const TOOLS: readonly ToolCheck[] = MAINTAINER_TOOLS;
 
 export type CommandRunner = (
   command: readonly string[],
@@ -61,15 +73,21 @@ export function defaultCommandRunner(
   }
 }
 
-/** Run maintainer toolchain probe (mirrors scripts/toolchain-check.py). */
+export interface ToolchainCheckOptions {
+  readonly consumer?: boolean;
+}
+
+/** Run maintainer or consumer toolchain probe (mirrors scripts/toolchain-check.py). */
 export function runToolchainCheck(
   runner: CommandRunner = defaultCommandRunner,
-  tools: readonly ToolCheck[] = TOOLS,
+  options: ToolchainCheckOptions = {},
+  tools?: readonly ToolCheck[],
 ): ToolchainCheckResult {
+  const selectedTools = tools ?? (options.consumer ? CONSUMER_TOOLS : MAINTAINER_TOOLS);
   const lines: string[] = [];
   const failed: string[] = [];
 
-  for (const tool of tools) {
+  for (const tool of selectedTools) {
     const result = runner(tool.command, DEFAULT_TIMEOUT_MS);
     if ("error" in result) {
       if (result.error === "not-found") {

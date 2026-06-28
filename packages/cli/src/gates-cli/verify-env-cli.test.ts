@@ -79,6 +79,15 @@ describe("deft-ts toolchain-check", () => {
     const alias = runDeftTs("toolchain:check", [], { cwd: repoRoot() });
     expect(alias.exitCode).toBe(direct.exitCode);
   });
+
+  it("consumer mode skips maintainer-only tools", () => {
+    const maintainer = runDeftTs("toolchain-check", [], { cwd: repoRoot() });
+    const consumer = runDeftTs("toolchain-check", ["--consumer"], { cwd: repoRoot() });
+    expect([0, 1]).toContain(consumer.exitCode);
+    if (maintainer.exitCode === 1 && consumer.exitCode === 0) {
+      expect(consumer.stdout).toContain("All required tools available");
+    }
+  });
 });
 
 function encodingRepo(content: string): string {

@@ -373,7 +373,7 @@ tasks:
     desc: "Run the consumer-safe Deft quality gate for vendored installs (#1519)."
     deps:
       - doctor
-      - toolchain:check
+      - toolchain:check-consumer
       - verify:branch
       - verify:cache-fresh
       - verify:wip-cap
@@ -500,7 +500,7 @@ tasks:
     cmds:
       - task: engine:invoke
         vars:
-          ENGINE_CMD: 'doctor {{.CLI_ARGS}}'
+          ENGINE_CMD: 'doctor --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   setup:
     desc: "Idempotent local-dev setup: configure git hooks (#747); detect-and-prompt ghx (#884). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."

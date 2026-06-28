@@ -139,6 +139,13 @@ describe("python-free deposit hygiene (#2022 Phase 3)", () => {
     expect(existsSync(join(deposit, "run"))).toBe(true);
   });
 
+  it("collectPythonArtifacts returns empty for a clean deposit tree", () => {
+    const deposit = join(freshRoot("py-empty-deposit-"), "core");
+    mkdirSync(deposit, { recursive: true });
+    writeFileSync(join(deposit, "Taskfile.yml"), "version: '3'\n", "utf8");
+    expect(collectPythonArtifacts(deposit)).toEqual([]);
+  });
+
   it("prunePythonArtifactsFromDeposit is a no-op on an already-clean deposit", async () => {
     const project = freshRoot("py-clean-deposit-");
     const deposit = join(project, ".deft", "core");

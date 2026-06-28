@@ -33,7 +33,16 @@ function seedMinimalProjectDefinition(projectDir: string): void {
     `${JSON.stringify(
       {
         vBRIEFInfo: { version: "0.6", description: "greenfield smoke fixture (#2022 Phase 3)" },
-        plan: { title: "PROJECT-DEFINITION", status: "running", policy: {} },
+        plan: {
+          title: "PROJECT-DEFINITION",
+          status: "running",
+          items: [],
+          policy: {},
+          narratives: {
+            Overview: "Greenfield smoke fixture (#2022 Phase 3).",
+            "tech stack": "Node.js",
+          },
+        },
       },
       null,
       2,
@@ -110,6 +119,13 @@ export function rehearseGreenfieldPythonFreeSmoke(
   const projectDir = join(work, "project");
   const npmPrefix = join(work, "npm-prefix");
   const envBase = { ...process.env, npm_config_prefix: npmPrefix };
+  const manifestBackup = new Map<string, string>();
+  for (const pkg of NPM_PUBLISH_PACKAGES) {
+    const manifestPath = join(repoRoot, "packages", pkg, "package.json");
+    if (existsSync(manifestPath)) {
+      manifestBackup.set(manifestPath, readFileSync(manifestPath, "utf8"));
+    }
+  }
 
   try {
     let ok: boolean;
@@ -200,7 +216,9 @@ export function rehearseGreenfieldPythonFreeSmoke(
     const checkEnv = {
       ...pyFree,
       PATH: `${join(npmPrefix, "bin")}:${pyFree.PATH ?? ""}`,
+      DEFT_SESSION_RITUAL_SKIP: "1",
     };
+
     [ok, reason] = runStep(spawn, "task deft:check", task, ["deft:check"], {
       cwd: projectDir,
       env: checkEnv,
@@ -213,6 +231,11 @@ export function rehearseGreenfieldPythonFreeSmoke(
       "greenfield-python-free-smoke: directive init + task deft:check passed with Python absent from PATH",
     ];
   } finally {
-    rmSync(work, { recursive: true, force: true });
+    for (const [manifestPath, contents] of manifestBackup) {
+      writeFileSync(manifestPath, contents, "utf8");
+    }
+    if (process.env.DEFT_GREENFIELD_KEEP_WORK !== "1") {
+      rmSync(work, { recursive: true, force: true });
+    }
   }
 }

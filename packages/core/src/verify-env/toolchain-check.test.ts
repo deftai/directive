@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NODE_RUNTIME_REMEDIATION } from "./node-runtime.js";
-import { runToolchainCheck } from "./toolchain-check.js";
+import { CONSUMER_TOOLS, runToolchainCheck } from "./toolchain-check.js";
 
 describe("runToolchainCheck", () => {
   it("reports all tools available on success", () => {
@@ -51,5 +51,20 @@ describe("runToolchainCheck", () => {
     });
     expect(result.exitCode).toBe(1);
     expect(result.lines).not.toContain(NODE_RUNTIME_REMEDIATION);
+  });
+
+  it("consumer mode probes git/gh/node/pnpm/task only (#2022 Phase 3)", () => {
+    const seen: string[] = [];
+    const result = runToolchainCheck(
+      (command) => {
+        seen.push(command[0] ?? "");
+        return { returncode: 0, stdout: "ok\n", stderr: "" };
+      },
+      { consumer: true },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(seen).toEqual(CONSUMER_TOOLS.map((tool) => tool.command[0]));
+    expect(seen).not.toContain("go");
+    expect(seen).not.toContain("uv");
   });
 });

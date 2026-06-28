@@ -24,6 +24,9 @@ tasks:
   invoke:
     internal: true
     desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (npm consumer deposit)."
+    # Run from the operator project root so deft verbs resolve USER_WORKING_DIR
+    # correctly; without this, included engine.yml defaults cwd to tasks/ (#2022).
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - |
         set -eu
