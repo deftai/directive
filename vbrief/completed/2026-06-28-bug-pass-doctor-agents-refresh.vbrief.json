@@ -8,7 +8,7 @@
   "plan": {
     "id": "bug-pass-doctor-agents-refresh",
     "title": "doctor and agents:refresh: fix legacy skill paths and false-positive checks",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After upgrade or agents:refresh, consumers see doctor failures: agents:refresh can restore legacy .deft/core/skills/ paths that doctor rejects as stubs (#1404), and skill-paths-resolve false-positives on documentation text containing sentinel substrings (#1408). This story fixes refresh output paths and tightens doctor matching so post-upgrade verification is trustworthy.",
       "ImplementationPlan": "1. Fix agents:refresh / template rendering so skill symlinks or paths point to current .deft/core/skills/ layout, not legacy stub paths (#1404). 2. Fix doctor skill-paths-resolve check to match actual skill file paths, not arbitrary documentation substrings (#1408). 3. Add regression tests in packages/core/src/doctor/ and packages/cli/src/agents-refresh.test.ts. 4. Run task agents:refresh only if maintainer AGENTS.md template changes require it.",
@@ -72,7 +72,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-28T23:24:36Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -86,6 +88,6 @@
         "title": "Issue #1408: doctor skill-paths false positive"
       }
     ],
-    "updated": "2026-06-28T22:24:10Z"
+    "updated": "2026-06-28T23:24:36Z"
   }
 }
