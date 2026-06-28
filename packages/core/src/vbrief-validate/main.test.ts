@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { scanVbrief } from "./conformance.js";
 import { matchesFilenameConvention } from "./filename.js";
 import * as vbriefValidate from "./index.js";
-import { runConformance, runValidate } from "./main.js";
+import { cmdVbriefValidate, runConformance, runValidate } from "./main.js";
 import { validateAll } from "./validate-all.js";
 
 describe("filename convention", () => {
@@ -123,6 +123,14 @@ describe("CLI", () => {
       "utf8",
     );
     expect(runValidate(["--vbrief-dir", vbrief])).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("routes --staged argv to conformance for verify:vbrief-conformance alias", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-cmd-staged-"));
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    execSync("git init", { cwd: root, stdio: "ignore" });
+    expect(cmdVbriefValidate(["--staged", "--project-root", root, "--quiet"])).toBe(0);
     rmSync(root, { recursive: true, force: true });
   });
 });
