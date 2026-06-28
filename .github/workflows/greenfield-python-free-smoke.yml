@@ -32,4 +32,6 @@ jobs:
         run: pnpm run build
 
       - name: Greenfield Python-free smoke (#2022 Phase 3)
+        env:
+          DEFT_GREENFIELD_SKIP_PREP: "1"
         run: node packages/core/dist/release-e2e/greenfield-python-free-smoke-cli.js

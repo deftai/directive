@@ -1,8 +1,9 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { collectPythonArtifacts, isRepoRootPythonRunShim } from "../deposit/python-free.js";
 import { defaultWhich, spawnText } from "../release/spawn.js";
+import { NPM_PUBLISH_PACKAGES } from "./constants.js";
 import { alignNpmPackageVersions, resolvePnpm } from "./npm-ops.js";
 import type { E2ESeams } from "./types.js";
 
@@ -24,12 +25,16 @@ function pythonFreePathEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.Proces
   };
 }
 
-function latestPackTarball(packDir: string, token: string): string | null {
-  const matches = readdirSync(packDir)
-    .filter((name) => name.endsWith(".tgz") && name.includes(token))
-    .sort();
-  const last = matches.at(-1);
-  return last !== undefined ? join(packDir, last) : null;
+function packTarballPath(packDir: string, pkgDir: string): string | null {
+  const manifest = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8")) as {
+    name?: string;
+    version?: string;
+  };
+  if (typeof manifest.name !== "string" || typeof manifest.version !== "string") {
+    return null;
+  }
+  const scoped = manifest.name.replaceAll("@", "").replaceAll("/", "-");
+  return join(packDir, `${scoped}-${manifest.version}.tgz`);
 }
 
 function runStep(
@@ -49,6 +54,10 @@ function runStep(
 
 export interface GreenfieldSmokeSeams extends E2ESeams {}
 
+export interface GreenfieldSmokeOptions {
+  skipWorkspacePrep?: boolean;
+}
+
 /**
  * Greenfield npm smoke (#2022 Phase 3): pack/install directive, run init +
  * task check in a Python-free PATH, and assert the deposit carries no Python.
@@ -56,6 +65,7 @@ export interface GreenfieldSmokeSeams extends E2ESeams {}
 export function rehearseGreenfieldPythonFreeSmoke(
   repoRoot: string,
   seams: GreenfieldSmokeSeams = {},
+  options: GreenfieldSmokeOptions = {},
 ): [boolean, string] {
   const which = seams.which ?? seams.whichGh ?? defaultWhich;
   const npm = which("npm");
@@ -76,11 +86,10 @@ export function rehearseGreenfieldPythonFreeSmoke(
   }
 
   const spawn = seams.spawnText ?? spawnText;
-  const [alignOk, alignReason] = alignNpmPackageVersions(repoRoot, SMOKE_VERSION);
-  if (!alignOk) return [false, alignReason];
 
   const work = mkdtempSync(join(tmpdir(), "deft-greenfield-smoke-"));
   const packDir = join(work, "packs");
+  mkdirSync(packDir, { recursive: true });
   const projectDir = join(work, "project");
   const npmPrefix = join(work, "npm-prefix");
   const envBase = { ...process.env, npm_config_prefix: npmPrefix };
@@ -89,38 +98,46 @@ export function rehearseGreenfieldPythonFreeSmoke(
     let ok: boolean;
     let reason: string;
 
-    [ok, reason] = runStep(
-      spawn,
-      "pnpm install",
-      pnpmCmd,
-      [...pnpmArgs, "install", "--frozen-lockfile"],
-      {
+    if (!options.skipWorkspacePrep) {
+      [ok, reason] = runStep(
+        spawn,
+        "pnpm install",
+        pnpmCmd,
+        [...pnpmArgs, "install", "--frozen-lockfile"],
+        {
+          cwd: repoRoot,
+          env: envBase,
+          timeoutMs: 120_000,
+        },
+      );
+      if (!ok) return [false, `greenfield smoke: ${reason}`];
+
+      [ok, reason] = runStep(spawn, "pnpm build", pnpmCmd, [...pnpmArgs, "run", "build"], {
         cwd: repoRoot,
         env: envBase,
         timeoutMs: 120_000,
-      },
-    );
-    if (!ok) return [false, `greenfield smoke: ${reason}`];
+      });
+      if (!ok) return [false, `greenfield smoke: ${reason}`];
+    }
 
-    [ok, reason] = runStep(spawn, "pnpm build", pnpmCmd, [...pnpmArgs, "run", "build"], {
-      cwd: repoRoot,
-      env: envBase,
-      timeoutMs: 120_000,
-    });
+    [ok, reason] = alignNpmPackageVersions(repoRoot, SMOKE_VERSION);
     if (!ok) return [false, `greenfield smoke: ${reason}`];
 
     const packed: string[] = [];
-    for (const pkg of ["types", "core", "content", "cli"] as const) {
+    for (const pkg of NPM_PUBLISH_PACKAGES) {
+      const pkgDir = join(repoRoot, "packages", pkg);
       [ok, reason] = runStep(
         spawn,
-        `pnpm pack ${pkg}`,
-        pnpmCmd,
-        [...pnpmArgs, "pack", "--pack-destination", packDir],
-        { cwd: join(repoRoot, "packages", pkg), env: envBase, timeoutMs: 120_000 },
+        `npm pack packages/${pkg}`,
+        npm,
+        ["pack", "--pack-destination", packDir],
+        { cwd: pkgDir, env: envBase, timeoutMs: 120_000 },
       );
       if (!ok) return [false, `greenfield smoke: ${reason}`];
-      const tgz = latestPackTarball(packDir, pkg);
-      if (!tgz) return [false, `greenfield smoke: missing pack tarball for ${pkg}`];
+      const tgz = packTarballPath(packDir, pkgDir);
+      if (!tgz || !existsSync(tgz)) {
+        return [false, `greenfield smoke: missing pack tarball for ${pkg}`];
+      }
       packed.push(tgz);
     }
 

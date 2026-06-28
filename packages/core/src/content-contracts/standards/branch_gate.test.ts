@@ -32,7 +32,8 @@ describe("test_branch_gate.py", () => {
     const text = readText("tasks/verify.yml");
     expect(text).toContain("branch:");
     expect(text).toContain("hooks-installed:");
-    expect(text).toContain("preflight_branch.py");
+    expect(text).toContain("verify:branch");
+    expect(text).toContain("engine:invoke");
     expect(text).toContain("core.hooksPath");
   });
   it("test_policy_yml_declares_show_enforce_allow", () => {
