@@ -142,7 +142,8 @@ export function cmdVbriefValidate(argv: string[]): number {
   }
   if (
     argv.includes("--staged") ||
-    (argv.includes("--all") && !argv.some((a) => a === "--vbrief-dir" || a.startsWith("--vbrief-dir=")))
+    (argv.includes("--all") &&
+      !argv.some((a) => a === "--vbrief-dir" || a.startsWith("--vbrief-dir=")))
   ) {
     return runConformance(argv);
   }

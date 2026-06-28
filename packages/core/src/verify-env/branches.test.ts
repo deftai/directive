@@ -5,14 +5,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { defaultCommandRunner, runToolchainCheck } from "./toolchain-check.js";
 import { evaluate } from "./verify-hooks-installed.js";
-import { defaultPythonFiles, formatScanResult, scan } from "./verify-no-task-runtime.js";
-import {
-  defaultProbe,
-  defaultRun,
-  detectPlatform,
-  verificationResultToJson,
-  verifyRequiredTools,
-} from "./verify-tools.js";
+import { defaultPythonFiles, scan } from "./verify-no-task-runtime.js";
+import { defaultProbe, defaultRun, detectPlatform, verifyRequiredTools } from "./verify-tools.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -95,7 +89,7 @@ describe("verify-tools branches", () => {
       includeTask: true,
       platformId: "linux",
       probe: (c) => (available.has(c) ? `/usr/bin/${c}` : null),
-      runFn: (cmd) => {
+      runFn: (_cmd) => {
         available.add("task");
         return { returncode: 0, stdout: "ok", stderr: "" };
       },
