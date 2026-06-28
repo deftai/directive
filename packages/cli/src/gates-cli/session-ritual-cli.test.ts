@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { runSessionStart, verifySessionRitual } from "@deftai/directive-core/session";
 import { afterAll, describe, expect, it } from "vitest";
@@ -61,11 +61,44 @@ describe("session:start TS module (maps tests/cli/test_session_start.py)", () =>
 });
 
 describe("deft-ts session:start dispatcher smoke", () => {
-  it("framework-commands session:start is registered (Python oracle path)", () => {
+  it("native session:start records ritual state without framework-commands bridge (#2032)", () => {
     const root = seedProject();
     roots.push(root);
-    const { exitCode } = runDeftTs("framework-commands", ["session:start", "--project-root", root]);
-    expect([0, 1, 2]).toContain(exitCode);
+    const { exitCode, stdout, stderr } = runDeftTs("session:start", [
+      "--project-root",
+      root,
+      "--no-history",
+    ]);
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Deft Directive active");
+    expect(stdout).toContain("[deft] session ritual recorded at");
+    expect(stderr).toBe("");
+    const statePath = join(root, ".deft", "ritual-state.json");
+    expect(existsSync(statePath)).toBe(true);
+    const state = JSON.parse(readFileSync(statePath, "utf8")) as {
+      quick_steps: Record<string, unknown>;
+    };
+    expect(Object.keys(state.quick_steps).sort()).toEqual(
+      ["alignment", "branch_policy", "triage_welcome"].sort(),
+    );
+  });
+
+  it("session:start alias resolves to session-start handler", () => {
+    const root = seedProject();
+    roots.push(root);
+    const { exitCode } = runDeftTs("session:start", ["--project-root", root, "--no-history"]);
+    expect(exitCode).toBe(0);
+    expect(existsSync(join(root, ".deft", "ritual-state.json"))).toBe(true);
+  });
+
+  it("verify:session-ritual quick tier passes after native session:start", () => {
+    const root = seedProject({ sessionRitualStalenessHours: 4 });
+    roots.push(root);
+    const start = runDeftTs("session:start", ["--project-root", root, "--no-history"]);
+    expect(start.exitCode).toBe(0);
+    const verify = runDeftTs("verify:session-ritual", ["--project-root", root, "--tier=quick"]);
+    expect(verify.exitCode).toBe(0);
+    expect(verify.stdout + verify.stderr).toMatch(/session ritual/i);
   });
 });
 

@@ -111,3 +111,34 @@ describe("retarget: doctor (tests/cli/test_cmd_doctor.py)", () => {
     expect(resolveCanonicalVerb("doctor")).toBe("doctor");
   });
 });
+
+describe("retarget: session:start (tests/cli/test_session_start.py dispatch path)", () => {
+  it("deft-ts session:start routes argv through the session-start CLI module", async () => {
+    const handler = vi.fn(() => 0);
+    vi.doMock("../session-start.js", () => ({ run: handler }));
+    resetHandlerCacheForTests();
+
+    const code = await dispatch(["session:start", "--project-root", "/tmp/x", "--no-history"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    expect(handler).toHaveBeenCalledWith(["--project-root", "/tmp/x", "--no-history"]);
+  });
+
+  it("deft-ts session:start propagates non-zero exit codes", async () => {
+    const handler = vi.fn(() => 2);
+    vi.doMock("../session-start.js", () => ({ run: handler }));
+    resetHandlerCacheForTests();
+
+    const code = await dispatch(["session:start"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(code).toBe(2);
+  });
+
+  it("resolveCanonicalVerb maps session:start to session-start", () => {
+    expect(resolveCanonicalVerb("session:start")).toBe("session-start");
+  });
+});

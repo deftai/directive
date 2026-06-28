@@ -1,0 +1,60 @@
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { ritualStatePath, runSessionStart } from "./session-start.js";
+
+const temps: string[] = [];
+afterEach(() => {
+  for (const t of temps) rmSync(t, { recursive: true, force: true });
+  temps.length = 0;
+});
+
+function seedConsumerProject(): string {
+  const root = mkdtempSync(join(tmpdir(), "session-start-consumer-"));
+  temps.push(root);
+  mkdirSync(join(root, ".deft", "core"), { recursive: true });
+  writeFileSync(join(root, ".deft", "core", "VERSION"), "0.59.0\n", "utf8");
+  mkdirSync(join(root, "vbrief"), { recursive: true });
+  writeFileSync(
+    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    JSON.stringify({
+      vBRIEFInfo: { version: "0.6" },
+      plan: { title: "Consumer", status: "running", items: [], policy: {} },
+    }),
+    "utf8",
+  );
+  writeFileSync(join(root, "README.md"), "consumer\n", "utf8");
+  execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.email", "c@c.local"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["config", "user.name", "consumer"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["add", "-A"], { cwd: root, encoding: "utf8" });
+  execFileSync("git", ["commit", "-q", "-m", "init"], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "consumer",
+      GIT_AUTHOR_EMAIL: "c@c.local",
+      GIT_COMMITTER_NAME: "consumer",
+      GIT_COMMITTER_EMAIL: "c@c.local",
+    },
+  });
+  return root;
+}
+
+describe("runSessionStart consumer project root (#2032)", () => {
+  it("writes ritual-state.json under the consumer project root, not framework deposit", () => {
+    const root = seedConsumerProject();
+    const result = runSessionStart(root, { writeHistory: false });
+    expect(result.code).toBe(0);
+    const statePath = ritualStatePath(root);
+    expect(statePath).toBe(join(root, ".deft", "ritual-state.json"));
+    expect(existsSync(statePath)).toBe(true);
+    const state = JSON.parse(readFileSync(statePath, "utf8")) as {
+      worktree_path: string;
+    };
+    expect(state.worktree_path).toBe(root);
+  });
+});

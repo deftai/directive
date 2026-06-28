@@ -16,7 +16,6 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
-import { defaultWhich, type WhichFn } from "@deftai/directive-core/scm";
 import {
   appendAuditLog,
   disclosureLine,
@@ -25,6 +24,7 @@ import {
   resolveWipCap,
   setPolicy,
 } from "@deftai/directive-core/policy";
+import { defaultWhich, type WhichFn } from "@deftai/directive-core/scm";
 import {
   KNOWN_SUBAGENT_BACKEND_IDS,
   probeSubagentBackends,
@@ -84,6 +84,7 @@ export const CLI_MODULE_VERBS = [
   "release-publish",
   "release-rollback",
   "scope-lifecycle",
+  "session-start",
   "slice",
   "subagent-monitor",
   "toolchain-check",
@@ -204,7 +205,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "triage:accept": "triage-actions",
   "triage:status": "triage-actions",
   "agents:refresh": "agents-refresh",
-  "session:start": "framework-commands",
+  "session:start": "session-start",
   "toolchain:check": "toolchain-check",
   "ts:check-lane": "ts-check-lane",
   "spec:validate": "spec-validate",
@@ -1283,7 +1284,10 @@ export function promptSetupGhxConsent(
   return answer === "y" || answer === "yes";
 }
 
-export function buildSetupGhxInstallCommand(host: SetupGhxHost, whichFn: WhichFn = defaultWhich): string[] {
+export function buildSetupGhxInstallCommand(
+  host: SetupGhxHost,
+  whichFn: WhichFn = defaultWhich,
+): string[] {
   if (host === "windows") {
     const psBin = whichFn("pwsh") ?? whichFn("powershell") ?? "powershell";
     return [
