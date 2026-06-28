@@ -9,11 +9,8 @@ export interface TaskSurfaceIo {
 
 const UNRELEASED_RE = /## \[Unreleased\][ \t]*\n([\s\S]*?)(?=\n## \[|$)/;
 const CHANGE_NAME_RE = /^[\w][\w-]*$/;
-const COMMIT_TYPES =
-  "feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert";
-const COMMIT_SUBJECT_RE = new RegExp(
-  `^(${COMMIT_TYPES})(\\(.+\\))?!?: .+`,
-);
+const COMMIT_TYPES = "feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert";
+const COMMIT_SUBJECT_RE = new RegExp(`^(${COMMIT_TYPES})(\\(.+\\))?!?: .+`);
 
 function proposalTemplate(name: string): unknown {
   return {
@@ -58,9 +55,7 @@ export function runChangelogCheck(projectRoot: string, io: TaskSurfaceIo): numbe
   const body = match[1] ?? "";
   const entries = body.split("\n").filter((line) => line.trimStart().startsWith("- "));
   if (entries.length === 0) {
-    io.writeOut(
-      'FAIL: [Unreleased] section has no entries (no lines starting with "- ")\n',
-    );
+    io.writeOut('FAIL: [Unreleased] section has no entries (no lines starting with "- ")\n');
     return 1;
   }
   io.writeOut(`OK: CHANGELOG.md [Unreleased] section has ${entries.length} entries\n`);
@@ -75,9 +70,7 @@ export function runChangeInit(projectRoot: string, name: string, io: TaskSurface
     return 1;
   }
   if (!CHANGE_NAME_RE.test(trimmed)) {
-    io.writeOut(
-      "FAIL: Name must contain only alphanumeric characters, underscores, and hyphens\n",
-    );
+    io.writeOut("FAIL: Name must contain only alphanumeric characters, underscores, and hyphens\n");
     return 1;
   }
   const base = join(resolve(projectRoot), "history", "changes", trimmed);
@@ -141,8 +134,7 @@ export function runInstallUninstall(projectRoot: string, io: TaskSurfaceIo): num
   const original = readFileSync(path, "utf8");
   const lines = original.split(/(?<=\n)/);
   const filtered = lines.filter(
-    (line) =>
-      !line.startsWith("See deft/main.md") && !line.startsWith("Skills: deft/skills/"),
+    (line) => !line.startsWith("See deft/main.md") && !line.startsWith("Skills: deft/skills/"),
   );
   const next = filtered.join("");
   if (next !== original) {

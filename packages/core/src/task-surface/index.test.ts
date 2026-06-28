@@ -1,21 +1,9 @@
 import { execFileSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  runChangeInit,
-  runChangelogCheck,
-  runCommitLint,
-  runInstallUninstall,
-} from "./index.js";
+import { runChangeInit, runChangelogCheck, runCommitLint, runInstallUninstall } from "./index.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -43,7 +31,10 @@ function initGitRepo(project: string, message: string): void {
   );
 }
 
-function captureIo(): { lines: string[]; io: { writeOut: (t: string) => void; writeErr: (t: string) => void } } {
+function captureIo(): {
+  lines: string[];
+  io: { writeOut: (t: string) => void; writeErr: (t: string) => void };
+} {
   const lines: string[] = [];
   return {
     lines,
@@ -82,9 +73,9 @@ describe("task-surface", () => {
     const project = makeProject();
     const { lines, io } = captureIo();
     expect(runChangeInit(project, "my-change", io)).toBe(0);
-    expect(existsSync(join(project, "history", "changes", "my-change", "proposal.vbrief.json"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(join(project, "history", "changes", "my-change", "proposal.vbrief.json")),
+    ).toBe(true);
     expect(lines.join("")).toContain("OK: Created change proposal");
   });
 

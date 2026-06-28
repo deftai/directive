@@ -28,4 +28,4 @@ tasks:
     deps:
       - _ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" change-init --project-root "{{.USER_WORKING_DIR}}" --name "{{.CLI_ARGS}}"
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" change-init --project-root "{{.USER_WORKING_DIR}}" --name {{.CLI_ARGS}}
