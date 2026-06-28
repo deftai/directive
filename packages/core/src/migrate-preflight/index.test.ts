@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  checkDocumentModel,
-  checkLayout,
-  checkUv,
-  evaluate,
-  formatCheckLine,
-} from "./index.js";
+import { checkDocumentModel, checkLayout, checkUv, evaluate, formatCheckLine } from "./index.js";
 
 describe("migrate-preflight", () => {
   it("checkUv fails when uv is missing", () => {

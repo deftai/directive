@@ -18,7 +18,11 @@ export function parseArgs(argv: readonly string[]): ParsedInstallUpgradeArgs {
     if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { projectRoot, frameworkRoot, error: "argument --project-root: expected one argument" };
+        return {
+          projectRoot,
+          frameworkRoot,
+          error: "argument --project-root: expected one argument",
+        };
       }
       projectRoot = value;
       i += 1;
@@ -27,7 +31,11 @@ export function parseArgs(argv: readonly string[]): ParsedInstallUpgradeArgs {
     } else if (arg === "--framework-root") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { projectRoot, frameworkRoot, error: "argument --framework-root: expected one argument" };
+        return {
+          projectRoot,
+          frameworkRoot,
+          error: "argument --framework-root: expected one argument",
+        };
       }
       frameworkRoot = value;
       i += 1;

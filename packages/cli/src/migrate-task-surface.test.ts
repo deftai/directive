@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { repoRoot } from "./gates-cli/_helpers.js";
 import { resolveCanonicalVerb } from "./dispatch.js";
+import { repoRoot } from "./gates-cli/_helpers.js";
 
 describe("migrate/install task surface (#2022 Phase 2)", () => {
   it("routes migrate:preflight and upgrade through native handlers", () => {

@@ -81,7 +81,10 @@ function writeInstallManifestAt(
   }
 }
 
-function migrateLegacyInstallManifest(projectRoot: string, canonicalManifestPath: string | null): void {
+function migrateLegacyInstallManifest(
+  projectRoot: string,
+  canonicalManifestPath: string | null,
+): void {
   if (canonicalManifestPath === null) return;
   const canonical = resolve(canonicalManifestPath);
   const expectedParent = resolve(projectRoot, ".deft", "core");
@@ -102,7 +105,11 @@ function migrateLegacyInstallManifest(projectRoot: string, canonicalManifestPath
   }
 }
 
-function runAgentsRefresh(projectRoot: string, frameworkRoot: string, io: InstallUpgradeIo): number {
+function runAgentsRefresh(
+  projectRoot: string,
+  frameworkRoot: string,
+  io: InstallUpgradeIo,
+): number {
   const plan = agentsRefreshPlan(projectRoot, { frameworkRoot }) as Record<string, unknown>;
   const state = String(plan.state ?? "unknown");
 
@@ -148,7 +155,8 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
   }
 
   const vbriefDir = join(projectRoot, "vbrief");
-  const targetDir = existsSync(vbriefDir) && statSync(vbriefDir).isDirectory() ? vbriefDir : projectRoot;
+  const targetDir =
+    existsSync(vbriefDir) && statSync(vbriefDir).isDirectory() ? vbriefDir : projectRoot;
   writeVersionMarker(targetDir, normalizedVersion);
 
   let writtenManifestPath: string | null = null;

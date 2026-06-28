@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { emitMigratePreflight, runMigratePreflight } from "@deftai/directive-core/migrate-preflight";
+import {
+  emitMigratePreflight,
+  runMigratePreflight,
+} from "@deftai/directive-core/migrate-preflight";
 
 export interface ParsedMigratePreflightArgs {
   projectRoot: string;
@@ -22,7 +25,12 @@ export function parseArgs(argv: readonly string[]): ParsedMigratePreflightArgs {
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { projectRoot, deftRoot, quiet, error: "argument --project-root: expected one argument" };
+        return {
+          projectRoot,
+          deftRoot,
+          quiet,
+          error: "argument --project-root: expected one argument",
+        };
       }
       projectRoot = value;
       i += 1;
@@ -31,7 +39,12 @@ export function parseArgs(argv: readonly string[]): ParsedMigratePreflightArgs {
     } else if (arg === "--deft-root") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { projectRoot, deftRoot, quiet, error: "argument --deft-root: expected one argument" };
+        return {
+          projectRoot,
+          deftRoot,
+          quiet,
+          error: "argument --deft-root: expected one argument",
+        };
       }
       deftRoot = value;
       i += 1;
@@ -42,7 +55,11 @@ export function parseArgs(argv: readonly string[]): ParsedMigratePreflightArgs {
     }
   }
 
-  if (process.env.DEFT_ROOT && process.env.DEFT_ROOT.length > 0 && !argv.some((a) => a.startsWith("--deft-root"))) {
+  if (
+    process.env.DEFT_ROOT &&
+    process.env.DEFT_ROOT.length > 0 &&
+    !argv.some((a) => a.startsWith("--deft-root"))
+  ) {
     deftRoot = process.env.DEFT_ROOT;
   }
 
@@ -67,14 +84,18 @@ export function run(argv: readonly string[]): number {
     return 2;
   }
 
-  return emitMigratePreflight(outcome, {
-    writeOut: (text) => {
-      process.stdout.write(text);
+  return emitMigratePreflight(
+    outcome,
+    {
+      writeOut: (text) => {
+        process.stdout.write(text);
+      },
+      writeErr: (text) => {
+        process.stderr.write(text);
+      },
     },
-    writeErr: (text) => {
-      process.stderr.write(text);
-    },
-  }, args.quiet);
+    args.quiet,
+  );
 }
 
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
