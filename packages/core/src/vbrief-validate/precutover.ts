@@ -11,7 +11,7 @@ const SPEC_SOURCE_RELPATH = join("vbrief", "specification.vbrief.json");
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
-function missingLifecycleFolders(projectRoot: string): string[] {
+export function missingLifecycleFolders(projectRoot: string): string[] {
   const vbriefRoot = join(projectRoot, "vbrief");
   return LIFECYCLE_FOLDERS.filter((folder) => !existsSync(join(vbriefRoot, folder)));
 }
@@ -25,7 +25,7 @@ export function isDeprecationRedirect(content: string): boolean {
   return content.includes(DEPRECATION_SENTINEL) || content.includes(DEPRECATION_REDIRECT_PURPOSE);
 }
 
-function isGeneratedSpecificationExport(projectRoot: string, content: string): boolean {
+export function isGeneratedSpecificationExport(projectRoot: string, content: string): boolean {
   return (
     content.includes(GENERATED_SPEC_PURPOSE) &&
     content.includes(GENERATED_SPEC_SOURCE) &&
@@ -52,6 +52,28 @@ function safeReadText(path: string): string {
   } catch {
     return "";
   }
+}
+
+function rootMarkdownIsLegacy(projectRoot: string, filename: string, content: string): boolean {
+  if (isDeprecationRedirect(content)) return false;
+  if (filename === "SPECIFICATION.md" && isGeneratedSpecificationExport(projectRoot, content)) {
+    return false;
+  }
+  return filename === "SPECIFICATION.md" || filename === "PROJECT.md";
+}
+
+/** Return root artifact filenames that are legacy pre-v0.20 inputs (#793 / migrate preflight). */
+export function detectPreCutoverLegacy(projectRoot: string): string[] {
+  const legacy: string[] = [];
+  for (const filename of ["SPECIFICATION.md", "PROJECT.md"] as const) {
+    const candidate = join(projectRoot, filename);
+    if (!isFile(candidate)) continue;
+    const content = safeReadText(candidate);
+    if (rootMarkdownIsLegacy(projectRoot, filename, content)) {
+      legacy.push(filename);
+    }
+  }
+  return legacy;
 }
 
 /** Structured result of a pre-cutover (pre-v0.20 document model) probe. */

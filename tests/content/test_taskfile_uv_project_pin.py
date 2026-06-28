@@ -141,15 +141,25 @@ def test_uv_project_env_set_at_root() -> None:
 
 def test_read_only_preflight_and_doctor_use_frozen_uv() -> None:
     """Safety probes must not rewrite uv.lock as a side effect."""
-    migrate_text = (TASKS_DIR / "migrate.yml").read_text(encoding="utf-8")
     root_text = ROOT_TASKFILE.read_text(encoding="utf-8")
-    assert (
-        'uv --project "{{.DEFT_ROOT}}" run --frozen python '
-        '"{{.DEFT_ROOT}}/scripts/migrate_preflight.py"'
-    ) in migrate_text
     assert (
         'uv --project "{{.TASKFILE_DIR}}" run --frozen python ' '"{{.TASKFILE_DIR}}/run" doctor'
     ) in root_text
+
+
+def test_migrate_preflight_uses_deft_ts_not_python() -> None:
+    """migrate:preflight must dispatch through deft-ts on the consumer path (#2022)."""
+    migrate_text = (TASKS_DIR / "migrate.yml").read_text(encoding="utf-8")
+    assert 'node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-preflight' in migrate_text
+    assert "migrate_preflight.py" not in migrate_text
+
+
+def test_install_upgrade_uses_deft_ts_not_run_py() -> None:
+    """install:upgrade must not shell into scripts/run.py (#2022)."""
+    install_text = (TASKS_DIR / "install.yml").read_text(encoding="utf-8")
+    assert 'node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" install-upgrade' in install_text
+    assert 'run" upgrade' not in install_text
+    assert "scripts/run.py" not in install_text
 
 
 # ---------------------------------------------------------------------------

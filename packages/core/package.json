@@ -190,6 +190,14 @@
       "types": "./dist/init-deposit/index.d.ts",
       "default": "./dist/init-deposit/index.js"
     },
+    "./migrate-preflight": {
+      "types": "./dist/migrate-preflight/index.d.ts",
+      "default": "./dist/migrate-preflight/index.js"
+    },
+    "./install-upgrade": {
+      "types": "./dist/install-upgrade/index.d.ts",
+      "default": "./dist/install-upgrade/index.js"
+    },
     "./dist/*.js": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"

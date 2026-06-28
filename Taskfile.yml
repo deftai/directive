@@ -469,7 +469,7 @@ tasks:
     cmds:
       - task: install:uninstall
   # User-facing upgrade entrypoint (#1061). Aliases the install:upgrade
-  # wrapper that delegates to `run upgrade`. Cited by the doctor's
+  # wrapper that delegates to the native deft-ts install-upgrade handler. Cited by the doctor's
   # failure prose and docs/install-manifest.md as the canonical
   # post-drift repair entrypoint for the AGENTS.md / manifest /
   # .deft-version triple.

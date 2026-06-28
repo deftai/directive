@@ -1,10 +1,9 @@
 version: '3'
 
 vars:
-  # See deft/Taskfile.yml for the rationale behind per-subfile DEFT_ROOT
-  # (go-task re-evaluates var templates at use site; joinPath is eager and
-  # produces a clean, native-separator path so `uv --project "{{.DEFT_ROOT}}" run python` resolves it
-  # correctly on Windows -- #566).
+  # Per ../Taskfile.yml header: joinPath is evaluated eagerly by go-task
+  # templating and yields a native-separator absolute path so {{.DEFT_ROOT}}
+  # resolves correctly under node on Windows (#566).
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
@@ -18,16 +17,19 @@ tasks:
     # any destructive mutation runs. Three-state exit (0 ready / 1 not-ready / 2 config
     # error) mirrors `scripts/preflight_branch.py` (#747).
     #
+    # Consumer path dispatches through the native deft-ts handler (#2022 Phase 2);
+    # the legacy Python script remains for maintainer parity only.
+    #
     # NO `sources:` / `generates:` per `conventions/task-caching.md`: the
     # script forwards user-facing CLI flags (`--project-root`, `--deft-root`,
     # `--quiet`) via `{{.CLI_ARGS}}` and a cached cmds skip would silently
     # swallow them.
     desc: "Verify environment readiness for `task migrate:vbrief` (uv on PATH, v0.20+ layout, document model, git tree). Three-state exit (#793)."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run --frozen python "{{.DEFT_ROOT}}/scripts/migrate_preflight.py" --project-root "{{.USER_WORKING_DIR}}" --deft-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-preflight --project-root "{{.USER_WORKING_DIR}}" --deft-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}
 
   vbrief:
     desc: >
@@ -44,12 +46,15 @@ tasks:
       run::_check_upgrade_gate is consulted by the CLI flow). See
       events/registry.json for the payload contracts and `DEFT_EVENT_LOG` for
       opt-in JSON-line capture (#635).
+      #2013 HOLDOUT: `migrate:vbrief` remains the sole consumer-path Python
+      entrypoint until the spec-authority umbrella resolves the
+      `migrate_vbrief.py` port-vs-cutoff decision (#2022 Phase 2).
     deps:
       # #793: gate destructive migration on the environment preflight. A
       # non-zero exit from the preflight task aborts this task before any
       # `cmds:` line runs. Operator-supplied `{{.CLI_ARGS}}` (e.g.
       # `--dry-run`, `--force`, `--rollback`, `--strict`) belong to the
-      # migrator and are NOT valid migrate_preflight.py flags. go-task
+      # migrator and are NOT valid migrate:preflight flags. go-task
       # forwards parent CLI_ARGS into dependency tasks by default, so we
       # explicitly clear CLI_ARGS here; otherwise `task migrate:vbrief --
       # --dry-run` reaches the preflight argparse surface as
@@ -63,11 +68,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      # Pass Taskfile CLI args through so operators can opt into safety flags
-      # (#497) or --strict reconciliation (#496) without editing this file.
-      # Script path uses {{.DEFT_ROOT}} (defined locally in this file's
-      # `vars:` block above via `joinPath .TASKFILE_DIR ".."` -- see
-      # ../Taskfile.yml for why root-level definition is avoided) rather
-      # than {{.TASKFILE_DIR}}/.. to keep the path traversal-free; the
-      # mixed-separator form breaks `uv --project "{{.DEFT_ROOT}}" run python` on Windows (#566).
+      # #2013 holdout: migrate_vbrief.py stays on the consumer path until the
+      # spec-authority umbrella closes the port-vs-cutoff decision (#2022).
+      # Preflight is TS-native; the migrator body remains Python for now.
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/migrate_vbrief.py" "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

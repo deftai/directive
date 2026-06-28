@@ -3,8 +3,7 @@ version: '3'
 vars:
   # Per ../Taskfile.yml header: joinPath is evaluated eagerly by go-task
   # templating and yields a native-separator absolute path so {{.DEFT_ROOT}}
-  # resolves correctly under uv on Windows (#566). Used here to pin
-  # `uv --project` against ancestor pyproject.toml leakage (#1011).
+  # resolves correctly under node on Windows (#566).
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
@@ -25,13 +24,12 @@ tasks:
           f.write_text(out,'utf-8') if f.exists() else None;
           print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
 
-  # User-facing upgrade entrypoint (#1061). Wraps the canonical
-  # ``run upgrade`` command (`cmd_upgrade` in ./run) which:
+  # User-facing upgrade entrypoint (#1061). Native deft-ts handler (#2022 Phase 2):
   #   1. Writes / refreshes the bare ``.deft-version`` marker.
   #   2. Writes the canonical YAML provenance manifest at
   #      ``<install>/VERSION`` (#1046 PR-B AC-4) -- including the
   #      ``install_root`` field added in #1062.
-  #   3. Delegates to ``cmd_agents_refresh`` so the AGENTS.md managed
+  #   3. Delegates to ``agents:refresh`` so the AGENTS.md managed
   #      section is brought to the current rendered template (v3 marker
   #      with sha/refreshed/session attributes, #1046 PR-B AC-5).
   # This wrapper exists so the ``framework:doctor`` failure prose and
@@ -43,18 +41,18 @@ tasks:
   # ``generates:`` because the task is mutating + must run on every
   # invocation. CLI_ARGS is explicitly cleared (``vars: { CLI_ARGS: "" }``)
   # so any operator-supplied ``-- <flags>`` are deterministically dropped
-  # before reaching ``run upgrade``: go-task only forwards ``{{.CLI_ARGS}}``
+  # before reaching the upgrade handler: go-task only forwards ``{{.CLI_ARGS}}``
   # when a ``cmds`` line references it, but pinning the var to empty makes
   # the contract explicit AND defends against a future edit that
   # accidentally appends ``{{.CLI_ARGS}}`` to the dispatch line (SLizard P1
-  # on PR #1067 -- ``cmd_upgrade`` does not currently accept flags; future
+  # on PR #1067 -- the upgrade handler does not currently accept flags; future
   # flag additions land deliberately, not implicitly via Taskfile drift).
   upgrade:
-    desc: "Upgrade deft framework: refresh AGENTS.md to current marker, write canonical install manifest, regenerate .deft-version derivative (#1061). Wraps `run upgrade`."
+    desc: "Upgrade deft framework: refresh AGENTS.md to current marker, write canonical install manifest, regenerate .deft-version derivative (#1061). Dispatches via deft-ts install-upgrade."
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
     vars:
       CLI_ARGS: ""
+    deps:
+      - task: :ts:build
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/run" upgrade
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" install-upgrade --project-root "{{.USER_WORKING_DIR}}" --framework-root "{{.DEFT_ROOT}}"

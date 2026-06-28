@@ -38,9 +38,10 @@ export const INSTALL_CLI_TAIL_COVERAGE_MAP: readonly InstallCliTailEntry[] = [
   },
   {
     pythonTest: "tests/cli/test_migrate_preflight.py",
-    classification: "retire-at-Wave-9",
+    classification: "retarget",
     rationale:
-      "scripts/migrate_preflight.py agent-side migrate:vbrief gate — accepted non-port migration tooling.",
+      "scripts/migrate_preflight.py agent-side migrate:vbrief gate — retargeted to deft-ts migrate-preflight on consumer task path (#2022 Phase 2).",
+    vitestSpec: "packages/cli/src/migrate-task-surface.test.ts",
   },
   {
     pythonTest: "tests/cli/test_precutover_guard.py",
