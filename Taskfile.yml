@@ -70,9 +70,6 @@ env:
   UV_PROJECT: '{{.TASKFILE_DIR}}'
 
 includes:
-  core:
-    taskfile: ./tasks/core.yml
-    optional: true
   ts:
     taskfile: ./tasks/ts.yml
     optional: true
@@ -140,9 +137,6 @@ includes:
     optional: true
   pr:
     taskfile: ./tasks/pr.yml
-    optional: true
-  ci:
-    taskfile: ./tasks/ci.yml
     optional: true
   policy:
     taskfile: ./tasks/policy.yml
@@ -307,6 +301,19 @@ includes:
   packs:
     taskfile: ./tasks/packs.yml
     optional: true
+  # Maintainer-only Python self-test lanes (#1813 contributor path / #2022
+  # Phase 2). `internal: true` hides `core:*` / `ci:*` from `task -l` and
+  # blocks direct CLI invocation on consumer installs; only
+  # `check:framework-source` below wires them as deps. Consumer `task check`
+  # dispatches to `check:consumer` (TS / deft verbs — no uv/python).
+  core:
+    taskfile: ./tasks/core.yml
+    optional: true
+    internal: true
+  ci:
+    taskfile: ./tasks/ci.yml
+    optional: true
+    internal: true
 
 tasks:
   default:
@@ -326,8 +333,9 @@ tasks:
       - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"
 
   check:framework-source:
-    desc: "Run all framework source-repo pre-commit checks explicitly (skips @pytest.mark.slow tests via pyproject addopts -- run `task check:slow` for the slow lane, #975)."
+    desc: "Run all framework source-repo pre-commit checks explicitly (skips @pytest.mark.slow tests via pyproject addopts -- run `task check:slow` for the slow lane, #975). Sole wired consumer of maintainer-only core:* / ci:* Python lanes (#2022 Phase 2)."
     deps:
+      # Maintainer-only Python lanes (tasks/core.yml) — not on check:consumer.
       - core:validate
       - core:lint
       - core:test
@@ -434,40 +442,24 @@ tasks:
   # addopts=` reset overrides the pyproject default of `-m 'not slow'`
   # so the `-m slow` selector here actually picks up the marked tests.
   check:slow:
-    desc: "Run the @pytest.mark.slow test lane (watchdog regression suite excluded from `task check` by default, #975)"
+    desc: "Run the @pytest.mark.slow test lane (watchdog regression suite excluded from `task check` by default, #975). Maintainer-only Python lane — not part of `check:consumer`."
     cmds:
       # `--project` pins uv to the framework root so ancestor pyproject.toml
       # files cannot hijack the resolver via uv's upward walk (#1011).
       - uv --project "{{.TASKFILE_DIR}}" run pytest tests/ -o addopts= -m slow
 
-  test:
-    desc: Run test suite (alias for core:test)
-    cmds:
-      - task: core:test
-  test:coverage:
-    desc: Run tests with coverage (alias for core:test:coverage)
-    cmds:
-      - task: core:test:coverage
-  lint:
-    desc: Lint and type-check Python code (alias for core:lint)
-    cmds:
-      - task: core:lint
-  fmt:
-    desc: Format Python code (alias for core:fmt)
-    cmds:
-      - task: core:fmt
+  # Maintainer-only packaging aliases (#2022 Phase 2). `core:*` is internal;
+  # these root aliases remain callable for release Step 6 (`task build`) and
+  # local maintainer workflows. Not wired into `check:consumer`.
   build:
-    desc: Package framework for distribution (alias for core:build)
+    desc: Package framework for distribution (maintainer-only; alias for core:build)
     cmds:
       - task: core:build
   clean:
-    desc: Clean generated artifacts (alias for core:clean)
+    desc: Clean generated artifacts (maintainer-only; alias for core:clean)
     cmds:
       - task: core:clean
-  validate:
-    desc: Validate all markdown files (alias for core:validate)
-    cmds:
-      - task: core:validate
+
   install:
     desc: Install deft (alias for install:install)
     cmds:
@@ -485,10 +477,6 @@ tasks:
     desc: "Upgrade deft framework -- refresh AGENTS.md + write install manifest + regenerate .deft-version (alias for install:upgrade, #1061)"
     cmds:
       - task: install:upgrade
-  stats:
-    desc: Show framework statistics (alias for core:stats)
-    cmds:
-      - task: core:stats
 
   # #1272: canonical doctor surface -- thin shim that forwards to
   # ``.deft/core/run doctor``. The ``run`` CLI owns the diagnostic

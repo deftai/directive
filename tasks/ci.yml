@@ -1,5 +1,13 @@
 version: '3'
 
+# Maintainer-only local CI mirror (#1813 contributor path / #2022 Phase 2).
+#
+# `ci:local` shells into scripts/ci_local.py via `uv run python`. Release
+# Step-5 pre-flight now uses the TS `task check` path (py-purge-ci-local-ts);
+# this fragment remains for explicit maintainer local CI only. Included from
+# the root Taskfile with `internal: true` — not wired into `check:consumer`
+# or the default `task check` aggregate.
+
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 

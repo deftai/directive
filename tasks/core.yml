@@ -1,5 +1,15 @@
 version: '3'
 
+# Maintainer-only Python self-test lane (#1813 contributor path / #2022 Phase 2).
+#
+# pytest, ruff, black, and mypy run here via `uv run` for framework-source-repo
+# pre-commit checks. This fragment is included from the root Taskfile with
+# `internal: true` so `core:*` tasks are NOT listed or callable from the CLI on
+# consumer installs — only `task check:framework-source` wires them as deps.
+#
+# Consumer `task check` dispatches to `check:consumer` (TS / deft verbs only).
+# Do NOT add these tasks to the consumer check aggregate.
+
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
