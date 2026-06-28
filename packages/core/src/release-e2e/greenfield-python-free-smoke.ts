@@ -201,7 +201,7 @@ export function rehearseGreenfieldPythonFreeSmoke(
       ...pyFree,
       PATH: `${join(npmPrefix, "bin")}:${pyFree.PATH ?? ""}`,
     };
-    [ok, reason] = runStep(spawn, "task check", task, ["check"], {
+    [ok, reason] = runStep(spawn, "task deft:check", task, ["deft:check"], {
       cwd: projectDir,
       env: checkEnv,
       timeoutMs: 180_000,
@@ -210,7 +210,7 @@ export function rehearseGreenfieldPythonFreeSmoke(
 
     return [
       true,
-      "greenfield-python-free-smoke: directive init + task check passed with Python absent from PATH",
+      "greenfield-python-free-smoke: directive init + task deft:check passed with Python absent from PATH",
     ];
   } finally {
     rmSync(work, { recursive: true, force: true });

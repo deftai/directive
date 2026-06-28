@@ -96,7 +96,22 @@ describe("python-free deposit hygiene (#2022 Phase 3)", () => {
     }
   });
 
-  it("prunePythonArtifactsFromDeposit removes __pycache__ and unreadable deposit run shims", async () => {
+  it("collectPythonArtifacts ignores a scripts file that is not a directory", () => {
+    const deposit = join(freshRoot("py-scripts-file-"), "core");
+    mkdirSync(join(deposit, "nested"), { recursive: true });
+    writeFileSync(join(deposit, "scripts"), "not-a-directory\n", "utf8");
+    writeFileSync(join(deposit, "nested", "tool.py"), "# x\n", "utf8");
+    expect(collectPythonArtifacts(deposit).some((a) => a.path.endsWith("tool.py"))).toBe(true);
+    expect(collectPythonArtifacts(deposit).some((a) => a.kind === "scripts-tree")).toBe(false);
+  });
+
+  it("isRepoRootPythonRunShim returns false for non-shebang run files", () => {
+    const project = freshRoot("py-plain-run-");
+    writeFileSync(join(project, "run"), "echo hi\n", "utf8");
+    expect(isRepoRootPythonRunShim(project)).toBe(false);
+  });
+
+  it("prunePythonArtifactsFromDeposit removes nested .py files", async () => {
     const project = freshRoot("py-prune-extra-");
     const deposit = join(project, ".deft", "core");
     mkdirSync(join(deposit, "pkg", "__pycache__"), { recursive: true });
