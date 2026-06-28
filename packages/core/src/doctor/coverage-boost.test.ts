@@ -122,4 +122,53 @@ describe("doctor branch coverage boost", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("cmdDoctor consumer context fails when node is missing (#2022)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-consumer-"));
+    const framework = mkdtempSync(join(tmpdir(), "deft-doc-framework-"));
+    try {
+      writeFileSync(
+        join(root, "AGENTS.md"),
+        "<!-- deft:managed-section v3 -->\n<!-- /deft:managed-section -->\n",
+        "utf8",
+      );
+      const code = cmdDoctor(["--full", "--quiet", "--project-root", root], {
+        frameworkRoot: framework,
+        whichFn: (cmd) => (cmd === "node" ? null : "/bin/x"),
+        isDir: () => true,
+        isFile: () => true,
+        readText: () => null,
+      });
+      expect(code).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(framework, { recursive: true, force: true });
+    }
+  });
+
+  it("cmdDoctor consumer layout skips scripts/ under deposit (#2022)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-doc-consumer-layout-"));
+    const framework = mkdtempSync(join(tmpdir(), "deft-doc-framework-layout-"));
+    const deposit = join(root, ".deft", "core");
+    try {
+      for (const dir of ["languages", "strategies", "skills", "templates", "tasks", "vbrief"]) {
+        mkdirSync(join(deposit, dir), { recursive: true });
+      }
+      writeFileSync(
+        join(root, "AGENTS.md"),
+        "<!-- deft:managed-section v3 -->\n<!-- /deft:managed-section -->\n",
+        "utf8",
+      );
+      writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
+      const code = cmdDoctor(["--full", "--json", "--project-root", root], {
+        frameworkRoot: framework,
+        whichFn: () => "/bin/x",
+        agentsRefreshPlan: () => ({ state: "current" }),
+      });
+      expect(code).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(framework, { recursive: true, force: true });
+    }
+  });
 });
