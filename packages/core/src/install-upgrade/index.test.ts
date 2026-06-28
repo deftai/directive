@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -105,6 +105,35 @@ describe("install-upgrade", () => {
       { projectRoot: project, frameworkRoot: deftDir },
       { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
     );
+    expect(readFileSync(join(deftDir, "VERSION"), "utf8")).toContain("fetched_by: 'deft-upgrade'");
+  });
+
+  it("migrates stale legacy .deft/VERSION when canonical manifest differs", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "templates"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "templates", "agents-entry.md"),
+      "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: v2.0.0\nsha: content-package\ninstall_root: .deft/core\n",
+      "utf8",
+    );
+    mkdirSync(join(project, ".deft"), { recursive: true });
+    writeFileSync(join(project, ".deft", "VERSION"), "tag: v1.0.0\nsha: old\n", "utf8");
+    mkdirSync(join(project, "vbrief"), { recursive: true });
+    writeFileSync(join(project, "vbrief", ".deft-version"), "1.0.0\n", "utf8");
+
+    runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: deftDir },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(existsSync(join(project, ".deft", "VERSION.premigrate"))).toBe(true);
     expect(readFileSync(join(deftDir, "VERSION"), "utf8")).toContain("fetched_by: 'deft-upgrade'");
   });
 
