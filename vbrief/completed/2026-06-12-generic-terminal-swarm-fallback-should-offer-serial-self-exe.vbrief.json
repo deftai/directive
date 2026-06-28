@@ -7,7 +7,7 @@
     "id": "1053-generic-terminal-serial-fallback",
     "title": "Generic-terminal swarm fallback should offer serial self-execution instead of only manual prompt paste",
     "status": "completed",
-    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "planRef": "cancelled/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
     "narratives": {
       "Description": "When no native agent dispatch primitive is available, the swarm workflow still falls back to asking the operator to paste worker prompts into terminals. This story adds a clear degraded path where the monitor can offer to execute the prepared worker prompts serially in the isolated worktrees, preserving forward progress without pretending it is parallel orchestration.",
       "ImplementationPlan": "Update the swarm launch guidance around the generic-terminal descriptor in `skills/deft-directive-swarm/SKILL.md` so it distinguishes manual prompt paste from an explicit serial self-execution downgrade. Add content tests in `tests/content/test_swarm_skill.py` that pin the no-orchestration behavior, the operator consent language, and the prohibition against calling the serial downgrade a true swarm.",

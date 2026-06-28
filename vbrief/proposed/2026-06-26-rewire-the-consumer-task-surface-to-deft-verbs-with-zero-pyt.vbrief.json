@@ -76,6 +76,24 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
         "TrustLevel": "external"
+      },
+      {
+        "uri": "completed/2026-06-28-rewire-migrate-and-install-task-entrypoints-off-python-on-th.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Rewire migrate and install task entrypoints off Python on the consumer path",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-28-move-maintainer-only-python-tasks-behind-checkframework-sour.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Move maintainer-only Python tasks behind check:framework-source",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-28-replace-inline-uv-run-python-c-helpers-in-consumer-task-file.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Replace inline uv run python -c helpers in consumer task files",
+        "TrustLevel": "internal"
       }
     ],
     "updated": "2026-06-26T18:08:35Z"

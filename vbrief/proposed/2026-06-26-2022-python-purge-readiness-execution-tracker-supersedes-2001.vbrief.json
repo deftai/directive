@@ -114,7 +114,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-26-port-or-drop-the-setupghx-opt-in-installer-so-it-carries-no.vbrief.json",
+        "uri": "completed/2026-06-26-port-or-drop-the-setupghx-opt-in-installer-so-it-carries-no.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Port or drop the setup:ghx opt-in installer so it carries no Python (Phase 1)",
         "TrustLevel": "internal"
@@ -132,13 +132,13 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-26-make-the-npm-deposit-python-free-and-prove-it-with-a-greenfi.vbrief.json",
+        "uri": "completed/2026-06-26-make-the-npm-deposit-python-free-and-prove-it-with-a-greenfi.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Make the npm deposit Python-free and prove it with a greenfield smoke (Phase 3)",
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-26-implement-the-directive-bootstrap-launcher-and-repoint-opera.vbrief.json",
+        "uri": "completed/2026-06-26-implement-the-directive-bootstrap-launcher-and-repoint-opera.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Implement the directive bootstrap launcher and repoint operator docs (Phase 4)",
         "TrustLevel": "internal"

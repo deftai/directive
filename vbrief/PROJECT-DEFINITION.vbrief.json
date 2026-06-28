@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- current Deft Directive identity, policy, scope registry, and authored architecture metadata.",
-    "updated": "2026-06-22T20:43:56Z"
+    "updated": "2026-06-28T18:08:21Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -242,22 +242,6 @@
               "uri": "https://github.com/deftai/directive/issues/100",
               "type": "x-vbrief/github-issue",
               "title": "Issue #100: [Compliance] Evidence collection automation hooks"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx",
-        "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/11",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
             }
           ]
         }
@@ -876,27 +860,6 @@
         }
       },
       {
-        "id": "2026-04-30-761-install-paths-reframe-webinstaller-npm",
-        "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-30-761-install-paths-reframe-webinstaller-npm.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/761",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #761: docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/11",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #11: Proposal: Publish Deft as an NPM + PIP CLI (related; this brief leads with webinstaller and references #11)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-30-762-centralize-phase-taxonomy-in-project-definition",
         "title": "feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there",
         "status": "proposed",
@@ -1018,52 +981,62 @@
         }
       },
       {
-        "id": "2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech",
-        "title": "Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+        "id": "2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt",
+        "title": "Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
         "status": "proposed",
         "metadata": {
-          "source_path": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+          "source_path": "proposed/2026-06-25-1972-wave-5-finalization-freeze-the-go-bridge-retire-go-purge-pyt.vbrief.json",
           "lifecycle_folder": "proposed",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1053",
+              "uri": "https://github.com/deftai/directive/issues/1972",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1053: Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes"
+              "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)"
             },
             {
-              "uri": "completed/2026-06-12-generic-terminal-swarm-fallback-should-offer-serial-self-exe.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Generic-terminal swarm fallback should offer serial self-execution instead of only manual prompt paste",
-              "TrustLevel": "internal"
+              "uri": "https://github.com/deftai/directive/issues/1530",
+              "type": "x-vbrief/closes",
+              "title": "Issue #1530"
             },
             {
-              "uri": "completed/2026-06-12-greenfield-setup-should-produce-or-offer-a-swarm-ready-proje.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Greenfield setup should produce or offer a swarm-ready project bootstrap",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-12-lifecycle-taskfile-commands-should-preserve-reliable-success.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-12-interactive-swarm-worktrees-should-default-to-deterministic.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Interactive swarm worktrees should default to deterministic non-cluttering scratch paths",
-              "TrustLevel": "internal"
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1669"
             }
           ]
         }
       },
       {
-        "id": "2026-06-16-docs-readme-feature-slicing",
-        "title": "docs(readme): document feature slicing and complete the gh-dependent skill list",
+        "id": "2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001",
+        "title": "Python purge readiness — execution tracker (supersedes #2001)",
         "status": "proposed",
         "metadata": {
-          "source_path": "proposed/2026-06-16-docs-readme-feature-slicing.vbrief.json",
-          "lifecycle_folder": "proposed"
+          "source_path": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt",
+        "title": "Rewire the consumer task surface to deft verbs with zero Python entrypoints (Phase 2)",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
         }
       },
       {
@@ -2489,6 +2462,22 @@
               "uri": "https://github.com/deftai/directive/issues/108",
               "type": "x-vbrief/github-issue",
               "title": "Issue #108: Ask deployment platform before language"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx",
+        "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
             }
           ]
         }
@@ -5816,6 +5805,27 @@
               "uri": "https://github.com/deftai/directive/issues/756",
               "type": "x-vbrief/github-issue",
               "title": "Issue #756: fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs that reference multiple closed issues (spurious file-missing failures, misleading exit 1)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-761-install-paths-reframe-webinstaller-npm",
+        "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-30-761-install-paths-reframe-webinstaller-npm.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/761",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #761: docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: Proposal: Publish Deft as an NPM + PIP CLI (related; this brief leads with webinstaller and references #11)"
             }
           ]
         }
@@ -9834,24 +9844,6 @@
               "uri": "https://github.com/deftai/directive/issues/1378",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1378: allocation-context token + Gate 0 (merged enabler)"
-            },
-            {
-              "uri": "completed/2026-06-01-headless-swarm-launch-engine-task-swarmlaunch-deterministic.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Headless swarm launch engine: task swarm:launch deterministic prep CLI",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-01-pre-created-worktree-resolver-for-swarm-cohorts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Pre-created worktree resolver for swarm cohorts",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-01-document-the-headless-low-ceremony-launch-path-in-the-swarm.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Document the headless / low-ceremony launch path in the swarm skill",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10037,12 +10029,6 @@
               "uri": "https://github.com/deftai/directive/issues/1114",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades"
-            },
-            {
-              "uri": "completed/2026-06-03-combine-quick-start-case-g-and-case-h-into-one-session-for-b.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Combine QUICK-START Case G and Case H into one session for big-jump upgrades",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10059,12 +10045,6 @@
               "uri": "https://github.com/deftai/directive/issues/1115",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades"
-            },
-            {
-              "uri": "completed/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add a big-jump triage entry point to UPGRADING.md for multi-version upgrades",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10177,12 +10157,6 @@
               "uri": "https://github.com/deftai/directive/issues/1420",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1420: triage:reject fails when 'triage-rejected' label does not exist on the repository"
-            },
-            {
-              "uri": "completed/2026-06-03-make-triagereject-tolerate-a-missing-triage-rejected-label.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Make triage:reject tolerate a missing triage-rejected label",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10417,12 +10391,6 @@
               "uri": "https://github.com/deftai/directive/issues/1474",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)"
-            },
-            {
-              "uri": "completed/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Scope consumer deft:check so it does not run framework self-tests",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10439,12 +10407,6 @@
               "uri": "https://github.com/deftai/directive/issues/1475",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)"
-            },
-            {
-              "uri": "completed/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Bring task check mypy scope to parity with CI (cover tests/)",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10461,12 +10423,6 @@
               "uri": "https://github.com/deftai/directive/issues/1476",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh"
-            },
-            {
-              "uri": "completed/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10483,12 +10439,6 @@
               "uri": "https://github.com/deftai/directive/issues/1477",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)"
-            },
-            {
-              "uri": "completed/2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Deposit wired git hooks with mode 100755 so they fire on Unix consumers",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10505,12 +10455,6 @@
               "uri": "https://github.com/deftai/directive/issues/1478",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)"
-            },
-            {
-              "uri": "completed/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -10731,48 +10675,6 @@
               "uri": "https://github.com/deftai/directive/issues/987",
               "type": "x-vbrief/closes",
               "title": "Issue #987"
-            },
-            {
-              "uri": "completed/2026-06-04-wire-planmetadatarank-into-selection-ordering-and-roadmap-re.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Wire plan.metadata.rank into selection ordering and roadmap render",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-04-add-continuation-precedence-and-deficit-biased-selection-to.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add continuation precedence and deficit-biased selection to the queue",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-04-build-the-risk-tiered-judgment-gate-engine-and-verifyjudgmen.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Build the risk-tiered judgment-gate engine and verify:judgment-gates",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-04-add-capacity-allocation-accounting-with-buckets-windows-and.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add capacity allocation accounting with buckets, windows, and capacity:show",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-04-surface-human-clearance-backlog-and-the-earned-autonomy-dial.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Surface human-clearance backlog and the earned-autonomy dial",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-04-add-epic-staleness-and-stranded-slice-lifecycle-nudges-with.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add epic-staleness and stranded-slice lifecycle nudges with trichotomy",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-04-integrate-gate-clearances-and-capacity-blocks-into-gate-0-an.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -11044,36 +10946,6 @@
               "uri": "https://github.com/deftai/directive/issues/1531",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1531: swarm: opt-in tiered / heterogeneous dispatch (strong-model orchestrator + cheap high-context leaf code-runners)"
-            },
-            {
-              "uri": "completed/2026-06-08-add-persistent-sub-agent-backend-policy-and-availability-gat.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add persistent sub-agent backend policy and availability gate",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-08-document-provider-neutral-sub-agent-routing-in-the-swarm-ski.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Document provider-neutral sub-agent routing in the swarm skill",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-08-add-provider-neutral-worker-metadata-to-the-agent-preamble.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add provider-neutral worker metadata to the agent preamble",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-08-pin-provider-neutral-sub-agent-guidance-with-content-tests.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Pin provider-neutral sub-agent guidance with content tests",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-08-integrate-selected-sub-agent-backend-into-headless-swarm-lau.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Integrate selected sub-agent backend into headless swarm launch and audit output",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -11344,24 +11216,6 @@
               "uri": "https://github.com/deftai/directive/issues/1518",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1518: Composer specific lessons learned"
-            },
-            {
-              "uri": "completed/2026-06-09-add-a-discoverable-composer-facing-probe-skill.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add a discoverable Composer-facing probe skill",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-09-document-composer-skill-porting-rules-for-warp-tuned-workflo.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Document Composer skill-porting rules for Warp-tuned workflows",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-09-add-mechanical-guardrails-against-premature-probe-completion.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add mechanical guardrails against premature probe completion",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -11463,30 +11317,6 @@
               "uri": "https://github.com/deftai/directive/issues/1554",
               "type": "x-vbrief/refs",
               "title": "Issue #1554"
-            },
-            {
-              "uri": "completed/2026-06-09-add-read-only-runtime-capability-probe-for-worker-environmen.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Add read-only runtime capability probe for worker environments",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-09-validate-github-auth-mode-inside-the-actual-worker-environme.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Validate GitHub auth mode inside the actual worker environment",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-09-thread-runtime-and-github-auth-modes-through-swarm-dispatch.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Thread runtime and GitHub auth modes through swarm dispatch contracts",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-09-document-sandbox-credential-remediation-and-regression-cover.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Document sandbox credential remediation and regression coverage",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12047,42 +11877,6 @@
               "uri": "https://github.com/deftai/directive/issues/1283",
               "type": "x-vbrief/refs",
               "title": "Issue #1283"
-            },
-            {
-              "uri": "completed/2026-06-15-packsslice-v2-deeper-slices-across-all-four-packs.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "packs:slice v2 -- deeper slices across all four packs",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-15-packsslice-v2-capture-full-body-for-every-skill.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "packs:slice v2 -- capture full body for every skill",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-15-packsslice-v2-capture-full-body-for-every-strategy.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "packs:slice v2 -- capture full body for every strategy",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-15-packsslice-v2-broaden-rules-pack-source-to-agentsmd-mainmd.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "packs:slice v2 -- broaden rules-pack source to AGENTS.md + main.md",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-15-packsslice-v2-new-patterns-pack-surface.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "packs:slice v2 -- new patterns pack surface",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-15-packsslice-v2-new-swarm-spec-pack-surface.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "packs:slice v2 -- new swarm-spec pack surface",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12404,6 +12198,15 @@
         }
       },
       {
+        "id": "2026-06-16-docs-readme-feature-slicing",
+        "title": "docs(readme): document feature slicing and complete the gh-dependent skill list",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-16-docs-readme-feature-slicing.vbrief.json",
+          "lifecycle_folder": "completed"
+        }
+      },
+      {
         "id": "2026-06-17-1259-review-cycle-skill-can-exit-on-partial-greptile-review-and-a",
         "title": "Review-cycle skill can exit on partial Greptile review and allow unsafe merge",
         "status": "completed",
@@ -12710,12 +12513,6 @@
               "uri": "https://github.com/deftai/directive/issues/1718",
               "type": "x-vbrief/blocks",
               "title": "Issue #1718"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-scmpy-scm-boundary-to-a-typescript-adapter.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the scm.py SCM boundary to a TypeScript adapter",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12737,54 +12534,6 @@
               "uri": "https://github.com/deftai/directive/issues/1724",
               "type": "x-vbrief/blocks",
               "title": "Issue #1724"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triagequeue-ranking-resumeorphanurgent-order-to-typescr.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage:queue (ranking + RESUME/ORPHAN/URGENT order) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triagesummary-welcome-one-liner-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage:summary (welcome one-liner) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triageclassify-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage:classify to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triageaccept-reject-defer-actions-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage:accept / reject / defer actions to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triagebootstrap-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage:bootstrap to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triagescope-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage:scope to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triage-aux-verbs-a-welcome-refresh-reconcile-scope-drif.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage aux verbs A (welcome / refresh / reconcile / scope-drift) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-triage-aux-verbs-b-bulk-subscribe-help-smoketest-to-typ.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port triage aux verbs B (bulk / subscribe / help / smoketest) to TypeScript",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12806,12 +12555,6 @@
               "uri": "https://github.com/deftai/directive/issues/1724",
               "type": "x-vbrief/blocks",
               "title": "Issue #1724"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-scope-lifecycle-family-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the scope:* lifecycle family to TypeScript",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12833,12 +12576,6 @@
               "uri": "https://github.com/deftai/directive/issues/1724",
               "type": "x-vbrief/blocks",
               "title": "Issue #1724"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-slice-family-record-existing-list-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the slice:* family (record-existing / list) to TypeScript",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12860,18 +12597,6 @@
               "uri": "https://github.com/deftai/directive/issues/1724",
               "type": "x-vbrief/blocks",
               "title": "Issue #1724"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-unified-content-cache-cachepy-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the unified content cache (cache.py) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-deft-doctor-doctorpy-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port deft doctor (doctor.py) to TypeScript",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12908,30 +12633,6 @@
               "uri": "https://github.com/deftai/directive/issues/1728",
               "type": "x-vbrief/blocks",
               "title": "Issue #1728"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-releasepy-core-version-bump-changelog-section-extra.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the release.py core (version bump + CHANGELOG section extraction + GitHub release-body flow) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-release-publishpy-releasepublish-flow-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port release_publish.py (release:publish flow) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-release-rollbackpy-releaserollback-flow-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port release_rollback.py (release:rollback flow) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-release-e2epy-releasee2e-rehearsal-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port release_e2e.py (release:e2e rehearsal) to TypeScript",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -12968,36 +12669,6 @@
               "uri": "https://github.com/deftai/directive/issues/1728",
               "type": "x-vbrief/blocks",
               "title": "Issue #1728"
-            },
-            {
-              "uri": "completed/2026-06-19-port-pr-merge-readinesspy-merge-readiness-primitive-to-types.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port pr_merge_readiness.py (merge-readiness primitive) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-pr-check-protected-issuespy-layer-3-protected-issue-che.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port pr_check_protected_issues.py (Layer-3 protected-issue check) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-pr-check-closing-keywordspy-closing-keyword-check-to-ty.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port pr_check_closing_keywords.py (closing-keyword check) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-monitor-prpy-resilient-wait-loop-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port monitor_pr.py (resilient wait loop) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-pr-wait-mergeablepy-cascade-composer-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port pr_wait_mergeable.py (cascade composer) to TypeScript",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -13019,36 +12690,6 @@
               "uri": "https://github.com/deftai/directive/issues/1730",
               "type": "x-vbrief/blocks",
               "title": "Issue #1730"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-vbrief-construction-foundation-project-definition-i.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the vBRIEF construction foundation (project-definition I/O + build/sources/routing/speckit) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-vbrief-validation-primitives-validation-fidelity-st.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the vBRIEF validation primitives (validation / fidelity / story-quality / safety) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-vbrief-reconciliation-engine-reconciliation-reconci.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the vBRIEF reconciliation engine (reconciliation + reconcile graph/labels/umbrellas) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-vbrief-activate-lifecycle-verb-to-typescript.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the vBRIEF activate lifecycle verb to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-vbriefvalidate-cli-verifyvbrief-conformance-gate-to.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the vbrief:validate CLI + verify:vbrief-conformance gate to TypeScript (composer)",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -13070,24 +12711,6 @@
               "uri": "https://github.com/deftai/directive/issues/1730",
               "type": "x-vbrief/blocks",
               "title": "Issue #1730"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-environment-toolchain-verify-gates-verify-tools-ver.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the environment / toolchain verify gates (verify_tools / verify_hooks_installed / toolchain-check / verify_no_task_runtime) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-source-tree-scanner-gates-verify-scm-boundary-rule.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the source-tree scanner gates (verify_scm_boundary / rule_ownership_lint / code_structure_validate / verify-stubs) to TypeScript",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-the-content-validator-gates-validate-links-validate-str.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port the content validator gates (validate-links / validate_strategy_output / verify_capacity) to TypeScript",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -13172,24 +12795,6 @@
               "uri": "https://github.com/deftai/directive/issues/1530",
               "type": "x-vbrief/blocks",
               "title": "Issue #1530"
-            },
-            {
-              "uri": "completed/2026-06-19-port-session-start-ritual-sentinel-core-to-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port session-start + ritual-sentinel core to TS",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-lifecycle-hygiene-events-packs-to-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port lifecycle hygiene + events + packs to TS",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-agentsmd-version-platform-utilities-to-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port AGENTS.md + version + platform utilities to TS",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -13211,18 +12816,6 @@
               "uri": "https://github.com/deftai/directive/issues/1530",
               "type": "x-vbrief/blocks",
               "title": "Issue #1530"
-            },
-            {
-              "uri": "completed/2026-06-19-port-swarm-cohort-cli-verbs-to-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port swarm cohort CLI verbs to TS",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-19-port-subagent-monitor-investigation-gates-to-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port subagent monitor + investigation gates to TS",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -14197,48 +13790,6 @@
               "uri": "https://github.com/deftai/directive/issues/1828",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1828: feat(ts-migration): Wave 8 -- flip live gates to the TS engine (Python stays as oracle/fallback, no deletions)"
-            },
-            {
-              "uri": "completed/2026-06-21-build-the-unified-deft-ts-cli-dispatcher-exposing-all-ported.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Build the unified deft-ts CLI dispatcher exposing all ported verbs",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-enforce-node-as-a-required-consumer-runtime-in-doctortoolcha.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Enforce Node as a required consumer runtime in doctor/toolchain",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-flip-verifypreflight-gates-to-the-ts-engine-consumer-critica.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Flip verify/preflight gates to the TS engine (consumer-critical set first)",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-flip-the-triage-task-surface-to-the-ts-engine.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Flip the triage task surface to the TS engine",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-flip-scopevbrief-lifecycle-gates-to-the-ts-engine.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Flip scope/vbrief lifecycle gates to the TS engine",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-flip-prswarmrelease-gates-to-the-ts-engine.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Flip pr/swarm/release gates to the TS engine",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-flip-scmcachepolicy-and-remaining-gates-to-the-ts-engine.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Flip scm/cache/policy and remaining gates to the TS engine",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -14255,54 +13806,6 @@
               "uri": "https://github.com/deftai/directive/issues/1838",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1838: feat(ts-migration): Wave 8.5 -- port the maintainer test suites to vitest (content + CLI + integration; additive, no deletions)"
-            },
-            {
-              "uri": "completed/2026-06-21-port-content-skillspromptagentsmd-contract-tests-to-vitest.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port content skills/prompt/AGENTS.md contract tests to vitest",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-port-content-standardssecuritytaskfileschema-contract-tests.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Port content standards/security/taskfile/schema contract tests to vitest",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-retarget-vbriefscopeissuereconcile-cli-tests-at-the-deft-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Retarget vbrief/scope/issue/reconcile CLI tests at the deft-ts dispatcher",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-retarget-prswarmrelease-cli-tests-at-the-deft-ts-dispatcher.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Retarget pr/swarm/release CLI tests at the deft-ts dispatcher",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-retarget-verifydoctorpolicysession-cli-tests-at-the-deft-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Retarget verify/doctor/policy/session CLI tests at the deft-ts dispatcher",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-retarget-packspecrendercodebase-cli-tests-at-the-deft-ts-dis.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Retarget pack/spec/render/codebase CLI tests at the deft-ts dispatcher",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-audit-installmigratecmd-cli-tests-for-retire-vs-retarget-buc.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Audit install/migrate/cmd CLI tests for retire-vs-retarget (Bucket C)",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-retarget-cachescmtriage-integration-e2e-tests-at-ts-entrypoi.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Retarget cache/scm/triage integration e2e tests at TS entrypoints",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -14319,36 +13822,6 @@
               "uri": "https://github.com/deftai/directive/issues/1854",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1854: feat(ts-migration): Wave 8.6 -- finish the partial Python->TS live flip (precondition for #1731 delete)"
-            },
-            {
-              "uri": "completed/2026-06-21-flip-the-5-bucket-a-entrypoints-to-their-existing-ts-verbs.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Flip the 5 Bucket-A entrypoints to their existing TS verbs",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-wire-flip-the-render-family-specvalidate-specrender-prdrende.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Wire + flip the render family (spec:validate, spec:render, prd:render, project:render)",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-wire-flip-every-remaining-python-gate-in-tasksverifyyml-the.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Wire + flip every remaining Python gate in tasks/verify.yml + the two root-Taskfile gates",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-wireport-flip-scopeundo-scopedemote-scopedecompose-changelog.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Wire/port + flip scope:undo, scope:demote, scope:decompose, changelog:resolve, architecture:sor",
-              "TrustLevel": "internal"
-            },
-            {
-              "uri": "completed/2026-06-21-keystone-sequential-port-the-task-check-orchestrator-to-ts.vbrief.json",
-              "type": "x-vbrief/plan",
-              "title": "Keystone (sequential): port the task check orchestrator to TS",
-              "TrustLevel": "internal"
             }
           ]
         }
@@ -14849,6 +14322,27 @@
         }
       },
       {
+        "id": "2026-06-22-1875-execute-the-content-move-manifest-driven-relocation-source-s",
+        "title": "Execute the content/ move — manifest-driven relocation + source-side cross-reference rewrite",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-22-1875-execute-the-content-move-manifest-driven-relocation-source-s.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1875",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1875: Execute the content/ move — manifest-driven relocation + source-side cross-reference rewrite"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1669"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-06-22-1878-prune-vendored-ts-tests",
         "title": "Prune vendored TypeScript test files from the consumer .deft/core deposit",
         "status": "completed",
@@ -14906,6 +14400,22 @@
         }
       },
       {
+        "id": "2026-06-22-1884-bugverify-session-ritual-gated-tier-fails-with-unknown-sessi",
+        "title": "bug(verify-session-ritual): gated tier fails with 'unknown session ritual command: doctor'",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-22-1884-bugverify-session-ritual-gated-tier-fails-with-unknown-sessi.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1884",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1884: bug(verify-session-ritual): gated tier fails with 'unknown session ritual command: doctor'"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-06-22-1889-terminal-epic-render-validation",
         "title": "fix(vbrief): allow terminal epic child links to validate",
         "status": "completed",
@@ -14927,6 +14437,1440 @@
               "uri": "https://github.com/deftai/directive/pull/1885",
               "type": "x-vbrief/github-pr",
               "title": "PR #1885: docs(codebase): reconcile MAP rollout closeout"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-22-1894-refactorpacks-pack-renderts-duplicates-contentroot-instead-o",
+        "title": "refactor(packs): pack-render.ts duplicates contentRoot instead of importing canonical content-root module",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-22-1894-refactorpacks-pack-renderts-duplicates-contentroot-instead-o.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1894",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1894: refactor(packs): pack-render.ts duplicates contentRoot instead of importing canonical content-root module"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1875",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1875"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1891-swarmsubagentbackend-left-live-un-flagged-after-1739-superse",
+        "title": "swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1891-swarmsubagentbackend-left-live-un-flagged-after-1739-superse.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1891",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1891: swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1910-teach-release-skill-about-npm",
+        "title": "Teach the release skill about npm",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1910-teach-release-skill-about-npm.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1910",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1910: Teach the release skill about npm (pre-flight token gate + post-publish registry verification + tag->npm coupling)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/github-issue",
+              "title": "Umbrella #1669: distributable Deft (Wave 4 docs + propagation)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1916-npm-publish-workflow-uses-self-hosted-blacksmith-runner-inco",
+        "title": "npm publish workflow uses self-hosted (Blacksmith) runner — incompatible with --provenance",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1916-npm-publish-workflow-uses-self-hosted-blacksmith-runner-inco.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1916",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1916: npm publish workflow uses self-hosted (Blacksmith) runner — incompatible with --provenance"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1909",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1909"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1918-directive-version-reports-hardcoded-engine-version-000",
+        "title": "directive version reports hardcoded engine version 0.0.0",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1918-directive-version-reports-hardcoded-engine-version-000.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1918",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1918: directive version reports hardcoded engine version 0.0.0"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1909",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1909"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1919-migrate-npm-publishing-to-oidc-trusted-publishing-and-retire",
+        "title": "Migrate npm publishing to OIDC trusted publishing and retire NPM_TOKEN",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1919-migrate-npm-publishing-to-oidc-trusted-publishing-and-retire.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1919",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1919: Migrate npm publishing to OIDC trusted publishing and retire NPM_TOKEN"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1909",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1909"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1922-ci-windows-task-dispatch-job-fails-on-corepack-pnpm-version",
+        "title": "CI: Windows task-dispatch job fails on corepack pnpm version drift (11.8.0 vs 11.9.0)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1922-ci-windows-task-dispatch-job-fails-on-corepack-pnpm-version.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1922",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1922: CI: Windows task-dispatch job fails on corepack pnpm version drift (11.8.0 vs 11.9.0)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1921",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1921"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1923-ci-ts-global-branch-coverage-sits-at-the-85-threshold-bounda",
+        "title": "CI: TS global branch-coverage sits at the 85% threshold boundary (84.99%) and fails intermittently",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1923-ci-ts-global-branch-coverage-sits-at-the-85-threshold-bounda.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1923",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1923: CI: TS global branch-coverage sits at the 85% threshold boundary (84.99%) and fails intermittently"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1921",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1921"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1925-releasee2e-npm-dry-run-false-fails-after-first-real-publish",
+        "title": "release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1925-releasee2e-npm-dry-run-false-fails-after-first-real-publish.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1925",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1925: release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1910",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1910"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-1932-map-md-generated-digest-merge-conflicts",
+        "title": "Generated .planning/codebase/MAP.md digest causes guaranteed merge conflicts across concurrent branches",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-1932-map-md-generated-digest-merge-conflicts.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1932",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1932: Generated .planning/codebase/MAP.md digest causes guaranteed merge conflicts across concurrent branches"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-add-the-npm-publish-workflow-with-provenance",
+        "title": "Add the npm publish workflow with provenance",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-add-the-npm-publish-workflow-with-provenance.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-document-the-deft-company-directive-product-model-and-npm-in",
+        "title": "Document the Deft-company / Directive-product model and npm install paths",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-document-the-deft-company-directive-product-model-and-npm-in.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-implement-the-directive-verb-router-and-top-level-ux-verbs",
+        "title": "Implement the directive verb router and top-level UX verbs",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-implement-the-directive-verb-router-and-top-level-ux-verbs.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-make-directive-initupdate-a-front-end-to-the-deft-install-bi",
+        "title": "Make directive init/update a front-end to the deft-install binary",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-make-directive-initupdate-a-front-end-to-the-deft-install-bi.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-migrate-product-slash-commands-to-deftdirective-with-aliases",
+        "title": "Migrate product slash commands to /deft:directive:* with aliases",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-migrate-product-slash-commands-to-deftdirective-with-aliases.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-product-scope-the-npm-packages-and-wire-the-directivedeft-bi",
+        "title": "Product-scope the npm packages and wire the directive/deft bins",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-product-scope-the-npm-packages-and-wire-the-directivedeft-bi.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr",
+        "title": "Publish content as @deftai/directive-content and resolve it from the package",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-23-sync-skill-npm-canonical-blurb",
+        "title": "Sync skill canonical-path blurb still Go-installer-canonical (post-#761 leftover)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-23-sync-skill-npm-canonical-blurb.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/761",
+              "type": "x-vbrief/refs",
+              "title": "Issue #761: reframe install/upgrade docs around npm"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1696-project-render-status-derivation",
+        "title": "fix(render): project:render must emit registry items that pass vbrief:validate for mixed-status decompose groups",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1696-project-render-status-derivation.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1696",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1696: project:render emits items that fail vbrief:validate on mixed-status scopes"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1699",
+              "type": "x-vbrief/related",
+              "title": "Umbrella #1699: lifecycle/triage round-trip divergence"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1697-roadmap-render-idempotent",
+        "title": "fix(render): make roadmap:render -> roadmap:check idempotent (check diffs against the same bytes render emits)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1697-roadmap-render-idempotent.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1697",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1697: roadmap:render output fails roadmap:check immediately after rendering"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1699",
+              "type": "x-vbrief/related",
+              "title": "Umbrella #1699: lifecycle/triage round-trip divergence"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1698-triage-shared-decision-reader",
+        "title": "fix(triage): one shared decision-reader so summary, history, status, and reset agree on backfilled accepts",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1698-triage-shared-decision-reader.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1698",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1698: split audit-log readers (summary vs reset/history/status)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1699",
+              "type": "x-vbrief/related",
+              "title": "Umbrella #1699: lifecycle/triage round-trip divergence"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1886-cache-faithfulness-reconcile-default-ritual-heal-drift-gate",
+        "title": "fix(triage,cache): make the triage cache faithful to upstream state (reconcile-default + self-healing ritual + drift-aware freshness gate)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1886-cache-faithfulness-reconcile-default-ritual-heal-drift-gate.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1886",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1886: Triage cache never reconciles open→closed issues; queue surfaces closed/completed work as untriaged and verify:cache-fresh can't detect the drift"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1912e-pinned-bridge-e2e",
+        "title": "feat(#1912 E): pinned legacy->bridge->npm-hybrid e2e leg (reads Tier-0 SoT, pending-pin until frozen)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1912e-pinned-bridge-e2e.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1912: build + freeze the last Go installer (parent capstone)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 distributable Deft -- Wave 5"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1912g-go-freeze-sot-and-gates",
+        "title": "feat(#1912 G): Tier-0 lastGoInstaller SoT (null-until-frozen) + Tier-1 freeze gate + cross-surface drift gate",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1912g-go-freeze-sot-and-gates.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1912: build + freeze the last Go installer (parent capstone)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 distributable Deft -- Wave 5"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1912p-npm-legacy-refuse-preflight",
+        "title": "feat(#1912 P): npm CLI legacy-layout refuse-preflight (two-step) + signpost-only stable-URL surfaces",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1912p-npm-legacy-refuse-preflight.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1912: build + freeze the last Go installer (parent capstone)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 distributable Deft -- Wave 5"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1941-directive-migrate-stage2-provenance",
+        "title": "feat(cli): directive migrate (stage-2 canonical-vendored -> npm-hybrid) -- thin provenance verb",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1941-directive-migrate-stage2-provenance.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1941",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1941: stage-2 directive migrate (canonical-vendored -> npm-hybrid)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/related",
+              "title": "Issue #1912: frozen Go binary -- freeze prerequisite (b)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1933",
+              "type": "x-vbrief/related",
+              "title": "Issue #1933: decree stop-fetch + gate + never-first-start"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1670",
+              "type": "x-vbrief/related",
+              "title": "Issue #1670: verb vocabulary owner"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 (distributable Deft) -- Wave 5"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1942-ts-native-init-update-deposit",
+        "title": "feat(cli): TS-native directive init/update deposit (absorb healthy-path bootstrap) + gitignore .deft/core",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1942-ts-native-init-update-deposit.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1942",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 (distributable Deft) -- Wave 5"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/related",
+              "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1941",
+              "type": "x-vbrief/related",
+              "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1933",
+              "type": "x-vbrief/related",
+              "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1945-ts-triage-actions-verb-parity-port",
+        "title": "fix(triage,ts): port the missing triage-actions verbs to TS (needs-ac/mark-duplicate/status/reset/history)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1945-ts-triage-actions-verb-parity-port.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1945",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1945: triage-actions TS CLI ports only accept/reject/defer; needs-ac/mark-duplicate/status/reset/history are Python-only (break on #1860 Python purge)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1886",
+              "type": "x-vbrief/related",
+              "title": "Issue #1886 (parent finding this was split from)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1949-cache-fresh-recovery-gap",
+        "title": "fix(cache): make cache:fetch-all actually satisfy the freshness gate (force + drift-aware refresh)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1949-cache-fresh-recovery-gap.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1949",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1949: cache freshness gate has two unsatisfiable-by-recovery states"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1886",
+              "type": "x-vbrief/related",
+              "title": "Issue #1886 (drift-aware gate + reconcile-closed) -- this is a residual follow-up"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-1953-cache-fresh-hint-reconcile",
+        "title": "fix(cache): branch-aware verify:cache-fresh recovery hint (Option 3 of threshold reconciliation)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-1953-cache-fresh-hint-reconcile.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1953",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1953: reconcile cache TTL vs gate max-age (Option 3 preferred)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1949",
+              "type": "x-vbrief/related",
+              "title": "Issue #1949: made cache:fetch-all recovery effective (--force + drift-aware default)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-readme-installer-reframe-node-required",
+        "title": "docs: reframe Go installer across consumer docs (Node always required) + project-directory note",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-readme-installer-reframe-node-required.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1912: build + freeze the last Go installer (legacy stage-1 bridge)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-s1-content-dependency-ts-resolve-and-copy-deposit-primitive",
+        "title": "S1: content dependency + TS resolve-and-copy deposit primitive",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-s1-content-dependency-ts-resolve-and-copy-deposit-primitive.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1942",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 (distributable Deft) -- Wave 5"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/related",
+              "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1941",
+              "type": "x-vbrief/related",
+              "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1933",
+              "type": "x-vbrief/related",
+              "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-s2-directive-init-ts-native-greenfield-deposit",
+        "title": "S2: directive init TS-native greenfield deposit",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-s2-directive-init-ts-native-greenfield-deposit.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1942",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 (distributable Deft) -- Wave 5"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/related",
+              "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1941",
+              "type": "x-vbrief/related",
+              "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1933",
+              "type": "x-vbrief/related",
+              "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-s3-directive-update-ts-native-healthy-path-refresh",
+        "title": "S3: directive update TS-native healthy-path refresh",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-s3-directive-update-ts-native-healthy-path-refresh.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1942",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 (distributable Deft) -- Wave 5"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/related",
+              "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1941",
+              "type": "x-vbrief/related",
+              "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1933",
+              "type": "x-vbrief/related",
+              "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-s4-gitignore-deftcore-greenfield-write-reconstitution",
+        "title": "S4: gitignore .deft/core greenfield write + reconstitution",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-s4-gitignore-deftcore-greenfield-write-reconstitution.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1942",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 (distributable Deft) -- Wave 5"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/related",
+              "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1941",
+              "type": "x-vbrief/related",
+              "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1933",
+              "type": "x-vbrief/related",
+              "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-24-s5-docs-flip-greenfieldupgrade-e2e-legs",
+        "title": "S5: docs flip + greenfield/upgrade e2e legs",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-24-s5-docs-flip-greenfieldupgrade-e2e-legs.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1942",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/related",
+              "title": "Epic #1669 (distributable Deft) -- Wave 5"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/related",
+              "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1941",
+              "type": "x-vbrief/related",
+              "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1933",
+              "type": "x-vbrief/related",
+              "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1912-freeze-go-installer",
+        "title": "Freeze the Go installer at v0.56.0 (pin LAST_GO_INSTALLER)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1912-freeze-go-installer.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1912: Freeze the Go installer / retire the Go bridge"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1972",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1972: Wave 5 finalization runbook"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1967-bundle-githooks-consumer-taskfile-into-deftaidirective-conte",
+        "title": "Bundle .githooks/ + consumer Taskfile into @deftai/directive-content (npm-only deposit parity)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1967-bundle-githooks-consumer-taskfile-into-deftaidirective-conte.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1967",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1967: Bundle .githooks/ + consumer Taskfile into @deftai/directive-content (npm-only deposit parity)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1942",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1942"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1985-exclude-pycache-pyc-from-deftai-directive-content-prepack",
+        "title": "Exclude __pycache__/*.pyc from @deftai/directive-content prepack",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1985-exclude-pycache-pyc-from-deftai-directive-content-prepack.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1985",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1985: Exclude __pycache__/*.pyc from @deftai/directive-content prepack"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1967",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1967"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1972",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1972"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1987-freeze-gate-graceful-skip",
+        "title": "Freeze gate should skip Go build gracefully (green) instead of hard-failing release.yml post-freeze",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1987-freeze-gate-graceful-skip.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1987",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1987: Freeze gate should skip Go build gracefully instead of hard-failing release.yml post-freeze"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1912",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1912"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1972",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1972"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1989-bump-esbuild",
+        "title": "Bump esbuild to >=0.28.1 in framework pnpm-lock (low-sev dev advisory)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1989-bump-esbuild.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1989",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1989: bump esbuild to >=0.28.1 in framework pnpm-lock"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1996-add-doc-cli-parity-gate-upgrading-npm-verbs-subset-of-regist",
+        "title": "Add doc<->CLI parity gate (UPGRADING npm verbs subset of registered verbs) + install+run smoke in release-e2e",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1996-add-doc-cli-parity-gate-upgrading-npm-verbs-subset-of-regist.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1996",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1996: Add doc<->CLI parity gate (UPGRADING npm verbs subset of registered verbs) + install+run smoke in release-e2e"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1993",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1993"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1997-post-freeze-doctor-surface-npm-migration-signpost-on-a-norma",
+        "title": "Post-freeze doctor: surface npm-migration signpost on a normal run + npm payload-staleness command + Python doctor legacy-layout parity",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1997-post-freeze-doctor-surface-npm-migration-signpost-on-a-norma.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1997",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1997: Post-freeze doctor: surface npm-migration signpost on a normal run + npm payload-staleness command + Python doctor legacy-layout parity"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1993",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1993"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-1998-vendored-run-update-stub-dead-ends-post-freeze-redirect-to-t",
+        "title": "Vendored `run update` stub dead-ends post-freeze — redirect to the canonical npm path (template fix)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-1998-vendored-run-update-stub-dead-ends-post-freeze-redirect-to-t.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1998",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1998: Vendored `run update` stub dead-ends post-freeze — redirect to the canonical npm path (template fix)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1993",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1993"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-2002-release-skill-drop-phase-5-human-publish-gate-npm-is-already",
+        "title": "Release skill: drop Phase 5 human publish gate — npm is already irrevocable at tag push",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-2002-release-skill-drop-phase-5-human-publish-gate-npm-is-already.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2002",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2002: Release skill: drop Phase 5 human publish gate — npm is already irrevocable at tag push"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-2003-doctor-payload-staleness-command-diverges-from-agentsmd-mana",
+        "title": "doctor payload-staleness command diverges from AGENTS.md / managed-section docs",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-2003-doctor-payload-staleness-command-diverges-from-agentsmd-mana.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2003",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2003: doctor payload-staleness command diverges from AGENTS.md / managed-section docs"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-2004-doctor-payload-staleness-silently-green-when-ls-remote-unava",
+        "title": "doctor payload-staleness silently green when ls-remote unavailable (false 'System check passed!')",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-2004-doctor-payload-staleness-silently-green-when-ls-remote-unava.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2004",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2004: doctor payload-staleness silently green when ls-remote unavailable (false 'System check passed!')"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-2010-releasee2e-installrun-smoke-false-positive-doctor-help-exits",
+        "title": "release:e2e install+run smoke false-positive: doctor --help exits 1 in bare consumer layout (#1996 follow-up)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-2010-releasee2e-installrun-smoke-false-positive-doctor-help-exits.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2010",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2010: release:e2e install+run smoke false-positive: doctor --help exits 1 in bare consumer layout (#1996 follow-up)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-add-npm-handoff-messaging-to-the-go-installer-success-path",
+        "title": "Add npm-handoff messaging to the Go installer success path",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-add-npm-handoff-messaging-to-the-go-installer-success-path.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1972",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1530",
+              "type": "x-vbrief/closes",
+              "title": "Issue #1530"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1669"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-assert-the-installer-version-is-migrate-acceptable-in-the-le",
+        "title": "Assert the installer VERSION is migrate-acceptable in the legacy-bridge e2e leg",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-assert-the-installer-version-is-migrate-acceptable-in-the-le.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1972",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1530",
+              "type": "x-vbrief/closes",
+              "title": "Issue #1530"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1669"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-25-reconcile-verifygo-freeze-version-source-to-a-release-tag-ch",
+        "title": "Reconcile verify:go-freeze version source to a release-tag check",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-25-reconcile-verifygo-freeze-version-source-to-a-release-tag-ch.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1972",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1972: Wave 5 finalization: freeze the Go bridge, retire Go, purge Python (runbook + recovery)",
+              "TrustLevel": "external"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1530",
+              "type": "x-vbrief/closes",
+              "title": "Issue #1530"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1669",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1669"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-2015-deft-install-gate-current-resolves-from-frozen-binary-v-pref",
+        "title": "deft-install gate: `current` resolves from frozen binary (v-prefixed), not installed payload — healthy installs report NEEDS-UPGRADE",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-2015-deft-install-gate-current-resolves-from-frozen-binary-v-pref.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2015",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2015: deft-install gate: `current` resolves from frozen binary (v-prefixed), not installed payload — healthy installs report NEEDS-UPGRADE"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/refs",
+              "title": "Issue #2001"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-2023-deft-updateinit-aborts-with-refresh-deposit-failed-content-p",
+        "title": "Fix deft update/init refresh_deposit_failed by resolving the content package via its package.json subpath",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-2023-deft-updateinit-aborts-with-refresh-deposit-failed-content-p.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2023",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2023: deft update/init aborts with refresh_deposit_failed: content package resolved by bare specifier has no entry point (v0.58.0)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-convert-the-five-pack-migrate-dispatch-routes-to-native-type",
+        "title": "Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-convert-the-five-pack-migrate-dispatch-routes-to-native-type.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-convert-the-policy-set-write-path-to-native-typescript-phase",
+        "title": "Convert the policy-set write path to native TypeScript (Phase 1)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-convert-the-policy-set-write-path-to-native-typescript-phase.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-extend-deft-doctor-with-a-precutover-status-line-phase-0",
+        "title": "Extend deft doctor with a precutover status line (Phase 0)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-extend-deft-doctor-with-a-precutover-status-line-phase-0.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-implement-the-directive-bootstrap-launcher-and-repoint-opera",
+        "title": "Implement the directive bootstrap launcher and repoint operator docs (Phase 4)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-implement-the-directive-bootstrap-launcher-and-repoint-opera.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-make-the-npm-deposit-python-free-and-prove-it-with-a-greenfi",
+        "title": "Make the npm deposit Python-free and prove it with a greenfield smoke (Phase 3)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-make-the-npm-deposit-python-free-and-prove-it-with-a-greenfi.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-port-or-drop-the-relocate-verb-so-it-carries-no-python-phase",
+        "title": "Drop the relocate task from the consumer surface so it carries no Python (Phase 1)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-port-or-drop-the-relocate-verb-so-it-carries-no-python-phase.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-port-or-drop-the-setupghx-opt-in-installer-so-it-carries-no",
+        "title": "Port setup:ghx to a native TypeScript verb and mark ghx a supported consumer capability (Phase 1)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-port-or-drop-the-setupghx-opt-in-installer-so-it-carries-no.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-promote-typescript-task-check-as-the-release-pre-flight-and",
+        "title": "Promote TypeScript task check as the release pre-flight and drop the Python bridge (Phase 1)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-promote-typescript-task-check-as-the-release-pre-flight-and.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-remove-the-deft-install-gate-mandate-from-the-preamble-surfa",
+        "title": "Remove the deft-install gate mandate from the preamble surfaces (Phase 0)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-remove-the-deft-install-gate-mandate-from-the-preamble-surfa.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-ship-directive-lifecycle-diagram-to-consumer-installs",
+        "title": "Ship the Directive lifecycle conceptual diagram to consumer installs",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-ship-directive-lifecycle-diagram-to-consumer-installs.vbrief.json",
+          "lifecycle_folder": "completed"
+        }
+      },
+      {
+        "id": "2026-06-28-add-acknowledgementclear-path-for-project-definition-stalene",
+        "title": "Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-add-acknowledgementclear-path-for-project-definition-stalene.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/640",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #640: project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-fix-pre-push-branch-gate-false-positives-when-head-is-defaul",
+        "title": "Fix pre-push branch gate false positives when HEAD is default branch",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-fix-pre-push-branch-gate-false-positives-when-head-is-defaul.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1814",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1814: pre-push branch gate (preflight_branch.py) false-positives on branch deletions / feature-branch pushes when HEAD is the default branch",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-move-maintainer-only-python-tasks-behind-checkframework-sour",
+        "title": "Move maintainer-only Python tasks behind check:framework-source",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-move-maintainer-only-python-tasks-behind-checkframework-sour.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-replace-inline-uv-run-python-c-helpers-in-consumer-task-file",
+        "title": "Replace inline uv run python -c helpers in consumer task files",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-replace-inline-uv-run-python-c-helpers-in-consumer-task-file.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-rewire-migrate-and-install-task-entrypoints-off-python-on-th",
+        "title": "Rewire migrate and install task entrypoints off Python on the consumer path",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-rewire-migrate-and-install-task-entrypoints-off-python-on-th.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-route-directive-sessionstart-through-native-ts-runsessionsta",
+        "title": "Route directive session:start through native TS runSessionStart on npm installs",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-route-directive-sessionstart-through-native-ts-runsessionsta.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2032",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2032: directive session:start fails on npm consumer projects: ModuleNotFoundError: No module named 'session_start'",
+              "TrustLevel": "external"
             }
           ]
         }
@@ -15004,6 +15948,22 @@
               "uri": "file://completed/2026-06-09-1348-session-ritual-verifier-implementation.vbrief.json",
               "type": "x-vbrief/refs",
               "title": "Canonical completed #1348 implementation vBRIEF"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech",
+        "title": "Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1053",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1053: Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes"
             }
           ]
         }
@@ -15172,14 +16132,182 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860",
+        "title": "Wave 5: Python purge readiness (gate before #1860)",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-add-a-read-only-gate-subcommand-to-the-frozen-go-binary-deft",
+        "title": "Add a read-only `gate` subcommand to the frozen Go binary (deft-install) per #1933 Option 3",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-26-add-a-read-only-gate-subcommand-to-the-frozen-go-binary-deft.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-decide-and-execute-migratevbrief-ts-port-or-pre-v020-cutoff",
+        "title": "Decide and execute migrate:vbrief -- TS port or pre-v0.20 cutoff",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-26-decide-and-execute-migratevbrief-ts-port-or-pre-v020-cutoff.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-decide-bootstrap-ux-implement-directive-bootstrap-or-declare",
+        "title": "Decide bootstrap UX -- implement `directive bootstrap` or declare skill-only setup canonical",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-26-decide-bootstrap-ux-implement-directive-bootstrap-or-declare.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-drop-python-from-the-deftaidirective-content-prepack-and-pro",
+        "title": "Drop Python from the @deftai/directive-content prepack and prove a Python-free greenfield install",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-26-drop-python-from-the-deftaidirective-content-prepack-and-pro.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-remove-python-entrypoints-from-the-consumer-taskfile-and-tas",
+        "title": "Remove Python entrypoints from the consumer Taskfile and tasks surface",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-26-remove-python-entrypoints-from-the-consumer-taskfile-and-tas.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-repoint-preamble-rules-pack-and-agents-entry-from-the-python",
+        "title": "Repoint preamble, rules pack, and agents-entry from the Python gate to the Go gate",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-26-repoint-preamble-rules-pack-and-agents-entry-from-the-python.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2001",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-1814-pre-push-branch-gate-preflight-branchpy-false-positives-on-b",
+        "title": "pre-push branch gate (preflight_branch.py) false-positives on branch deletions / feature-branch pushes when HEAD is the default branch",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-28-1814-pre-push-branch-gate-preflight-branchpy-false-positives-on-b.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1814",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1814: pre-push branch gate (preflight_branch.py) false-positives on branch deletions / feature-branch pushes when HEAD is the default branch"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-2032-directive-sessionstart-fails-on-npm-consumer-projects-module",
+        "title": "directive session:start fails on npm consumer projects: ModuleNotFoundError: No module named 'session_start'",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-28-2032-directive-sessionstart-fails-on-npm-consumer-projects-module.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2032",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2032: directive session:start fails on npm consumer projects: ModuleNotFoundError: No module named 'session_start'"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p",
+        "title": "project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/640",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #640: project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
       "staleness_flags": [
         "Narrative 'Architecture' may be stale: completed scope 'Wire/port + flip scope:undo, scope:demote, scope:decompose, changelog:resolve, architecture:sor' shares topics (architecture)",
         "Narrative 'Architecture' may be stale: completed scope 'docs: refresh project concepts and architecture' shares topics (architecture)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'Assert the installer VERSION is migrate-acceptable in the legacy-bridge e2e leg' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Document AGENTS.md managed-section legacy migration in UPGRADING.md' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Epic-2: Retire framework_doctor.py and legacy doctor surfaces' shares topics (legacy)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'Post-freeze doctor: surface npm-migration signpost on a normal run + npm payload-staleness command + Python doctor legacy-layout parity' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'SKILL.md platform entry point is entirely pre-cutover -- references old skill names and deprecated artifacts' shares topics (artifacts)",
@@ -15187,6 +16315,9 @@
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'VERSION manifest moved from .deft/VERSION to .deft/core/VERSION without migration; legacy file persists as stale source-of-truth' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations' shares topics (artifacts)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy' shares topics (legacy)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'feat(#1912 E): pinned legacy->bridge->npm-hybrid e2e leg (reads Tier-0 SoT, pending-pin until frozen)' shares topics (legacy)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'feat(#1912 P): npm CLI legacy-layout refuse-preflight (two-step) + signpost-only stable-URL surfaces' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'rollback: empty `vbrief/legacy/` directory left behind after --rollback' shares topics (legacy)",
@@ -15206,6 +16337,7 @@
         "Narrative 'Overview' may be stale: completed scope 'bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Allow users to change technical rating (1/2/3) when starting a new project' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Branching requirement too prescriptive -- context-aware solo-project qualifier' shares topics (project)",
@@ -15225,11 +16357,13 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'Write SPECIFICATION.md and proper PROJECT.md for the deft project itself' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'bug(scripts/project_render): task project:render leaks vbrief/PROJECT-DEFINITION.vbrief.json.lock; trapped by git add -A on every chore commit' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'deft-setup project name fallback' shares topics (project)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'docs: reframe Go installer across consumer docs (Node always required) + project-directory note' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'docs: refresh project concepts and architecture' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'feat(coding): add coding/security.md — baseline security standards for every project' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'feat(consumer-example): deft's triage config + reference doc (#1186)' shares topics (config)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'feat(scripts,tasks,hooks): detection-bound branch gate — verify:branch + git hooks reading PROJECT-DEFINITION policy field' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'fix(cli): run project should create vbrief lifecycle subdirectories' shares topics (project)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'fix(render): project:render must emit registry items that pass vbrief:validate for mixed-status decompose groups' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'issue:ingest and reconcile:issues query deftai/directive instead of consumer project's GitHub repo (same root cause as #535)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'migrate_vbrief: PROJECT-DEFINITION missing 'tech stack' narrative key -- validator D3 failure' shares topics (project)",
@@ -15238,6 +16372,7 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'scope:complete updates PROJECT-DEFINITION references but leaves registry item status stale' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.vbrief.json' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'strategies: no idempotency guard -- can silently overwrite approved specs and project narratives' shares topics (project)",
+        "Narrative 'SuccessMetrics' may be stale: completed scope 'Add npm-handoff messaging to the Go installer success path' shares topics (success)",
         "Narrative 'SuccessMetrics' may be stale: completed scope 'Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1' shares topics (success)",
         "Narrative 'UserStories' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'Bootstrap: offer to update user preferences when USER.md already exists' shares topics (user)",

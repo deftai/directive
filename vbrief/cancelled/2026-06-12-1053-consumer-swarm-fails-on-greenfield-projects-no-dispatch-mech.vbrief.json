@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
-    "status": "proposed",
+    "status": "cancelled",
     "narratives": {
       "Description": "Consumer swarm fails on greenfield projects — no dispatch mechanism, bootstrap gap, PS 5.1 exit codes",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1053",
@@ -49,6 +49,7 @@
     ],
     "metadata": {
       "kind": "epic"
-    }
+    },
+    "updated": "2026-06-28T18:03:10Z"
   }
 }

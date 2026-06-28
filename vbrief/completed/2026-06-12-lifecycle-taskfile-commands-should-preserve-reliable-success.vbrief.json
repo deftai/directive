@@ -7,7 +7,7 @@
     "id": "1053-powershell-lifecycle-exit-semantics",
     "title": "Lifecycle Taskfile commands should preserve reliable success semantics under Windows PowerShell 5.1",
     "status": "completed",
-    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "planRef": "cancelled/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
     "narratives": {
       "Description": "The original recurrence reported successful lifecycle commands being observed as failures under Windows PowerShell 5.1 because progress or stderr handling confused the harness. Current scripts mostly route success to stdout, but there is no direct regression proof for the lifecycle command trio under the affected shell and capture path.",
       "ImplementationPlan": "Add a Windows-oriented regression test or smoke surface that runs `task scope:promote`, `task scope:activate`, and `task vbrief:preflight` on a fixture vBRIEF and asserts success exit semantics. If the smoke exposes stderr/progress leakage, adjust the Taskfile wrappers or scripts so success output remains parseable and false failure signals are not emitted.",

@@ -7,7 +7,7 @@
     "id": "1053-swarm-worktree-placement",
     "title": "Interactive swarm worktrees should default to deterministic non-cluttering scratch paths",
     "status": "completed",
-    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "planRef": "cancelled/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
     "narratives": {
       "Description": "The headless launch path already defaults worktrees to `.deft-scratch/worktrees`, but the interactive swarm skill still shows sibling-directory examples that clutter the user's projects folder. This story aligns the interactive guidance with the existing scratch convention and keeps OS temp locations as an explicit override for disposable runs.",
       "ImplementationPlan": "Update `skills/deft-directive-swarm/SKILL.md` so monitor-created worktrees default to `.deft-scratch/worktrees/<story-id>` or the launch manifest's resolved worktree path. Extend `tests/content/test_swarm_skill.py` and, if needed, `tests/cli/test_swarm_launch.py` so both interactive guidance and headless defaults stay aligned.",

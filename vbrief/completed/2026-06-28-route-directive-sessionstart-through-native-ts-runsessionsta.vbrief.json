@@ -1,0 +1,93 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-2032-directive-sessionstart-fails-on-npm-consumer-projects-module.vbrief.json"
+  },
+  "plan": {
+    "id": "story-2032-session-start-ts-native",
+    "title": "Route directive session:start through native TS runSessionStart on npm installs",
+    "status": "completed",
+    "planRef": "cancelled/2026-06-28-2032-directive-sessionstart-fails-on-npm-consumer-projects-module.vbrief.json",
+    "narratives": {
+      "Description": "On npm consumer projects, session:start is aliased to the framework-commands Python bridge, which resolves frameworkRoot to the npm package tree instead of .deft/core and fails with ModuleNotFoundError for session_start. The TS implementation already exists in @deftai/directive-core/session. This story registers session:start as a native TS inline handler (matching the doctor pattern) so consumer ritual recording works without Python on the deposit path.",
+      "ImplementationPlan": "Update packages/cli/src/dispatch.ts to route session:start to a native handler that calls runSessionStart(projectRoot) from @deftai/directive-core/session instead of framework-commands session_start:main.\nExtend packages/cli/src/gates-cli/session-ritual-cli.test.ts and packages/core/src/session/session-start.ts tests to assert npm-layout projects record .deft/ritual-state.json; document or handle empty-git-repo HEAD resolution as a follow-on edge case.",
+      "UserStory": "As a consumer on the npm install path, I want directive session:start to record ritual state without Python, so that AGENTS.md session-start and verify:session-ritual work on greenfield projects.",
+      "Traces": "deftai/directive#2032, #1149, #1348"
+    },
+    "items": [
+      {
+        "id": "story-2032-session-start-ts-native-a1",
+        "title": "Given a project installed via directive init with .deft/core deposited, when directive session:start runs, then it exits 0 and writes .deft/ritual-state.json without importing session_start.py.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project installed via directive init with .deft/core deposited, when directive session:start runs, then it exits 0 and writes .deft/ritual-state.json without importing session_start.py.",
+          "Traces": "deftai/directive#2032, #1149, #1348"
+        }
+      },
+      {
+        "id": "story-2032-session-start-ts-native-a2",
+        "title": "Given the same project, when directive doctor runs, then behavior is unchanged.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the same project, when directive doctor runs, then behavior is unchanged.",
+          "Traces": "deftai/directive#2032, #1149, #1348"
+        }
+      },
+      {
+        "id": "story-2032-session-start-ts-native-a3",
+        "title": "Given session-ritual-cli tests, when they run, then they cover the native TS session:start dispatch path for consumer project-root resolution.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given session-ritual-cli tests, when they run, then they cover the native TS session:start dispatch path for consumer project-root resolution.",
+          "Traces": "deftai/directive#2032, #1149, #1348"
+        }
+      },
+      {
+        "id": "story-2032-session-start-ts-native-a4",
+        "title": "Given a repo with at least one commit, when session:start completes, then verify:session-ritual quick tier can pass on fresh state.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a repo with at least one commit, when session:start completes, then verify:session-ritual quick tier can pass on fresh state.",
+          "Traces": "deftai/directive#2032, #1149, #1348"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/cli/src/gates-cli/session-ritual-cli.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-cli test session-ritual",
+          "pnpm --filter @deftai/directive-core test session-start"
+        ],
+        "expected_outputs": [
+          "session:start native TS route on npm consumers",
+          "ritual-state.json written without Python bridge"
+        ],
+        "depends_on": [],
+        "conflict_group": "dispatch-ts",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-28T18:02:53Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2032",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2032: directive session:start fails on npm consumer projects: ModuleNotFoundError: No module named 'session_start'",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-28T18:02:53Z"
+  }
+}

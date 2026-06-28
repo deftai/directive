@@ -7,7 +7,7 @@
     "id": "1053-greenfield-swarm-ready-bootstrap",
     "title": "Greenfield setup should produce or offer a swarm-ready project bootstrap",
     "status": "completed",
-    "planRef": "proposed/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
+    "planRef": "cancelled/2026-06-12-1053-consumer-swarm-fails-on-greenfield-projects-no-dispatch-mech.vbrief.json",
     "narratives": {
       "Description": "A project can finish setup with valid Deft configuration while still lacking the project infrastructure needed for a swarm run. This story adds an explicit greenfield readiness bridge for repository initialization, GitHub remote visibility, Taskfile wiring, install-layout consistency, and swarm scratch/worktree preparation without duplicating #1187's machine-tool installation checks.",
       "ImplementationPlan": "Extend the setup-to-swarm guidance in `skills/deft-directive-setup/SKILL.md` and `skills/deft-directive-swarm/SKILL.md` so greenfield projects surface missing project infrastructure before swarm allocation. Add or extend content tests that assert the guidance names repo/remote/Taskfile/install-layout/worktree readiness, references #1187 only for missing executable tools, and presents fresh setup-created candidates as a single explicit batch confirmation.",

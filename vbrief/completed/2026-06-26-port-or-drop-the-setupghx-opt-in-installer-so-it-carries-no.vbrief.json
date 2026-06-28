@@ -6,7 +6,7 @@
   "plan": {
     "id": "py-purge-setup-ghx-ts-or-drop",
     "title": "Port setup:ghx to a native TypeScript verb and mark ghx a supported consumer capability (Phase 1)",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "Decision: PORT to TypeScript, not drop. The ghx runtime preference is already TS-native -- packages/core/src/scm/binary.ts resolveBinary prefers ghx over gh -- so consumers already benefit automatically when ghx is on PATH; the only gap is a supported, discoverable way to install it. This story reimplements the consent-gated installer as a native directive setup:ghx dispatch verb, removes the scripts/setup_ghx.py Python entrypoint from the setup tasks, documents ghx as a supported proxy in README and the SCM docs, and adds a setup-time nudge when gh is present but ghx is missing.",
@@ -76,14 +76,14 @@
           "setup-time ghx nudge when missing",
           "ghx documented as a supported consumer capability"
         ],
-        "depends_on": [
-          "py-purge-relocate-ts-or-drop"
-        ],
+        "depends_on": [],
         "conflict_group": "dispatch-ts",
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-28T18:02:49Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -93,6 +93,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-26T18:08:34Z"
+    "updated": "2026-06-28T18:02:49Z"
   }
 }
