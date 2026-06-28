@@ -232,6 +232,16 @@ describe("migrate-preflight", () => {
     expect(result.message).toContain("missing lifecycle folder");
   });
 
+  it("checkDocumentModel detects legacy PROJECT.md", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const project = makeProjectRoot(base, { vbrief: false });
+    writeFileSync(join(project, "PROJECT.md"), "# legacy project\n", "utf8");
+    const result = checkDocumentModel(project);
+    expect(result.status).toBe("PASS");
+    expect(result.message).toContain("PROJECT.md");
+  });
+
   it("runMigratePreflight returns config error for missing project root", () => {
     const outcome = runMigratePreflight({
       projectRoot: "/no/such/project",
@@ -286,5 +296,20 @@ describe("migrate-preflight", () => {
     );
     expect(err.join("")).toContain("FAIL");
     expect(out.join("")).toBe("");
+  });
+
+  it("emitMigratePreflight prints success footer on exit 0", () => {
+    const lines: string[] = [];
+    const code = emitMigratePreflight(
+      {
+        kind: "ready",
+        exitCode: 0,
+        results: [{ name: "uv", status: "PASS", message: "ok" }],
+      },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+      false,
+    );
+    expect(code).toBe(0);
+    expect(lines.join("")).toContain("migrate:preflight OK");
   });
 });

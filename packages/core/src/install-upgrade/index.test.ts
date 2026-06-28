@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -69,6 +69,43 @@ describe("install-upgrade", () => {
     );
     expect(lines.join("")).toContain("Pre-v0.20 document model detected");
     expect(lines.join("")).toContain("task migrate:vbrief");
+  });
+
+  it("records first-time version marker when none exists", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
+    temps.push(base);
+    const { project, deftDir } = scaffoldProject(base);
+
+    const lines: string[] = [];
+    const code = runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: deftDir },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+    );
+    expect([0, 2]).toContain(code);
+    expect(lines.join("")).toContain("Recorded framework version");
+  });
+
+  it("writes install manifest under legacy deft/ deposit", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    const deftDir = join(project, "deft");
+    mkdirSync(join(deftDir, "templates"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "templates", "agents-entry.md"),
+      "<!-- deft:managed-section v3 -->\nbody\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    writeFileSync(join(deftDir, "VERSION"), "tag: v1.2.3\nsha: abc\n", "utf8");
+    mkdirSync(join(project, "vbrief"), { recursive: true });
+    writeFileSync(join(project, "vbrief", ".deft-version"), "1.0.0\n", "utf8");
+
+    const lines: string[] = [];
+    runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: deftDir },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+    );
+    expect(readFileSync(join(deftDir, "VERSION"), "utf8")).toContain("fetched_by: 'deft-upgrade'");
   });
 
   it("reports current AGENTS.md when refresh is a no-op", () => {
