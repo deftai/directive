@@ -232,6 +232,8 @@ Security posture, audit cadence, and vulnerability-reporting flow live in [`docs
 
 **GitHub** is the primary supported SCM platform. Skills that interact with issues and PRs (`deft-directive-sync`, `deft-directive-swarm`, `deft-directive-review-cycle`, `deft-directive-refinement`, `deft-directive-release`, `deft-directive-gh-slice`, `deft-directive-gh-arch`) require the [GitHub CLI (`gh`)](https://cli.github.com/) to be installed and authenticated. Core framework features (setup, build, rendering, validation) work independently of any SCM platform.
 
+**ghx (recommended proxy):** When `gh` is on PATH, Deft automatically prefers [ghx](https://github.com/brunoborges/ghx) — a read-only cache proxy for `gh` — if it is installed. ghx speeds up repeated GitHub API reads and helps multi-agent swarms stay under rate limits. Install it with consent via `directive setup:ghx` (or `task setup:ghx`); `task setup` nudges you when `gh` is present but `ghx` is missing. Consumer projects only require `gh`; ghx is optional but supported.
+
 The migration script (`task migrate:vbrief`) defaults origin provenance to `x-vbrief/github-issue` type. Non-GitHub users should manually adjust `references[].type` in generated vBRIEFs after migration.
 
 ## 📦 Content packs

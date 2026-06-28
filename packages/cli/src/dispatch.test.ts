@@ -7,10 +7,14 @@ import {
   CLI_MODULE_VERBS,
   CORE_MODULE_VERBS,
   dispatch,
+  GHX_VERSION,
+  INSTALL_PS1_URL,
+  INSTALL_SH_URL,
   printHelp,
   registeredVerbs,
   resetHandlerCacheForTests,
   resolveCanonicalVerb,
+  runSetupGhx,
   VERB_ALIASES,
 } from "./dispatch.js";
 
@@ -996,5 +1000,100 @@ describe("native policy-set handler (#2022)", () => {
     const result = await runPolicy(["wip-cap", "--confirm", "--project-root", root]);
     expect(result.code).toBe(2);
     expect(result.err).toContain("required: --set");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Native setup:ghx handler (#2022 Phase 1).
+//
+// Verifies the consent-gated ghx installer (formerly scripts/setup_ghx.py)
+// routes to a native TypeScript handler with default-deny consent.
+// ---------------------------------------------------------------------------
+
+describe("native setup:ghx handler (#2022)", () => {
+  function captureIo(): { io: { writeOut: (t: string) => void; writeErr: (t: string) => void }; out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    return {
+      io: {
+        writeOut: (t) => out.push(t),
+        writeErr: (t) => err.push(t),
+      },
+      out,
+      err,
+    };
+  }
+
+  async function runSetup(argv: string[]): Promise<{
+    code: number;
+    out: string;
+    err: string;
+  }> {
+    const { io, out, err } = captureIo();
+    const code = await dispatch(["setup:ghx", ...argv], io);
+    return { code, out: out.join(""), err: err.join("") };
+  }
+
+  it("registers setup:ghx as a native core handler", () => {
+    expect(CORE_MODULE_VERBS).toContain("setup-ghx");
+    expect(resolveCanonicalVerb("setup:ghx")).toBe("setup-ghx");
+    expect(VERB_ALIASES["setup:ghx"]).toBe("setup-ghx");
+  });
+
+  it("skips install when ghx is already on PATH", () => {
+    const { io, out } = captureIo();
+    const code = runSetupGhx([], io, {
+      whichFn: (name) => (name === "ghx" ? "/usr/local/bin/ghx" : null),
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("ghx already on PATH");
+  });
+
+  it("--check nudges directive setup:ghx when gh is present but ghx is missing", () => {
+    const { io, out } = captureIo();
+    const code = runSetupGhx(["--check"], io, {
+      whichFn: (name) => (name === "gh" ? "/usr/bin/gh" : null),
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("gh is on PATH but ghx is not");
+    expect(out.join("")).toContain("directive setup:ghx");
+  });
+
+  it("declines install by default when consent is empty (default deny)", () => {
+    const { io, out } = captureIo();
+    const code = runSetupGhx([], io, {
+      whichFn: () => null,
+      readConsentLine: () => "\n",
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("Skipping ghx install");
+  });
+
+  it("installs only when consent is explicitly yes", () => {
+    const { io, out } = captureIo();
+    let installed = false;
+    const code = runSetupGhx([], io, {
+      whichFn: () => null,
+      readConsentLine: () => "yes\n",
+      runInstall: () => {
+        installed = true;
+        return 0;
+      },
+    });
+    expect(code).toBe(0);
+    expect(installed).toBe(true);
+    expect(out.join("")).toContain("ghx installed");
+  });
+
+  it("rejects --yes and --check together with exit code 2", async () => {
+    const result = await runSetup(["--yes", "--check"]);
+    expect(result.code).toBe(2);
+    expect(result.err).toContain("mutually exclusive");
+  });
+
+  it("pins installer URLs to GHX_VERSION", () => {
+    expect(INSTALL_PS1_URL).toContain(`/${GHX_VERSION}/`);
+    expect(INSTALL_SH_URL).toContain(`/${GHX_VERSION}/`);
+    expect(INSTALL_PS1_URL).not.toContain("/main/");
   });
 });

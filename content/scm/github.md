@@ -214,6 +214,26 @@ Following a v1.0.0 release, commits:
 - ⊗ Allow force pushes
 - ⊗ Allow deletions
 
+## ghx cache proxy (#884)
+
+[ghx](https://github.com/brunoborges/ghx) is a **supported, recommended** read-only cache proxy for the GitHub CLI. Deft's SCM layer (`resolveBinary` in `@deftai/directive-core/scm`) prefers `ghx` over `gh` when both are on PATH, so consumers benefit automatically once ghx is installed. ghx is optional for consumer projects — only `gh` is required — but strongly recommended for maintainers and multi-agent swarms that issue many read-only `gh api` / `gh issue view` calls.
+
+**Install (consent-gated, default deny):**
+
+```bash
+directive setup:ghx          # interactive y/N prompt (default: no)
+task setup:ghx               # same via Taskfile
+task setup:ghx -- --yes      # non-interactive CI / scripted approval
+```
+
+`task setup` runs a detection-only `--check` pass and nudges when `gh` is present but `ghx` is missing. Set `DEFT_SETUP_GHX_SKIP=1` to suppress the interactive install path in non-interactive shells.
+
+**Surface rules:**
+
+- ! Prefer `ghx` over `gh` for read-only GET operations when ghx is on PATH
+- ! Use live `gh` for mutations (POST/PATCH/PUT/DELETE) and for immediate read-back after a mutation — ghx is a cached GET proxy only
+- ⊗ Use `ghx api` for multi-arg write invocations — ghx accepts a single positional path arg; writes fall through to `gh`
+
 ## Destructive gh verbs (#1019)
 
 A detection-bound gate (`scripts/preflight_gh.py`) refuses three classes of destructive surface before they execute, complementing the #747 branch-protection gate which already refuses commits to the default branch:
@@ -233,8 +253,6 @@ Three enforcement surfaces back the gate:
 - `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` -- per-shell emergency env-var bypass. Mirrors `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` (#747). The gate prints an explicit `policy bypassed for this session` line so the bypass is auditable after the fact.
 - For repo deletion specifically: prefer the GitHub web UI's archive-or-delete prompt -- archiving is reversible, the gate is not opining on it.
 - For an admin merge: the canonical recovery is to request review through the normal flow. The `--admin` flag is gated because the most-common legitimate use case (release hot-fix) is rare enough that documenting an explicit bypass is cheaper than letting the verb pass by default.
-
-**Out of scope (v1):** a PATH-shim that intercepts `gh` at the command layer is deferred -- the consent-gated install path mirrors `setup_ghx.py` (#884) and lands additively when a follow-up issue is opened. The current gate is detection-bound (pre-push hook + agent-side `--command` classifier + self-test contract) rather than execution-bound, which is sufficient to refuse the recurring failure mode that motivated #1019 (an agent with an unrestricted `gh` token executing a destructive verb).
 
 ## Release Workflow (UCCPR)
 

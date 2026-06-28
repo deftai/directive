@@ -512,6 +512,8 @@ tasks:
   setup:
     desc: "Idempotent local-dev setup: configure git hooks (#747); detect-and-prompt ghx (#884). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."
     dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - verify:_ts-build
     env:
       PYTHONUTF8: "1"
     cmds:
@@ -568,24 +570,19 @@ tasks:
       # GitHub CLI cache proxy. Default invocation here passes --check so
       # `task setup` never prompts on a clean re-run; operators wanting to
       # opt in run `task setup:ghx` (defined below) which is the
-      # interactive entry point. The script is pure-stdlib so it works
-      # before `uv sync` has run on a fresh worktree; `uv run` is still
-      # the canonical dispatcher to keep the python interpreter consistent
-      # with every other Taskfile-dispatched script. `--project` pins uv
-      # to the framework root so ancestor pyproject.toml files cannot
-      # hijack the resolver via uv's upward walk (#1011).
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" --check
+      # interactive entry point. Native TypeScript handler (#2022 Phase 1).
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" setup:ghx --check
 
   setup:ghx:
     desc: "Consent-gated ghx (brunoborges/ghx) installer (#884) -- task setup:ghx [-- --yes]"
     dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
+    deps:
+      - verify:_ts-build
     # Per `conventions/task-caching.md` (#574): no `sources:` / `generates:`
     # because the script forwards user-facing flags via {{.CLI_ARGS}}
     # (notably --yes for non-interactive CI / scripted approval).
     cmds:
-      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" {{.CLI_ARGS}}
+      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" setup:ghx {{.CLI_ARGS}}
 
   # Release pipeline tasks (#74 + #716 safety hardening, namespace flatten #718).
   #

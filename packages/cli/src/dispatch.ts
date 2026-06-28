@@ -3,10 +3,20 @@
  * Routes to ported command modules in packages/cli and packages/core.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  readSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
+import { defaultWhich, type WhichFn } from "@deftai/directive-core/scm";
 import {
   appendAuditLog,
   disclosureLine,
@@ -149,6 +159,7 @@ export const CORE_MODULE_VERBS = [
   "pack-migrate-patterns",
   "pack-migrate-swarm-spec",
   "policy-set",
+  "setup-ghx",
   "scope-undo",
   "scope-demote",
   "scope-decompose",
@@ -202,6 +213,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "project:render": "project-render",
   doctor: "doctor",
   build: "framework-commands",
+  "setup:ghx": "setup-ghx",
 };
 
 /** CLI modules living under verify-source-cli/ or content-validate-cli/ subdirs. */
@@ -1193,6 +1205,200 @@ function runPackMigrateSwarmSpec(argv: string[], io: DispatchIo): number {
 }
 
 // ===========================================================================
+// Native setup:ghx handler (#2022 Phase 1).
+//
+// Port of scripts/setup_ghx.py to native TypeScript: consent-gated ghx proxy
+// installer with three-state exit (0 ok / 1 install failure / 2 config error).
+// ===========================================================================
+
+/** Pinned ghx version — keep in lockstep with .github/workflows/ci.yml env.GHX_VERSION. */
+export const GHX_VERSION = "v1.5.1";
+
+export const INSTALL_PS1_URL = `https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.ps1`;
+export const INSTALL_SH_URL = `https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.sh`;
+
+export type SetupGhxHost = "windows" | "darwin" | "linux" | string;
+
+export interface SetupGhxDeps {
+  whichFn?: WhichFn;
+  readConsentLine?: () => string;
+  runInstall?: (host: SetupGhxHost) => number;
+}
+
+interface SetupGhxArgs {
+  yes: boolean;
+  check: boolean;
+  error?: string;
+}
+
+function parseSetupGhxArgs(argv: readonly string[]): SetupGhxArgs {
+  let yes = false;
+  let check = false;
+  for (const arg of argv) {
+    if (arg === "--yes") {
+      yes = true;
+    } else if (arg === "--check") {
+      check = true;
+    } else {
+      return { yes, check, error: `unrecognized argument: ${arg}` };
+    }
+  }
+  return { yes, check };
+}
+
+export function ghxPresent(whichFn: WhichFn = defaultWhich): boolean {
+  return whichFn("ghx") !== null;
+}
+
+export function detectSetupGhxHost(): SetupGhxHost {
+  if (process.platform === "win32") return "windows";
+  if (process.platform === "darwin") return "darwin";
+  if (process.platform === "linux") return "linux";
+  return process.platform;
+}
+
+function readConsentLineFromStdin(): string {
+  const buf = Buffer.alloc(256);
+  try {
+    const n = readSync(0, buf, 0, 256, null);
+    if (n === null || n <= 0) return "";
+    return buf.toString("utf8", 0, n);
+  } catch {
+    return "";
+  }
+}
+
+export function promptSetupGhxConsent(
+  io: DispatchIo,
+  readLine: () => string = readConsentLineFromStdin,
+): boolean {
+  io.writeOut(
+    "\n[setup_ghx] ghx is the recommended GitHub CLI cache proxy for deft " +
+      "maintainers (prevents rate-limiting in multi-agent swarms; speeds up " +
+      "scm:* calls). Consumer projects only require gh.\n",
+  );
+  io.writeOut(`[setup_ghx] Upstream: https://github.com/brunoborges/ghx (${GHX_VERSION})\n`);
+  io.writeOut("[setup_ghx] Install ghx via the upstream installer? [y/N]: ");
+  const answer = readLine().trim().toLowerCase();
+  return answer === "y" || answer === "yes";
+}
+
+export function buildSetupGhxInstallCommand(host: SetupGhxHost, whichFn: WhichFn = defaultWhich): string[] {
+  if (host === "windows") {
+    const psBin = whichFn("pwsh") ?? whichFn("powershell") ?? "powershell";
+    return [
+      psBin,
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      `irm ${INSTALL_PS1_URL} | iex`,
+    ];
+  }
+  if (host === "darwin" || host === "linux") {
+    return ["bash", "-c", `curl -fsSL ${INSTALL_SH_URL} | bash`];
+  }
+  throw new Error(
+    `no upstream ghx installer available for host '${host}'; ` +
+      "see https://github.com/brunoborges/ghx#install for manual options",
+  );
+}
+
+export function installSetupGhx(
+  host: SetupGhxHost,
+  whichFn: WhichFn = defaultWhich,
+  runner: typeof spawnSync = spawnSync,
+): number {
+  const cmd = buildSetupGhxInstallCommand(host, whichFn);
+  const proc = runner(cmd[0] ?? "", cmd.slice(1), {
+    env: { ...process.env, GHX_VERSION },
+    stdio: "inherit",
+  });
+  return proc.status ?? 1;
+}
+
+/** Native `setup:ghx` handler (replaces scripts/setup_ghx.py shell-out, #2022 Phase 1). */
+export function runSetupGhx(argv: string[], io: DispatchIo, deps: SetupGhxDeps = {}): number {
+  const args = parseSetupGhxArgs(argv);
+  if (args.error !== undefined) {
+    io.writeErr(`setup-ghx: ${args.error}\n`);
+    return 2;
+  }
+
+  if (args.yes && args.check) {
+    io.writeErr("[setup_ghx] error: --yes and --check are mutually exclusive.\n");
+    return 2;
+  }
+
+  const whichFn = deps.whichFn ?? defaultWhich;
+
+  if (ghxPresent(whichFn)) {
+    io.writeOut("[setup_ghx] ghx already on PATH -- skipping install.\n");
+    return 0;
+  }
+
+  if (args.check) {
+    if (whichFn("gh") !== null) {
+      io.writeOut(
+        "[setup_ghx] gh is on PATH but ghx is not; ghx is the recommended GitHub CLI " +
+          "cache proxy. Install with `directive setup:ghx` (or `task setup:ghx`). Refs #884.\n",
+      );
+    } else {
+      io.writeOut(
+        "[setup_ghx] ghx not on PATH; recommended for speed -- run `directive setup:ghx` " +
+          "to opt in. Consumer projects only require gh. Refs #884.\n",
+      );
+    }
+    return 0;
+  }
+
+  let consent: boolean;
+  if (args.yes) {
+    consent = true;
+    io.writeOut("[setup_ghx] --yes provided; skipping interactive consent prompt.\n");
+  } else {
+    const skip = (process.env.DEFT_SETUP_GHX_SKIP ?? "").trim();
+    if (skip === "1" || skip.toLowerCase() === "true" || skip.toLowerCase() === "yes") {
+      io.writeOut("[setup_ghx] DEFT_SETUP_GHX_SKIP set; skipping ghx install. Refs #884.\n");
+      return 0;
+    }
+    const readLine = deps.readConsentLine ?? readConsentLineFromStdin;
+    consent = promptSetupGhxConsent(io, readLine);
+  }
+
+  if (!consent) {
+    io.writeOut(
+      "[setup_ghx] Skipping ghx install. ghx is recommended for speed for maintainers and " +
+        "swarm runs; consumer projects only require gh " +
+        "(see https://github.com/brunoborges/ghx, #884).\n",
+    );
+    return 0;
+  }
+
+  const host = detectSetupGhxHost();
+  const runInstall = deps.runInstall ?? ((h) => installSetupGhx(h, whichFn));
+  try {
+    const rc = runInstall(host);
+    if (rc !== 0) {
+      io.writeErr(
+        `[setup_ghx] error: upstream installer exited ${rc}. ` +
+          "See https://github.com/brunoborges/ghx#install for manual options.\n",
+      );
+      return 1;
+    }
+    io.writeOut(
+      "[setup_ghx] ghx installed. Open a fresh shell so the updated PATH takes effect, " +
+        "then re-run `task setup` to verify.\n",
+    );
+    return 0;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    io.writeErr(`[setup_ghx] error: ${message}\n`);
+    return 1;
+  }
+}
+
+// ===========================================================================
 // Native policy-set handler (#2022 Phase 1).
 //
 // Port of scripts/policy_set.py to native TypeScript so the typed-policy write
@@ -1793,6 +1999,8 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
       return (argv) => runPackMigrateSwarmSpec(argv, io);
     case "policy-set":
       return (argv) => runPolicySet(argv, io);
+    case "setup-ghx":
+      return (argv) => runSetupGhx(argv, io);
     case "scope-undo": {
       const { undoMain } = await import("@deftai/directive-core/dist/scope/main.js");
       return undoMain;
