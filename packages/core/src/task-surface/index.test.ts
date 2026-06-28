@@ -100,6 +100,37 @@ describe("task-surface", () => {
     expect(runCommitLint(project, io)).toBe(1);
   });
 
+  it("changelog-check fails when unreleased section is empty", () => {
+    const project = makeProject();
+    writeFileSync(
+      join(project, "CHANGELOG.md"),
+      "## [Unreleased]\n\n### Added\n\n## [0.1.0]\n",
+      "utf8",
+    );
+    const { io } = captureIo();
+    expect(runChangelogCheck(project, io)).toBe(1);
+  });
+
+  it("change-init rejects duplicate directory", () => {
+    const project = makeProject();
+    const { io } = captureIo();
+    expect(runChangeInit(project, "dup", io)).toBe(0);
+    expect(runChangeInit(project, "dup", io)).toBe(1);
+  });
+
+  it("change-init rejects empty name", () => {
+    const project = makeProject();
+    const { io } = captureIo();
+    expect(runChangeInit(project, "   ", io)).toBe(1);
+  });
+
+  it("install-uninstall is noop when AGENTS.md is missing", () => {
+    const project = makeProject();
+    const { lines, io } = captureIo();
+    expect(runInstallUninstall(project, io)).toBe(0);
+    expect(lines.join("")).toContain("No deft entry found");
+  });
+
   it("install-uninstall strips legacy deft lines", () => {
     const project = makeProject();
     writeFileSync(
