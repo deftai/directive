@@ -1,30 +1,14 @@
-"""Tests for cp1252 -> UTF-8 stdout self-reconfigure at hook-script entry (#814).
+"""Tests for cp1252 -> UTF-8 stdout self-reconfigure at gate entry (#814 / #2049).
 
-Pin the contract that every script under ``scripts/`` referenced from
-``.githooks/`` reconfigures ``sys.stdout`` and ``sys.stderr`` to UTF-8 with
-``errors='replace'`` at ``main()`` entry, BEFORE any ``print()``.
+Pin the contract that gate implementations invoked by consumer git hooks
+(via the ``deft`` CLI since #2049) reconfigure ``sys.stdout`` and
+``sys.stderr`` to UTF-8 with ``errors='replace'`` at ``main()`` entry,
+BEFORE any ``print()``.
 
-Without this fix, a Windows shell whose Python defaults to ``cp1252``
-stdout (the OS default) crashes with ``UnicodeEncodeError`` when the gate
-prints its U+2713 success glyph AFTER the gate has already approved the
-commit -- the user sees a Python traceback after a successful check, and
-git aborts the commit. See the issue body of #814 for the verbatim
-reproduction.
-
-Strategy: monkeypatch ``sys.stdout`` and ``sys.stderr`` to a
-``TextIOWrapper`` wrapping a ``BytesIO`` with ``encoding='cp1252'`` and
-``errors='strict'`` so the test ENVIRONMENT exactly mirrors the production
-Windows-cp1252 shape. Invoke ``preflight_branch.main(...)`` and assert:
-
-- main() returns 0 (no exception, no traceback).
-- ``sys.stdout.encoding`` is ``utf-8`` post-call (the reconfigure landed).
-- The U+2713 success glyph reaches the underlying ``BytesIO`` buffer
-  encoded as the canonical UTF-8 byte sequence (0xE2 0x9C 0x93).
-
-The audit surface is currently exactly one script: ``scripts/preflight_branch.py``
-is the only file referenced from ``.githooks/pre-commit`` and ``.githooks/pre-push``.
-The ``HOOK_SCRIPTS`` registry below makes the contract trivially extensible --
-add a new (label, path, args, env) tuple when a future hook script lands.
+Consumer ``.githooks/`` hooks are pure POSIX shell and dispatch ``deft``
+only (#2049). The ``HOOK_SCRIPTS`` registry below exercises the underlying
+Python gate scripts the TypeScript CLI may still route through for parity
+oracles.
 """
 
 from __future__ import annotations
@@ -136,53 +120,24 @@ def _make_cp1252_wrapper() -> tuple[io.BytesIO, io.TextIOWrapper]:
     return buf, wrapper
 
 
-def test_audit_only_preflight_branch_is_hook_invoked():
-    """Defence-in-depth: if a future hook script lands, this test fails loudly.
+def test_hooks_invoke_deft_cli_gates():
+    """#2049: consumer hooks dispatch gates through deft CLI, not scripts/*.py."""
+    pre_commit = (GITHOOKS_DIR / "pre-commit").read_text(encoding="utf-8", errors="replace")
+    pre_push = (GITHOOKS_DIR / "pre-push").read_text(encoding="utf-8", errors="replace")
 
-    The audit surface is the union of scripts under ``scripts/`` referenced
-    from any file in ``.githooks/``. Pre-commit invokes
-    ``scripts/preflight_branch.py``; pre-push invokes
-    ``scripts/preflight_gh.py`` (#1814 Option A). When a new hook script is
-    added, the HOOK_SCRIPTS registry above MUST grow a corresponding entry so
-    the contract test runs against it. This test detects the gap structurally
-    by re-doing the audit at test time.
-    """
-    referenced: set[str] = set()
-    for hook_path in sorted(GITHOOKS_DIR.iterdir()):
-        if not hook_path.is_file():
-            continue
-        text = hook_path.read_text(encoding="utf-8", errors="replace")
+    for cmd in ("verify:branch", "verify:encoding"):
+        assert f"deft {cmd}" in pre_commit
+    assert "deft preflight-gh --pre-push-stdin" in pre_push
+    assert "deft verify:branch" not in pre_push
+
+    for label, text in (("pre-commit", pre_commit), ("pre-push", pre_push)):
         for line in text.splitlines():
             stripped = line.strip()
-            if stripped.startswith("#"):
+            if not stripped or stripped.startswith("#"):
                 continue
-            # Match any hook-invoked gate script in the hook body. Since #1463
-            # the hooks resolve their helpers layout-aware via
-            # $SCRIPTS_DIR/<name>.py (where $SCRIPTS_DIR is one of scripts/,
-            # .deft/core/scripts/, or deft/scripts/ at runtime), so normalise
-            # both the legacy `scripts/<name>.py` form and the new
-            # `$SCRIPTS_DIR/<name>.py` form to the canonical `scripts/<name>.py`
-            # registry key.
-            for token in stripped.replace('"', " ").replace("'", " ").split():
-                if not token.endswith(".py"):
-                    continue
-                if token.startswith("$SCRIPTS_DIR/") or "scripts/" in token:
-                    name = token.rsplit("/", 1)[-1]
-                    referenced.add("scripts/" + name)
-
-    assert referenced, (
-        "No scripts/*.py references found under .githooks/ -- the audit "
-        "regex is broken or .githooks/ has been restructured."
-    )
-
-    registered = {entry[1] for entry in HOOK_SCRIPTS}
-    missing = referenced - registered
-    assert not missing, (
-        "Hook script(s) discovered under .githooks/ are NOT registered in "
-        f"HOOK_SCRIPTS: {sorted(missing)}. Add a tuple for each missing "
-        "script so the cp1252 self-reconfigure contract is enforced for "
-        "every hook-invoked surface (#814)."
-    )
+            assert ".py" not in stripped, f"{label} still references a Python script: {stripped!r}"
+            assert "python" not in stripped.lower(), f"{label} still probes Python: {stripped!r}"
+            assert "SCRIPTS_DIR" not in stripped, f"{label} still uses SCRIPTS_DIR: {stripped!r}"
 
 
 @pytest.mark.parametrize(

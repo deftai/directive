@@ -16,9 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Greenfield projects can export SPECIFICATION.md from PROJECT-DEFINITION** — `task project:export-spec` renders stakeholder-facing spec exports without creating `specification.vbrief.json`, filters config narratives, and includes proposed scopes only for `--audience=internal`. A migration-fidelity gate blocks silent spec deletion when premigrate snapshots still hold unmigrated product narratives. Refs #2013, #1502, #2005.
+
 ### Changed
 
+- **Rendered spec scope sections use the Scope outlook heading** — `task spec:render` and Python `spec_render.py` emit `## Scope outlook` with aligned bucket labels; PRD export filters stakeholder-excluded config narratives. Refs #2013.
+
 ### Fixed
+
+- **Git hooks work on Python-free consumer installs** — `.githooks/pre-commit` and `pre-push` dispatch branch, encoding, conformance, and destructive-push gates through the `deft` CLI only; `deft verify:hooks-installed` validates deft CLI wiring instead of probing for `scripts/*.py`. Closes #2049.
 
 ### Removed
 

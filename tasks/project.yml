@@ -41,3 +41,13 @@ tasks:
       - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" project-render --acknowledge-staleness "{{.USER_WORKING_DIR}}/vbrief"
+
+  export-spec:
+    desc: >-
+      Export SPECIFICATION.md from PROJECT-DEFINITION (+ lifecycle scopes).
+      Use --audience=internal to include proposed scopes (#2013 / #1502).
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" export-spec {{.CLI_ARGS}}

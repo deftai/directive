@@ -160,6 +160,7 @@ export const CORE_MODULE_VERBS = [
   "pack-render",
   "packs-slice",
   "prd-render",
+  "export-spec",
   "project-render",
   "roadmap-render",
   "spec-render",
@@ -183,6 +184,7 @@ export const CORE_MODULE_VERBS = [
 export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:encoding": "verify-encoding",
   "verify:branch": "verify-branch",
+  "verify:vbrief-conformance": "vbrief-validate",
   "verify:wip-cap": "verify-wip-cap",
   "verify:hooks-installed": "verify-hooks-installed",
   "verify:no-task-runtime": "verify-no-task-runtime",
@@ -225,6 +227,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "spec:render": "spec-render",
   "prd:render": "prd-render",
   "project:render": "project-render",
+  "project:export-spec": "export-spec",
   doctor: "doctor",
   build: "framework-commands",
   "setup:ghx": "setup-ghx",
@@ -2265,6 +2268,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     case "project-render": {
       const { runProjectRenderCli } = await import("./render-cli/project-render-cli.js");
       return (argv) => runProjectRenderCli(argv);
+    }
+    case "export-spec": {
+      const { runExportSpecCli } = await import("./render-cli/export-spec-cli.js");
+      return (argv) => runExportSpecCli(argv);
     }
     case "code-structure-validate": {
       const { evaluateCodeStructure } = await import("@deftai/directive-core/verify-source");

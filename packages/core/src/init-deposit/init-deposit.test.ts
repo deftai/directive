@@ -113,8 +113,18 @@ describe("runInitDeposit", () => {
     writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");
     writeFileSync(join(pkgDir, "vbrief", "schemas", "cache-meta.schema.json"), "{}\n", "utf8");
     writeFileSync(join(pkgDir, "vbrief", "vbrief.md"), "# vbrief\n", "utf8");
-    writeFileSync(join(pkgDir, ".githooks", "pre-commit"), "#!/bin/sh\nexit 0\n", "utf8");
+    writeFileSync(
+      join(pkgDir, ".githooks", "pre-commit"),
+      readFileSync(join(process.cwd(), ".githooks/pre-commit"), "utf8"),
+      "utf8",
+    );
     chmodSync(join(pkgDir, ".githooks", "pre-commit"), 0o755);
+    writeFileSync(
+      join(pkgDir, ".githooks", "pre-push"),
+      readFileSync(join(process.cwd(), ".githooks/pre-push"), "utf8"),
+      "utf8",
+    );
+    chmodSync(join(pkgDir, ".githooks", "pre-push"), 0o755);
     writeFileSync(join(pkgDir, "Taskfile.yml"), "version: '3'\n", "utf8");
     return pkgDir;
   }
@@ -144,6 +154,9 @@ describe("runInitDeposit", () => {
     expect(existsSync(join(project, "vbrief", "active", ".gitkeep"))).toBe(true);
     expect(existsSync(join(project, ".agents/skills/deft-directive-sync/SKILL.md"))).toBe(true);
     expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
+    expect(readFileSync(join(project, ".githooks", "pre-commit"), "utf8")).toContain(
+      "deft verify:branch",
+    );
     expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain(
       "./.deft/core/Taskfile.yml",
     );

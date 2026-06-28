@@ -288,7 +288,7 @@ def _scope(title: str, status: str, narratives: dict, items: list | None = None,
 
 
 def test_aggregator_emits_implementation_plan_section(render_mod, tmp_path) -> None:
-    """--include-scopes (default on) emits Implementation Plan with lifecycle buckets (#435)."""
+    """--include-scopes (default on) emits Scope outlook with lifecycle buckets (#435)."""
     vbrief_dir = tmp_path / "vbrief"
     # Base spec
     spec_path = _write_spec(
@@ -353,9 +353,9 @@ def test_aggregator_emits_implementation_plan_section(render_mod, tmp_path) -> N
     content = out.read_text(encoding="utf-8")
 
     # Section heading
-    assert "## Implementation Plan" in content
+    assert "## Scope outlook" in content
     # Lifecycle bucket sub-headings
-    assert "### Pending" in content
+    assert "### Accepted backlog (pending)" in content
     assert "### Active" in content
     assert "### Completed" in content
     # Each scope renders filename stem + title
@@ -375,7 +375,7 @@ def test_aggregator_emits_implementation_plan_section(render_mod, tmp_path) -> N
     # Status pin: misfiled pending scope must NOT appear under Completed
     assert "Misfiled pending" not in content
     # Section order: Pending before Active before Completed
-    pending_pos = content.index("### Pending")
+    pending_pos = content.index("### Accepted backlog (pending)")
     active_pos = content.index("### Active")
     completed_pos = content.index("### Completed")
     assert pending_pos < active_pos < completed_pos
@@ -458,8 +458,8 @@ def test_include_scopes_off_suppresses_aggregator(render_mod, tmp_path) -> None:
     assert "## Overview" in content
     assert "Fallback regression spec." in content
     # Aggregator section must be absent
-    assert "## Implementation Plan" not in content
-    assert "### Pending" not in content
+    assert "## Scope outlook" not in content
+    assert "### Accepted backlog (pending)" not in content
     assert "Should be hidden" not in content
 
 
@@ -484,7 +484,7 @@ def test_include_scopes_cli_flag_off(render_mod, monkeypatch, tmp_path) -> None:
     )
     assert render_mod.main() == 0
     content = out.read_text(encoding="utf-8")
-    assert "## Implementation Plan" not in content
+    assert "## Scope outlook" not in content
     assert "CLI pending" not in content
 
 
@@ -505,7 +505,7 @@ def test_include_scopes_cli_flag_default_on(render_mod, monkeypatch, tmp_path) -
     monkeypatch.setattr(sys, "argv", ["spec_render.py", str(spec_path), str(out)])
     assert render_mod.main() == 0
     content = out.read_text(encoding="utf-8")
-    assert "## Implementation Plan" in content
+    assert "## Scope outlook" in content
     assert "### Active" in content
     assert "Default active" in content
 
@@ -569,4 +569,4 @@ def test_aggregator_graceful_when_no_lifecycle_folders(render_mod, tmp_path) -> 
     content = out.read_text(encoding="utf-8")
     assert "# No Folders Spec" in content
     # Aggregator silently skips when no scopes exist
-    assert "## Implementation Plan" not in content
+    assert "## Scope outlook" not in content

@@ -30,24 +30,20 @@ def _read(rel: str) -> str:
 
 def test_pre_commit_hook_exists_and_calls_script():
     text = _read(".githooks/pre-commit")
-    # #1463: the hook is layout-aware -- it resolves the gate script under the
-    # install root (own-repo scripts/ or vendored .deft/core/scripts/) via
-    # $SCRIPTS_DIR rather than the hardcoded $REPO_ROOT/scripts/ prefix.
-    assert "preflight_branch.py" in text
+    assert "deft verify:branch" in text
+    assert "deft verify:encoding" in text
     assert "git rev-parse --show-toplevel" in text
-    assert "SCRIPTS_DIR" in text
-    assert ".deft/core/scripts" in text
+    assert "command -v deft" in text
+    assert "preflight_branch.py" not in text
 
 
 def test_pre_push_hook_exists_and_calls_refspec_gate():
     text = _read(".githooks/pre-push")
-    # #1814 Option A: pre-push skips HEAD-only preflight_branch invocation; gate #2
-    # is refspec-aware via preflight_gh --pre-push-stdin.
-    assert 'deft_py "$SCRIPTS_DIR/preflight_branch.py"' not in text
-    assert "preflight_gh.py" in text
-    assert "--pre-push-stdin" in text
-    assert "SCRIPTS_DIR" in text
-    assert ".deft/core/scripts" in text
+    # #1814 Option A: pre-push skips HEAD-only branch gate; refspec-aware via preflight-gh.
+    assert "deft preflight-gh --pre-push-stdin" in text
+    assert "command -v deft" in text
+    assert "preflight_branch.py" not in text
+    assert "deft verify:branch" not in text
 
 
 def test_taskfile_check_includes_verify_branch():

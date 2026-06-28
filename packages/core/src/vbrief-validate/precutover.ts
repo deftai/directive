@@ -1,12 +1,12 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { GENERATED_SPEC_PURPOSE, GENERATED_SPEC_SOURCE_SPEC } from "../spec-authority/constants.js";
+import { isFullSpecState, isGreenfieldSpecExport } from "../spec-authority/resolver.js";
 import { DEPRECATION_SENTINEL } from "../vbrief-build/constants.js";
 
 export { DEPRECATION_SENTINEL as DEPRECATED_REDIRECT_SENTINEL };
 
 const DEPRECATION_REDIRECT_PURPOSE = "<!-- Purpose: deprecation redirect -->";
-const GENERATED_SPEC_PURPOSE = "<!-- Purpose: rendered specification -->";
-const GENERATED_SPEC_SOURCE = "<!-- Source of truth: vbrief/specification.vbrief.json -->";
 const SPEC_SOURCE_RELPATH = join("vbrief", "specification.vbrief.json");
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
@@ -25,17 +25,20 @@ export function isDeprecationRedirect(content: string): boolean {
   return content.includes(DEPRECATION_SENTINEL) || content.includes(DEPRECATION_REDIRECT_PURPOSE);
 }
 
+/** Full-spec generated export (specification.vbrief.json source line). */
 export function isGeneratedSpecificationExport(projectRoot: string, content: string): boolean {
   return (
     content.includes(GENERATED_SPEC_PURPOSE) &&
-    content.includes(GENERATED_SPEC_SOURCE) &&
+    content.includes(GENERATED_SPEC_SOURCE_SPEC) &&
     existsSync(join(projectRoot, SPEC_SOURCE_RELPATH))
   );
 }
 
-/** Return true for a fully current ``task spec:render`` root export. */
+/** Return true for a fully current generated spec export (full-spec or greenfield). */
 export function isCurrentGeneratedSpecification(projectRoot: string, content: string): boolean {
-  return isGeneratedSpecificationExport(projectRoot, content) && hasCompleteLifecycle(projectRoot);
+  if (!hasCompleteLifecycle(projectRoot)) return false;
+  if (isGeneratedSpecificationExport(projectRoot, content)) return true;
+  return isGreenfieldSpecExport(projectRoot);
 }
 
 function isFile(path: string): boolean {
@@ -56,8 +59,9 @@ function safeReadText(path: string): string {
 
 function rootMarkdownIsLegacy(projectRoot: string, filename: string, content: string): boolean {
   if (isDeprecationRedirect(content)) return false;
-  if (filename === "SPECIFICATION.md" && isGeneratedSpecificationExport(projectRoot, content)) {
-    return false;
+  if (filename === "SPECIFICATION.md") {
+    if (isGeneratedSpecificationExport(projectRoot, content)) return false;
+    if (isGreenfieldSpecExport(projectRoot)) return false;
   }
   return filename === "SPECIFICATION.md" || filename === "PROJECT.md";
 }
@@ -78,23 +82,10 @@ export function detectPreCutoverLegacy(projectRoot: string): string[] {
 
 /** Structured result of a pre-cutover (pre-v0.20 document model) probe. */
 export interface PrecutoverDetection {
-  /** True when any legacy pre-v0.20 artifact still needs migration. */
   preCutover: boolean;
-  /** Human-readable reasons; empty when the project is on the current model. */
   reasons: string[];
 }
 
-/**
- * Detect whether ``projectRoot`` still carries pre-v0.20 (pre-cutover) document-model
- * artifacts that need migration. Mirrors the AGENTS.md "Pre-Cutover Check" rule and the
- * legacy ``scripts/_precutover.py`` helper: a project is pre-cutover when any of the
- * following hold:
- *
- * - ``SPECIFICATION.md`` exists and is neither a deprecation redirect nor a current
- *   generated spec export;
- * - ``PROJECT.md`` exists and is not a deprecation redirect;
- * - ``vbrief/`` exists but is missing one or more lifecycle folders.
- */
 export function detectPreCutover(projectRoot: string): PrecutoverDetection {
   const reasons: string[] = [];
 
@@ -127,16 +118,14 @@ export function detectPreCutover(projectRoot: string): PrecutoverDetection {
   return { preCutover: reasons.length > 0, reasons };
 }
 
-/**
- * Render the single-line pre-cutover status string surfaced by ``deft doctor``.
- * Flags the migration-needed state with reasons, or reports a clean current-model state.
- */
 export function renderPrecutoverLine(projectRoot: string): string {
   const { preCutover, reasons } = detectPreCutover(projectRoot);
   if (!preCutover) {
     return "Pre-cutover: none -- project is on the current vBRIEF document model.";
   }
-  // Collapse any embedded newlines so the status line stays a single line (CWE-116).
   const summary = reasons.join("; ").replace(/\r?\n/g, " ");
   return `Pre-cutover: migration needed -- ${summary}. Run \`deft migrate:vbrief\` to migrate.`;
 }
+
+// Re-export for classify callers (#2013).
+export { isFullSpecState, isGreenfieldSpecExport };

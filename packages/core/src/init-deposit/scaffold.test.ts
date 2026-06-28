@@ -67,8 +67,18 @@ describe("init-deposit scaffold", () => {
     writeFileSync(join(deftDir, "vbrief", "schemas", "example.schema.json"), "{}\n", "utf8");
     writeFileSync(join(deftDir, "vbrief", "vbrief.md"), "# vbrief\n", "utf8");
     mkdirSync(join(deftDir, ".githooks"), { recursive: true });
-    writeFileSync(join(deftDir, ".githooks", "pre-commit"), "#!/bin/sh\nexit 0\n", "utf8");
+    writeFileSync(
+      join(deftDir, ".githooks", "pre-commit"),
+      readFileSync(join(process.cwd(), ".githooks/pre-commit"), "utf8"),
+      "utf8",
+    );
     chmodSync(join(deftDir, ".githooks", "pre-commit"), 0o755);
+    writeFileSync(
+      join(deftDir, ".githooks", "pre-push"),
+      readFileSync(join(process.cwd(), ".githooks/pre-push"), "utf8"),
+      "utf8",
+    );
+    chmodSync(join(deftDir, ".githooks", "pre-push"), 0o755);
   }
 
   it("writes AGENTS.md managed section on greenfield", () => {
@@ -130,7 +140,9 @@ describe("init-deposit scaffold", () => {
         setHooksPath: () => true,
       }),
     ).toBe(true);
-    expect(readFileSync(join(project, ".githooks", "pre-commit"), "utf8")).toContain("#!/bin/sh");
+    expect(readFileSync(join(project, ".githooks", "pre-commit"), "utf8")).toContain(
+      "deft verify:branch",
+    );
   });
 
   it("deposits #1430 neutralization artifacts", async () => {

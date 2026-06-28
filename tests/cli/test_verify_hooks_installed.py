@@ -1,12 +1,11 @@
-"""Tests for scripts/verify_hooks_installed.py (#1463).
+"""Tests for scripts/verify_hooks_installed.py (#1463 / #2049).
 
 Covers the hardened, three-state ``verify:hooks-installed`` health check that
 replaces the old ``core.hooksPath == .githooks`` string compare (which produced
 a FALSE GREEN in vendored consumer projects):
 
-- exit 0 -- hooks installed AND functional (own-repo + vendored layouts).
-- exit 1 -- not installed, OR wired-but-non-functional (the #1463 false-green
-  class: core.hooksPath set but the hooks dir / hooks / gate scripts missing).
+- exit 0 -- hooks installed AND functional (deft CLI dispatch, no scripts/ required).
+- exit 1 -- not installed, OR wired-but-non-functional.
 - exit 2 -- config error (project root missing, git unavailable).
 
 ``_configured_hooks_path`` is monkeypatched per test so we drive the
@@ -26,6 +25,16 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "verify_hooks_installed.py"
 
+DEFT_PRE_COMMIT = """#!/usr/bin/env sh
+deft verify:branch --project-root "$REPO_ROOT"
+deft verify:encoding --staged --project-root "$REPO_ROOT"
+deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT"
+"""
+
+DEFT_PRE_PUSH = """#!/usr/bin/env sh
+deft preflight-gh --pre-push-stdin
+"""
+
 
 def _load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -42,8 +51,6 @@ def gate():
 
 
 def _stub_hooks_path(monkeypatch, gate, value, error=None) -> None:
-    """Force ``_configured_hooks_path`` to return a deterministic result."""
-
     def fake(_root: Path) -> tuple[str | None, str | None]:  # noqa: ARG001
         return value, error
 
@@ -53,54 +60,41 @@ def _stub_hooks_path(monkeypatch, gate, value, error=None) -> None:
 def _make_hooks_dir(root: Path, rel: str = ".githooks") -> Path:
     hooks = root / rel
     hooks.mkdir(parents=True, exist_ok=True)
-    for name in ("pre-commit", "pre-push"):
+    for name, body in (("pre-commit", DEFT_PRE_COMMIT), ("pre-push", DEFT_PRE_PUSH)):
         hook = hooks / name
-        hook.write_text("#!/usr/bin/env sh\nexit 0\n", encoding="utf-8")
-        # Mark executable so the #1477 POSIX-executability gate sees a
-        # functional hook (chmod is a harmless no-op for the exec bit on
-        # Windows).
+        hook.write_text(body, encoding="utf-8")
         hook.chmod(0o755)
     return hooks
 
 
-def _make_scripts_dir(root: Path, rel: str) -> Path:
-    scripts = root / Path(rel)
-    scripts.mkdir(parents=True, exist_ok=True)
-    for name in ("preflight_branch.py", "verify_encoding.py", "preflight_gh.py"):
-        (scripts / name).write_text("# gate\n", encoding="utf-8")
-    return scripts
-
-
 def test_own_repo_layout_passes(gate, tmp_path, monkeypatch):
-    """Directive repo layout: .githooks/ + scripts/ both at the root."""
+    """Directive repo layout: .githooks/ at root, no scripts/ required (#2049)."""
     _make_hooks_dir(tmp_path)
-    _make_scripts_dir(tmp_path, "scripts")
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 0
-    assert "installed and functional" in msg
+    assert "dispatch via deft CLI" in msg
 
 
-def test_vendored_layout_passes(gate, tmp_path, monkeypatch):
-    """Vendored consumer: root .githooks/ wired, gate scripts under .deft/core/scripts/."""
+def test_vendored_layout_passes_without_scripts(gate, tmp_path, monkeypatch):
+    """Python-free consumer: hooks at root, no scripts/ directory."""
     _make_hooks_dir(tmp_path)
-    _make_scripts_dir(tmp_path, ".deft/core/scripts")
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 0
-    assert "installed and functional" in msg
+    assert "dispatch via deft CLI" in msg
+    assert not (tmp_path / "scripts").exists()
 
 
 def test_posix_executable_hooks_pass(gate, tmp_path, monkeypatch):
     """POSIX: present + executable hooks pass the #1477 exec check."""
     if os.name != "posix":
         pytest.skip("exec-bit check is POSIX-only")
-    _make_hooks_dir(tmp_path)  # helper chmods 0o755
-    _make_scripts_dir(tmp_path, "scripts")
+    _make_hooks_dir(tmp_path)
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 0
-    assert "installed and functional" in msg
+    assert "dispatch via deft CLI" in msg
 
 
 def test_posix_non_executable_hooks_fail(gate, tmp_path, monkeypatch):
@@ -109,11 +103,10 @@ def test_posix_non_executable_hooks_fail(gate, tmp_path, monkeypatch):
         pytest.skip("exec-bit check is POSIX-only")
     hooks = tmp_path / ".githooks"
     hooks.mkdir()
-    for name in ("pre-commit", "pre-push"):
+    for name, body in (("pre-commit", DEFT_PRE_COMMIT), ("pre-push", DEFT_PRE_PUSH)):
         hook = hooks / name
-        hook.write_text("#!/usr/bin/env sh\nexit 0\n", encoding="utf-8")
-        hook.chmod(0o644)  # NON-executable
-    _make_scripts_dir(tmp_path, "scripts")
+        hook.write_text(body, encoding="utf-8")
+        hook.chmod(0o644)
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 1
@@ -128,9 +121,6 @@ def test_hooks_path_unset_is_not_installed(gate, tmp_path, monkeypatch):
 
 
 def test_wired_but_hooks_dir_missing_fails(gate, tmp_path, monkeypatch):
-    """The #1463 false-green: core.hooksPath set but the directory does not exist."""
-    # No .githooks/ created at the root.
-    _make_scripts_dir(tmp_path, ".deft/core/scripts")
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 1
@@ -139,9 +129,7 @@ def test_wired_but_hooks_dir_missing_fails(gate, tmp_path, monkeypatch):
 
 
 def test_wired_but_hook_files_missing_fails(gate, tmp_path, monkeypatch):
-    """Hooks dir exists but pre-commit / pre-push are absent."""
     (tmp_path / ".githooks").mkdir()
-    _make_scripts_dir(tmp_path, ".deft/core/scripts")
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 1
@@ -149,39 +137,36 @@ def test_wired_but_hook_files_missing_fails(gate, tmp_path, monkeypatch):
     assert "pre-commit" in msg
 
 
-def test_wired_but_gate_scripts_unresolvable_fails(gate, tmp_path, monkeypatch):
-    """Hooks present but NO scripts dir in any known layout -- the core #1463 bug."""
-    _make_hooks_dir(tmp_path)
-    # No scripts/, .deft/core/scripts/, or deft/scripts/ created.
+def test_legacy_python_hooks_fail(gate, tmp_path, monkeypatch):
+    hooks = _make_hooks_dir(tmp_path)
+    (hooks / "pre-commit").write_text(
+        "python3 scripts/preflight_branch.py\n", encoding="utf-8"
+    )
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 1
     assert "NON-FUNCTIONAL" in msg
-    assert "gate scripts cannot be" in msg
+    assert "Python scripts" in msg
 
 
-def test_wired_but_partial_scripts_dir_fails(gate, tmp_path, monkeypatch):
-    """Scripts dir resolves via the probe but a referenced gate script is missing."""
-    _make_hooks_dir(tmp_path)
-    scripts = tmp_path / ".deft" / "core" / "scripts"
-    scripts.mkdir(parents=True)
-    # Only the probe script exists; verify_encoding.py / preflight_gh.py are absent.
-    (scripts / "preflight_branch.py").write_text("# gate\n", encoding="utf-8")
+def test_pre_push_verify_branch_rejected(gate, tmp_path, monkeypatch):
+    hooks = _make_hooks_dir(tmp_path)
+    (hooks / "pre-push").write_text(
+        "deft verify:branch --project-root x\ndeft preflight-gh --pre-push-stdin\n",
+        encoding="utf-8",
+    )
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code, msg = gate.evaluate(tmp_path)
     assert code == 1
-    assert "NON-FUNCTIONAL" in msg
-    assert "verify_encoding.py" in msg
+    assert "pre-push must not invoke verify:branch" in msg
 
 
 def test_absolute_hooks_path_resolved(gate, tmp_path, monkeypatch):
-    """An absolute core.hooksPath is honored verbatim (not joined to the root)."""
     hooks = _make_hooks_dir(tmp_path, "custom-hooks")
-    _make_scripts_dir(tmp_path, "scripts")
     _stub_hooks_path(monkeypatch, gate, str(hooks))
     code, msg = gate.evaluate(tmp_path)
     assert code == 0
-    assert "installed and functional" in msg
+    assert "dispatch via deft CLI" in msg
 
 
 def test_missing_project_root_is_config_error(gate, tmp_path):
@@ -198,9 +183,7 @@ def test_git_unavailable_is_config_error(gate, tmp_path, monkeypatch):
 
 
 def test_main_quiet_returns_code(gate, tmp_path, monkeypatch):
-    """main() resolves --project-root and honors --quiet (smoke)."""
     _make_hooks_dir(tmp_path)
-    _make_scripts_dir(tmp_path, "scripts")
     _stub_hooks_path(monkeypatch, gate, ".githooks")
     code = gate.main(["--project-root", str(tmp_path), "--quiet"])
     assert code == 0

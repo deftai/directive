@@ -27,7 +27,9 @@ DEPRECATION_REDIRECT_PURPOSE = "<!-- Purpose: deprecation redirect -->"
 
 GENERATED_SPEC_PURPOSE = "<!-- Purpose: rendered specification -->"
 GENERATED_SPEC_SOURCE = "<!-- Source of truth: vbrief/specification.vbrief.json -->"
+GENERATED_SPEC_SOURCE_PD = "<!-- Source of truth: vbrief/PROJECT-DEFINITION.vbrief.json -->"
 SPEC_SOURCE_RELPATH = Path("vbrief") / "specification.vbrief.json"
+PD_SOURCE_RELPATH = Path("vbrief") / "PROJECT-DEFINITION.vbrief.json"
 
 
 def missing_lifecycle_folders(project_root: Path) -> list[str]:
@@ -46,6 +48,36 @@ def is_deprecation_redirect(content: str) -> bool:
     return DEPRECATED_REDIRECT_SENTINEL in content or DEPRECATION_REDIRECT_PURPOSE in content
 
 
+def _read_text_safe(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+
+
+def is_greenfield_spec_export(project_root: Path) -> bool:
+    """Greenfield PD-sourced generated SPECIFICATION.md (#2013)."""
+    spec_md = _read_text_safe(project_root / "SPECIFICATION.md")
+    return (
+        (project_root / PD_SOURCE_RELPATH).is_file()
+        and not (project_root / SPEC_SOURCE_RELPATH).is_file()
+        and GENERATED_SPEC_PURPOSE in spec_md
+        and GENERATED_SPEC_SOURCE_PD in spec_md
+    )
+
+
+def is_full_spec_state(project_root: Path) -> bool:
+    """Full-spec post-cutover state (spec file + matching banner)."""
+    spec_md = _read_text_safe(project_root / "SPECIFICATION.md")
+    return (
+        (project_root / PD_SOURCE_RELPATH).is_file()
+        and has_complete_lifecycle(project_root)
+        and GENERATED_SPEC_PURPOSE in spec_md
+        and GENERATED_SPEC_SOURCE in spec_md
+        and (project_root / SPEC_SOURCE_RELPATH).is_file()
+    )
+
+
 def is_generated_specification_export(project_root: Path, content: str) -> bool:
     """Return True for a generated ``task spec:render`` root export.
 
@@ -61,8 +93,10 @@ def is_generated_specification_export(project_root: Path, content: str) -> bool:
 
 
 def is_current_generated_specification(project_root: Path, content: str) -> bool:
-    """Return True for a fully current ``task spec:render`` root export."""
-    return is_generated_specification_export(project_root, content) and has_complete_lifecycle(
+    """Return True for a fully current generated spec export (full-spec or greenfield)."""
+    if not has_complete_lifecycle(project_root):
+        return False
+    return is_generated_specification_export(project_root, content) or is_greenfield_spec_export(
         project_root
     )
 
@@ -71,8 +105,11 @@ def root_markdown_is_legacy(project_root: Path, filename: str, content: str) -> 
     """Return True if a root markdown artifact should trigger migration."""
     if is_deprecation_redirect(content):
         return False
-    if filename == "SPECIFICATION.md" and is_generated_specification_export(project_root, content):
-        return False
+    if filename == "SPECIFICATION.md":
+        if is_generated_specification_export(project_root, content):
+            return False
+        if is_greenfield_spec_export(project_root):
+            return False
     return filename in {"SPECIFICATION.md", "PROJECT.md"}
 
 
