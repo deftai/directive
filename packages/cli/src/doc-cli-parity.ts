@@ -19,7 +19,7 @@ export const LEGACY_DOC_VERB_KEYS = new Set(["setup", "upgrade", "relocate"]);
 const CLI_PREFIX_RE = /^(?:directive|deft|npx @deftai\/directive)\s+/;
 const BACKTICK_COMMAND_RE = /`((?:directive|deft|npx @deftai\/directive)\s+[^`]+)`/g;
 
-const TOP_LEVEL_UX = new Set(["init", "update", "migrate"]);
+const TOP_LEVEL_UX = new Set(["init", "update", "migrate", "bootstrap"]);
 
 export interface DocCliReference {
   readonly source: string;

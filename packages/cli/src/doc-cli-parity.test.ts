@@ -66,8 +66,9 @@ describe("doc ↔ CLI parity gate (#1996)", () => {
     expect(reason).toContain("unregistered handler");
   });
 
-  it("accepts npm top-level init/update/migrate invocations", () => {
+  it("accepts npm top-level init/update/migrate/bootstrap invocations", () => {
     expect(validateDocCliCommand("init")).toBeNull();
     expect(validateDocCliCommand("update")).toBeNull();
+    expect(validateDocCliCommand("bootstrap")).toBeNull();
   });
 });
