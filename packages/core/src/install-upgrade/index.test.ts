@@ -117,6 +117,36 @@ describe("install-upgrade", () => {
     expect(readFileSync(join(project, "vbrief", ".deft-version"), "utf8").trim()).toBe("0.61.0");
   });
 
+  it("renders AGENTS.md from the deposited .deft/core templates, not the engine root (#2057)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
+    temps.push(base);
+    const { project, deftDir } = scaffoldProject(base, "0.61.0");
+    writeFileSync(
+      join(deftDir, "templates", "agents-entry.md"),
+      "<!-- deft:managed-section v3 -->\nDEPOSITED-TEMPLATE-BODY\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    writeFileSync(join(project, "vbrief", ".deft-version"), "0.60.0\n", "utf8");
+
+    // Engine root carries a DIFFERENT template body, simulating a global npm
+    // engine at a newer content version than the deposited payload.
+    const fakeGlobal = join(base, "global-npm");
+    mkdirSync(join(fakeGlobal, "templates"), { recursive: true });
+    writeFileSync(
+      join(fakeGlobal, "templates", "agents-entry.md"),
+      "<!-- deft:managed-section v3 -->\nGLOBAL-ENGINE-BODY\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+
+    runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: fakeGlobal },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    const agents = readFileSync(join(project, "AGENTS.md"), "utf8");
+    expect(agents).toContain("DEPOSITED-TEMPLATE-BODY");
+    expect(agents).not.toContain("GLOBAL-ENGINE-BODY");
+  });
+
   it("does not claim a marker update when the version stays at the dev fallback (#2053)", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-upgrade-"));
     temps.push(base);

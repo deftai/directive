@@ -45,6 +45,23 @@ function resolveUpgradeVersion(frameworkRoot: string, projectRoot: string): stri
   return DEV_FALLBACK;
 }
 
+/**
+ * The consumer's deposited framework install root (`.deft/core`, then legacy
+ * `deft/`), if present. Used as the AGENTS.md render root and manifest target so
+ * the refresh renders from the *deposited* templates that match the installed
+ * payload -- not the (possibly newer) templates bundled in a global npm engine.
+ */
+function resolveInstallRoot(projectRoot: string): string | null {
+  for (const candidate of [join(projectRoot, ".deft", "core"), join(projectRoot, "deft")]) {
+    try {
+      if (statSync(candidate).isDirectory()) return candidate;
+    } catch {
+      // try next candidate
+    }
+  }
+  return null;
+}
+
 /** Prior `managed_by` provenance sentinel from an install manifest, if any (#2056). */
 function readManagedByAt(installRoot: string): string | null {
   const manifestPath = join(installRoot, "VERSION");
@@ -188,13 +205,19 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
   const frameworkRoot = resolve(args.frameworkRoot);
   const version = resolveUpgradeVersion(frameworkRoot, projectRoot);
   const normalizedVersion = version.startsWith("v") ? version.slice(1) : version;
+  // Render AGENTS.md from the deposited install root so the managed section
+  // matches the installed payload, not the engine's bundled templates (which a
+  // global npm `deft` may carry at a different version). Falls back to the engine
+  // framework root when no deposit is present.
+  const installRoot = resolveInstallRoot(projectRoot);
+  const agentsRoot = installRoot ?? frameworkRoot;
 
   io.writeOut(`Deft CLI v${normalizedVersion} - Upgrade\n\n`);
 
   const recorded = readVersionMarker(projectRoot);
   if (recorded === normalizedVersion) {
     io.writeOut(`Project already at ${normalizedVersion}. Nothing to do.\n`);
-    return runAgentsRefresh(projectRoot, frameworkRoot, io);
+    return runAgentsRefresh(projectRoot, agentsRoot, io);
   }
 
   const legacy = detectPreCutoverLegacy(projectRoot);
@@ -209,17 +232,10 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
     existsSync(vbriefDir) && statSync(vbriefDir).isDirectory() ? vbriefDir : projectRoot;
   writeVersionMarker(targetDir, normalizedVersion);
 
-  let writtenManifestPath: string | null = null;
-  for (const installCandidate of [join(projectRoot, ".deft", "core"), join(projectRoot, "deft")]) {
-    if (existsSync(installCandidate) && statSync(installCandidate).isDirectory()) {
-      writtenManifestPath = writeInstallManifestAt(
-        installCandidate,
-        projectRoot,
-        normalizedVersion,
-      );
-      break;
-    }
-  }
+  const writtenManifestPath =
+    installRoot !== null
+      ? writeInstallManifestAt(installRoot, projectRoot, normalizedVersion)
+      : null;
   migrateLegacyInstallManifest(projectRoot, writtenManifestPath);
 
   if (normalizedVersion === DEV_FALLBACK) {
@@ -240,5 +256,5 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
     "If legacy SPECIFICATION.md or PROJECT.md content remains, run `task migrate:vbrief` to complete the upgrade.\n",
   );
 
-  return runAgentsRefresh(projectRoot, frameworkRoot, io);
+  return runAgentsRefresh(projectRoot, agentsRoot, io);
 }
