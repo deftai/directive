@@ -1451,10 +1451,7 @@ export interface DirectiveBootstrapDeps {
   deftCorePresent?: (projectRoot: string) => boolean;
   userMdPresent?: (projectRoot: string) => boolean;
   projectDefPresent?: (projectRoot: string) => boolean;
-  runInitDeposit?: (
-    projectRoot: string,
-    io: DispatchIo,
-  ) => Promise<number>;
+  runInitDeposit?: (projectRoot: string, io: DispatchIo) => Promise<number>;
 }
 
 function bootstrapPhaseLabel(phase: 1 | 2 | 3): BootstrapPhaseLabel {
@@ -1626,7 +1623,11 @@ function printDirectiveBootstrapHelp(io: DispatchIo): void {
   );
 }
 
-function emitBootstrapHandoff(handoff: DirectiveBootstrapHandoff, io: DispatchIo, json: boolean): void {
+function emitBootstrapHandoff(
+  handoff: DirectiveBootstrapHandoff,
+  io: DispatchIo,
+  json: boolean,
+): void {
   if (json) {
     io.writeOut(`${JSON.stringify(handoff, null, 2)}\n`);
     return;

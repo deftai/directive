@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { routeAndDispatch } from "./cli-router/index.js";
 import {
   CLI_MODULE_VERBS,
   CORE_MODULE_VERBS,
@@ -20,7 +21,6 @@ import {
   SETUP_SKILL_REL_PATH,
   VERB_ALIASES,
 } from "./dispatch.js";
-import { routeAndDispatch } from "./cli-router/index.js";
 
 const engineVersion = engineInfo().version;
 const VERSION_BANNER = `@deftai/directive (engine: @deftai/directive-core@${engineVersion})\n`;
@@ -1118,7 +1118,11 @@ describe("directive bootstrap (#2022 Phase 4)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  function captureIo(): { io: { writeOut: (t: string) => void; writeErr: (t: string) => void }; out: string[]; err: string[] } {
+  function captureIo(): {
+    io: { writeOut: (t: string) => void; writeErr: (t: string) => void };
+    out: string[];
+    err: string[];
+  } {
     const out: string[] = [];
     const err: string[] = [];
     return {
