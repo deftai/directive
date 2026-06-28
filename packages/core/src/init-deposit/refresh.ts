@@ -26,6 +26,7 @@ import {
   type LegacyLayoutDetection,
   LegacyLayoutRefusedError,
 } from "./legacy-detect.js";
+import { printMigrateNudgeIfNeeded } from "./migrate.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
@@ -287,6 +288,7 @@ export function printUpdateComplete(result: RefreshDepositResult, io: InitDeposi
   if (result.versionSkewNotice) {
     io.printf(`\n${result.versionSkewNotice}\n`);
   }
+  printMigrateNudgeIfNeeded(result.projectDir, io);
   io.printf("\n");
 }
 

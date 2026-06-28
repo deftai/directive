@@ -17,8 +17,7 @@ Coverage:
 - CRLF templates are normalised to LF so the banner never injects
   mixed line endings into the release body.
 - The real committed template at the repo root is picked up and carries
-  the canonical ``deft-install --yes --upgrade --repo-root . --json``
-  command.
+  the canonical npm upgrade path (``npm i -g @deftai/directive@latest``).
 - Integration: ``run_pipeline`` Step 12 hands banner-led notes to
   ``create_github_release`` for the maintainer repo and unmodified notes
   for a consumer repo.
@@ -62,11 +61,16 @@ release = _load_module()
 BANNER_TEXT = (
     "## Upgrading from an older version?\n"
     "\n"
-    "Run the canonical upgrade command:\n"
+    "If you are on an existing Deft installation and seeing warnings from `deft doctor` "
+    "about skill-path stubs, outdated surfaces, or payload staleness, run the canonical "
+    "npm upgrade path:\n"
     "\n"
     "```bash\n"
-    "deft-install --yes --upgrade --repo-root . --json\n"
+    "npm i -g @deftai/directive@latest\n"
     "```\n"
+    "\n"
+    "Then from your project root: `deft update`, `deft migrate` (one-time, idempotent), "
+    "and `deft doctor`.\n"
 )
 
 NOTES = "### Added\n- A user-facing feature (#9999)\n"
@@ -98,8 +102,9 @@ class TestPrependUpgradeBanner:
         assert out.startswith("## Upgrading from an older version?")
         # The original notes survive verbatim, after the banner.
         assert out.endswith(NOTES)
-        # The canonical command rides through unchanged.
-        assert "deft-install --yes --upgrade --repo-root . --json" in out
+        # The canonical npm upgrade path rides through unchanged.
+        assert "npm i -g @deftai/directive@latest" in out
+        assert "deft migrate" in out
 
     def test_banner_joined_by_single_blank_line(self, tmp_path):
         """Banner + notes are separated by exactly one blank line."""
@@ -159,9 +164,10 @@ class TestPrependUpgradeBanner:
             NOTES, release.DEFAULT_REPO, REPO_ROOT
         )
         assert out.startswith("## Upgrading from an older version?")
-        assert "deft-install --yes --upgrade --repo-root . --json" in out
-        # The full-guidance pointer to #1411 rides through.
-        assert "issues/1411" in out
+        assert "npm i -g @deftai/directive@latest" in out
+        assert "deft migrate" in out
+        # Full guidance points at UPGRADING.md.
+        assert "content/UPGRADING.md" in out
 
 
 # ---------------------------------------------------------------------------

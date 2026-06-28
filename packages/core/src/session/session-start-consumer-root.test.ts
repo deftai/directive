@@ -15,7 +15,11 @@ function seedConsumerProject(): string {
   const root = mkdtempSync(join(tmpdir(), "session-start-consumer-"));
   temps.push(root);
   mkdirSync(join(root, ".deft", "core"), { recursive: true });
-  writeFileSync(join(root, ".deft", "core", "VERSION"), "0.59.0\n", "utf8");
+  writeFileSync(
+    join(root, ".deft", "core", "VERSION"),
+    "tag: 'v0.59.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+    "utf8",
+  );
   mkdirSync(join(root, "vbrief"), { recursive: true });
   writeFileSync(
     join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
@@ -56,5 +60,12 @@ describe("runSessionStart consumer project root (#2032)", () => {
       worktree_path: string;
     };
     expect(state.worktree_path).toBe(root);
+  });
+
+  it("emits a migrate nudge for unstamped canonical-vendored deposits (#2059)", () => {
+    const root = seedConsumerProject();
+    const result = runSessionStart(root, { writeHistory: false });
+    expect(result.code).toBe(0);
+    expect(result.lines.join("\n")).toContain("directive migrate");
   });
 });

@@ -22,6 +22,7 @@ import {
   type LegacyLayoutDetection,
   LegacyLayoutRefusedError,
 } from "./legacy-detect.js";
+import { printMigrateNudgeIfNeeded } from "./migrate.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
@@ -166,6 +167,7 @@ export function printNextSteps(result: InitDepositResult, io: InitDepositIo): vo
   io.printf(
     "  3. On first session, the agent will guide you through creating USER.md and PROJECT-DEFINITION.vbrief.json\n",
   );
+  printMigrateNudgeIfNeeded(result.projectDir, io);
   io.printf("\n");
 }
 

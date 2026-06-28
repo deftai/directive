@@ -148,7 +148,7 @@ def test_triage_references_quickstart_and_doctor_surface() -> None:
         "The triage must name the canonical upgrade command as the "
         "final step (#1115 / #1912)."
     )
-    assert "directive doctor" in body, (
+    assert "deft doctor" in body, (
         "The triage must point multi-version upgraders at the doctor command "
         "surface (#1115)."
     )

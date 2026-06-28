@@ -261,3 +261,38 @@ export function runMigrateCli(options: RunMigrateCliOptions): number {
   }
   return result.exitCode;
 }
+
+/** One-line nudge for init/update/session completion when provenance is unstamped (#2059). */
+export const MIGRATE_COMPLETION_NUDGE =
+  "[deft] One-time: run `directive migrate` to stamp npm provenance (idempotent). See content/UPGRADING.md.";
+
+/** True when a canonical-vendored deposit exists and lacks the npm-managed sentinel. */
+export function shouldEmitMigrateNudge(
+  projectRoot: string,
+  seams: Pick<MigrateSeams, "isFile" | "readText"> = {},
+): boolean {
+  const isFile = seams.isFile ?? existsSync;
+  const readText = seams.readText ?? defaultReadText;
+  const manifestPath = detectCanonicalVendoredManifest(projectRoot, isFile);
+  if (manifestPath === null) return false;
+  const text = readText(manifestPath);
+  if (text === null) return false;
+  const manifest = parseInstallManifest(text);
+  if (Object.keys(manifest).length === 0) return false;
+  return !isNpmManaged(manifest);
+}
+
+export interface MigrateNudgeIo {
+  printf: (text: string) => void;
+}
+
+/** Prints {@link MIGRATE_COMPLETION_NUDGE} when {@link shouldEmitMigrateNudge} is true. */
+export function printMigrateNudgeIfNeeded(
+  projectRoot: string,
+  io: MigrateNudgeIo,
+  seams: Pick<MigrateSeams, "isFile" | "readText"> = {},
+): void {
+  if (shouldEmitMigrateNudge(projectRoot, seams)) {
+    io.printf(`\n${MIGRATE_COMPLETION_NUDGE}\n`);
+  }
+}

@@ -89,7 +89,7 @@ describe("test_upgrading_bigjump_triage.py", () => {
     expect(body).toContain("QUICK-START.md#");
     // npm is now the canonical upgrade command; Go installer is a frozen legacy bridge (#1912)
     expect(body).toContain("npm i -g @deftai/directive@latest");
-    expect(body).toContain("directive doctor");
+    expect(body).toContain("deft doctor");
   });
   it("test_doctor_anchor_actually_exists", () => {
     expect(anchorSet(readText("UPGRADING.md"))).toContain(DOCTOR_ANCHOR);

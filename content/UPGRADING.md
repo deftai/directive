@@ -10,24 +10,59 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Canonical upgrade — npm (v0.55.1+)
 
-From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical upgrade command is:
+From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical consumer upgrade path is:
 
-```bash
-npm i -g @deftai/directive@latest
-```
+1. **Upgrade the global engine** (Node ≥ 20):
 
-Run from any shell with Node ≥ 20. After upgrading, run `deft update` from your project root to refresh the vendored `.deft/core/` payload and project-root `.githooks/` (#2049), then start a new agent session so the refreshed AGENTS.md and skills load from a clean context. Run `deft doctor` to confirm the install state.
+   ```bash
+   npm i -g @deftai/directive@latest
+   ```
+
+2. **Refresh the project deposit** from your project root:
+
+   ```bash
+   deft update
+   ```
+
+   This re-copies the vendored `.deft/core/` payload and refreshes project-root `.githooks/` (#2049).
+
+3. **Stamp npm provenance (one-time, idempotent):**
+
+   ```bash
+   deft migrate
+   ```
+
+   Adds `managed_by: npm` to `.deft/core/VERSION` so doctor and future updates recognize the npm channel. Safe to re-run — when already hybrid, migrate is a no-op.
+
+4. **Verify:**
+
+   ```bash
+   deft doctor
+   ```
+
+Start a **new agent session** after steps 2–3 so the refreshed AGENTS.md and skills load from a clean context.
+
+### `deft migrate` vs `migrate:vbrief`
+
+These commands are unrelated — do not confuse them:
+
+| Command | When to use | What it does |
+| --- | --- | --- |
+| `deft migrate` / `directive migrate` | Canonical-vendored `.deft/core/` deposit after npm upgrade (#1941) | Stamps `managed_by: npm` into the install manifest. Idempotent; never downloads payload. |
+| `deft migrate:vbrief` / `task migrate:vbrief` | Pre-v0.20 cutover only (legacy `SPECIFICATION.md` / `PROJECT.md`) | Rewrites flat docs into deprecation redirects and creates vBRIEF lifecycle folders. See [From any pre-v0.20 version → v0.20.0](#from-any-pre-v020-version--v0200). |
 
 ### One-time migration from the Go installer (legacy → npm)
 
 If your current install uses the frozen Go installer (`deft-install`), migrate once:
 
 1. Install Node ≥ 20 if not already present.
-2. Run `npm i -g @deftai/directive` to install from npm.
-3. In your project, run `directive agents:refresh` to update AGENTS.md with the npm-based managed section.
-4. Verify with `directive doctor` — the install-integrity check confirms the npm payload is current.
+2. Run `npm i -g @deftai/directive@latest` to install the engine from npm.
+3. In your project, run `deft update` to refresh `.deft/core/` and `.githooks/`.
+4. Run `deft migrate` once to stamp npm provenance (idempotent).
+5. Run `deft agents:refresh` if the AGENTS.md managed section is stale.
+6. Verify with `deft doctor` — install integrity confirms the npm payload is current.
 
-The frozen Go installer remains available at [GitHub Releases](https://github.com/deftai/directive/releases) as a legacy / offline bridge but receives no further updates (#1912); Node ≥ 20 is still required to run Deft afterward. After this one-time step, `npm i -g @deftai/directive@latest` is the only upgrade command you need.
+The frozen Go installer remains available at [GitHub Releases](https://github.com/deftai/directive/releases) as a legacy / offline bridge but receives no further updates (#1912); Node ≥ 20 is still required to run Deft afterward. After this one-time step, the four-step npm path above is all you need for every future upgrade.
 
 ---
 
@@ -97,13 +132,16 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 - **From v0.60.x — manual (hook refresh).** After #2049, consumer `.githooks/` dispatch through the `deft` CLI only. Run [From v0.60.0 → v0.61.x (refresh project-root git hooks, #2049)](#from-v0600--v061x-refresh-project-root-git-hooks-2049) after every framework upgrade that touches hook templates.
 - **From v0.28–v0.36 (and the final hop to current) — auto-handled.** If still on the Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) above, then `npm i -g @deftai/directive@latest` for all future upgrades.
 
-**Final step for every bucket.** Finish on the canonical upgrade command, then let the doctor confirm you are current:
+**Final step for every bucket.** Finish on the canonical npm upgrade path, then let the doctor confirm you are current:
 
 ```bash
 npm i -g @deftai/directive@latest
+deft update
+deft migrate
+deft doctor
 ```
 
-Then run `deft update` in your project root (refreshes `.deft/core/` and `.githooks/`), then `directive doctor`: it checks install integrity and tells you whether any further hop is still due. If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
+Run those from your project root after any bucket-specific hops (`deft update` refreshes `.deft/core/` and `.githooks/`; `deft migrate` stamps npm provenance once and is idempotent). If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
 
 ---
 

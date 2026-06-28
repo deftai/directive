@@ -8,8 +8,10 @@ import {
   isNpmManaged,
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
+  printMigrateNudgeIfNeeded,
   runMigrate,
   runMigrateCli,
+  shouldEmitMigrateNudge,
   stampManifestText,
 } from "./migrate.js";
 
@@ -224,5 +226,41 @@ describe("runMigrateCli", () => {
     expect(parsed.outcome).toBe("migrated");
     expect(parsed.sentinel_key).toBe(NPM_MANAGED_SENTINEL_KEY);
     expect(parsed.sentinel_value).toBe(NPM_MANAGED_SENTINEL_VALUE);
+  });
+});
+
+describe("shouldEmitMigrateNudge / printMigrateNudgeIfNeeded (#2059)", () => {
+  it("returns true for canonical-vendored deposit without npm sentinel", () => {
+    const root = makeProject(VENDORED_MANIFEST);
+    expect(shouldEmitMigrateNudge(root)).toBe(true);
+  });
+
+  it("returns false when deposit is already npm-managed", () => {
+    const root = makeProject(
+      `${VENDORED_MANIFEST}${NPM_MANAGED_SENTINEL_KEY}: '${NPM_MANAGED_SENTINEL_VALUE}'\n`,
+    );
+    expect(shouldEmitMigrateNudge(root)).toBe(false);
+  });
+
+  it("returns false when no canonical deposit exists", () => {
+    const root = makeProject(null);
+    expect(shouldEmitMigrateNudge(root)).toBe(false);
+  });
+
+  it("printMigrateNudgeIfNeeded emits the one-line nudge when needed", () => {
+    const root = makeProject(VENDORED_MANIFEST);
+    const lines: string[] = [];
+    printMigrateNudgeIfNeeded(root, { printf: (text) => lines.push(text) });
+    expect(lines.join("")).toContain("directive migrate");
+    expect(lines.join("")).toContain("idempotent");
+  });
+
+  it("printMigrateNudgeIfNeeded is silent when already hybrid", () => {
+    const root = makeProject(
+      `${VENDORED_MANIFEST}${NPM_MANAGED_SENTINEL_KEY}: '${NPM_MANAGED_SENTINEL_VALUE}'\n`,
+    );
+    const lines: string[] = [];
+    printMigrateNudgeIfNeeded(root, { printf: (text) => lines.push(text) });
+    expect(lines.join("")).toBe("");
   });
 });

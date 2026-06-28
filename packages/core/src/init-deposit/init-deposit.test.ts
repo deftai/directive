@@ -227,6 +227,54 @@ describe("runInitDeposit", () => {
     expect(lines.join("")).toContain("Next steps:");
   });
 
+  it("printNextSteps nudges migrate when deposit lacks npm provenance (#2059)", () => {
+    const root = makeProject(VENDORED_MANIFEST);
+    const lines: string[] = [];
+    printNextSteps(
+      {
+        projectDir: root,
+        deftDir: join(root, ".deft", "core"),
+        skillsCreated: true,
+        taskfileWired: true,
+        configDir: "/cfg",
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    expect(lines.join("")).toContain("directive migrate");
+  });
+
+  it("printNextSteps omits migrate nudge when deposit is already npm-managed", () => {
+    const root = makeProject(`${VENDORED_MANIFEST}managed_by: 'npm'\n`);
+    const lines: string[] = [];
+    printNextSteps(
+      {
+        projectDir: root,
+        deftDir: join(root, ".deft", "core"),
+        skillsCreated: true,
+        taskfileWired: true,
+        configDir: "/cfg",
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    expect(lines.join("")).not.toContain("directive migrate");
+  });
+
+  function makeProject(manifestBody: string): string {
+    const root = freshRoot("init-nudge-");
+    const coreDir = join(root, ".deft", "core");
+    mkdirSync(coreDir, { recursive: true });
+    writeFileSync(join(coreDir, "VERSION"), manifestBody, "utf8");
+    return root;
+  }
+
+  const VENDORED_MANIFEST = [
+    "ref: 'v0.40.0'",
+    "sha: 'deadbeef'",
+    "tag: 'v0.40.0'",
+    "install_root: '.deft/core'",
+    "",
+  ].join("\n");
+
   it("printNextSteps notes when skills were already present", () => {
     const lines: string[] = [];
     printNextSteps(

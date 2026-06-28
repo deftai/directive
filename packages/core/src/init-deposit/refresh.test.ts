@@ -19,6 +19,7 @@ import {
   frameworkRefreshSideEffects,
   parseUpdateArgv,
   printRefreshSideEffects,
+  printUpdateComplete,
   runRefreshDeposit,
   runRefreshDepositCli,
 } from "./refresh.js";
@@ -295,6 +296,58 @@ describe("runRefreshDeposit", () => {
     const manifest = readFileSync(join(deftDir, "VERSION"), "utf8");
     expect(manifest).toContain("tag: 'v0.61.0'");
     expect(manifest).toContain("managed_by: 'npm'");
+  });
+
+  it("printUpdateComplete nudges migrate when managed_by is absent (#2059)", () => {
+    const project = freshRoot("refresh-nudge-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.61.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    const lines: string[] = [];
+    printUpdateComplete(
+      {
+        projectDir: project,
+        deftDir,
+        contentVersion: "0.61.0",
+        engineVersion: "0.61.0",
+        previousDepositVersion: "0.60.0",
+        agentsMdUpdated: true,
+        versionSkewNotice: null,
+        legacyLayout: false,
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    expect(lines.join("")).toContain("directive migrate");
+  });
+
+  it("printUpdateComplete omits migrate nudge when deposit is npm-managed", () => {
+    const project = freshRoot("refresh-nudge-skip-");
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.61.0'\nsha: abc\ninstall_root: '.deft/core'\nmanaged_by: 'npm'\n",
+      "utf8",
+    );
+    const lines: string[] = [];
+    printUpdateComplete(
+      {
+        projectDir: project,
+        deftDir,
+        contentVersion: "0.61.0",
+        engineVersion: "0.61.0",
+        previousDepositVersion: "0.60.0",
+        agentsMdUpdated: true,
+        versionSkewNotice: null,
+        legacyLayout: false,
+      },
+      { printf: (text) => lines.push(text) },
+    );
+    expect(lines.join("")).not.toContain("directive migrate");
   });
 
   it("throws LegacyLayoutRefusedError on a legacy layout (no refresh)", async () => {

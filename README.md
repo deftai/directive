@@ -45,7 +45,7 @@ Run `directive` (or the `deft` alias) from any project directory — for example
 
 **Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
 
-> **🔄 Upgrading?** Run `npm i -g @deftai/directive@latest`. Read [UPGRADING.md](./content/UPGRADING.md) before proceeding if coming from a Go-installer install. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
+> **🔄 Upgrading?** Run `npm i -g @deftai/directive@latest`, then `deft update`, `deft migrate` (one-time, idempotent), and `deft doctor` from your project root. Read [UPGRADING.md](./content/UPGRADING.md) before proceeding if coming from a Go-installer install. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
 
 > **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
 

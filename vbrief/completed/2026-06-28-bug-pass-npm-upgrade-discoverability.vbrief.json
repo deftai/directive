@@ -8,7 +8,7 @@
   "plan": {
     "id": "bug-pass-npm-upgrade-discoverability",
     "title": "npm upgrade happy path: surface deft migrate in docs and CLI output",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Operators following README and UPGRADING.md never encounter `deft migrate` until `deft doctor` warns them. This story adds the one-time npm provenance stamp to the canonical upgrade path, fixes the release upgrade banner that still cites legacy deft-install, and reconciles UPGRADING.md npm-migration steps with the shipped CLI. Includes a one-line disambiguation between `deft migrate` (npm handshake) and `migrate:vbrief` (pre-v0.20 cutover).",
       "ImplementationPlan": "1. Update content/UPGRADING.md canonical npm section and Go-to-npm one-time migration to document npm i -g, deft update, deft migrate (idempotent), deft doctor; add migrate verb disambiguation table. 2. Update README Getting Started upgrade note if needed. 3. Replace .github/release-notes/upgrade-banner.md with npm canonical path (#2012). 4. Add migrate nudge to directive init/update completion output when managed_by is absent (packages/core/src/init-deposit/). 5. Optionally add non-blocking session:start line when signpost would fire. 6. Extend doc-cli-parity or content tests so UPGRADING cites only registered verbs; verify #1994 closable.",
@@ -83,7 +83,9 @@
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-06-28T22:31:32Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -107,6 +109,6 @@
         "title": "Issue #2057: consumer npm upgrade path fragmented (umbrella)"
       }
     ],
-    "updated": "2026-06-28T22:24:09Z"
+    "updated": "2026-06-28T22:31:32Z"
   }
 }

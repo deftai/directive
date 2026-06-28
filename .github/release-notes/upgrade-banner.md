@@ -1,13 +1,13 @@
 ## Upgrading from an older version?
 
-If you are on an existing Deft installation and seeing warnings from `task doctor` about skill-path stubs, outdated surfaces, or payload staleness, run the canonical upgrade command:
+If you are on an existing Deft installation and seeing warnings from `deft doctor` about skill-path stubs, outdated surfaces, or payload staleness, run the canonical npm upgrade path:
 
 ```bash
-deft-install --yes --upgrade --repo-root . --json
+npm i -g @deftai/directive@latest
 ```
 
-(Drop `--json` for human-readable output. Download the latest installer from the [latest release](https://github.com/deftai/directive/releases/latest) if needed.)
+Then from your project root: `deft update`, `deft migrate` (one-time, idempotent), and `deft doctor`.
 
 After upgrading, start a completely new agent session.
 
-Full guidance: https://github.com/deftai/directive/issues/1411
+Full guidance: https://github.com/deftai/directive/blob/master/content/UPGRADING.md

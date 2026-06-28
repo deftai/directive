@@ -36,6 +36,9 @@ describe("doc ↔ CLI parity gate (#1996)", () => {
       refs.some((r) => r.source === "content/UPGRADING.md" && r.normalized === "agents:refresh"),
     ).toBe(true);
     expect(
+      refs.some((r) => r.source === "content/UPGRADING.md" && r.normalized === "migrate"),
+    ).toBe(true);
+    expect(
       refs.some(
         (r) => r.source === "content/templates/agents-entry.md" && r.normalized === "triage:queue",
       ),
@@ -69,6 +72,7 @@ describe("doc ↔ CLI parity gate (#1996)", () => {
   it("accepts npm top-level init/update/migrate/bootstrap invocations", () => {
     expect(validateDocCliCommand("init")).toBeNull();
     expect(validateDocCliCommand("update")).toBeNull();
+    expect(validateDocCliCommand("migrate")).toBeNull();
     expect(validateDocCliCommand("bootstrap")).toBeNull();
   });
 });

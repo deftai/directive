@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { runningInsideDeftRepo } from "../doctor/paths.js";
+import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposit/migrate.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { resolvePolicy } from "../policy/resolve.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
@@ -332,6 +334,10 @@ export function runSessionStart(
       });
       lines.push(message);
     }
+  }
+
+  if (!runningInsideDeftRepo(projectRoot) && shouldEmitMigrateNudge(projectRoot)) {
+    lines.push(MIGRATE_COMPLETION_NUDGE);
   }
 
   const payload = newRitualStatePayload({
