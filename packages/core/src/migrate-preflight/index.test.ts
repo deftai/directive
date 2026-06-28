@@ -27,9 +27,13 @@ function initCleanGitRepo(project: string): void {
   execFileSync("git", ["-c", "user.email=ci@test", "-c", "user.name=ci", "add", "-A"], {
     cwd: project,
   });
-  execFileSync("git", ["-c", "user.email=ci@test", "-c", "user.name=ci", "commit", "-q", "-m", "seed"], {
-    cwd: project,
-  });
+  execFileSync(
+    "git",
+    ["-c", "user.email=ci@test", "-c", "user.name=ci", "commit", "-q", "-m", "seed"],
+    {
+      cwd: project,
+    },
+  );
 }
 
 function makeFakeDeftRoot(
