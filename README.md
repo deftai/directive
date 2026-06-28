@@ -116,10 +116,10 @@ consumer `vbrief/` scaffolding into the framework repository. See
 
 ### 2. Set Up Your Preferences
 
-Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PROJECT-DEFINITION.vbrief.json`) but adapt to different users:
+Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PROJECT-DEFINITION.vbrief.json` + scope vBRIEFs) but adapt to different users:
 
-- **Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it` to start the Deft setup flow. The agent will ask how technical you are and adapt accordingly.
-- **CLI** (for technical users) — `.deft/core/run bootstrap` runs an interactive setup for `USER.md` and `vbrief/PROJECT-DEFINITION.vbrief.json`.
+- **Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it`, or run `directive bootstrap` to deposit the framework and hand off to the setup skill.
+- **CLI launcher** (for terminal operators) — `directive bootstrap` deposits `.deft/core/` when absent and routes into the agent-driven setup flow (Phases 1–3). Use `--project` or `--strategy <name>` to jump to a later phase; `--reconfigure` / `--force` control re-entry when artifacts already exist.
 
 **User config location:**
 
@@ -129,10 +129,11 @@ Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PR
 
 ### 3. Generate a Scope vBRIEF
 
-`.deft/core/run bootstrap` can chain into the scope-vBRIEF interview, or you can create one anytime:
+`directive bootstrap` walks the full setup chain (user preferences → project definition → scope vBRIEF interview). Jump to a later phase when re-entering:
 
 ```bash
-.deft/core/run spec            # AI-assisted interview -> vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json
+directive bootstrap --strategy interview   # Phase 3 — scope vBRIEF interview
+directive bootstrap --project              # Phase 2 — project configuration only
 ```
 
 The interview writes a **scope vBRIEF** to `vbrief/proposed/`. `vbrief/*.vbrief.json` files are the source of truth; `.md` files (`PRD.md`, `SPECIFICATION.md`, `ROADMAP.md`) are rendered views generated on demand via `task *:render`. Direct edits to the rendered `.md` files are overwritten on the next render — edit the underlying `.vbrief.json` instead.
@@ -140,10 +141,8 @@ The interview writes a **scope vBRIEF** to `vbrief/proposed/`. `vbrief/*.vbrief.
 Other commands:
 
 ```bash
-.deft/core/run reset           # Reset config files
-.deft/core/run validate        # Check deft configuration
-.deft/core/run doctor          # Check system dependencies
-.deft/core/run upgrade         # Record the current framework version after updating deft
+directive doctor               # Check install integrity and dependencies
+directive agents:refresh       # Refresh AGENTS.md managed section
 ```
 
 ### 4. Build With AI

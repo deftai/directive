@@ -17,6 +17,11 @@ import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
 import {
+  parseInitArgv,
+  runInitDepositCli,
+  userConfigDir,
+} from "@deftai/directive-core/init-deposit";
+import {
   appendAuditLog,
   disclosureLine,
   projectDefinitionPath,
@@ -1400,6 +1405,285 @@ export function runSetupGhx(argv: string[], io: DispatchIo, deps: SetupGhxDeps =
     io.writeErr(`[setup_ghx] error: ${message}\n`);
     return 1;
   }
+}
+
+// ===========================================================================
+// Native directive bootstrap launcher (#2022 Phase 4).
+//
+// Thin operator entry: deposit-if-absent, carry phase intent + deliberate
+// re-entry signal, then hand off to deft-directive-setup (agent-driven).
+// ===========================================================================
+
+export const SETUP_SKILL_REL_PATH = ".deft/core/skills/deft-directive-setup/SKILL.md";
+
+export type BootstrapPhaseLabel = "user" | "project" | "spec";
+export type BootstrapReEntry = "none" | "prompt" | "reconfigure" | "force";
+
+export interface DirectiveBootstrapArgs {
+  projectRoot: string;
+  jumpProject: boolean;
+  strategy: string | null;
+  reconfigure: boolean;
+  force: boolean;
+  json: boolean;
+  error?: string;
+}
+
+export interface DirectiveBootstrapPlan {
+  phase: 1 | 2 | 3;
+  phaseLabel: BootstrapPhaseLabel;
+  reEntry: BootstrapReEntry;
+  strategy: string | null;
+}
+
+export interface DirectiveBootstrapHandoff {
+  handoff: "deft-directive-setup";
+  skill_path: string;
+  project_root: string;
+  deposited: boolean;
+  phase: 1 | 2 | 3;
+  phase_label: BootstrapPhaseLabel;
+  re_entry: BootstrapReEntry;
+  strategy: string | null;
+}
+
+export interface DirectiveBootstrapDeps {
+  deftCorePresent?: (projectRoot: string) => boolean;
+  userMdPresent?: (projectRoot: string) => boolean;
+  projectDefPresent?: (projectRoot: string) => boolean;
+  runInitDeposit?: (
+    projectRoot: string,
+    io: DispatchIo,
+  ) => Promise<number>;
+}
+
+function bootstrapPhaseLabel(phase: 1 | 2 | 3): BootstrapPhaseLabel {
+  if (phase === 1) return "user";
+  if (phase === 2) return "project";
+  return "spec";
+}
+
+function resolveBootstrapUserMdPath(): string {
+  const override = process.env.DEFT_USER_PATH?.trim();
+  if (override) return resolve(override);
+  return join(userConfigDir(), "USER.md");
+}
+
+function defaultBootstrapDeps(): Required<DirectiveBootstrapDeps> {
+  return {
+    deftCorePresent: (projectRoot) => isDirSafe(join(resolve(projectRoot), ".deft", "core")),
+    userMdPresent: () => isFileSafe(resolveBootstrapUserMdPath()),
+    projectDefPresent: (projectRoot) => isFileSafe(projectDefinitionPath(projectRoot)),
+    runInitDeposit: async (projectRoot, io) => {
+      const initArgs = parseInitArgv(["--yes", "--repo-root", projectRoot, "--json"], []);
+      return runInitDepositCli({
+        ...initArgs,
+        writeOut: io.writeOut,
+        writeErr: io.writeErr,
+      });
+    },
+  };
+}
+
+/** Parse `directive bootstrap` argv (#2022 Phase 4). */
+export function parseDirectiveBootstrapArgs(argv: readonly string[]): DirectiveBootstrapArgs {
+  let projectRoot = ".";
+  let jumpProject = false;
+  let strategy: string | null = null;
+  let reconfigure = false;
+  let force = false;
+  let json = false;
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--project") {
+      jumpProject = true;
+    } else if (arg === "--reconfigure") {
+      reconfigure = true;
+    } else if (arg === "--force") {
+      force = true;
+    } else if (arg === "--json") {
+      json = true;
+    } else if (arg === "--project-root") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return {
+          projectRoot,
+          jumpProject,
+          strategy,
+          reconfigure,
+          force,
+          json,
+          error: "argument --project-root: expected one argument",
+        };
+      }
+      projectRoot = value;
+      i += 1;
+    } else if (arg?.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--strategy") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return {
+          projectRoot,
+          jumpProject,
+          strategy,
+          reconfigure,
+          force,
+          json,
+          error: "argument --strategy: expected one argument",
+        };
+      }
+      strategy = value;
+      i += 1;
+    } else if (arg?.startsWith("--strategy=")) {
+      strategy = arg.slice("--strategy=".length);
+    } else if (arg === "--help" || arg === "-h") {
+      return {
+        projectRoot,
+        jumpProject,
+        strategy,
+        reconfigure,
+        force,
+        json,
+        error: "__help__",
+      };
+    } else {
+      return {
+        projectRoot,
+        jumpProject,
+        strategy,
+        reconfigure,
+        force,
+        json,
+        error: `unrecognized argument: ${arg}`,
+      };
+    }
+  }
+
+  return {
+    projectRoot: resolve(projectRoot),
+    jumpProject,
+    strategy,
+    reconfigure,
+    force,
+    json,
+  };
+}
+
+/** Resolve phase intent and deliberate re-entry signal from parsed args + on-disk state. */
+export function resolveDirectiveBootstrapPlan(
+  args: DirectiveBootstrapArgs,
+  deps: Required<DirectiveBootstrapDeps>,
+): DirectiveBootstrapPlan {
+  let phase: 1 | 2 | 3;
+  if (args.jumpProject) {
+    phase = 2;
+  } else if (args.strategy !== null) {
+    phase = 3;
+  } else if (!deps.userMdPresent(args.projectRoot)) {
+    phase = 1;
+  } else if (!deps.projectDefPresent(args.projectRoot)) {
+    phase = 2;
+  } else {
+    phase = 3;
+  }
+
+  let reEntry: BootstrapReEntry = "none";
+  if (args.force) {
+    reEntry = "force";
+  } else if (args.reconfigure) {
+    reEntry = "reconfigure";
+  } else {
+    const artifactExists =
+      phase === 1
+        ? deps.userMdPresent(args.projectRoot)
+        : phase === 2
+          ? deps.projectDefPresent(args.projectRoot)
+          : deps.projectDefPresent(args.projectRoot);
+    if (artifactExists) {
+      reEntry = "prompt";
+    }
+  }
+
+  return {
+    phase,
+    phaseLabel: bootstrapPhaseLabel(phase),
+    reEntry,
+    strategy: args.strategy,
+  };
+}
+
+function printDirectiveBootstrapHelp(io: DispatchIo): void {
+  io.writeOut(
+    "Usage: directive bootstrap [--project-root <path>] [--project] [--strategy <name>] [--reconfigure] [--force] [--json]\n\n" +
+      "Deposit the framework when absent, then hand off to deft-directive-setup.\n\n" +
+      "  --project       Jump to Phase 2 (project configuration)\n" +
+      "  --strategy      Jump to Phase 3 (scope vBRIEF / spec interview)\n" +
+      "  --reconfigure   Deliberate re-entry — agent should reconfigure existing artifacts\n" +
+      "  --force         Skip reconfigure-or-keep prompt; overwrite allowed\n" +
+      "  --json          Emit structured handoff JSON on stdout\n",
+  );
+}
+
+function emitBootstrapHandoff(handoff: DirectiveBootstrapHandoff, io: DispatchIo, json: boolean): void {
+  if (json) {
+    io.writeOut(`${JSON.stringify(handoff, null, 2)}\n`);
+    return;
+  }
+  io.writeOut("[directive bootstrap] Setup launcher — hand off to deft-directive-setup\n\n");
+  io.writeOut(`project_root: ${handoff.project_root}\n`);
+  io.writeOut(`deposited: ${handoff.deposited}\n`);
+  io.writeOut(`phase: ${handoff.phase} (${handoff.phase_label})\n`);
+  io.writeOut(`re_entry: ${handoff.re_entry}\n`);
+  if (handoff.strategy !== null) {
+    io.writeOut(`strategy: ${handoff.strategy}\n`);
+  }
+  io.writeOut(`\nNext: Read and follow ${handoff.skill_path}\n`);
+}
+
+/** Native `directive bootstrap` handler (#2022 Phase 4). */
+export async function runDirectiveBootstrap(
+  argv: string[],
+  io: DispatchIo,
+  deps: DirectiveBootstrapDeps = {},
+): Promise<number> {
+  const merged = { ...defaultBootstrapDeps(), ...deps };
+  const args = parseDirectiveBootstrapArgs(argv);
+
+  if (args.error === "__help__") {
+    printDirectiveBootstrapHelp(io);
+    return 0;
+  }
+  if (args.error !== undefined) {
+    io.writeErr(`directive bootstrap: ${args.error}\n`);
+    return 2;
+  }
+
+  const plan = resolveDirectiveBootstrapPlan(args, merged);
+
+  let deposited = false;
+  if (!merged.deftCorePresent(args.projectRoot)) {
+    const initCode = await merged.runInitDeposit(args.projectRoot, io);
+    if (initCode !== 0) {
+      return initCode;
+    }
+    deposited = true;
+  }
+
+  const handoff: DirectiveBootstrapHandoff = {
+    handoff: "deft-directive-setup",
+    skill_path: SETUP_SKILL_REL_PATH,
+    project_root: args.projectRoot,
+    deposited,
+    phase: plan.phase,
+    phase_label: plan.phaseLabel,
+    re_entry: plan.reEntry,
+    strategy: plan.strategy,
+  };
+
+  emitBootstrapHandoff(handoff, io, args.json);
+  return 0;
 }
 
 // ===========================================================================

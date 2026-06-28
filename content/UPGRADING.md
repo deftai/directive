@@ -318,7 +318,7 @@ The relocator does NOT auto-rewrite consumer-owned files (the canonical reason: 
 - `AGENTS.md` head/tail (above and below the managed-section markers) -- replace `deft/run` with `.deft/core/run` and `Full guidelines: deft/main.md` with `Full guidelines: .deft/core/main.md`.
 - CI workflow files (`.github/workflows/*.yml`) -- replace any `deft/run <task>` invocations.
 - Project scripts (`scripts/`, `Makefile`, `Taskfile.yml`, dotfiles) that hardcode the legacy path.
-- README / docs / contributor-onboarding prose that points new contributors at `deft/run` for bootstrap.
+- README / docs / contributor-onboarding prose that points new contributors at `directive bootstrap` for first-time setup (replaces legacy `deft/run bootstrap` / `run project` / `run spec` shims).
 
 The advisory grep output is the operator's worklist; treat it as a finite todo. Once every flagged occurrence is either updated to `.deft/core/run` or explicitly acknowledged as legacy-friendly redirect-stub content (e.g. the `skills/deft-{sync,setup,...}/SKILL.md` redirect stubs that intentionally retain `deft/run` per [#411](https://github.com/deftai/directive/issues/411)), commit the changes alongside the relocate. (F1 #1015)
 

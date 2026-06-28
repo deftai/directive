@@ -14,15 +14,45 @@ description: >-
 
 # Deft Directive Setup
 
-Agent-driven alternative to `.deft/core/run bootstrap && .deft/core/run project && .deft/core/run spec`.
+Agent-driven setup via `directive bootstrap` (canonical CLI launcher) or by reading this skill directly when the agent session starts.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
 - User says "set up deft", "configure deft", or "bootstrap my project"
+- Terminal operator runs `directive bootstrap` (see [Launcher hand-off](#launcher-hand-off-directive-bootstrap) below)
 - User asks to create USER.md, PROJECT-DEFINITION.vbrief.json, or a specification
 - User clones a deft-enabled repo for the first time with no config
+
+## Launcher hand-off (`directive bootstrap`)
+
+! When invoked from the terminal, `directive bootstrap` is the canonical setup launcher (#2022 Phase 4). It deposits `.deft/core/` when absent, resolves phase intent, emits a deliberate re-entry signal, and hands off to this skill — it does **not** run the interview itself.
+
+**Full chain (new users):**
+
+```bash
+directive bootstrap
+```
+
+Starts at Phase 1 when `USER.md` is missing, Phase 2 when only `USER.md` exists, or Phase 3 when both user and project config exist.
+
+**Re-entry jump-in:**
+
+```bash
+directive bootstrap --project              # Phase 2 — project configuration
+directive bootstrap --strategy interview   # Phase 3 — scope vBRIEF / spec interview
+```
+
+**Deliberate re-entry signals** (when target artifacts already exist):
+
+- Default (`re_entry: prompt`) — ask reconfigure-or-keep before overwriting
+- `--reconfigure` (`re_entry: reconfigure`) — agent should re-run the target phase
+- `--force` (`re_entry: force`) — skip the reconfigure-or-keep prompt; overwrite allowed
+
+! On hand-off, read the structured output from `directive bootstrap` (or `directive bootstrap --json`) and begin at the indicated `phase` respecting `re_entry`.
+
+⊗ Treat `directive bootstrap` as a substitute for this skill — the launcher only deposits and routes; all interview work stays here.
 
 ## Pre-Cutover Detection Guard
 

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Terminal operators get a canonical setup launcher** — `directive bootstrap` deposits `.deft/core/` when absent, carries phase intent and a deliberate re-entry signal, and hands off to the deft-directive-setup skill; operator docs now point here instead of legacy `run bootstrap` / `run project` / `run spec`. Refs #2022 Phase 4.
 - **Supported ghx install verb** — `directive setup:ghx` (and `task setup:ghx`) is now a native TypeScript command with consent-gated install (default deny); `task setup` nudges when `gh` is present but ghx is missing. Refs #2022.
 - **PROJECT-DEFINITION staleness flags can be cleared after review** — `task project:ack-staleness` records a completed-scope watermark on `plan.metadata.staleness_review` so `task project:render` stops repeating the same narrative warnings until new completed work arrives. Distinct from `task reconcile:issues` (scope origin freshness). Closes #640.
 

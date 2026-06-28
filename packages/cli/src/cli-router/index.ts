@@ -2,7 +2,7 @@
  * CLI router entry: `directive <namespace> <verb>` → flat dispatcher (#1670 / #11 S3).
  */
 
-import { type DispatchIo, dispatch } from "../dispatch.js";
+import { type DispatchIo, dispatch, runDirectiveBootstrap } from "../dispatch.js";
 import { runInit } from "../init-cli/init.js";
 import { runMigrate } from "../init-cli/migrate.js";
 import { runUpdate } from "../init-cli/update.js";
@@ -52,6 +52,9 @@ export async function routeAndDispatch(argv: readonly string[], io?: DispatchIo)
   }
   if (first === "migrate") {
     return runMigrate(rest, io ?? defaultIo());
+  }
+  if (first === "bootstrap") {
+    return runDirectiveBootstrap(rest, io ?? defaultIo());
   }
 
   return dispatch(routed.argv, io);

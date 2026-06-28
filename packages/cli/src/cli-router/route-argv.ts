@@ -21,7 +21,7 @@ export const TOP_LEVEL_UX_VERBS = [
 export const STUBBED_TOP_LEVEL_VERBS = new Set<string>([]);
 
 /** Registered but not yet implemented as TS handlers. */
-export const DEFERRED_TOP_LEVEL_VERBS = new Set<string>(["bootstrap", "feature"]);
+export const DEFERRED_TOP_LEVEL_VERBS = new Set<string>(["feature"]);
 
 /** scope:* lifecycle verbs routed through scope-lifecycle handler. */
 export const SCOPE_LIFECYCLE_VERBS = new Set([
@@ -109,7 +109,7 @@ function routeTopLevel(first: string, rest: string[]): RoutedArgv | null {
   if (first === "check" || first === "doctor") {
     return { kind: "dispatch", argv: [first, ...rest] };
   }
-  if (first === "init" || first === "update" || first === "migrate") {
+  if (first === "init" || first === "update" || first === "migrate" || first === "bootstrap") {
     return { kind: "dispatch", argv: [first, ...rest] };
   }
   if (STUBBED_TOP_LEVEL_VERBS.has(first)) {

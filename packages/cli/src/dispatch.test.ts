@@ -10,13 +10,17 @@ import {
   GHX_VERSION,
   INSTALL_PS1_URL,
   INSTALL_SH_URL,
+  parseDirectiveBootstrapArgs,
   printHelp,
   registeredVerbs,
   resetHandlerCacheForTests,
   resolveCanonicalVerb,
+  runDirectiveBootstrap,
   runSetupGhx,
+  SETUP_SKILL_REL_PATH,
   VERB_ALIASES,
 } from "./dispatch.js";
+import { routeAndDispatch } from "./cli-router/index.js";
 
 const engineVersion = engineInfo().version;
 const VERSION_BANNER = `@deftai/directive (engine: @deftai/directive-core@${engineVersion})\n`;
@@ -1099,5 +1103,153 @@ describe("native setup:ghx handler (#2022)", () => {
     expect(INSTALL_PS1_URL).toContain(`/${GHX_VERSION}/`);
     expect(INSTALL_SH_URL).toContain(`/${GHX_VERSION}/`);
     expect(INSTALL_PS1_URL).not.toContain("/main/");
+  });
+});
+
+describe("directive bootstrap (#2022 Phase 4)", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "deft-bootstrap-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  function captureIo(): { io: { writeOut: (t: string) => void; writeErr: (t: string) => void }; out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    return {
+      io: {
+        writeOut: (t) => out.push(t),
+        writeErr: (t) => err.push(t),
+      },
+      out,
+      err,
+    };
+  }
+
+  it("deposits when .deft/core is absent and hands off to setup skill", async () => {
+    rmSync(join(root, ".deft"), { recursive: true, force: true });
+    const { io, out } = captureIo();
+    let deposited = false;
+
+    const code = await runDirectiveBootstrap(["--project-root", root], io, {
+      deftCorePresent: () => false,
+      userMdPresent: () => false,
+      projectDefPresent: () => false,
+      runInitDeposit: async () => {
+        deposited = true;
+        mkdirSync(join(root, ".deft", "core"), { recursive: true });
+        return 0;
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(deposited).toBe(true);
+    expect(out.join("")).toContain("hand off to deft-directive-setup");
+    expect(out.join("")).toContain(SETUP_SKILL_REL_PATH);
+    expect(out.join("")).toContain("phase: 1 (user)");
+    expect(out.join("")).toContain("re_entry: none");
+  });
+
+  it("skips deposit when .deft/core already exists", async () => {
+    const { io, out } = captureIo();
+    let initCalled = false;
+
+    const code = await runDirectiveBootstrap(["--project-root", root], io, {
+      deftCorePresent: () => true,
+      userMdPresent: () => false,
+      projectDefPresent: () => false,
+      runInitDeposit: async () => {
+        initCalled = true;
+        return 0;
+      },
+    });
+
+    expect(code).toBe(0);
+    expect(initCalled).toBe(false);
+    expect(out.join("")).toContain("deposited: false");
+  });
+
+  it("carries --project phase intent and reconfigure re-entry signal", async () => {
+    mkdirSync(join(root, "vbrief"), { recursive: true });
+    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}\n", "utf8");
+    const { io, out } = captureIo();
+
+    const code = await runDirectiveBootstrap(
+      ["--project-root", root, "--project", "--reconfigure"],
+      io,
+      {
+        deftCorePresent: () => true,
+        userMdPresent: () => true,
+        projectDefPresent: () => true,
+        runInitDeposit: async () => 0,
+      },
+    );
+
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("phase: 2 (project)");
+    expect(out.join("")).toContain("re_entry: reconfigure");
+  });
+
+  it("carries --strategy phase intent and --force re-entry signal", async () => {
+    const { io, out } = captureIo();
+
+    const code = await runDirectiveBootstrap(
+      ["--project-root", root, "--strategy", "interview", "--force"],
+      io,
+      {
+        deftCorePresent: () => true,
+        userMdPresent: () => true,
+        projectDefPresent: () => true,
+        runInitDeposit: async () => 0,
+      },
+    );
+
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("phase: 3 (spec)");
+    expect(out.join("")).toContain("strategy: interview");
+    expect(out.join("")).toContain("re_entry: force");
+  });
+
+  it("emits structured JSON handoff with --json", async () => {
+    const { io, out } = captureIo();
+
+    const code = await runDirectiveBootstrap(["--project-root", root, "--json"], io, {
+      deftCorePresent: () => true,
+      userMdPresent: () => false,
+      projectDefPresent: () => false,
+      runInitDeposit: async () => 0,
+    });
+
+    expect(code).toBe(0);
+    const payload = JSON.parse(out.join("")) as {
+      handoff: string;
+      skill_path: string;
+      phase: number;
+      re_entry: string;
+    };
+    expect(payload.handoff).toBe("deft-directive-setup");
+    expect(payload.skill_path).toBe(SETUP_SKILL_REL_PATH);
+    expect(payload.phase).toBe(1);
+    expect(payload.re_entry).toBe("none");
+  });
+
+  it("parseDirectiveBootstrapArgs rejects unknown flags", () => {
+    const parsed = parseDirectiveBootstrapArgs(["--nope"]);
+    expect(parsed.error).toContain("unrecognized argument");
+  });
+
+  it("routeAndDispatch routes top-level bootstrap without stub error", async () => {
+    const { io, out, err } = captureIo();
+
+    const code = await routeAndDispatch(["bootstrap", "--project-root", root], io);
+
+    expect(code).toBe(0);
+    expect(err.join("")).not.toContain("not yet implemented");
+    expect(out.join("")).toContain(SETUP_SKILL_REL_PATH);
   });
 });
