@@ -7,7 +7,7 @@
     "id": "story-640-project-render-staleness-ack",
     "title": "Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags",
     "status": "completed",
-    "planRef": "proposed/2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p.vbrief.json",
+    "planRef": "cancelled/2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p.vbrief.json",
     "narratives": {
       "Description": "task project:render emits heuristic staleness_flags when completed scope titles overlap narrative keys, but re-rendering after manual review does not clear flags because no reviewed/acknowledged state is persisted. This story adds durable review metadata (watermark or per-narrative acknowledgement) so operators can mark narratives fresh after review and subsequent renders suppress repeat warnings until new completed work arrives.",
       "ImplementationPlan": "Extend the project-render module in packages/core/src/render/project-render.ts to persist acknowledgement metadata on plan.metadata and filter staleness_flags using that watermark.\nAdd packages/core/src/render/project-render.test.ts cases for initial emission, acknowledgement, no-repeat after ack, and re-flag on new completed scopes; run pnpm test project-render as verify evidence.",
