@@ -13,10 +13,15 @@ export * as prdRender from "./prd-render.js";
 export { main as prdRenderMain, parsePrdArgv, renderPrd } from "./prd-render.js";
 export * as projectRender from "./project-render.js";
 export {
+  acknowledgeProjectDefinitionStaleness,
+  buildStalenessAcknowledgement,
+  computeStalenessFlags,
   flagStaleNarratives,
   main as projectRenderMain,
+  parseStalenessReview,
   renderProjectDefinition,
   scanLifecycleFolders,
+  unacknowledgedCompletedItems,
 } from "./project-render.js";
 export * as roadmapRender from "./roadmap-render.js";
 export {

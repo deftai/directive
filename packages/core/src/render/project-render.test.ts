@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { validateProjectDefinition } from "../vbrief-validate/project-definition.js";
-import { renderProjectDefinition } from "./project-render.js";
+import {
+  acknowledgeProjectDefinitionStaleness,
+  renderProjectDefinition,
+} from "./project-render.js";
 
 const ISSUE_REF = {
   type: "x-vbrief/github-issue",
@@ -26,7 +29,7 @@ function writeScope(
   );
 }
 
-function writeProjectDefinition(vbriefDir: string): void {
+function writeProjectDefinition(vbriefDir: string, narratives?: Record<string, string>): void {
   writeFileSync(
     join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
     `${JSON.stringify(
@@ -35,7 +38,12 @@ function writeProjectDefinition(vbriefDir: string): void {
         plan: {
           title: "PROJECT-DEFINITION",
           status: "running",
-          narratives: { Overview: "Test", "tech stack": "TS" },
+          narratives: narratives ?? {
+            Overview: "Test",
+            "tech stack": "TS",
+            Architecture: "Monolith",
+            Configuration: "Defaults",
+          },
           items: [],
           metadata: { staleness_flags: [] },
         },
@@ -127,6 +135,100 @@ describe("project-render decompose round-trip", () => {
       vbrief,
     );
     expect(errors.filter((e) => e.includes("registry-status"))).toEqual([]);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("project-render staleness acknowledgement (#640)", () => {
+  const FIXED_NOW = new Date("2026-06-28T12:00:00Z");
+
+  it("emits staleness flags on first render when completed scopes overlap narratives", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-640-"));
+    const vbrief = join(root, "vbrief");
+    mkdirSync(vbrief, { recursive: true });
+
+    writeScope(vbrief, "completed", "2026-06-28-architecture-story.vbrief.json", {
+      title: "Architecture migration story",
+      status: "completed",
+      items: [],
+    });
+    writeProjectDefinition(vbrief);
+
+    renderProjectDefinition(vbrief, { now: FIXED_NOW });
+
+    const parsed = JSON.parse(
+      readFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+    ) as { plan: { metadata?: { staleness_flags?: string[] } } };
+    const flags = parsed.plan.metadata?.staleness_flags ?? [];
+    expect(flags.some((f) => f.includes("Architecture"))).toBe(true);
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("suppresses repeat flags after acknowledgement when no new completed scopes land", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-640-"));
+    const vbrief = join(root, "vbrief");
+    mkdirSync(vbrief, { recursive: true });
+
+    writeScope(vbrief, "completed", "2026-06-28-architecture-story.vbrief.json", {
+      title: "Architecture migration story",
+      status: "completed",
+      items: [],
+    });
+    writeProjectDefinition(vbrief);
+
+    renderProjectDefinition(vbrief, { now: FIXED_NOW });
+    const [ackOk] = acknowledgeProjectDefinitionStaleness(vbrief, { now: FIXED_NOW });
+    expect(ackOk).toBe(true);
+
+    renderProjectDefinition(vbrief, { now: new Date("2026-06-28T13:00:00Z") });
+    const parsed = JSON.parse(
+      readFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+    ) as {
+      plan: {
+        metadata?: {
+          staleness_flags?: string[];
+          staleness_review?: { acknowledged_completed_scope_ids?: string[] };
+        };
+      };
+    };
+    expect(parsed.plan.metadata?.staleness_flags ?? []).toEqual([]);
+    expect(parsed.plan.metadata?.staleness_review?.acknowledged_completed_scope_ids).toContain(
+      "2026-06-28-architecture-story",
+    );
+
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("re-flags when a new completed scope lands after acknowledgement", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-640-"));
+    const vbrief = join(root, "vbrief");
+    mkdirSync(vbrief, { recursive: true });
+
+    writeScope(vbrief, "completed", "2026-06-28-architecture-story.vbrief.json", {
+      title: "Architecture migration story",
+      status: "completed",
+      items: [],
+    });
+    writeProjectDefinition(vbrief);
+
+    renderProjectDefinition(vbrief, { now: FIXED_NOW });
+    acknowledgeProjectDefinitionStaleness(vbrief, { now: FIXED_NOW });
+
+    writeScope(vbrief, "completed", "2026-06-28-configuration-story.vbrief.json", {
+      title: "Configuration rollout story",
+      status: "completed",
+      items: [],
+    });
+
+    renderProjectDefinition(vbrief, { now: new Date("2026-06-28T14:00:00Z") });
+    const parsed = JSON.parse(
+      readFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+    ) as { plan: { metadata?: { staleness_flags?: string[] } } };
+    const flags = parsed.plan.metadata?.staleness_flags ?? [];
+    expect(flags.some((f) => f.includes("Configuration"))).toBe(true);
+    expect(flags.some((f) => f.includes("Architecture migration story"))).toBe(false);
 
     rmSync(root, { recursive: true, force: true });
   });

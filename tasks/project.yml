@@ -9,6 +9,12 @@ vars:
 # own repo root when invoked via ``includes:`` -- consumers got their data
 # scanned from ``deft/vbrief/``. Switched to ``{{.USER_WORKING_DIR}}`` to
 # match the convention used by roadmap:render / spec:render / migrate:vbrief.
+#
+# Staleness acknowledgement (#640): ``task project:ack-staleness`` records a
+# completed-scope watermark on PROJECT-DEFINITION ``plan.metadata.staleness_review``
+# so ``task project:render`` stops re-emitting the same narrative staleness flags
+# after review. This is distinct from ``task reconcile:issues``, which reconciles
+# origin freshness on scope vBRIEFs — not PROJECT-DEFINITION narrative heuristics.
 
 tasks:
   _ts-build:
@@ -25,3 +31,13 @@ tasks:
       - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" project-render "{{.USER_WORKING_DIR}}/vbrief"
+
+  ack-staleness:
+    desc: >-
+      Acknowledge reviewed PROJECT-DEFINITION narrative staleness (#640).
+      Distinct from task reconcile:issues (scope origin freshness).
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" project-render --acknowledge-staleness "{{.USER_WORKING_DIR}}/vbrief"

@@ -10,6 +10,14 @@ import { splitCamel, splitWords } from "./text-utils.js";
 
 type JsonObject = Record<string, unknown>;
 
+/** Durable review state for PROJECT-DEFINITION narrative staleness (#640). */
+export interface StalenessReviewMetadata {
+  /** ISO-8601 UTC when narratives were last reviewed/acknowledged. */
+  acknowledged_at: string;
+  /** Completed scope IDs incorporated at acknowledgement time (watermark). */
+  acknowledged_completed_scope_ids: readonly string[];
+}
+
 export interface LifecycleItem {
   id: string;
   title: string;
@@ -109,9 +117,71 @@ export function flagStaleNarratives(
   return flags.sort();
 }
 
+function isoTimestamp(date: Date): string {
+  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+/** Parse `plan.metadata.staleness_review` when present and well-formed. */
+export function parseStalenessReview(metadata: unknown): StalenessReviewMetadata | null {
+  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) {
+    return null;
+  }
+  const review = (metadata as JsonObject).staleness_review;
+  if (typeof review !== "object" || review === null || Array.isArray(review)) {
+    return null;
+  }
+  const acknowledgedAt = (review as JsonObject).acknowledged_at;
+  const scopeIds = (review as JsonObject).acknowledged_completed_scope_ids;
+  if (typeof acknowledgedAt !== "string" || acknowledgedAt.length === 0) {
+    return null;
+  }
+  if (!Array.isArray(scopeIds) || !scopeIds.every((id) => typeof id === "string")) {
+    return null;
+  }
+  return {
+    acknowledged_at: acknowledgedAt,
+    acknowledged_completed_scope_ids: [...scopeIds].sort(),
+  };
+}
+
+/** Completed scopes not yet covered by the acknowledgement watermark. */
+export function unacknowledgedCompletedItems(
+  completedItems: readonly LifecycleItem[],
+  review: StalenessReviewMetadata | null,
+): LifecycleItem[] {
+  if (!review) return [...completedItems];
+  const acknowledged = new Set(review.acknowledged_completed_scope_ids);
+  return completedItems.filter((item) => !acknowledged.has(item.id));
+}
+
+/** Build acknowledgement metadata for the current completed-scope set. */
+export function buildStalenessAcknowledgement(
+  completedItems: readonly LifecycleItem[],
+  options: { now?: Date; existing?: StalenessReviewMetadata | null } = {},
+): StalenessReviewMetadata {
+  const now = isoTimestamp(options.now ?? new Date());
+  const mergedIds = new Set([
+    ...(options.existing?.acknowledged_completed_scope_ids ?? []),
+    ...completedItems.map((item) => item.id),
+  ]);
+  return {
+    acknowledged_at: now,
+    acknowledged_completed_scope_ids: [...mergedIds].sort(),
+  };
+}
+
+export function computeStalenessFlags(
+  narratives: Record<string, string>,
+  completedItems: readonly LifecycleItem[],
+  review: StalenessReviewMetadata | null = null,
+): string[] {
+  const pending = unacknowledgedCompletedItems(completedItems, review);
+  return flagStaleNarratives(narratives, pending);
+}
+
 export function createSkeleton(items: LifecycleItem[], now: string): JsonObject {
   const completedItems = items.filter((i) => i.status === "completed");
-  const stalenessFlags = flagStaleNarratives({ ...SKELETON_NARRATIVES }, completedItems);
+  const stalenessFlags = computeStalenessFlags({ ...SKELETON_NARRATIVES }, completedItems);
   return {
     vBRIEFInfo: {
       version: EMITTED_VBRIEF_VERSION,
@@ -166,7 +236,6 @@ export function renderProjectDefinition(
         ? (plan.narratives as Record<string, string>)
         : {};
     const completedItems = items.filter((i) => i.status === "completed");
-    const flags = flagStaleNarratives(narratives, completedItems);
     if (
       typeof plan.metadata !== "object" ||
       plan.metadata === null ||
@@ -174,7 +243,10 @@ export function renderProjectDefinition(
     ) {
       plan.metadata = {};
     }
-    (plan.metadata as JsonObject).staleness_flags = flags;
+    const planMetadata = plan.metadata as JsonObject;
+    const review = parseStalenessReview(planMetadata);
+    const flags = computeStalenessFlags(narratives, completedItems, review);
+    planMetadata.staleness_flags = flags;
     projectDef.plan = plan;
   } else {
     projectDef = createSkeleton(items, now);
@@ -192,14 +264,80 @@ export function renderProjectDefinition(
   return [true, parts.join("\n")];
 }
 
+/**
+ * Mark current completed scopes as reviewed for PROJECT-DEFINITION narratives.
+ *
+ * Distinct from `task reconcile:issues`, which reconciles origin freshness on scope
+ * vBRIEFs — this path only clears narrative staleness heuristics on render.
+ */
+export function acknowledgeProjectDefinitionStaleness(
+  vbriefDir: string,
+  options: RenderProjectOptions = {},
+): RenderProjectResult {
+  const nowDate = options.now ?? new Date();
+  const now = isoTimestamp(nowDate);
+  const projectDefPath = join(vbriefDir, "PROJECT-DEFINITION.vbrief.json");
+  if (!existsSync(projectDefPath)) {
+    return [false, `✗ ${projectDefPath} not found — run project:render first`];
+  }
+
+  let projectDef: JsonObject;
+  try {
+    projectDef = JSON.parse(readFileSync(projectDefPath, "utf8")) as JsonObject;
+  } catch (exc) {
+    return [false, `✗ Failed to read ${projectDefPath}: ${String(exc)}`];
+  }
+
+  const plan = (projectDef.plan ?? {}) as JsonObject;
+  if (typeof plan.metadata !== "object" || plan.metadata === null || Array.isArray(plan.metadata)) {
+    plan.metadata = {};
+  }
+  const planMetadata = plan.metadata as JsonObject;
+  const items = scanLifecycleFolders(vbriefDir);
+  const completedItems = items.filter((i) => i.status === "completed");
+  const existing = parseStalenessReview(planMetadata);
+  planMetadata.staleness_review = buildStalenessAcknowledgement(completedItems, {
+    now: nowDate,
+    existing,
+  });
+  const narratives =
+    typeof plan.narratives === "object" &&
+    plan.narratives !== null &&
+    !Array.isArray(plan.narratives)
+      ? (plan.narratives as Record<string, string>)
+      : {};
+  planMetadata.staleness_flags = computeStalenessFlags(
+    narratives,
+    completedItems,
+    parseStalenessReview(planMetadata),
+  );
+  plan.items = items;
+  if (typeof projectDef.vBRIEFInfo !== "object" || projectDef.vBRIEFInfo === null) {
+    projectDef.vBRIEFInfo = {};
+  }
+  (projectDef.vBRIEFInfo as JsonObject).updated = now;
+  projectDef.plan = plan;
+
+  writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");
+  const ackCount = completedItems.length;
+  return [
+    true,
+    `✓ PROJECT-DEFINITION staleness acknowledged (${ackCount} completed scope(s) watermarked)`,
+  ];
+}
+
 /** CLI entry (mirrors ``scripts/project_render.main``). */
 export function main(argv: readonly string[]): number {
-  if (argv.length > 1) {
-    process.stderr.write("Usage: project_render.py [vbrief_dir]\n");
+  const acknowledge = argv[0] === "--acknowledge-staleness";
+  const rest = acknowledge ? argv.slice(1) : argv;
+  if (rest.length > 1) {
+    process.stderr.write("Usage: project_render.py [--acknowledge-staleness] [vbrief_dir]\n");
     return 2;
   }
-  const vbriefDir = argv[0] ?? "vbrief";
-  const [ok, message] = renderProjectDefinition(vbriefDir);
+  const vbriefDir = rest[0] ?? "vbrief";
+  const [ok, message] = acknowledge
+    ? acknowledgeProjectDefinitionStaleness(vbriefDir)
+    : renderProjectDefinition(vbriefDir);
   process.stdout.write(`${message}\n`);
   return ok ? 0 : 1;
 }
