@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -1172,86 +1171,10 @@ func TestEnsureGitignoreLines_HealsBareBlanketOnlyFile(t *testing.T) {
 	}
 }
 
-// TestCanonicalGitignoreRuntimeSentinelsMatchPythonSource pins the Go
-// installer's selective .deft runtime sentinel entries to
-// GITIGNORE_DEFT_RUNTIME_SENTINELS in scripts/_triage_bootstrap_gitignore.py
-// (#1609). If the Python source grows, the installer mirror must follow.
-func TestCanonicalGitignoreRuntimeSentinelsMatchPythonSource(t *testing.T) {
-	pyPath := filepath.Join(repoRootFromDeftInstall(t), "scripts", "_triage_bootstrap_gitignore.py")
-	src, err := os.ReadFile(pyPath)
-	if err != nil {
-		t.Fatalf("could not read %s: %v", pyPath, err)
-	}
-	pyEntries := parsePythonRuntimeSentinelEntries(t, string(src))
-	if len(pyEntries) == 0 {
-		t.Fatal("parsed zero GITIGNORE_DEFT_RUNTIME_SENTINELS from Python source -- parser drift?")
-	}
-	var goEntries []string
-	for _, line := range canonicalGitignoreLines {
-		if strings.HasPrefix(line, ".deft/") && !strings.HasSuffix(line, "/") && !strings.Contains(line, "*") {
-			goEntries = append(goEntries, line)
-		}
-	}
-	if strings.Join(goEntries, "\n") != strings.Join(pyEntries, "\n") {
-		t.Errorf("Go canonicalGitignoreLines .deft runtime subset drifted from Python GITIGNORE_DEFT_RUNTIME_SENTINELS.\n  Go:     %v\n  Python: %v", goEntries, pyEntries)
-	}
-}
-
-// TestCanonicalGitignoreEvalEntriesMatchPythonSource pins the Go installer's
-// selective vbrief/.eval/* entries to GITIGNORE_EVAL_ENTRIES in
-// scripts/_triage_bootstrap_gitignore.py (the single source of truth shared
-// with the bootstrap + relocator rails, #1464). If the Python tuple grows or
-// drops a selective entry without the Go mirror following, this fails --
-// forcing the three rails to stay at parity.
-func TestCanonicalGitignoreEvalEntriesMatchPythonSource(t *testing.T) {
-	pyPath := filepath.Join(repoRootFromDeftInstall(t), "scripts", "_triage_bootstrap_gitignore.py")
-	src, err := os.ReadFile(pyPath)
-	if err != nil {
-		t.Fatalf("could not read %s: %v", pyPath, err)
-	}
-	pyEntries := parsePythonEvalEntries(t, string(src))
-	if len(pyEntries) == 0 {
-		t.Fatal("parsed zero GITIGNORE_EVAL_ENTRIES from Python source -- parser drift?")
-	}
-	var goEntries []string
-	for _, line := range canonicalGitignoreLines {
-		if strings.HasPrefix(line, "vbrief/.eval/") {
-			goEntries = append(goEntries, line)
-		}
-	}
-	if strings.Join(goEntries, "\n") != strings.Join(pyEntries, "\n") {
-		t.Errorf("Go canonicalGitignoreLines eval subset drifted from Python GITIGNORE_EVAL_ENTRIES.\n  Go:     %v\n  Python: %v", goEntries, pyEntries)
-	}
-}
-
-// parsePythonEvalEntries extracts the quoted entries inside the
-// GITIGNORE_EVAL_ENTRIES tuple literal from the Python source. Anchored on the
-// typed assignment form so the docstring mention is not matched.
-func parsePythonEvalEntries(t *testing.T, src string) []string {
-	t.Helper()
-	return parsePythonTupleEntries(t, src, "GITIGNORE_EVAL_ENTRIES")
-}
-
-func parsePythonRuntimeSentinelEntries(t *testing.T, src string) []string {
-	t.Helper()
-	return parsePythonTupleEntries(t, src, "GITIGNORE_DEFT_RUNTIME_SENTINELS")
-}
-
-func parsePythonTupleEntries(t *testing.T, src string, tupleName string) []string {
-	t.Helper()
-	pattern := fmt.Sprintf(`%s:\s*tuple\[str, \.\.\.\]\s*=\s*\(([^)]*)\)`, regexp.QuoteMeta(tupleName))
-	block := regexp.MustCompile(pattern)
-	m := block.FindStringSubmatch(src)
-	if m == nil {
-		t.Fatalf("could not locate %s tuple in Python source", tupleName)
-	}
-	quoted := regexp.MustCompile(`"([^"]+)"`)
-	var out []string
-	for _, qm := range quoted.FindAllStringSubmatch(m[1], -1) {
-		out = append(out, qm[1])
-	}
-	return out
-}
+// Note (#1860): the former TestCanonicalGitignore*MatchPythonSource parity
+// tests were removed with the full Python purge. Go's canonicalGitignoreLines
+// is now the sole source of truth for the installer's .gitignore entries; there
+// is no Python tuple left to mirror.
 
 // assertNoBlanketEvalLine fails the test if any active .gitignore line is the
 // forbidden blanket vbrief/.eval/ (or vbrief/.eval) entry (#1464), tolerating a
