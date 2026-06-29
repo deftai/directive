@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Git hooks resolve local deft CLI when not on PATH (#2067).** Pre-commit and pre-push now fall back to `node packages/cli/dist/bin.js` in the maintainer monorepo (and any repo with a built local CLI) instead of aborting when global `deft` is missing. Closes #2067.
+
+- **`task triage:queue` honors triageScopeIgnores (#1800).** Issues matching label, milestone, or author entries in `plan.policy.triageScopeIgnores[]` are now excluded from the ranked queue, consistent with the scope-drift detector. Closes #1800.
+
 - **verify:cache-fresh --for-issue reads canonical audit fields (#1887).** The cache-fresh gate now resolves per-issue triage decisions via the shared candidates audit-log reader (`issue_number` / `timestamp`), so a valid `triage:accept` no longer false-fails with "no triage decision" during the pre-dispatch gate stack. Closes #1887.
 
 - **D2 triage summary suppression includes discrepancy fields (#1279).** Session-start triage one-liner re-emits within the 4-hour D2 window when the `[triage:scope]` discrepancy line appears or resolves, because the suppression key now includes `in_flight_filesystem`, `in_flight_cache_scoped`, and `triage_scope_configured`. Existing operators may see one extra emission after upgrade as the hash key changes. Closes #1279.

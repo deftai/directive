@@ -384,11 +384,11 @@ export function fetchIssue(
   number: number,
   options: FetchIssueOptions = {},
 ): Record<string, unknown> | null {
-  const cached = fetchFromCache(repo, number, options);
-  if (cached !== null) {
-    return cached;
+  const live = fetchSingleIssue(repo, number, options);
+  if (live !== null) {
+    return live;
   }
-  return fetchSingleIssue(repo, number, options);
+  return fetchFromCache(repo, number, options);
 }
 
 export type IngestResult = "created" | "dryrun" | "duplicate";
