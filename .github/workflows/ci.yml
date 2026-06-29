@@ -531,6 +531,7 @@ jobs:
             throw "migrate:preflight output missing frozen-release tag v0.59.0 (#2068)"
           }
           Write-Host "migrate:preflight pre-cutover detection OK (#2068)"
+          exit 0
 
       - name: task -t Taskfile.yml scope:promote (end-to-end #577 regression)
         shell: pwsh
