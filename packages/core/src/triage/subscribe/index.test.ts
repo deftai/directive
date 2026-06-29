@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { ProjectDefinitionIOError, subscribe, unsubscribe } from "./index.js";
+import { ProjectDefinitionIOError, RECONCILE_HINT, subscribe, unsubscribe } from "./index.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -35,6 +35,13 @@ function makeRepo(policy?: Record<string, unknown>): string {
   writePd(root, policy);
   return root;
 }
+
+describe("RECONCILE_HINT", () => {
+  it("references task triage:bootstrap without bogus --resume", () => {
+    expect(RECONCILE_HINT).toContain("task triage:bootstrap");
+    expect(RECONCILE_HINT).not.toContain("--resume");
+  });
+});
 
 describe("subscribe", () => {
   it("creates a labels.any-of rule", () => {

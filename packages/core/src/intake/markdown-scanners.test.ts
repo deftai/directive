@@ -5,12 +5,20 @@ import {
   parseListItems,
   sliceAcSection,
   stripCodeBlocks,
+  stripFencedCodeBlocks,
 } from "./markdown-scanners.js";
 
 describe("stripCodeBlocks", () => {
   it("removes fenced and inline code", () => {
     const body = "Closes #1 in prose\n```\nCloses #99\n```\n`Closes #2` ok";
     expect(stripCodeBlocks(body)).toBe("Closes #1 in prose\n\n ok");
+  });
+});
+
+describe("stripFencedCodeBlocks", () => {
+  it("removes fenced blocks but preserves inline backticks", () => {
+    const body = "`.deft/` added\n```\nCloses #99\n```\n`task check` passes";
+    expect(stripFencedCodeBlocks(body)).toBe("`.deft/` added\n\n`task check` passes");
   });
 });
 

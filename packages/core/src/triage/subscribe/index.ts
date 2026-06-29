@@ -406,5 +406,5 @@ export function unsubscribe(
 }
 
 export const RECONCILE_HINT =
-  "  Reconciliation: run `task triage:bootstrap -- --resume` to " +
+  "  Reconciliation: run `task triage:bootstrap` to " +
   "backfill / mark out-of-scope cached entries.";

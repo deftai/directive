@@ -45,6 +45,48 @@ describe("extractPlanItems", () => {
   it("returns empty for body without structure", () => {
     expect(extractPlanItems("Just prose, no checklist.")).toEqual([]);
   });
+
+  it("preserves inline code in acceptance-criteria checkbox titles (#1269 shape)", () => {
+    const body = [
+      "## Acceptance criteria",
+      "",
+      "- [ ] `.deft/` added to `.gitignore`",
+      "- [ ] Sentinel reader + writer module (e.g. `scripts/ritual_sentinel.py`) with `read()` / `write()` / `compute_delta()` functions",
+      "- [ ] `task check` passes",
+    ].join("\n");
+    expect(extractPlanItems(body)).toEqual([
+      { title: "`.deft/` added to `.gitignore`", status: "proposed" },
+      {
+        title:
+          "Sentinel reader + writer module (e.g. `scripts/ritual_sentinel.py`) with `read()` / `write()` / `compute_delta()` functions",
+        status: "proposed",
+      },
+      { title: "`task check` passes", status: "proposed" },
+    ]);
+  });
+
+  it("preserves inline code in acceptance-criteria checkbox titles (#1270 shape)", () => {
+    const body = [
+      "## Acceptance criteria",
+      "",
+      '- [ ] `scripts/triage_summary.py` `in-flight` count reads `len(glob("vbrief/active/*.vbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)',
+      "- [ ] When `filesystem_count != cache_scoped_count`, append `[triage:scope] N in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)` (loud discrepancy line)",
+      "- [ ] `task check` passes",
+    ].join("\n");
+    expect(extractPlanItems(body)).toEqual([
+      {
+        title:
+          '`scripts/triage_summary.py` `in-flight` count reads `len(glob("vbrief/active/*.vbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)',
+        status: "proposed",
+      },
+      {
+        title:
+          "When `filesystem_count != cache_scoped_count`, append `[triage:scope] N in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)` (loud discrepancy line)",
+        status: "proposed",
+      },
+      { title: "`task check` passes", status: "proposed" },
+    ]);
+  });
 });
 
 describe("provenanceIssueNumber", () => {
