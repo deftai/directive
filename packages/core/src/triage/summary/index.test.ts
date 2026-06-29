@@ -20,10 +20,10 @@ import {
   readAuditLog,
   readLastHistoryRecord,
   resolveWipCapInt,
-  shouldSuppressD2Emission,
-  suppressionKey,
   type SummaryResult,
+  shouldSuppressD2Emission,
   summaryResultToRecord,
+  suppressionKey,
   WIP_WARN_GLYPH,
 } from "./index.js";
 

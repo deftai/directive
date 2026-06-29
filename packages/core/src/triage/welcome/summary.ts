@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
 import { countReconcilable } from "../reconcile/reconcile.js";
 import { computeDrift } from "../scope-drift/compute.js";
-import { shouldSuppressD2Emission, SUMMARY_HISTORY_REL_PATH } from "../summary/index.js";
+import { SUMMARY_HISTORY_REL_PATH, shouldSuppressD2Emission } from "../summary/index.js";
 import {
   CACHE_DIR_NAME,
   CACHE_SOURCE,
@@ -323,10 +323,7 @@ export function emitOneliner(
   const line = formatSummary(result);
   const historyPath = join(resolve(projectRoot), SUMMARY_HISTORY_REL_PATH);
   const applySuppression = options.applyD2Suppression !== false;
-  if (
-    applySuppression &&
-    shouldSuppressD2Emission(result, historyPath, { now: options.now })
-  ) {
+  if (applySuppression && shouldSuppressD2Emission(result, historyPath, { now: options.now })) {
     return line;
   }
   const out = options.output ?? ((l: string) => process.stdout.write(`${l}\n`));
