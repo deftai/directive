@@ -1,4 +1,5 @@
 import type { QueueGroup } from "./constants.js";
+import type { ScopeIgnores } from "./scope-ignores-filter.js";
 
 /** One ranked row in buildQueue. */
 export interface QueueItem {
@@ -27,6 +28,7 @@ export interface QueueBuildOptions {
   readonly blockedIssueNumbers?: ReadonlySet<number>;
   readonly includeBlocked?: boolean;
   readonly limit?: number | null;
+  readonly scopeIgnores?: ScopeIgnores;
 }
 
 /** Cached issue row produced by loadCachedIssues. */

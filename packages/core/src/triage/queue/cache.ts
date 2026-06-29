@@ -5,6 +5,11 @@ import {
   CACHE_SOURCE_GITHUB_ISSUE,
   DEFAULT_SLICES_LOG_REL_PATH,
 } from "./constants.js";
+import {
+  hasActiveScopeIgnores,
+  isRawIssueScopeIgnored,
+  resolveScopeIgnores,
+} from "./scope-ignores-filter.js";
 import { blockedByIssueNumber, rankByIssueNumber } from "./scope-walk.js";
 import type { CachedIssue } from "./types.js";
 
@@ -141,6 +146,8 @@ export function loadCachedIssues(
 
   const rankMap = rankByIssueNumber(root);
   const blockedSet = blockedByIssueNumber(root);
+  const scopeIgnores = resolveScopeIgnores(root);
+  const filterScopeIgnores = hasActiveScopeIgnores(scopeIgnores);
   const issues: CachedIssue[] = [];
 
   for (const entryName of readdirSync(base)) {
@@ -175,6 +182,9 @@ export function loadCachedIssues(
     const stateRaw = payload.state ?? "open";
     const state = typeof stateRaw === "string" ? stateRaw.toLowerCase() : "open";
     if (state !== "open" && !options.includeClosed) {
+      continue;
+    }
+    if (filterScopeIgnores && isRawIssueScopeIgnored(payload, scopeIgnores)) {
       continue;
     }
 

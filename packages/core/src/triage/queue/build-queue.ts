@@ -1,5 +1,10 @@
 import { GROUP_ORDER } from "./constants.js";
 import { deriveGroup } from "./derive-group.js";
+import {
+  hasActiveScopeIgnores,
+  isCachedIssueScopeIgnored,
+  type ScopeIgnores,
+} from "./scope-ignores-filter.js";
 import { compareSelectionKeys, matchedLabelFor, withinGroupSortKey } from "./selection.js";
 import type { AuditEntry, CachedIssue, QueueBuildOptions, QueueItem } from "./types.js";
 
@@ -108,6 +113,9 @@ export function buildQueue(
   const dropNetNew = Boolean(opts.finishBeforeStart && opts.wipAtCap);
   const includeBlocked = Boolean(opts.includeBlocked);
   const limit = opts.limit;
+  const scopeIgnores: ScopeIgnores | undefined = opts.scopeIgnores;
+  const filterScopeIgnores =
+    scopeIgnores !== undefined && hasActiveScopeIgnores(scopeIgnores);
 
   const decisions = latestDecisionsByIssue(auditEntries);
   const grouped = new Map<string, CachedIssue[]>();
@@ -118,6 +126,9 @@ export function buildQueue(
   for (const issue of issues) {
     const n = issue.number;
     if (typeof n !== "number") {
+      continue;
+    }
+    if (filterScopeIgnores && isCachedIssueScopeIgnored(issue, scopeIgnores)) {
       continue;
     }
     const isContinuation = resolveContinuation(issue, n, continuationNumbers);

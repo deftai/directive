@@ -13,6 +13,7 @@ import {
   resolveRankingLabels,
   resolveRepo,
 } from "@deftai/directive-core/dist/triage/queue/index.js";
+import { resolveScopeIgnores } from "@deftai/directive-core/dist/triage/scope-drift/index.js";
 
 interface ParsedArgs {
   projectRoot: string;
@@ -179,6 +180,7 @@ export function run(argv: string[]): number {
   const orphanNumbers = collectOrphanIssueNumbers(sliceRecords, issuesByNumber);
   const limit = args.limit === 0 ? null : Math.max(0, args.limit);
 
+  const scopeIgnores = resolveScopeIgnores(projectRoot);
   const items = buildQueue(issuesForQueue, auditEntries, {
     repo,
     queue: {
@@ -187,6 +189,7 @@ export function run(argv: string[]): number {
       orphanIssueNumbers: orphanNumbers,
       includeBlocked: args.includeBlocked,
       limit,
+      scopeIgnores,
     },
   });
 

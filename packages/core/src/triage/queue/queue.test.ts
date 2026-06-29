@@ -13,6 +13,7 @@ import {
 import { deriveGroup } from "./derive-group.js";
 import { resolveRankingLabels, validateRankingLabels } from "./ranking-labels.js";
 import { renderQueue } from "./render.js";
+import { resolveScopeIgnores } from "./scope-ignores-filter.js";
 import { inferRepoFromGit, resolveRepo } from "./repo.js";
 import {
   activeReferencedIssueNumbers,
@@ -281,6 +282,61 @@ describe("loadCachedIssues", () => {
   it("returns empty when cache directory is absent", () => {
     const root = makeTempRoot();
     expect(loadCachedIssues(REPO, { projectRoot: root })).toEqual([]);
+  });
+
+  it("excludes issues matching triageScopeIgnores labels", () => {
+    const root = makeTempRoot();
+    const vbriefDir = join(root, "vbrief");
+    mkdirSync(vbriefDir, { recursive: true });
+    writeFileSync(
+      join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({
+        plan: { policy: { triageScopeIgnores: [{ label: "held-open" }] } },
+      }),
+      { encoding: "utf8" },
+    );
+    writeCachedIssue(root, issue(100, { labels: ["held-open"] }));
+    writeCachedIssue(root, issue(101, { labels: ["bug"] }));
+    const rows = loadCachedIssues(REPO, { projectRoot: root });
+    expect(rows.map((row) => row.number)).toEqual([101]);
+    const items = buildQueue(rows, [], {
+      repo: REPO,
+      queue: { scopeIgnores: resolveScopeIgnores(root) },
+    });
+    expect(items.map((row) => row.number)).toEqual([101]);
+  });
+
+  it("excludes issues matching triageScopeIgnores author rule", () => {
+    const root = makeTempRoot();
+    const vbriefDir = join(root, "vbrief");
+    mkdirSync(vbriefDir, { recursive: true });
+    writeFileSync(
+      join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({
+        plan: {
+          policy: {
+            triageScopeIgnores: [{ rule: "author", "any-of": ["dependabot[bot]"] }],
+          },
+        },
+      }),
+      { encoding: "utf8" },
+    );
+    const botDir = join(root, ".deft-cache", "github-issue", "owner", "repo", "200");
+    mkdirSync(botDir, { recursive: true });
+    writeFileSync(
+      join(botDir, "raw.json"),
+      JSON.stringify({
+        number: 200,
+        title: "Bot PR",
+        state: "open",
+        labels: [],
+        user: { login: "dependabot[bot]" },
+        updated_at: "2026-05-17T20:00:00Z",
+      }),
+      { encoding: "utf8" },
+    );
+    writeCachedIssue(root, issue(201));
+    expect(loadCachedIssues(REPO, { projectRoot: root }).map((row) => row.number)).toEqual([201]);
   });
 });
 

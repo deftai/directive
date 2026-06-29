@@ -6,6 +6,7 @@ export * from "./derive-group.js";
 export * from "./ranking-labels.js";
 export * from "./render.js";
 export * from "./repo.js";
+export * from "./scope-ignores-filter.js";
 export * from "./scope-walk.js";
 export * from "./selection.js";
 export * from "./types.js";
