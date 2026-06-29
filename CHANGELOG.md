@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **verify:cache-fresh --for-issue reads canonical audit fields (#1887).** The cache-fresh gate now resolves per-issue triage decisions via the shared candidates audit-log reader (`issue_number` / `timestamp`), so a valid `triage:accept` no longer false-fails with "no triage decision" during the pre-dispatch gate stack. Closes #1887.
+
 - **Content-standards scans skip `.deft-scratch` worktrees (#1656).** Markdown scanners no longer treat stale swarm worktrees under `.deft-scratch/` as framework docs, so leftover worktrees do not cause false `task check` failures during release CI. Closes #1656.
 
 - **Triage subscribe reconciliation hint (#1416).** After subscribe or unsubscribe, the stderr hint now points at `task triage:bootstrap` instead of the non-existent `--resume` flag, so operators can reconcile cached entries without an argparse failure. Closes #1416.
