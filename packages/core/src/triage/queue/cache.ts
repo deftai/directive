@@ -1,14 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { extractAuthor, extractMilestone } from "../scope-drift/cache-walker.js";
 import {
   CACHE_DIR_NAME,
   CACHE_SOURCE_GITHUB_ISSUE,
   DEFAULT_SLICES_LOG_REL_PATH,
 } from "./constants.js";
-import {
-  extractAuthor,
-  extractMilestone,
-} from "../scope-drift/cache-walker.js";
 import {
   hasActiveScopeIgnores,
   isRawIssueScopeIgnored,
