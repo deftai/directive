@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **D2 triage summary suppression includes discrepancy fields (#1279).** Session-start triage one-liner re-emits within the 4-hour D2 window when the `[triage:scope]` discrepancy line appears or resolves, because the suppression key now includes `in_flight_filesystem`, `in_flight_cache_scoped`, and `triage_scope_configured`. Existing operators may see one extra emission after upgrade as the hash key changes. Closes #1279.
+
 - **Triage subscribe reconciliation hint (#1416).** After subscribe or unsubscribe, the stderr hint now points at `task triage:bootstrap` instead of the non-existent `--resume` flag, so operators can reconcile cached entries without an argparse failure. Closes #1416.
 
 - **CI fails closed on ghx installer checksum mismatch (#1328).** The Windows ghx pre-install workflow now splits download/verify from execution: SHA256 mismatch on `install.ps1` fails the verify step (no `continue-on-error`), while the dot-source install step keeps the #884 best-effort soft-fail contract. Closes #1328.
