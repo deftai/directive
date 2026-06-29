@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **CI fails closed on ghx installer checksum mismatch (#1328).** The Windows ghx pre-install step in `.github/workflows/ci.yml` now exits non-zero when `install.ps1` does not match the pinned `GHX_INSTALL_PS1_SHA256`, so supply-chain drift or tampering surfaces as a step failure instead of being masked with `exit 0`. Closes #1328.
+- **CI fails closed on ghx installer checksum mismatch (#1328).** The Windows ghx pre-install workflow now splits download/verify from execution: SHA256 mismatch on `install.ps1` fails the verify step (no `continue-on-error`), while the dot-source install step keeps the #884 best-effort soft-fail contract. Closes #1328.
 
 - **Biome export-order lint on verify-source barrel (#2091).** Reorders named `contract-drift` re-exports so `task ts:check-lane` passes. Closes #2091.
 
