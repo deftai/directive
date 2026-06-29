@@ -343,6 +343,31 @@ describe("recoveryHintForStaleFailure -- branch-aware (#1953)", () => {
 });
 
 describe("evaluate -- for-issue gate", () => {
+  it("returns code 0 when issue has accept decision (canonical audit schema only)", () => {
+    const root = setupProjectRoot();
+    writeCandidates(root, [
+      {
+        decision_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        timestamp: "2026-06-29T12:00:00Z",
+        repo: "owner/repo",
+        issue_number: 42,
+        decision: "accept",
+        actor: "operator",
+      },
+    ]);
+    writeCacheEntry(root, "owner/repo", 42, nowMinus(1).toISOString());
+
+    const result = evaluate(root, {
+      allowMissingBootstrap: true,
+      repo: "owner/repo",
+      forIssue: 42,
+      nowFn: () => new Date(),
+      probeDriftFn: noDriftProbe,
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("accept");
+  });
+
   it("returns code 0 when issue has accept decision", () => {
     const root = setupProjectRoot();
     writeCandidates(root, [
@@ -369,7 +394,14 @@ describe("evaluate -- for-issue gate", () => {
   it("returns code 1 when issue has defer decision", () => {
     const root = setupProjectRoot();
     writeCandidates(root, [
-      { issue: 42, repo: "owner/repo", decision: "defer", ts: new Date().toISOString() },
+      {
+        decision_id: "33333333-3333-4333-8333-333333333333",
+        timestamp: new Date().toISOString(),
+        repo: "owner/repo",
+        issue_number: 42,
+        decision: "defer",
+        actor: "operator",
+      },
     ]);
     writeCacheEntry(root, "owner/repo", 42, nowMinus(1).toISOString());
 
@@ -403,8 +435,22 @@ describe("evaluate -- for-issue gate", () => {
   it("uses the LATEST decision when multiple entries exist", () => {
     const root = setupProjectRoot();
     writeCandidates(root, [
-      { issue: 5, repo: "owner/repo", decision: "defer", ts: "2026-01-01T00:00:00Z" },
-      { issue: 5, repo: "owner/repo", decision: "accept", ts: "2026-01-02T00:00:00Z" },
+      {
+        decision_id: "44444444-4444-4444-8444-444444444444",
+        timestamp: "2026-01-01T00:00:00Z",
+        repo: "owner/repo",
+        issue_number: 5,
+        decision: "defer",
+        actor: "operator",
+      },
+      {
+        decision_id: "55555555-5555-4555-8555-555555555555",
+        timestamp: "2026-01-02T00:00:00Z",
+        repo: "owner/repo",
+        issue_number: 5,
+        decision: "accept",
+        actor: "operator",
+      },
     ]);
     writeCacheEntry(root, "owner/repo", 5, nowMinus(1).toISOString());
 

@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
+import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage/actions/candidates-log.js";
 
 // ---------------------------------------------------------------------------
 // Public constants (mirror preflight_cache.py)
@@ -284,52 +285,6 @@ function candidatesLogState(candidatesPath: string): "absent" | "empty" | "popul
   } catch {
     return "absent";
   }
-}
-
-interface CandidateEntry {
-  readonly issue: number;
-  readonly repo: string;
-  readonly decision: string;
-  readonly ts: string;
-}
-
-function parseCandidates(candidatesPath: string): CandidateEntry[] {
-  if (!existsSync(candidatesPath)) return [];
-  try {
-    const text = readFileSync(candidatesPath, "utf8");
-    const entries: CandidateEntry[] = [];
-    for (const line of text.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      try {
-        const data = JSON.parse(trimmed) as unknown;
-        if (data !== null && typeof data === "object" && !Array.isArray(data)) {
-          const d = data as Record<string, unknown>;
-          entries.push({
-            issue: Number(d.issue ?? d.issue_number ?? 0),
-            repo: String(d.repo ?? ""),
-            decision: String(d.decision ?? ""),
-            ts: String(d.ts ?? d.timestamp ?? ""),
-          });
-        }
-      } catch {
-        /* skip malformed lines */
-      }
-    }
-    return entries;
-  } catch {
-    return [];
-  }
-}
-
-function latestDecisionForIssue(
-  candidates: CandidateEntry[],
-  repo: string,
-  issueNumber: number,
-): CandidateEntry | null {
-  // Take all entries matching this issue (most recent last)
-  const matching = candidates.filter((c) => c.issue === issueNumber && c.repo === repo);
-  return matching[matching.length - 1] ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -642,9 +597,8 @@ function evaluateForIssue(
     }
   }
 
-  // Latest-decision check
-  const candidates = parseCandidates(candidatesPath);
-  const latest = latestDecisionForIssue(candidates, repo, issueNumber);
+  // Latest-decision check — shared audit-log reader (#1887 / candidates-log.ts)
+  const latest = auditLatestDecisionForIssue(issueNumber, repo, candidatesPath);
 
   if (latest === null) {
     return {
