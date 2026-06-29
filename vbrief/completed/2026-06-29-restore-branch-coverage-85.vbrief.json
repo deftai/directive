@@ -1,0 +1,51 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Follow-up to #2083: add branch-coverage tests and restore the vitest branches threshold to 85"
+  },
+  "plan": {
+    "id": "restore-branch-coverage-85",
+    "title": "Restore vitest branch-coverage threshold to 85 (post-#2083 follow-up)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The parity-harness teardown (#2083) and the earlier Python removal (#1860) shifted the branch denominator, leaving the vitest branches threshold temporarily lowered (85 -> 84.9 -> 84.85). This follow-up adds targeted branch tests to push real coverage back over 85 and restores the threshold to the original 85.",
+      "ImplementationPlan": "- Identify the cheapest uncovered branches (packs-slice.ts had ~72 uncovered).\n- Add a focused packs-slice-branches.test.ts covering the pure helpers, slice filtering, formatting, discoverPacks edge cases, and the CLI/main flag paths.\n- Restore the vitest.config.ts branches threshold to 85.\n- Confirm task check green with the restored bar.",
+      "UserStory": "As a deft maintainer, I want the branch-coverage gate back at 85 so the temporary denominator-shift relief from #1860/#2083 does not become permanent drift.",
+      "Traces": "deftai/directive#2083, deftai/directive#1860"
+    },
+    "items": [
+      {
+        "id": "cov85-a1",
+        "title": "Given the lowered branch threshold, when targeted branch tests land, then real branch coverage measures at or above 85%.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Full vitest run reports branches >= 85%.",
+          "Traces": "deftai/directive#2083"
+        }
+      },
+      {
+        "id": "cov85-a2",
+        "title": "Given coverage is restored, when vitest.config.ts is updated, then the branches threshold reads 85 and task check passes.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "vitest.config.ts branches threshold = 85; task check exits 0.",
+          "Traces": "deftai/directive#2083"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "tech-debt",
+      "completedAt": "2026-06-29T17:34:21Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2083",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2083: parity harness teardown (parent of this coverage follow-up)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-29T17:34:21Z"
+  }
+}

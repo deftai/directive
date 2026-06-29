@@ -94,8 +94,7 @@ export default defineConfig({
       thresholds: {
         lines: 85,
         functions: 85,
-        // #2083: parity harness teardown shifts branch denominator; 84.85 keeps gate green (84.89–84.92% measured post-teardown vs 85% target).
-        branches: 84.85,
+        branches: 85,
         statements: 85,
       },
     },
