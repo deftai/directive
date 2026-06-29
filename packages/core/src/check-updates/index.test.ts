@@ -318,4 +318,37 @@ describe("emitCheckUpdates text mode", () => {
     expect(payload.error).toBe("timeout");
     expect(payload.remote).toBe("v2.0.0");
   });
+
+  it("resolveUpstreamUrl skips blank manifest url fields", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-url-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "VERSION"),
+      "url: \nupstream:   \ntag: v1.0.0\n",
+      "utf8",
+    );
+    expect(resolveUpstreamUrl(root)).toBe(DEFT_UPSTREAM_URL);
+  });
+
+  it("returns ok when current version is not semver-parseable", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-nonsemver-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "VERSION"),
+      "tag: not-a-semver\n",
+      "utf8",
+    );
+    const result = runRemoteProbe({
+      projectRoot: root,
+      env: {},
+      git: fakeGit(["v999.0.0"]),
+    });
+    expect(result.status).toBe("ok");
+  });
+
+  it("resolveProbeTimeout uses default when env unset", () => {
+    expect(resolveProbeTimeout({})).toBe(5);
+  });
 });
