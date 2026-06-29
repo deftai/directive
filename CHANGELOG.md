@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Agents must read an umbrella's current-shape comment (not the stale issue body) before stating status — codified in the orchestrator preamble, AGENTS.md, consumer agents-entry, and triage/refinement skills (claim-cites-state-surface). Refs #2066.
+
 ### Changed
 
 ### Fixed

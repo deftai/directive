@@ -10,9 +10,11 @@ const refinementText = readRepoFile("skills/deft-directive-refinement/SKILL.md")
 const REQUIRED_RULE_LINES = [
   "! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.",
   "! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.",
+  "! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there \u2014 following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).",
   "~ Pass-N skills SHOULD update the current-shape comment as their Phase 4 step.",
   "\u2297 Do NOT delete prior amendment comments when updating the current-shape comment \u2014 they remain the audit trail.",
   "\u2297 Do NOT replace the current-shape comment with a fresh comment \u2014 it must be edited in place so its permalink is stable.",
+  "\u2297 Conclude umbrella or epic status from the issue body alone. The body is the pass-1 plan (stale by design). Any \"X is done\" / \"X is the blocker\" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body (#2066).",
 ];
 
 const CANONICAL_BODY_FIELDS = [
@@ -60,6 +62,9 @@ describe("test_agents_md_current_shape", () => {
     expect(/^-\s+~\s+Pass-N skills SHOULD/m.test(section)).toBe(true);
     const mustNotLines = section.match(/^-\s+\u2297\s+Do NOT/gm) ?? [];
     expect(mustNotLines.length).toBe(2);
+    expect(section).toContain(
+      "\u2297 Conclude umbrella or epic status from the issue body alone",
+    );
   });
 
   it.each(CANONICAL_BODY_FIELDS)("canonical_body_structure_field_present %s", (field) => {

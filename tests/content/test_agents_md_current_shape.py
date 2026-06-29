@@ -79,9 +79,11 @@ def test_umbrella_current_shape_section_header_present(agents_md_text: str) -> N
 REQUIRED_RULE_LINES = (
     "! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.",  # noqa: E501
     "! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.",  # noqa: E501
+    "! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there \u2014 following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).",  # noqa: E501
     "~ Pass-N skills SHOULD update the current-shape comment as their Phase 4 step.",
     "\u2297 Do NOT delete prior amendment comments when updating the current-shape comment \u2014 they remain the audit trail.",  # noqa: E501
     "\u2297 Do NOT replace the current-shape comment with a fresh comment \u2014 it must be edited in place so its permalink is stable.",  # noqa: E501
+    "\u2297 Conclude umbrella or epic status from the issue body alone. The body is the pass-1 plan (stale by design). Any \"X is done\" / \"X is the blocker\" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body (#2066).",  # noqa: E501
 )
 
 
@@ -113,7 +115,10 @@ def test_section_uses_canonical_rfc2119_markers(agents_md_text: str) -> None:
     )
     must_not_lines = re.findall(r"^-\s+\u2297\s+Do NOT", section, re.MULTILINE)
     assert len(must_not_lines) == 2, (
-        f"expected 2 MUST-NOT rules with canonical '\u2297 ' marker; found {len(must_not_lines)}"
+        f"expected 2 MUST-NOT rules with canonical '\u2297 ' marker and 'Do NOT'; found {len(must_not_lines)}"
+    )
+    assert "\u2297 Conclude umbrella or epic status from the issue body alone" in section, (
+        "Umbrella current-shape convention MUST include #2066 body-only prohibition"
     )
 
 

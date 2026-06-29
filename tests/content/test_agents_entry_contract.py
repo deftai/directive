@@ -341,6 +341,13 @@ _PROPAGATION_PROBE_ROUTING_MARKERS: tuple[str, ...] = (
     "deft-directive-probe/SKILL.md",
 )
 
+#: #2066 claim-cites-state-surface -- umbrella status MUST NOT come from body alone.
+_PROPAGATION_UMBRELLA_STATUS_MARKERS: tuple[str, ...] = (
+    "claim-cites-state-surface",
+    "issues/<N>/comments",
+    "Conclude umbrella or epic status from the issue body alone",
+)
+
 
 def _normalize_whitespace(text: str) -> str:
     """Collapse all runs of whitespace (incl. tabs, CRLF, NBSP) to single spaces.
@@ -461,6 +468,22 @@ def test_propagation_probe_routing_markers_present_in_both_files() -> None:
     )
     assert not agents_missing, (
         "AGENTS.md missing probe routing marker(s) from the #1518 propagation "
+        f"gate: {agents_missing}."
+    )
+
+
+def test_propagation_umbrella_status_markers_present_in_both_files() -> None:
+    """#2066: claim-cites-state-surface markers MUST appear in both surfaces."""
+    template = _read_template()
+    agents = _read_agents_md()
+    template_missing = _missing_markers(template, _PROPAGATION_UMBRELLA_STATUS_MARKERS)
+    agents_missing = _missing_markers(agents, _PROPAGATION_UMBRELLA_STATUS_MARKERS)
+    assert not template_missing, (
+        "templates/agents-entry.md missing umbrella-status marker(s) from the "
+        f"#2066 propagation gate: {template_missing}."
+    )
+    assert not agents_missing, (
+        "AGENTS.md missing umbrella-status marker(s) from the #2066 propagation "
         f"gate: {agents_missing}."
     )
 

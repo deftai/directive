@@ -83,6 +83,15 @@ The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbri
 
 ⊗ Recommend a specific issue or vBRIEF without consulting `deft triage:queue` (or showing the operator the result of the consultation).
 
+## Umbrella status reading (#1152 / #2066)
+
+Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canonical `## Current shape (as of pass-N)` comment (live state). Before reporting umbrella status:
+
+- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).
+- ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
+
+Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.
+
 ## Content packs
 
 Deft ships versioned content packs (e.g. lessons learned from prior work) under `.deft/core/packs/`. Discover and LOAD pack content via the slice surface instead of reading whole pack files into context:

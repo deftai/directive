@@ -102,6 +102,8 @@ What would you like to do with this candidate?
 4. ~ When the audit surfaces a stale acceptance (`accept` decision whose issue is no longer referenced by any `vbrief/active/`), surface it to the operator -- the typical fix is a fresh ingest via `task issue:ingest -- <N>` or a `task triage:reset <N>` if the acceptance was in error.
 5. ⊗ Skip the Phase 4 audit -- silent exit leaves the operator without a record of what landed in `vbrief/proposed/` this session, which is the typical recurrence vector for "what did I just accept?" confusion.
 
+! Before reporting an umbrella or epic's current status during triage (what is done, what blocks, wave order), fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment and any linked context/`LockedDecisions` vBRIEF — never conclude status from the issue body alone (claim-cites-state-surface, #2066 / AGENTS.md #1152).
+
 ## Reversibility
 
 ! To undo a decision, run `task triage:reset <N>`. This writes a `reset` audit entry referencing the prior decision id; history is **never** deleted. `task triage:reset` is the canonical Layer 5 reversibility verb (resolves the V3 audit from 2026-05-13). After a reset, the candidate re-enters the untriaged group on the next `task triage:queue` render so it can be re-walked through Phase 3.

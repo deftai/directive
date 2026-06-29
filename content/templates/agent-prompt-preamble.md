@@ -233,6 +233,20 @@ task scm:body:pr:edit -- --repo OWNER/REPO --pr 42 --body-file "$bodyFile"
 
 The wrapper reads UTF-8 body text from a file or stdin, sends JSON to `gh api --input -` via `_safe_subprocess.run_text` with `shell=False`, and prints the live post-mutation read-back object. Use live `gh` for immediate verification after mutations; do not use `ghx` for the first read-back because it may serve a cached stale GET.
 
+## 5.6 Umbrella status — claim-cites-state-surface (#2066)
+
+Before stating an umbrella or epic's current status (what is done, what blocks, wave order), satisfy the claim-cites-state-surface rule:
+
+1. ! Fetch issue comments via REST: `gh api repos/<owner>/<repo>/issues/<N>/comments` (or `ghx api ...` for cached read-only GET).
+2. ! Read the `## Current shape (as of pass-N)` comment and any linked context or `LockedDecisions` vBRIEF referenced there. Follow the AGENTS.md #1152 reading order: body -> current-shape comment -> amendment comments.
+3. ! Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact in the same message.
+
+Anti-pattern: reading only the issue body (pass-1 plan, stale by design) and concluding umbrella status from it — e.g. `gh issue view <N> --json body` or REST `repos/.../issues/<N>` body field alone. The live recurrence on 2026-06-28 misread #2013 Wave 0 status this way despite #1152 being loaded.
+
+⊗ Conclude umbrella or epic status from the issue body alone (#2066).
+
+Reference: AGENTS.md `## Umbrella current-shape convention (#1152)`, issue #2066.
+
 ## 6. No Draft re-toggling within a single review cycle
 
 Once a PR transitions Draft -> Ready, keep it Ready unless a P0 finding requires re-Draft. Repeated Draft<->Ready toggles cost GraphQL mutations and trigger stale CheckRun states downstream (Greptile re-runs, branch-protection re-evaluations).
