@@ -34,6 +34,7 @@ export interface DefaultModeOptions {
   readonly writeHistory?: boolean;
   readonly taskPrefix?: string | null;
   readonly selfHealFn?: (projectRoot: string) => void;
+  readonly now?: Date;
 }
 
 /** Non-interactive default mode (#1309). */
@@ -63,6 +64,7 @@ export function runDefaultMode(
 
   emitOneliner(projectRoot, {
     writeHistory: options.writeHistory !== false,
+    now: options.now,
     output: out,
   });
 

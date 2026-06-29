@@ -3,12 +3,12 @@ import { join, resolve } from "node:path";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
 import { countReconcilable } from "../reconcile/reconcile.js";
 import { computeDrift } from "../scope-drift/compute.js";
+import { SUMMARY_HISTORY_REL_PATH, shouldSuppressD2Emission } from "../summary/index.js";
 import {
   CACHE_DIR_NAME,
   CACHE_SOURCE,
   EMPTY_CACHE_LINE,
   MAX_LINE_CHARS,
-  SUMMARY_HISTORY_REL_PATH,
   SUMMARY_HISTORY_SCHEMA,
   WIP_WARN_GLYPH,
 } from "./constants.js";
@@ -312,16 +312,26 @@ export function appendHistory(historyPath: string, result: SummaryResult, line: 
 
 export function emitOneliner(
   projectRoot: string,
-  options: { writeHistory?: boolean; output?: (line: string) => void } = {},
+  options: {
+    writeHistory?: boolean;
+    output?: (line: string) => void;
+    now?: Date;
+    applyD2Suppression?: boolean;
+  } = {},
 ): string {
   const result = computeSummary(projectRoot);
   const line = formatSummary(result);
+  const historyPath = join(resolve(projectRoot), SUMMARY_HISTORY_REL_PATH);
+  const applySuppression = options.applyD2Suppression !== false;
+  if (applySuppression && shouldSuppressD2Emission(result, historyPath, { now: options.now })) {
+    return line;
+  }
   const out = options.output ?? ((l: string) => process.stdout.write(`${l}\n`));
   for (const physicalLine of line.split("\n")) {
     out(physicalLine);
   }
   if (options.writeHistory !== false) {
-    appendHistory(join(resolve(projectRoot), SUMMARY_HISTORY_REL_PATH), result, line);
+    appendHistory(historyPath, result, line);
   }
   return line;
 }

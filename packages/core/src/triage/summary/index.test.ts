@@ -18,9 +18,12 @@ import {
   latestDecisions,
   pythonStyleStringify,
   readAuditLog,
+  readLastHistoryRecord,
   resolveWipCapInt,
   type SummaryResult,
+  shouldSuppressD2Emission,
   summaryResultToRecord,
+  suppressionKey,
   WIP_WARN_GLYPH,
 } from "./index.js";
 
@@ -487,5 +490,97 @@ describe("compute filesystem-truth end-to-end", () => {
     const full = formatSummary(result);
     expect(full).toContain("1 in-flight");
     expect(full).toContain("[triage:scope]");
+  });
+});
+
+describe("D2 suppression key (#1279)", () => {
+  it("changes when only in_flight_cache_scoped changes", () => {
+    const baseline = baseResult({
+      untriaged: 5,
+      inFlight: 2,
+      inFlightFilesystem: 2,
+      inFlightCacheScoped: 0,
+      triageScopeConfigured: false,
+      wipCount: 1,
+      wipCap: 10,
+    });
+    const caughtUp = baseResult({
+      ...baseline,
+      inFlightCacheScoped: 2,
+    });
+    expect(suppressionKey(baseline)).not.toBe(suppressionKey(caughtUp));
+  });
+
+  it("does not suppress when discrepancy line would flip within 4h", () => {
+    const root = mkRoot();
+    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const prior = baseResult({
+      untriaged: 5,
+      inFlight: 2,
+      inFlightFilesystem: 2,
+      inFlightCacheScoped: 0,
+      triageScopeConfigured: false,
+      wipCount: 1,
+      wipCap: 10,
+    });
+    appendHistory(history, prior, formatSummary(prior), {
+      emittedAt: "2026-06-29T12:00:00Z",
+    });
+    const caughtUp = baseResult({
+      ...prior,
+      inFlightCacheScoped: 2,
+    });
+    const now = new Date("2026-06-29T13:00:00Z");
+    expect(shouldSuppressD2Emission(caughtUp, history, { now })).toBe(false);
+  });
+
+  it("suppresses when key unchanged within 4h", () => {
+    const root = mkRoot();
+    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const result = baseResult({
+      untriaged: 5,
+      inFlight: 2,
+      inFlightFilesystem: 2,
+      inFlightCacheScoped: 2,
+      wipCount: 1,
+      wipCap: 10,
+    });
+    appendHistory(history, result, formatSummary(result), {
+      emittedAt: "2026-06-29T12:00:00Z",
+    });
+    const now = new Date("2026-06-29T13:00:00Z");
+    expect(shouldSuppressD2Emission(result, history, { now })).toBe(true);
+  });
+
+  it("does not suppress after 4h window", () => {
+    const root = mkRoot();
+    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const result = baseResult({
+      untriaged: 5,
+      inFlight: 2,
+      inFlightFilesystem: 2,
+      inFlightCacheScoped: 2,
+      wipCount: 1,
+      wipCap: 10,
+    });
+    appendHistory(history, result, formatSummary(result), {
+      emittedAt: "2026-06-29T08:00:00Z",
+    });
+    const now = new Date("2026-06-29T13:00:00Z");
+    expect(shouldSuppressD2Emission(result, history, { now })).toBe(false);
+  });
+
+  it("readLastHistoryRecord returns latest jsonl entry", () => {
+    const root = mkRoot();
+    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    appendHistory(history, baseResult({ untriaged: 1 }), "[triage] one", {
+      emittedAt: "2026-06-29T10:00:00Z",
+    });
+    appendHistory(history, baseResult({ untriaged: 2 }), "[triage] two", {
+      emittedAt: "2026-06-29T11:00:00Z",
+    });
+    const last = readLastHistoryRecord(history);
+    expect(last?.untriaged).toBe(2);
+    expect(last?.emitted_at).toBe("2026-06-29T11:00:00Z");
   });
 });

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
 import { loadProjectDefinition, PROJECT_DEFINITION_REL_PATH } from "../../policy/resolve.js";
@@ -18,6 +19,8 @@ export const CANDIDATES_LOG_REL_PATH = AUDIT_LOG_REL_PATH;
 export { latestDecisions, readAuditLog } from "../actions/candidates-log.js";
 export const SUMMARY_HISTORY_REL_PATH = "vbrief/.eval/summary-history.jsonl";
 export const SUMMARY_HISTORY_SCHEMA = "deft.triage.summary.v1";
+/** D2 repeat-suppression window for session-start triage one-liner (#1122 / #1279). */
+export const D2_SUPPRESSION_WINDOW_HOURS = 4;
 export const EMPTY_CACHE_LINE = "[triage] cache empty -- run task triage:bootstrap";
 export const WIP_LIFECYCLE_DIRS = ["pending", "active"] as const;
 export const FILESYSTEM_IN_FLIGHT_FOLDER = "active";
@@ -392,6 +395,28 @@ export function summaryResultToRecord(
     schema: SUMMARY_HISTORY_SCHEMA,
     emitted_at: options.emittedAt,
     line: options.line,
+    ...suppressionKeyFieldsFromResult(result),
+  };
+}
+
+/** Structured fields that drive operator-visible triage summary output (#1279). */
+export type SuppressionKeyFields = {
+  readonly cache_empty: boolean;
+  readonly untriaged: number;
+  readonly stale_defer: number;
+  readonly in_flight: number;
+  readonly in_flight_filesystem: number;
+  readonly in_flight_cache_scoped: number;
+  readonly triage_scope_configured: boolean;
+  readonly wip_count: number;
+  readonly wip_cap: number;
+  readonly repos: readonly string[];
+  readonly scope_drift: number;
+  readonly reconcilable: number;
+};
+
+export function suppressionKeyFieldsFromResult(result: SummaryResult): SuppressionKeyFields {
+  return {
     cache_empty: result.cacheEmpty,
     untriaged: result.untriaged,
     stale_defer: result.staleDefer,
@@ -401,10 +426,163 @@ export function summaryResultToRecord(
     triage_scope_configured: result.triageScopeConfigured,
     wip_count: result.wipCount,
     wip_cap: result.wipCap,
-    repos: [...result.repos],
+    repos: [...result.repos].sort(),
     scope_drift: result.scopeDrift,
     reconcilable: result.reconcilable,
   };
+}
+
+function readNumericField(record: Record<string, unknown>, key: string): number | null {
+  const value = record[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readBooleanField(record: Record<string, unknown>, key: string): boolean | null {
+  const value = record[key];
+  return typeof value === "boolean" ? value : null;
+}
+
+function readStringArrayField(record: Record<string, unknown>, key: string): string[] | null {
+  const value = record[key];
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  if (!value.every((entry) => typeof entry === "string")) {
+    return null;
+  }
+  return [...value].sort();
+}
+
+/** Extract D2 suppression key fields from a summary-history JSONL record. */
+export function suppressionKeyFieldsFromRecord(
+  record: Record<string, unknown>,
+): SuppressionKeyFields | null {
+  const cacheEmpty = readBooleanField(record, "cache_empty");
+  const untriaged = readNumericField(record, "untriaged");
+  const staleDefer = readNumericField(record, "stale_defer");
+  const inFlight = readNumericField(record, "in_flight");
+  const inFlightFilesystem = readNumericField(record, "in_flight_filesystem");
+  const inFlightCacheScoped = readNumericField(record, "in_flight_cache_scoped");
+  const triageScopeConfigured = readBooleanField(record, "triage_scope_configured");
+  const wipCount = readNumericField(record, "wip_count");
+  const wipCap = readNumericField(record, "wip_cap");
+  const repos = readStringArrayField(record, "repos");
+  const scopeDrift = readNumericField(record, "scope_drift");
+  const reconcilable = readNumericField(record, "reconcilable");
+  if (
+    cacheEmpty === null ||
+    untriaged === null ||
+    staleDefer === null ||
+    inFlight === null ||
+    inFlightFilesystem === null ||
+    inFlightCacheScoped === null ||
+    triageScopeConfigured === null ||
+    wipCount === null ||
+    wipCap === null ||
+    repos === null ||
+    scopeDrift === null ||
+    reconcilable === null
+  ) {
+    return null;
+  }
+  return {
+    cache_empty: cacheEmpty,
+    untriaged,
+    stale_defer: staleDefer,
+    in_flight: inFlight,
+    in_flight_filesystem: inFlightFilesystem,
+    in_flight_cache_scoped: inFlightCacheScoped,
+    triage_scope_configured: triageScopeConfigured,
+    wip_count: wipCount,
+    wip_cap: wipCap,
+    repos,
+    scope_drift: scopeDrift,
+    reconcilable,
+  };
+}
+
+/** Canonical stable hash for D2 suppression comparison (#1279). */
+export function suppressionKey(result: SummaryResult): string {
+  return createHash("sha256")
+    .update(pythonStyleStringify(suppressionKeyFieldsFromResult(result)))
+    .digest("hex");
+}
+
+export function suppressionKeyFromRecord(record: Record<string, unknown>): string | null {
+  const fields = suppressionKeyFieldsFromRecord(record);
+  if (fields === null) {
+    return null;
+  }
+  return createHash("sha256").update(pythonStyleStringify(fields)).digest("hex");
+}
+
+function parseHistoryEmittedAt(record: Record<string, unknown>): Date | null {
+  const raw = record.emitted_at;
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return null;
+  }
+  let candidate = raw.trim();
+  if (candidate.endsWith("Z")) {
+    candidate = `${candidate.slice(0, -1)}+00:00`;
+  }
+  const parsed = new Date(candidate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/** Read the most recent JSONL record from summary-history.jsonl. */
+export function readLastHistoryRecord(historyPath: string): Record<string, unknown> | null {
+  if (!existsSync(historyPath)) {
+    return null;
+  }
+  let text: string;
+  try {
+    text = readFileSync(historyPath, { encoding: "utf8" });
+  } catch {
+    return null;
+  }
+  const lines = text.split("\n").filter((line) => line.trim().length > 0);
+  if (lines.length === 0) {
+    return null;
+  }
+  const last = lines[lines.length - 1];
+  if (last === undefined) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(last) as unknown;
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+/** True when D2 should skip stdout emission (key unchanged within 4h). */
+export function shouldSuppressD2Emission(
+  result: SummaryResult,
+  historyPath: string,
+  options: { now?: Date } = {},
+): boolean {
+  const prior = readLastHistoryRecord(historyPath);
+  if (prior === null) {
+    return false;
+  }
+  const emittedAt = parseHistoryEmittedAt(prior);
+  if (emittedAt === null) {
+    return false;
+  }
+  const now = options.now ?? new Date();
+  const ageMs = now.getTime() - emittedAt.getTime();
+  if (ageMs < 0 || ageMs >= D2_SUPPRESSION_WINDOW_HOURS * 3_600_000) {
+    return false;
+  }
+  const priorKey = suppressionKeyFromRecord(prior);
+  if (priorKey === null) {
+    return false;
+  }
+  return priorKey === suppressionKey(result);
 }
 
 function sortKeysDeep(value: unknown): unknown {

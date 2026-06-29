@@ -1,0 +1,70 @@
+{
+  "vBRIEFInfo": { "version": "0.6", "description": "Story vBRIEF for #1656 — skip .deft-scratch in content standards scans" },
+  "plan": {
+    "id": "1656-skip-deft-scratch",
+    "title": "Content-standards tests must skip .deft-scratch swarm worktrees",
+    "status": "running",
+    "narratives": {
+      "Description": "Content-standards markdown scanners walk the repo via `allMdFiles()` but `SKIP_DIRS` omits `.deft-scratch`. Leftover swarm worktrees under `.deft-scratch/worktrees/` get scanned as framework docs, causing false failures in `task check` and blocking release CI.",
+      "ImplementationPlan": "1. Add `.deft-scratch` to `SKIP_DIRS` in `packages/core/src/content-contracts/standards/_helpers.ts` so `allMdFiles()` skips swarm worktree trees.\n2. Add regression test in `packages/core/src/content-contracts/standards/standards.test.ts` (or dedicated helper test) asserting markdown under `.deft-scratch/` is excluded.\n3. Run `pnpm -w exec vitest run packages/core/src/content-contracts/standards/standards.test.ts` as verification evidence; CHANGELOG entry. Closes #1656.",
+      "UserStory": "As a maintainer running swarms or local release cuts, I want stale worktrees ignored by content-standards scans, so that `task check` does not fail on unrelated files in `.deft-scratch/`.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1656",
+      "Overview": "See issue #1656 — v0.48.0 release blocked by 60 failures from stale `.deft-scratch/worktrees/` paths.",
+      "Labels": "bug, swarm, tooling"
+    },
+    "items": [
+      {
+        "id": "1656-a1",
+        "title": "SKIP_DIRS includes .deft-scratch",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a markdown file exists only under `.deft-scratch/worktrees/test/`, when `allMdFiles()` runs, then that path is not included in the scan set."
+        }
+      },
+      {
+        "id": "1656-a2",
+        "title": "Regression test",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a unit test creates a violating markdown file under `.deft-scratch/`, when content-standards tests run, then no failure is reported for that path."
+        }
+      },
+      {
+        "id": "1656-a3",
+        "title": "CHANGELOG entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents `.deft-scratch` exclusion from content-standards scans. Closes #1656."
+        }
+      }
+    ],
+    "tags": ["bug", "swarm"],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": { "parent_issue": "#1656" },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/content-contracts/standards/_helpers.ts",
+          "packages/core/src/content-contracts/standards/standards.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/core/src/content-contracts/standards/standards.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": [".deft-scratch in SKIP_DIRS", "Regression test", "CHANGELOG entry"],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-standards",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "default",
+        "missing_traces_justification": "Swarm/release blocker from ingested issue #1656."
+      },
+      "capacityBucket": "bugfix"
+    },
+    "references": [{ "uri": "https://github.com/deftai/directive/issues/1656", "type": "x-vbrief/github-issue", "title": "Issue #1656" }],
+    "updated": "2026-06-29T23:00:00Z"
+  }
+}
