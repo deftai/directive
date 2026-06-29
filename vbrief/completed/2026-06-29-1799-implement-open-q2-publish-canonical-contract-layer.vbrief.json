@@ -8,7 +8,7 @@
   "plan": {
     "id": "1799-contract-layer",
     "title": "Implement Open-Q2: publish canonical contract layer",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Deliver the locked Open-Q2 decision (#1799): downstream TS and non-TS consumers import the canonical vBRIEF/policy contract from `@deftai/directive-types` and published JSON Schema artifacts instead of hand-mirroring shapes. Replace the #1717 Wave-1 skeleton (`EngineInfo` placeholder) with real contract types, ship schema files from npm, add a deterministic TS↔schema drift gate, and document the supported public API boundary (contract-only; behavior stays CLI). Reconcile npm reality: `@deftai/directive-core` may remain on the registry for the install dependency graph but is explicitly unsupported as a library API.",
       "ImplementationPlan": "1. Define the v1 public contract surface in `packages/types/` — vBRIEF document model (`vBRIEFInfo`, `plan`, items, narratives, references with `x-vbrief/*`), typed `plan.policy` fields consumers mirror today, and gate result/exit-code types where downstream tools need them. Honor deftai/vBRIEF#12 extension namespace (`^x-[a-z0-9-]+/`) and preserve-verbatim round-trip semantics.\n2. Bundle JSON Schema artifacts in `@deftai/directive-types` (subpath exports): minimum `vbrief-core-0.6.schema.json` sourced from `content/vbrief/schemas/vbrief-core.schema.json`; document v1 vs follow-up for auxiliary schemas (`candidates`, `cache-meta`, pack schemas).\n3. Add `verify:contract-drift` (or extend an existing gate) — fail closed when TS types, published schema copies, and `content/vbrief/schemas/` diverge.\n4. Update consumer docs (README / UPGRADING / content/conventions): import examples for `@deftai/directive-types`, `$schema` / `$id` usage for non-TS, and clarify single source of truth vs install-time `vbrief/schemas/` mirror.\n5. Document `@deftai/directive-core` as published-but-unsupported (no semver guarantee on deep imports); supported public contract = types + schemas only.\n6. Verify release path: `npm pack @deftai/directive-types` includes types + schemas; `task check` green with new tests.",
@@ -100,7 +100,8 @@
         "model_tier": "strong",
         "missing_traces_justification": "Open-Q2 contract publish tracked at #1799; decision locked 2026-06-19; TS cutover #1731 complete; npm rename #1670 landed."
       },
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-06-29T21:18:46Z"
     },
     "references": [
       {
@@ -129,6 +130,6 @@
         "title": "Issue #2087: RFC — consumer project automation declaration (v1.1 cross-link)"
       }
     ],
-    "updated": "2026-06-29T20:47:04Z"
+    "updated": "2026-06-29T21:18:46Z"
   }
 }
