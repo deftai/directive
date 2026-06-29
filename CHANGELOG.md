@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Refreshed the project-identity narratives so they describe deft as TypeScript-native. `PROJECT-DEFINITION.vbrief.json` and `specification.vbrief.json` (and the rendered `SPECIFICATION.md` / `PRD.md`) previously still listed Python tooling, the `run`/`run.py`/`run.bat` launchers, and the #1530 migration as current — all removed at v0.63.0. The `codeStructure` metadata dropped the stale `python-tooling` module and now points its validator references at the TypeScript engine. Closes #2089.
+
 ### Removed
 
 ## [0.63.0] - 2026-06-29

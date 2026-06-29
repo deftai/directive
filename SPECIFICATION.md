@@ -7,7 +7,7 @@
 
 ## Overview
 
-Deft Directive is a self-dogfooded framework for AI-assisted software work. It combines agent-consumed guidance, deterministic Taskfile automation, vBRIEF lifecycle metadata, Python validation/rendering tools, a Go installer, local triage/cache workflows, content packs, and release/PR gates. The current source tree is Taskfile-first: `task --list` is the primary command contract, while `run`/`run.py`/`run.bat` remain compatibility and interactive helper surfaces. Project identity and architectural intent live in `vbrief/PROJECT-DEFINITION.vbrief.json`; rendered markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The early Deft intent remains active: turn loose agent prompting into a repeatable practice with modular guidance, lazy loading, specification before implementation, observable tests/gates, and a feedback loop for lessons learned.
+Deft Directive is a self-dogfooded framework for AI-assisted software work. It combines agent-consumed guidance, deterministic Taskfile automation, vBRIEF lifecycle metadata, a TypeScript engine, a Go installer, local triage/cache workflows, content packs, and release/PR gates. The current source tree is Taskfile-first: `task --list` is the primary command contract, delegating to the TypeScript engine in `packages/`. The legacy Python runtime and the `run`/`run.py`/`run.bat` launchers were fully removed at v0.63.0 -- deft is now TypeScript-native end to end. Project identity and architectural intent live in `vbrief/PROJECT-DEFINITION.vbrief.json`; rendered markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The early Deft intent remains active: turn loose agent prompting into a repeatable practice with modular guidance, lazy loading, specification before implementation, observable tests/gates, and a feedback loop for lessons learned.
 
 ## ProblemStatement
 
@@ -16,8 +16,8 @@ The framework has outgrown its early self-specification. The old project narrati
 ## Goals
 
 1. Keep vBRIEF sources authoritative and generated markdown clearly derivative.
-2. Present `task` as the primary deterministic command surface and `run` as compatibility/interactive support.
-3. Document the actual implemented modules: framework content, Taskfile tasks, Python/TypeScript tooling, Go installer, vBRIEF metadata, triage/cache/scope, release/PR/swarm automation, content packs, codebase contracts, and tests.
+2. Present `task` (delegating to the TypeScript engine in `packages/`) as the primary deterministic command surface.
+3. Document the actual implemented modules: framework content, Taskfile tasks, the TypeScript engine, Go installer, vBRIEF metadata, triage/cache/scope, release/PR/swarm automation, content packs, codebase contracts, and tests.
 4. Preserve the early Deft mental model: modular guidance, lazy loading, TDD/SDD, small reversible scopes, and self-improving standards.
 5. Use diagrams where process flow matters, especially session rituals, implementation gates, lifecycle movement, source/projection boundaries, and triage/cache flow.
 6. Keep the codebase MAP distinction accurate: `.planning/codebase/MAP.md` is generated and freshness-checked, while `plan.architecture.codeStructure` remains canonical.
@@ -48,7 +48,7 @@ The framework has outgrown its early self-specification. The old project narrati
 
 ## Architecture
 
-The implemented architecture has ten cooperating areas. (1) Framework content: `AGENTS.md`, `main.md`, standards, skills, strategies, templates, docs, conventions, and domain guidance consumed by agents. (2) Task runner: `Taskfile.yml` and `tasks/*.yml` expose the deterministic command surface for checks, rendering, lifecycle, triage, scope, cache, release, PR, swarm, policy, packs, and codebase commands. (3) Python tooling: `scripts/*.py` plus `run`/`run.py` implement validators, renderers, lifecycle movement, issue/cache/triage automation, doctor/session gates, codebase extraction, and compatibility command routing. (4) TypeScript engine: `packages/`, root package metadata, and TS configs implement migrated gates, CLI shims, and Python-oracle parity harnesses during the #1530 migration. (5) Go installer: `cmd/deft-install/` installs or upgrades a vendored `.deft/core/` payload, writes manifests, refreshes managed AGENTS sections, wires Taskfile includes, and hands off to the canonical doctor. (6) vBRIEF metadata: `vbrief/` stores project identity, specification source, schemas, lifecycle scope files, policy, and `plan.architecture.codeStructure`. (7) Triage/cache/scope automation: `.deft-cache/`, `vbrief/.eval/`, `task triage:*`, `task cache:*`, and `task scope:*` turn GitHub/backlog state into auditable scope vBRIEFs. (8) Release/PR/swarm automation: `task release:*`, `task pr:*`, `task swarm:*`, and associated skills encode pre-PR, review, merge, and release workflows. (9) Codebase architecture metadata: `codeStructure` is the authored source of truth; `task codebase:validate-structure`, `codebase:extract-default`, `codebase:provider-map`, `codebase:map`, `verify:codebase-map-fresh`, and `codebase:projection-registry` implement the current contract and MAP projection layer. (10) Tests and gates: `tests/`, `.githooks/`, `.github/workflows/`, and `task check` provide regression, content, branch, encoding, vBRIEF, capacity, session, and forward-coverage enforcement.
+The implemented architecture has ten cooperating areas. (1) Framework content: `AGENTS.md`, `main.md`, standards, skills, strategies, templates, docs, conventions, and domain guidance consumed by agents. (2) Task runner: `Taskfile.yml` and `tasks/*.yml` expose the deterministic command surface for checks, rendering, lifecycle, triage, scope, cache, release, PR, swarm, policy, packs, and codebase commands. (3) TypeScript engine: `packages/` plus root package metadata and TS configs implement the deterministic gates, CLI shims, command routing, validators, renderers, lifecycle movement, issue/cache/triage automation, doctor/session gates, and codebase extraction -- the primary tooling runtime. The #1530 Python-to-TypeScript migration completed at v0.63.0: the Python runtime, `scripts/*.py`, and the `run`/`run.py`/`run.bat` launchers were removed and the Python-oracle parity harnesses retired. (4) Node workspace and build: `package.json`, `pnpm-lock.yaml`, `tsconfig*.json`, and the `vitest` config define the workspace, build, and test-runner surface for the engine. (5) Go installer: `cmd/deft-install/` installs or upgrades a vendored `.deft/core/` payload, writes manifests, refreshes managed AGENTS sections, wires Taskfile includes, and hands off to the canonical doctor. (6) vBRIEF metadata: `vbrief/` stores project identity, specification source, schemas, lifecycle scope files, policy, and `plan.architecture.codeStructure`. (7) Triage/cache/scope automation: `.deft-cache/`, `vbrief/.eval/`, `task triage:*`, `task cache:*`, and `task scope:*` turn GitHub/backlog state into auditable scope vBRIEFs. (8) Release/PR/swarm automation: `task release:*`, `task pr:*`, `task swarm:*`, and associated skills encode pre-PR, review, merge, and release workflows. (9) Codebase architecture metadata: `codeStructure` is the authored source of truth; `task codebase:validate-structure`, `codebase:extract-default`, `codebase:provider-map`, `codebase:map`, `verify:codebase-map-fresh`, and `codebase:projection-registry` implement the current contract and MAP projection layer. (10) Tests and gates: colocated `packages/**/*.test.ts` suites plus shared fixtures and snapshots under `tests/`, `.githooks/`, `.github/workflows/`, and `task check` provide regression, content, branch, encoding, vBRIEF, capacity, session, and forward-coverage enforcement.
 
 ## LegacyArtifacts
 
@@ -65,10 +65,10 @@ Historical Phase 1-3 narrative and inline plan.items were removed from the curre
 ## OpenQuestions
 
 1. **Generated source headers** -- the MAP generator, freshness gate, and PR6 consumer guidance are complete. Generated source headers remain a split optional projection follow-up; local indexes and materialized views are tracked separately by #1618.
-2. **Runtime decoupling** -- `run` remains present for compatibility and interactive workflows. The long-term split between framework guidance, package-manager command routing, and Taskfile runtime is still evolving through scoped work.
+2. **Runtime decoupling** -- the legacy `run` CLI and the Python runtime were removed at v0.63.0; the TypeScript engine in `packages/` is the sole runtime, invoked through the Taskfile command graph. The long-term split between framework guidance, package-manager command routing, and the Taskfile runtime is still evolving through scoped work.
 3. **Content-pack UX** -- `packs:*` tasks exist, but the public documentation should continue to expand as the pack format becomes a primary user-facing surface.
 
-## Implementation Plan
+## Scope outlook
 
 ### Completed
 
@@ -2380,6 +2380,10 @@ ROADMAP Completed section
 
 ROADMAP Completed section
 
+### 2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)  `[completed]`
+
+ROADMAP active phase
+
 ### 2026-04-23-115-strengthen-spec-validation-gate-add-ci-freshness-check: Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)  `[completed]`
 
 ROADMAP active phase
@@ -3559,6 +3563,10 @@ fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs 
 - NEW test test_apply_dedupes_multi_reference_vbrief in tests/cli/test_reconcile_issues_apply.py `[pending]`
 - Verify existing happy-path tests in tests/cli/test_reconcile_issues_apply.py continue passing `[pending]`
 - CHANGELOG.md [Unreleased] entry under Fixed referencing #756 `[pending]`
+
+### 2026-04-30-761-install-paths-reframe-webinstaller-npm: docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy  `[completed]`
+
+Phase 3 -- Documentation & Content Fixes
 
 ### 2026-04-30-764-fixscriptsreconcile-issuespy-bump-issue-fetch-limit-200-1000: fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus  `[completed]`
 
@@ -15997,6 +16005,20 @@ This issue covers fixes A, B, C, F. Fix D (behavioral eval) and E (greet skill) 
 - Content tests guard the harness wording `[proposed]`
   - Acceptance: Given AGENTS.md, when the content tests run, then they assert the must-marker, the Test-Path anti-pattern, the name-echo, and the external-context precedence wording are present and fail when any is missing.
 
+### 2026-06-16-docs-readme-feature-slicing: docs(readme): document feature slicing and complete the gh-dependent skill list  `[completed]`
+
+Documentation-only change. Source of truth for the slicing process remains skills/deft-directive-gh-slice/SKILL.md; this surfaces the capability at the top level so users can discover it from the README.
+
+**Scope Acceptance**:
+
+- README.md gains a concise 'Feature slicing' subsection that explains tracer-bullet vertical slices (vertical vs horizontal, AFK/HITL, dependency ordering, durable slices.jsonl cohort records, and the triage:audit orphan/stalled/coverage surfaces) and links to the canonical skill. The gh-dependent skill list in Platform Requirements is corrected to include deft-directive-gh-slice and deft-directive-gh-arch. A CHANGELOG [Unreleased] entry is added. task check passes.
+
+**Acceptance**:
+
+- Add a 'Feature slicing' subsection to README.md `[completed]`
+- Add deft-directive-gh-slice and deft-directive-gh-arch to the gh-dependent skill list in Platform Requirements `[completed]`
+- Add a CHANGELOG [Unreleased] entry `[completed]`
+
 ### 2026-06-17-1259-review-cycle-skill-can-exit-on-partial-greptile-review-and-a: Review-cycle skill can exit on partial Greptile review and allow unsafe merge  `[completed]`
 
 ## Lead anomaly
@@ -18398,6 +18420,57 @@ Re-scoped from a Wave-2 installer denylist patch into the Wave-1 shippability au
 - Tests (vitest) covering all states + real-tree self-test `[pending]`
   - Acceptance: Unit tests cover clean/drift/config-error and straddle handling; a self-test asserts the committed manifest is clean against the real top-level tree; task check passes.
 
+### 2026-06-22-1875-execute-the-content-move-manifest-driven-relocation-source-s: Execute the content/ move — manifest-driven relocation + source-side cross-reference rewrite  `[completed]`
+
+**Parent:** #1669 (consumption-model umbrella) · **Wave 1** · **Depends on:** #1821 (content-manifest v1 + gate)
+
+## User story
+
+As a Deft maintainer, I want all shippable content relocated under a single `content/` root with every internal reference rewritten atomically, so that the npm engine/content split and the location-invariant deposit work without a maintained denylist.
+
+## Description
+
+One atomic PR that relocates every entry the #1821 manifest buckets as `content` into `content/` (flatten-preserving the existing internal structure, per #1669 Wave-1 C1), executes the locked C3 splits/promotions, deletes `home/`, redistributes `core/` into `content/meta/` (dedup `glossary.md`), and rewrites all source-side references.
+
+Because **C1 = flatten deposit** (`content/<x>` → `.deft/core/<x>`), the consumer-facing `.deft/core/` layout, the AGENTS.md managed-section routing, and the `.agents/skills/*` pointers are **unchanged** — the rewrite is **source-repo-only**.
+
+## Implementation plan
+
+1. **Manifest-driven move script** — reads `conventions/content-manifest.json`; `git mv` each `content`-bucket entry into `content/`; apply the C3 splits for `vbrief/` / `meta/` / `incidents/`; promote the 3 `docs/` guides (`BROWNFIELD.md`, `getting-started.md`, `good-agents-md.md`); delete `home/`; redistribute `core/` (4 md) into `content/meta/` and dedupe root `glossary.md` vs `core/glossary.md`; move root `commands.md` / `glossary.md` into `content/`.
+2. **Source-side reference rewrite** — internal markdown links across moved files, `templates/agents-entry.md`, `REFERENCES.md`, and repoint any engine/scripts/tests that read content by repo-root path (e.g. `packs:render`, lazy-load routing, content-contract tests).
+3. **Validate** — `verify:content-manifest` (location invariant now active), `verify:links`, `task check` green; confirm `agents:refresh` output and the flatten deposit are byte-stable consumer-side.
+
+## Acceptance criteria
+
+- [ ] Every `content`-bucket entry lives under `content/`; nothing else does (`verify:content-manifest` exits 0).
+- [ ] `verify:links` passes with zero broken references.
+- [ ] `home/` is removed; `core/` files relocated; root `commands.md` / `glossary.md` moved; the `vbrief/` / `meta/` / `incidents/` splits applied exactly as locked in #1669 Wave-1 C3.
+- [ ] Consumer-facing `.deft/core/` deposit + AGENTS.md managed-section routing are unchanged (flatten verified — consumer-side diff is empty).
+- [ ] `task check` passes fully.
+
+## Swarm metadata
+
+- **file_scope:** repo-wide (inherent to an atomic move)
+- **readiness:** sequential · **parallel_safe:** false · **conflict_group:** `wave1-content-move`
+- **verify_commands:** `task verify:content-manifest`, `task verify:links`, `task check`
+- **depends_on:** #1821
+- **size:** L · **file_scope_confidence:** high (the manifest makes the scope deterministic) · **model_tier:** strong
+
+## Notes
+
+- No resolver work here — C1 flatten keeps existing `.deft/core/` resolution working untouched; the resolver-reads-from-npm-package work is Wave 2 (#11).
+- This story is sequential by construction; it owns the tree for one PR and is not eligible for concurrent swarm allocation.
+
+Refs #1669 (Wave-1 LockedDecisions), #1821.
+
+**Acceptance**:
+
+- Every -bucket entry lives under ; nothing else does ( exits 0). `[proposed]`
+- passes with zero broken references. `[proposed]`
+- is removed;  files relocated; root  /  moved; the  /  /  splits applied exactly as locked in #1669 Wave-1 C3. `[proposed]`
+- Consumer-facing  deposit + AGENTS.md managed-section routing are unchanged (flatten verified — consumer-side diff is empty). `[proposed]`
+- passes fully. `[proposed]`
+
 ### 2026-06-22-1878-prune-vendored-ts-tests: Prune vendored TypeScript test files from the consumer .deft/core deposit  `[completed]`
 
 v0.53.x vendors the new TypeScript engine under .deft/core/packages/{cli,core}/ INCLUDING *.test.ts files. A consumer whose own test runner is vitest discovers ~84 vendored framework test files (default include glob) and fails CI: the tests import the @deftai/core workspace package which does not resolve in the consumer's context (ERR_MODULE_NOT_FOUND), plus 2 parity assertion failures. The installer-shipped deft-core-guard workflow (no-mixed-core-and-app, #1430) refuses a consumer-side vitest.config.ts exclude in the same PR as the framework deposit, forcing a confusing two-PR dance. This is an adoption/upgrade blocker hit by deftai/cartograph (tracked downstream as deftai/cartograph#69). The framework's own Python self-test suite is already pruned from the deposit (#1474, .deft/core/tests); the new TS test files are not. This story extends that prune to the vitest-discoverable test files under .deft/core/packages/. It is a near-term deposit-hygiene hotfix (target v0.53.2); the durable structural fix (manifest-driven deposit + de-vendored engine from npm) is owned by #1669 Wave 1/2 and is explicitly NOT a dependency of this hotfix.
@@ -18427,6 +18500,2047 @@ Encode three orchestrator dispatch rules surfaced by the 2026-06-22 #1878 sessio
   - Acceptance: AGENTS.md Multi-agent orchestration discipline carries the three rules; CHANGELOG [Unreleased] entry references #1880 and notes #1877 gate split.
 - Gates, PR, review cycle to merge-ready `[completed]`
   - Acceptance: task check passes; pre-PR loop clean; PR opened on fix/1880-orchestration-dispatch-doctrine; Greptile merge-ready (confidence >3, zero P0/P1, SHA match); NOT merged.
+
+### 2026-06-22-1884-bugverify-session-ritual-gated-tier-fails-with-unknown-sessi: bug(verify-session-ritual): gated tier fails with 'unknown session ritual command: doctor'  `[completed]`
+
+## Summary
+
+`task verify:session-ritual -- --tier=gated` exits 1 with:
+
+```
+session ritual gated step 'doctor' failed: unknown session ritual command: doctor
+```
+
+The gated-tier verifier (TS port, `packages/cli` → `verify-session-ritual`) tries to lazily record a `doctor` session-ritual entrypoint, but the underlying session-ritual command dispatcher does not recognize a `doctor` command, so the gated tier can never pass. This blocks the pre-`start_agent` gate stack (step 0) for any interactive dispatch on a fresh ritual state.
+
+## Repro
+
+```
+task session:start
+task verify:session-ritual -- --tier=gated
+```
+
+Quick tier records fine; gated tier fails on the `doctor` step.
+
+## Impact
+
+- Blocks the canonical pre-`start_agent` gate stack (#1149/#1348) step 0 for orchestrators dispatching implementation sub-agents.
+- Current workaround is the sanctioned `DEFT_SESSION_RITUAL_SKIP=1` bypass, which exits 0 but warns — hides the failure rather than fixing it.
+
+## Likely cause
+
+The #1828/#1854 TS port of the session-ritual verifier wires the gated tier to record `doctor` and `cache_fresh` Python entrypoints, but the `doctor` command name was not registered in the TS session-ritual command table (the `cache_fresh`/`cache-fresh` path may have the same class of mismatch).
+
+## Acceptance
+
+- [ ] `task verify:session-ritual -- --tier=gated` exits 0 on a fresh `task session:start` state.
+- [ ] Regression test covers the gated-tier doctor + cache-fresh lazy-record path.
+
+Discovered 2026-06-22 while setting up the pre-dispatch gate stack for #1875.
+
+**Acceptance**:
+
+- exits 0 on a fresh  state. `[proposed]`
+- Regression test covers the gated-tier doctor + cache-fresh lazy-record path. `[proposed]`
+
+### 2026-06-22-1889-terminal-epic-render-validation: fix(vbrief): allow terminal epic child links to validate  `[completed]`
+
+Cancelled or completed epic vBRIEFs can retain x-vbrief/plan links to completed child stories. project:render faithfully mirrors those links into PROJECT-DEFINITION, but vbrief:validate currently requires every referenced child scope to have exactly the same status as the parent registry item. That makes terminal epic/child decompositions fail validation after render even when every referenced scope is terminal.
+
+**Scope Acceptance**:
+
+- A PROJECT-DEFINITION item may reference child vBRIEFs with independent lifecycle statuses without a D3 registry-status error. The item's metadata.source_path status check remains exact, including for terminal scopes. Existing path existence checks continue to run. Regression coverage pins terminal child-link allowance, non-terminal child-link allowance, and source_path mismatch rejection.
+
+**Acceptance**:
+
+- Create and activate a #1889 story vBRIEF `[completed]`
+- Update registry-status validation semantics for terminal parent/child links `[completed]`
+- Add focused regression tests for terminal allowance and non-terminal mismatch `[completed]`
+- Run focused validation and complete the story lifecycle `[completed]`
+
+### 2026-06-22-1894-refactorpacks-pack-renderts-duplicates-contentroot-instead-o: refactor(packs): pack-render.ts duplicates contentRoot instead of importing canonical content-root module  `[completed]`
+
+## Summary
+
+`packages/core/src/packs/pack-render.ts` re-implements its own `contentRoot` resolution instead of importing the canonical helper introduced by the content/ move (`packages/core/src/content-root.ts`). This is a DRY / single-source-of-truth nit: the content-root resolution logic should live in exactly one module so the source-vs-flattened-deposit dual-context behavior cannot drift.
+
+## Context
+
+Surfaced by Greptile as a non-blocking **P2** during the review cycle on PR #1893 (the Wave-1 content/ move, #1875). It is on the base move's code, not a regression introduced by the CI fixes; P2 does not gate the review-cycle loop, so it was deliberately deferred rather than churning a clean 5/5 review + a fresh CI cycle for a style fix.
+
+## Fix
+
+Replace the local `contentRoot` logic in `pack-render.ts` with an import of the canonical `content-root.ts` resolver. Confirm `task check` (TS build + vitest) stays green and the packs render/slice surface still resolves content in both source (`content/`) and flattened consumer (`.deft/core/`) layouts.
+
+Refs #1875, #1893, #1669.
+
+### 2026-06-23-1891-swarmsubagentbackend-left-live-un-flagged-after-1739-superse: swarmSubagentBackend left live + un-flagged after #1739 supersession — half-migrated surfaces steer agents into the dead enum  `[completed]`
+
+## Summary
+
+The `swarmSubagentBackend` enum was **superseded** by per-role operator model routing (`.deft/routing.local.json`) in #1739 / #1863, but the supersession was deliberately additive: **the entire old system was left physically present and self-describing as live, with no deprecation signal on any discovery surface.** The result is a half-migrated, two-live-systems state that actively steers agents (and humans) into configuring a dead surface.
+
+This issue is the **interim deprecation-signal fix** — independent of the eventual hard deletion (the enum's Python twin removal rides the broad #1860 Python purge, which is blocked on #1669 and far off). The fix here needs **zero deletion**; it's banners + descs + a skill-contradiction repair so the trap closes now instead of whenever #1860 lands.
+
+## Live recurrence (2026-06-22)
+
+An agent (Cursor, on a v0.53.2 consumer) was asked "where does directive record sub-agent types?" It discovered the enum via a code/task search, found a coherent self-contained system (catalog + setter + enforcement gate + a probe that prints an authoritative table), and **presented `plan.policy.swarmSubagentBackend` + `task policy:subagent-backend(s)` as the current mechanism** — recommending the operator set it. The routing replacement (the actual current system) was missed. The operator had to correct the agent.
+
+## Evidence — no deprecation signal on any surface (v0.53.2)
+
+| Surface | What it shows | Deprecation signal? |
+|---|---|---|
+| `packages/core/src/swarm/subagent-backend.ts` | full enum: `KNOWN_SUBAGENT_BACKEND_IDS`, catalog, `enforceSubagentBackendPolicy` | **None** — no `@deprecated`, no pointer to `routing.ts` (its sibling in the same dir) |
+| `tasks/policy.yml` → `policy:subagent-backend` / `policy:subagent-backends` | present-tense descs citing #1531a; the probe runs and prints a clean availability table | **None** |
+| `skills/deft-directive-swarm/SKILL.md` | teaches the enum as live interactive doctrine at **Phase 3 Step 1** (lines ~147–170) | **Contradictory** (see below) |
+| `scripts/policy.py` (Python twin) | `KNOWN_SUBAGENT_BACKEND_IDS`, `validate_swarm_subagent_backend`, `probe_subagent_backends` | **None** |
+
+### The skill contradicts itself
+
+Within the same `deft-directive-swarm/SKILL.md`:
+
+- **line ~432 (#1531a):** "`plan.policy.swarmSubagentBackend` … records the operator's preferred coding sub-agent provider … The policy **complements — does not replace** — per-dispatch provider selection at launch time."
+- **line ~434 (#1739):** "Operator model routing (#1739, **supersedes the swarmSubagentBackend enum**): the concrete per-role model lives in the gitignored … `.deft/routing.local.json` …"
+
+So one paragraph says the enum is superseded; the paragraph just before says it is *not* replaced. And the **prominence is inverted**: the dead enum is taught first (Step 1, interactive operator prompt), while the live replacement sits one dense paragraph deep in Step 1b.
+
+## Why #1863 didn't fix this (it caused it)
+
+#1863 was additive by design ("makes the enum non-load-bearing by superseding it when a route file exists, keeping the PR additive and parity-green"). It **added** routing + the Step-1b routing paragraph but **left** `subagent-backend.ts` unmarked, the `policy:subagent-backend(s)` tasks present-tense, and the Step-1 enum guidance live — producing the 432-vs-434 contradiction. Runtime is fine (a present route file supersedes the enum at dispatch); the defect is **legibility / deprecation signal**, which #1863 did not touch.
+
+## This is a concrete instance of #1882
+
+#1882 ("treat AGENTS.md as a map, not a manual") names the general disease: failure mode #3 — *"rots instantly … a graveyard of stale rules; an attractive nuisance"* — and #2 — *"too much guidance becomes non-guidance."* This is that disease in a specific, fixable spot.
+
+## Proposed fix (no deletion required)
+
+1. **Code:** add a `@deprecated` banner to `subagent-backend.ts` (and the Python twin in `scripts/policy.py`) pointing at `routing.ts` / #1739, so a reader landing there gets an immediate toe-tag.
+2. **Tasks:** change `policy:subagent-backend` / `policy:subagent-backends` descs from present-tense to "DEPRECATED (superseded by `task swarm:routing-set`, #1739)"; optionally have `policy:subagent-backends` print a one-line runtime deprecation notice.
+3. **Skill:** resolve the line-432 vs line-434 contradiction — demote the Step-1 enum guidance to a short "superseded; see Operator model routing" pointer and promote the routing path as the primary Phase-3 doctrine.
+4. (Optional) Make `verify:routing`'s `--advise` session-start line explicitly note the enum is deprecated, so the disclosure channel carries the signal too.
+
+## Cross-references
+
+- #1739 / #1863 — the supersession (what made the enum non-load-bearing, and the additive choice that left the old surfaces live).
+- #1882 — the general legibility/"map not manual" principle this instantiates.
+- (#1860 owns the eventual hard deletion of the enum's Python twin; it is NOT a dependency of this interim signal fix.)
+
+### 2026-06-23-1910-teach-release-skill-about-npm: Teach the release skill about npm  `[completed]`
+
+After Wave 2 (#11), pushing a v* tag auto-triggers .github/workflows/npm-publish.yml. The release pipeline (skills/deft-directive-release/SKILL.md + task release/release:publish/release:e2e) creates and pushes those tags but is 100% GitHub-release-aware and 0% npm-aware: no NPM_TOKEN/OIDC pre-flight, no npm publish coordination, no post-publish registry verification, and the e2e rehearsal does not exercise the npm publish path. This closes that gap. The release_e2e dry-run rehearsal (scope item 6) needs no live registry and lands independently of #1909; the real-registry post-publish smoke check soft-depends on #1909 (now provisioned).
+
+**Acceptance**:
+
+- npm credential pre-flight gate `[pending]`
+  - Acceptance: Given a release pre-flight, when the npm credential path (NPM_TOKEN or OIDC trusted publisher) is missing, then the release skill warns loudly (or fails behind a flag) before a v* tag is cut.
+- post-publish npm registry verification `[pending]`
+  - Acceptance: Given a successful release, when post-publish verification runs, then it confirms and reports all four @deftai/directive* packages at the correct version with provenance, surfacing failures like the existing GitHub verification phase.
+- tag->npm coupling + version invariant documented `[pending]`
+  - Acceptance: When the release skill is read, then it states a v* tag publishes to both GitHub and npm (separate non-blocking workflow) and that the tag-derived npm version must match the skill-owned release version.
+- release:e2e rehearses npm publish (dry-run, no live registry) `[pending]`
+  - Acceptance: When `task release:e2e` runs, then it rehearses npm publish for all four packages against the throwaway clone via `npm publish --dry-run` in dependency order (soft-skipped when Node is absent or --skip-npm), failing loudly on a broken files allowlist, version mismatch, or dependency-order error, without publishing to the real registry.
+
+### 2026-06-23-1916-npm-publish-workflow-uses-self-hosted-blacksmith-runner-inco: npm publish workflow uses self-hosted (Blacksmith) runner — incompatible with --provenance  `[completed]`
+
+## Found during the v0.55.0 live npm smoke test (#1909)
+
+The first real `v*` tag (`v0.55.0`) fired `.github/workflows/npm-publish.yml`, which failed at the registry:
+
+```
+npm error 422 Unprocessable Entity - PUT https://registry.npmjs.org/@deftai%2fdirective-types
+Error verifying sigstore provenance bundle: Unsupported GitHub Actions runner environment: "self-hosted".
+Only "github-hosted" runners are supported when publishing with provenance.
+```
+
+### Root cause
+The publish job runs on `runs-on: blacksmith-4vcpu-ubuntu-2404` (a third-party Blacksmith runner). `npm publish --provenance` requires a **GitHub-hosted** runner — the OIDC identity used to sign the Sigstore provenance bundle is only trusted from github-hosted runners. Blacksmith reads as `self-hosted`, so the registry rejects the bundle with HTTP 422.
+
+### Impact
+- Nothing published (all four `@deftai/directive*` packages are 404 — clean failure, no registry side effects).
+- The `v0.55.0` GitHub release is held as a draft pending the npm channel.
+
+### Fix
+- Move the publish job to `runs-on: ubuntu-latest` (github-hosted) and keep `--provenance`.
+- Add a `workflow_dispatch` trigger with a `tag` input so an existing tag (e.g. `v0.55.0`) can be (re)published without tag surgery.
+- First publish stays token-based (`NPM_TOKEN`); switch to OIDC trusted publishing after the packages exist (#1909).
+
+Refs #1909 #11 #1670
+
+### 2026-06-23-1918-directive-version-reports-hardcoded-engine-version-000: directive version reports hardcoded engine version 0.0.0  `[completed]`
+
+## Symptom
+After the v0.55.0 npm publish, `npm i -g @deftai/directive@0.55.0` then `directive version` (and the `deft` alias) prints:
+
+```
+@deftai/directive (engine: @deftai/directive-core@0.0.0)
+```
+
+The published package metadata is correct (`@deftai/directive-core@0.55.0` on the registry); only the runtime-reported version is wrong.
+
+## Root cause
+`engineInfo()` returns a hardcoded version literal:
+
+`packages/core/src/index.ts:58`
+```ts
+export function engineInfo(): EngineInfo {
+  return { name: CORE_PACKAGE, version: "0.0.0" };
+}
+```
+
+`banner()` (`packages/cli/src/index.ts:16`) and the `version` dispatch (`packages/cli/src/dispatch.ts:573`) both render `${info.name}@${info.version}`, so they always emit `0.0.0`. The publish workflow aligns `package.json` versions at publish time only, so nothing updates this literal.
+
+## Suggested fix
+Source the version from the package's own `package.json` at build or runtime (e.g. a generated `version.ts` written during `tsc -b`/build, or reading the installed `package.json`) instead of the hardcoded literal. Update the three tests that currently assert `0.0.0` (`index.test.ts`, `dispatch.test.ts`, `bin.test.ts`) accordingly.
+
+## Severity
+Cosmetic — does not affect install or functionality, but `directive version` is the first thing a user runs to confirm their install, so a wrong number undermines confidence.
+
+Found during the #1909 first-publish smoke test. Refs #1909 #11
+
+### 2026-06-23-1919-migrate-npm-publishing-to-oidc-trusted-publishing-and-retire: Migrate npm publishing to OIDC trusted publishing and retire NPM_TOKEN  `[completed]`
+
+**Umbrella:** #1909 (npm provisioning) — steady-state credential hardening.
+
+## Why
+The first publish (v0.55.0) used the long-lived `NPM_TOKEN` repo secret because trusted publishing can't be configured for packages that don't exist yet. Now that all four `@deftai/directive*` packages exist on npmjs.com, we can switch to **OIDC trusted publishing** and delete the standing credential.
+
+Benefits: no long-lived secret to leak or rotate; the publish authenticates via a short-lived, per-run GitHub OIDC identity. The workflow already declares `permissions: id-token: write`, and the publish job already runs on a GitHub-hosted runner (`ubuntu-latest`, #1916), so both prerequisites are met.
+
+## Scope / checklist
+- [ ] On npmjs.com, configure a **trusted publisher** for each package (`@deftai/directive`, `@deftai/directive-core`, `@deftai/directive-content`, `@deftai/directive-types`), pointing at `deftai/directive` + the `.github/workflows/npm-publish.yml` workflow.
+- [ ] Remove the `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` env from the four publish steps in `.github/workflows/npm-publish.yml` (OIDC needs no token).
+- [ ] Delete the `NPM_TOKEN` GitHub Actions secret (`gh secret delete NPM_TOKEN --repo deftai/directive`).
+- [ ] Validate end-to-end with a patch release (or a `workflow_dispatch` re-publish on a test tag) that publishes cleanly with provenance and **no** token.
+- [ ] Document the final setup (org ownership, trusted-publisher config, what to do if OIDC publish fails) in the release runbook (the remaining #1909 doc item).
+
+## Acceptance
+- A `v*` tag publishes all four packages with provenance using OIDC only; `NPM_TOKEN` no longer exists.
+
+Refs #1909 #1916 #11 #1670
+
+**Acceptance**:
+
+- On npmjs.com, configure a **trusted publisher** for each package (, , , ), pointing at  + the  workflow. `[proposed]`
+- Remove the  env from the four publish steps in  (OIDC needs no token). `[proposed]`
+- Delete the  GitHub Actions secret (). `[proposed]`
+- Validate end-to-end with a patch release (or a  re-publish on a test tag) that publishes cleanly with provenance and **no** token. `[proposed]`
+- Document the final setup (org ownership, trusted-publisher config, what to do if OIDC publish fails) in the release runbook (the remaining #1909 doc item). `[proposed]`
+
+### 2026-06-23-1922-ci-windows-task-dispatch-job-fails-on-corepack-pnpm-version: CI: Windows task-dispatch job fails on corepack pnpm version drift (11.8.0 vs 11.9.0)  `[completed]`
+
+## Symptom
+The **Windows (task dispatch regression)** CI job fails at `task scope:promote` → `scope:_ensure-ts` → `pnpm ... run build`:
+
+```
+! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-11.9.0.tgz
+[ERROR] This project is configured to use 11.8.0 of pnpm. Your current pnpm is v11.9.0
+Corepack invoked pnpm with this version, and pnpm does not switch versions when running under corepack.
+task: Failed to run task "scope:_ensure-ts": exit status 1
+```
+
+## Root cause
+The project pins pnpm `11.8.0` (via `packageManager` / `devEngines.packageManager`), but the Windows runner's corepack resolves `11.9.0` and refuses to switch versions when invoked under corepack. Observed on PR #1921's CI (a YAML-only change), so it is environment drift, not a code regression.
+
+## Suggested fix (pick one)
+- Bump the pinned pnpm version (`packageManager`/`devEngines.packageManager`) to match what corepack resolves, and keep it current; or
+- Pin corepack to install the exact configured pnpm version on the Windows job before running tasks; or
+- Set `devEngines.packageManager.onFail: "warn"` (or `--pm-on-fail=warn`) so a patch drift warns instead of hard-failing.
+
+## Impact
+Red Windows check on every PR until resolved; currently bypassed via admin merge. Non-blocking for runtime, but it defeats the Windows regression guard.
+
+Found during the #1909 npm work. Refs #1921
+
+### 2026-06-23-1923-ci-ts-global-branch-coverage-sits-at-the-85-threshold-bounda: CI: TS global branch-coverage sits at the 85% threshold boundary (84.99%) and fails intermittently  `[completed]`
+
+## Symptom
+The **TypeScript (build + lint + test)** CI job fails at the vitest coverage gate:
+
+```
+ERROR: Coverage for branches (84.99%) does not meet global threshold (85%)
+Statements   : 87.66%
+Branches     : 84.99% ( 17888/21046 )
+Functions    : 93.83%
+Lines        : 87.66%
+```
+
+## Root cause
+Global branch coverage has drifted to `84.99%`, a hair below the configured `85%` threshold. Because it's right at the boundary, the gate fails intermittently and blocks unrelated PRs (observed on PR #1921, a YAML-only change). `task check` locally does not replicate the CI coverage-threshold lane, so this only surfaces in CI.
+
+## Suggested fix
+- Add targeted branch tests to the lowest-covered modules to push branches comfortably above 85% (e.g. `verify-stubs.ts` 70.96%, `dependency-chain-check.ts` 73.91%, `scm-call-scan.ts` 79.24%, `safety.ts` 85.81%), rather than lowering the threshold.
+- Optionally surface the coverage-threshold lane in `task check` (or a `task ts:coverage`) so it's caught locally before CI.
+
+## Impact
+Intermittent red TS check on PRs; currently bypassed via admin merge.
+
+Found during the #1909 npm work. Refs #1921
+
+### 2026-06-23-1925-releasee2e-npm-dry-run-false-fails-after-first-real-publish: release:e2e npm dry-run false-fails after first real publish (dummy 0.0.1 < published version)  `[completed]`
+
+## Symptom
+`task release:e2e` (the #1910 npm rehearsal step) fails at `npm publish --dry-run` once real packages exist on the registry at a higher version:
+
+```
+npm error Cannot implicitly apply the "latest" tag because previously published version 0.55.0 is higher than the new version 0.0.1. You must specify a tag using --tag.
+```
+
+Observed during the v0.55.1 cut (2026-06-23). The GitHub-pipeline steps (clone, push-mirror, task release, verify draft, verify tag, rollback) all pass; only the npm dry-run trips.
+
+## Root cause
+The e2e harness rehearses with a fixed dummy version `0.0.1`. Before any real publish this was fine, but now that `@deftai/directive*` is live at `0.55.0`/`0.55.1`, npm's `--dry-run` refuses to implicitly apply the `latest` dist-tag to a *lower* version. This is a harness artifact, not a real release blocker (an actual release version is always higher than the latest published).
+
+## Impact
+`task release:e2e` now exits non-zero on the npm step on every cut, forcing operators to re-run with `--skip-npm` and lose the npm-channel rehearsal. The skill's Phase 3 hard-refusal semantics then have to be manually overridden.
+
+## Suggested fix (pick one)
+- Have the harness derive a rehearsal version *above* the latest published version (e.g. query `npm view <pkg> version` and bump), or
+- Pass `--tag e2e-rehearsal` (a throwaway dist-tag) to the dry-run so the implicit-latest check is bypassed, or
+- Point the rehearsal at a dummy/scoped package name that has no published history.
+
+Found during the v0.55.1 release. Refs #1910 #1909.
+
+### 2026-06-23-1932-map-md-generated-digest-merge-conflicts: Generated .planning/codebase/MAP.md digest causes guaranteed merge conflicts across concurrent branches  `[completed]`
+
+## Root cause
+The default extractor (packages/core/src/codebase/default-extractor.ts, scripts/) WALKS the repository filesystem (fileCount per module, contentHash over walked files), so the rendered .planning/codebase/MAP.md changes on ANY source change. verify:codebase-map-fresh is wired into the blocking `task check` aggregate and re-renders + byte-compares, so a source-changing branch must run `task codebase:map` to pass -> rewrites the digest + body -> concurrent branches collide on MAP.md at every rebase/merge (observed on all 4 rebases of the 2026-06-23 Wave-4 cohort).
+
+The durable source of truth is plan.architecture.codeStructure (tracked, validated by codebase:validate-structure), per the #1595/#1498 rule that the rendered projection must NOT be more authoritative than the metadata.
+
+## Fix (issue Option 2 + softened gate)
+1. Untrack `.planning/codebase/MAP.md` (git rm --cached) and gitignore it -- it is a per-project generated artifact, regenerated on demand via `task codebase:map`.
+2. Make the freshness gate treat an ABSENT MAP as OK/advisory (not an error) in BOTH the TS gate (packages/core/src/codebase/map-fresh.ts) and the Python oracle (scripts/codebase_map_fresh.py); update the two unit tests. Parity stays green because both engines agree. The gate stays in `task check` and still flags a genuinely stale MAP whenever one is present locally; the durable metadata stays gated by codebase:validate-structure.
+
+## Acceptance
+- N concurrent source-changing branches rebase/merge sequentially with no manual MAP.md conflict.
+- verify:codebase-map-fresh still flags a stale present MAP; durable plan.architecture.codeStructure still validated.
+
+Found during the Wave-4 cohort merge cascade. Refs #1595 #1498 #1669
+
+### 2026-06-23-add-the-npm-publish-workflow-with-provenance: Add the npm publish workflow with provenance  `[completed]`
+
+Establish npm as the canonical v1 distribution channel (#1670 Decision-4): a GitHub Actions workflow that publishes @deftai/directive, @deftai/directive-core, @deftai/directive-types, and @deftai/directive-content to npm with provenance on a version tag. pip is explicitly out of scope for v1 (deferred; #1084 stays parked). Builds on the final package names from S1.
+
+**Acceptance**:
+
+- tag-triggered publish workflow `[pending]`
+  - Acceptance: Given a v* tag, when the npm-publish workflow runs, then it builds the workspace and publishes each @deftai/directive* package with `--provenance --access public` in dependency order.
+- package publish config correct `[pending]`
+  - Acceptance: When `npm publish --dry-run` runs for each published package, then the tarball file allowlist is correct and publishConfig.access=public is set.
+- pip explicitly out of scope `[pending]`
+  - Acceptance: When the workflow and docs are reviewed, then no PyPI publish path is added and the v1-npm-only decision is recorded inline (#1084 remains deferred).
+
+### 2026-06-23-document-the-deft-company-directive-product-model-and-npm-in: Document the Deft-company / Directive-product model and npm install paths  `[completed]`
+
+Resolve the #423 tail: add the user-visible 'Deft is the company, Directive is the product' note and reframe the primary install paths around npm (`npm i -g @deftai/directive`; `directive` command with `deft` alias). The Go installer stays documented as the bootstrap path during the staged-retire window. This is the docs surface for the Wave-2 distribution change; the full #761 README/UPGRADING reframe remains Wave 4.
+
+**Acceptance**:
+
+- identity-model note present `[pending]`
+  - Acceptance: When README and getting-started are read, then a clear 'Deft = company, Directive = product' note is present and consistent with the @deftai/directive naming.
+- npm install paths documented `[pending]`
+  - Acceptance: When the install docs are read, then `npm i -g @deftai/directive` and the `directive`/`deft` command are documented as the emerging canonical channel alongside the installer.
+- no broken links `[pending]`
+  - Acceptance: When `directive verify links` runs over the edited docs, then it returns exit 0 with no broken references.
+
+### 2026-06-23-implement-the-directive-verb-router-and-top-level-ux-verbs: Implement the directive verb router and top-level UX verbs  `[completed]`
+
+Build the unified `directive <namespace> <verb>` command surface defined in #1670: it mirrors the existing `task <namespace>:<verb>` map one-to-one, and promotes the curated UX verbs (init, update, bootstrap, check, doctor, version, feature) to the top level. The router dispatches to the existing TS engine entrypoints; the `deft` alias accepts the identical surface. init/update delegation to deft-install is a separate story (S4); this story delivers the router skeleton plus the read-only/non-bootstrap verbs.
+
+**Acceptance**:
+
+- namespace:verb parity with task surface `[pending]`
+  - Acceptance: Given the router, when `directive verify branch` (and a representative sample of scope/vbrief/triage verbs) runs, then it dispatches to the same engine handler as the corresponding `task <ns>:<verb>` with matching exit codes.
+- top-level UX verbs `[pending]`
+  - Acceptance: When `directive version`, `directive check`, and `directive doctor` run, then each resolves to its promoted top-level handler and returns the same output as the underlying task aggregate.
+- deft alias parity `[pending]`
+  - Acceptance: Given the same arguments, when invoked via `deft <...>` instead of `directive <...>`, then the dispatch and output are identical.
+
+### 2026-06-23-make-directive-initupdate-a-front-end-to-the-deft-install-bi: Make directive init/update a front-end to the deft-install binary  `[completed]`
+
+Implement the #1670 Decision-3 transition contract: `directive init` and `directive update` delegate to the bundled deft-install Go binary (deft-install --yes --upgrade --repo-root . --json) rather than reimplementing bootstrap. This keeps a single bootstrap implementation during the staged Go-retire window; the CLI absorbs the logic only at Wave 5. Builds on the S3 router.
+
+**Acceptance**:
+
+- init delegates with canonical argv `[pending]`
+  - Acceptance: When `directive init` runs, then it invokes the bundled deft-install binary with the canonical install argv and returns the binary's structured result.
+- update delegates upgrade path `[pending]`
+  - Acceptance: When `directive update` runs, then it invokes deft-install with `--yes --upgrade --repo-root . --json` and maps a non-zero binary exit to a non-zero CLI exit.
+- missing-binary diagnostic `[pending]`
+  - Acceptance: Given the bundled deft-install binary cannot be located, when init/update runs, then the CLI emits a clear remediation error rather than a raw spawn failure.
+
+### 2026-06-23-migrate-product-slash-commands-to-deftdirective-with-aliases: Migrate product slash commands to /deft:directive:* with aliases  `[completed]`
+
+Resolve the #418 tail under the #1670 model: migrate product-level slash commands from /deft:* to /deft:directive:* with retained aliases + deprecation notes, while cross-product commands that operate on shared vBRIEF abstractions (/deft:continue, /deft:checkpoint) stay at the umbrella /deft:*. Skills stay deft-directive-* (no rename). Source edits go through templates/agents-entry.md + content/commands.md, then `task agents:refresh` regenerates AGENTS.md, honoring the #1309 template-propagation discipline.
+
+**Acceptance**:
+
+- product commands namespaced `[pending]`
+  - Acceptance: Given the migration, when commands.md/agents-entry are inspected, then product commands appear under /deft:directive:* and the prior /deft:* forms are documented as deprecation-warning aliases.
+- cross-product commands stay at umbrella `[pending]`
+  - Acceptance: When the command surface is inspected, then /deft:continue and /deft:checkpoint remain at the umbrella /deft:* level (not migrated).
+- AGENTS.md regenerated and contract green `[pending]`
+  - Acceptance: When `task agents:refresh` runs and the agents-entry contract test executes, then AGENTS.md reflects the new namespace and the managed-section contract test passes.
+
+### 2026-06-23-product-scope-the-npm-packages-and-wire-the-directivedeft-bi: Product-scope the npm packages and wire the directive/deft bins  `[completed]`
+
+Rename the three published workspace packages from function-named to product-scoped per the #1670 identity model: @deftai/cli -> @deftai/directive, @deftai/core -> @deftai/directive-core, @deftai/types -> @deftai/directive-types. Rewrite every internal import specifier (~65 .ts files reference @deftai/core|types|cli) and the workspace/tsconfig project references so the build stays green. Expose a single user-facing bin named `directive` from @deftai/directive with `deft` retained as an alias (npm multi-bin). This is the foundational story the rest of Wave 2 builds on: it touches the shared import surface and every package.json, so it lands first and alone.
+
+**Acceptance**:
+
+- packages renamed and build green `[pending]`
+  - Acceptance: Given the three packages renamed to @deftai/directive, @deftai/directive-core, and @deftai/directive-types, when `pnpm -w install && pnpm -w run build` runs, then tsc -b completes with zero errors.
+- no residual old specifiers `[pending]`
+  - Acceptance: When the repo is scanned for `@deftai/core`, `@deftai/types`, or `@deftai/cli` import specifiers under packages/**, then zero matches remain.
+- directive bin with deft alias `[pending]`
+  - Acceptance: Given @deftai/directive declares bins `directive` and `deft` both pointing at dist/bin.js, when either `node $(npm bin)/directive --version` or `.../deft --version` runs, then the same version string prints.
+
+### 2026-06-23-publish-content-as-deftaidirective-content-and-resolve-it-fr: Publish content as @deftai/directive-content and resolve it from the package  `[completed]`
+
+Implement the C4-locked package shape: the content/ root ships as its own publishable package @deftai/directive-content, and the TS content-resolver reads content from the installed package across the three operating modes (in-repo vendored, hybrid npm-engine, external workspace) rather than only from the committed .deft/core/ deposit. This is the engine/content split's content half made real on npm.
+
+**Acceptance**:
+
+- content package assembles `[pending]`
+  - Acceptance: Given packages/content/package.json names @deftai/directive-content, when the package is built/packed, then the packed file tree contains the content/ assets flattened to the consumer .deft/core/ layout.
+- resolver reads from package `[pending]`
+  - Acceptance: When @deftai/directive-content is present in node_modules, then content-root resolution returns the package path; when absent, then it falls back to the vendored .deft/core/ deposit.
+- three-mode coverage `[pending]`
+  - Acceptance: Given vitest cases for in-repo-vendored, hybrid npm-engine, and external-workspace modes, when the resolver test suite runs, then all three modes resolve content to the expected root with exit 0.
+
+### 2026-06-23-sync-skill-npm-canonical-blurb: Sync skill canonical-path blurb still Go-installer-canonical (post-#761 leftover)  `[completed]`
+
+## Scope
+#761 reframed install/upgrade docs around npm but did NOT touch the sync skill. The skill's source-of-truth pack body (content/packs/skills/skills-pack-0.1.json) and its rendered projection (content/skills/deft-directive-sync/SKILL.md) still carry the pre-#761 'Use the published Go installer binary ... canonical headless ... deft-install --yes --upgrade' blurb.
+
+## Fix
+Update the blurb in the pack source (source of truth) to mirror agents-entry.md:67 (npm canonical install/upgrade; frozen Go installer as no-Node bootstrap bridge #1912; deft doctor reports staleness and recommends `npm i -g @deftai/directive@latest`; legacy run upgrade/task upgrade metadata-only; submodule/framework:doctor back-compat only), then run `task packs:render` to regenerate the SKILL.md projection. Verified by `task verify:pack-drift` + `task check`.
+
+## Out of scope (Wave 5 / installer-retirement)
+The sync skill's Phase 1-2 submodule mechanism (`git submodule update --remote --merge deft`) is the legacy update flow and is gated behind the installer-retirement / Python-purge work (#1860, #1933, #1669 Wave 5); not rewritten here.
+
+Refs #761 #1912 #1669
+
+### 2026-06-24-1696-project-render-status-derivation: fix(render): project:render must emit registry items that pass vbrief:validate for mixed-status decompose groups  `[completed]`
+
+## What to build
+
+Make `project:render` output pass `vbrief:validate` (D3 registry-status) for the canonical decompose pattern (cancelled umbrella + completed stories under one issue number).
+
+Preferred structural fix: back the renderer's per-item status derivation and the validator's D3 check with ONE shared function, so render output cannot diverge from validate. Either emit one registry item per scope vBRIEF, or derive a grouped item's status with the same rule the validator enforces and never attach mixed-status scopes under a single contradicting status.
+
+## Where
+
+- packages/core/src/render/project-render.ts -- the grouping + status-assignment logic.
+- packages/core/src/vbrief-validate/project-definition.ts -- the D3 registry-status rule (the validator side of the shared invariant).
+
+## Out of scope
+
+- Do NOT touch packages/core/src/render/roadmap-render.ts (owned by in-flight #1697) or any triage reader (owned by #1698).
+
+**Acceptance**:
+
+- render output passes validate for decompose groups `[proposed]`
+  - Acceptance: When project:render runs on a cancelled umbrella plus completed decomposed stories under one issue, the output passes vbrief:validate with zero D3 registry-status errors.
+- shared status-derivation function `[proposed]`
+  - Acceptance: When the renderer assigns a registry item status, it uses the same shared function the D3 validator enforces, so render and validate cannot diverge.
+- round-trip regression test `[proposed]`
+  - Acceptance: When the round-trip test runs the mixed-status decompose fixture through render then validate, it passes and fails if the divergence regresses.
+
+### 2026-06-24-1697-roadmap-render-idempotent: fix(render): make roadmap:render -> roadmap:check idempotent (check diffs against the same bytes render emits)  `[completed]`
+
+## What to build
+
+Make `roadmap:render` -> `roadmap:check` idempotent: immediately after render, check MUST exit 0.
+
+Structural fix: --check diffs against the SAME in-memory render the write path produces (one shared render function; check = render-to-buffer + byte-compare). Eliminate any divergence in header/preamble preservation, multi-issue references[] handling, ordering, and trailing-whitespace/newline normalization.
+
+## Where
+
+- packages/core/src/render/roadmap-render.ts -- both the write path and the --check path.
+
+## Out of scope
+
+- Do NOT touch packages/core/src/render/project-render.ts (owned by in-flight #1696) or any triage reader (owned by #1698).
+
+**Acceptance**:
+
+- render then check exits 0 `[proposed]`
+  - Acceptance: When roadmap:render runs and roadmap:check runs immediately after on the same inputs, check exits 0 with no drift reported.
+- shared render-to-buffer for write and check `[proposed]`
+  - Acceptance: When --check evaluates drift, it compares against the same in-memory render the write path emits rather than a separately-computed rendering.
+- multi-issue references idempotency test `[proposed]`
+  - Acceptance: When the idempotency test renders a fixture whose scope lists multiple issue numbers in references[], the subsequent check exits 0.
+
+### 2026-06-24-1698-triage-shared-decision-reader: fix(triage): one shared decision-reader so summary, history, status, and reset agree on backfilled accepts  `[completed]`
+
+## What to build
+
+Make triage summary and triage actions read the audit log through ONE shared decision-reader that treats backfilled (agent:bootstrap / agent:reconcile) entries identically to interactively-authored ones, so anything summary counts is visible to history/status and actionable by reset.
+
+## Where
+
+- packages/core/src/triage/actions/candidates-log.ts -- the actions-side reader (reset/history/status) that currently filters out backfill entries.
+- packages/core/src/triage/summary/reconcilable.ts + packages/core/src/triage/summary/index.ts -- the summary-side reader/counter.
+- Extract/reuse a single canonical latest_decision reader consumed by both.
+
+## Out of scope
+
+- Do NOT touch the render modules (owned by in-flight #1696/#1697).
+- Do NOT change the audit-log write format or the backfill actors; this is a read-side reconciliation only.
+
+**Acceptance**:
+
+- backfilled accept visible to history and status `[proposed]`
+  - Acceptance: When an issue's only candidates.jsonl entry is an agent:reconcile/bootstrap backfill accept, triage history and status report it rather than 'no prior decision recorded'.
+- backfilled accept is reset-able `[proposed]`
+  - Acceptance: When reset runs on an issue whose only decision is a backfilled accept, it records the reset rather than refusing with 'no prior decision recorded'.
+- summary and actions share one reader `[proposed]`
+  - Acceptance: When summary counts an entry as in-flight, the same shared decision-reader makes that entry visible to the actions surfaces (no divergent actor filter).
+
+### 2026-06-24-1886-cache-faithfulness-reconcile-default-ritual-heal-drift-gate: fix(triage,cache): make the triage cache faithful to upstream state (reconcile-default + self-healing ritual + drift-aware freshness gate)  `[completed]`
+
+## What to build
+
+Make the triage cache faithful to upstream state. Principle: 'fresh' must mean 'faithful to upstream for everything in scope', not 'something was fetched recently'.
+
+1. Make closed-reconcile the DEFAULT in cache:fetch-all (the cacheRefreshClosed code path already exists in packages/core/src/cache/; invert the opt-in --refresh-closed to a --no-refresh-closed opt-out).
+2. Make the session ritual / triage:welcome self-healing: trigger a TTL-bounded reconcile or drift probe at startup so it heals the cache instead of reading and reporting stale state.
+3. Make the freshness gate (packages/core/src/preflight-cache/evaluate.ts) completeness/drift-aware: replace 'age of newest entry' with (a) age of the OLDEST in-scope entry and (b) a drift probe diffing cached-open numbers vs the live open set, reporting stale-by-drift. Also cover the TTL-skip content-drift gap (in-window open entries whose body/labels changed are skipped today).
+4. Fold secondary finding #1: evaluate.ts parseCandidates reads Number(d.issue ?? 0) but the audit writer emits issue_number; add the d.issue_number fallback so verify:cache-fresh --for-issue N matches real decisions (the ts twin already has ?? d.timestamp).
+
+## Acceptance criteria
+
+- [ ] cache:fetch-all reconciles open→closed by default; opt-out via --no-refresh-closed
+- [ ] Session ritual / triage:welcome self-heals (TTL-bounded reconcile or drift probe) instead of reading stale cache
+- [ ] Freshness gate is completeness/drift-aware: oldest-in-scope age + drift probe, reports stale-by-drift; covers TTL-skip content drift
+- [ ] evaluate.ts reads d.issue ?? d.issue_number so verify:cache-fresh --for-issue N matches
+- [ ] task check passes with new tests
+
+## Type
+
+AFK
+
+## Out of scope
+
+- The TS triage-actions verb-parity port (needs-ac/mark-duplicate/status/reset/history) is tracked separately in #1945 and owned by a sibling worker; this story MUST NOT edit packages/core/src/triage/actions/ or packages/cli/src/triage-actions*.
+
+**Acceptance**:
+
+- cache:fetch-all reconciles open→closed by default (opt-out --no-refresh-closed) `[proposed]`
+  - Acceptance: cache:fetch-all folds cacheRefreshClosed into its default run so closed-upstream issues are rewritten to state=closed without a flag; the rare opt-out is --no-refresh-closed.
+- Session ritual / triage:welcome self-heals the cache `[proposed]`
+  - Acceptance: session:start / triage:welcome triggers a TTL-bounded reconcile or drift probe at startup so the cache is healed rather than read-and-reported stale.
+- Freshness gate is completeness/drift-aware `[proposed]`
+  - Acceptance: verify:cache-fresh measures the oldest in-scope entry age plus a cached-open-vs-live-open drift probe and reports stale-by-drift; it also detects TTL-skip content drift on in-window open entries instead of passing on newest-fetch recency alone.
+- evaluate.ts reads d.issue_number fallback (fold finding #1) `[proposed]`
+  - Acceptance: preflight-cache/evaluate.ts parseCandidates reads Number(d.issue ?? d.issue_number ?? 0) so verify:cache-fresh --for-issue N matches real accept decisions (the ts twin already falls back to d.timestamp).
+
+### 2026-06-24-1912e-pinned-bridge-e2e: feat(#1912 E): pinned legacy->bridge->npm-hybrid e2e leg (reads Tier-0 SoT, pending-pin until frozen)  `[completed]`
+
+## What to build
+
+A new e2e leg in the release-e2e harness exercising the two-stage bridge:
+1. Provision a LEGACY-layout fixture in a throwaway dir (at least: pre-v0.27 sentinel-only AGENTS.md / git-clone-style / orphan `.deft/VERSION`).
+2. Stage 1: run the frozen Go bridge installer to normalize -> canonical-vendored `.deft/core` + correct AGENTS.md managed-section + handshake VERSION. (While SoT null: the locally-built Go installer may stand in for shape assertions, but the REAL frozen-tag download is skipped as pending-pin.)
+3. Stage 2: run `directive migrate` (npm-managed stamp) then `directive init`/`update`, asserting the end state is a valid npm-hybrid deposit.
+4. Read the pin from `lastGoInstaller()`; emit `PENDING (SoT unfrozen)` vs run-for-real when frozen. Three-state-friendly result consistent with the other e2e legs.
+
+Expose via a `--legacy-bridge` flag on the release-e2e CLI (parseE2EFlags / ParsedE2EFlags / runE2e + cmdReleaseE2e in main.ts), defaulting OFF so it does not slow the default `task release:e2e` budget (mirror the `--skip-npm` pattern). Soft-skip cleanly when the Go toolchain / npm is absent.
+
+## Must NOT
+- Cut/tag/build/freeze any Go installer release, or set the SoT value (operator-only).
+- Hardcode a bridge version -- read `lastGoInstaller()`; carry the `deft:last-go-installer` sentinel marker on any line that STATES the version so the drift gate stays green.
+- Touch the SoT module, the freeze/drift gates (story G), or the npm legacy refuse-preflight surfaces (story P, merged).
+
+## Integration points
+- Mirror the npm-ops leg (`packages/core/src/release-e2e/npm-ops.ts`) structure: a self-contained function returning [ok, reason], invoked from `main.ts` behind the new flag.
+- Reuse `release-e2e/git-ops.ts` for the throwaway-repo provisioning + cleanup try/finally pattern.
+
+**Acceptance**:
+
+- legacy-fixture -> bridge -> npm-hybrid leg exists `[proposed]`
+  - Acceptance: When the --legacy-bridge leg runs, it provisions a legacy-layout fixture, drives it through the bridge to canonical-vendored, then through directive migrate/init to a valid npm-hybrid deposit.
+- leg reads the Tier-0 SoT and is pending-pin while null `[proposed]`
+  - Acceptance: When lastGoInstaller() is null, the leg emits a PENDING (SoT unfrozen) advisory and does not attempt a real frozen-binary download; when set, it runs the real pinned handoff.
+- leg is opt-in and does not slow default release:e2e `[proposed]`
+  - Acceptance: When task release:e2e runs without --legacy-bridge, the new leg does not execute; with the flag it runs and reports a [ok, reason] result.
+- no freeze, no SoT edit, no hardcoded version `[proposed]`
+  - Acceptance: When the story lands, the SoT value stays null, no Go release is cut, and any version reference reads the SoT (drift gate stays green).
+
+### 2026-06-24-1912g-go-freeze-sot-and-gates: feat(#1912 G): Tier-0 lastGoInstaller SoT (null-until-frozen) + Tier-1 freeze gate + cross-surface drift gate  `[completed]`
+
+## What to build
+
+### Tier-0 SoT (`lastGoInstaller`)
+A single typed constant/module that holds the frozen final Go-installer version. Semantics: **null-until-frozen** -- it is unset/null today and the OPERATOR sets it at freeze time. Provide a reader API (e.g. `lastGoInstaller(): string | null` and `isFrozen(): boolean`). This is the ONLY place the bridge version lives. Suggested home: `packages/core/src/legacy-bridge/sot.ts` (new module) exported via an index; mirror the `engine-version.ts` style.
+
+### Tier-1 freeze gate (`verify:go-freeze`)
+A deterministic gate (new CLI verb + core logic) wired into `task check` (`check:framework-source` deps in Taskfile.yml + a task in `tasks/verify.yml`). Behaviour:
+- SoT null (not yet frozen): PASS (advisory) -- Go installer development is still allowed up to the cut.
+- SoT pinned (frozen): FAIL if the Go installer source version (`cmd/deft-install` version constant) is bumped ABOVE the pinned tag, or a new Go installer release is attempted past the line. Allow only re-publishing the pinned tag.
+- Three-state exit (0 ok / 1 violation / 2 config error). Document the env-var/flag escape hatch consistent with other gates.
+
+### Tier-1 cross-surface drift gate (`verify:bridge-drift`)
+A deterministic gate that asserts the documented bridge version, the `deft doctor` legacy-layout message, the UPGRADING.md instruction, and the pinned-e2e all agree with the Tier-0 SoT. In the null-until-frozen state, this means asserting those surfaces READ the SoT (reference the symbol / a stable pointer) and contain NO hardcoded competing Go-installer version number. Scanner-style (read-only); modeled on #1308/#1309 freshness gates. Three-state exit.
+
+## Must NOT
+- Cut/tag/build any Go installer release (operator-only freeze).
+- Hardcode a version number anywhere (the whole point of the SoT).
+- Edit the consumer-facing legacy-layout messaging surfaces (UPGRADING.md two-step wording, doctor signpost) -- those belong to story P; this story's drift gate only READS them.
+
+## Integration points
+- `packages/cli/src/dispatch.ts`: add `verify-go-freeze` + `verify-bridge-drift` to CLI_MODULE_VERBS and any alias maps.
+- `packages/cli/src/cli-router/route-argv.ts`: add `go-freeze` / `bridge-drift` to VERIFY_VERB_MAP if the stems do not hyphenate 1:1.
+- `tasks/verify.yml`: add `go-freeze` and `bridge-drift` gate tasks.
+- `Taskfile.yml` `check:framework-source`: add both gates to the deps list.
+- Follow the existing `verify-content-manifest` / `verify-stubs` gate structure (core logic + cli wrapper + three-state exit + test) as the template.
+
+**Acceptance**:
+
+- Tier-0 lastGoInstaller SoT module, null-until-frozen `[proposed]`
+  - Acceptance: When nothing is frozen, the SoT reader returns null/unset and isFrozen() is false; the value can be set in exactly one place to pin it.
+- freeze gate advisory while null, blocks Go bump when pinned `[proposed]`
+  - Acceptance: When the SoT is null, verify:go-freeze passes; when pinned, it fails if the Go installer version is bumped above the pinned tag (three-state exit).
+- cross-surface drift gate asserts surfaces read the SoT `[proposed]`
+  - Acceptance: When any tracked surface hardcodes a Go-installer version instead of reading the SoT, verify:bridge-drift fails; otherwise it passes (three-state exit).
+- both gates wired into task check (framework-source) `[proposed]`
+  - Acceptance: When task check runs on the maintainer repo, verify:go-freeze and verify:bridge-drift execute as part of check:framework-source.
+- no version hardcoded and no Go release cut `[proposed]`
+  - Acceptance: When the story lands, no Go-installer version number is hardcoded anywhere and no Go installer tag/release is created.
+
+### 2026-06-24-1912p-npm-legacy-refuse-preflight: feat(#1912 P): npm CLI legacy-layout refuse-preflight (two-step) + signpost-only stable-URL surfaces  `[completed]`
+
+## What to build
+
+### Legacy-layout detection (npm CLI)
+Replace the `legacy_layout: false` stub in `packages/core/src/init-deposit/init-deposit.ts` and `packages/core/src/init-deposit/refresh.ts` with a real detector that recognizes the legacy shapes: git-clone / submodule deposit, legacy `deft/`-prefixed paths, pre-v0.27 sentinel-only AGENTS.md (no managed-section), orphan `.deft/VERSION` (no `.deft/core/`). Reuse the manifest/AGENTS heuristics already in `packages/core/src/doctor/manifest.ts` (parseInstallRootFromAgentsMd, extractManagedSection, locateManifest) -- do NOT reinvent.
+
+### Refuse-preflight (two-step)
+When `directive init` / `directive update` detect a legacy layout, REFUSE (do not deposit/refresh) and print the two-step recovery:
+  1. Download + run the frozen Go bridge installer (stage 1) -- point at the stable UPGRADING.md URL for the exact command (do NOT bake a version).
+  2. Re-run `npx @deftai/directive init` (stage 2) once the layout is canonical-vendored.
+Exit non-zero (needs-action). This is the active gate -- it runs fresh from npm at use-time.
+
+### Signpost-only surfaces (stable URL)
+- Installed `deft doctor`: when it detects a legacy layout, emit a signpost line carrying the STABLE UPGRADING.md URL (no baked command/version).
+- UPGRADING.md (root + content/UPGRADING.md): document the two-step legacy->bridge->npm path, referencing the bridge generically (the actual pinned version is the Tier-0 SoT owned by story G; do NOT hardcode a number here -- describe it as 'the frozen final Go installer, see releases').
+- AGENTS.md / update-check signpost text: stable URL only.
+
+## Must NOT
+- Bake a Go-installer version number or a literal upgrade command into any installed artifact (doctor / AGENTS / update-check) -- stable URL only.
+- Touch the Tier-0 SoT module or the freeze/drift gates (story G owns those).
+- Attempt to normalize the legacy layout from the npm side (that is stage 1's job -- npm REFUSES, it does not migrate).
+
+**Acceptance**:
+
+- real legacy-layout detection replaces the stub `[proposed]`
+  - Acceptance: When the on-disk layout is a legacy shape (clone/submodule/legacy-prefix/pre-v0.27/orphan VERSION), the detector reports legacy; canonical-vendored reports not-legacy.
+- npm CLI refuses legacy with the two-step `[proposed]`
+  - Acceptance: When directive init/update detect a legacy layout, they refuse (no deposit), print the two-step recovery, and exit non-zero.
+- signposts carry a stable URL, never a baked command/version `[proposed]`
+  - Acceptance: When doctor/AGENTS/update-check signpost the upgrade, they carry the stable UPGRADING.md URL with no hardcoded Go-installer version or command.
+- UPGRADING.md documents the version-neutral two-step path `[proposed]`
+  - Acceptance: When a user reads UPGRADING.md, the legacy->bridge->npm two-step is documented without a hardcoded bridge version number.
+
+### 2026-06-24-1941-directive-migrate-stage2-provenance: feat(cli): directive migrate (stage-2 canonical-vendored -> npm-hybrid) -- thin provenance verb  `[completed]`
+
+## What to build
+
+A new top-level `directive migrate` (alias `deft migrate`) verb in the TS engine.
+
+### Does
+1. Detect a canonical-vendored `.deft/core` deposit (the vendored install state; reuse the manifest locator in packages/core/src/doctor/manifest.ts).
+2. Stamp provenance: rewrite `.deft/core/VERSION` / the install manifest to mark it npm-managed (a handshake sentinel field doctor / future `directive update` recognize), so npm owns the payload.
+3. Verify the global engine resolves (`@deftai/directive` on PATH / resolvable via packages/core/src/content-root.ts resolveContentPackageRoot). If absent, signpost the README (`npm i -g ...`) -- do NOT attempt an install (#1933 never-first-start decree).
+4. Idempotent + safe: no-op when already hybrid (sentinel present); write a timestamped backup before any rewrite.
+5. Three-state exit: 0 migrated/already-hybrid · 1 needs action (e.g. engine missing -> README) · 2 config error.
+
+### Does NOT
+- Normalize legacy layouts (stage-1 frozen Go guarantees canonical-vendored input).
+- Move / rename / trim `.deft/core` content (F: shape unchanged this wave).
+- Download any payload (npm / `directive update` own content delivery).
+
+## Integration points
+- packages/cli/src/cli-router/route-argv.ts: add `migrate` to TOP_LEVEL_UX_VERBS (the #1670 locked vocabulary) + a routeTopLevel branch routing `directive migrate` -> dispatch ["migrate", ...rest]; `deft migrate` resolves identically.
+- packages/cli/src/dispatch.ts: wire the `migrate` verb to a runMigrate handler the same way `init`/`update` are dispatched (dedicated branch, NOT a CLI_MODULE_VERBS entry unless that matches the init/update pattern); update any help/contract verb list.
+- Reuse the installer's safe-rewrite + timestamped-backup conventions used by the manifest writes.
+
+NOTE: distinct from the legacy `task migrate:vbrief` (pre-v0.20 document-model migration, Python). This is the npm provenance verb.
+
+**Acceptance**:
+
+- migrate stamps canonical-vendored deposit npm-managed `[proposed]`
+  - Acceptance: When directive migrate runs on a canonical-vendored .deft/core, it rewrites VERSION/manifest with the npm-managed sentinel and writes a timestamped backup first.
+- idempotent no-op when already hybrid `[proposed]`
+  - Acceptance: When migrate runs a second time on an already-npm-managed deposit, it makes no change and exits 0 (already-hybrid).
+- engine-absent signposts README without installing `[proposed]`
+  - Acceptance: When the global engine does not resolve, migrate prints the README npm signpost and exits 1 (needs action) without attempting any install or download.
+- no content move and no payload download `[proposed]`
+  - Acceptance: When migrate runs, it does not move/rename/trim .deft/core content and does not download any payload (shape unchanged per decision F).
+- migrate verb routes from directive and deft `[proposed]`
+  - Acceptance: When a user runs `directive migrate` or `deft migrate`, the router dispatches the runMigrate handler (migrate registered in the #1670 top-level vocabulary).
+- three-state exit implemented and tested `[proposed]`
+  - Acceptance: When migrate completes, it returns 0 (migrated/already-hybrid), 1 (needs action), or 2 (config error), each covered by a unit test.
+
+### 2026-06-24-1942-ts-native-init-update-deposit: feat(cli): TS-native directive init/update deposit (absorb healthy-path bootstrap) + gitignore .deft/core  `[completed]`
+
+## What to build
+
+A TS-native deposit path so directive init (greenfield: nothing -> hybrid) and directive update (healthy-path: hybrid -> newer hybrid) no longer route through the Go binary.
+
+Deposit mechanism (locked, #1942 comment 2026-06-24): resolve @deftai/directive-content via Node module resolution and recursively COPY its tree into .deft/core -- NOT a tarball download. This requires adding @deftai/directive-content as a dependency of @deftai/directive (today the CLI depends only on -core).
+
+Existing TS building blocks that shrink the port: packages/core/src/content-root.ts (resolver, #1894), packages/core/src/platform/agents-md.ts + packages/core/src/doctor/agents-md.ts (managed-section logic), packages/core/src/packs/pack-render.ts. The Go logic to absorb lives in cmd/deft-install/{setup.go,upgrade.go,deposit.go,wizard.go}: VendorDeft (minus fetch), WriteAgentsMD, WriteConsumerVbrief, EnsureGitignoreLines, EnsureTaskfile, WriteAgentsSkills, the #1430 neutralization deposit, and the wizard UX.
+
+## gitignore decision (Option B + journey split, locked 2026-06-24)
+
+Greenfield init is born hybrid: it writes .deft/core to .gitignore from the first deposit so the deposit is never committed (no tracked-but-ignored half-state for new users). update on an EXISTING committed deposit does NOT unilaterally un-commit; the one-time `git rm --cached .deft/core` vendored->hybrid transition is deferred to #1941 (stage-2 migrate). #1942 builds the gitignore-write + idempotent reconstitution capability only.
+
+## Boundaries
+
+- Legacy-layout reshape stays the frozen Go binary (#1912).
+- The pre-engine gate stays the frozen Go binary (#1912) -- NOT absorbed into the TS CLI (bootstrap paradox, #1933).
+- The vendored->hybrid un-commit transition is #1941, not here.
+
+## Acceptance (epic-level, decomposed into stories)
+
+- directive init deposits a complete .deft/core + AGENTS.md + vbrief scaffold from the content package, no Go binary involved.
+- directive update refreshes .deft/core idempotently, re-renders the managed-section, respects core-guard separation.
+- .deft/core is gitignored on greenfield init and fully reconstitutable.
+- Friendly wizard UX preserved.
+- Covered by unit tests + greenfield + upgrade e2e legs.
+- Lands BEFORE the Go first-start removal / stop-fetch (#1912 / #1933).
+
+**Acceptance**:
+
+- S1: content dependency + TS resolve-and-copy deposit primitive `[completed]`
+  - Acceptance: @deftai/directive-content is a dependency of @deftai/directive; a TS deposit primitive resolves and recursively copies the content tree with mode preservation.
+- S2: directive init TS-native greenfield deposit `[completed]`
+  - Acceptance: directive init deposits a complete .deft/core + AGENTS.md + vbrief scaffold + skills/githooks/neutralization from the content package with no Go binary involved.
+- S3: directive update TS-native healthy-path refresh `[completed]`
+  - Acceptance: directive update refreshes .deft/core idempotently from pinned content, re-renders the managed-section, and respects core-guard separation.
+- S4: gitignore .deft/core greenfield write + reconstitution `[completed]`
+  - Acceptance: greenfield init writes .deft/core to .gitignore and the deposit is fully reconstitutable; no existing tracked deposit is un-committed (deferred to #1941).
+- S5: docs flip + greenfield/upgrade e2e legs `[completed]`
+  - Acceptance: stale committed-payload statements are flipped and the pinned e2e covers the greenfield and upgrade deposit journeys.
+
+### 2026-06-24-1945-ts-triage-actions-verb-parity-port: fix(triage,ts): port the missing triage-actions verbs to TS (needs-ac/mark-duplicate/status/reset/history)  `[completed]`
+
+## What to build
+
+Port the five missing triage verbs from scripts/triage_actions.py to TypeScript so they no longer depend on the Python runtime.
+
+Today packages/cli/src/triage-actions.ts only accepts accept/reject/defer (arg guard at line ~95); packages/core/src/triage/actions/index.ts exports only accept/reject/deferAction/formatDecision. The router (packages/cli/src/cli-router/route-argv.ts) maps needs-ac, mark-duplicate, status, reset, and history to the same module, and the Python twin implements all of them.
+
+## Acceptance criteria
+
+- [ ] TS triage-actions implements needs-ac, mark-duplicate, status, reset, history (in addition to accept/reject/defer)
+- [ ] reset records a reversible audit entry referencing the prior decision_id (history is never deleted)
+- [ ] mark-duplicate validates the of_n target against the local cache and records linked_to
+- [ ] status returns the latest decision; history returns all entries for the issue in order
+- [ ] Parity tests vs the Python oracle (scripts/triage_actions.py) for all five verbs, cache off
+- [ ] task check passes
+
+## Type
+
+AFK
+
+## Out of scope
+
+- The cache-faithfulness fix (reconcile-default / self-healing ritual / drift-aware freshness gate) is tracked separately in #1886 and owned by a sibling worker; this story MUST NOT edit packages/core/src/cache/, packages/core/src/preflight-cache/, or the session-ritual / triage:welcome call sites.
+
+**Acceptance**:
+
+- TS triage-actions implements the five missing verbs `[proposed]`
+  - Acceptance: packages/cli/src/triage-actions.ts and packages/core/src/triage/actions/index.ts implement needs-ac, mark-duplicate, status, reset, and history alongside accept/reject/defer.
+- reset is a reversible audit entry referencing the prior decision `[proposed]`
+  - Acceptance: reset records a new audit entry referencing the prior decision_id without deleting history; replaying status after reset reflects the reset decision.
+- mark-duplicate validates of_n and records linked_to `[proposed]`
+  - Acceptance: mark-duplicate validates the of_n target exists in the local cache and records linked_to on the audit entry, with idempotency on the same target.
+- Parity vs the Python oracle for all five verbs `[proposed]`
+  - Acceptance: packages/cli/src/triage-actions-parity.ts emits identical output/exit codes to scripts/triage_actions.py for needs-ac/mark-duplicate/status/reset/history with cache off; task check passes.
+
+### 2026-06-24-1949-cache-fresh-recovery-gap: fix(cache): make cache:fetch-all actually satisfy the freshness gate (force + drift-aware refresh)  `[completed]`
+
+## What to build
+
+Close the gap where the cache-fresh recovery command is a no-op for TTL-fresh-but-gate-stale and TTL-fresh-but-drifted entries.
+
+Root cause: packages/core/src/cache/fetch.ts skips writes when isFresh(meta) is true (now <= expires_at), but packages/core/src/preflight-cache/evaluate.ts judges by fetched_at age (DEFAULT_MAX_AGE_HOURS=24) and by upstream drift. The two thresholds disagree, so the recovery hint cannot clear the gate.
+
+## Fix
+
+- Add a --force (alias --ignore-ttl) flag to cache:fetch-all that rewrites entries regardless of expires_at, so the recovery the hint promises actually refreshes fetched_at.
+- Make fetch-all drift-aware on the WRITE side: when the drift probe (the #1886 signal the gate already uses) shows upstream drift for an entry, re-fetch it even if TTL-fresh.
+- Update the recovery-hint wording in evaluate.ts to name the unblocking command (e.g. cache:fetch-all --force) once it exists.
+
+## Out of scope
+
+- Do NOT change the gate's default max-age or the cache TTL value (a threshold-reconciliation design choice tracked separately on #1949); this story makes the recovery command effective, not the thresholds equal.
+- Do NOT touch packages/core/src/deposit/ or packages/cli/package.json (owned by the in-flight #1942 S1 worker).
+
+**Acceptance**:
+
+- fetch-all --force rewrites TTL-fresh entries `[proposed]`
+  - Acceptance: When cache:fetch-all runs with --force, it rewrites entries regardless of expires_at and refreshes their fetched_at so the 24h gate passes.
+- fetch-all re-fetches drifted entries by default `[proposed]`
+  - Acceptance: When an entry is TTL-fresh but the drift probe reports upstream drift, fetch-all re-fetches and rewrites it so the drift gate clears.
+- default skip behavior preserved `[proposed]`
+  - Acceptance: When neither --force nor drift applies, fetch-all still skips TTL-fresh non-drifted entries (no behavior regression).
+- recovery hint names the effective command `[proposed]`
+  - Acceptance: When the gate fails, the recovery message names the unblocking command (cache:fetch-all --force) rather than the no-op form.
+
+### 2026-06-24-1953-cache-fresh-hint-reconcile: fix(cache): branch-aware verify:cache-fresh recovery hint (Option 3 of threshold reconciliation)  `[completed]`
+
+## What to build
+
+Make the `verify:cache-fresh` recovery hint depend on WHY the gate failed:
+
+- stale-by-age (entry older than DEFAULT_MAX_AGE_HOURS but TTL-fresh) -> hint names `cache:fetch-all --force` (must bypass TTL to refresh fetched_at).
+- stale-by-drift (#1886 drift probe flags upstream content drift) -> hint names plain `cache:fetch-all` (already drift-aware by default after #1949; --force is unnecessary).
+
+## Where
+
+packages/core/src/preflight-cache/evaluate.ts emits the recovery hint string(s). Today it names `--force` unconditionally (post-#1949). Split the wording by the failure branch the evaluator already computes.
+
+## Out of scope
+
+- Do NOT change DEFAULT_MAX_AGE_HOURS (24h) or the cache TTL constant (~7d) -- Option 3 keeps them distinct on purpose.
+- Do NOT touch packages/core/src/cache/fetch.ts behavior or packages/cli init/deposit paths (the in-flight #1942 S2 worker owns init-deposit).
+
+**Acceptance**:
+
+- age-branch hint names --force `[proposed]`
+  - Acceptance: When the gate fails stale-by-age (TTL-fresh but older than the 24h max-age), the recovery hint names `cache:fetch-all --force`.
+- drift-branch hint names plain refetch `[proposed]`
+  - Acceptance: When the gate fails only stale-by-drift, the recovery hint names plain `cache:fetch-all` and does not require `--force`.
+- mixed-cause prefers force `[proposed]`
+  - Acceptance: When a failure has both age and drift causes, the recovery hint prefers `cache:fetch-all --force` since it clears both states.
+- thresholds unchanged `[proposed]`
+  - Acceptance: When the change lands, DEFAULT_MAX_AGE_HOURS and the cache TTL constant retain their existing values (no threshold edit).
+
+### 2026-06-24-readme-installer-reframe-node-required: docs: reframe Go installer across consumer docs (Node always required) + project-directory note  `[completed]`
+
+Documentation-only change. Started README-only, then extended (operator request) to reframe the same 'no-Node bootstrap' wording consistently across content/UPGRADING.md, content/QUICK-START.md, and the AGENTS.md managed-section template (content/templates/agents-entry.md, regenerated into AGENTS.md via run agents:refresh). Aligns all consumer-facing installer docs with the npm-canonical reality (#761) and the frozen-installer design (#1912 amendment 2026-06-24). The deeper UPGRADING.md reduction (deleting the per-version historical sections + retiring the stale 'canonical headless = deft-install --yes --upgrade' framing) stays a Wave-5 item on #1912, gated on the frozen installer existing.
+
+**Scope Acceptance**:
+
+- README.md (1) reframes the legacy Go-installer section away from 'no-Node bootstrap' to a legacy/offline + layout-migration bridge, with an explicit 'install Node 20+ first' note for machines without Node; (2) adds a short 'where your project lands' note that setup writes .deft/ + AGENTS.md into the current working directory; (3) keeps the internal section anchor reference consistent after the heading rename. A CHANGELOG [Unreleased] entry is added. task check passes.
+
+**Acceptance**:
+
+- Reframe the legacy Go-installer section: drop 'no-Node bootstrap', add 'install Node first' note `[proposed]`
+- Add a 'where your project lands' note (setup writes into the current working directory) `[proposed]`
+- Fix the internal section anchor reference after the heading rename `[proposed]`
+- Add a CHANGELOG [Unreleased] entry `[proposed]`
+
+### 2026-06-24-s1-content-dependency-ts-resolve-and-copy-deposit-primitive: S1: content dependency + TS resolve-and-copy deposit primitive  `[completed]`
+
+directive init/update currently obtain framework content only via the Go binary's GitHub-tarball download, and @deftai/directive depends solely on @deftai/directive-core. This story adds @deftai/directive-content as a dependency of the engine package and builds a pure TS deposit primitive that resolves the installed content package via Node module resolution and recursively copies its tree into a target directory with file-mode preservation. It is the foundation every later init/update story builds on, and is independently buildable and testable in isolation from the CLI verbs.
+
+**Acceptance**:
+
+- When pnpm install runs, it resolves @deftai/directive-content as a dependency of the engine package without error. `[pending]`
+- resolve-content.ts returns the resolved content package root and rejects an uninstalled package with an actionable error. `[pending]`
+- copy-tree.ts creates a recursive copy of the source tree preserving the executable bit and nested directories. `[pending]`
+- When the unit tests run, they cover resolution success, resolution failure, and a copy round-trip that preserves file modes. `[pending]`
+
+### 2026-06-24-s2-directive-init-ts-native-greenfield-deposit: S2: directive init TS-native greenfield deposit  `[completed]`
+
+directive init today spawnSyncs the bundled Go deft-install, which downloads and vendors .deft/core. This story rewrites init to orchestrate a fully TS-native greenfield deposit using the S1 primitive: copy the content tree into .deft/core, render the AGENTS.md managed-section (reusing the existing TS agents-md logic), scaffold vbrief/ (schemas + lifecycle dirs), deposit .agents/skills pointers + .githooks + the #1430 neutralization, and wire the Taskfile include. The friendly wizard UX is preserved and no Go binary is invoked on the happy path.
+
+**Acceptance**:
+
+- When directive init runs on a fresh repo, it creates a complete .deft/core copied from the content package with no Go binary spawned. `[pending]`
+- init renders the AGENTS.md managed-section and creates vbrief/ with schemas and the five lifecycle directories. `[pending]`
+- init creates .agents/skills pointers, .githooks, and the #1430 neutralization, and updates the Taskfile include idempotently. `[pending]`
+- init displays the friendly wizard UX output on the greenfield deposit path for the operator. `[pending]`
+- When the unit tests run, they confirm the full greenfield deposit shape and that no Go binary is spawned. `[pending]`
+
+### 2026-06-24-s3-directive-update-ts-native-healthy-path-refresh: S3: directive update TS-native healthy-path refresh  `[completed]`
+
+directive update today spawnSyncs the Go binary's upgrade path to refresh .deft/core. This story rewrites update to refresh .deft/core idempotently from the pinned @deftai/directive-content using the S1 primitive and the S2 orchestrator, re-render the AGENTS.md managed-section in place (surgical, self-healing), and honor the #1430 deft-core-guard PR separation. The refresh is engine-vs-content version-skew aware and emits the wizard's refresh side-effect disclosure.
+
+**Acceptance**:
+
+- When directive update runs, it refreshes .deft/core from the pinned content package with no Go binary spawned. `[pending]`
+- update re-renders the AGENTS.md managed-section surgically and a second run creates no new diff (idempotent). `[pending]`
+- update honors the #1430 deft-core-guard separation and emits the refresh side-effect disclosure to the operator. `[pending]`
+- When the engine and content versions diverge, update emits a version-skew notice to the operator. `[pending]`
+- When the unit tests run, they cover idempotent re-run, stale managed-section rewrite, and the version-skew notice. `[pending]`
+
+### 2026-06-24-s4-gitignore-deftcore-greenfield-write-reconstitution: S4: gitignore .deft/core greenfield write + reconstitution  `[completed]`
+
+In the hybrid world .deft/core becomes gitignored and reconstituted by directive init (the node_modules model), which kills the upgrade churn loop (#1672). This story makes greenfield init write the .deft/core entry into .gitignore so the deposit is born ignored and never committed (no tracked-but-ignored half-state for new users), and makes the deposit idempotently reconstitutable when .deft/core is absent. Per the locked Option B journey split, this story does NOT un-commit an existing tracked deposit; the vendored->hybrid `git rm --cached` transition is owned by #1941.
+
+**Acceptance**:
+
+- When greenfield init runs, it creates a .deft/core entry in .gitignore so the deposit is never committed. `[pending]`
+- When .deft/core is absent, directive init recreates it idempotently from the installed content package. `[pending]`
+- When an existing tracked .deft/core deposit is present, init and update leave it tracked and defer the un-commit to #1941. `[pending]`
+- When the unit tests run, they cover born-ignored greenfield, idempotent reconstitution, and the non-un-commit behavior. `[pending]`
+
+### 2026-06-24-s5-docs-flip-greenfieldupgrade-e2e-legs: S5: docs flip + greenfield/upgrade e2e legs  `[completed]`
+
+Today's docs describe the Go-tarball, committed-.deft/core model, which contradicts the npm resolve-and-copy + gitignored model this epic delivers. This story flips the now-stale committed-payload statements (README, content/events/README.md) and finalizes the docs/ARCHITECTURE.md npm two-package section from a Wave 5 Target note to current behavior, then adds greenfield and upgrade legs to the pinned e2e so the deposit journeys are regression-guarded. It lands last because it documents and tests the behavior the earlier stories implement.
+
+**Acceptance**:
+
+- When a reader opens README and content/events/README.md, the text describes the resolve-and-copy gitignored model rather than a committed payload. `[completed]`
+- docs/ARCHITECTURE.md renders the npm two-package section as current behavior rather than a Wave 5 Target. `[completed]`
+- The pinned e2e creates greenfield and upgrade deposit legs that exercise directive init and update without the Go binary. `[completed]`
+- When the e2e legs run, they validate the deposit journeys and complete green. `[completed]`
+
+### 2026-06-25-1912-freeze-go-installer: Freeze the Go installer at v0.56.0 (pin LAST_GO_INSTALLER)  `[completed]`
+
+The freeze-prep gates (verify:go-freeze, verify:bridge-drift), the npm handoff message, the pinned legacy-bridge e2e leg, and the freeze-gate graceful-skip (#1987) all landed and shipped in v0.56.0. v0.56.0 is published as the final Go installer (carries the npm-handoff guidance). This is the single operator edit that flips the freeze:
+
+- Set LAST_GO_INSTALLER = "v0.56.0" in packages/core/src/legacy-bridge/sot.ts (the only place the literal is allowed to live).
+
+Once pinned: isFrozen() returns true; verify:go-freeze enforces the version ceiling (tags at/below v0.56.0 OK, above skip the Go build via the #1987 graceful-skip); verify:bridge-drift continues to refuse any surface that hardcodes a competing version; the pinned legacy-bridge e2e leg runs the real handoff instead of the PENDING advisory.
+
+## Acceptance
+- LAST_GO_INSTALLER pinned to "v0.56.0".
+- verify:go-freeze passes (advisory-to-enforcing flip is clean for the current tag state).
+- verify:bridge-drift passes (no competing hardcoded version surfaced).
+- task check green.
+- CHANGELOG [Unreleased] notes the freeze.
+
+Closes #1912. Refs #1972.
+
+### 2026-06-25-1967-bundle-githooks-consumer-taskfile-into-deftaidirective-conte: Bundle .githooks/ + consumer Taskfile into @deftai/directive-content (npm-only deposit parity)  `[completed]`
+
+Surfaced by #1942 S5 (PR #1966) while adding the greenfield e2e leg.
+
+## Problem
+`@deftai/directive-content`'s prepack copies only the repo-root `content/` tree (`files: **/*`). After simulating prepack:
+- **`.githooks/` is NOT in the published content tree** (hooks live at repo root, outside `content/`).
+- **root `Taskfile.yml` is NOT in the published content tree** (also outside `content/`).
+
+So a pure-npm `directive init` deposits a `.deft/core/` WITHOUT `.deft/core/.githooks` or a `.deft/core/Taskfile.yml`. Today `directive init` skips hook wiring gracefully (`writeConsumerGitHooks` logs "absent — skipping") and `ensureTaskfile` writes a project Taskfile with an include that won't resolve — so npm-only installs are missing the pre-commit/pre-push branch-policy hooks and the `.deft/core` Taskfile include the unit tests assume.
+
+## Why it matters / sequencing
+This is currently masked because the **Go installer** still deposits hooks + Taskfile. But Wave 5 retires the Go `deft-install` source + pipeline (#1669 self-work) and the final Python purge (#1860). **The Go-delete MUST NOT land until this is fixed**, or npm-only installs silently lose branch-policy hook enforcement. Treat this as a gate on the Go-source-delete step.
+
+## Fix options
+1. Extend `@deftai/directive-content` packaging to include `.githooks/` + the consumer Taskfile (move them under `content/`, or add them to the prepack copy set), so the deposited tree matches what `init` expects.
+2. Or have `init` synthesize the consumer Taskfile + hooks from a TS template rather than copying from the content tree.
+
+## Acceptance
+- A pure-npm `directive init` (no Go binary) deposits `.deft/core/.githooks` + a resolvable `.deft/core/Taskfile.yml`, and `directive init` wires the hooks (no "absent — skipping").
+- The greenfield e2e leg (npm-ops.test.ts) asserts hooks + Taskfile presence rather than graceful-skip.
+
+Refs #1942 #1669 #1860
+
+### 2026-06-25-1985-exclude-pycache-pyc-from-deftai-directive-content-prepack: Exclude __pycache__/*.pyc from @deftai/directive-content prepack  `[completed]`
+
+Surfaced by the #1972 Step 2 dry-run rehearsal (npm pack --dry-run on @deftai/directive-content).
+
+## Problem
+The #1967 prepack bundles repo-root scripts/ into the content package via a wholesale cpSync with no filter. As a result the package ships 161 scripts/__pycache__/*.pyc compiled cpython-3.14 bytecode files (one per .py), inflating the package to ~9.92MB / 623 files. The .py source is legitimately needed for now (the engine invokes it via the bundled Taskfile.yml until the Python purge #1860), but the compiled .pyc bytecode is pure bloat and must never publish. Since the #1972 freeze release will be the first time these packages hit npm, this should be fixed before the freeze cut.
+
+## Fix
+- Add a filter to the two cpSync calls in packages/content/package.json prepack that skips any path containing __pycache__ or ending in .pyc. (A .npmignore will not survive the postpack cleanup, which removes everything except package.json.)
+- Extend content-prepack.test.ts to assert the packed file set contains zero .pyc / __pycache__ entries.
+
+## Acceptance
+- npm pack --dry-run on @deftai/directive-content lists no __pycache__ or *.pyc entries.
+- .py source, .githooks/, Taskfile.yml, tasks/ remain present (no #1967 regression).
+- The prepack test asserts the exclusion deterministically.
+
+Refs #1967 #1972 #1860
+
+### 2026-06-25-1987-freeze-gate-graceful-skip: Freeze gate should skip Go build gracefully (green) instead of hard-failing release.yml post-freeze  `[completed]`
+
+Surfaced while reviewing the #1912/#1972 freeze mechanics.
+
+## Problem
+Once the operator pins LAST_GO_INSTALLER in packages/core/src/legacy-bridge/sot.ts, the freeze-gate job in .github/workflows/release.yml hard-fails (exit 1) for any release tag whose core version is above the pin. Because build: needs: freeze-gate (and the rest of the Go chain transitively needs build), every post-freeze tag push makes the Release workflow show as a red/failed run. This is cosmetic/operational, not functional: npm packages still publish (separate npm-publish.yml, no freeze gate), the GitHub release + CHANGELOG body still gets created by the operator's local task release, and only the Go binaries are (correctly) not built. But a permanently-red Release workflow after every release is easy to misread as 'the release broke.'
+
+## Fix
+Make the freeze gate skip the Go build gracefully when a tag is above the pin instead of failing the workflow:
+- freeze-gate exits 0 and emits a job output (frozen_skip=true) when the tag is above the pinned SoT.
+- The build job gains a job-level if: that no-ops when frozen_skip == 'true'; downstream Go jobs auto-skip via the needs chain.
+- Keep the genuine fail-loud path for the unparseable-SoT case (must still hard-fail).
+
+## Acceptance
+- Post-freeze (LAST_GO_INSTALLER pinned), pushing a tag above the pin yields a green Release workflow with the Go build skipped and a clear skip annotation.
+- Go binaries are still produced for tags at/below the pin.
+- The unparseable-SoT case still fails loud.
+- npm publish + GitHub-release-notes paths remain unaffected.
+
+Refs #1912 #1972
+
+### 2026-06-25-1989-bump-esbuild: Bump esbuild to >=0.28.1 in framework pnpm-lock (low-sev dev advisory)  `[completed]`
+
+The root pnpm-lock.yaml pins esbuild@0.27.7, inside the vulnerable range >=0.27.3,<0.28.1 (GHSA: arbitrary file read via the esbuild dev server on Windows; severity low; first patched 0.28.1). esbuild is a transitive devDependency via vite@7.3.5 (<- vitest@3.2.6); no package.json depends on it directly. The unpatched pin propagates to every repo that vendors .deft/core/, raising a recurring Dependabot alert consumers cannot fix locally.
+
+## Fix
+- vite@7.3.5 declares esbuild '^0.27.0'; vite@7.3.6 widened it to '^0.27.0 || ^0.28.0'. Add pnpm.overrides to the root package.json forcing vite '^7.3.6' and esbuild '^0.28.1' (the supported, range-honest pairing), then regenerate pnpm-lock.yaml.
+- esbuild 0.28.1 is the latest published version and the first patched release.
+
+## Acceptance
+- pnpm-lock.yaml resolves esbuild (and all @esbuild/* platform packages) to >=0.28.1; no 0.27.x esbuild remains.
+- pnpm install is clean; tsc build + vitest suite pass (task check).
+- No 0.27.x esbuild anywhere in the lock.
+
+Refs #1972.
+
+### 2026-06-25-1996-add-doc-cli-parity-gate-upgrading-npm-verbs-subset-of-regist: Add doc<->CLI parity gate (UPGRADING npm verbs subset of registered verbs) + install+run smoke in release-e2e  `[completed]`
+
+Child of #1993 (sub-problems 1 + 6). Hardening so the npm-CLI breakage and doc drift can't recur.
+
+Two complementary gates:
+1. **Doc<->CLI parity**: extract `directive <verb>` / `npx @deftai/directive <verb>` references from `content/UPGRADING.md` (and the AGENTS.md managed section) and assert each is in `registeredVerbs()` (`packages/cli/src/dispatch.ts:553`) + the top-level router. No existing gate does this (`tests/cli/test_framework_doctor_prose.py` is partial).
+2. **Install+run smoke in release-e2e**: the v0.56.2 fix added a static lint (`packages/cli/src/cross-package-imports.test.ts`) that catches the specific `../../core/dist` pattern. Add a broader publish-layout smoke to `release-e2e`: pack the 4 packages, install into a clean flat `node_modules`, and run a verb (e.g. `doctor`) asserting no module-not-found. `npm publish --dry-run` (current e2e) validates packaging but does NOT install+run, so it cannot catch import-resolution bugs like #1993 sub-problem 1.
+
+Refs #1993.
+
+### 2026-06-25-1997-post-freeze-doctor-surface-npm-migration-signpost-on-a-norma: Post-freeze doctor: surface npm-migration signpost on a normal run + npm payload-staleness command + Python doctor legacy-layout parity  `[completed]`
+
+Child of #1993 (sub-problem 5). Split out from the live Cartograph consumer report.
+
+Three doctor gaps post-freeze:
+- **Throttle hides the signpost**: on a normal (non-`--full`) run the 24h clean-window throttle (`packages/core/src/doctor/main.ts:56-78`, `constants.ts` CLEAN_WINDOW_HOURS) can skip the legacy-layout signpost entirely. The frozen-final v0.56.0 canonical-vendored layout is a known terminal state and should be detectable/surfaced without a networked `--full` run.
+- **Payload-staleness still recommends the Go bridge**: `CANONICAL_UPGRADE_COMMAND` (`doctor/constants.ts:55`) / `payload-staleness.ts:177` emit `deft-install --yes --upgrade ...`. Post-freeze the canonical path is npm — update the recommendation.
+- **Python doctor lacks legacy-layout**: `scripts/doctor.py` has no `legacy-layout` check, so the vendored Python doctor never emits the npm signpost (only the TS doctor does). UPGRADING claims parity; close the gap or adjust the claim.
+
+Refs #1993, #1912, #1411.
+
+### 2026-06-25-1998-vendored-run-update-stub-dead-ends-post-freeze-redirect-to-t: Vendored `run update` stub dead-ends post-freeze — redirect to the canonical npm path (template fix)  `[completed]`
+
+Child of #1993 (sub-problem 4). Split out from the live Cartograph consumer report.
+
+The vendored `run update` (`run:3944-3950`, registered at `run:5398`) prints "Deft update functionality not yet implemented / Manual update: Replace deft directory with latest version from repository" — a first-class command that dead-ends.
+
+Vendored-only artifact: we can't fix it on existing v0.56.0 installs (the payload is frozen), but the template should be corrected so future deposits print the exact canonical next step (`npx @deftai/directive update`, or `npm i -g @deftai/directive@latest` then the migration step) instead of "replace the directory". Lowest priority of the #1993 children.
+
+Refs #1993.
+
+### 2026-06-25-2002-release-skill-drop-phase-5-human-publish-gate-npm-is-already: Release skill: drop Phase 5 human publish gate — npm is already irrevocable at tag push  `[completed]`
+
+## Problem
+
+`deft-directive-release` Phase 5 is framed as a **user-only authority gate** before anything goes public (#716): after `task release` lands a **draft** GitHub release, the operator must explicitly choose `publish` / `rollback` / `defer` before Phase 6 runs `task release:publish`.
+
+That model made sense when the GitHub release was the only consumer-visible channel. It is **misleading after #1910 / #1909**:
+
+> A `v*` tag is a **two-channel** action. `.github/workflows/npm-publish.yml` runs on tag push and performs **`npm publish --provenance`** for all four `@deftai/directive*` packages. That workflow is **separate** from the GitHub release draft gate and is **not draft-gated**.
+
+Per #1972 recovery protocol, **npm publish is the irreversible moment** — never `npm unpublish`. By the time the skill reaches Phase 5 (draft review + human `publish` prompt), **the npm channel has typically already shipped** (or already failed). Phase 6 `task release:publish` only flips the **GitHub release** `isDraft → false`; it does **not** gate npm and does **not** undo a published package.
+
+Phase 7 then verifies npm publish **after** Phase 6 — too late for the authority gate to mean anything for the registry.
+
+## Symptom (operator/agent confusion)
+
+- Phase 5 copy implies the operator still controls "going live" — they do not, for npm.
+- `rollback` in Phase 6 unwinds the GitHub release artifact; **npm packages remain on the registry**.
+- Agents following the skill may pause for human `publish` approval on a channel that is already public, while treating the GitHub draft as the safety boundary.
+- Frontmatter still says: "lands a draft on the real repo, **gates on user review, then publishes**" — the second half is only true for GitHub, not npm.
+
+## Proposed direction
+
+Re-baseline the skill around **two irreversible surfaces with different timing**:
+
+| Surface | Irreversible when | Current human gate |
+|---------|-------------------|-------------------|
+| **npm** (`npm-publish.yml`) | `v*` tag pushed (Phase 4) | Phase 1 dry-run + Phase 2 `yes` only |
+| **GitHub release** (`release.yml` draft) | `task release:publish` (Phase 6) | Phase 5 `publish` / `rollback` / `defer` |
+
+### Skill changes (acceptance)
+
+- [ ] **Remove or demote Phase 5 as a publish authority gate for the release as a whole.** Reframe it as optional **GitHub draft QA** (assets, notes, binaries) — not "user-only authority before going live."
+- [ ] **Move npm irrevocability disclosure** to Phase 1 / Phase 2 / immediately pre-tag (Phase 4): explicit warning that **tag push = npm publish**; the last human `yes` before `task release` is the real npm gate.
+- [ ] **Default Phase 6 publish path** when npm workflow succeeded: auto-run `task release:publish` after draft assets verify (or collapse Phase 5–6 for the happy path). Human `publish` prompt is redundant if npm already shipped.
+- [ ] **Rollback branch**: document that `task release:rollback` does **not** retract npm; recovery is forward-only (#1972: deprecate / dist-tag / ship patch).
+- [ ] **Phase 7 ordering**: verify npm workflow status **before** or **in parallel with** GitHub publish flip — not only after Phase 6.
+- [ ] Update skill frontmatter + `packs/skills` source; run `task packs:render`.
+- [ ] Cross-check `.github/workflows/release.yml` comment block (#716 / #733) — GitHub draft gate comment remains valid; add npm tag-coupling note if needed.
+
+### Non-goals (separate issues if needed)
+
+- Changing `npm-publish.yml` to draft-gate npm (likely impossible / wrong — registry has no draft).
+- Re-architecting tag → publish coupling (tag *is* the trigger by design).
+
+## Why now
+
+Wave 5 freeze (#1972) treats npm publish as the standing irreversible risk. The release skill should match that reality so agents and operators do not treat Phase 5 as protecting the registry.
+
+## Refs
+
+- Skill: `content/skills/deft-directive-release/SKILL.md` (Phase 4–7, frontmatter)
+- #716 — original Phase 5 user-only authority (GitHub-only context)
+- #724 — post-create isDraft verify
+- #733 — release.yml must not auto-publish
+- #1910 / #1909 — tag → npm coupling
+- #1972 — npm irrevocability + recovery protocol
+- `scripts/release.py`, `scripts/release_publish.py`, `.github/workflows/npm-publish.yml`
+
+**Acceptance**:
+
+- **Remove or demote Phase 5 as a publish authority gate for the release as a whole.** Reframe it as optional **GitHub draft QA** (assets, notes, binaries) — not "user-only authority before going live." `[proposed]`
+- **Move npm irrevocability disclosure** to Phase 1 / Phase 2 / immediately pre-tag (Phase 4): explicit warning that **tag push = npm publish**; the last human  before  is the real npm gate. `[proposed]`
+- **Default Phase 6 publish path** when npm workflow succeeded: auto-run  after draft assets verify (or collapse Phase 5–6 for the happy path). Human  prompt is redundant if npm already shipped. `[proposed]`
+- **Rollback branch**: document that  does **not** retract npm; recovery is forward-only (#1972: deprecate / dist-tag / ship patch). `[proposed]`
+- **Phase 7 ordering**: verify npm workflow status **before** or **in parallel with** GitHub publish flip — not only after Phase 6. `[proposed]`
+- Update skill frontmatter +  source; run . `[proposed]`
+- Cross-check  comment block (#716 / #733) — GitHub draft gate comment remains valid; add npm tag-coupling note if needed. `[proposed]`
+
+### 2026-06-25-2003-doctor-payload-staleness-command-diverges-from-agentsmd-mana: doctor payload-staleness command diverges from AGENTS.md / managed-section docs  `[completed]`
+
+## Summary
+
+Two different "canonical upgrade command" strings are live across surfaces, and the AGENTS.md / managed-section narrative attributes the **wrong** one to `scripts/doctor.py`.
+
+The managed-section template (and therefore every consumer-installed `AGENTS.md`) states:
+
+> The canonical `scripts/doctor.py` ... when behind, emits the canonical upgrade command `npm i -g @deftai/directive@latest` (#1339 / #1409 / #1912).
+
+But the doctor's payload-staleness path actually emits a **different** command.
+
+## Evidence
+
+Documentation side (claims `npm i -g @deftai/directive@latest`):
+- `templates/agents-entry.md` (managed-section source) → propagates to every consumer `AGENTS.md`
+- `AGENTS.md` (maintainer copy)
+- `skills/deft-directive-sync/SKILL.md`, `README.md`
+
+Source side (actually emits `deft-install --yes --upgrade --repo-root . --json`):
+- `scripts/doctor.py:1640` — `recommended_command = "deft-install --yes --upgrade --repo-root . --json"` (docstring at :1502 confirms this is the payload-staleness emission, #1409)
+- `packages/core/src/doctor/constants.ts:55` — `CANONICAL_UPGRADE_COMMAND = "deft-install --yes --upgrade --repo-root . --json"`
+- Release notes for v0.56.1 / v0.56.2 also cite `deft-install --yes --upgrade --repo-root . --json`
+
+## Why it matters
+
+`npm i -g ...` and `deft-install --yes --upgrade ...` are **different operations**: the former refreshes the globally-installed CLI, the latter refreshes the *vendored* `.deft/core` payload in a project. The doctor's payload-staleness check is specifically about the vendored payload, so the source command (`deft-install --yes --upgrade`) is the correct one for that emission — which means the AGENTS.md narrative citing the npm command for that exact code path is inaccurate. A consumer who copy-pastes the npm command after a payload-staleness warning updates the wrong thing and the warning persists.
+
+## Suggested resolution
+
+Reconcile the managed-section narrative with the doctor source. Either:
+1. Correct `templates/agents-entry.md` (and re-run `task agents:refresh`) so the doctor-attributed command matches `CANONICAL_UPGRADE_COMMAND` (`deft-install --yes --upgrade --repo-root . --json`), keeping `npm i -g @deftai/directive@latest` only where it correctly refers to refreshing the global CLI; or
+2. If npm is intended to be the single canonical path post-freeze, update `doctor.py` + `constants.ts` to emit the npm command and adjust the release-notes template accordingly.
+
+A small contract test asserting the doctor-emitted command string matches the string quoted in `templates/agents-entry.md` would prevent regression (cf. the existing `tests/content/test_agents_entry_contract.py` marker mechanism).
+
+## Discovered
+
+Found during a routine version-staleness investigation on a vendored install (cartograph, payload `v0.56.0`).
+
+### 2026-06-25-2004-doctor-payload-staleness-silently-green-when-ls-remote-unava: doctor payload-staleness silently green when ls-remote unavailable (false 'System check passed!')  `[completed]`
+
+## Summary
+
+`scripts/doctor.py`'s payload-staleness check degrades to a silent, invisible `skip` whenever its `git ls-remote` probe can't resolve a remote SHA (no network, no origin, restricted/allowlist network, or empty output). Because `skip` findings do not affect the doctor's overall verdict, the doctor prints `✓ System check passed!` even when the installed payload is genuinely behind. In any network-restricted environment (CI, sandboxed agents, corporate egress filtering) the staleness guard is effectively blind and reports a false "all clear".
+
+## Reproduction (observed live)
+
+Vendored install on a project (cartograph), payload `v0.56.0`; latest published was `v0.56.2` (two patches behind, same day). `doctor.py --full` output:
+
+```
+ℹ Checking payload staleness from install manifest...
+ℹ payload-staleness: skip -- ls-remote produced no sha
+...
+✓ System check passed!
+```
+
+The only reason the staleness was caught at all was an independent `npm view @deftai/directive version` (the npm registry was reachable in the same environment where `git ls-remote origin <ref>` to GitHub was not).
+
+## Root cause
+
+All network/resolution failure branches emit `add_finding(..., status="skip")` and `return`, which is non-fatal and does not downgrade the green summary:
+
+- `scripts/doctor.py:1594-1597` — `git ls-remote failed (no network or no origin)`
+- `scripts/doctor.py:1624-1626` — `ls-remote produced no sha` (the branch hit here)
+- `scripts/doctor.py:1627-1630` — `could not probe remote (<Exc>)`
+
+The docstring (`:1503-1504`) documents this as intentional best-effort behavior ("Skips gracefully ... when git / network / manifest unavailable (non-fatal)"). The problem is the *consequence*: a skip is indistinguishable from a confirmed-current result in the headline verdict, so "couldn't verify" reads as "verified fresh".
+
+## Why it matters
+
+- The payload-staleness guard is the canonical surface that tells consumers they're behind. When it silent-skips, consumers (and headless agents that key off doctor's exit/verdict) believe they're current when they're not.
+- This is most likely to fire exactly where it's most dangerous: automated/sandboxed/CI contexts that can't reach GitHub directly.
+
+## Suggested resolution
+
+1. **Make the skip visible in the summary.** When payload-staleness can't verify, surface a distinct advisory line in the final summary (e.g. `⚠ payload currency UNVERIFIED — could not reach remote`) rather than folding into a clean `✓ System check passed!`. Keep it non-fatal, but not invisible.
+2. **Add a network-independent fallback resolver.** Post-freeze the canonical distribution is npm, and the npm registry is often reachable when GitHub `ls-remote` is not (demonstrated above). The doctor could compare the manifest `ref`/`tag` against `npm view @deftai/directive version` as a fallback when `ls-remote` yields nothing — which would have caught the `v0.56.0` vs `v0.56.2` gap.
+3. Optionally distinguish "skip: no manifest / inside repo" (genuinely not applicable) from "skip: could not verify currency" (applicable but unverifiable) so only the latter raises the advisory.
+
+## Related
+
+Surfaced alongside #2003 (doctor-emitted upgrade-command string diverging from AGENTS.md docs) during the same version-staleness investigation.
+
+### 2026-06-25-2010-releasee2e-installrun-smoke-false-positive-doctor-help-exits: release:e2e install+run smoke false-positive: doctor --help exits 1 in bare consumer layout (#1996 follow-up)  `[completed]`
+
+## Summary
+
+The `release:e2e` "npm install+run smoke" step added in #1996 (PR #2008) has a false-positive failure: it runs `directive doctor --help` against a freshly-installed clean consumer layout and asserts exit code 0, but the `doctor` subcommand ignores `--help`, runs the full system check, and legitimately exits 1 in a bare consumer dir (e.g. the expected "no root Taskfile.yml" warning + a benign error). This blocks `task release:e2e` even though packaging and import resolution are healthy.
+
+## Evidence
+
+`task release:e2e` output:
+
+```
+[e2e]   rehearsal step: npm publish dry-run... OK (4 packages)
+[e2e]   rehearsal step: npm install+run smoke... FAIL (install+run smoke: directive doctor --help exited 1: ... ✗ System check failed with 1 error(s) and 1 warning(s).)
+```
+
+The module-not-found check (the actual goal of #1996, guarding the #1993 import-resolution regression) PASSED — no `Cannot find module` / `ERR_MODULE_NOT_FOUND` marker hit. Only the over-strict `doctor.status !== 0` assertion in `packages/core/src/release-e2e/npm-ops.ts` (`rehearseNpmInstallAndRun`) tripped.
+
+## Root cause
+
+`rehearseNpmInstallAndRun` invokes `directive doctor --help` as a liveness probe and treats any non-zero exit as a smoke failure. A full doctor system check in a throwaway consumer layout is *expected* to exit non-zero, so the gate fires on a benign verdict rather than a real import/packaging defect.
+
+## Suggested resolution
+
+- Use `directive --version` as the exit-0 liveness probe (it loads the cli + core engine via `engineInfo()`, exercising the cross-package import path that #1993 broke, and reliably exits 0 on a healthy install).
+- Keep running `directive doctor` for deeper import coverage, but gate ONLY on the module-not-found markers — do NOT assert the doctor's pass/fail verdict.
+- Add a regression test: doctor exits 1 with benign (non-module-not-found) output + `--version` exits 0 ⇒ smoke PASSES.
+
+TS-only (no Python parity for this smoke). Discovered while cutting v0.57.0; the e2e gate is currently red and blocking the release.
+
+### 2026-06-25-add-npm-handoff-messaging-to-the-go-installer-success-path: Add npm-handoff messaging to the Go installer success path  `[completed]`
+
+The frozen Go installer is the last one consumers will run, so they must learn that future upgrades now come from the npm package. This story prints a handoff line on the installer success path in cmd/deft-install/main.go directing users to run npx @deftai/directive init for subsequent upgrades.
+
+**Acceptance**:
+
+- Given a successful install or upgrade, when the installer finishes, then it prints a handoff line instructing the user to run npx @deftai/directive init. `[pending]`
+- Given an install that errors out, when the installer exits non-zero, then it does not print the npm handoff message. `[pending]`
+- Given the success path runs under test, when the output is captured, then the test asserts the npm handoff string is present. `[pending]`
+
+### 2026-06-25-assert-the-installer-version-is-migrate-acceptable-in-the-le: Assert the installer VERSION is migrate-acceptable in the legacy-bridge e2e leg  `[completed]`
+
+The freeze hinges on the Go installer writing a .deft/core/VERSION that directive migrate accepts as canonical-ready before stamping managed_by npm. Today the legacy-bridge e2e leg provisions a synthetic manifest, so this story drives an installer-shaped VERSION through parseInstallManifest and runMigrate so the handshake is asserted end to end rather than assumed.
+
+**Acceptance**:
+
+- Given a canonical-vendored deposit with an installer-shaped VERSION, when the e2e leg runs, then parseInstallManifest accepts it and runMigrate returns migrated. `[pending]`
+- Given the VERSION field shape drifts from what migrate accepts, when the e2e leg runs, then the leg fails with a handshake mismatch reason. `[pending]`
+- Given the SoT is still null, when the e2e leg runs, then the stage-2 assertion still validates the VERSION handshake without downloading a binary. `[pending]`
+
+### 2026-06-25-reconcile-verifygo-freeze-version-source-to-a-release-tag-ch: Reconcile verify:go-freeze version source to a release-tag check  `[completed]`
+
+The freeze gate currently compares the pinned SoT against the `var version` literal in cmd/deft-install/main.go, but the real installer version is injected via ldflags at build time, so pinning the SoT to a 0.x tag would false-fail the gate. This story moves freeze enforcement to a release.yml tag check that refuses a Go installer build above the pinned SoT and neutralizes the brittle source-literal comparison in freeze-gate.ts.
+
+**Acceptance**:
+
+- Given the SoT is pinned to a 0.x tag, when verify:go-freeze evaluates an equal-or-lower release tag, then the gate returns exit code 0. `[pending]`
+- Given the SoT is pinned, when a release tag above the pinned tag is evaluated, then the gate fails and emits the above-the-line violation message. `[pending]`
+- Given the SoT is null, when verify:go-freeze runs, then the gate returns an advisory pass and does not read the installer source literal. `[pending]`
+
+### 2026-06-26-2015-deft-install-gate-current-resolves-from-frozen-binary-v-pref: deft-install gate: `current` resolves from frozen binary (v-prefixed), not installed payload — healthy installs report NEEDS-UPGRADE  `[completed]`
+
+## Summary
+
+The `deft-install gate` subcommand (shipped in #2014, stories #2001 / #1933) computes the `current` version from the **frozen binary's** ldflags `version`. On production builds that value is `v`-prefixed and reflects the binary rather than the installed framework payload, so a healthy install reports `NEEDS-UPGRADE` and exits 1.
+
+## Impact
+
+High. The gate is the node-independent session-start health probe — its whole reason to exist (#1933). With this bug, **every production-built frozen binary reports `NEEDS-UPGRADE` on a perfectly healthy install**.
+
+## Two defects, one root cause
+
+**1. `v`-prefix mismatch.** `release.yml` builds the binary with `-X main.version=${{ github.ref_name }}` → e.g. `v0.57.0` (WITH the leading `v`). The installer writes the `vbrief/.deft-version` marker **bare** (`0.57.0`, via `bareVersionFromTag` / `regenerateBareVersionMarker`). `gateStateIsOK` compares them raw:
+
+```go
+if s.recordedSet && s.recorded != s.current {
+    return false
+}
+```
+
+`0.57.0 != v0.57.0` → always unequal on production binaries → `NEEDS-UPGRADE`.
+
+**2. Wrong source for `current`.** Even after stripping the `v`, sourcing `current` from the frozen binary is wrong: the binary is frozen at the last Go-installer version, while an npm-era project's payload moves forward independently. A project upgraded to `0.57.0` while running an older frozen `deft-install` would still false-report drift. The Python original (`run::_build_gate_state`) resolves `current` from the **installed `<install>/VERSION` manifest** (always bare), not from the binary.
+
+## Why the tests missed it
+
+`cmd/deft-install/gate_test.go` uses the package default `version = "1.0.0"` (bare, no ldflags injection) and never writes a `.deft/core/VERSION` manifest, so neither the `v`-prefix nor the binary-vs-payload divergence is exercised.
+
+## Recommended solution
+
+Mirror the Python resolver: resolve `current` from the installed payload `VERSION` manifest (candidate order `.deft/core/VERSION` → `.deft/VERSION` → `deft/VERSION`), parsing the `tag:`/`ref:` semver and stripping a leading `v`; fall back to the binary's ldflags `version` **normalized to bare** when no manifest resolves. A non-semver manifest value (e.g. a branch ref like `master`) must fall through, matching `run::_version_from_install_manifest`.
+
+Below is a complete, locally-tested patch (`go test ./cmd/deft-install/...`, `go vet`, `go build` all green) against `cmd/deft-install/gate.go` + `gate_test.go`. It can be applied directly on the branch carrying the other unmerged Go items.
+
+<details>
+<summary>Patch (gate.go + gate_test.go)</summary>
+
+```diff
+diff --git a/cmd/deft-install/gate.go b/cmd/deft-install/gate.go
+index 96e7cd4..1942ef7 100644
+--- a/cmd/deft-install/gate.go
++++ b/cmd/deft-install/gate.go
+@@ -60,7 +60,7 @@ const (
+ // gateState is the read-only state vector computed by buildGateState. It is the
+ // Go analogue of the dict returned by the Python `_build_gate_state`.
+ type gateState struct {
+-	current        string // the frozen binary's build-time version (main.version)
++	current        string // the installed framework version (bare semver; see gateResolveCurrentVersion)
+ 	recorded       string // contents of the version marker, when present
+ 	recordedSet    bool   // whether a version marker was found at all
+ 	precutover     []string
+@@ -104,6 +104,64 @@ func gateReadVersionMarker(projectRoot string) (string, bool) {
+ 	return "", false
+ }
+ 
++// gateManifestVersionRE pulls the bare semver core from a `tag:` / `ref:` line
++// in the canonical <install>/VERSION manifest, stripping a single leading `v`.
++// Mirrors run::_VERSION_MANIFEST_TAG_RE. A non-semver value (e.g. a branch ref
++// like `master`) does NOT match -- the leading `[\d.]` requirement forces the
++// resolver to fall through, matching the Python behaviour for branch builds.
++var gateManifestVersionRE = regexp.MustCompile(`(?m)^(?:tag|ref):\s*['"]?v?([\d.][\w.-]*)['"]?\s*$`)
++
++// gateNormalizeVersion strips a single leading `v` (and surrounding space) so
++// the frozen binary's ldflags version compares equal to the BARE marker the
++// installer writes. Release CI sets the binary version via
++// `-X main.version=${github.ref_name}` (e.g. `v0.57.0`, WITH the `v`), while
++// `vbrief/.deft-version` is written bare (`0.57.0`). Mirrors run::_resolve_version,
++// which lstrips `v` from the git-describe tag so VERSION is always bare.
++func gateNormalizeVersion(v string) string {
++	return strings.TrimPrefix(strings.TrimSpace(v), "v")
++}
++
++// gateVersionFromInstallManifest returns the bare semver recorded in the first
++// readable <install>/VERSION manifest under projectRoot, or "" when none
++// resolves. Candidate order mirrors run::_read_vendored_manifest
++// (.deft/core/VERSION, then .deft/VERSION, then deft/VERSION).
++func gateVersionFromInstallManifest(projectRoot string) string {
++	candidates := []string{
++		filepath.Join(projectRoot, ".deft", "core", "VERSION"),
++		filepath.Join(projectRoot, ".deft", "VERSION"),
++		filepath.Join(projectRoot, "deft", "VERSION"),
++	}
++	for _, candidate := range candidates {
++		if !gateIsRegularFile(candidate) {
++			continue
++		}
++		data, err := os.ReadFile(candidate)
++		if err != nil {
++			continue
++		}
++		if m := gateManifestVersionRE.FindStringSubmatch(string(data)); m != nil {
++			return m[1]
++		}
++	}
++	return ""
++}
++
++// gateResolveCurrentVersion resolves the version the gate treats as `current`,
++// mirroring run::_build_gate_state (which uses VERSION resolved from the
++// installed <install>/VERSION manifest for a vendored install). The gate must
++// reflect the INSTALLED framework payload, NOT the frozen binary: an npm-era
++// project whose payload moved ahead of the frozen installer would otherwise
++// false-report drift. It prefers the installed payload manifest in projectRoot,
++// falling back to the frozen binary's own ldflags version (normalized to bare)
++// when no manifest is present. The result is always bare so it compares equal
++// to the bare `.deft-version` marker (gateReadVersionMarker).
++func gateResolveCurrentVersion(projectRoot string) string {
++	if fromManifest := gateVersionFromInstallManifest(projectRoot); fromManifest != "" {
++		return fromManifest
++	}
++	return gateNormalizeVersion(version)
++}
++
+ // gateIsDeprecationRedirect mirrors `_precutover.is_deprecation_redirect`.
+ func gateIsDeprecationRedirect(content string) bool {
+ 	return strings.Contains(content, gateDeprecatedRedirectSentinel) ||
+@@ -303,7 +361,7 @@ func gateRunningInsideDeftRepo(projectRoot string) bool {
+ func buildGateState(projectRoot string) gateState {
+ 	recorded, recordedSet := gateReadVersionMarker(projectRoot)
+ 	return gateState{
+-		current:        version,
++		current:        gateResolveCurrentVersion(projectRoot),
+ 		recorded:       recorded,
+ 		recordedSet:    recordedSet,
+ 		precutover:     gateDetectPreCutoverLegacy(projectRoot),
+diff --git a/cmd/deft-install/gate_test.go b/cmd/deft-install/gate_test.go
+index a605a13..4552931 100644
+--- a/cmd/deft-install/gate_test.go
++++ b/cmd/deft-install/gate_test.go
+@@ -85,6 +85,113 @@ func TestGate_Healthy_RecordedMatchesCurrent(t *testing.T) {
+ 	}
+ }
+ 
++// withVersion temporarily overrides the package-level ldflags `version` for a
++// test and restores it afterward. These gate tests do not call t.Parallel(), so
++// mutating the global is safe within a single sequential test.
++func withVersion(t *testing.T, v string) {
++	t.Helper()
++	orig := version
++	version = v
++	t.Cleanup(func() { version = orig })
++}
++
++// writeInstallManifest writes a minimal canonical <root>/.deft/core/VERSION
++// manifest carrying the given tag, mirroring BuildInstallManifestText's shape.
++func writeInstallManifest(t *testing.T, root, tag string) {
++	t.Helper()
++	coreDir := filepath.Join(root, ".deft", "core")
++	if err := os.MkdirAll(coreDir, 0o755); err != nil {
++		t.Fatal(err)
++	}
++	body := "ref: '" + tag + "'\ntag: '" + tag + "'\n"
++	if err := os.WriteFile(filepath.Join(coreDir, "VERSION"), []byte(body), 0o644); err != nil {
++		t.Fatal(err)
++	}
++}
++
++// TestGate_Healthy_ProductionVPrefixedVersion is the regression for the bug
++// where release CI sets the binary version via `-X main.version=${github.ref_name}`
++// (e.g. `v0.57.0`, WITH the leading `v`) while the installer writes the
++// `vbrief/.deft-version` marker BARE (`0.57.0`). Before the fix, `current`
++// carried the `v` and the raw string compare `recorded != current` always
++// failed, so every healthy production-built install reported NEEDS-UPGRADE.
++func TestGate_Healthy_ProductionVPrefixedVersion(t *testing.T) {
++	withVersion(t, "v0.57.0")
++	root := t.TempDir()
++	writeCurrentAgentsMD(t, root)
++	vbrief := filepath.Join(root, "vbrief")
++	if err := os.MkdirAll(vbrief, 0o755); err != nil {
++		t.Fatal(err)
++	}
++	if err := os.WriteFile(filepath.Join(vbrief, ".deft-version"), []byte("0.57.0\n"), 0o644); err != nil {
++		t.Fatal(err)
++	}
++
++	var buf bytes.Buffer
++	if code := runGateInDir(root, false, &buf); code != 0 {
++		t.Fatalf("exit code = %d, want 0 (v-prefixed binary version vs bare marker)\nline=%q", code, buf.String())
++	}
++	if got := strings.TrimSpace(buf.String()); got != "OK v0.57.0" {
++		t.Errorf("line = %q, want %q", got, "OK v0.57.0")
++	}
++}
++
++// TestGate_Healthy_ManifestAheadOfFrozenBinary asserts `current` is resolved
++// from the INSTALLED payload manifest, not the frozen binary. An npm-era
++// project can move its payload ahead of the frozen installer; sourcing `current`
++// from the binary would false-report drift. Here the binary is a stale v0.50.0
++// but the installed manifest + marker are 0.57.0, so the gate is healthy.
++func TestGate_Healthy_ManifestAheadOfFrozenBinary(t *testing.T) {
++	withVersion(t, "v0.50.0")
++	root := t.TempDir()
++	writeCurrentAgentsMD(t, root)
++	writeInstallManifest(t, root, "v0.57.0")
++	vbrief := filepath.Join(root, "vbrief")
++	if err := os.MkdirAll(vbrief, 0o755); err != nil {
++		t.Fatal(err)
++	}
++	if err := os.WriteFile(filepath.Join(vbrief, ".deft-version"), []byte("0.57.0\n"), 0o644); err != nil {
++		t.Fatal(err)
++	}
++
++	var buf bytes.Buffer
++	if code := runGateInDir(root, false, &buf); code != 0 {
++		t.Fatalf("exit code = %d, want 0 (current must come from manifest, not binary)\nline=%q", code, buf.String())
++	}
++	if got := strings.TrimSpace(buf.String()); got != "OK v0.57.0" {
++		t.Errorf("line = %q, want %q (current from .deft/core/VERSION)", got, "OK v0.57.0")
++	}
++}
++
++// TestGateResolveCurrentVersion covers the resolver directly: manifest wins
++// (bare), a non-semver branch ref falls through to the normalized binary
++// version, and the binary fallback strips a leading `v`.
++func TestGateResolveCurrentVersion(t *testing.T) {
++	t.Run("manifest tag wins, bare", func(t *testing.T) {
++		withVersion(t, "v0.50.0")
++		root := t.TempDir()
++		writeInstallManifest(t, root, "v0.57.0")
++		if got := gateResolveCurrentVersion(root); got != "0.57.0" {
++			t.Errorf("current = %q, want %q (from manifest, v stripped)", got, "0.57.0")
++		}
++	})
++	t.Run("branch ref manifest falls through to binary", func(t *testing.T) {
++		withVersion(t, "v0.57.0")
++		root := t.TempDir()
++		writeInstallManifest(t, root, "master")
++		if got := gateResolveCurrentVersion(root); got != "0.57.0" {
++			t.Errorf("current = %q, want %q (non-semver manifest -> normalized binary)", got, "0.57.0")
++		}
++	})
++	t.Run("no manifest, binary v stripped", func(t *testing.T) {
++		withVersion(t, "v1.2.3")
++		root := t.TempDir()
++		if got := gateResolveCurrentVersion(root); got != "1.2.3" {
++			t.Errorf("current = %q, want %q (binary fallback, v stripped)", got, "1.2.3")
++		}
++	})
++}
++
+ // --- Needs-upgrade vectors --------------------------------------------------
+ 
+ func TestGate_NeedsUpgrade_VersionDrift(t *testing.T) {
+```
+
+</details>
+
+## Tests to add (included in the patch)
+
+- `TestGate_Healthy_ProductionVPrefixedVersion` — ldflags `v0.57.0` + bare marker `0.57.0`, no manifest → `OK v0.57.0`, exit 0.
+- `TestGate_Healthy_ManifestAheadOfFrozenBinary` — stale binary `v0.50.0`, installed manifest + marker `0.57.0` → `current` from manifest → healthy.
+- `TestGateResolveCurrentVersion` — resolver unit: manifest wins (bare); non-semver branch ref falls through; binary fallback strips `v`.
+
+Refs #2001, #1933, #1912. Found by review on #2014.
+
+### 2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001: Python purge readiness — execution tracker (supersedes #2001)  `[completed]`
+
+> **Purpose.** The pre-#1860 integration gate, rewritten clean. All decisions are
+> settled; this issue is **pure execution**, ordered by dependency. When the phases
+> below are green, #1860 (big-bang Python delete) is unblocked.
+>
+> **Decision record (immutable):** preserved on #2001 —
+> [gate re-decision](https://github.com/deftai/directive/issues/1933#issuecomment-4811038059) ·
+> [§1/§2 rescope](https://github.com/deftai/directive/issues/2001#issuecomment-4811038164) ·
+> [§3 → #2013](https://github.com/deftai/directive/issues/2001#issuecomment-4810721079) ·
+> [§6 bootstrap](https://github.com/deftai/directive/issues/2001#issuecomment-4810485514) ·
+> [Python ledger](https://github.com/deftai/directive/issues/2001#issuecomment-4810720223)
+
+## Settled decisions (baked in — not re-litigated here)
+
+- **Gate:** deprecate-by-disuse (#1933 Option 1). The frozen Go `gate` subcommand stays
+  in place, **unused**; the frozen binary is **not** reopened to remove it. `deft doctor`
+  (node present) + agent `command not found` → `UPGRADING.md` (cold start) are the
+  health/probe surfaces.
+- **`migrate:vbrief` (`migrate_vbrief.py`):** out of scope here. The TS-port-vs-cutoff
+  decision is owned by the **#2013** umbrella (v0.20 spec-authority model) — its output
+  contract is spec-authority dependent. It is the one Bucket-A holdout: **not** in this
+  issue's Phase 1, and **not** deletable by #1860 until #2013 resolves it.
+- **Bootstrap:** implement the `directive bootstrap` thin launcher (not skill-only).
+
+## Execution order (load-bearing)
+
+**Phase 0 (independent) → Phase 1 convert → Phase 2 rewire → Phase 3 unbundle → #1860 delete.**
+Phase 4 (bootstrap) runs in parallel.
+
+The ordering is a hard dependency, not a preference: the bundled `scripts/` tree is still
+load-bearing on the consumer path — `deft <verb>` shells into it via `loadPythonScriptHandler`
+(6 routes in `packages/cli/src/dispatch.ts`) **and** the consumer Taskfile calls
+`python3 scripts/*.py`. Removing the bundle (Phase 3) before those are converted (Phase 1)
+and rewired (Phase 2) breaks every consumer. Phase 3's no-Python greenfield smoke is the
+**verification** that Phases 1–2 landed, not a standalone task.
+
+---
+
+### Phase 0 — Gate / preamble cleanup  *(no dependencies)*
+
+- [ ] Remove the `deft-install gate` mandate from `main.md` (line 2), rules pack `main-001`,
+      `content/templates/agent-prompt-preamble.md`, setup/sync skills, CONTRIBUTING →
+      replace with "if `deft`/`directive` does not run → read `UPGRADING.md`"
+- [ ] Extend `deft doctor` with a `precutover` line — ~15-line wire-up of the existing TS
+      predicates in `packages/core/src/vbrief-validate/precutover.ts`
+      (`isDeprecationRedirect`, `isCurrentGeneratedSpecification`); not a port
+- [ ] Refresh `content/templates/agents-entry.md`: no `run bootstrap` / `run gate` /
+      `deft-install gate` as load-bearing operator paths
+
+### Phase 1 — Convert Bucket A Python → native TS  *(gates Phase 2 & 3)*
+
+> Excludes `migrate_vbrief.py` → tracked in **#2013** (spec-authority dependent).
+
+- [ ] `pack-migrate-{skills,rules,strategies,patterns,swarm-spec}` — replace the 5
+      `loadPythonScriptHandler(...)` routes in `dispatch.ts` (~491–499) with native TS
+- [ ] `policy-set` write path (`policy_set.py`, `dispatch.ts` ~501) — read path already TS
+- [ ] `relocate` (`relocate.py` + `_relocate_snapshot.py` + `_relocate_states.py`) — TS or
+      drop (legacy back-compat, #1912)
+- [ ] `setup_ghx` (`setup_ghx.py`, `task setup:ghx`) — TS or drop (opt-in)
+- [ ] `ci_local.py` (maintainer release pre-flight) — promote TS `task check` to release
+      Step-5 primary, drop the `packages/core/src/release/python-bridge.ts` shim
+
+### Phase 2 — Rewire consumer task surface  *(depends on Phase 1)*
+
+- [ ] `.deft/core/Taskfile.yml` + `tasks/*`: zero `python3` / `uv run` / `scripts/*.py`
+      entrypoints on the consumer deposit path → `deft <verb>`
+- [ ] Maintainer-only Python tasks clearly separated (#1813 contributor path) or removed
+
+### Phase 3 — npm deposit Python-free  *(depends on Phase 1 + 2; #1967 / #1984 unwind)*
+
+- [ ] `@deftai/directive-content` prepack stops bundling `scripts/` (currently bundled by
+      #1984) and any other Python-only tree
+- [ ] `directive init` / `update` deposit contains no `.py` files and no repo-root `run` shim
+- [ ] **Verification:** greenfield smoke — `directive init` + `task check` on a machine with
+      **no Python installed** passes (proves Phases 1–2 removed every consumer Python dep)
+
+### Phase 4 — Bootstrap  *(parallel; story s6)*
+
+- [ ] Add a `bootstrap` handler in `dispatch.ts` (deposit-if-absent + phase intent +
+      deliberate-re-entry signal + hand off to `deft-directive-setup`), with a dispatch test
+- [ ] Update `content/skills/deft-directive-setup/SKILL.md` for the launcher hand-off
+      (full chain for new users; `--project`/`--strategy` jump-in for re-entry; prompt
+      reconfigure-or-keep unless `--force`/`--reconfigure`)
+- [ ] Repoint operator docs (`content/UPGRADING.md`, `README.md`, any `run bootstrap` /
+      `project` / `spec` citation) to `directive bootstrap`
+
+---
+
+*(Then **#1860** deletes Bucket B — `run`, `run.py`, `scripts/`, `pyproject.toml`,
+`uv.lock`, Python tests, parity harnesses, the framework-source pytest/ruff/mypy lanes.
+**Carve-out:** `migrate_vbrief.py` is excluded from #1860's delete until **#2013** resolves
+its port-vs-cutoff decision — #1860 must not delete it before then.)*
+
+## Python removal ledger
+
+**Durable fact:** the frozen Go installer is permanent infrastructure (rebuildable any time)
+AND has **zero Python dependency** — it fetches GitHub's auto-generated source tarball and
+flattens it itself; it does NOT consume any `dist/*.zip`. So #1860 can delete all Python
+(including `build_dist.py`) without touching the bridge.
+
+### Bucket A — replace before #1860 (Phase 1 above)
+`pack-migrate-*`, `policy_set.py` (write), `relocate.py` (+ snapshots/states), `setup_ghx.py`,
+`ci_local.py`. **Holdout:** `migrate_vbrief.py` → #2013.
+
+### Bucket B — deleted BY #1860 (no port; assert delete-safety only)
+`build_dist.py` (+ `dist/*.zip`, orphaned legacy), `resolve_version.py` (vestigial; runtime
+version resolution already TS), `tests/` (~297 `.py`), parity harnesses (~78 `*parity*.ts` +
+Python sides), framework-source self-test lane (`core:test` / `test:coverage` pytest,
+`core:fmt` ruff/black, `core:lint` ruff/mypy), `run` / `run.py` / `pyproject.toml` /
+`uv.lock`, inline `python -c` maintainer helpers (`core:validate` / `clean` / `stats`),
+Python-only internal helpers (`scm.py`, `gh_rest.py`, `_project_context.py`, `_*_cli.py`).
+
+## Explicit non-scope (other issues)
+
+| Work | Issue |
+|------|-------|
+| Big-bang Python delete | **#1860** (blocked on this issue) |
+| Go gate *decision* / frozen-installer contract | **#1933**, **#1912** |
+| `migrate:vbrief` decision (spec-authority dependent) | **#2013** |
+| Go source/pipeline deletion | **#1979** (deferred; default: keep) |
+| npm init / update / migrate | **#1942**, **#1941** (done) |
+| Freeze + soak runbook | **#1972** |
+
+## Acceptance
+
+When all phases above are green (Bucket A empty):
+
+1. Close this issue
+2. Unblock and execute **#1860** — *except* `migrate_vbrief.py`, which stays until **#2013**
+   closes its migrate decision
+3. #1972 step 4 completion = #1860 merged + zero Python confirmed (modulo the #2013 holdout)
+
+## Refs
+
+- Supersedes: #2001 (decision record preserved there)
+- Runbook: #1972 (step 4) · Execution: #1860
+- Gate decision: #1933 (Option 1) · Frozen installer: #1912
+- `migrate:vbrief` / spec-authority umbrella: **#2013**
+- TS migration epic: #1530 · Parent consumption model: #1669
+
+**Acceptance**:
+
+- Remove the  mandate from  (line 2), rules pack , `[completed]`
+- Extend  with a  line — ~15-line wire-up of the existing TS `[completed]`
+- Refresh : no  /  / `[completed]`
+- — replace the 5 `[completed]`
+- write path (,  ~501) — read path already TS `[completed]`
+- ( +  + ) — TS or `[completed]`
+- (, ) — TS or drop (opt-in) `[completed]`
+- (maintainer release pre-flight) — promote TS  to release `[completed]`
+- + : zero  /  / `[completed]`
+- Maintainer-only Python tasks clearly separated (#1813 contributor path) or removed `[completed]`
+- prepack stops bundling  (currently bundled by `[completed]`
+- /  deposit contains no  files and no repo-root  shim `[completed]`
+- **Verification:** greenfield smoke —  +  on a machine with `[completed]`
+- Add a  handler in  (deposit-if-absent + phase intent + `[completed]`
+- Update  for the launcher hand-off `[completed]`
+- Repoint operator docs (, , any  / `[completed]`
+
+### 2026-06-26-2023-deft-updateinit-aborts-with-refresh-deposit-failed-content-p: Fix deft update/init refresh_deposit_failed by resolving the content package via its package.json subpath  `[completed]`
+
+On v0.58.0, `deft update` / `deft init` against a canonical-vendored `.deft/core/` install abort with `refresh_deposit_failed`. Root cause: `resolveInstalledContentRoot()` in `@deftai/directive-core/dist/deposit/resolve-content.js` resolves the content package by bare specifier (`import.meta.resolve("@deftai/directive-content")`), but the content package ships no entry point, so the resolve throws. `import.meta.resolve("@deftai/directive-content/package.json")` resolves fine, and the walk-up helper `contentPackageRootFromResolvedEntry` already handles any in-package path. Recommended fix (issue option 1): resolve the `package.json` subpath and feed it to the existing walk-up -- a one-line change with no downstream behavior change.
+
+**Acceptance**:
+
+- Given a content package with no main, exports, or index.js, when resolveInstalledContentRoot runs, then it resolves the package root via the package.json subpath without throwing. `[pending]`
+- Given deft update against a canonical-vendored .deft/core install, when it runs, then it deposits refreshed content and does not abort with refresh_deposit_failed. `[pending]`
+- Given resolve-content.test.ts, when the deposit suite runs, then a regression test covers the no-entry-point resolution path and passes. `[pending]`
+
+### 2026-06-26-convert-the-five-pack-migrate-dispatch-routes-to-native-type: Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)  `[completed]`
+
+The pack-migrate-skills, -rules, -strategies, -patterns, and -swarm-spec verbs are still served by loadPythonScriptHandler routes in packages/cli/src/dispatch.ts (lines ~491-499), shelling into Python pack_migrate_*.py scripts. This story replaces those five routes with native TypeScript handlers so the pack-render surface no longer depends on bundled Python.
+
+**Acceptance**:
+
+- Given dispatch.ts, when the five pack-migrate verbs are dispatched, then each routes to a native TypeScript handler with no loadPythonScriptHandler call. `[pending]`
+- Given a TypeScript pack-migrate handler, when it renders a pack, then the emitted output matches the prior pack_migrate_*.py contract for the same input. `[pending]`
+- Given the dispatch test suite, when it runs, then it asserts all five pack-migrate verbs resolve to TypeScript handlers. `[pending]`
+
+### 2026-06-26-convert-the-policy-set-write-path-to-native-typescript-phase: Convert the policy-set write path to native TypeScript (Phase 1)  `[completed]`
+
+The policy-set write path is still served by a loadPythonScriptHandler route in packages/cli/src/dispatch.ts (~line 501) that shells into scripts/policy_set.py, while the policy read path is already native TypeScript. This story ports the policy write path to TypeScript so editing a typed policy field no longer requires Python.
+
+**Acceptance**:
+
+- Given dispatch.ts, when policy-set is dispatched, then it routes to a native TypeScript handler with no loadPythonScriptHandler call. `[pending]`
+- Given the TypeScript policy-set handler, when a typed field is written, then the field updates and an audit row is appended to meta/policy-changes.log. `[pending]`
+- Given the policy test suite, when it runs, then it asserts the write path updates the field and records the audit row. `[pending]`
+
+### 2026-06-26-extend-deft-doctor-with-a-precutover-status-line-phase-0: Extend deft doctor with a precutover status line (Phase 0)  `[completed]`
+
+The TypeScript doctor does not yet surface a pre-cutover detection line even though the predicates already exist in packages/core/src/vbrief-validate/precutover.ts. This story wires the existing isDeprecationRedirect and isCurrentGeneratedSpecification predicates into the doctor output as a short precutover line so operators see migration state without a Python port.
+
+**Acceptance**:
+
+- Given a pre-cutover project fixture, when deft doctor runs, then the report includes a precutover line flagging the migration-needed state. `[pending]`
+- Given a current-layout project fixture, when deft doctor runs, then the precutover line reports a clean non-pre-cutover state. `[pending]`
+- Given packages/cli/src/doctor.test.ts, when the suite runs, then the new precutover-line assertions pass for both fixtures. `[pending]`
+
+### 2026-06-26-implement-the-directive-bootstrap-launcher-and-repoint-opera: Implement the directive bootstrap launcher and repoint operator docs (Phase 4)  `[completed]`
+
+The settled decision is to implement a directive bootstrap thin launcher rather than a skill-only setup policy. This story adds a bootstrap handler in dispatch.ts that deposits if absent, carries phase intent and a deliberate re-entry signal, and hands off to deft-directive-setup, then updates the setup skill and operator docs. It runs in parallel with the other phases since it is additive.
+
+**Acceptance**:
+
+- Given dispatch.ts, when directive bootstrap is invoked, then it deposits if absent, carries phase intent and a re-entry signal, and hands off to deft-directive-setup. `[pending]`
+- Given the dispatch test suite, when it runs, then it covers the new bootstrap verb behavior. `[pending]`
+- Given UPGRADING.md and README.md, when scanned, then run bootstrap, project, and spec citations are repointed to directive bootstrap. `[pending]`
+
+### 2026-06-26-make-the-npm-deposit-python-free-and-prove-it-with-a-greenfi: Make the npm deposit Python-free and prove it with a greenfield smoke (Phase 3)  `[completed]`
+
+The @deftai/directive-content prepack still bundles the scripts/ tree (added by #1984) and the deposit can still contain .py files and a repo-root run shim. This story stops the prepack from bundling Python and verifies a greenfield directive init plus task check on a machine with no Python installed. It depends on Phases 1 and 2 because the deposit can only drop Python once nothing on the consumer path still calls it.
+
+**Acceptance**:
+
+- Given the @deftai/directive-content prepack, when it builds, then it bundles no scripts/ tree or other Python-only files. `[pending]`
+- Given directive init or update output, when inspected, then the deposit contains no .py files and no repo-root run shim. `[pending]`
+- Given a Python-free environment, when directive init then task check run, then both complete successfully as a greenfield smoke. `[pending]`
+
+### 2026-06-26-port-or-drop-the-relocate-verb-so-it-carries-no-python-phase: Drop the relocate task from the consumer surface so it carries no Python (Phase 1)  `[completed]`
+
+Decision: DROP, not port. The relocate task shells into scripts/relocate.py via uv but is not a deft or directive dispatch verb, and its own tasks/relocate.yml header documents that the canonical consumer relocate path is the external webinstaller running the relocator from a freshly fetched framework copy, not the bundled deposit. Combined with #1912 marking relocate as back-compat only, the bundled relocate task is the sole remaining consumer Python coupling, so this story removes that task from the consumer-exposed surface rather than reimplementing a legacy wipe-and-reinstall path in TypeScript.
+
+**Acceptance**:
+
+- Given the consumer Taskfile include, when scanned for relocate, then no relocate task exposes a uv or python3 entrypoint on the consumer deposit path. `[pending]`
+- Given tasks/relocate.yml and the Taskfile relocate entry, when the drop lands, then relocate is removed from the consumer-exposed task graph or confined to the maintainer contributor path. `[pending]`
+- Given task verify:no-task-runtime, when it runs against the consumer surface, then it reports no relocate Python entrypoint and exits clean. `[pending]`
+
+### 2026-06-26-port-or-drop-the-setupghx-opt-in-installer-so-it-carries-no: Port setup:ghx to a native TypeScript verb and mark ghx a supported consumer capability (Phase 1)  `[completed]`
+
+Decision: PORT to TypeScript, not drop. The ghx runtime preference is already TS-native -- packages/core/src/scm/binary.ts resolveBinary prefers ghx over gh -- so consumers already benefit automatically when ghx is on PATH; the only gap is a supported, discoverable way to install it. This story reimplements the consent-gated installer as a native directive setup:ghx dispatch verb, removes the scripts/setup_ghx.py Python entrypoint from the setup tasks, documents ghx as a supported proxy in README and the SCM docs, and adds a setup-time nudge when gh is present but ghx is missing.
+
+**Acceptance**:
+
+- Given directive setup:ghx, when invoked while ghx is missing, then it prompts for explicit consent defaulting to no and installs only on approval. `[pending]`
+- Given the Taskfile setup and setup:ghx tasks, when scanned after the port, then no scripts/setup_ghx.py or python3 entrypoint remains and the TS verb is the single entrypoint. `[pending]`
+- Given a host with gh present but ghx missing, when the setup-time check runs, then it emits a nudge pointing the operator at directive setup:ghx. `[pending]`
+- Given README.md and content/scm/github.md, when read, then ghx is documented as a supported recommended proxy with the directive setup:ghx install verb. `[pending]`
+- Given the dispatch test suite, when it runs, then it asserts setup:ghx routes to TypeScript and preserves consent-default-no behavior. `[pending]`
+
+### 2026-06-26-promote-typescript-task-check-as-the-release-pre-flight-and: Promote TypeScript task check as the release pre-flight and drop the Python bridge (Phase 1)  `[completed]`
+
+The maintainer release pre-flight still runs scripts/ci_local.py through the packages/core/src/release/python-bridge.ts shim. This story promotes the TypeScript task check to the primary release Step-5 pre-flight and removes the Python bridge so the release flow carries no Python pre-flight dependency.
+
+**Acceptance**:
+
+- Given the release flow, when Step-5 pre-flight runs, then it invokes the native TypeScript task check path and not ci_local.py. `[pending]`
+- Given packages/core/src/release, when the bridge is removed, then python-bridge.ts no longer exists and nothing imports it. `[pending]`
+- Given the release test suite, when it runs, then it asserts Step-5 uses the TypeScript pre-flight. `[pending]`
+
+### 2026-06-26-remove-the-deft-install-gate-mandate-from-the-preamble-surfa: Remove the deft-install gate mandate from the preamble surfaces (Phase 0)  `[completed]`
+
+The DEFT-PREAMBLE in main.md line 2, the main-001 rule in the rules pack, content/templates/agent-prompt-preamble.md, the setup/sync skills, and CONTRIBUTING all currently mandate running the frozen gate before any other instruction. Under the settled deprecate-by-disuse decision (#1933 Option 1) that mandate is dropped and replaced with a cold-start fallback that points the operator at UPGRADING.md when deft or directive will not run.
+
+**Acceptance**:
+
+- Given main.md, when an agent reads line 2, then it shows the UPGRADING.md cold-start fallback and no longer mandates running the deft-install gate. `[pending]`
+- Given content/packs/rules/rules-pack-0.1.json, when main-001 is rendered, then it no longer cites a gate-run mandate and references the UPGRADING.md fallback instead. `[pending]`
+- Given content/templates/agents-entry.md after task agents:refresh, when the consumer AGENTS.md is regenerated, then it contains no load-bearing run bootstrap, run gate, or deft-install gate operator path. `[pending]`
+- Given CONTRIBUTING and the setup/sync skills, when scanned for gate citations, then every stale gate mandate is replaced by the documented fallback. `[pending]`
+
+### 2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt: Rewire the consumer task surface to deft verbs with zero Python entrypoints (Phase 2)  `[completed]`
+
+The consumer .deft/core/Taskfile.yml and tasks/*.yml files still invoke python3, uv run, and scripts/*.py directly across roughly two dozen task files. This story rewires every consumer-path task to dispatch through deft verbs and clearly separates or removes maintainer-only Python tasks, so the consumer deposit has no Python entrypoints. It depends on the Phase 1 conversions because each rewired task needs its native handler to already exist.
+
+**Acceptance**:
+
+- Given the consumer Taskfile and tasks/*.yml, when scanned, then no python3, uv run, or scripts/*.py entrypoint remains on the consumer deposit path. `[completed]`
+- Given maintainer-only Python tasks, when the rewire lands, then they are separated behind the contributor path or removed entirely. `[completed]`
+- Given task verify:no-task-runtime, when it runs against the consumer surface, then it passes with zero Python entrypoints reported. `[completed]`
+
+### 2026-06-26-ship-directive-lifecycle-diagram-to-consumer-installs: Ship the Directive lifecycle conceptual diagram to consumer installs  `[completed]`
+
+The single-picture conception-to-ship lifecycle overview (Concept -> Strategy Analysis -> Specification + Artifacts feeding the recurring Session Start -> Triage/Refine -> Slice -> Swarm -> Review/Fix -> Ship loop) lives at docs/directive-lifecycle.md with its PNG at docs/assets/. The top-level docs/ tree is NOT part of the npm consumer payload (packages/content prepack copies only content/ -> .deft/core/ plus engine surfaces), so consumers never receive this orientation diagram. content/docs/ DOES ship (it becomes .deft/core/docs/). This scope relocates the doc and its asset into content/docs/, rewrites the relative links for the shipped layout, and cross-links it from the consumer-facing getting-started guide so new adopters can see the overall shape of the framework.
+
+**Acceptance**:
+
+- Given a consumer npm install, when the payload is built, then content/docs/directive-lifecycle.md and its PNG asset are present (they land in .deft/core/docs/). `[completed]`
+- Given the relocated doc, when its links are followed from content/docs/, then content-tree references resolve and the image renders. `[completed]`
+  - Acceptance: Given the relocated doc, when its links are followed from content/docs/, then content-tree references (strategies/, skills/) resolve and the embedded image renders via ./assets/.
+- Given content/docs/getting-started.md, when read, then it cross-links the lifecycle diagram so the consumer orientation layer surfaces it. `[completed]`
+
+### 2026-06-28-2013-spec-authority-wave-0-context: #2013 Wave 0 — spec-authority model locked decisions  `[completed]`
+
+Discuss-phase lock for deftai/directive#2013. Wave 0 is decision-only — no renderer or gate code. Wave 1 (#1502 render/export + #2005 fidelity gate) inherited these decisions verbatim and landed in PR #2051 (2026-06-28). Umbrella #2013 remains OPEN for Wave 2 (#2068 migrator disposition). Operator: Scott (2026-06-28). Origin sync: 2026-06-29 session.
+
+### 2026-06-28-2013-wave-1-spec-export-and-fidelity-gate: #2013 Wave 1 — PROJECT-DEFINITION export + migration fidelity gate  `[completed]`
+
+Implements locked Wave 0 decisions: two-path spec authority, three-class banner/predicate, project:export-spec with audience-split proposed scopes, config-narrative filtering, and #2005 migration-fidelity gate blocking silent specification.vbrief.json deletion.
+
+**Acceptance**:
+
+- Greenfield PROJECT-DEFINITION export produces SPECIFICATION.md with PD source banner and Scope outlook sections `[completed]`
+  - Acceptance: Given a v0.20 tree with PROJECT-DEFINITION, lifecycle folders, proposed+pending scopes, and no specification.vbrief.json, when project:export-spec runs, then SPECIFICATION.md is generated with the PD source-of-truth banner, filtered config narratives, and pending scopes; proposed scopes appear only with --audience=internal.
+- Three-class precutover and strategy-output predicates recognize full-spec and greenfield exports `[completed]`
+  - Acceptance: Given full-spec and greenfield fixture trees, when verify-strategy-output and precutover helpers run, then each class is recognized without cross-classifying greenfield exports as legacy hand-authored SPECIFICATION.md.
+- Migration fidelity gate blocks silent spec deletion when premigrate snapshot narratives lack canonical landing `[completed]`
+  - Acceptance: Given specification.premigrate.vbrief.json with narratives not present in PROJECT-DEFINITION or scope vBRIEFs and no specification.vbrief.json, when verify-strategy-output runs, then it fails with actionable recovery guidance referencing #2005.
+- Python mirror surfaces stay aligned for maintainer task check paths `[completed]`
+  - Acceptance: Given scripts/_precutover.py and scripts/validate_strategy_output.py, when run against the same fixtures as TS, then classification and fidelity outcomes match.
+- Consumer deposit githooks invoke Node deft only (no Python scripts/) `[completed]`
+  - Acceptance: Given a Python-free 0.60.0-style consumer deposit (no scripts/), when git commit/push runs with core.hooksPath=.githooks, then branch/encoding/conformance/gh gates run via deft CLI; deft verify:hooks-installed passes; greenfield smoke succeeds with Python absent from PATH.
+
+### 2026-06-28-2050-docsskills-wave-1-operator-surfaces-projectexport-spec-deft: docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)  `[completed]`
+
+## Summary
+
+Wave 1 (#2013 / #1502 / #2005) and #2049 land engine + deposit behavior, but operator docs and skills still steer greenfield consumers through legacy `task spec:render` / `specification.vbrief.json` paths. Release notes also need an explicit post-upgrade hook refresh step.
+
+This is **follow-up polish**, not a blocker for merging Wave 1 code — but it should ship in the same release cycle (before or immediately after Wave 1 merge) so 0.61.x operators discover the new surfaces.
+
+## Problem
+
+- `deft-directive-setup` Phase 3 export prompt still recommends `task spec:render` / `task prd:render` and gates speckit on spec-file approval (#2013 Wave 0 §3 / §6).
+- `strategies/speckit.md` and `strategies/v0-20-contract.md` do not mention `task project:export-spec` or greenfield PD-sourced export.
+- `content/scm/github.md` / hook docs may still cite `scripts/preflight_branch.py` as the hook backend (Wave 0 port checklist).
+- Release / upgrade guidance does not tell consumers to run `deft update` to refresh project-root `.githooks/` after #2049.
+
+## Scope (disjoint from Wave 1 implementation files)
+
+- `content/skills/deft-directive-setup/SKILL.md` — Phase 3 export prompt → `task project:export-spec`; speckit gate → export succeeded (not spec-file approved).
+- `content/strategies/speckit.md` — post-Phase-3 gate references unified export verb.
+- `content/strategies/v0-20-contract.md` — greenfield export contract + Scope outlook naming.
+- `content/scm/github.md` — hooks invoke `deft` CLI (#2049); not Python scripts.
+- `UPGRADING.md` / consumer README touch — after upgrade run `deft update` to refresh `.githooks/`.
+- `content/templates/agents-entry.md` + `task agents:refresh` if consumer-relevant hook/export routing changes.
+
+## Acceptance
+
+- [ ] Setup skill Phase 3 documents `task project:export-spec` as the greenfield export path; internal handoff uses `--audience=internal` where proposed scopes are needed.
+- [ ] Speckit strategy Phase 3→4 gate is "export succeeded" not "specification.vbrief.json approved".
+- [ ] v0-20-contract and github.md align with Scope outlook + TS-native hooks.
+- [ ] UPGRADING.md tells 0.60.0→0.61.x consumers to run `deft update` for hook refresh.
+- [ ] `task agents:refresh` run if agents-entry.md changes; content contract tests pass.
+
+## Sequencing
+
+- **Parallel-safe** with Wave 1 implementation (#2013-wave-1 branch) — disjoint file scope (content/skills/strategies only).
+- Merge **after** Wave 1 PR or in parallel; both should land before npm cut for 0.61.x.
+
+## Refs
+
+- Parent: #2013 (umbrella — stays open)
+- Depends on: Wave 1 + #2049 landing (behavior the docs describe)
+- Related: #1502, #2049, #2046, #2022
+
+**Acceptance**:
+
+- Setup skill Phase 3 documents  as the greenfield export path; internal handoff uses  where proposed scopes are needed. `[proposed]`
+- Speckit strategy Phase 3→4 gate is "export succeeded" not "specification.vbrief.json approved". `[proposed]`
+- v0-20-contract and github.md align with Scope outlook + TS-native hooks. `[proposed]`
+- UPGRADING.md tells 0.60.0→0.61.x consumers to run  for hook refresh. `[proposed]`
+- run if agents-entry.md changes; content contract tests pass. `[proposed]`
+
+### 2026-06-28-2066-umbrella-current-shape-render: Deterministic umbrella:current-shape render (#2066)  `[completed]`
+
+Implement task umbrella:current-shape <N> as a native deft-ts verb that fetches the canonical ## Current shape comment via REST (scm shim) and prints or validates it — without reading the stale issue body.
+
+**Acceptance**:
+
+- Given issue N with a current-shape comment, when task umbrella:current-shape N runs, then it prints the comment body without reading the issue body. `[pending]`
+- Given no current-shape comment, when the verb runs, then it exits 1 with an actionable message (no body fallback). `[pending]`
+
+### 2026-06-28-2066-umbrella-status-claim-cites-state-surface: docs(agents): umbrella status claim-cites-state-surface (#2066)  `[completed]`
+
+## What to build
+
+1. `content/templates/agent-prompt-preamble.md` — binding rule: before stating umbrella status, fetch comments + read current-shape + linked vBRIEF; claim-cites-state-surface.
+2. `AGENTS.md` — extend `## Umbrella current-shape convention (#1152)` with `!` MUST + `⊗` anti-pattern lines.
+3. `content/templates/agents-entry.md` — mirror consumer-relevant rule; run `task agents:refresh`.
+4. `content/skills/deft-directive-refinement/SKILL.md` and `deft-directive-triage/SKILL.md` — final-phase step before reporting umbrella status.
+5. Extend `tests/content/test_agents_entry_contract.py` marker list; keep TS `agents_md_current_shape.test.ts` green.
+6. CHANGELOG `[Unreleased]` entry ending `Refs #2066`.
+
+## Out of scope
+
+- `task umbrella:current-shape <N>` deterministic render (separate PR closes #2066).
+
+## Acceptance
+
+- Codified rule forbids body-only umbrella status conclusions across preamble + AGENTS.md + propagated agents-entry + skills.
+- `task verify:encoding` clean; `TMPDIR=$(mktemp -d) task check` green.
+- PR uses `Refs #2066` (NOT Closes).
+
+### 2026-06-28-2068-decide-migrate-vbrief-ts-port-or-pre-v020-cutoff: Decide and execute migrate:vbrief -- TS port or pre-v0.20 cutoff (retires #1860 carve-out)  `[completed]`
+
+The migrate:vbrief verb still dispatches to scripts/migrate_vbrief.py -- the sole intentional consumer-path Python entrypoint carved out of #1860's bulk delete. This story resolves the open decision: either port the migrator to TypeScript behind the directive CLI, or document a hard pre-v0.20 legacy cutoff and remove the verb from the consumer surface. #2013 Wave 0 (locked) and Wave 1 (#1502 + #2005, closed 2026-06-28) settled the spec-authority output contract the migrator depends on, so the remaining unknown is exactly this port-vs-cutoff call.
+
+**Acceptance**:
+
+- Given the TS-port path, when chosen, then `task migrate:vbrief` runs with no Python and a fixture migration test validates the output against the v0.20 cutover contract + #2005 fidelity gate. `[pending]`
+- Given the cutoff path, when chosen instead, then the consumer task surface no longer shows migrate:vbrief and UPGRADING.md documents a hard pre-v0.20 cutoff. `[pending]`
+- Given either resolution, when `task check` runs, then it exits zero, no code path invokes scripts/migrate_vbrief.py, and the #1860 Python carve-out is removed. `[pending]`
+
+### 2026-06-28-add-acknowledgementclear-path-for-project-definition-stalene: Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags  `[completed]`
+
+task project:render emits heuristic staleness_flags when completed scope titles overlap narrative keys, but re-rendering after manual review does not clear flags because no reviewed/acknowledged state is persisted. This story adds durable review metadata (watermark or per-narrative acknowledgement) so operators can mark narratives fresh after review and subsequent renders suppress repeat warnings until new completed work arrives.
+
+**Acceptance**:
+
+- Given completed scopes trigger staleness_flags on first render, when the operator acknowledges reviewed narratives, then a subsequent project:render without new completed scopes emits zero repeat flags for those narratives. `[pending]`
+- Given new completed scopes land after acknowledgement, when project:render runs, then only the affected narratives are flagged again. `[pending]`
+- Given the acknowledgement path, when used, then it is documented as distinct from task reconcile:issues origin reconciliation. `[pending]`
+- Given packages/core/src/render/project-render.test.ts, when it runs, then initial emission, acknowledgement, no-repeat, and re-flag scenarios pass. `[pending]`
+
+### 2026-06-28-bug-pass-doctor-agents-refresh: doctor and agents:refresh: fix legacy skill paths and false-positive checks  `[completed]`
+
+After upgrade or agents:refresh, consumers see doctor failures: agents:refresh can restore legacy .deft/core/skills/ paths that doctor rejects as stubs (#1404), and skill-paths-resolve false-positives on documentation text containing sentinel substrings (#1408). This story fixes refresh output paths and tightens doctor matching so post-upgrade verification is trustworthy.
+
+**Acceptance**:
+
+- agents:refresh emits current skill paths not legacy stubs `[pending]`
+  - Acceptance: Given a consumer runs deft agents:refresh on a canonical-vendored install, when AGENTS.md managed section is rewritten, then referenced skill paths resolve to live .deft/core/skills/ entries and doctor skill-paths-resolve does not FAIL due to legacy .deft/core/skills/ stub paths.
+- skill-paths-resolve ignores doc-only sentinel matches `[pending]`
+  - Acceptance: Given AGENTS.md or templates contain documentation prose mentioning skill path patterns, when deft doctor runs skill-paths-resolve, then the check does not FAIL on substring matches in non-path documentation text; real missing skill files still FAIL.
+- Regression tests and CHANGELOG `[pending]`
+  - Acceptance: Given regression tests cover agents:refresh path output and doctor skill-paths-resolve edge cases, when uv run pytest on those tests passes and task check passes, then CHANGELOG records the fix with Closes #1404 #1408.
+
+### 2026-06-28-bug-pass-migrate-vbrief-hygiene: migrate:vbrief: stamp .deft-version and track lifecycle folders in git  `[completed]`
+
+Greenfield and migrate:vbrief paths leave vbrief/.deft-version unstamped so gates report recorded=unknown (#1157). migrate:vbrief also creates empty lifecycle folders that git does not track, so fresh clones and swarm worktrees lack vbrief/proposed|pending|active|completed|cancelled (#1159). This story stamps the version marker during migration and adds tracked .gitkeep sentinels so lifecycle layout survives clone/worktree.
+
+**Acceptance**:
+
+- migrate:vbrief stamps vbrief/.deft-version `[pending]`
+  - Acceptance: Given a project completes task migrate:vbrief successfully, when vbrief/.deft-version is read, then it records the current framework version ref/sha consistent with .deft/core/VERSION and gates no longer report recorded=unknown for greenfield-migrated projects.
+- Lifecycle folders survive clone via tracked placeholders `[pending]`
+  - Acceptance: Given migrate:vbrief creates the five lifecycle folders, when the project is cloned or a git worktree is added, then vbrief/proposed pending active completed cancelled directories exist on disk because each contains a tracked .gitkeep sentinel file; rollback removes those sentinels per safety manifest.
+- migrate_vbrief tests and CHANGELOG `[pending]`
+  - Acceptance: Given tests in tests/test_migrate_vbrief.py cover version stamp and gitkeep creation, when uv run pytest tests/test_migrate_vbrief.py passes and task check passes, then CHANGELOG records fixes with Closes #1157 #1159.
+
+### 2026-06-28-bug-pass-npm-upgrade-discoverability: npm upgrade happy path: surface deft migrate in docs and CLI output  `[completed]`
+
+Operators following README and UPGRADING.md never encounter `deft migrate` until `deft doctor` warns them. This story adds the one-time npm provenance stamp to the canonical upgrade path, fixes the release upgrade banner that still cites legacy deft-install, and reconciles UPGRADING.md npm-migration steps with the shipped CLI. Includes a one-line disambiguation between `deft migrate` (npm handshake) and `migrate:vbrief` (pre-v0.20 cutover).
+
+**Acceptance**:
+
+- UPGRADING.md documents full npm path including migrate `[pending]`
+  - Acceptance: Given a reader follows content/UPGRADING.md canonical npm upgrade section, when they complete the documented steps, then they run deft migrate as an explicit step before or immediately after first deft update, and a table distinguishes deft migrate from migrate:vbrief.
+- Release upgrade banner cites npm not deft-install `[pending]`
+  - Acceptance: Given .github/release-notes/upgrade-banner.md is rendered into a release body, when an operator reads the banner, then it recommends npm i -g @deftai/directive@latest and deft update/migrate path, not deft-install --yes --upgrade.
+- init and update output nudge migrate when needed `[pending]`
+  - Acceptance: Given a canonical-vendored deposit without managed_by npm in VERSION, when directive init or directive update completes successfully, then stdout includes a one-line nudge to run deft migrate once (idempotent); when already npm-managed, no nudge is emitted.
+- Tests and CHANGELOG for discoverability fixes `[pending]`
+  - Acceptance: Given the implementation lands, when uv run pytest targets new or updated tests for init/update output and doc parity pass, then task check passes and CHANGELOG [Unreleased] records the user-visible discoverability fix with Closes #2059 #2012 #1995.
+
+### 2026-06-28-fix-pre-push-branch-gate-false-positives-when-head-is-defaul: Fix pre-push branch gate false positives when HEAD is default branch  `[completed]`
+
+The pre-push hook runs preflight_branch.py (gate #1) using only the current branch, so benign operations like deleting a merged feature branch while checked out on main are blocked before preflight_gh --pre-push-stdin (gate #2) can approve them. This story implements Option A from #1814: at pre-push time rely on gate #2 for refspec-aware default-branch protection and skip the HEAD-only gate #1, while preserving gate #1 at pre-commit where current branch is the correct signal.
+
+**Acceptance**:
+
+- Given HEAD is main and git push origin --delete refs/heads/feature-x is attempted, when the pre-push hook runs, then it exits 0 and does not emit the default-branch commit/push refusal from gate #1. `[pending]`
+- Given HEAD is main and a push would add commits to refs/heads/main, when pre-push stdin is fed that refspec, then gate #2 still blocks the push. `[pending]`
+- Given HEAD is on a feature branch, when pre-commit runs preflight_branch, then default-branch protection behavior is unchanged from today. `[pending]`
+- Given the regression test suite for branch and pre-push gates, when it runs, then the new scenarios pass. `[pending]`
+
+### 2026-06-28-move-maintainer-only-python-tasks-behind-checkframework-sour: Move maintainer-only Python tasks behind check:framework-source  `[completed]`
+
+tasks/core.yml and tasks/ci.yml still run pytest, ruff, and ci_local.py via uv on paths that ship to consumer installs. This story ensures those tasks are not reachable from the default consumer check aggregate — only from check:framework-source or an explicit maintainer include — so operators on npm installs never hit Python through task.
+
+**Acceptance**:
+
+- Given task check on a consumer deposit layout, when it runs, then no subprocess invokes uv run python, pytest, ruff, or ci_local.py. `[pending]`
+- Given task check:framework-source, when run from the framework repo, then maintainer Python self-test lanes remain available. `[pending]`
+- Given tasks/core.yml and tasks/ci.yml, when included from Taskfile.yml, then they are optional/maintainer-only with clear comments. `[pending]`
+
+### 2026-06-28-port-framework-check-updates-to-typescript-engine: Port framework:check-updates to the TypeScript engine  `[completed]`
+
+task framework:check-updates is the last consumer-callable task that shells through uv run python run check-updates. Port the read-only remote-version probe (#801) to a native deft-ts verb and rewire tasks/framework.yml so consumer installs need zero Python for this surface.
+
+**Acceptance**:
+
+- Given tasks/framework.yml check-updates, when invoked, then it routes through deft-ts with no uv run python or run shim. `[pending]`
+- Given the TS check-updates verb, when probed with mocked git ls-remote, then OK/BEHIND/SKIPPED/NO-TAGS/ERROR statuses and --json output match the #801 contract. `[pending]`
+
+### 2026-06-28-replace-inline-uv-run-python-c-helpers-in-consumer-task-file: Replace inline uv run python -c helpers in consumer task files  `[completed]`
+
+Several consumer-visible task files (change.yml, commit.yml, framework.yml, install.yml setup paths) still embed uv run python -c one-liners for path checks and guards. This story replaces those with portable shell, node one-liners, or dedicated TS verbs so the consumer task graph has no inline Python.
+
+**Acceptance**:
+
+- Given tasks/change.yml, tasks/commit.yml, and tasks/framework.yml, when scanned, then no uv run python -c entrypoints remain on the consumer path. `[pending]`
+- Given task verify:no-task-runtime, when run after the rewire, then it reports zero consumer Python task entrypoints. `[pending]`
+- Given existing path-guard behavior (#1011/#566), when rewired tasks run on WSL, then they still resolve DEFT_ROOT correctly. `[pending]`
+
+### 2026-06-28-rewire-migrate-and-install-task-entrypoints-off-python-on-th: Rewire migrate and install task entrypoints off Python on the consumer path  `[completed]`
+
+Consumer migrate and install tasks still invoke uv run python for migrate_preflight, migrate_vbrief, and legacy run upgrade. This story replaces consumer-path invocations with native deft verbs where TS handlers exist, documents the #2013 migrate_vbrief holdout if it must remain, and removes install upgrade's Python run shim from the default consumer surface.
+
+**Acceptance**:
+
+- Given tasks/migrate.yml on the consumer deposit path, when scanned, then every entrypoint except the documented #2013 migrate_vbrief holdout routes through deft/node rather than uv run python. `[pending]`
+- Given tasks/install.yml, when upgrade runs on the consumer path, then it does not invoke scripts/run.py or uv run python. `[pending]`
+- Given the story verify suite, when it runs, then migrate/install rewire behavior is covered by focused tests or gate output. `[pending]`
+
+### 2026-06-28-route-directive-sessionstart-through-native-ts-runsessionsta: Route directive session:start through native TS runSessionStart on npm installs  `[completed]`
+
+On npm consumer projects, session:start is aliased to the framework-commands Python bridge, which resolves frameworkRoot to the npm package tree instead of .deft/core and fails with ModuleNotFoundError for session_start. The TS implementation already exists in @deftai/directive-core/session. This story registers session:start as a native TS inline handler (matching the doctor pattern) so consumer ritual recording works without Python on the deposit path.
+
+**Acceptance**:
+
+- Given a project installed via directive init with .deft/core deposited, when directive session:start runs, then it exits 0 and writes .deft/ritual-state.json without importing session_start.py. `[pending]`
+- Given the same project, when directive doctor runs, then behavior is unchanged. `[pending]`
+- Given session-ritual-cli tests, when they run, then they cover the native TS session:start dispatch path for consumer project-root resolution. `[pending]`
+- Given a repo with at least one commit, when session:start completes, then verify:session-ritual quick tier can pass on fresh state. `[pending]`
+
+### 2026-06-29-fix-archiver-v8-release-build: Fix release dist build under archiver v8 (factory API removed)  `[completed]`
+
+The v0.63.0 release cut failed at the build-dist step with `TypeError: archiver is not a function`. archiver v8 (declared as ^8.0.0 in packages/core) removed the v7 `archiver(format, opts)` factory in favour of per-format classes (ZipArchive/TarArchive). build-dist.ts (added in #1860) still used the factory convention, and the archive unit test had been removed during #1860, so the break went uncaught until a production cut.
+
+**Acceptance**:
+
+- Given archiver v8, when buildArchive runs, then it produces a non-empty tar.gz and zip without error. `[completed]`
+  - Acceptance: buildArchive + main build real archives; build-dist-runner produces dist/deft-<v>.tar.gz.
+- Given a fresh project without a dist/ dir, when buildArchive runs, then it creates the output dir instead of hanging. `[completed]`
+  - Acceptance: buildArchive mkdirs the output dir; output-stream errors reject the promise.
+
+### 2026-06-29-parity-harness-teardown-2083: Tear down orphaned TS-vs-Python parity harnesses (#2083)  `[completed]`
+
+Follow-up carved out of #1860. The 44 packages/cli/src/*-parity.ts harnesses spawned the now-deleted frozen Python oracle to golden-diff TS output. With Python gone the comparison is dead code; remove the harness source, preserving any fixtures/helpers that real (non-parity) unit tests still import.
+
+**Acceptance**:
+
+- Given the parity harnesses, when teardown lands, then every packages/cli/src/*-parity.ts source file is removed. `[completed]`
+  - Acceptance: No packages/cli/src/*-parity.ts files remain; zero python/uv run/.py references in packages/.
+- Given real tests that imported parity fixtures, when the parity source is deleted, then those tests still pass against extracted non-parity fixture modules. `[completed]`
+  - Acceptance: All previously-passing non-parity tests still pass; reused fixtures live in non-parity modules.
+- Given the teardown, when task check runs, then it passes with the parity entries removed from the vitest coverage exclude list. `[completed]`
+  - Acceptance: task check exits 0; vitest.config.ts no longer lists deleted *-parity.ts files.
+
+### 2026-06-29-restore-branch-coverage-85: Restore vitest branch-coverage threshold to 85 (post-#2083 follow-up)  `[completed]`
+
+The parity-harness teardown (#2083) and the earlier Python removal (#1860) shifted the branch denominator, leaving the vitest branches threshold temporarily lowered (85 -> 84.9 -> 84.85). This follow-up adds targeted branch tests to push real coverage back over 85 and restores the threshold to the original 85.
+
+**Acceptance**:
+
+- Given the lowered branch threshold, when targeted branch tests land, then real branch coverage measures at or above 85%. `[completed]`
+  - Acceptance: Full vitest run reports branches >= 85%.
+- Given coverage is restored, when vitest.config.ts is updated, then the branches threshold reads 85 and task check passes. `[completed]`
+  - Acceptance: vitest.config.ts branches threshold = 85; task check exits 0.
+
+### 2026-06-29-ts-migration-wave-9-full-python-removal-1860: TS migration Wave 9: full Python removal (#1860 Bucket B delete)  `[completed]`
+
+Execute the operator-authorized Bucket B delete on #1860: remove run/, scripts/*.py, pytest suite, pyproject/uv, parity oracles, and Python CI legs; rewire release build/reconcile/roadmap to native TS; confirm task check green with zero Python on disk.
+
+**Acceptance**:
+
+- Given operator sign-off on #1860, when Bucket B delete lands, then run/, scripts/, pyproject.toml, uv.lock, and the pytest tree are removed. `[completed]`
+  - Acceptance: No scripts/*.py, run entrypoints, pyproject.toml, or tests/**/*.py remain in the repo.
+- Given the delete, when task check:framework-source runs, then it passes with TS-only gates (no uv run python, no parity harness). `[completed]`
+  - Acceptance: check:framework-source exits 0; CI python and parity jobs removed.
+- Given release pipeline steps, when cutting a release, then roadmap refresh, lifecycle reconcile, and dist build run without Python. `[completed]`
+  - Acceptance: Release pipeline uses native TS for roadmap, reconcile, and build-dist; no uv lock step.
 
 ### 2026-05-21-1286-triage-queue-blocked-filter: Demote vBRIEF-status:blocked items in triage:queue  `[completed]`
 
