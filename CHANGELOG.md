@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **CI fails closed on ghx installer checksum mismatch (#1328).** The Windows ghx pre-install workflow now splits download/verify from execution: SHA256 mismatch on `install.ps1` fails the verify step (no `continue-on-error`), while the dot-source install step keeps the #884 best-effort soft-fail contract. Closes #1328.
 
+- **Issue ingest preserves inline code in acceptance-criteria titles (#1276).** `task issue:ingest` no longer strips backtick-delimited inline code from `plan.items[].title` when parsing acceptance criteria; narrative Overview was already correct. Closes #1276.
+
 - **Biome export-order lint on verify-source barrel (#2091).** Reorders named `contract-drift` re-exports so `task ts:check-lane` passes. Closes #2091.
 
 ### Removed
