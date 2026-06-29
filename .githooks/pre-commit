@@ -2,7 +2,8 @@
 # .githooks/pre-commit -- deft CLI gates (#2049 / #747 / #798 / #1620).
 #
 # Activated by `git config core.hooksPath .githooks` via `task setup` or the
-# deft installer (#1463). Pure POSIX shell; requires `deft` on PATH (no Python).
+# deft installer (#1463). Pure POSIX shell; prefers global `deft` on PATH,
+# falls back to local packages/cli/dist/bin.js in the maintainer monorepo (#2067).
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then
@@ -10,16 +11,12 @@ if [ -z "$REPO_ROOT" ]; then
     exit 1
 fi
 
-if ! command -v deft >/dev/null 2>&1; then
-    echo "deft pre-commit: 'deft' not found on PATH." >&2
-    echo "  Install: npm i -g @deftai/directive" >&2
-    exit 1
-fi
+. "$REPO_ROOT/.githooks/_deft-run.sh"
 
-deft verify:branch --project-root "$REPO_ROOT" || exit $?
+run_deft verify:branch --project-root "$REPO_ROOT" || exit $?
 
-deft verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
+run_deft verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
 
 if [ -d "$REPO_ROOT/vbrief" ]; then
-    deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
+    run_deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
 fi

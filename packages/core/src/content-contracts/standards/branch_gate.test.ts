@@ -4,18 +4,24 @@ import { readText } from "./_helpers.js";
 describe("test_branch_gate.py", () => {
   it("test_pre_commit_hook_exists_and_calls_script", () => {
     const text = readText(".githooks/pre-commit");
-    expect(text).toContain("deft verify:branch");
-    expect(text).toContain("deft verify:encoding");
+    expect(text).toContain("run_deft verify:branch");
+    expect(text).toContain("run_deft verify:encoding");
     expect(text).toContain("git rev-parse --show-toplevel");
-    expect(text).toContain("command -v deft");
+    expect(text).toContain("_deft-run.sh");
     expect(text).not.toContain("preflight_branch.py");
   });
   it("test_pre_push_hook_exists_and_calls_script", () => {
     const text = readText(".githooks/pre-push");
-    expect(text).toContain("deft preflight-gh --pre-push-stdin");
-    expect(text).toContain("command -v deft");
+    expect(text).toContain("run_deft preflight-gh --pre-push-stdin");
+    expect(text).toContain("_deft-run.sh");
     expect(text).not.toContain("preflight_branch.py");
     expect(text).not.toContain("deft verify:branch");
+  });
+  it("test_deft_run_sh_falls_back_to_local_cli", () => {
+    const text = readText(".githooks/_deft-run.sh");
+    expect(text).toContain("command -v deft");
+    expect(text).toContain('packages/cli/dist/bin.js');
+    expect(text).toContain("run_deft()");
   });
   it("test_taskfile_check_includes_verify_branch", () => {
     const text = readText("Taskfile.yml");

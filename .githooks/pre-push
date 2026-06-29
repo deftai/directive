@@ -3,7 +3,8 @@
 #
 # Pre-push does NOT invoke verify:branch (#747). HEAD-only default-branch
 # protection remains on pre-commit; pre-push relies on preflight-gh for
-# refspec-aware protection (#1814 Option A). Pure POSIX shell; `deft` only.
+# refspec-aware protection (#1814 Option A). Pure POSIX shell; prefers global
+# `deft` on PATH, falls back to local packages/cli/dist/bin.js (#2067).
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then
@@ -11,11 +12,7 @@ if [ -z "$REPO_ROOT" ]; then
     exit 1
 fi
 
-if ! command -v deft >/dev/null 2>&1; then
-    echo "deft pre-push: 'deft' not found on PATH." >&2
-    echo "  Install: npm i -g @deftai/directive" >&2
-    exit 1
-fi
+. "$REPO_ROOT/.githooks/_deft-run.sh"
 
-deft preflight-gh --pre-push-stdin
+run_deft preflight-gh --pre-push-stdin
 exit $?
