@@ -347,4 +347,37 @@ describe("emitCheckUpdates text mode", () => {
   it("resolveProbeTimeout uses default when env unset", () => {
     expect(resolveProbeTimeout({})).toBe(5);
   });
+
+  it("reads upstream_url from alternate manifest keys", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-keys-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "VERSION"),
+      "source_url: https://example.com/from-source.git\ntag: v1.0.0\n",
+      "utf8",
+    );
+    expect(resolveUpstreamUrl(root)).toBe("https://example.com/from-source.git");
+  });
+
+  it("reads vendored manifest from .deft/VERSION when core manifest is absent", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-deft-version-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "VERSION"),
+      "tag: v0.9.0\nurl: https://example.com/deft-version.git\n",
+      "utf8",
+    );
+    expect(resolveProbeCurrentVersion(root)).toBe("0.9.0");
+    expect(resolveUpstreamUrl(root)).toBe("https://example.com/deft-version.git");
+  });
+
+  it("reads vendored manifest from legacy deft/VERSION path", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-legacy-deft-"));
+    temps.push(root);
+    mkdirSync(join(root, "deft"), { recursive: true });
+    writeFileSync(join(root, "deft", "VERSION"), "tag: v0.8.0\n", "utf8");
+    expect(resolveProbeCurrentVersion(root)).toBe("0.8.0");
+  });
 });
