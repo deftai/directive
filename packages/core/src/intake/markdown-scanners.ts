@@ -3,17 +3,25 @@
  * Avoids nested/polynomial regex on issue bodies (ReDoS-safe).
  */
 
-/** Strip fenced and inline code spans before cross-ref / plan-item extraction. */
+/** Strip fenced code blocks only (preserves inline backtick spans). */
+export function stripFencedCodeBlocks(body: string): string {
+  if (body.length === 0) {
+    return "";
+  }
+  return stripFencedCodeBlocksInner(body);
+}
+
+/** Strip fenced and inline code spans before cross-ref extraction. */
 export function stripCodeBlocks(body: string): string {
   if (body.length === 0) {
     return "";
   }
-  let text = stripFencedCodeBlocks(body);
+  let text = stripFencedCodeBlocksInner(body);
   text = stripInlineCode(text);
   return text;
 }
 
-function stripFencedCodeBlocks(text: string): string {
+function stripFencedCodeBlocksInner(text: string): string {
   let out = "";
   let i = 0;
   while (i < text.length) {

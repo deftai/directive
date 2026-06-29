@@ -12,6 +12,7 @@ import {
   parseListItems,
   sliceAcSection,
   stripCodeBlocks,
+  stripFencedCodeBlocks,
 } from "./markdown-scanners.js";
 import {
   detectRepo,
@@ -96,7 +97,7 @@ export function extractPlanItems(body: string): Record<string, string>[] {
   if (body.length === 0) {
     return [];
   }
-  const text = stripCodeBlocks(body);
+  const text = stripFencedCodeBlocks(body);
   const checkboxItems = parseCheckboxItems(text);
   if (checkboxItems.length > 0) {
     return checkboxItems.map((item) => ({ title: item.title, status: item.status }));
