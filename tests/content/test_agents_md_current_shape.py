@@ -115,7 +115,8 @@ def test_section_uses_canonical_rfc2119_markers(agents_md_text: str) -> None:
     )
     must_not_lines = re.findall(r"^-\s+\u2297\s+Do NOT", section, re.MULTILINE)
     assert len(must_not_lines) == 2, (
-        f"expected 2 MUST-NOT rules with canonical '\u2297 ' marker and 'Do NOT'; found {len(must_not_lines)}"
+        "expected 2 MUST-NOT rules with canonical '\u2297 ' marker and 'Do NOT'; "
+        f"found {len(must_not_lines)}"
     )
     assert "\u2297 Conclude umbrella or epic status from the issue body alone" in section, (
         "Umbrella current-shape convention MUST include #2066 body-only prohibition"
