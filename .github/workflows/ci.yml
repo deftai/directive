@@ -363,12 +363,11 @@ jobs:
         run: go build -o /dev/null ./cmd/deft-install/
 
   windows-task-dispatch:
-    # Regression guard for #566: `task migrate:vbrief` (and every other task
-    # that dispatches a Python script via `{{.DEFT_ROOT}}/scripts/...`) must
-    # run without the path-traversal defect that dropped the `deft\` prefix
-    # on Windows.  Runs a dry-run migration against the pre-cutover fixture
-    # so the path is actually exercised end-to-end under `uv run python`
-    # and PowerShell, not just statically lint-checked.
+    # Regression guard for #566 / #2068: task dispatch via absolute Taskfile path
+    # must work on Windows. The pre-cutover fixture exercises `migrate:preflight`
+    # (TS-native, no Python shell-out). The #593 migrator partition regression
+    # invokes scripts/migrate_vbrief.py directly — the task surface no longer
+    # ships `migrate:vbrief` on current npm deposits.
     name: Windows (task dispatch regression)
     runs-on: windows-latest
     steps:
@@ -505,10 +504,8 @@ jobs:
           $fixtureDir = Join-Path $env:RUNNER_TEMP 'consumer'
           New-Item -ItemType Directory -Path $fixtureDir -Force | Out-Null
           Copy-Item tests\fixtures\pre_cutover_customized\* $fixtureDir -Recurse
-          # Drop a vbrief/specification.vbrief.json so migrate:vbrief has
-          # something to enrich (pre-cutover detection hits criterion #3 even
-          # with just the root .md files; emitting an empty spec keeps the
-          # dry-run output stable for the assertion below).
+          # Drop a vbrief/specification.vbrief.json so migrate:preflight detects
+          # pre-cutover state (criterion #3 even with just the root .md files).
           New-Item -ItemType Directory -Path (Join-Path $fixtureDir 'vbrief') -Force | Out-Null
           '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"fixture","status":"running","narratives":{},"items":[]}}' | Set-Content -Path (Join-Path $fixtureDir 'vbrief\specification.vbrief.json')
           # Git-init so the migrator's dirty-tree guard is satisfied.
@@ -519,12 +516,20 @@ jobs:
           Pop-Location
           "fixture=$fixtureDir" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: task -t Taskfile.yml migrate:vbrief -- --dry-run (via absolute path)
+      - name: task -t Taskfile.yml migrate:preflight (via absolute path, #2068)
         shell: pwsh
         working-directory: ${{ env.fixture }}
         run: |
           $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
-          task -t $deftTaskfile migrate:vbrief -- --dry-run
+          $output = task -t $deftTaskfile migrate:preflight 2>&1 | Out-String
+          Write-Host $output
+          if ($LASTEXITCODE -ne 1) {
+            throw "migrate:preflight expected exit 1 on pre-cutover fixture; got $LASTEXITCODE"
+          }
+          if ($output -notmatch 'v0\.59\.0') {
+            throw "migrate:preflight output missing frozen-release tag v0.59.0 (#2068)"
+          }
+          Write-Host "migrate:preflight pre-cutover detection OK (#2068)"
 
       - name: task -t Taskfile.yml scope:promote (end-to-end #577 regression)
         shell: pwsh
@@ -532,7 +537,7 @@ jobs:
         run: |
           $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
           # Stage a proposed scope vBRIEF in the same fixture consumer
-          # project used by the migrate:vbrief step above.  The file name
+          # project used by the migrate:preflight step above.
           # must match the YYYY-MM-DD-<slug>.vbrief.json convention so the
           # scope_lifecycle.py path resolver accepts it end-to-end.
           $proposedDir = Join-Path $env:fixture 'vbrief\proposed'
@@ -591,16 +596,11 @@ jobs:
           }
           Write-Host "framework:doctor smoke OK (#1059) -- exit=$exit, no Store-stub marker in output"
 
-      - name: task migrate:vbrief end-to-end Completed-section partition (#593)
+      - name: migrate_vbrief.py end-to-end Completed-section partition (#593, maintainer script)
         shell: pwsh
         run: |
-          # #593 regression: run a real (non-dry-run) migration against
-          # the completed-routing fixture and assert that Completed
-          # section items land in vbrief/completed/ with plan.status=
-          # "completed", while active-phase items stay in vbrief/
-          # proposed/. Pre-#593 this partition check would have failed
-          # because every Completed-section orphan collapsed into
-          # vbrief/proposed/ silently.
+          # #593 regression: run a real migration via the maintainer Python
+          # script (not the consumer task surface — removed per #2068).
           $fixture = Join-Path $env:RUNNER_TEMP 'completed-consumer'
           if (Test-Path $fixture) { Remove-Item -Recurse -Force $fixture }
           Copy-Item -Recurse tests\fixtures\migration\completed-routing $fixture
@@ -610,10 +610,10 @@ jobs:
           git -c user.name=ci -c user.email=ci@example.com add -A
           git -c user.name=ci -c user.email=ci@example.com commit -q -m seed
           Pop-Location
-          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          $migrator = Join-Path $env:GITHUB_WORKSPACE 'scripts\migrate_vbrief.py'
           Push-Location $fixture
-          task -t $deftTaskfile migrate:vbrief
-          if ($LASTEXITCODE -ne 0) { throw "migrate:vbrief exited $LASTEXITCODE" }
+          uv run python $migrator .
+          if ($LASTEXITCODE -ne 0) { throw "migrate_vbrief.py exited $LASTEXITCODE" }
           Pop-Location
           # Partition assertions.
           $completed = Get-ChildItem -Path (Join-Path $fixture 'vbrief\completed') -Filter '*.vbrief.json' -ErrorAction SilentlyContinue
@@ -651,4 +651,4 @@ jobs:
               throw "scope $($f.Name) unexpectedly carries vBRIEFInfo.updated (#593)"
             }
           }
-          Write-Host "migrate:vbrief Completed-section partition OK (#593)"
+          Write-Host "migrate_vbrief.py Completed-section partition OK (#593)"
