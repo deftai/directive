@@ -1,5 +1,7 @@
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { readText } from "./_helpers.js";
+import { allMdFiles, readText, repoRoot } from "./_helpers.js";
 
 describe("test_standards.py", () => {
   it("languages/6502-DASM.md", () => {
@@ -2695,5 +2697,23 @@ describe("test_standards.py", () => {
     const text = readText("scm/github.md");
     expect(text).toContain("GetTempFileName");
     expect(text).toContain("mktemp");
+  });
+});
+
+describe("allMdFiles skip dirs", () => {
+  it("excludes markdown under .deft-scratch swarm worktrees (#1656)", () => {
+    const scratchDir = join(repoRoot(), ".deft-scratch", "worktrees", "standards-test-fixture");
+    const mdPath = join(scratchDir, "fixture.md");
+    mkdirSync(scratchDir, { recursive: true });
+    writeFileSync(mdPath, "# fixture\n", "utf8");
+    try {
+      const rel = ".deft-scratch/worktrees/standards-test-fixture/fixture.md";
+      expect(allMdFiles()).not.toContain(rel);
+    } finally {
+      rmSync(join(repoRoot(), ".deft-scratch", "worktrees", "standards-test-fixture"), {
+        recursive: true,
+        force: true,
+      });
+    }
   });
 });
