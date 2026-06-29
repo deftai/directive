@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Triage subscribe reconciliation hint (#1416).** After subscribe or unsubscribe, the stderr hint now points at `task triage:bootstrap` instead of the non-existent `--resume` flag, so operators can reconcile cached entries without an argparse failure. Closes #1416.
+
 - **Biome export-order lint on verify-source barrel (#2091).** Reorders named `contract-drift` re-exports so `task ts:check-lane` passes. Closes #2091.
 
 ### Removed
