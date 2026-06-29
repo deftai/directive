@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1416 — fix triage subscribe reconciliation hint"
+  },
+  "plan": {
+    "id": "1416-triage-hint",
+    "title": "triage:subscribe reconciliation hint references bogus --resume flag",
+    "status": "running",
+    "narratives": {
+      "Description": "After `task triage:subscribe` or unsubscribe, the CLI prints a reconciliation hint pointing at `task triage:bootstrap -- --resume`, but bootstrap does not accept `--resume`. Operators hit a hard failure when following the documented next step.",
+      "ImplementationPlan": "1. Edit `RECONCILE_HINT` in `packages/core/src/triage/subscribe/index.ts` and the CLI surface in `packages/cli/src/triage-subscribe.ts` so the post-subscribe hint references a bootstrap command that exists (drop bogus `--resume`).\n2. Add or extend tests in `packages/core/src/triage/subscribe/index.test.ts` asserting the hint string matches a runnable bootstrap invocation.\n3. Run `pnpm -w exec vitest run packages/core/src/triage/subscribe/index.test.ts` as verification evidence; add CHANGELOG entry.",
+      "UserStory": "As an operator configuring triage scope, I want the post-subscribe reconciliation hint to reference a command that actually exists, so that I can reconcile cached entries without hitting argparse errors.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1416",
+      "Overview": "See issue #1416 — `_RECONCILE_HINT` references non-existent `triage:bootstrap --resume`.",
+      "Labels": "bug, triage"
+    },
+    "items": [
+      {
+        "id": "1416-a1",
+        "title": "Hint references valid bootstrap command",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task triage:subscribe` completes, when stderr reconciliation hint is printed, then the suggested command is accepted by triage bootstrap (no unrecognized `--resume`)."
+        }
+      },
+      {
+        "id": "1416-a2",
+        "title": "Test coverage for hint text",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given unit/CLI tests for triage subscribe, when run, then they assert the reconciliation hint matches the supported bootstrap invocation."
+        }
+      },
+      {
+        "id": "1416-a3",
+        "title": "task check green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when `task check` runs, then it exits 0."
+        }
+      }
+    ],
+    "tags": ["bug", "triage"],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": { "parent_issue": "#1416" },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/subscribe/index.ts",
+          "packages/core/src/triage/subscribe/index.test.ts",
+          "packages/cli/src/triage-subscribe.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/core/src/triage/subscribe/index.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": [
+          "Correct reconciliation hint string",
+          "CLI test for hint",
+          "CHANGELOG entry"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-triage",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "default",
+        "missing_traces_justification": "Small CLI hint fix from ingested issue #1416."
+      },
+      "capacityBucket": "bugfix"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1416",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1416"
+      }
+    ],
+    "updated": "2026-06-29T22:30:00Z"
+  }
+}

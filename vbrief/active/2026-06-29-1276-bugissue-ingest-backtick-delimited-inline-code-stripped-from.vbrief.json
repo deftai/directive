@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1276 — preserve inline code in issue ingest items[].title"
+  },
+  "plan": {
+    "id": "1276-ingest-backticks",
+    "title": "bug(issue_ingest): backtick-delimited inline code stripped from items[].title",
+    "status": "running",
+    "narratives": {
+      "Description": "Fix `task issue:ingest` so acceptance-criteria list items preserve backtick-delimited inline code in `plan.items[].title`. The Overview narrative already round-trips correctly; only the items[] extraction path strips code spans via overly aggressive preprocessing.",
+      "ImplementationPlan": "1. Edit `packages/core/src/intake/markdown-scanners.ts` (and `packages/core/src/intake/issue-ingest.ts` if the title path delegates there) so AC list-item parsing preserves inline code spans — do not run full `stripCodeBlocks` on text used for `plan.items[].title`.\n2. Add regression tests in `packages/core/src/intake/markdown-scanners.test.ts` and `packages/core/src/intake/issue-ingest.test.ts` with #1269/#1270 fixture bodies asserting expected titles.\n3. Run `pnpm -w exec vitest run packages/core/src/intake/markdown-scanners.test.ts packages/core/src/intake/issue-ingest.test.ts` as verification evidence; add CHANGELOG entry.",
+      "UserStory": "As a maintainer ingesting GitHub issues, I want acceptance-criteria item titles to preserve inline code references, so that structured vBRIEF items remain actionable without manual repair.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1276",
+      "Overview": "## Why\r\n\r\n`scripts/issue_ingest.py` strips backtick-delimited inline code from the GitHub issue body when populating `plan.items[].title`. The narrative fields (`plan.narratives.Overview`) preserve backticks correctly — only the `items[]` parser is affected.\r\n\r\nSee issue #1276 for full reproduction (#1269, #1270, PR #1271).",
+      "Labels": "bug, triage"
+    },
+    "items": [
+      {
+        "id": "1276-a1",
+        "title": "Preserve inline code in items[].title",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an issue body with backtick-delimited inline code in acceptance criteria, when `task issue:ingest` runs, then `plan.items[].title` retains the semantic code content (not garbled fragments like \"passes\" or empty parens)."
+        }
+      },
+      {
+        "id": "1276-a2",
+        "title": "Regression tests for #1269/#1270 shapes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given fixture issue bodies mirroring #1269 and #1270 acceptance criteria, when unit tests run, then parsed item titles match expected non-garbled strings."
+        }
+      },
+      {
+        "id": "1276-a3",
+        "title": "task check green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when `task check` runs on the PR branch, then it exits 0."
+        }
+      }
+    ],
+    "tags": ["bug", "triage"],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": { "parent_issue": "#1276" },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/markdown-scanners.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/markdown-scanners.test.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/core/src/intake/markdown-scanners.test.ts packages/core/src/intake/issue-ingest.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": [
+          "Inline code preserved in ingested items[].title",
+          "Regression tests for backtick AC lines",
+          "CHANGELOG entry"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-intake",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "strong",
+        "missing_traces_justification": "Bug fix from ingested issue #1276; root cause localized to intake markdown-scanners."
+      },
+      "capacityBucket": "bugfix"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1276",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1276"
+      }
+    ],
+    "updated": "2026-06-29T22:30:00Z"
+  }
+}
