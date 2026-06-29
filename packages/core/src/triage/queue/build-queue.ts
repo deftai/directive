@@ -114,8 +114,7 @@ export function buildQueue(
   const includeBlocked = Boolean(opts.includeBlocked);
   const limit = opts.limit;
   const scopeIgnores: ScopeIgnores | undefined = opts.scopeIgnores;
-  const filterScopeIgnores =
-    scopeIgnores !== undefined && hasActiveScopeIgnores(scopeIgnores);
+  const filterScopeIgnores = scopeIgnores !== undefined && hasActiveScopeIgnores(scopeIgnores);
 
   const decisions = latestDecisionsByIssue(auditEntries);
   const grouped = new Map<string, CachedIssue[]>();

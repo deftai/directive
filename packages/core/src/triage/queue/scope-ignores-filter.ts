@@ -1,19 +1,10 @@
-import {
-  extractAuthor,
-  extractLabels,
-  extractMilestone,
-} from "../scope-drift/cache-walker.js";
-import {
-  resolveScopeIgnores,
-  type ScopeIgnores,
-} from "../scope-drift/scope-rules.js";
+import { extractAuthor, extractLabels, extractMilestone } from "../scope-drift/cache-walker.js";
+import { resolveScopeIgnores, type ScopeIgnores } from "../scope-drift/scope-rules.js";
 
 export { resolveScopeIgnores, type ScopeIgnores };
 
 export function hasActiveScopeIgnores(ignores: ScopeIgnores): boolean {
-  return (
-    ignores.labels.size > 0 || ignores.milestones.size > 0 || ignores.authors.size > 0
-  );
+  return ignores.labels.size > 0 || ignores.milestones.size > 0 || ignores.authors.size > 0;
 }
 
 /** True when a cached raw.json payload matches any triageScopeIgnores entry. */

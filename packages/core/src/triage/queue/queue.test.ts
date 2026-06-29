@@ -13,8 +13,8 @@ import {
 import { deriveGroup } from "./derive-group.js";
 import { resolveRankingLabels, validateRankingLabels } from "./ranking-labels.js";
 import { renderQueue } from "./render.js";
-import { resolveScopeIgnores } from "./scope-ignores-filter.js";
 import { inferRepoFromGit, resolveRepo } from "./repo.js";
+import { resolveScopeIgnores } from "./scope-ignores-filter.js";
 import {
   activeReferencedIssueNumbers,
   blockedByIssueNumber,

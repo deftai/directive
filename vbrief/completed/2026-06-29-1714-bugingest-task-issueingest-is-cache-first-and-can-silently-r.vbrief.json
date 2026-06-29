@@ -1,9 +1,12 @@
 {
-  "vBRIEFInfo": { "version": "0.6", "description": "Story vBRIEF for #1714 — issue ingest must not silently use stale cache" },
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1714 — issue ingest must not silently use stale cache"
+  },
   "plan": {
     "id": "1714-ingest-fresh",
     "title": "issue:ingest must not silently replay stale cached issue bodies",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`task issue:ingest` is cache-first: it returns `.deft-cache/github-issue/.../raw.json` when present (7-day TTL) and never hits GitHub. Operators expect the current issue body; stale cache produces wrong vBRIEFs silently.",
       "ImplementationPlan": "1. Change `fetchIssue` in `packages/core/src/intake/issue-ingest.ts` so ingest prefers a live `gh api` fetch (or revalidates cache freshness against issue `updated_at`) instead of blindly returning cache hits.\n2. Add regression tests in `packages/core/src/intake/issue-ingest.test.ts` simulating a cache entry older than the live issue edit.\n3. Run `pnpm -w exec vitest run packages/core/src/intake/issue-ingest.test.ts` as verification evidence; CHANGELOG entry. Closes #1714.",
@@ -38,10 +41,15 @@
         }
       }
     ],
-    "tags": ["bug", "triage"],
+    "tags": [
+      "bug",
+      "triage"
+    ],
     "metadata": {
       "kind": "story",
-      "x-tracking": { "parent_issue": "#1714" },
+      "x-tracking": {
+        "parent_issue": "#1714"
+      },
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
@@ -54,7 +62,11 @@
           "pnpm -w exec vitest run packages/core/src/intake/issue-ingest.test.ts",
           "pnpm -w run build"
         ],
-        "expected_outputs": ["Live-first or revalidated ingest", "Stale-cache regression test", "CHANGELOG entry"],
+        "expected_outputs": [
+          "Live-first or revalidated ingest",
+          "Stale-cache regression test",
+          "CHANGELOG entry"
+        ],
         "depends_on": [],
         "conflict_group": "bug-cohort-intake",
         "size": "medium",
@@ -62,9 +74,16 @@
         "model_tier": "strong",
         "missing_traces_justification": "Ingest authority bug from issue #1714."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-29T23:46:55Z"
     },
-    "references": [{ "uri": "https://github.com/deftai/directive/issues/1714", "type": "x-vbrief/github-issue", "title": "Issue #1714" }],
-    "updated": "2026-06-29T23:45:00Z"
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1714",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1714"
+      }
+    ],
+    "updated": "2026-06-29T23:46:55Z"
   }
 }
