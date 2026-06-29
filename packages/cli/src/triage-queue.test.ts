@@ -10,7 +10,7 @@ import {
   normalizeOutput,
   PARITY_CASES,
   renderReport,
-} from "./triage-queue-parity.js";
+} from "./triage-queue-fixtures.js";
 
 const temps: string[] = [];
 

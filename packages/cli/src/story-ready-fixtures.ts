@@ -1,17 +1,8 @@
-#!/usr/bin/env node
-/**
- * Golden-output parity harness (#1720): builds throwaway git fixture repos for
- * story-start Gate 0 scenarios, runs BOTH the Python oracle
- * (`scripts/preflight_story_start.py`) and the ported TS gate, and diffs exit
- * codes + normalised messages. Exit 0 only on identical results.
- *
- * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
- */
+/** Test fixtures extracted from legacy parity harness (#2083). */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 export interface ScenarioResult {
   readonly name: string;
@@ -124,24 +115,6 @@ function gitCommit(cwd: string, message: string): void {
   });
 }
 
-function runCapture(cmd: string, args: string[], cwd: string): Capture {
-  try {
-    const stdout = execFileSync(cmd, args, {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return { status: 0, stdout, stderr: "" };
-  } catch (err: unknown) {
-    const e = err as { status?: number; stdout?: string; stderr?: string };
-    return {
-      status: typeof e.status === "number" ? e.status : 2,
-      stdout: typeof e.stdout === "string" ? e.stdout : "",
-      stderr: typeof e.stderr === "string" ? e.stderr : "",
-    };
-  }
-}
-
 /** Normalise gate message for comparison (trim, collapse whitespace). */
 export function normaliseMessage(stdout: string, stderr: string, exitCode: number): string {
   const raw = exitCode === 0 ? stdout : stderr;
@@ -184,68 +157,6 @@ export function buildScenarioRepo(scenario: ParityScenario): {
   return { root, vbriefPath, envelopePath };
 }
 
-function resolveDeftRoot(): string {
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-}
-
-function runScenario(
-  deftRoot: string,
-  scenario: ParityScenario,
-): { python: ScenarioResult; ts: ScenarioResult; root: string } {
-  const { root, vbriefPath, envelopePath } = buildScenarioRepo(scenario);
-  const pyArgs = [
-    "run",
-    "python",
-    join(deftRoot, "scripts", "preflight_story_start.py"),
-    "--vbrief-path",
-    vbriefPath,
-    "--project-root",
-    root,
-  ];
-  if (envelopePath !== null) {
-    pyArgs.push("--allocation-context", envelopePath);
-  }
-  if (scenario.allowDirty) {
-    pyArgs.push("--allow-dirty");
-  }
-
-  const tsArgs = [
-    join(deftRoot, "packages", "cli", "dist", "verify-story-ready.js"),
-    "--vbrief-path",
-    vbriefPath,
-    "--project-root",
-    root,
-  ];
-  if (envelopePath !== null) {
-    tsArgs.push("--allocation-context", envelopePath);
-  }
-  if (scenario.allowDirty) {
-    tsArgs.push("--allow-dirty");
-  }
-
-  const py = runCapture("uv", pyArgs, deftRoot);
-  const ts = runCapture("node", tsArgs, deftRoot);
-
-  return {
-    root,
-    python: {
-      name: scenario.name,
-      exitCode: py.status,
-      stdout: py.stdout,
-      stderr: py.stderr,
-    },
-    ts: {
-      name: scenario.name,
-      exitCode: ts.status,
-      stdout: ts.stdout,
-      stderr: ts.stderr,
-    },
-  };
-}
-
 /** Diff python vs TS gate outputs across all parity scenarios. */
 export function diffParity(
   python: ScenarioResult,
@@ -267,28 +178,6 @@ export function diffParity(
 }
 
 /** Run all parity scenarios and return a structured result. */
-export function runParity(): ParityResult {
-  const deftRoot = resolveDeftRoot();
-  const scenarios: ParityResult["scenarios"] = [];
-
-  for (const scenario of PARITY_SCENARIOS) {
-    const { root, python, ts } = runScenario(deftRoot, scenario);
-    try {
-      const diff = diffParity(python, ts);
-      scenarios.push({
-        name: scenario.name,
-        pythonExit: python.exitCode,
-        tsExit: ts.exitCode,
-        ...diff,
-      });
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  }
-
-  const ok = scenarios.every((s) => !s.exitMismatch && !s.messageMismatch);
-  return { ok, scenarios };
-}
 
 /** Render a human-readable parity report (exported for unit tests). */
 export function renderReport(result: ParityResult): string {
@@ -309,19 +198,4 @@ export function renderReport(result: ParityResult): string {
     }
   }
   return lines.join("\n");
-}
-
-if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  try {
-    const result = runParity();
-    if (result.ok) {
-      process.stdout.write(`${renderReport(result)}\n`);
-      process.exit(0);
-    }
-    process.stderr.write(`${renderReport(result)}\n`);
-    process.exit(1);
-  } catch (err) {
-    process.stderr.write(`verify_story_ready parity: harness error -- ${String(err)}\n`);
-    process.exit(2);
-  }
 }

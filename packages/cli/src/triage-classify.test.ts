@@ -9,7 +9,7 @@ import {
   normalizeOutput,
   PARITY_CASES,
   renderReport,
-} from "./triage-classify-parity.js";
+} from "./triage-classify-fixtures.js";
 
 const temps: string[] = [];
 afterAll(() => {

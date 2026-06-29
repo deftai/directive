@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parseArgs, parseShowArgs, run } from "./policy.js";
-import { diffCase, normalizeOutput, PARITY_CASES, renderReport } from "./policy-parity.js";
+import { diffCase, normalizeOutput, PARITY_CASES, renderReport } from "./policy-fixtures.js";
 
 describe("normalizeOutput", () => {
   it("strips ISO timestamps", () => {
@@ -282,7 +282,7 @@ describe("run show + set integration", () => {
 
 describe("policy-parity helpers", () => {
   it("buildFixtureRepo writes project definition when plan provided", async () => {
-    const { buildFixtureRepo } = await import("./policy-parity.js");
+    const { buildFixtureRepo } = await import("./policy-fixtures.js");
     const root = buildFixtureRepo({ policy: { wipCap: 1 } });
     try {
       expect(root).toContain("deft-policy-parity-");
@@ -292,7 +292,7 @@ describe("policy-parity helpers", () => {
   });
 
   it("buildFixtureRepo creates empty vbrief root without plan", async () => {
-    const { buildFixtureRepo } = await import("./policy-parity.js");
+    const { buildFixtureRepo } = await import("./policy-fixtures.js");
     const root = buildFixtureRepo();
     try {
       expect(root).toContain("deft-policy-parity-");

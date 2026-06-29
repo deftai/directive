@@ -36,7 +36,7 @@ describe("triage-scope CLI", () => {
 
 describe("triage-scope parity helpers", () => {
   it("normalizes volatile paths", async () => {
-    const { normalizeOutput } = await import("./triage-scope-parity.js");
+    const { normalizeOutput } = await import("./triage-scope-fixtures.js");
     expect(normalizeOutput("path=/tmp/foo/.deft-cache/github-issue/o/r/coverage.json")).toContain(
       "path=<ROOT>/coverage.json",
     );

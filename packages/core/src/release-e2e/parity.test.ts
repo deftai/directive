@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  normaliseStderr,
-  PARITY_SCENARIOS,
-  runParity,
-} from "../../../cli/src/release-e2e-parity.js";
+import { normaliseStderr, PARITY_SCENARIOS } from "../../../cli/src/release-e2e-fixtures.js";
 
 describe("release-e2e parity helpers", () => {
   it("normalises repo slugs in stderr", () => {
@@ -16,17 +12,5 @@ describe("release-e2e parity helpers", () => {
   it("defines cache-off dry-run scenarios", () => {
     expect(PARITY_SCENARIOS.some((s) => s.name === "dry-run")).toBe(true);
     expect(PARITY_SCENARIOS.some((s) => s.name === "help")).toBe(true);
-  });
-});
-
-describe("runParity integration", () => {
-  it("runs without harness error when built", () => {
-    try {
-      const result = runParity();
-      expect(result.diffs.length).toBeGreaterThan(0);
-    } catch {
-      // build may be absent in vitest-only runs
-      expect(true).toBe(true);
-    }
   });
 });

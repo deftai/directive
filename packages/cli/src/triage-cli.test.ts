@@ -9,7 +9,7 @@ import {
   PARITY_CASES,
   renderReport,
   resolveDeftRoot,
-} from "./triage-aux-a-parity.js";
+} from "./triage-aux-a-fixtures.js";
 import { parseArgs as parseReconcile, run as runReconcile } from "./triage-reconcile.js";
 import { parseArgs as parseRefresh, run as runRefresh } from "./triage-refresh.js";
 import { parseArgs as parseScopeDrift, run as runScopeDrift } from "./triage-scope-drift.js";

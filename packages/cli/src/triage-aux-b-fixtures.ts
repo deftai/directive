@@ -1,23 +1,7 @@
-#!/usr/bin/env node
-/**
- * Golden-output parity harness (#1725): runs BOTH Python oracles and ported TS
- * CLIs for triage aux verbs B (bulk / subscribe / help / smoketest).
- *
- * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
- */
-import { spawnSync } from "node:child_process";
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+/** Test fixtures extracted from legacy parity harness (#2083). */
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 export interface CommandCapture {
   readonly exitCode: number;
@@ -61,29 +45,6 @@ interface Capture {
   status: number;
   stdout: string;
   stderr: string;
-}
-
-function runCapture(
-  cmd: string,
-  args: string[],
-  cwd: string,
-  env: Record<string, string | undefined> = {},
-): Capture {
-  const merged = { ...process.env, ...env };
-  for (const key of Object.keys(merged)) {
-    if (merged[key] === undefined) delete merged[key];
-  }
-  const result = spawnSync(cmd, args, {
-    cwd,
-    encoding: "utf8",
-    env: merged as NodeJS.ProcessEnv,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  return {
-    status: result.status ?? 2,
-    stdout: typeof result.stdout === "string" ? result.stdout : "",
-    stderr: typeof result.stderr === "string" ? result.stderr : "",
-  };
 }
 
 function writeProjectDefinition(root: string, policy: Record<string, unknown> = {}): void {
@@ -162,76 +123,19 @@ export function buildFixtureRepo(kind: "subscribe" | "bulk-empty" | "bulk-filter
   return root;
 }
 
-function resolveDeftRoot(): string {
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-}
-
-const PY_SCRIPT: Record<ParityCase["verb"], string> = {
+const _PY_SCRIPT: Record<ParityCase["verb"], string> = {
   help: "triage_help.py",
   subscribe: "triage_subscribe.py",
   bulk: "triage_bulk.py",
   smoketest: "triage_smoketest.py",
 };
 
-const TS_CLI: Record<ParityCase["verb"], string> = {
+const _TS_CLI: Record<ParityCase["verb"], string> = {
   help: "triage-help.js",
   subscribe: "triage-subscribe.js",
   bulk: "triage-bulk.js",
   smoketest: "triage-smoketest.js",
 };
-
-function runPython(deftRoot: string, testCase: ParityCase, repo: string): CommandCapture {
-  const script = join(deftRoot, "scripts", PY_SCRIPT[testCase.verb]);
-  if (testCase.verb === "help") {
-    const cap = runCapture(
-      "uv",
-      ["run", "python", script, ...testCase.argv],
-      deftRoot,
-      testCase.env,
-    );
-    return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-  }
-  if (testCase.verb === "bulk") {
-    const cap = runCapture("uv", ["run", "python", script, ...testCase.argv], repo, {
-      ...testCase.env,
-      DEFT_ROOT: deftRoot,
-    });
-    return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-  }
-  if (testCase.verb === "smoketest") {
-    const cap = runCapture(
-      "uv",
-      ["run", "python", script, ...testCase.argv],
-      deftRoot,
-      testCase.env,
-    );
-    return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-  }
-  const cap = runCapture(
-    "uv",
-    ["run", "python", script, ...testCase.argv, "--project-root", repo],
-    deftRoot,
-    testCase.env,
-  );
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-}
-
-function runTs(deftRoot: string, testCase: ParityCase, repo: string): CommandCapture {
-  const cli = join(deftRoot, "packages", "cli", "dist", TS_CLI[testCase.verb]);
-  const argv = [...testCase.argv];
-  if (testCase.verb === "subscribe") {
-    argv.push("--project-root", repo);
-  }
-  const cwd = testCase.verb === "bulk" ? repo : deftRoot;
-  const cap = runCapture("node", [cli, ...argv], cwd, {
-    ...testCase.env,
-    DEFT_ROOT: deftRoot,
-  });
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-}
 
 export function diffCase(python: CommandCapture, ts: CommandCapture, caseName: string): ParityDiff {
   return {
@@ -288,86 +192,13 @@ export const PARITY_CASES: readonly ParityCase[] = [
   },
 ];
 
-export function runParity(): ParityResult {
-  const deftRoot = resolveDeftRoot();
-  const diffs: ParityDiff[] = [];
-  const fixtureCache = new Map<string, string>();
-
-  for (const testCase of PARITY_CASES) {
-    let pyRepo = deftRoot;
-    let tsRepo = deftRoot;
-    let ownsFixture = false;
-
-    if (testCase.fixtureRoot !== undefined) {
-      if (!fixtureCache.has(testCase.fixtureRoot)) {
-        fixtureCache.set(
-          testCase.fixtureRoot,
-          buildFixtureRepo(testCase.fixtureRoot as "subscribe" | "bulk-empty" | "bulk-filter"),
-        );
-      }
-      const template = fixtureCache.get(testCase.fixtureRoot);
-      if (template === undefined) {
-        throw new Error(`missing fixture template ${testCase.fixtureRoot}`);
-      }
-      pyRepo = mkdtempSync(join(tmpdir(), "deft-parity-py-"));
-      tsRepo = mkdtempSync(join(tmpdir(), "deft-parity-ts-"));
-      for (const dest of [pyRepo, tsRepo]) {
-        mkdirSync(dest, { recursive: true });
-        for (const name of ["vbrief", ".deft-cache"]) {
-          const src = join(template, name);
-          if (existsSync(src)) {
-            cpRecursive(src, join(dest, name));
-          }
-        }
-      }
-      ownsFixture = true;
-      if (testCase.name === "subscribe-label-idempotent") {
-        for (const repo of [pyRepo, tsRepo]) {
-          const setup = runCapture(
-            "uv",
-            [
-              "run",
-              "python",
-              join(deftRoot, "scripts", "triage_subscribe.py"),
-              "subscribe",
-              "--label",
-              "dup-label",
-              "--project-root",
-              repo,
-            ],
-            deftRoot,
-          );
-          if (setup.status !== 0) {
-            throw new Error(
-              `subscribe-label-idempotent setup failed for ${repo}: ${setup.stderr || setup.stdout}`,
-            );
-          }
-        }
-      }
-    }
-
-    try {
-      const python = runPython(deftRoot, testCase, pyRepo);
-      const ts = runTs(deftRoot, testCase, tsRepo);
-      diffs.push(diffCase(python, ts, testCase.name));
-    } finally {
-      if (ownsFixture) {
-        rmSync(pyRepo, { recursive: true, force: true });
-        rmSync(tsRepo, { recursive: true, force: true });
-      }
-    }
-  }
-  const ok = diffs.every((d) => !d.exitMismatch && !d.stdoutMismatch && !d.stderrMismatch);
-  return { ok, diffs };
-}
-
-function cpRecursive(src: string, dest: string): void {
+function _cpRecursive(src: string, dest: string): void {
   mkdirSync(dest, { recursive: true });
   for (const entry of readdirSync(src, { withFileTypes: true })) {
     const s = join(src, entry.name);
     const d = join(dest, entry.name);
     if (entry.isDirectory()) {
-      cpRecursive(s, d);
+      _cpRecursive(s, d);
     } else {
       copyFileSync(s, d);
     }
@@ -388,19 +219,4 @@ export function renderReport(result: ParityResult): string {
     }
   }
   return lines.join("\n");
-}
-
-if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  try {
-    const result = runParity();
-    if (result.ok) {
-      process.stdout.write(`${renderReport(result)}\n`);
-      process.exit(0);
-    }
-    process.stderr.write(`${renderReport(result)}\n`);
-    process.exit(1);
-  } catch (err) {
-    process.stderr.write(`triage-aux-b parity: harness error -- ${String(err)}\n`);
-    process.exit(2);
-  }
 }

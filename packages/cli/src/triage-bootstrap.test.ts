@@ -16,7 +16,7 @@ import {
   normalizeStdout,
   PARITY_CASES,
   renderReport,
-} from "./triage-bootstrap-parity.js";
+} from "./triage-bootstrap-fixtures.js";
 
 const temps: string[] = [];
 afterAll(() => {

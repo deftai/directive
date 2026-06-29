@@ -9,7 +9,7 @@ import {
   normaliseMessage,
   PARITY_SCENARIOS,
   renderReport,
-} from "./branch-parity.js";
+} from "./branch-fixtures.js";
 import { parseArgs, run } from "./verify-branch.js";
 
 const temps: string[] = [];

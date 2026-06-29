@@ -9,7 +9,7 @@ import {
   normalizeOutput,
   PARITY_CASES,
   renderReport,
-} from "./wip-cap-parity.js";
+} from "./wip-cap-fixtures.js";
 
 const temps: string[] = [];
 afterAll(() => {

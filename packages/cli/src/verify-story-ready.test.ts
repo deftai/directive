@@ -9,7 +9,7 @@ import {
   normaliseMessage,
   PARITY_SCENARIOS,
   renderReport,
-} from "./story-ready-parity.js";
+} from "./story-ready-fixtures.js";
 import { parseArgs, run } from "./verify-story-ready.js";
 
 const temps: string[] = [];

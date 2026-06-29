@@ -1,16 +1,7 @@
-#!/usr/bin/env node
-/**
- * Golden-output parity harness (#1723): builds throwaway fixture repos, runs
- * BOTH the Python oracle (`scripts/preflight_wip_cap.py`) and the ported TS
- * verify:wip-cap gate, and diffs exit codes + stdout/stderr (cache-off).
- *
- * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
- */
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+/** Test fixtures extracted from legacy parity harness (#2083). */
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 export interface CommandCapture {
   readonly exitCode: number;
@@ -55,29 +46,6 @@ interface Capture {
   stderr: string;
 }
 
-function runCapture(
-  cmd: string,
-  args: string[],
-  cwd: string,
-  env: Record<string, string | undefined> = {},
-): Capture {
-  const merged = { ...process.env, ...env };
-  for (const key of Object.keys(merged)) {
-    if (merged[key] === undefined) delete merged[key];
-  }
-  const result = spawnSync(cmd, args, {
-    cwd,
-    encoding: "utf8",
-    env: merged as NodeJS.ProcessEnv,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  return {
-    status: result.status ?? 2,
-    stdout: typeof result.stdout === "string" ? result.stdout : "",
-    stderr: typeof result.stderr === "string" ? result.stderr : "",
-  };
-}
-
 function writeProjectDefinition(root: string, plan: Record<string, unknown>): void {
   const dir = join(root, "vbrief");
   mkdirSync(dir, { recursive: true });
@@ -119,43 +87,6 @@ export function buildFixtureRepo(options: WipFixtureOptions = {}): string {
     writeVbrief(root, "active", `active-${i}.vbrief.json`);
   }
   return root;
-}
-
-function resolveDeftRoot(): string {
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-}
-
-function runPythonWipCap(deftRoot: string, repo: string, argv: string[]): CommandCapture {
-  const cap = runCapture(
-    "uv",
-    [
-      "run",
-      "python",
-      join(deftRoot, "scripts", "preflight_wip_cap.py"),
-      ...argv,
-      "--project-root",
-      repo,
-    ],
-    deftRoot,
-  );
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-}
-
-function runTsWipCap(deftRoot: string, repo: string, argv: string[]): CommandCapture {
-  const cap = runCapture(
-    "node",
-    [
-      join(deftRoot, "packages", "cli", "dist", "verify-wip-cap.js"),
-      ...argv,
-      "--project-root",
-      repo,
-    ],
-    deftRoot,
-  );
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
 }
 
 /** Diff one parity case between Python oracle and TS CLI. */
@@ -227,24 +158,6 @@ export const PARITY_CASES: readonly ParityCase[] = [
 ];
 
 /** Run all parity cases; returns aggregate result. */
-export function runParity(): ParityResult {
-  const deftRoot = resolveDeftRoot();
-  const diffs: ParityDiff[] = [];
-  for (const testCase of PARITY_CASES) {
-    const pyRepo = buildFixtureRepo(testCase.fixture);
-    const tsRepo = buildFixtureRepo(testCase.fixture);
-    try {
-      const python = runPythonWipCap(deftRoot, pyRepo, testCase.argv);
-      const ts = runTsWipCap(deftRoot, tsRepo, testCase.argv);
-      diffs.push(diffCase(python, ts, testCase.name));
-    } finally {
-      rmSync(pyRepo, { recursive: true, force: true });
-      rmSync(tsRepo, { recursive: true, force: true });
-    }
-  }
-  const ok = diffs.every((d) => !d.exitMismatch && !d.stdoutMismatch && !d.stderrMismatch);
-  return { ok, diffs };
-}
 
 export function renderReport(result: ParityResult): string {
   if (result.ok) {
@@ -260,19 +173,4 @@ export function renderReport(result: ParityResult): string {
     }
   }
   return lines.join("\n");
-}
-
-if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  try {
-    const result = runParity();
-    if (result.ok) {
-      process.stdout.write(`${renderReport(result)}\n`);
-      process.exit(0);
-    }
-    process.stderr.write(`${renderReport(result)}\n`);
-    process.exit(1);
-  } catch (err) {
-    process.stderr.write(`verify:wip-cap parity: harness error -- ${String(err)}\n`);
-    process.exit(2);
-  }
 }

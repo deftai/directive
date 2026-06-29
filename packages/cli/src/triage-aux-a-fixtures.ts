@@ -1,13 +1,5 @@
-#!/usr/bin/env node
-/**
- * Golden-output parity harness (#1725): runs BOTH the Python oracle and the
- * ported TS triage aux-A CLIs with identical argv on throwaway fixtures,
- * then diffs exit codes + stdout/stderr (cache-off).
- *
- * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
- */
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+/** Test fixtures extracted from legacy parity harness (#2083). */
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -67,20 +59,6 @@ interface Capture {
   stderr: string;
 }
 
-function runCapture(cmd: string, args: string[], cwd: string): Capture {
-  const result = spawnSync(cmd, args, {
-    cwd,
-    encoding: "utf8",
-    env: { ...process.env },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  return {
-    status: result.status ?? 2,
-    stdout: typeof result.stdout === "string" ? result.stdout : "",
-    stderr: typeof result.stderr === "string" ? result.stderr : "",
-  };
-}
-
 function resolveDeftRoot(): string {
   if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
     return resolve(process.env.DEFT_ROOT);
@@ -89,34 +67,6 @@ function resolveDeftRoot(): string {
 }
 
 export { resolveDeftRoot };
-
-function runPython(
-  deftRoot: string,
-  script: ParityCase["script"],
-  repo: string,
-  argv: readonly string[],
-): CommandCapture {
-  const cap = runCapture(
-    "uv",
-    ["run", "python", join(deftRoot, "scripts", script), ...argv, "--project-root", repo],
-    deftRoot,
-  );
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-}
-
-function runTs(
-  deftRoot: string,
-  cli: ParityCase["tsCli"],
-  repo: string,
-  argv: readonly string[],
-): CommandCapture {
-  const cap = runCapture(
-    "node",
-    [join(deftRoot, "packages", "cli", "dist", cli), ...argv, "--project-root", repo],
-    deftRoot,
-  );
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-}
 
 export function diffCase(python: CommandCapture, ts: CommandCapture, caseName: string): ParityDiff {
   const pyOut = normalizeOutput(python.stdout);
@@ -190,32 +140,6 @@ export function buildFixtureRepo(setup?: (root: string) => void): string {
   return root;
 }
 
-export function runParity(): ParityResult {
-  const deftRoot = resolveDeftRoot();
-  const diffs: ParityDiff[] = [];
-  for (const testCase of PARITY_CASES) {
-    if (testCase.name === "welcome-bad-root") {
-      const badRoot = join(tmpdir(), "deft-triage-missing-dir-never-created");
-      const python = runPython(deftRoot, testCase.script, badRoot, testCase.argv);
-      const ts = runTs(deftRoot, testCase.tsCli, badRoot, testCase.argv);
-      diffs.push(diffCase(python, ts, testCase.name));
-      continue;
-    }
-    const pyRepo = buildFixtureRepo(testCase.setup);
-    const tsRepo = buildFixtureRepo(testCase.setup);
-    try {
-      const python = runPython(deftRoot, testCase.script, pyRepo, testCase.argv);
-      const ts = runTs(deftRoot, testCase.tsCli, tsRepo, testCase.argv);
-      diffs.push(diffCase(python, ts, testCase.name));
-    } finally {
-      rmSync(pyRepo, { recursive: true, force: true });
-      rmSync(tsRepo, { recursive: true, force: true });
-    }
-  }
-  const ok = diffs.every((d) => !d.exitMismatch && !d.stdoutMismatch && !d.stderrMismatch);
-  return { ok, diffs };
-}
-
 export function renderReport(result: ParityResult): string {
   if (result.ok) {
     return `triage-aux-a parity: CLEAN -- Python and TS agree on ${PARITY_CASES.length} cases.`;
@@ -230,19 +154,4 @@ export function renderReport(result: ParityResult): string {
     }
   }
   return lines.join("\n");
-}
-
-if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  try {
-    const result = runParity();
-    if (result.ok) {
-      process.stdout.write(`${renderReport(result)}\n`);
-      process.exit(0);
-    }
-    process.stderr.write(`${renderReport(result)}\n`);
-    process.exit(1);
-  } catch (err) {
-    process.stderr.write(`triage-aux-a parity: harness error -- ${String(err)}\n`);
-    process.exit(2);
-  }
 }

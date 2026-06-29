@@ -47,7 +47,7 @@ export const ORCHESTRATION_CLI_COVERAGE_MAP: readonly CoverageEntry[] = [
     pythonTest: "test_pr_check_closing_keywords.py",
     kind: "existing-coverage",
     tsTarget: "packages/core/src/pr-closing-keywords/main.test.ts",
-    notes: "Offline + gh argv parsing; parity in pr-closing-keywords-parity.test.ts",
+    notes: "Offline + gh argv parsing; covered by pr-closing-keywords unit tests.",
   },
   {
     pythonTest: "test_pr_check_protected_issues.py",

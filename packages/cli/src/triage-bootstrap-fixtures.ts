@@ -1,16 +1,7 @@
-#!/usr/bin/env node
-/**
- * Golden-output parity harness (#1725): builds throwaway fixture repos, runs
- * BOTH the Python oracle (`scripts/triage_bootstrap.py`) and the ported TS
- * triage:bootstrap CLI, and diffs exit codes + stdout/stderr (cache-off).
- *
- * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
- */
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+/** Test fixtures extracted from legacy parity harness (#2083). */
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 export interface CommandCapture {
   readonly exitCode: number;
@@ -99,29 +90,6 @@ interface Capture {
   stderr: string;
 }
 
-function runCapture(
-  cmd: string,
-  args: string[],
-  cwd: string,
-  env: Record<string, string | undefined> = {},
-): Capture {
-  const merged = { ...process.env, ...env };
-  for (const key of Object.keys(merged)) {
-    if (merged[key] === undefined) delete merged[key];
-  }
-  const result = spawnSync(cmd, args, {
-    cwd,
-    encoding: "utf8",
-    env: merged as NodeJS.ProcessEnv,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  return {
-    status: result.status ?? 2,
-    stdout: typeof result.stdout === "string" ? result.stdout : "",
-    stderr: typeof result.stderr === "string" ? result.stderr : "",
-  };
-}
-
 function writeScopeVbrief(root: string, folder: string, slug: string, issueNumber: number): void {
   const dir = join(root, "vbrief", folder);
   mkdirSync(dir, { recursive: true });
@@ -153,31 +121,6 @@ export function buildFixtureRepo(options: FixtureOptions = {}): string {
     writeScopeVbrief(root, item.folder, item.slug, item.issue);
   }
   return root;
-}
-
-function resolveDeftRoot(): string {
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-}
-
-function runPythonBootstrap(deftRoot: string, repo: string, argv: string[]): CommandCapture {
-  const args = ["run", "python", join(deftRoot, "scripts", "triage_bootstrap.py"), ...argv];
-  if (!argv.some((a) => a === "--project-root" || a.startsWith("--project-root="))) {
-    args.push("--project-root", repo);
-  }
-  const cap = runCapture("uv", args, deftRoot);
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
-}
-
-function runTsBootstrap(deftRoot: string, repo: string, argv: string[]): CommandCapture {
-  const args = [join(deftRoot, "packages", "cli", "dist", "triage-bootstrap.js"), ...argv];
-  if (!argv.some((a) => a === "--project-root" || a.startsWith("--project-root="))) {
-    args.push("--project-root", repo);
-  }
-  const cap = runCapture("node", args, deftRoot);
-  return { exitCode: cap.status, stdout: cap.stdout, stderr: cap.stderr };
 }
 
 /** Diff one parity case between Python oracle and TS CLI. */
@@ -221,28 +164,6 @@ export const PARITY_CASES: readonly ParityCase[] = [
 ];
 
 /** Run all parity cases; returns aggregate result. */
-export function runParity(): ParityResult {
-  const deftRoot = resolveDeftRoot();
-  const diffs: ParityDiff[] = [];
-  for (const testCase of PARITY_CASES) {
-    const pyRepo = buildFixtureRepo(testCase.fixture ?? {});
-    const tsRepo = buildFixtureRepo(testCase.fixture ?? {});
-    try {
-      if (testCase.fixture?.preRunBootstrap === true) {
-        runPythonBootstrap(deftRoot, pyRepo, ["--quiet"]);
-        runTsBootstrap(deftRoot, tsRepo, ["--quiet"]);
-      }
-      const python = runPythonBootstrap(deftRoot, pyRepo, testCase.argv);
-      const ts = runTsBootstrap(deftRoot, tsRepo, testCase.argv);
-      diffs.push(diffCase(python, ts, testCase.name));
-    } finally {
-      rmSync(pyRepo, { recursive: true, force: true });
-      rmSync(tsRepo, { recursive: true, force: true });
-    }
-  }
-  const ok = diffs.every((d) => !d.exitMismatch && !d.stdoutMismatch && !d.stderrMismatch);
-  return { ok, diffs };
-}
 
 export function renderReport(result: ParityResult): string {
   if (result.ok) {
@@ -258,19 +179,4 @@ export function renderReport(result: ParityResult): string {
     }
   }
   return lines.join("\n");
-}
-
-if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  try {
-    const result = runParity();
-    if (result.ok) {
-      process.stdout.write(`${renderReport(result)}\n`);
-      process.exit(0);
-    }
-    process.stderr.write(`${renderReport(result)}\n`);
-    process.exit(1);
-  } catch (err) {
-    process.stderr.write(`triage:bootstrap parity: harness error -- ${String(err)}\n`);
-    process.exit(2);
-  }
 }

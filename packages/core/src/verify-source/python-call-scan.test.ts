@@ -28,4 +28,27 @@ scm.call("github-issue", "issue", ["view"])
 `;
     expect(scanPythonGhCalls(source)).toHaveLength(0);
   });
+
+  it("ignores subprocess.run when argv is empty", () => {
+    const source = `import subprocess
+subprocess.run([])
+`;
+    expect(scanPythonGhCalls(source)).toHaveLength(0);
+  });
+
+  it("ignores os.system when the shell command is not gh", () => {
+    const source = `import os
+os.system("git status")
+`;
+    expect(scanPythonGhCalls(source)).toHaveLength(0);
+  });
+
+  it("finds gh when subprocess.run uses a parenthesized argv tuple", () => {
+    const source = `import subprocess
+subprocess.run(("gh", "api", "rate_limit"))
+`;
+    const sites = scanPythonGhCalls(source);
+    expect(sites).toHaveLength(1);
+    expect(sites[0]?.helper).toBe("subprocess.run");
+  });
 });

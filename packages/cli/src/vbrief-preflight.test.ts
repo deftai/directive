@@ -86,7 +86,7 @@ describe("run", () => {
 
 describe("vbrief-preflight-parity helpers", () => {
   it("parseJsonOutput extracts structured fields", async () => {
-    const { parseJsonOutput } = await import("./vbrief-preflight-parity.js");
+    const { parseJsonOutput } = await import("./vbrief-preflight-fixtures.js");
     const stdout =
       '{"exit_code":1,"message":"nope","ready":false,"vbrief_path":"/x/story.vbrief.json"}';
     const out = parseJsonOutput(stdout, 1);
@@ -97,7 +97,7 @@ describe("vbrief-preflight-parity helpers", () => {
   });
 
   it("diffOutputs reports clean when outputs match", async () => {
-    const { diffOutputs, parseJsonOutput } = await import("./vbrief-preflight-parity.js");
+    const { diffOutputs, parseJsonOutput } = await import("./vbrief-preflight-fixtures.js");
     const stdout = '{"exit_code":0,"message":"OK","ready":true,"vbrief_path":"/a.vbrief.json"}';
     const py = parseJsonOutput(stdout, 0);
     const ts = parseJsonOutput(stdout, 0);
@@ -106,7 +106,7 @@ describe("vbrief-preflight-parity helpers", () => {
   });
 
   it("diffOutputs flags mismatches", async () => {
-    const { diffOutputs, parseJsonOutput } = await import("./vbrief-preflight-parity.js");
+    const { diffOutputs, parseJsonOutput } = await import("./vbrief-preflight-fixtures.js");
     const py = parseJsonOutput('{"exit_code":1,"message":"a","ready":false,"vbrief_path":"/p"}', 1);
     const ts = parseJsonOutput('{"exit_code":0,"message":"b","ready":true,"vbrief_path":"/p"}', 0);
     const r = diffOutputs("case", py, ts);
@@ -117,7 +117,7 @@ describe("vbrief-preflight-parity helpers", () => {
   });
 
   it("buildFixtures writes all corpus files", async () => {
-    const { buildFixtures, PARITY_FIXTURES } = await import("./vbrief-preflight-parity.js");
+    const { buildFixtures, PARITY_FIXTURES } = await import("./vbrief-preflight-fixtures.js");
     const root = mkdtempSync(join(tmpdir(), "deft-parity-fix-"));
     temps.push(root);
     const paths = buildFixtures(root);
@@ -128,7 +128,7 @@ describe("vbrief-preflight-parity helpers", () => {
   });
 
   it("renderReport shows clean and divergence summaries", async () => {
-    const { renderReport } = await import("./vbrief-preflight-parity.js");
+    const { renderReport } = await import("./vbrief-preflight-fixtures.js");
     const clean = renderReport({
       ok: true,
       cases: [

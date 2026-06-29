@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Orphaned TS-vs-Python parity harnesses removed (#2083)** — deletes 45 dead `*-parity.ts` harness modules (plus their companion tests) that spawned the removed Python oracle; preserves reused test fixtures in new `*-fixtures.ts` modules so existing unit tests keep passing. Closes #2083. Refs #1860.
+
 - **Python runtime and parity CI oracles removed (#1860)** — deletes `scripts/`, `run`, `pyproject.toml`, `uv.lock`, and the pytest tree; drops the CI `python` and `parity` jobs; rewires release build/roadmap/reconcile to native TypeScript; collapses `check:framework-source` to the TS lane plus existing deft verify gates. Teardown of the now-orphaned `packages/cli/src/*-parity.ts` harness source files (still imported by TS unit tests as fixtures) is deferred to #2083. Closes #1860. Refs #1530, #2083.
 
 ## [0.62.0] - 2026-06-29

@@ -1,16 +1,7 @@
-#!/usr/bin/env node
-/**
- * Golden-output parity harness (#1725): runs BOTH the Python oracle
- * (`scripts/triage_scope.py`) and the ported TS triage:scope CLI, then
- * diffs exit codes and normalised stdout/stderr (cache-off).
- *
- * Exit codes: 0 parity / 1 divergence / 2 harness setup error.
- */
-import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+/** Test fixtures extracted from legacy parity harness (#2083). */
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 export interface CommandCapture {
   readonly exitCode: number;
@@ -50,20 +41,6 @@ export function normalizeOutput(text: string): string {
     .replace(/path=[^\s\n]+coverage\.json/g, "path=<ROOT>/coverage.json");
 }
 
-function runCapture(cmd: string, args: string[], cwd: string): CommandCapture {
-  const result = spawnSync(cmd, args, {
-    cwd,
-    encoding: "utf8",
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  return {
-    exitCode: result.status ?? 2,
-    stdout: typeof result.stdout === "string" ? result.stdout : "",
-    stderr: typeof result.stderr === "string" ? result.stderr : "",
-  };
-}
-
 function writeProjectDefinition(root: string, policy: Record<string, unknown> = {}): void {
   const dir = join(root, "vbrief");
   mkdirSync(dir, { recursive: true });
@@ -86,36 +63,6 @@ export function buildFixtureRepo(options: ScopeFixtureOptions = {}): string {
   mkdirSync(join(root, "vbrief"), { recursive: true });
   writeProjectDefinition(root, options.policy ?? {});
   return root;
-}
-
-function resolveDeftRoot(): string {
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-}
-
-function runPythonScope(deftRoot: string, repo: string, argv: string[]): CommandCapture {
-  return runCapture(
-    "uv",
-    [
-      "run",
-      "python",
-      join(deftRoot, "scripts", "triage_scope.py"),
-      ...argv,
-      "--project-root",
-      repo,
-    ],
-    deftRoot,
-  );
-}
-
-function runTsScope(deftRoot: string, repo: string, argv: string[]): CommandCapture {
-  return runCapture(
-    "node",
-    [join(deftRoot, "packages", "cli", "dist", "triage-scope.js"), ...argv, "--project-root", repo],
-    deftRoot,
-  );
 }
 
 export function diffCase(python: CommandCapture, ts: CommandCapture, caseName: string): ParityDiff {
@@ -207,37 +154,6 @@ export const PARITY_CASES: readonly ParityCase[] = [
   },
 ];
 
-export function runParity(): ParityResult {
-  const deftRoot = resolveDeftRoot();
-  const diffs: ParityDiff[] = [];
-  for (const testCase of PARITY_CASES) {
-    if (testCase.name === "invalid-project-root") {
-      const missing = join(tmpdir(), `deft-missing-${Date.now()}`);
-      const python = runPythonScope(deftRoot, missing, testCase.argv);
-      const ts = runTsScope(deftRoot, missing, testCase.argv);
-      diffs.push(diffCase(python, ts, testCase.name));
-      continue;
-    }
-    const pyRepo = buildFixtureRepo(testCase.fixture);
-    const tsRepo = buildFixtureRepo(testCase.fixture);
-    try {
-      const extraArgv = [...testCase.argv];
-      if (testCase.name === "refresh-denominator-success") {
-        const cacheRoot = mkdtempSync(join(tmpdir(), "deft-scope-cache-"));
-        extraArgv.push("--cache-root", cacheRoot);
-      }
-      const python = runPythonScope(deftRoot, pyRepo, extraArgv);
-      const ts = runTsScope(deftRoot, tsRepo, extraArgv);
-      diffs.push(diffCase(python, ts, testCase.name));
-    } finally {
-      rmSync(pyRepo, { recursive: true, force: true });
-      rmSync(tsRepo, { recursive: true, force: true });
-    }
-  }
-  const ok = diffs.every((d) => !d.exitMismatch && !d.stdoutMismatch && !d.stderrMismatch);
-  return { ok, diffs };
-}
-
 export function renderReport(result: ParityResult): string {
   if (result.ok) {
     return `triage:scope parity: CLEAN -- Python and TS agree on ${PARITY_CASES.length} cases.`;
@@ -252,19 +168,4 @@ export function renderReport(result: ParityResult): string {
     }
   }
   return lines.join("\n");
-}
-
-if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1]) {
-  try {
-    const result = runParity();
-    if (result.ok) {
-      process.stdout.write(`${renderReport(result)}\n`);
-      process.exit(0);
-    }
-    process.stderr.write(`${renderReport(result)}\n`);
-    process.exit(1);
-  } catch (err) {
-    process.stderr.write(`triage:scope parity: harness error -- ${String(err)}\n`);
-    process.exit(2);
-  }
 }

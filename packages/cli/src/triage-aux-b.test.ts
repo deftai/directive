@@ -8,7 +8,7 @@ import {
   normalizeOutput,
   PARITY_CASES,
   renderReport,
-} from "./triage-aux-b-parity.js";
+} from "./triage-aux-b-fixtures.js";
 import { parseArgs as parseBulkArgs, run as runBulk } from "./triage-bulk.js";
 import { run as runHelp } from "./triage-help.js";
 import { run as runSmoketestCli } from "./triage-smoketest.js";

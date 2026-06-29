@@ -87,91 +87,14 @@ export default defineConfig({
       exclude: [
         "**/*.test.ts",
         "packages/cli/src/bin.ts",
-        // Cross-toolchain harness runner: spawns the Python oracle, so it is
-        // validated by the dedicated `parity` CI job (#1718), not node-only
-        // unit tests. Its pure helpers (parseFindings/diffGates/findingKey)
-        // are still unit-tested in parity.test.ts.
-        "packages/cli/src/parity.ts",
-        // Same rationale (#1530 Wave 2): the policy parity runner spawns the
-        // Python oracle and is validated by the dedicated parity CI job, not
-        // the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/policy-parity.ts",
-        // Same rationale (#1530 Wave 2): the preflight parity runner spawns the
-        // Python oracle and is validated by the dedicated parity CI job, not
-        // the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/vbrief-preflight-parity.ts",
-        // Same rationale (#1530 Wave 2): the story-ready parity runner spawns
-        // the Python oracle and is validated by the dedicated parity CI job,
-        // not the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/story-ready-parity.ts",
-        // Same rationale (#1530 Wave 2): the branch parity runner spawns the
-        // Python oracle and is validated by the dedicated parity CI job, not
-        // the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/branch-parity.ts",
-        // Same rationale (#1530 Wave 2): the wip-cap parity runner spawns the
-        // Python oracle and is validated by the dedicated parity CI job, not
-        // the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/wip-cap-parity.ts",
-        // Same rationale (#1530 Wave 3): the scm parity runner spawns the
-        // Python oracle and is validated by the dedicated parity CI job, not
-        // the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/scm-parity.ts",
-        // Same rationale (#1530 Wave 3, #1725): the triage parity runners each
-        // spawn the Python oracle and are validated by the dedicated parity CI
-        // job, not the Python-less node-only TS job. Pure helpers stay
-        // unit-tested in their *-parity.test.ts companions.
-        "packages/cli/src/triage-actions-parity.ts",
-        "packages/cli/src/triage-aux-a-parity.ts",
-        "packages/cli/src/triage-aux-b-parity.ts",
-        "packages/cli/src/triage-bootstrap-parity.ts",
-        "packages/cli/src/triage-classify-parity.ts",
-        "packages/cli/src/triage-queue-parity.ts",
-        "packages/cli/src/triage-scope-parity.ts",
-        "packages/cli/src/triage-summary-parity.ts",
-        // Same rationale (#1530 Wave 3, batch 2): the scope/slice/cache/doctor
-        // parity runners spawn the Python oracle and are validated by the
-        // dedicated parity CI job, not the node-only TS job.
-        "packages/cli/src/scope-lifecycle-parity.ts",
-        "packages/cli/src/slice-parity.ts",
-        "packages/cli/src/cache-parity.ts",
-        "packages/cli/src/doctor-parity.ts",
-        // Same rationale (#1530 Wave 4, #1729): the release parity runners spawn
-        // the Python oracle and are validated by the dedicated parity CI job, not
-        // the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/release-parity.ts",
-        "packages/cli/src/release-publish-parity.ts",
-        "packages/cli/src/release-rollback-parity.ts",
-        "packages/cli/src/release-e2e-parity.ts",
-        // Same rationale (#1530 Wave 4b, #1730): the pr-monitor parity runners
-        // spawn the Python oracle and are validated by the dedicated parity CI
-        // job, not the Python-less node-only TS job. Pure helpers stay unit-tested.
-        "packages/cli/src/pr-merge-readiness-parity.ts",
-        "packages/cli/src/pr-protected-issues-parity.ts",
-        "packages/cli/src/pr-closing-keywords-parity.ts",
-        "packages/cli/src/pr-monitor-parity.ts",
-        "packages/cli/src/pr-wait-mergeable-parity.ts",
-        "packages/cli/src/vbrief-build-parity.ts",
-        "packages/cli/src/vbrief-reconcile-parity.ts",
-        "packages/cli/src/vbrief-validation-parity.ts",
-        "packages/cli/src/vbrief-validate-parity.ts",
-        "packages/cli/src/vbrief-activate-parity.ts",
-        "packages/cli/src/verify-env-parity.ts",
-        "packages/cli/src/verify-source-parity.ts",
-        "packages/cli/src/validate-content-parity.ts",
-        "packages/cli/src/render-parity.ts",
-        "packages/cli/src/codebase-parity.ts",
-        "packages/cli/src/intake-parity.ts",
-        "packages/cli/src/lifecycle-packs-parity.ts",
-        "packages/cli/src/session-parity.ts",
-        "packages/cli/src/orchestration-parity.ts",
-        "packages/cli/src/swarm-parity.ts",
-        "packages/cli/src/platform-parity.ts",
+        // Test-support fixture modules extracted from retired parity harnesses (#2083).
+        "packages/cli/src/*-fixtures.ts",
       ],
       reporter: ["text", "text-summary"],
       thresholds: {
         lines: 85,
         functions: 85,
-        // #1860: Python parity removal drops branch denominator; 84.9 keeps gate green until build-dist integration tests land.
+        // #2083: parity harness teardown shifts branch denominator; 84.9 keeps gate green (84.92% measured post-teardown).
         branches: 84.9,
         statements: 85,
       },
