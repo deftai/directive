@@ -1,0 +1,1022 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vbrief.dev/schemas/vbrief-core-0.6.schema.json",
+  "title": "vBRIEF Core Schema v0.6",
+  "description": "JSON Schema for vBRIEF core document structure (v0.6). Uses `items` as the preferred nested PlanItem field, retains `subItems` as a deprecated compatibility alias, and adds `failed` to the shared status enum.",
+  "type": "object",
+  "required": [
+    "vBRIEFInfo",
+    "plan"
+  ],
+  "properties": {
+    "vBRIEFInfo": {
+      "$ref": "#/$defs/vBRIEFInfo"
+    },
+    "plan": {
+      "$ref": "#/$defs/Plan"
+    }
+  },
+  "additionalProperties": true,
+  "not": {
+    "anyOf": [
+      {
+        "required": [
+          "todoList"
+        ]
+      },
+      {
+        "required": [
+          "playbook"
+        ]
+      }
+    ]
+  },
+  "$defs": {
+    "vBRIEFInfo": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "0.6"
+        },
+        "author": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "created": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "updated": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "timezone": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Architecture": {
+      "type": "object",
+      "properties": {
+        "codeStructure": {
+          "$ref": "#/$defs/CodeStructure"
+        }
+      },
+      "additionalProperties": true
+    },
+    "CodeStructure": {
+      "type": "object",
+      "required": [
+        "version",
+        "modules",
+        "pathOwnership",
+        "allowedPatterns",
+        "projectionManifest"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "0.1"
+        },
+        "modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/CodeStructureModule"
+          }
+        },
+        "pathOwnership": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CodeStructurePathOwnership"
+          }
+        },
+        "allowedPatterns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CodeStructureAllowedPattern"
+          }
+        },
+        "projectionManifest": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CodeStructureProjection"
+          }
+        },
+        "filePurposeOverrides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CodeStructureFilePurposeOverride"
+          }
+        },
+        "glossaryRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CodeStructureGlossaryRef"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "CodeStructureStableId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "CodeStructureRelativePath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "CodeStructureModule": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "purpose",
+        "pathGlobs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CodeStructureStableId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pathGlobs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/CodeStructureRelativePath"
+          }
+        },
+        "owner": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "CodeStructurePathOwnership": {
+      "type": "object",
+      "required": [
+        "pathGlob",
+        "module"
+      ],
+      "properties": {
+        "pathGlob": {
+          "$ref": "#/$defs/CodeStructureRelativePath"
+        },
+        "module": {
+          "$ref": "#/$defs/CodeStructureStableId"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "CodeStructureAllowedPattern": {
+      "type": "object",
+      "required": [
+        "id",
+        "module",
+        "name",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CodeStructureStableId"
+        },
+        "module": {
+          "$ref": "#/$defs/CodeStructureStableId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appliesTo": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CodeStructureRelativePath"
+          }
+        },
+        "forbidden": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "CodeStructureProjection": {
+      "type": "object",
+      "required": [
+        "path",
+        "kind",
+        "source",
+        "generated"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/CodeStructureRelativePath"
+        },
+        "kind": {
+          "$ref": "#/$defs/CodeStructureStableId"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generated": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "CodeStructureFilePurposeOverride": {
+      "type": "object",
+      "required": [
+        "path",
+        "purpose"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/CodeStructureRelativePath"
+        },
+        "module": {
+          "$ref": "#/$defs/CodeStructureStableId"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "CodeStructureGlossaryRef": {
+      "type": "object",
+      "required": [
+        "term"
+      ],
+      "properties": {
+        "term": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uri": {
+          "$ref": "#/$defs/CodeStructureRelativePath"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Plan": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "items"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanItem"
+          }
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
+        "architecture": {
+          "$ref": "#/$defs/Architecture"
+        },
+        "narratives": {
+          "type": "object",
+          "properties": {
+            "Proposal": {
+              "type": "string"
+            },
+            "Overview": {
+              "type": "string"
+            },
+            "Background": {
+              "type": "string"
+            },
+            "Problem": {
+              "type": "string"
+            },
+            "Constraint": {
+              "type": "string"
+            },
+            "Hypothesis": {
+              "type": "string"
+            },
+            "Alternative": {
+              "type": "string"
+            },
+            "Risk": {
+              "type": "string"
+            },
+            "Test": {
+              "type": "string"
+            },
+            "Action": {
+              "type": "string"
+            },
+            "Observation": {
+              "type": "string"
+            },
+            "Result": {
+              "type": "string"
+            },
+            "Reflection": {
+              "type": "string"
+            },
+            "Outcome": {
+              "type": "string"
+            },
+            "Strengths": {
+              "type": "string"
+            },
+            "Weaknesses": {
+              "type": "string"
+            },
+            "Lessons": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Edge"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "created": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "updated": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "author": {
+          "type": "string"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "uris": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/URI"
+          }
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VBriefReference"
+          }
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "agent": {
+          "$ref": "#/$defs/Agent"
+        },
+        "lastModifiedBy": {
+          "$ref": "#/$defs/Agent"
+        },
+        "changeLog": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Change"
+          }
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fork": {
+          "$ref": "#/$defs/Fork"
+        }
+      },
+      "additionalProperties": true
+    },
+    "PlanItem": {
+      "type": "object",
+      "required": [
+        "title",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/Status"
+        },
+        "narrative": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "subItems": {
+          "type": "array",
+          "description": "Deprecated legacy alias for items; retained for compatibility.",
+          "items": {
+            "$ref": "#/$defs/PlanItem"
+          }
+        },
+        "planRef": {
+          "type": "string",
+          "pattern": "^(#[a-zA-Z0-9_.-]+|file://.*|https://.*)$"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "created": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "updated": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "completed": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "priority": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "dueDate": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "startDate": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "endDate": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "percentComplete": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Participant"
+          }
+        },
+        "location": {
+          "$ref": "#/$defs/Location"
+        },
+        "uris": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/URI"
+          }
+        },
+        "recurrence": {
+          "$ref": "#/$defs/RecurrenceRule"
+        },
+        "reminders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Reminder"
+          }
+        },
+        "classification": {
+          "enum": [
+            "public",
+            "private",
+            "confidential"
+          ]
+        },
+        "relatedComments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastModifiedBy": {
+          "$ref": "#/$defs/Agent"
+        },
+        "lockedBy": {
+          "$ref": "#/$defs/Lock"
+        },
+        "items": {
+          "type": "array",
+          "description": "Preferred v0.6 nested PlanItem field.",
+          "items": {
+            "$ref": "#/$defs/PlanItem"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "Status": {
+      "enum": [
+        "draft",
+        "proposed",
+        "approved",
+        "pending",
+        "running",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "Policy": {
+      "type": "object",
+      "description": "Project-level policy flags. Typed surface introduced by #746 (no-feature-branch opt-out) -- replaces the legacy free-form narrative key 'Allow direct commits to master'.",
+      "properties": {
+        "allowDirectCommitsToMaster": {
+          "type": "boolean",
+          "description": "When true, the project explicitly opts out of the deft branch-protection policy and allows direct commits to the default branch (master/main). Default: false (enforce feature branches)."
+        },
+        "sessionRitualStalenessHours": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum age, in hours, for .deft/ritual-state.json before the fail-closed session ritual verifier requires task session:start to run again. Default: 4."
+        },
+        "projectionProviders": {
+          "$ref": "#/$defs/ProjectionProviderPolicies"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProjectionProviderPolicies": {
+      "type": "object",
+      "description": "Projection provider artifact policies keyed by projection kind. Values point at durable artifacts; runner command strings are not canonical policy.",
+      "additionalProperties": {
+        "$ref": "#/$defs/ProjectionProviderPolicy"
+      }
+    },
+    "ProjectionProviderPolicy": {
+      "type": "object",
+      "required": [
+        "artifactPath"
+      ],
+      "properties": {
+        "artifactPath": {
+          "$ref": "#/$defs/CodeStructureRelativePath",
+          "description": "Repository-relative path to a provider-emitted artifact for this projection kind."
+        },
+        "expect": {
+          "$ref": "#/$defs/ProjectionProviderExpectation"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ProjectionProviderExpectation": {
+      "type": "object",
+      "description": "Optional validation assertion for provider identity and version.",
+      "properties": {
+        "provider": {
+          "type": [
+            "string",
+            "object"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "providerVersion": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Edge": {
+      "type": "object",
+      "required": [
+        "from",
+        "to",
+        "type"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "type": {
+          "type": "string",
+          "description": "Core types: blocks, informs, invalidates, suggests. Custom types allowed."
+        }
+      },
+      "additionalProperties": true
+    },
+    "Participant": {
+      "type": "object",
+      "required": [
+        "id",
+        "role"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "owner",
+            "assignee",
+            "reviewer",
+            "observer",
+            "contributor"
+          ]
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "declined",
+            "tentative",
+            "needsAction"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "URI": {
+      "type": "object",
+      "required": [
+        "uri"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "VBriefReference": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/URI"
+        },
+        {
+          "type": "object",
+          "required": [
+            "uri",
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "pattern": "^x-vbrief/",
+              "description": "A vBRIEF reference type. Known types: x-vbrief/plan, x-vbrief/context, x-vbrief/research. Any x-vbrief/* value is valid."
+            }
+          }
+        }
+      ]
+    },
+    "Location": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "geo": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "RecurrenceRule": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "enum": [
+            "daily",
+            "weekly",
+            "monthly",
+            "yearly"
+          ]
+        },
+        "interval": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "until": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "byDay": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "MO",
+              "TU",
+              "WE",
+              "TH",
+              "FR",
+              "SA",
+              "SU"
+            ]
+          }
+        },
+        "byMonth": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          }
+        },
+        "byMonthDay": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "Reminder": {
+      "type": "object",
+      "required": [
+        "trigger",
+        "action"
+      ],
+      "properties": {
+        "trigger": {
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "display",
+            "email",
+            "webhook",
+            "audio"
+          ]
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Agent": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "human",
+            "aiAgent",
+            "system"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Change": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "timestamp",
+        "agent",
+        "operation"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestamp": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "agent": {
+          "$ref": "#/$defs/Agent"
+        },
+        "operation": {
+          "enum": [
+            "create",
+            "update",
+            "delete",
+            "fork",
+            "merge"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "oldValue": {},
+        "newValue": {},
+        "description": {
+          "type": "string"
+        },
+        "snapshotUri": {
+          "type": "string"
+        },
+        "relatedChanges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "Fork": {
+      "type": "object",
+      "required": [
+        "parentUid",
+        "parentSequence",
+        "forkedAt"
+      ],
+      "properties": {
+        "parentUid": {
+          "type": "string"
+        },
+        "parentSequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "forkedAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "forkReason": {
+          "type": "string"
+        },
+        "mergeStatus": {
+          "enum": [
+            "unmerged",
+            "mergePending",
+            "merged",
+            "conflict"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "Lock": {
+      "type": "object",
+      "required": [
+        "agent",
+        "acquiredAt",
+        "type"
+      ],
+      "properties": {
+        "agent": {
+          "$ref": "#/$defs/Agent"
+        },
+        "acquiredAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "type": {
+          "enum": [
+            "soft",
+            "hard"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(Z|[+-]\\d{2}:\\d{2})$"
+    }
+  }
+}

@@ -346,6 +346,7 @@ tasks:
       - verify:links
       - verify:rule-ownership
       - verify:content-manifest
+      - verify:contract-drift
       - verify:cursor-tier1
       - verify:go-freeze
       - verify:bridge-drift

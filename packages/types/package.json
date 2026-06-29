@@ -9,11 +9,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./schemas/vbrief-core-0.6.schema.json": "./schemas/vbrief-core-0.6.schema.json"
   },
   "files": [
     "dist/**/*.js",
-    "dist/**/*.d.ts"
+    "dist/**/*.d.ts",
+    "schemas/**/*.json"
   ],
   "repository": {
     "type": "git",
@@ -25,6 +27,7 @@
     "provenance": true
   },
   "scripts": {
+    "prebuild": "node ./scripts/sync-schema.mjs",
     "build": "tsc -b"
   }
 }

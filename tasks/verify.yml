@@ -45,6 +45,13 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-content-manifest --project-root "{{.DEFT_ROOT}}"
 
+  contract-drift:
+    desc: "Drift gate for the public contract layer (#1799). Asserts packages/types/schemas/vbrief-core-0.6.schema.json matches content/vbrief/schemas/vbrief-core.schema.json and that @deftai/directive-types Status/version constants align with the schema. Three-state exit (0 clean / 1 drift / 2 config error)."
+    deps:
+      - _ts-build
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-contract-drift --project-root "{{.DEFT_ROOT}}"
+
   cursor-tier1:
     desc: "Framework-source content gate (#1877): assert Cursor (cursor-composer / cursor-cloud-agent, Task-tool primitive) is enumerated as a Tier-1 descriptor in the swarm Phase 3 capability matrix AND the review-cycle monitoring tier table. Fails when a doc edit drops the Cursor descriptor and silently re-opens the Tier-3 blocking-poll misclassification. Three-state exit (0 clean / 1 missing marker / 2 config error)."
     deps:
