@@ -144,6 +144,9 @@ includes:
   framework:
     taskfile: ./tasks/framework.yml
     optional: true
+  umbrella:
+    taskfile: ./tasks/umbrella.yml
+    optional: true
   session:
     taskfile: ./tasks/session.yml
     optional: true

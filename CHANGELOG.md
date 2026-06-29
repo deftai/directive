@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`task umbrella:current-shape <N>` yields live umbrella state without reading the issue body** — the native deft-ts verb fetches the canonical `## Current shape (as of pass-N)` comment via REST, supports `--json` section validation and `--strict`, and exits non-zero when no current-shape comment exists (no body fallback). Closes #2066.
+
 - Agents must read an umbrella's current-shape comment (not the stale issue body) before stating status — codified in the orchestrator preamble, AGENTS.md, consumer agents-entry, and triage/refinement skills (claim-cites-state-surface). Refs #2066.
 
 ### Changed

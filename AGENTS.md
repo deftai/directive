@@ -304,7 +304,7 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 
 - ! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.
 - ! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.
-- ! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).
+- ! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `task umbrella:current-shape <N>` (native deft-ts verb; `--json` / `--strict` supported) — it never falls back to the issue body.
 - ~ Pass-N skills SHOULD update the current-shape comment as their Phase 4 step.
 - ⊗ Do NOT delete prior amendment comments when updating the current-shape comment — they remain the audit trail.
 - ⊗ Do NOT replace the current-shape comment with a fresh comment — it must be edited in place so its permalink is stable.
@@ -322,7 +322,7 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 8. `### Open questions` -- optional; surface decisions still owing operator input.
 9. `### Reading order for fresh contributors` -- the canonical three-step (umbrella body -> this comment -> amendment comments) so a new reader knows where to start.
 
-v1 ships as discipline-only (this AGENTS.md section + skill cross-references in `content/skills/deft-directive-gh-slice/SKILL.md` and `content/skills/deft-directive-refinement/SKILL.md` final phases). The optional mechanical render verb (`task umbrella:current-shape <N>`) is deferred to v2 unless discipline degrades; the v2 mechanical render requires a structured-amendment-comment format which chains cleanly off the N14 (TBD) pass-type declaration rule.
+v1 ships the read/render-and-validate command `task umbrella:current-shape <N>` (native deft-ts verb, #2066): it fetches `repos/<owner>/<repo>/issues/<N>/comments` via the scm shim, locates the canonical `## Current shape (as of pass-N)` comment, prints it (or `--json` with section validation), and exits non-zero when no current-shape comment exists — it never falls back to the issue body. `--strict` MAY exit non-zero on missing required #1152 sections. A future v2 MAY add structured-amendment-comment parsing (N14 / TBD pass-type declaration) for richer mechanical renders.
 
 Cross-references: `content/skills/deft-directive-gh-slice/SKILL.md` (final phase -- file the umbrella, then file its current-shape comment per this convention), `content/skills/deft-directive-refinement/SKILL.md` and `content/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status, read the current-shape comment + linked vBRIEF, not the body), `content/templates/agent-prompt-preamble.md` (canonical orchestrator preamble that consumers of this convention dispatch against). Refs #1140 (parent meta-umbrella -- design-pass churn), #1119 (companion umbrella whose pattern motivated this convention; its v3 current-shape comment is the seed example pre-dating this convention), #2066 (claim-cites-state-surface -- forbid body-only status conclusions).
 
@@ -331,7 +331,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=f3280b5b673b refreshed=2026-06-29T01:06:33Z session=1911eb004ee6 -->
+<!-- deft:managed-section v3 sha=9e2302fcb144 refreshed=2026-06-29T01:59:43Z session=ae73784eaeb2 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -420,7 +420,7 @@ The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbri
 
 Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canonical `## Current shape (as of pass-N)` comment (live state). Before reporting umbrella status:
 
-- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).
+- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
 Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.

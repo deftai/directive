@@ -87,7 +87,7 @@ The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbri
 
 Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canonical `## Current shape (as of pass-N)` comment (live state). Before reporting umbrella status:
 
-- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).
+- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
 Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.

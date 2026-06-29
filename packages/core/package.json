@@ -198,6 +198,10 @@
       "types": "./dist/check-updates/index.d.ts",
       "default": "./dist/check-updates/index.js"
     },
+    "./umbrella-current-shape": {
+      "types": "./dist/umbrella-current-shape/index.d.ts",
+      "default": "./dist/umbrella-current-shape/index.js"
+    },
     "./install-upgrade": {
       "types": "./dist/install-upgrade/index.d.ts",
       "default": "./dist/install-upgrade/index.js"

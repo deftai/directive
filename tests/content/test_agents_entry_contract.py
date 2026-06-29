@@ -272,6 +272,7 @@ _PROPAGATION_COMMAND_MARKERS: tuple[tuple[str, str], ...] = (
         "deft scope:complete -- <active-story-path>",
         "task scope:complete -- <active-story-path>",
     ),
+    ("deft umbrella:current-shape", "task umbrella:current-shape"),
 )
 
 _CONSUMER_FORBIDDEN_BARE_TASK_MARKERS: tuple[str, ...] = (
