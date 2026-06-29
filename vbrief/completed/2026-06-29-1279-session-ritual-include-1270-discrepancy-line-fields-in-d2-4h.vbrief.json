@@ -1,9 +1,12 @@
 {
-  "vBRIEFInfo": { "version": "0.6", "description": "Story vBRIEF for #1279 — D2 suppression hash includes discrepancy fields" },
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1279 — D2 suppression hash includes discrepancy fields"
+  },
   "plan": {
     "id": "1279-d2-suppression-hash",
     "title": "D2 suppression hash includes #1270 discrepancy-line fields",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Session-start triage summary uses a 4-hour D2 suppression window keyed on cache state. After #1270, the rendered output includes a `[triage:scope]` discrepancy line driven by `in_flight_filesystem`, `in_flight_cache_scoped`, and `triage_scope_configured`. When only the discrepancy line flips (cache catches up), suppression incorrectly holds because those fields are not in the hash key.",
       "ImplementationPlan": "1. Add a canonical suppression-key helper in `packages/core/src/triage/summary/index.ts` (or welcome module) hashing structured fields: include `in_flight_filesystem`, `in_flight_cache_scoped`, `triage_scope_configured` plus existing headline fields from `summaryResultToRecord`.\n2. Wire session-start / triage:welcome emission to compare against last `summary-history.jsonl` record and skip only when key unchanged within 4h.\n3. Add test in `packages/core/src/triage/summary/index.test.ts` proving discrepancy-only flip invalidates suppression; update AGENTS.md session-start step 3 field list in `content/templates/agents-entry.md` + `task agents:refresh`.",
@@ -38,10 +41,15 @@
         }
       }
     ],
-    "tags": ["bug", "triage"],
+    "tags": [
+      "bug",
+      "triage"
+    ],
     "metadata": {
       "kind": "story",
-      "x-tracking": { "parent_issue": "#1279" },
+      "x-tracking": {
+        "parent_issue": "#1279"
+      },
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
@@ -56,7 +64,11 @@
           "pnpm -w exec vitest run packages/core/src/triage/summary/index.test.ts",
           "task agents:refresh"
         ],
-        "expected_outputs": ["suppressionKey helper", "Discrepancy flip test", "AGENTS.md field list"],
+        "expected_outputs": [
+          "suppressionKey helper",
+          "Discrepancy flip test",
+          "AGENTS.md field list"
+        ],
         "depends_on": [],
         "conflict_group": "bug-cohort-ritual",
         "size": "medium",
@@ -64,9 +76,16 @@
         "model_tier": "strong",
         "missing_traces_justification": "D2 follow-up from ingested issue #1279; ties to #1270 discrepancy line."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-29T23:34:14Z"
     },
-    "references": [{ "uri": "https://github.com/deftai/directive/issues/1279", "type": "x-vbrief/github-issue", "title": "Issue #1279" }],
-    "updated": "2026-06-29T23:00:00Z"
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1279",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1279"
+      }
+    ],
+    "updated": "2026-06-29T23:34:14Z"
   }
 }

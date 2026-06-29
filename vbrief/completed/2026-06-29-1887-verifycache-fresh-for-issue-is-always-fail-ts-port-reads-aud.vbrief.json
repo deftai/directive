@@ -1,9 +1,12 @@
 {
-  "vBRIEFInfo": { "version": "0.6", "description": "Story vBRIEF for #1887 — fix verify:cache-fresh --for-issue audit field" },
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1887 — fix verify:cache-fresh --for-issue audit field"
+  },
   "plan": {
     "id": "1887-cache-fresh-for-issue",
     "title": "verify:cache-fresh --for-issue reads issue_number from audit log",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The TS cache-fresh gate's per-issue path fails to match triage decisions because `parseCandidates` in preflight-cache reads `issue` instead of the canonical audit field `issue_number`. Operators see \"no triage decision\" after a valid accept, blocking the pre-dispatch gate stack.",
       "ImplementationPlan": "1. Fix `packages/core/src/preflight-cache/evaluate.ts` `parseCandidates` to read `issue_number` (and `timestamp`) per `packages/core/src/triage/actions/candidates-log.ts` schema; align with queue reader in candidates-log.ts.\n2. Add regression tests in `packages/core/src/preflight-cache/evaluate.test.ts` with audit rows using `issue_number` only (no legacy `issue` key).\n3. Run `pnpm -w exec vitest run packages/core/src/preflight-cache/evaluate.test.ts` as verification evidence; CHANGELOG entry. Closes #1887.",
@@ -38,10 +41,15 @@
         }
       }
     ],
-    "tags": ["bug", "triage"],
+    "tags": [
+      "bug",
+      "triage"
+    ],
     "metadata": {
       "kind": "story",
-      "x-tracking": { "parent_issue": "#1887" },
+      "x-tracking": {
+        "parent_issue": "#1887"
+      },
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
@@ -54,7 +62,11 @@
           "pnpm -w exec vitest run packages/core/src/preflight-cache/evaluate.test.ts",
           "pnpm -w run build"
         ],
-        "expected_outputs": ["for-issue gate matches issue_number rows", "Regression tests", "CHANGELOG entry"],
+        "expected_outputs": [
+          "for-issue gate matches issue_number rows",
+          "Regression tests",
+          "CHANGELOG entry"
+        ],
         "depends_on": [],
         "conflict_group": "bug-cohort-cache",
         "size": "small",
@@ -62,9 +74,16 @@
         "model_tier": "default",
         "missing_traces_justification": "TS-port regression from ingested issue #1887."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-29T23:34:14Z"
     },
-    "references": [{ "uri": "https://github.com/deftai/directive/issues/1887", "type": "x-vbrief/github-issue", "title": "Issue #1887" }],
-    "updated": "2026-06-29T23:00:00Z"
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1887",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1887"
+      }
+    ],
+    "updated": "2026-06-29T23:34:14Z"
   }
 }
