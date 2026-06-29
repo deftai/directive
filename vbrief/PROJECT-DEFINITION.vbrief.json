@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- current Deft Directive identity, policy, scope registry, and authored architecture metadata.",
-    "updated": "2026-06-29T13:28:35Z"
+    "updated": "2026-06-29T13:53:59Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -1002,39 +1002,6 @@
               "uri": "https://github.com/deftai/directive/issues/1669",
               "type": "x-vbrief/refs",
               "title": "Issue #1669"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001",
-        "title": "Python purge readiness — execution tracker (supersedes #2001)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/2022",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt",
-        "title": "Rewire the consumer task surface to deft verbs with zero Python entrypoints (Phase 2)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/2022",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
-              "TrustLevel": "external"
             }
           ]
         }
@@ -15596,6 +15563,22 @@
         }
       },
       {
+        "id": "2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001",
+        "title": "Python purge readiness — execution tracker (supersedes #2001)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-06-26-2023-deft-updateinit-aborts-with-refresh-deposit-failed-content-p",
         "title": "Fix deft update/init refresh_deposit_failed by resolving the content package via its package.json subpath",
         "status": "completed",
@@ -15753,6 +15736,23 @@
         "status": "completed",
         "metadata": {
           "source_path": "completed/2026-06-26-remove-the-deft-install-gate-mandate-from-the-preamble-surfa.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2022",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt",
+        "title": "Rewire the consumer task surface to deft verbs with zero Python entrypoints (Phase 2)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
           "lifecycle_folder": "completed",
           "references": [
             {

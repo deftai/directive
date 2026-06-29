@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json"
+    "description": "Story vBRIEF 1 decomposed from completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json"
   },
   "plan": {
     "id": "story-task-surface-migrate-install",
     "title": "Rewire migrate and install task entrypoints off Python on the consumer path",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
+    "planRef": "completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
     "narratives": {
       "Description": "Consumer migrate and install tasks still invoke uv run python for migrate_preflight, migrate_vbrief, and legacy run upgrade. This story replaces consumer-path invocations with native deft verbs where TS handlers exist, documents the #2013 migrate_vbrief holdout if it must remain, and removes install upgrade's Python run shim from the default consumer surface.",
       "ImplementationPlan": "Audit tasks/migrate.yml and tasks/install.yml for uv run python entrypoints; rewire migrate:preflight and any TS-backed paths to node bin.js / deft verbs.\nFor migrate:vbrief (#2013 holdout), either gate behind explicit contributor path or leave documented carve-out; rewire install upgrade off scripts/run.py.\nAdd or extend tests and run task verify:no-task-runtime scoped to these files.",

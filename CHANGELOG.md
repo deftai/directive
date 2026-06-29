@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Pre-v0.20 document-model migration moves to a frozen release path** — current npm deposits no longer ship `task migrate:vbrief`; `task migrate:preflight` detects legacy state and points operators at pinned **v0.59.0** (Go installer or git tag) with Python + uv. Closes #2068. Refs #2022, #1860.
+- **#2022 Python-purge tracker lifecycle reconciled** — Phase 2 consumer rewire and the #2022 execution-tracker epic vBRIEFs moved to `completed/` with `ExecutionStatus` reflecting shipped Phases 0–5; child `planRef` paths updated after the parent move. Refs #2022, #1860.
+ — current npm deposits no longer ship `task migrate:vbrief`; `task migrate:preflight` detects legacy state and points operators at pinned **v0.59.0** (Go installer or git tag) with Python + uv. Closes #2068. Refs #2022, #1860.
 
 - **`task framework:check-updates` runs without Python or the legacy `run` shim** — the read-only upstream version probe (#801) now dispatches through the TypeScript engine (`deft framework:check-updates`), preserving `--force`, `--json`, `DEFT_NO_NETWORK`, and `DEFT_REMOTE_PROBE_TIMEOUT` so npm-only consumer installs can check for framework updates before #1860 deletes the Python `run` CLI. Refs #2069.
 

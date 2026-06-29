@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 9 decomposed from proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
+    "description": "Story vBRIEF 9 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
   },
   "plan": {
     "id": "py-purge-npm-deposit-python-free",
     "title": "Make the npm deposit Python-free and prove it with a greenfield smoke (Phase 3)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The @deftai/directive-content prepack still bundles the scripts/ tree (added by #1984) and the deposit can still contain .py files and a repo-root run shim. This story stops the prepack from bundling Python and verifies a greenfield directive init plus task check on a machine with no Python installed. It depends on Phases 1 and 2 because the deposit can only drop Python once nothing on the consumer path still calls it.",
       "ImplementationPlan": "- Update the @deftai/directive-content prepack so it no longer bundles scripts/ or any other Python-only tree, and ensure directive init and update produce a deposit with no .py files and no repo-root run shim.\n- Add a greenfield smoke check that runs directive init and task check in a Python-free environment and asserts a clean pass.",

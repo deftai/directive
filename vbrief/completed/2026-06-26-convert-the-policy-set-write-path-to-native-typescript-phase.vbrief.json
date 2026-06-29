@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
+    "description": "Story vBRIEF 4 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
   },
   "plan": {
     "id": "py-purge-policy-set-ts",
     "title": "Convert the policy-set write path to native TypeScript (Phase 1)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The policy-set write path is still served by a loadPythonScriptHandler route in packages/cli/src/dispatch.ts (~line 501) that shells into scripts/policy_set.py, while the policy read path is already native TypeScript. This story ports the policy write path to TypeScript so editing a typed policy field no longer requires Python.",
       "ImplementationPlan": "- Implement a native TypeScript policy-set write handler that mirrors scripts/policy_set.py, including the audit row written to meta/policy-changes.log.\n- Replace the dispatch.ts policy-set route at ~line 501 with the native handler and add a test asserting a write updates the typed field and appends the audit row.",

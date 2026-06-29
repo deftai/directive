@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
+    "description": "Story vBRIEF 3 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
   },
   "plan": {
     "id": "py-purge-pack-migrate-ts",
     "title": "Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The pack-migrate-skills, -rules, -strategies, -patterns, and -swarm-spec verbs are still served by loadPythonScriptHandler routes in packages/cli/src/dispatch.ts (lines ~491-499), shelling into Python pack_migrate_*.py scripts. This story replaces those five routes with native TypeScript handlers so the pack-render surface no longer depends on bundled Python.",
       "ImplementationPlan": "- Implement native TypeScript pack-migrate handlers (skills, rules, strategies, patterns, swarm-spec) under packages/cli/src that reproduce the render/slice output contract of the current pack_migrate_*.py scripts.\n- Replace the five loadPythonScriptHandler routes at dispatch.ts ~491-499 with the new native handlers and add dispatch tests asserting each verb routes to TypeScript rather than Python.",

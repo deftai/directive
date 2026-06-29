@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
+    "description": "Story vBRIEF 1 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
   },
   "plan": {
     "id": "py-purge-gate-mandate-cleanup",
     "title": "Remove the deft-install gate mandate from the preamble surfaces (Phase 0)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The DEFT-PREAMBLE in main.md line 2, the main-001 rule in the rules pack, content/templates/agent-prompt-preamble.md, the setup/sync skills, and CONTRIBUTING all currently mandate running the frozen gate before any other instruction. Under the settled deprecate-by-disuse decision (#1933 Option 1) that mandate is dropped and replaced with a cold-start fallback that points the operator at UPGRADING.md when deft or directive will not run.",
       "ImplementationPlan": "- Edit the main.md line 2 source file, content/templates/agent-prompt-preamble.md, the main-001 rule config in content/packs/rules/rules-pack-0.1.json, and the gate citations in the setup/sync skills and CONTRIBUTING.md so each one replaces the gate mandate with the 'if deft/directive does not run -> read UPGRADING.md' fallback.\n- Refresh content/templates/agents-entry.md so no run bootstrap, run gate, or deft-install gate appears as a load-bearing operator path, then run task agents:refresh to regenerate the consumer AGENTS.md and task verify:encoding as evidence that no mojibake was introduced.",

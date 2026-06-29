@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 6 decomposed from proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
+    "description": "Story vBRIEF 6 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
   },
   "plan": {
     "id": "py-purge-setup-ghx-ts-or-drop",
     "title": "Port setup:ghx to a native TypeScript verb and mark ghx a supported consumer capability (Phase 1)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "Decision: PORT to TypeScript, not drop. The ghx runtime preference is already TS-native -- packages/core/src/scm/binary.ts resolveBinary prefers ghx over gh -- so consumers already benefit automatically when ghx is on PATH; the only gap is a supported, discoverable way to install it. This story reimplements the consent-gated installer as a native directive setup:ghx dispatch verb, removes the scripts/setup_ghx.py Python entrypoint from the setup tasks, documents ghx as a supported proxy in README and the SCM docs, and adds a setup-time nudge when gh is present but ghx is missing.",
       "ImplementationPlan": "- Add a native TypeScript setup:ghx handler routed in packages/cli/src/dispatch.ts that reuses defaultWhich/resolveBinary for PATH detection, prompts for explicit consent defaulting to no, runs the host-aware upstream installer (curl pipe bash on unix, irm pipe iex on Windows), and returns the three-state exit; remove the scripts/setup_ghx.py invocations from the Taskfile setup and setup:ghx tasks so the verb is the single entrypoint.\n- Add a setup-time nudge in the --check path that detects gh-present-but-ghx-missing and points the operator at directive setup:ghx, document ghx as a supported proxy in README.md and content/scm/github.md, and add a dispatch test asserting the verb routes to TypeScript and preserves consent-default-no.",

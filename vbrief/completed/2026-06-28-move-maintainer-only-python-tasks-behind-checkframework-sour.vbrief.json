@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json"
+    "description": "Story vBRIEF 2 decomposed from completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json"
   },
   "plan": {
     "id": "story-task-surface-maintainer-separation",
     "title": "Move maintainer-only Python tasks behind check:framework-source",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
+    "planRef": "completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
     "narratives": {
       "Description": "tasks/core.yml and tasks/ci.yml still run pytest, ruff, and ci_local.py via uv on paths that ship to consumer installs. This story ensures those tasks are not reachable from the default consumer check aggregate — only from check:framework-source or an explicit maintainer include — so operators on npm installs never hit Python through task.",
       "ImplementationPlan": "Confirm Taskfile.yml consumer check aggregate excludes core.yml and ci.yml Python lanes; wire maintainer-only includes to check:framework-source only.\nRemove or relocate tasks/ci.yml ci:local python bridge if still consumer-visible; align with completed py-purge-ci-local-ts release pre-flight story.\nRun task verify:no-task-runtime and task check on consumer projection paths.",

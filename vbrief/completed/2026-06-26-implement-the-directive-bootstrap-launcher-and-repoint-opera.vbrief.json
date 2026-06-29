@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 10 decomposed from proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
+    "description": "Story vBRIEF 10 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
   },
   "plan": {
     "id": "py-purge-directive-bootstrap",
     "title": "Implement the directive bootstrap launcher and repoint operator docs (Phase 4)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The settled decision is to implement a directive bootstrap thin launcher rather than a skill-only setup policy. This story adds a bootstrap handler in dispatch.ts that deposits if absent, carries phase intent and a deliberate re-entry signal, and hands off to deft-directive-setup, then updates the setup skill and operator docs. It runs in parallel with the other phases since it is additive.",
       "ImplementationPlan": "- Add a bootstrap handler in packages/cli/src/dispatch.ts that deposits when absent, passes phase intent plus a deliberate-re-entry signal, and hands off to the deft-directive-setup skill, with a dispatch test covering the new verb.\n- Update content/skills/deft-directive-setup/SKILL.md for the launcher hand-off and repoint content/UPGRADING.md and README.md citations from run bootstrap, project, and spec to directive bootstrap.",

@@ -1,0 +1,159 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2022",
+    "updated": "2026-06-29T14:00:00Z"
+  },
+  "plan": {
+    "title": "Python purge readiness — execution tracker (supersedes #2001)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Python purge readiness — execution tracker (supersedes #2001)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2022",
+      "Overview": "> **Purpose.** The pre-#1860 integration gate, rewritten clean. All decisions are\n> settled; this issue is **pure execution**, ordered by dependency. When the phases\n> below are green, #1860 (big-bang Python delete) is unblocked.\n>\n> **Decision record (immutable):** preserved on #2001 —\n> [gate re-decision](https://github.com/deftai/directive/issues/1933#issuecomment-4811038059) ·\n> [§1/§2 rescope](https://github.com/deftai/directive/issues/2001#issuecomment-4811038164) ·\n> [§3 → #2013](https://github.com/deftai/directive/issues/2001#issuecomment-4810721079) ·\n> [§6 bootstrap](https://github.com/deftai/directive/issues/2001#issuecomment-4810485514) ·\n> [Python ledger](https://github.com/deftai/directive/issues/2001#issuecomment-4810720223)\n\n## Settled decisions (baked in — not re-litigated here)\n\n- **Gate:** deprecate-by-disuse (#1933 Option 1). The frozen Go `gate` subcommand stays\n  in place, **unused**; the frozen binary is **not** reopened to remove it. `deft doctor`\n  (node present) + agent `command not found` → `UPGRADING.md` (cold start) are the\n  health/probe surfaces.\n- **`migrate:vbrief` (`migrate_vbrief.py`):** out of scope here. The TS-port-vs-cutoff\n  decision is owned by the **#2013** umbrella (v0.20 spec-authority model) — its output\n  contract is spec-authority dependent. It is the one Bucket-A holdout: **not** in this\n  issue's Phase 1, and **not** deletable by #1860 until #2013 resolves it.\n- **Bootstrap:** implement the `directive bootstrap` thin launcher (not skill-only).\n\n## Execution order (load-bearing)\n\n**Phase 0 (independent) → Phase 1 convert → Phase 2 rewire → Phase 3 unbundle → #1860 delete.**\nPhase 4 (bootstrap) runs in parallel.\n\nThe ordering is a hard dependency, not a preference: the bundled `scripts/` tree is still\nload-bearing on the consumer path — `deft <verb>` shells into it via `loadPythonScriptHandler`\n(6 routes in `packages/cli/src/dispatch.ts`) **and** the consumer Taskfile calls\n`python3 scripts/*.py`. Removing the bundle (Phase 3) before those are converted (Phase 1)\nand rewired (Phase 2) breaks every consumer. Phase 3's no-Python greenfield smoke is the\n**verification** that Phases 1–2 landed, not a standalone task.\n\n---\n\n### Phase 0 — Gate / preamble cleanup  *(no dependencies)*\n\n- [ ] Remove the `deft-install gate` mandate from `main.md` (line 2), rules pack `main-001`,\n      `content/templates/agent-prompt-preamble.md`, setup/sync skills, CONTRIBUTING →\n      replace with \"if `deft`/`directive` does not run → read `UPGRADING.md`\"\n- [ ] Extend `deft doctor` with a `precutover` line — ~15-line wire-up of the existing TS\n      predicates in `packages/core/src/vbrief-validate/precutover.ts`\n      (`isDeprecationRedirect`, `isCurrentGeneratedSpecification`); not a port\n- [ ] Refresh `content/templates/agents-entry.md`: no `run bootstrap` / `run gate` /\n      `deft-install gate` as load-bearing operator paths\n\n### Phase 1 — Convert Bucket A Python → native TS  *(gates Phase 2 & 3)*\n\n> Excludes `migrate_vbrief.py` → tracked in **#2013** (spec-authority dependent).\n\n- [ ] `pack-migrate-{skills,rules,strategies,patterns,swarm-spec}` — replace the 5\n      `loadPythonScriptHandler(...)` routes in `dispatch.ts` (~491–499) with native TS\n- [ ] `policy-set` write path (`policy_set.py`, `dispatch.ts` ~501) — read path already TS\n- [ ] `relocate` (`relocate.py` + `_relocate_snapshot.py` + `_relocate_states.py`) — TS or\n      drop (legacy back-compat, #1912)\n- [ ] `setup_ghx` (`setup_ghx.py`, `task setup:ghx`) — TS or drop (opt-in)\n- [ ] `ci_local.py` (maintainer release pre-flight) — promote TS `task check` to release\n      Step-5 primary, drop the `packages/core/src/release/python-bridge.ts` shim\n\n### Phase 2 — Rewire consumer task surface  *(depends on Phase 1)*\n\n- [ ] `.deft/core/Taskfile.yml` + `tasks/*`: zero `python3` / `uv run` / `scripts/*.py`\n      entrypoints on the consumer deposit path → `deft <verb>`\n- [ ] Maintainer-only Python tasks clearly separated (#1813 contributor path) or removed\n\n### Phase 3 — npm deposit Python-free  *(depends on Phase 1 + 2; #1967 / #1984 unwind)*\n\n- [ ] `@deftai/directive-content` prepack stops bundling `scripts/` (currently bundled by\n      #1984) and any other Python-only tree\n- [ ] `directive init` / `update` deposit contains no `.py` files and no repo-root `run` shim\n- [ ] **Verification:** greenfield smoke — `directive init` + `task check` on a machine with\n      **no Python installed** passes (proves Phases 1–2 removed every consumer Python dep)\n\n### Phase 4 — Bootstrap  *(parallel; story s6)*\n\n- [ ] Add a `bootstrap` handler in `dispatch.ts` (deposit-if-absent + phase intent +\n      deliberate-re-entry signal + hand off to `deft-directive-setup`), with a dispatch test\n- [ ] Update `content/skills/deft-directive-setup/SKILL.md` for the launcher hand-off\n      (full chain for new users; `--project`/`--strategy` jump-in for re-entry; prompt\n      reconfigure-or-keep unless `--force`/`--reconfigure`)\n- [ ] Repoint operator docs (`content/UPGRADING.md`, `README.md`, any `run bootstrap` /\n      `project` / `spec` citation) to `directive bootstrap`\n\n---\n\n*(Then **#1860** deletes Bucket B — `run`, `run.py`, `scripts/`, `pyproject.toml`,\n`uv.lock`, Python tests, parity harnesses, the framework-source pytest/ruff/mypy lanes.\n**Carve-out:** `migrate_vbrief.py` is excluded from #1860's delete until **#2013** resolves\nits port-vs-cutoff decision — #1860 must not delete it before then.)*\n\n## Python removal ledger\n\n**Durable fact:** the frozen Go installer is permanent infrastructure (rebuildable any time)\nAND has **zero Python dependency** — it fetches GitHub's auto-generated source tarball and\nflattens it itself; it does NOT consume any `dist/*.zip`. So #1860 can delete all Python\n(including `build_dist.py`) without touching the bridge.\n\n### Bucket A — replace before #1860 (Phase 1 above)\n`pack-migrate-*`, `policy_set.py` (write), `relocate.py` (+ snapshots/states), `setup_ghx.py`,\n`ci_local.py`. **Holdout:** `migrate_vbrief.py` → #2013.\n\n### Bucket B — deleted BY #1860 (no port; assert delete-safety only)\n`build_dist.py` (+ `dist/*.zip`, orphaned legacy), `resolve_version.py` (vestigial; runtime\nversion resolution already TS), `tests/` (~297 `.py`), parity harnesses (~78 `*parity*.ts` +\nPython sides), framework-source self-test lane (`core:test` / `test:coverage` pytest,\n`core:fmt` ruff/black, `core:lint` ruff/mypy), `run` / `run.py` / `pyproject.toml` /\n`uv.lock`, inline `python -c` maintainer helpers (`core:validate` / `clean` / `stats`),\nPython-only internal helpers (`scm.py`, `gh_rest.py`, `_project_context.py`, `_*_cli.py`).\n\n## Explicit non-scope (other issues)\n\n| Work | Issue |\n|------|-------|\n| Big-bang Python delete | **#1860** (blocked on this issue) |\n| Go gate *decision* / frozen-installer contract | **#1933**, **#1912** |\n| `migrate:vbrief` decision (spec-authority dependent) | **#2013** |\n| Go source/pipeline deletion | **#1979** (deferred; default: keep) |\n| npm init / update / migrate | **#1942**, **#1941** (done) |\n| Freeze + soak runbook | **#1972** |\n\n## Acceptance\n\nWhen all phases above are green (Bucket A empty):\n\n1. Close this issue\n2. Unblock and execute **#1860** — *except* `migrate_vbrief.py`, which stays until **#2013**\n   closes its migrate decision\n3. #1972 step 4 completion = #1860 merged + zero Python confirmed (modulo the #2013 holdout)\n\n## Refs\n\n- Supersedes: #2001 (decision record preserved there)\n- Runbook: #1972 (step 4) · Execution: #1860\n- Gate decision: #1933 (Option 1) · Frozen installer: #1912\n- `migrate:vbrief` / spec-authority umbrella: **#2013**\n- TS migration epic: #1530 · Parent consumption model: #1669\n",
+      "ExecutionStatus": "## Execution status (synced 2026-06-29)\n\n| Phase | Status | Evidence |\n|-------|--------|----------|\n| 0 Gate/preamble | **Done** | Completed child scopes; v0.59.0 |\n| 1 Bucket A → TS | **Done** | pack-migrate, policy-set, relocate drop, setup:ghx, ci bridge; v0.59.0–v0.60.0 |\n| 2 Consumer rewire | **Done** | v0.60.0 CHANGELOG; `check:consumer` TS-only; verify:no-task-runtime PASS |\n| 3 npm deposit Python-free | **Done** | v0.60.0; greenfield smoke CI |\n| 4 bootstrap | **Done** | v0.60.0 `directive bootstrap` |\n| 5 conversion-hole audit | **Done** | Report on #1860 (2026-06-28); operator sign-off 2026-06-29 |\n\n**#1860:** Unblocked for Bucket B delete dispatch (operator-authorized).\n\n**Carve-out update:** Consumer `migrate:vbrief` holdout retired by #2068 / #2074 (frozen v0.59.0 path). `scripts/migrate_vbrief.py` is maintainer-only until #1860 Bucket B delete.\n\n**Post-audit fixes:** #2049 deposit hooks → #2080; `framework:check-updates` TS-native (#2069).\n"
+    },
+    "items": [
+      {
+        "title": "Remove the  mandate from  (line 2), rules pack ,",
+        "status": "completed"
+      },
+      {
+        "title": "Extend  with a  line — ~15-line wire-up of the existing TS",
+        "status": "completed"
+      },
+      {
+        "title": "Refresh : no  /  /",
+        "status": "completed"
+      },
+      {
+        "title": "— replace the 5",
+        "status": "completed"
+      },
+      {
+        "title": "write path (,  ~501) — read path already TS",
+        "status": "completed"
+      },
+      {
+        "title": "( +  + ) — TS or",
+        "status": "completed"
+      },
+      {
+        "title": "(, ) — TS or drop (opt-in)",
+        "status": "completed"
+      },
+      {
+        "title": "(maintainer release pre-flight) — promote TS  to release",
+        "status": "completed"
+      },
+      {
+        "title": "+ : zero  /  /",
+        "status": "completed"
+      },
+      {
+        "title": "Maintainer-only Python tasks clearly separated (#1813 contributor path) or removed",
+        "status": "completed"
+      },
+      {
+        "title": "prepack stops bundling  (currently bundled by",
+        "status": "completed"
+      },
+      {
+        "title": "/  deposit contains no  files and no repo-root  shim",
+        "status": "completed"
+      },
+      {
+        "title": "**Verification:** greenfield smoke —  +  on a machine with",
+        "status": "completed"
+      },
+      {
+        "title": "Add a  handler in  (deposit-if-absent + phase intent +",
+        "status": "completed"
+      },
+      {
+        "title": "Update  for the launcher hand-off",
+        "status": "completed"
+      },
+      {
+        "title": "Repoint operator docs (, , any  /",
+        "status": "completed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)"
+      },
+      {
+        "uri": "completed/2026-06-26-remove-the-deft-install-gate-mandate-from-the-preamble-surfa.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Remove the deft-install gate mandate from the preamble surfaces (Phase 0)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-extend-deft-doctor-with-a-precutover-status-line-phase-0.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Extend deft doctor with a precutover status line (Phase 0)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-convert-the-five-pack-migrate-dispatch-routes-to-native-type.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-convert-the-policy-set-write-path-to-native-typescript-phase.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Convert the policy-set write path to native TypeScript (Phase 1)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-port-or-drop-the-relocate-verb-so-it-carries-no-python-phase.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port or drop the relocate verb so it carries no Python (Phase 1)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-port-or-drop-the-setupghx-opt-in-installer-so-it-carries-no.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Port or drop the setup:ghx opt-in installer so it carries no Python (Phase 1)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-promote-typescript-task-check-as-the-release-pre-flight-and.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Promote TypeScript task check as the release pre-flight and drop the Python bridge (Phase 1)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-rewire-the-consumer-task-surface-to-deft-verbs-with-zero-pyt.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Rewire the consumer task surface to deft verbs with zero Python entrypoints (Phase 2)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-make-the-npm-deposit-python-free-and-prove-it-with-a-greenfi.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Make the npm deposit Python-free and prove it with a greenfield smoke (Phase 3)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-26-implement-the-directive-bootstrap-launcher-and-repoint-opera.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Implement the directive bootstrap launcher and repoint operator docs (Phase 4)",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-28-2068-decide-migrate-vbrief-ts-port-or-pre-v020-cutoff.vbrief.json",
+        "type": "x-vbrief/plan",
+        "title": "Wave 2: migrate:vbrief disposition decision (#2068) — retires #1860 carve-out",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    }
+  }
+}

@@ -1,13 +1,13 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Story vBRIEF 7 decomposed from proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
+    "description": "Story vBRIEF 7 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json"
   },
   "plan": {
     "id": "py-purge-ci-local-ts",
     "title": "Promote TypeScript task check as the release pre-flight and drop the Python bridge (Phase 1)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The maintainer release pre-flight still runs scripts/ci_local.py through the packages/core/src/release/python-bridge.ts shim. This story promotes the TypeScript task check to the primary release Step-5 pre-flight and removes the Python bridge so the release flow carries no Python pre-flight dependency.",
       "ImplementationPlan": "- Rewire the release Step-5 pre-flight to call the native TypeScript task check path directly instead of ci_local.py via the python-bridge shim.\n- Delete packages/core/src/release/python-bridge.ts and its references, then add or update a release test asserting Step-5 uses the TypeScript pre-flight.",

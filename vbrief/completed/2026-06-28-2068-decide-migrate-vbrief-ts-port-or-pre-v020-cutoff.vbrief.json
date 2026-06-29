@@ -7,7 +7,7 @@
     "id": "migrate-vbrief-decision-2068",
     "title": "Decide and execute migrate:vbrief -- TS port or pre-v0.20 cutoff (retires #1860 carve-out)",
     "status": "completed",
-    "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The migrate:vbrief verb still dispatches to scripts/migrate_vbrief.py -- the sole intentional consumer-path Python entrypoint carved out of #1860's bulk delete. This story resolves the open decision: either port the migrator to TypeScript behind the directive CLI, or document a hard pre-v0.20 legacy cutoff and remove the verb from the consumer surface. #2013 Wave 0 (locked) and Wave 1 (#1502 + #2005, closed 2026-06-28) settled the spec-authority output contract the migrator depends on, so the remaining unknown is exactly this port-vs-cutoff call.",
       "ImplementationPlan": "- Evaluate the two options against pre-v0.20 consumer impact and record the operator-signed decision, identifying whether the TS module or the cutoff doc is the resulting source change.\n- If porting, implement the native directive migrate:vbrief module preserving the v0.20 cutover output contract + #2005 fidelity gate, plus a fixture migration test; rewire tasks/migrate.yml off `uv run python`.\n- If cutting, remove the verb from tasks/migrate.yml and the consumer task surface and document the pre-v0.20 cutoff in UPGRADING.md.\n- Verify with `task check` that no remaining code path shells out to scripts/migrate_vbrief.py; confirm the #1860 carve-out is removed and zero-Python-on-consumers is demonstrable.",
