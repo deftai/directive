@@ -76,6 +76,21 @@ describe("evaluateCursorTier1", () => {
     expect(result.message).toContain("required skill file not found");
   });
 
+  it("preserves accumulated marker findings when a later target hits a config error", () => {
+    root = mkdtempSync(join(tmpdir(), "cursor-tier1-combined-"));
+    const present = { path: "a/PRESENT.md", label: "first surface", markers: ["alpha", "beta"] };
+    const absent = { path: "b/ABSENT.md", label: "second surface", markers: ["gamma"] };
+    // First target exists but drops a marker; second target file is absent.
+    writeTarget(root, present.path, bodyWithAllMarkers(["alpha"]));
+    const result = evaluateCursorTier1(root, { targets: [present, absent] });
+    // Config error wins the exit code, but the earlier marker finding is not discarded.
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("required skill file not found");
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]!.path).toBe(present.path);
+    expect(result.findings[0]!.missingMarkers).toContain("beta");
+  });
+
   it("exits 2 when project root is not a directory", () => {
     const result = evaluateCursorTier1(join(tmpdir(), "definitely-not-a-real-dir-xyz"));
     expect(result.code).toBe(2);

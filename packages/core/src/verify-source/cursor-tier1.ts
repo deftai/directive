@@ -94,7 +94,7 @@ export function evaluateCursorTier1(
     if (!existsSync(full)) {
       return {
         code: 2,
-        findings: [],
+        findings: [...findings],
         message:
           `verify_cursor_tier1: required skill file not found: ${target.path}\n` +
           "  Recovery: run from the framework source root, or update CURSOR_TIER1_TARGETS if the skill moved.",
@@ -108,7 +108,7 @@ export function evaluateCursorTier1(
       const msg = err instanceof Error ? err.message : String(err);
       return {
         code: 2,
-        findings: [],
+        findings: [...findings],
         message: `verify_cursor_tier1: could not read ${target.path}: ${msg}`,
         stream: "stderr",
       };
