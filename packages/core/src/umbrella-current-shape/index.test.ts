@@ -273,4 +273,15 @@ describe("parseCommentsFromGhStdout", () => {
       1,
     );
   });
+
+  it("skips malformed entries and blank stdout", () => {
+    expect(parseCommentsFromGhStdout("")).toEqual([]);
+    expect(
+      parseCommentsFromGhStdout(JSON.stringify([{ id: "bad", body: 1 }, null, { foo: 1 }])),
+    ).toEqual([]);
+  });
+
+  it("throws on unrecoverable paginated JSON", () => {
+    expect(() => parseCommentsFromGhStdout("[{broken")).toThrow();
+  });
 });
