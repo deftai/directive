@@ -19,10 +19,11 @@ export type TrustLevel = "internal" | "external";
 /** Schema-conformant vBRIEF reference (`VBriefReference` in vbrief-core.schema.json). */
 export interface VBriefReference {
   readonly uri: string;
-  readonly type: `${typeof VBRIEF_REFERENCE_PREFIX}${string}` | KnownReferenceType | string;
+  readonly type: `${typeof VBRIEF_REFERENCE_PREFIX}${string}` | KnownReferenceType;
   readonly title?: string;
   readonly description?: string;
   readonly tags?: readonly string[];
+  /** Canonical JSON key per vbrief.md TrustLevel (#480); not camelCase `trustLevel`. */
   readonly TrustLevel?: TrustLevel;
   readonly [key: `x-${string}`]: unknown;
 }

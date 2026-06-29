@@ -12,7 +12,7 @@
 
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { VALID_STATUSES, VBRIEF_VERSION } from "@deftai/directive-types";
+import { type GateExitCode, VALID_STATUSES, VBRIEF_VERSION } from "@deftai/directive-types";
 
 export const EXIT_OK = 0;
 export const EXIT_DRIFT = 1;
@@ -22,7 +22,7 @@ export const CANONICAL_SCHEMA_REL = "content/vbrief/schemas/vbrief-core.schema.j
 export const PUBLISHED_SCHEMA_REL = "packages/types/schemas/vbrief-core-0.6.schema.json";
 
 export interface ContractDriftResult {
-  readonly code: number;
+  readonly code: GateExitCode;
   readonly message: string;
   readonly stream: "stdout" | "stderr";
 }
