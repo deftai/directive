@@ -164,31 +164,15 @@ jobs:
       # pipe (#1070 supply-chain quick-win). Both the BINARY and the
       # INSTALLER SCRIPT itself are pinned to ${GHX_VERSION} (closes
       # Greptile #950 P2), AND the installer bytes by SHA256 so an
-      # immutable-tag force-move fails the step rather than executing
-      # tampered code. Mirrors the Linux step above (same pins, same
-      # already-on-PATH short-circuit, same soft-warn-on-failure
-      # contract). Both branches MUST stay in sync; a future ghx
-      # security advisory only requires bumping the workflow-level
-      # `env.GHX_VERSION` + the two `env.GHX_INSTALL_*_SHA256` pins and
-      # `scripts/setup_ghx.py::GHX_VERSION`.
-      #
-      # `continue-on-error: true` (closes Greptile #950 iteration-2 P1):
-      # PowerShell `try/catch` only intercepts terminating exceptions --
-      # a bare `exit N` inside the installer script (on a network /
-      # permission failure) bypasses the catch and terminates the
-      # PowerShell process with the non-zero exit code. Without
-      # `continue-on-error`, that propagates to the job and fails the
-      # Windows CI run, breaking parity with the Linux step's soft-warn
-      # fallback. Per the documented #884 contract the ghx pre-install
-      # MUST be best-effort (the `gh` fallback through scripts/scm.py
-      # keeps everything working), so `continue-on-error: true` is the
-      # GitHub-Actions native equivalent of the Linux pipe-fallthrough.
-      - name: Install ghx (cache proxy for gh) -- #884 / #1070
+      # immutable-tag force-move fails the job rather than executing
+      # tampered code (#1328). Download + verify is fail-closed; the
+      # dot-source install step below keeps the #884 best-effort contract
+      # via `continue-on-error: true` (Greptile #950 iteration-2 P1).
+      - name: Download and verify ghx installer -- #1070 / #1328
         shell: pwsh
-        continue-on-error: true
         run: |
           if (Get-Command ghx -ErrorAction SilentlyContinue) {
-            Write-Host "ghx already on PATH at $((Get-Command ghx).Source); skipping install."
+            Write-Host "ghx already on PATH at $((Get-Command ghx).Source); skipping download."
             exit 0
           }
           $installerUrl = "https://raw.githubusercontent.com/brunoborges/ghx/$env:GHX_VERSION/install.ps1"
@@ -201,15 +185,37 @@ jobs:
           }
           # Verify the installer matches the pinned SHA256 BEFORE any
           # execution. A mismatch on an immutable tag indicates upstream
-          # tampering or a CI-side env-var drift -- either way, refuse
-          # to dot-source.
+          # tampering or a CI-side env-var drift -- fail closed (#1328).
           $actual = (Get-FileHash -Algorithm SHA256 -Path $installer).Hash.ToLowerInvariant()
           $expected = $env:GHX_INSTALL_PS1_SHA256.ToLowerInvariant()
           if ($actual -ne $expected) {
-            Write-Host "::warning title=ghx install (#1070)::install.ps1 SHA256 mismatch (expected $expected, got $actual); refusing to execute. gh fallback remains in effect."
+            Write-Host "::error title=ghx install (#1070)::install.ps1 SHA256 mismatch (expected $expected, got $actual); refusing to execute."
             Remove-Item -Force $installer -ErrorAction SilentlyContinue
+            exit 1
+          }
+          "GHX_INSTALLER_PATH=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # `continue-on-error: true` (closes Greptile #950 iteration-2 P1):
+      # PowerShell `try/catch` only intercepts terminating exceptions --
+      # a bare `exit N` inside the installer script (on a network /
+      # permission failure) bypasses the catch and terminates the
+      # PowerShell process with the non-zero exit code. Without
+      # `continue-on-error`, that propagates to the job and fails the
+      # Windows CI run. Per the documented #884 contract the ghx
+      # pre-install MUST be best-effort (the `gh` fallback through
+      # scripts/scm.py keeps everything working), so `continue-on-error:
+      # true` is scoped to this execute step only -- checksum verify
+      # above remains fail-closed (#1328).
+      - name: Install ghx (cache proxy for gh) -- #884
+        shell: pwsh
+        continue-on-error: true
+        if: env.GHX_INSTALLER_PATH != ''
+        run: |
+          if (Get-Command ghx -ErrorAction SilentlyContinue) {
+            Write-Host "ghx already on PATH at $((Get-Command ghx).Source); skipping install."
             exit 0
           }
+          $installer = $env:GHX_INSTALLER_PATH
           # Dot-source (`.`) preserves caller scope so any `$env:PATH`
           # mutations the installer makes propagate to the post-install
           # `Get-Command ghx` check below. The call operator (`&`) would

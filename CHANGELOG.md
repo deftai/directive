@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Triage subscribe reconciliation hint (#1416).** After subscribe or unsubscribe, the stderr hint now points at `task triage:bootstrap` instead of the non-existent `--resume` flag, so operators can reconcile cached entries without an argparse failure. Closes #1416.
 
+- **CI fails closed on ghx installer checksum mismatch (#1328).** The Windows ghx pre-install workflow now splits download/verify from execution: SHA256 mismatch on `install.ps1` fails the verify step (no `continue-on-error`), while the dot-source install step keeps the #884 best-effort soft-fail contract. Closes #1328.
+
 - **Biome export-order lint on verify-source barrel (#2091).** Reorders named `contract-drift` re-exports so `task ts:check-lane` passes. Closes #2091.
 
 ### Removed
