@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Issue ingest preserves inline code in acceptance-criteria titles (#1276).** `task issue:ingest` no longer strips backtick-delimited inline code from `plan.items[].title` when parsing acceptance criteria; narrative Overview was already correct. Closes #1276.
+
 - **Biome export-order lint on verify-source barrel (#2091).** Reorders named `contract-drift` re-exports so `task ts:check-lane` passes. Closes #2091.
 
 ### Removed
