@@ -3,12 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  detectPreCutover,
   detectPreCutoverLegacy,
   frozenPreCutoverMigrationGuidance,
   isCurrentGeneratedSpecification,
   isDeprecationRedirect,
   isGeneratedSpecificationExport,
   missingLifecycleFolders,
+  renderPrecutoverLine,
 } from "./precutover.js";
 
 const temps: string[] = [];
@@ -96,6 +98,35 @@ describe("precutover helpers", () => {
     const content =
       "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n";
     expect(isCurrentGeneratedSpecification(base, content)).toBe(true);
+  });
+
+  it("detectPreCutover aggregates legacy markdown and missing lifecycle reasons", () => {
+    const base = mkdtempSync(join(tmpdir(), "precutover-"));
+    temps.push(base);
+    writeFileSync(join(base, "SPECIFICATION.md"), "# spec\n", "utf8");
+    mkdirSync(join(base, "vbrief"), { recursive: true });
+    const result = detectPreCutover(base);
+    expect(result.preCutover).toBe(true);
+    expect(result.reasons.some((r) => r.includes("SPECIFICATION.md"))).toBe(true);
+    expect(result.reasons.some((r) => r.includes("lifecycle folder"))).toBe(true);
+  });
+
+  it("renderPrecutoverLine prints frozen guidance when pre-cutover", () => {
+    const base = mkdtempSync(join(tmpdir(), "precutover-"));
+    temps.push(base);
+    writeFileSync(join(base, "PROJECT.md"), "# project\n", "utf8");
+    const line = renderPrecutoverLine(base);
+    expect(line).toContain("Pre-cutover:");
+    expect(line).toContain("v0.59.0");
+  });
+
+  it("renderPrecutoverLine reports clean state for greenfield layout", () => {
+    const base = mkdtempSync(join(tmpdir(), "precutover-"));
+    temps.push(base);
+    for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(base, "vbrief", folder), { recursive: true });
+    }
+    expect(renderPrecutoverLine(base)).toContain("Pre-cutover: none");
   });
 
   it("frozenPreCutoverMigrationGuidance cites v0.59.0 and #2068", () => {
