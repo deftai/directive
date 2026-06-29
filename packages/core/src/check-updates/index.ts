@@ -109,7 +109,7 @@ export function resolveProbeCurrentVersion(projectRoot: string, frameworkRoot?: 
   return resolveVersion(frameworkRoot).replace(/^v/, "");
 }
 
-export function resolveUpstreamUrl(projectRoot: string): string | null {
+export function resolveUpstreamUrl(projectRoot: string): string {
   const manifest = readVendoredManifest(projectRoot);
   if (manifest) {
     for (const key of MANIFEST_UPSTREAM_URL_KEYS) {
@@ -202,9 +202,6 @@ export function runRemoteProbe(options: RunRemoteProbeOptions): RemoteProbeResul
   }
   const timeoutSec = resolveProbeTimeout(env);
   const upstreamUrl = resolveUpstreamUrl(options.projectRoot);
-  if (!upstreamUrl) {
-    return { status: "no-upstream", current };
-  }
   const git = options.git ?? defaultGitRunner();
   const tagsResult = git.lsRemoteTags(upstreamUrl, Math.ceil(timeoutSec * 1000));
   if (tagsResult === "timeout") {

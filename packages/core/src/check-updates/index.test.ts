@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEFT_UPSTREAM_URL,
   emitCheckUpdates,
@@ -79,6 +79,14 @@ describe("maxSemverTag", () => {
 
   it("returns null for empty list", () => {
     expect(maxSemverTag([])).toBeNull();
+  });
+
+  it("orders prerelease suffixes lexicographically", () => {
+    expect(maxSemverTag(["v1.0.0-alpha", "v1.0.0-beta"])).toBe("v1.0.0-beta");
+  });
+
+  it("returns a tag when all candidates are equal semver", () => {
+    expect(maxSemverTag(["v1.0.0", "v1.0.0"])).toBe("v1.0.0");
   });
 });
 
@@ -379,5 +387,65 @@ describe("emitCheckUpdates text mode", () => {
     mkdirSync(join(root, "deft"), { recursive: true });
     writeFileSync(join(root, "deft", "VERSION"), "tag: v0.8.0\n", "utf8");
     expect(resolveProbeCurrentVersion(root)).toBe("0.8.0");
+  });
+
+  it("formats NO-TAGS in text mode", () => {
+    const lines: string[] = [];
+    emitCheckUpdates(
+      { status: "no-tags", current: "1.0.0", upstream_url: DEFT_UPSTREAM_URL },
+      { jsonMode: false, writeOut: (t) => lines.push(t) },
+    );
+    expect(lines.join("")).toContain("NO-TAGS");
+    expect(lines.join("")).toContain(`upstream=${DEFT_UPSTREAM_URL}`);
+  });
+
+  it("formats ERROR with empty optional fields", () => {
+    const lines: string[] = [];
+    emitCheckUpdates(
+      { status: "error", current: "1.0.0" },
+      { jsonMode: false, writeOut: (t) => lines.push(t) },
+    );
+    expect(lines.join("")).toContain("ERROR current=v1.0.0");
+    expect(lines.join("")).toContain("upstream=");
+    expect(lines.join("")).toContain("error=unknown");
+  });
+
+  it("skips corrupt vendored manifest files", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-corrupt-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "\0not-valid-manifest", "utf8");
+    expect(resolveProbeCurrentVersion(root, process.cwd())).toMatch(/\d|dev/);
+  });
+
+  it("compares versions when current already has a v prefix", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-vprefix-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "VERSION"),
+      "tag: v1.0.0\nurl: https://github.com/deftai/directive.git\n",
+      "utf8",
+    );
+    const result = runRemoteProbe({
+      projectRoot: root,
+      env: {},
+      git: fakeGit(["v999.0.0"]),
+    });
+    expect(result.status).toBe("behind");
+  });
+
+  it("uses default stdout writer when writeOut is omitted", () => {
+    const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      const code = runCheckUpdates([], {
+        projectRoot: process.cwd(),
+        env: { DEFT_NO_NETWORK: "1" },
+      });
+      expect(code).toBe(0);
+      expect(writeSpy).toHaveBeenCalled();
+    } finally {
+      writeSpy.mockRestore();
+    }
   });
 });

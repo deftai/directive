@@ -63,6 +63,15 @@ describe("defaultGitRunner", () => {
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toEqual([]);
   });
 
+  it("treats missing stdout as empty", () => {
+    spawnSyncMock.mockReturnValue({
+      status: 0,
+      stdout: undefined,
+      stderr: "",
+    });
+    expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toEqual([]);
+  });
+
   it("returns os-error when spawnSync throws", () => {
     spawnSyncMock.mockImplementation(() => {
       throw new Error("boom");
