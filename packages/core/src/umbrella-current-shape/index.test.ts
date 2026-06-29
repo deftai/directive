@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as scm from "../scm/call.js";
 import {
   CURRENT_SHAPE_HEADER_RE,
   detectSections,
@@ -8,6 +9,7 @@ import {
   NO_CURRENT_SHAPE_MESSAGE,
   parseCurrentShapeArgv,
   runCurrentShape,
+  sectionsRecord,
   selectCurrentShapeComment,
 } from "./index.js";
 
@@ -228,5 +230,98 @@ describe("parseCurrentShapeArgv", () => {
 
   it("reports unknown flags", () => {
     expect(parseCurrentShapeArgv(["--nope"]).passthroughError).toMatch(/unknown flag/);
+  });
+
+  it("parses --repo= form and argv errors", () => {
+    expect(parseCurrentShapeArgv(["2066", "--repo=deftai/directive"]).repo).toBe(
+      "deftai/directive",
+    );
+    expect(parseCurrentShapeArgv(["--repo"]).passthroughError).toMatch(/expected one argument/);
+    expect(parseCurrentShapeArgv(["abc"]).passthroughError).toMatch(/invalid issue number/);
+    expect(parseCurrentShapeArgv(["1", "2"]).passthroughError).toMatch(/unexpected positional/);
+  });
+});
+
+describe("sectionsRecord", () => {
+  it("maps presence to booleans", () => {
+    const presence = detectSections(SAMPLE_BODY);
+    const record = sectionsRecord(presence);
+    expect(record.waveOrder).toBe(true);
+    expect(record.openQuestions).toBe(true);
+  });
+});
+
+describe("extractPassFromBody edge cases", () => {
+  it("returns null for non-finite pass numbers", () => {
+    expect(extractPassFromBody("## Current shape (as of pass-NaN)\n")).toBeNull();
+  });
+});
+
+describe("defaultFetchComments via scm.call", () => {
+  it("maps gh api JSON array into comments", () => {
+    vi.spyOn(scm, "call").mockReturnValue({
+      args: [],
+      returncode: 0,
+      stdout: JSON.stringify([
+        {
+          id: 99,
+          body: SAMPLE_BODY,
+          html_url: "https://example.com/#issuecomment-99",
+          updated_at: "2026-06-28T00:00:00Z",
+        },
+        { id: "bad", body: 1 },
+        null,
+      ]),
+      stderr: "",
+    });
+    const code = runCurrentShape({
+      issueNumber: 1119,
+      projectRoot: "/tmp",
+      repo: "deftai/directive",
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(code).toBe(0);
+    vi.restoreAllMocks();
+  });
+
+  it("returns exit 2 on scm failure", () => {
+    vi.spyOn(scm, "call").mockReturnValue({
+      args: [],
+      returncode: 1,
+      stdout: "",
+      stderr: "rate limited",
+    });
+    const errLines: string[] = [];
+    expect(
+      runCurrentShape({
+        issueNumber: 1119,
+        projectRoot: "/tmp",
+        repo: "deftai/directive",
+        writeOut: () => {},
+        writeErr: (t) => errLines.push(t),
+      }),
+    ).toBe(2);
+    expect(errLines.join("")).toContain("rate limited");
+    vi.restoreAllMocks();
+  });
+
+  it("returns exit 2 on non-JSON scm output", () => {
+    vi.spyOn(scm, "call").mockReturnValue({
+      args: [],
+      returncode: 0,
+      stdout: "not-json",
+      stderr: "",
+    });
+    expect(
+      runCurrentShape({
+        issueNumber: 1119,
+        projectRoot: "/tmp",
+        repo: "deftai/directive",
+        writeOut: () => {},
+        writeErr: () => {},
+      }),
+    ).toBe(2);
+    vi.restoreAllMocks();
   });
 });
