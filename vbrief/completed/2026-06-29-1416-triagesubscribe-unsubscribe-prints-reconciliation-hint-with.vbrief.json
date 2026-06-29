@@ -6,7 +6,7 @@
   "plan": {
     "id": "1416-triage-hint",
     "title": "triage:subscribe reconciliation hint references bogus --resume flag",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After `task triage:subscribe` or unsubscribe, the CLI prints a reconciliation hint pointing at `task triage:bootstrap -- --resume`, but bootstrap does not accept `--resume`. Operators hit a hard failure when following the documented next step.",
       "ImplementationPlan": "1. Edit `RECONCILE_HINT` in `packages/core/src/triage/subscribe/index.ts` and the CLI surface in `packages/cli/src/triage-subscribe.ts` so the post-subscribe hint references a bootstrap command that exists (drop bogus `--resume`).\n2. Add or extend tests in `packages/core/src/triage/subscribe/index.test.ts` asserting the hint string matches a runnable bootstrap invocation.\n3. Run `pnpm -w exec vitest run packages/core/src/triage/subscribe/index.test.ts` as verification evidence; add CHANGELOG entry.",
@@ -41,10 +41,15 @@
         }
       }
     ],
-    "tags": ["bug", "triage"],
+    "tags": [
+      "bug",
+      "triage"
+    ],
     "metadata": {
       "kind": "story",
-      "x-tracking": { "parent_issue": "#1416" },
+      "x-tracking": {
+        "parent_issue": "#1416"
+      },
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
@@ -70,7 +75,8 @@
         "model_tier": "default",
         "missing_traces_justification": "Small CLI hint fix from ingested issue #1416."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-29T22:38:28Z"
     },
     "references": [
       {
@@ -79,6 +85,6 @@
         "title": "Issue #1416"
       }
     ],
-    "updated": "2026-06-29T22:30:00Z"
+    "updated": "2026-06-29T22:38:28Z"
   }
 }
