@@ -21,7 +21,7 @@
       {
         "id": "wave1-a1-export",
         "title": "Greenfield PROJECT-DEFINITION export produces SPECIFICATION.md with PD source banner and Scope outlook sections",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a v0.20 tree with PROJECT-DEFINITION, lifecycle folders, proposed+pending scopes, and no specification.vbrief.json, when project:export-spec runs, then SPECIFICATION.md is generated with the PD source-of-truth banner, filtered config narratives, and pending scopes; proposed scopes appear only with --audience=internal.",
           "Traces": "#1502"
@@ -30,7 +30,7 @@
       {
         "id": "wave1-a2-predicate",
         "title": "Three-class precutover and strategy-output predicates recognize full-spec and greenfield exports",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given full-spec and greenfield fixture trees, when verify-strategy-output and precutover helpers run, then each class is recognized without cross-classifying greenfield exports as legacy hand-authored SPECIFICATION.md.",
           "Traces": "#2013 Wave 0 decision 2"
@@ -39,7 +39,7 @@
       {
         "id": "wave1-a3-fidelity",
         "title": "Migration fidelity gate blocks silent spec deletion when premigrate snapshot narratives lack canonical landing",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given specification.premigrate.vbrief.json with narratives not present in PROJECT-DEFINITION or scope vBRIEFs and no specification.vbrief.json, when verify-strategy-output runs, then it fails with actionable recovery guidance referencing #2005.",
           "Traces": "#2005"
@@ -48,7 +48,7 @@
       {
         "id": "wave1-a4-parity",
         "title": "Python mirror surfaces stay aligned for maintainer task check paths",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given scripts/_precutover.py and scripts/validate_strategy_output.py, when run against the same fixtures as TS, then classification and fidelity outcomes match.",
           "Traces": "#2013 port checklist"
@@ -57,7 +57,7 @@
       {
         "id": "wave1-a5-hooks",
         "title": "Consumer deposit githooks invoke Node deft only (no Python scripts/)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a Python-free 0.60.0-style consumer deposit (no scripts/), when git commit/push runs with core.hooksPath=.githooks, then branch/encoding/conformance/gh gates run via deft CLI; deft verify:hooks-installed passes; greenfield smoke succeeds with Python absent from PATH.",
           "Traces": "#2049, #2046, #2022"
