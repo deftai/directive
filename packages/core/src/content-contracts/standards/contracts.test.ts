@@ -326,8 +326,12 @@ describe("test_contracts.py", () => {
   it("conventions/task-caching.md::../tasks/scope.yml", () => {
     expect(existsSync(resolveContentPath("tasks/scope.yml"))).toBe(true);
   });
-  it("conventions/task-caching.md::../tests/content/test_taskfile_caching.py", () => {
-    expect(existsSync(resolveContentPath("tests/content/test_taskfile_caching.py"))).toBe(true);
+  it("conventions/task-caching.md::../packages/core/src/content-contracts/standards/taskfile_caching.test.ts", () => {
+    expect(
+      existsSync(
+        join(repoRoot(), "packages/core/src/content-contracts/standards/taskfile_caching.test.ts"),
+      ),
+    ).toBe(true);
   });
   it("conventions/vbrief-filenames.md::../vbrief/vbrief.md", () => {
     expect(existsSync(resolveContentPath("vbrief/vbrief.md"))).toBe(true);
@@ -707,9 +711,6 @@ describe("test_contracts.py", () => {
   it("references/ip-risk.md::../strategies/research.md", () => {
     expect(existsSync(resolveContentPath("strategies/research.md"))).toBe(true);
   });
-  it("references/ip-risk.md::../scripts/ip_risk.py", () => {
-    expect(existsSync(resolveContentPath("scripts/ip_risk.py"))).toBe(true);
-  });
   it("references/plain-english-ux.md::../skills/deft-directive-interview/SKILL.md", () => {
     expect(existsSync(resolveContentPath("skills/deft-directive-interview/SKILL.md"))).toBe(true);
   });
@@ -935,8 +936,8 @@ describe("test_contracts.py", () => {
   it("strategies/v0-20-contract.md::../skills/deft-directive-build/SKILL.md", () => {
     expect(existsSync(resolveContentPath("skills/deft-directive-build/SKILL.md"))).toBe(true);
   });
-  it("strategies/v0-20-contract.md::../scripts/migrate_vbrief.py", () => {
-    expect(existsSync(resolveContentPath("scripts/migrate_vbrief.py"))).toBe(true);
+  it("strategies/v0-20-contract.md::../packages/core/src/migrate-preflight", () => {
+    expect(existsSync(join(repoRoot(), "packages/core/src/migrate-preflight/index.ts"))).toBe(true);
   });
   it("strategies/v0-20-contract.md::../conventions/machine-generated-banner.md", () => {
     expect(existsSync(resolveContentPath("conventions/machine-generated-banner.md"))).toBe(true);

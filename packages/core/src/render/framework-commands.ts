@@ -1,6 +1,7 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { cmdDoctor } from "../doctor/main.js";
 
 export type RootMode = "project" | "framework";
@@ -41,8 +42,6 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
   "core:validate": spec("core:validate", "framework_commands:_cmd_core_validate", {
     cwd: "framework",
   }),
-  "core:lint": spec("core:lint", "framework_commands:_cmd_core_lint", { cwd: "framework" }),
-  "core:test": spec("core:test", "framework_commands:_cmd_core_test", { cwd: "framework" }),
   doctor: spec("doctor", "doctor:cmd_doctor"),
   "session:start": spec("session:start", "session_start:main", {
     projectRootArg: "--project-root",
@@ -122,7 +121,7 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
     vbriefDirArg: "--vbrief-dir",
   }),
   build: spec("build", "build_dist:main", {
-    defaultArgs: ["--version", "__DEFT_VERSION__"],
+    defaultArgs: ["--version", "__DEFT_VERSION__", "--root", "__DEFT_ROOT__"],
     cwd: "framework",
   }),
   "check:consumer": aggregate("check:consumer", [
@@ -136,8 +135,6 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
   ]),
   "check:framework-source": aggregate("check:framework-source", [
     "core:validate",
-    "core:lint",
-    "core:test",
     "toolchain:check",
     "verify:stubs",
     "verify:links",
@@ -227,47 +224,14 @@ export function cmdCoreValidate(argv: readonly string[]): number {
   return 0;
 }
 
-function runUv(args: string[], frameworkRoot: string): number {
-  try {
-    execFileSync("uv", ["--project", frameworkRoot, "run", ...args], {
-      encoding: "utf8",
-      stdio: "inherit",
-    });
-    return 0;
-  } catch (err) {
-    const e = err as { status?: number };
-    return e.status ?? 1;
-  }
+export function cmdCoreLint(_argv: readonly string[]): number {
+  process.stderr.write("error: core:lint removed (#1860); use ts:check-lane\n");
+  return 2;
 }
 
-export function cmdCoreLint(argv: readonly string[]): number {
-  if (argv.length > 0) {
-    process.stderr.write(`error: core:lint does not accept arguments: ${argv.join(" ")}\n`);
-    return 2;
-  }
-  const ruffCode = runUv(["ruff", "check", "."], resolveFrameworkRoot());
-  if (ruffCode !== 0) return ruffCode;
-  const targets = ["run.py"];
-  if (existsSync("tests")) targets.push("tests");
-  return runUv(["python", "-m", "mypy", ...targets], resolveFrameworkRoot());
-}
-
-export function cmdCoreTest(argv: readonly string[]): number {
-  if (argv.length > 0) {
-    process.stderr.write(`error: core:test does not accept arguments: ${argv.join(" ")}\n`);
-    return 2;
-  }
-  if (!existsSync("tests")) {
-    process.stdout.write("no tests/ (vendored consumer) -- skipping\n");
-    return 0;
-  }
-  try {
-    execFileSync("python3", ["-m", "pytest", "tests"], { encoding: "utf8", stdio: "inherit" });
-    return 0;
-  } catch (err) {
-    const e = err as { status?: number };
-    return e.status ?? 1;
-  }
+export function cmdCoreTest(_argv: readonly string[]): number {
+  process.stderr.write("error: core:test removed (#1860); use ts:check-lane\n");
+  return 2;
 }
 
 function resolveVersion(): string {
@@ -294,7 +258,9 @@ function argvForSpec(
 ): string[] {
   const resolved: string[] = [];
   for (const item of commandSpec.defaultArgs ?? []) {
-    resolved.push(item === "__DEFT_VERSION__" ? resolveVersion() : item);
+    if (item === "__DEFT_VERSION__") resolved.push(resolveVersion());
+    else if (item === "__DEFT_ROOT__") resolved.push(frameworkRoot);
+    else resolved.push(item);
   }
   if (commandSpec.projectRootArg) resolved.push(commandSpec.projectRootArg, projectRoot);
   if (commandSpec.frameworkRootArg) resolved.push(commandSpec.frameworkRootArg, frameworkRoot);
@@ -305,52 +271,91 @@ function argvForSpec(
   return resolved;
 }
 
+const BUILD_DIST_RUNNER = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "release",
+  "build-dist-runner.js",
+);
+
+function runBuildDistArgv(argv: readonly string[]): number {
+  let version: string | null = null;
+  let root: string | null = null;
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i] as string;
+    if (arg === "--version") version = argv[++i] as string;
+    else if (arg === "--root") root = argv[++i] as string;
+  }
+  if (!version || !root) {
+    process.stderr.write("build: --version and --root are required\n");
+    return 2;
+  }
+  const result = spawnSync(process.execPath, [BUILD_DIST_RUNNER, version, root], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, DEFT_RELEASE_VERSION: version },
+  });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  return result.status ?? 1;
+}
+
 const TS_INLINE: Record<string, (argv: string[]) => number> = {
   "framework_commands:_cmd_core_validate": (argv) => cmdCoreValidate(argv),
-  "framework_commands:_cmd_core_lint": (argv) => cmdCoreLint(argv),
-  "framework_commands:_cmd_core_test": (argv) => cmdCoreTest(argv),
   "doctor:cmd_doctor": (argv) => cmdDoctor(argv),
+  "build_dist:main": (argv) => runBuildDistArgv(argv),
+};
+const ENTRYPOINT_VERB: Record<string, string> = {
+  "session_start:main": "session-start",
+  "triage_welcome:main": "triage-welcome",
+  "triage_bootstrap:main": "triage-bootstrap",
+  "triage_summary:main": "triage-summary",
+  "triage_queue:main": "triage-queue",
+  "triage_actions:main": "triage-actions",
+  "triage_scope:main": "triage-scope",
+  "cache:main": "cache",
+  "capacity_show:main": "capacity-show",
+  "scope_demote:main": "scope-demote",
+  "toolchain-check.py:main": "toolchain-check",
+  "verify-stubs.py:main": "verify-stubs",
+  "validate-links.py:main": "validate-links",
+  "rule_ownership_lint:main": "rule-ownership-lint",
+  "preflight_branch:main": "verify-branch",
+  "verify_encoding:main": "verify-encoding",
+  "verify_vbrief_conformance:main": "vbrief-validate",
+  "preflight_gh:main": "preflight-gh",
+  "verify_scm_boundary:main": "verify-scm-boundary",
+  "verify_no_task_runtime:main": "verify-no-task-runtime",
+  "preflight_cache:main": "preflight-cache",
+  "preflight_wip_cap:main": "verify-wip-cap",
+  "pack_render:main": "pack-render",
+  "validate_strategy_output:main": "validate-strategy-output",
+  "vbrief_validate:main": "vbrief-validate",
 };
 
-function spawnPythonEntrypoint(
-  entrypoint: string,
+function deftCliBin(frameworkRoot: string): string {
+  return join(frameworkRoot, "packages", "cli", "dist", "bin.js");
+}
+
+function spawnDeftVerb(
+  verb: string,
   argv: string[],
   cwd: string,
   frameworkRoot: string,
-  noArgv: boolean,
 ): CommandResult {
-  const scriptsDir = join(frameworkRoot, "scripts").replace(/\\/g, "/");
-  const code = [
-    "import sys, importlib, importlib.util, inspect, os",
-    `sys.path.insert(0, ${JSON.stringify(scriptsDir)})`,
-    `os.chdir(${JSON.stringify(cwd.replace(/\\/g, "/"))})`,
-    `entrypoint = ${JSON.stringify(entrypoint)}`,
-    "module_ref, _, func_name = entrypoint.partition(':')",
-    "if module_ref.endswith('.py'):",
-    "    path = __import__('pathlib').Path(module_ref)",
-    "    if not path.is_absolute():",
-    `        path = __import__('pathlib').Path(${JSON.stringify(scriptsDir)}) / module_ref`,
-    "    module_name = '_deft_cmd_' + path.stem.replace('-', '_')",
-    "    spec = importlib.util.spec_from_file_location(module_name, path)",
-    "    mod = importlib.util.module_from_spec(spec)",
-    "    spec.loader.exec_module(mod)",
-    "else:",
-    "    mod = importlib.import_module(module_ref)",
-    "func = getattr(mod, func_name)",
-    `argv = ${JSON.stringify(argv)}`,
-    "if not callable(func):",
-    "    raise TypeError('not callable')",
-    noArgv
-      ? "code = func() if len(inspect.signature(func).parameters) == 0 else func([])"
-      : "code = func() if len(inspect.signature(func).parameters) == 0 else func(argv)",
-    "sys.exit(int(code or 0))",
-  ].join("\n");
-
+  const bin = deftCliBin(frameworkRoot);
+  if (!existsSync(bin)) {
+    return {
+      code: 2,
+      stdout: "",
+      stderr: `deft CLI not built at ${bin}; run pnpm run build first\n`,
+    };
+  }
   try {
-    const stdout = execFileSync("uv", ["--project", frameworkRoot, "run", "python", "-c", code], {
-      cwd: frameworkRoot,
+    const stdout = execFileSync(process.execPath, [bin, verb, ...argv], {
+      cwd,
       encoding: "utf8",
-      env: { ...process.env, PYTHONUTF8: "1", DEFT_CACHE_DISABLE: "1" },
+      env: { ...process.env, DEFT_CACHE_DISABLE: "1" },
     });
     return { code: 0, stdout: typeof stdout === "string" ? stdout : "", stderr: "" };
   } catch (err) {
@@ -396,7 +401,20 @@ function invokeEntrypoint(
     }
     return { code: inline(argv), stdout: "", stderr: "" };
   }
-  return spawnPythonEntrypoint(entrypoint, argv, cwd, frameworkRoot, noArgv);
+  const verb = ENTRYPOINT_VERB[entrypoint];
+  if (verb) {
+    const effectiveArgv = noArgv ? [] : argv;
+    const result = spawnDeftVerb(verb, effectiveArgv, cwd, frameworkRoot);
+    if (capture) return result;
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    return result;
+  }
+  return {
+    code: 2,
+    stdout: "",
+    stderr: `unknown entrypoint (Python scripts removed #1860): ${entrypoint}\n`,
+  };
 }
 
 export interface RunFrameworkCommandOptions {

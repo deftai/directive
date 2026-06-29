@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { readRepoFile } from "./helpers.js";
+import { readRepoFile, repoPath } from "./helpers.js";
 
 /** Port of tests/content/test_decomposition_readiness.py (#1838 #1530) */
 
@@ -81,10 +82,13 @@ describe("test_decomposition_readiness", () => {
       "skills/deft-directive-decompose/SKILL.md",
       "strategies/speckit.md",
       "vbrief/vbrief.md",
-      "scripts/scope_decompose.py",
-      "scripts/triage_help.py",
+      "tasks/scope.yml",
+      "packages/cli/src/triage-help.ts",
     ]) {
-      const text = readRepoFile(path);
+      const text =
+        path.startsWith("packages/") || path.startsWith("tasks/")
+          ? readFileSync(repoPath(path), "utf8")
+          : readRepoFile(path);
       expect(text).not.toContain("--draft decomposition.json");
       expect(text).not.toContain("--draft draft.json");
       expect(text).not.toContain("--draft <decomposition.json>");

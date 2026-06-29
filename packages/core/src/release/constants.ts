@@ -30,12 +30,7 @@ export const TOTAL_STEPS = 13;
 export const VERIFY_DRAFT_MAX_ATTEMPTS = 5;
 export const VERIFY_DRAFT_INTERVAL_SECONDS = 1.0;
 
-export const RELEASE_ARTIFACTS = [
-  "CHANGELOG.md",
-  "ROADMAP.md",
-  "pyproject.toml",
-  "uv.lock",
-] as const;
+export const RELEASE_ARTIFACTS = ["CHANGELOG.md", "ROADMAP.md"] as const;
 
 export const BRANCH_GATE_BYPASS_ENV = "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT";
 export const DESTRUCTIVE_GH_GATE_BYPASS_ENV = "DEFT_ALLOW_DESTRUCTIVE_GH_VERBS";

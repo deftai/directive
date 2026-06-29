@@ -1,12 +1,7 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseReleaseFlags } from "./flags.js";
 import { checkGitClean, commitReleaseArtifacts } from "./git.js";
 import { runPipeline } from "./pipeline.js";
-import { syncPyprojectForRelease } from "./pyproject-sync.js";
-import { runUvLock } from "./python-steps.js";
 import { defaultWhich, spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPublishable } from "./version.js";
@@ -18,15 +13,6 @@ describe("spawn edge branches", () => {
 
   it("spawnText handles missing binary", () => {
     expect(spawnText("/nonexistent/binary-xyz", []).status).toBe(2);
-  });
-});
-
-describe("runUvLock without seams", () => {
-  it("skips when no pyproject on disk", () => {
-    const root = mkdtempSync(join(tmpdir(), "deft-uvlock-"));
-    const [ok, msg] = runUvLock(root);
-    expect(ok).toBe(true);
-    expect(msg).toContain("skipping uv lock");
   });
 });
 
@@ -69,22 +55,6 @@ describe("git commit branches", () => {
       },
     };
     expect(commitReleaseArtifacts("/proj", "0.21.0", seams)[0]).toBe(false);
-  });
-});
-
-describe("syncPyprojectForRelease disk path", () => {
-  it("reports idempotent pyproject sync", () => {
-    const [note, text] = syncPyprojectForRelease(
-      "/p",
-      "0.1.0",
-      { dryRun: false },
-      {
-        fileExists: () => true,
-        readFile: () => '[project]\nversion = "0.1.0"\n',
-      },
-    );
-    expect(note).toContain("already at");
-    expect(text).toBeNull();
   });
 });
 

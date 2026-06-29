@@ -116,25 +116,6 @@ describe("test_taskfile_caching.py", () => {
       expect(offenders).toEqual([]);
     });
   });
-  describe("ci.yml", () => {
-    it("test_cli_args_tasks_declare_no_caching", () => {
-      const text = readFileSync(join(repoRoot(), "tasks/ci.yml"), { encoding: "utf8" });
-      const offenders: string[] = [];
-      for (const { name: taskName, start, end } of iterTaskBlocks(text)) {
-        const body = blockBody(text, start, end);
-        const nonComment = nonCommentLines(body).join("\n");
-        if (!nonComment.includes("{{.CLI_ARGS}}") || !nonComment.includes("uv run python"))
-          continue;
-        const badKeys: string[] = [];
-        for (const line of nonCommentLines(body)) {
-          const key = cachingKeyOnLine(line);
-          if (key) badKeys.push(key);
-        }
-        if (badKeys.length) offenders.push(`${taskName}: ${badKeys.join(", ")}`);
-      }
-      expect(offenders).toEqual([]);
-    });
-  });
   describe("codebase.yml", () => {
     it("test_cli_args_tasks_declare_no_caching", () => {
       const text = readFileSync(join(repoRoot(), "tasks/codebase.yml"), { encoding: "utf8" });

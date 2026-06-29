@@ -230,10 +230,14 @@
   },
   "dependencies": {
     "@deftai/directive-content": "workspace:*",
-    "@deftai/directive-types": "workspace:*"
+    "@deftai/directive-types": "workspace:*",
+    "archiver": "^8.0.0"
   },
   "scripts": {
     "build": "tsc -b",
     "test": "pnpm -w exec vitest run --coverage packages/core/src"
+  },
+  "devDependencies": {
+    "@types/archiver": "^8.0.0"
   }
 }

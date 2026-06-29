@@ -9,8 +9,6 @@ import {
   releaseSubprocessEnv,
 } from "./git.js";
 import { runPipeline } from "./pipeline.js";
-import { syncPyprojectForRelease } from "./pyproject-sync.js";
-import { runUvLock } from "./python-steps.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 
 describe("git helpers", () => {
@@ -159,58 +157,6 @@ describe("gh helpers", () => {
     );
     expect(ok).toBe(true);
     expect(reason).toContain("flipped to draft");
-  });
-});
-
-describe("syncPyprojectForRelease branches", () => {
-  const py = `[project]\nversion = "0.20.0"\n`;
-
-  it("handles non-publishable version", () => {
-    const [note] = syncPyprojectForRelease(
-      "/p",
-      "0.0.0-test.1",
-      { dryRun: false },
-      {
-        fileExists: () => true,
-        readFile: () => py,
-      },
-    );
-    expect(note).toContain("non-publishable");
-  });
-
-  it("returns new text on happy path", () => {
-    const [note, text] = syncPyprojectForRelease(
-      "/p",
-      "0.21.0",
-      { dryRun: false },
-      {
-        fileExists: () => true,
-        readFile: () => py,
-      },
-    );
-    expect(note).toContain("0.21.0");
-    expect(text).toContain('version = "0.21.0"');
-  });
-
-  it("dry-run returns note without text", () => {
-    const [, text] = syncPyprojectForRelease(
-      "/p",
-      "0.21.0",
-      { dryRun: true },
-      {
-        fileExists: () => true,
-        readFile: () => py,
-      },
-    );
-    expect(text).toBeNull();
-  });
-});
-
-describe("runUvLock", () => {
-  it("skips when no pyproject", () => {
-    const [ok, msg] = runUvLock("/proj", { fileExists: () => false });
-    expect(ok).toBe(true);
-    expect(msg).toContain("skipping uv lock");
   });
 });
 

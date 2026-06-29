@@ -1,0 +1,196 @@
+import { createWriteStream, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import { createRequire } from "node:module";
+import { platform } from "node:os";
+import { join, relative, resolve } from "node:path";
+
+type ArchiverInstance = {
+  pipe: (dest: ReturnType<typeof createWriteStream>) => void;
+  file: (path: string, opts: { name: string }) => void;
+  finalize: () => void;
+  on: (event: "error", handler: (err: Error) => void) => void;
+};
+
+const archiver = createRequire(import.meta.url)("archiver") as (
+  format: string,
+  options?: object,
+) => ArchiverInstance;
+
+export const DEFAULT_EXCLUDES = new Set([
+  ".git",
+  "dist",
+  "backup",
+  "node_modules",
+  "__pycache__",
+  ".venv",
+  "htmlcov",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".ruff_cache",
+  ".coverage",
+]);
+
+export const DEFAULT_EXCLUDED_PATH_PREFIXES = [
+  "history/archive",
+  "vbrief/completed",
+  "vbrief/cancelled",
+] as const;
+
+export const ARCHIVE_ROOT = "deft";
+export const CONTENT_PREFIX = "content/";
+
+const VENDORED_TS_TEST_RE = /\.(test|spec)\.(c|m)?[jt]sx?$/i;
+
+function flattenContentPrefix(relPosix: string): string {
+  if (relPosix === "content") return relPosix;
+  if (relPosix.startsWith(CONTENT_PREFIX)) {
+    return relPosix.slice(CONTENT_PREFIX.length);
+  }
+  return relPosix;
+}
+
+function matchesExcludedPrefix(relPosix: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => relPosix === prefix || relPosix.startsWith(`${prefix}/`));
+}
+
+function isVendoredTsTest(relPosix: string): boolean {
+  if (relPosix !== "packages" && !relPosix.startsWith("packages/")) {
+    return false;
+  }
+  const basename = relPosix.split("/").pop() ?? "";
+  return VENDORED_TS_TEST_RE.test(basename);
+}
+
+export function iterSourceFiles(
+  root: string,
+  excludes: ReadonlySet<string> = DEFAULT_EXCLUDES,
+  excludedPrefixes: readonly string[] = DEFAULT_EXCLUDED_PATH_PREFIXES,
+): Array<{ absPath: string; archiveRel: string }> {
+  const entries: Array<{ absPath: string; archiveRel: string }> = [];
+
+  const walk = (dir: string): void => {
+    let names: string[];
+    try {
+      names = readdirSync(dir).sort();
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      if (excludes.has(name)) continue;
+      const absPath = join(dir, name);
+      let relPosix: string;
+      try {
+        relPosix = relative(root, absPath).split("\\").join("/");
+      } catch {
+        continue;
+      }
+      if (matchesExcludedPrefix(relPosix, excludedPrefixes)) continue;
+      let st: ReturnType<typeof statSync>;
+      try {
+        st = statSync(absPath);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) {
+        walk(absPath);
+        continue;
+      }
+      if (!st.isFile()) continue;
+      if (isVendoredTsTest(relPosix)) continue;
+      entries.push({ absPath, archiveRel: flattenContentPrefix(relPosix) });
+    }
+  };
+
+  walk(root);
+  entries.sort((a, b) => a.archiveRel.localeCompare(b.archiveRel));
+  return entries;
+}
+
+export function selectFormat(arg: string | null | undefined): "tar" | "zip" {
+  if (arg) return arg.toLowerCase() === "zip" ? "zip" : "tar";
+  return platform().startsWith("win") ? "zip" : "tar";
+}
+
+export function outputPath(root: string, version: string, fmt: "tar" | "zip"): string {
+  const suffix = fmt === "zip" ? "zip" : "tar.gz";
+  return join(root, "dist", `deft-${version}.${suffix}`);
+}
+
+export async function buildArchive(
+  root: string,
+  version: string,
+  fmt: "tar" | "zip",
+  extraExcludes: readonly string[] = [],
+): Promise<string> {
+  const excludes = new Set([...DEFAULT_EXCLUDES, ...extraExcludes]);
+  const output = outputPath(root, version, fmt);
+  if (existsSync(output)) {
+    unlinkSync(output);
+  }
+  const entries = iterSourceFiles(root, excludes);
+
+  await new Promise<void>((resolvePromise, reject) => {
+    const out = createWriteStream(output);
+    const archive = archiver(fmt === "zip" ? "zip" : "tar", {
+      gzip: fmt === "tar",
+      gzipOptions: { level: 9 },
+    });
+    out.on("close", () => resolvePromise());
+    archive.on("error", (err: Error) => reject(err));
+    archive.pipe(out);
+    for (const { absPath, archiveRel } of entries) {
+      archive.file(absPath, { name: `${ARCHIVE_ROOT}/${archiveRel}` });
+    }
+    void archive.finalize();
+  });
+
+  return output;
+}
+
+export function parseExtraExcludes(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+export async function main(argv: readonly string[]): Promise<number> {
+  const args = [...argv];
+  let version: string | null = null;
+  let fmtArg: string | null = null;
+  let root: string | null = null;
+  let extra = "";
+
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i] as string;
+    if (arg === "--version") version = args[++i] as string;
+    else if (arg === "--format") fmtArg = args[++i] as string;
+    else if (arg === "--root") root = args[++i] as string;
+    else if (arg === "--exclude-extra") extra = args[++i] as string;
+    else if (arg === "-h" || arg === "--help") {
+      process.stderr.write(
+        "usage: build-dist --version X.Y.Z [--format tar|zip] [--root PATH] [--exclude-extra a,b]\n",
+      );
+      return 2;
+    }
+  }
+
+  if (!version) {
+    process.stderr.write("error: --version is required\n");
+    return 2;
+  }
+  const projectRoot = resolve(root ?? process.cwd());
+  if (!existsSync(projectRoot)) {
+    process.stderr.write(`error: root not found: ${projectRoot}\n`);
+    return 2;
+  }
+  const fmt = selectFormat(fmtArg);
+  try {
+    const out = await buildArchive(projectRoot, version, fmt, parseExtraExcludes(extra));
+    const printable = relative(projectRoot, out) || out;
+    process.stdout.write(`Created ${printable}\n`);
+    return 0;
+  } catch (err) {
+    process.stderr.write(`error: ${String(err)}\n`);
+    return 1;
+  }
+}

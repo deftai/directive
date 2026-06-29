@@ -61,17 +61,6 @@ describe("test_taskfile_uv_project_pin.py", () => {
       expect(offenders).toEqual([]);
     });
   });
-  describe("ci.yml", () => {
-    it("test_no_unpinned_uv_run_in_command_lines", () => {
-      const text = readFileSync(join(repoRoot(), "tasks/ci.yml"), { encoding: "utf8" });
-      const offenders: string[] = [];
-      for (const line of text.split("\n")) {
-        if (line.trimStart().startsWith("#")) continue;
-        if (UV_RUN.test(line) && !PINNED.test(line)) offenders.push(line.trim());
-      }
-      expect(offenders).toEqual([]);
-    });
-  });
   describe("codebase.yml", () => {
     it("test_no_unpinned_uv_run_in_command_lines", () => {
       const text = readFileSync(join(repoRoot(), "tasks/codebase.yml"), { encoding: "utf8" });

@@ -33,96 +33,6 @@ env:
   GHX_INSTALL_PS1_SHA256: 5f67eab68970ecc55bb0fc1b8399ba6f3ce4b2aadeee39255d628e96d187a5ed
 
 jobs:
-  python:
-    name: Python (lint + type-check + test)
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-        with:
-          python-version: "3.11"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-
-      # #884 + #1070: idempotent ghx pre-install. Linux runner ->
-      # upstream install.sh downloaded to a temp file, verified against
-      # the pinned SHA256 (env.GHX_INSTALL_SH_SHA256), and executed only
-      # on a checksum match -- replacing the prior `curl | bash` live
-      # pipe (#1070 supply-chain quick-win). Both the BINARY and the
-      # INSTALLER SCRIPT itself are pinned to ${GHX_VERSION} (closes
-      # Greptile #950 P2): the binary via the upstream installer's
-      # `GHX_VERSION` env hook, the installer URL by tagref so an
-      # accidental upstream regression on `main` does not flow into a
-      # past CI run, AND the installer bytes by SHA256 so an immutable-
-      # tag force-move (supply-chain compromise signal) fails the step
-      # rather than executing tampered code. The step short-circuits
-      # when ghx is already on PATH so re-runs of the same workflow do
-      # not re-download. Network failures and SHA mismatches are non-
-      # fatal at the workflow level: the `scm:*` runtime ladder falls
-      # back to `gh` transparently when ghx is missing. See AGENTS.md
-      # `## SCM tooling -- prefer ghx (#884)` for the prefer-ghx rule
-      # consumed here.
-      - name: Install ghx (cache proxy for gh) -- #884 / #1070
-        shell: bash
-        run: |
-          if command -v ghx >/dev/null 2>&1; then
-            echo "ghx already on PATH at $(command -v ghx); skipping install."
-            exit 0
-          fi
-          # `GHX_VERSION` is honoured by the upstream install.sh's
-          # version-resolution branch (filters out plugin-v* tags by
-          # default; an explicit env value pins to that release tag).
-          export GHX_VERSION="${GHX_VERSION}"
-          installer="$(mktemp -t ghx-install.XXXXXX.sh)"
-          trap 'rm -f "$installer"' EXIT
-          if ! curl -fsSL -o "$installer" "https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.sh"; then
-            echo "::warning title=ghx install (#884)::installer download failed; gh fallback remains in effect."
-            exit 0
-          fi
-          # Verify the installer matches the pinned SHA256 BEFORE any
-          # execution. A mismatch on an immutable tag indicates upstream
-          # tampering or a CI-side env-var drift -- either way, refuse
-          # to execute.
-          echo "${GHX_INSTALL_SH_SHA256}  ${installer}" | sha256sum -c - >/dev/null 2>&1 || {
-            actual="$(sha256sum "$installer" | awk '{print $1}')"
-            echo "::warning title=ghx install (#1070)::install.sh SHA256 mismatch (expected ${GHX_INSTALL_SH_SHA256}, got ${actual}); refusing to execute. gh fallback remains in effect."
-            exit 0
-          }
-          bash "$installer" || {
-            echo "::warning title=ghx install (#884)::install.sh exited non-zero; gh fallback remains in effect."
-          }
-          # Confirm the install (non-fatal: a soft-warn keeps the
-          # workflow green if upstream is transiently unavailable).
-          if command -v ghx >/dev/null 2>&1; then
-            ghx --version || true
-          fi
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Ruff lint
-        run: uv run ruff check .
-
-      - name: Mypy type-check (tests/)
-        run: uv run mypy tests/
-
-      - name: Pytest with coverage
-        run: uv run pytest tests/ --cov --cov-report=term-missing
-
-      # #975: the pyproject addopts default (`-m 'not slow'`) excludes the
-      # @pytest.mark.slow watchdog regression suite from the step above so
-      # default `task check` stays fast. CI MUST also exercise the slow
-      # lane -- the 6 marked tests are the regression pin for #952. The
-      # `-o addopts=` reset overrides the pyproject default; `-m slow`
-      # selects only the marked tests; coverage is intentionally NOT
-      # accumulated here because the slow lane re-exercises the same
-      # surface as the main step (the marker filters by wall-clock cost,
-      # not coverage scope).
-      - name: Pytest slow lane (@pytest.mark.slow tests, #975)
-        run: uv run pytest tests/ -o addopts= -m slow
-
   ts:
     name: TypeScript (build + lint + test)
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -150,173 +60,6 @@ jobs:
 
       - name: Test with coverage (vitest)
         run: pnpm run test
-
-  parity:
-    name: TS port parity (vs Python oracle)
-    # #1718 tracer-bullet gate, extended for the #1530 Wave-2 gates: golden-diffs
-    # each ported gate (@deftai/core) against its Python oracle over a fixture
-    # corpus, cache-off. Needs BOTH the Node and Python toolchains, so it lives
-    # in its own job rather than the node-only `ts` lane or the python-only
-    # `python` lane. This is the authoritative parity check: the node-only `ts`
-    # job intentionally does NOT invoke the oracle (no Python/uv there).
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version-file: .nvmrc
-
-      - name: Enable corepack (pnpm)
-        run: corepack enable
-
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-        with:
-          python-version: "3.11"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-
-      - name: Install Node dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Python dependencies
-        run: uv sync
-
-      - name: Build (tsc -b project references)
-        run: pnpm run build
-
-      - name: Golden-diff parity -- encoding gate (#1718)
-        run: node packages/cli/dist/parity.js
-
-      - name: Golden-diff parity -- policy surface (#1722)
-        run: node packages/cli/dist/policy-parity.js
-
-      - name: Golden-diff parity -- vBRIEF preflight gate (#1721)
-        run: node packages/cli/dist/vbrief-preflight-parity.js
-
-      - name: Golden-diff parity -- story-ready gate (#1720)
-        run: node packages/cli/dist/story-ready-parity.js
-
-      - name: Golden-diff parity -- branch gate (#1719)
-        run: node packages/cli/dist/branch-parity.js
-
-      - name: Golden-diff parity -- wip-cap gate (#1723)
-        run: node packages/cli/dist/wip-cap-parity.js
-
-      - name: Golden-diff parity -- scm boundary (#1724)
-        run: node packages/cli/dist/scm-parity.js
-
-      - name: Golden-diff parity -- triage queue (#1725)
-        run: node packages/cli/dist/triage-queue-parity.js
-
-      - name: Golden-diff parity -- triage summary (#1725)
-        run: node packages/cli/dist/triage-summary-parity.js
-
-      - name: Golden-diff parity -- triage classify (#1725)
-        run: node packages/cli/dist/triage-classify-parity.js
-
-      - name: Golden-diff parity -- triage actions (#1725)
-        run: node packages/cli/dist/triage-actions-parity.js
-
-      - name: Golden-diff parity -- triage bootstrap (#1725)
-        run: node packages/cli/dist/triage-bootstrap-parity.js
-
-      - name: Golden-diff parity -- triage scope (#1725)
-        run: node packages/cli/dist/triage-scope-parity.js
-
-      - name: Golden-diff parity -- triage aux verbs A (#1725)
-        run: node packages/cli/dist/triage-aux-a-parity.js
-
-      - name: Golden-diff parity -- triage aux verbs B (#1725)
-        run: node packages/cli/dist/triage-aux-b-parity.js
-
-      - name: Golden-diff parity -- scope lifecycle family (#1726)
-        run: node packages/cli/dist/scope-lifecycle-parity.js
-
-      - name: Golden-diff parity -- slice family (#1727)
-        run: node packages/cli/dist/slice-parity.js
-
-      - name: Golden-diff parity -- unified content cache (#1728)
-        run: node packages/cli/dist/cache-parity.js
-
-      - name: Golden-diff parity -- deft doctor (#1728)
-        run: node packages/cli/dist/doctor-parity.js
-
-      - name: Golden-diff parity -- release pipeline core (#1729)
-        run: node packages/cli/dist/release-parity.js
-
-      - name: Golden-diff parity -- release:publish (#1729)
-        run: node packages/cli/dist/release-publish-parity.js
-
-      - name: Golden-diff parity -- release:rollback (#1729)
-        run: node packages/cli/dist/release-rollback-parity.js
-
-      - name: Golden-diff parity -- release:e2e (#1729)
-        run: node packages/cli/dist/release-e2e-parity.js
-
-      - name: Golden-diff parity -- pr_merge_readiness (#1730)
-        run: node packages/cli/dist/pr-merge-readiness-parity.js
-
-      - name: Golden-diff parity -- pr_check_protected_issues (#1730)
-        run: node packages/cli/dist/pr-protected-issues-parity.js
-
-      - name: Golden-diff parity -- pr_check_closing_keywords (#1730)
-        run: node packages/cli/dist/pr-closing-keywords-parity.js
-
-      - name: Golden-diff parity -- monitor_pr (#1730)
-        run: node packages/cli/dist/pr-monitor-parity.js
-
-      - name: Golden-diff parity -- pr_wait_mergeable (#1730)
-        run: node packages/cli/dist/pr-wait-mergeable-parity.js
-
-      - name: Golden-diff parity -- vbrief-build foundation (#1782 s1)
-        run: node packages/cli/dist/vbrief-build-parity.js
-
-      - name: Golden-diff parity -- vbrief-validation primitives (#1782 s2)
-        run: node packages/cli/dist/vbrief-validation-parity.js
-
-      - name: Golden-diff parity -- vbrief-reconcile engine (#1782 s4)
-        run: node packages/cli/dist/vbrief-reconcile-parity.js
-
-      - name: Golden-diff parity -- vbrief-activate verb (#1782 s5)
-        run: node packages/cli/dist/vbrief-activate-parity.js
-
-      - name: Golden-diff parity -- vbrief:validate CLI + conformance (#1782 s3)
-        run: node packages/cli/dist/vbrief-validate-parity.js
-
-      - name: Golden-diff parity -- verify-env gates (#1783 s1)
-        run: node packages/cli/dist/verify-env-parity.js
-
-      - name: Golden-diff parity -- source-tree scanner gates (#1783 s2)
-        run: node packages/cli/dist/verify-source-parity.js
-
-      - name: Golden-diff parity -- content validator gates (#1783 s3)
-        run: node packages/cli/dist/validate-content-parity.js
-
-      - name: Golden-diff parity -- spec/PRD/render family (#1785)
-        run: node packages/cli/dist/render-parity.js
-
-      - name: Golden-diff parity -- codebase mapping + capacity (#1786)
-        run: node packages/cli/dist/codebase-parity.js
-
-      - name: Golden-diff parity -- issue intake + reconcile (#1784)
-        run: node packages/cli/dist/intake-parity.js
-
-      - name: Golden-diff parity -- lifecycle/events/packs (#1787 s2)
-        run: node packages/cli/dist/lifecycle-packs-parity.js
-
-      - name: Golden-diff parity -- session/ritual core (#1787 s1)
-        run: node packages/cli/dist/session-parity.js
-
-      - name: Golden-diff parity -- monitor/investigation gates (#1788 s2)
-        run: node packages/cli/dist/orchestration-parity.js
-
-      - name: Golden-diff parity -- swarm cohort verbs (#1788 s1)
-        run: node packages/cli/dist/swarm-parity.js
-
-      - name: Golden-diff parity -- AGENTS.md/version/platform (#1787 s3)
-        run: node packages/cli/dist/platform-parity.js
 
   go:
     name: Go (test + build)
@@ -373,19 +116,12 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-        with:
-          python-version: "3.12"
-
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: .nvmrc
 
       - name: Enable corepack (pnpm)
         run: corepack enable
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
 
       - name: Install Task
         uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
@@ -494,9 +230,7 @@ jobs:
           }
 
       - name: Install dependencies
-        run: |
-          uv sync
-          pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Stage pre-cutover fixture as consumer project
         shell: pwsh
@@ -561,9 +295,6 @@ jobs:
           if (-not (Test-Path $pendingFile)) { throw "scope:promote did not create target file: $pendingFile" }
           Write-Host "scope:promote end-to-end OK -- $scopeFile -> $pendingFile"
 
-      - name: Pytest guard-rails (#566 + #577 + #574 regressions)
-        run: uv run pytest tests/content/test_taskfile_paths.py tests/content/test_taskfile_cli_args.py tests/content/test_taskfile_caching.py -v
-
       # #1059: regression guard that the framework:doctor Taskfile wrapper
       # actually reaches `scripts/framework_doctor.py` on Windows. Before
       # this fix `tasks/framework.yml` hardcoded the `python3` executable,
@@ -597,60 +328,3 @@ jobs:
             throw "framework:doctor output contains the Microsoft Store app-execution-alias stub marker -- the #1059 wrapper regression has re-fired"
           }
           Write-Host "framework:doctor smoke OK (#1059) -- exit=$exit, no Store-stub marker in output"
-
-      - name: migrate_vbrief.py end-to-end Completed-section partition (#593, maintainer script)
-        shell: pwsh
-        run: |
-          # #593 regression: run a real migration via the maintainer Python
-          # script (not the consumer task surface — removed per #2068).
-          $fixture = Join-Path $env:RUNNER_TEMP 'completed-consumer'
-          if (Test-Path $fixture) { Remove-Item -Recurse -Force $fixture }
-          Copy-Item -Recurse tests\fixtures\migration\completed-routing $fixture
-          # Git-init so the migrator's dirty-tree guard is satisfied.
-          Push-Location $fixture
-          git init -q
-          git -c user.name=ci -c user.email=ci@example.com add -A
-          git -c user.name=ci -c user.email=ci@example.com commit -q -m seed
-          Pop-Location
-          $migrator = Join-Path $env:GITHUB_WORKSPACE 'scripts\migrate_vbrief.py'
-          Push-Location $fixture
-          uv run python $migrator .
-          if ($LASTEXITCODE -ne 0) { throw "migrate_vbrief.py exited $LASTEXITCODE" }
-          Pop-Location
-          # Partition assertions.
-          $completed = Get-ChildItem -Path (Join-Path $fixture 'vbrief\completed') -Filter '*.vbrief.json' -ErrorAction SilentlyContinue
-          $proposed  = Get-ChildItem -Path (Join-Path $fixture 'vbrief\proposed')  -Filter '*.vbrief.json' -ErrorAction SilentlyContinue
-          if ($completed.Count -ne 2) {
-            throw "expected 2 scope vBRIEFs in vbrief/completed/ (#593); got $($completed.Count): $($completed.Name -join ', ')"
-          }
-          if ($proposed.Count -ne 2) {
-            throw "expected 2 scope vBRIEFs in vbrief/proposed/ (active-phase orphans); got $($proposed.Count)"
-          }
-          # Both cohorts are inspected here so the e2e check mirrors the
-          # #593 unit-test coverage: completed scopes must carry
-          # vBRIEFInfo.updated; proposed scopes must NOT carry it.
-          foreach ($f in $completed) {
-            $data = Get-Content -Raw $f.FullName | ConvertFrom-Json
-            if ($data.plan.status -ne 'completed') {
-              throw "scope $($f.Name) has plan.status=$($data.plan.status); expected 'completed' (#593)"
-            }
-            if ($data.plan.narratives.SourceSection -ne 'ROADMAP Completed section') {
-              throw "scope $($f.Name) missing SourceSection narrative (#593)"
-            }
-            if (-not $data.vBRIEFInfo.updated) {
-              throw "scope $($f.Name) missing vBRIEFInfo.updated timestamp (#593)"
-            }
-          }
-          foreach ($f in $proposed) {
-            $data = Get-Content -Raw $f.FullName | ConvertFrom-Json
-            if ($data.plan.status -ne 'proposed') {
-              throw "scope $($f.Name) has plan.status=$($data.plan.status); expected 'proposed' (#593)"
-            }
-            if ($data.plan.narratives.SourceSection -ne 'ROADMAP active phase') {
-              throw "scope $($f.Name) missing active-phase SourceSection narrative (#593)"
-            }
-            if ($data.vBRIEFInfo.updated) {
-              throw "scope $($f.Name) unexpectedly carries vBRIEFInfo.updated (#593)"
-            }
-          }
-          Write-Host "migrate_vbrief.py Completed-section partition OK (#593)"

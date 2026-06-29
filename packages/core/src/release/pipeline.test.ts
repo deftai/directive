@@ -4,7 +4,6 @@ import { formatReleaseHelp } from "./flags.js";
 import { checkTagAvailable } from "./gh.js";
 import { cmdRelease } from "./main.js";
 import { emit, runPipeline } from "./pipeline.js";
-import { syncPyprojectForRelease } from "./pyproject-sync.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 
 describe("cmdRelease", () => {
@@ -155,20 +154,6 @@ describe("prependUpgradeBanner", () => {
 
   it("returns notes when banner is whitespace only", () => {
     expect(prependUpgradeBanner("notes", "deftai/directive", "/r", () => "   \n")).toBe("notes");
-  });
-});
-
-describe("syncPyprojectForRelease", () => {
-  it("skips when pyproject absent", () => {
-    const [note] = syncPyprojectForRelease(
-      "/no/file",
-      "0.21.0",
-      { dryRun: true },
-      {
-        fileExists: () => false,
-      },
-    );
-    expect(note).toContain("skipping sync");
   });
 });
 

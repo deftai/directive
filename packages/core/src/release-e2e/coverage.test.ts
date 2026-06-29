@@ -187,12 +187,8 @@ describe("release-e2e branch coverage boost", () => {
     rmSync(cloneDir, { recursive: true, force: true });
   });
 
-  it("rollbackMain surfaces spawn failure", async () => {
-    vi.spyOn(await import("../release/spawn.js"), "spawnText").mockReturnValue({
-      status: 1,
-      stdout: "",
-      stderr: "uv missing",
-    });
+  it("rollbackMain surfaces failure", async () => {
+    vi.spyOn(await import("../release-rollback/main.js"), "cmdRollback").mockReturnValue(1);
     expect(rollbackMain(["0.0.1", "--repo", "deftai/x"])).toBe(1);
     vi.restoreAllMocks();
   });
@@ -210,22 +206,14 @@ describe("release-e2e branch coverage boost", () => {
   });
 
   it("rollbackMain success path", async () => {
-    vi.spyOn(await import("../release/spawn.js"), "spawnText").mockReturnValue({
-      status: 0,
-      stdout: "",
-      stderr: "",
-    });
+    vi.spyOn(await import("../release-rollback/main.js"), "cmdRollback").mockReturnValue(0);
     expect(rollbackMain(["0.0.1", "--repo", "deftai/x"])).toBe(0);
     vi.restoreAllMocks();
   });
 
-  it("rollbackMain treats missing status as failure", async () => {
-    vi.spyOn(await import("../release/spawn.js"), "spawnText").mockReturnValue({
-      status: null,
-      stdout: "",
-      stderr: "",
-    });
-    expect(rollbackMain(["0.0.1", "--repo", "deftai/x"])).toBe(1);
+  it("rollbackMain treats non-zero as failure", async () => {
+    vi.spyOn(await import("../release-rollback/main.js"), "cmdRollback").mockReturnValue(2);
+    expect(rollbackMain(["0.0.1", "--repo", "deftai/x"])).toBe(2);
     vi.restoreAllMocks();
   });
 

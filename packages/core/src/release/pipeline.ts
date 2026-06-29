@@ -19,10 +19,13 @@ import {
   pushRelease,
   releaseCommitSubject,
 } from "./git.js";
-import { resolveScriptsDir, todayIso } from "./paths.js";
+import {
+  checkVbriefLifecycleSyncNative,
+  refreshRoadmapNative,
+  runBuildNative,
+} from "./native-steps.js";
+import { todayIso } from "./paths.js";
 import { runReleaseCheck } from "./preflight.js";
-import { pyprojectPathFor, syncPyprojectForRelease } from "./pyproject-sync.js";
-import { checkVbriefLifecycleSync, refreshRoadmap, runBuild, runUvLock } from "./python-steps.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPrereleaseTag } from "./version.js";
 
@@ -35,20 +38,17 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   const version = config.version;
   const today = (seams.todayIso ?? todayIso)();
   const changelogPath = join(projectRoot, "CHANGELOG.md");
-  const scriptsDir = resolveScriptsDir();
   const readFile = seams.readFile ?? ((p: string) => readFileSync(p, "utf8"));
   const writeFile = seams.writeFile ?? ((p: string, c: string) => writeFileSync(p, c, "utf8"));
   const fileExists = seams.fileExists ?? ((p: string) => existsSync(p));
 
   const runCiFn = seams.runCi ?? ((root: string) => runReleaseCheck(root));
-  const refreshRoadmapFn =
-    seams.refreshRoadmap ?? ((root: string) => refreshRoadmap(root, scriptsDir, seams));
+  const refreshRoadmapFn = seams.refreshRoadmap ?? ((root: string) => refreshRoadmapNative(root));
   const checkVbriefFn =
     seams.checkVbriefLifecycleSync ??
-    ((root: string, repo: string) => checkVbriefLifecycleSync(root, repo, scriptsDir, seams));
+    ((root: string, repo: string) => checkVbriefLifecycleSyncNative(root, repo));
   const runBuildFn =
-    seams.runBuild ?? ((root: string, v: string | null) => runBuild(root, scriptsDir, v, seams));
-  const runUvLockFn = seams.runUvLock ?? ((root: string) => runUvLock(root, seams));
+    seams.runBuild ?? ((root: string, v: string | null) => runBuildNative(root, v, seams));
 
   // Step 1: dirty-tree guard.
   let label = "Pre-flight git status";
@@ -146,7 +146,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     }
   }
 
-  // Step 6: CHANGELOG promotion + pyproject sync.
+  // Step 6: CHANGELOG promotion.
   label = "CHANGELOG promotion";
   if (!fileExists(changelogPath)) {
     emit(6, label, `FAIL (CHANGELOG.md not found at ${changelogPath})`);
@@ -177,41 +177,15 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     summaryNote = " no summary";
   }
 
-  const pyprojectPath = pyprojectPathFor(projectRoot);
-  const [pyprojectNote, promotedPyproject] = syncPyprojectForRelease(
-    pyprojectPath,
-    version,
-    { dryRun: config.dryRun },
-    seams,
-  );
-  if (pyprojectNote.startsWith("FAIL")) {
-    emit(6, label, pyprojectNote);
-    return EXIT_CONFIG_ERROR;
-  }
-
   if (config.dryRun) {
     emit(
       6,
       label,
-      `DRYRUN (would rewrite CHANGELOG.md: ## [Unreleased] -> ## [${version}] - ${today}; new compare link added;${summaryNote}; ${pyprojectNote}; would run \`uv lock\` to refresh uv.lock to ${version})`,
+      `DRYRUN (would rewrite CHANGELOG.md: ## [Unreleased] -> ## [${version}] - ${today}; new compare link added;${summaryNote})`,
     );
   } else {
     writeFile(changelogPath, promotedChangelog);
-    let uvLockNote = "uv.lock unchanged (pyproject not modified)";
-    if (promotedPyproject !== null) {
-      writeFile(pyprojectPath, promotedPyproject);
-      const [uvOk, uvNote] = runUvLockFn(projectRoot);
-      uvLockNote = uvNote;
-      if (!uvOk) {
-        emit(6, label, `FAIL (${uvLockNote})`);
-        return EXIT_VIOLATION;
-      }
-    }
-    emit(
-      6,
-      label,
-      `OK (## [${version}] - ${today};${summaryNote}; ${pyprojectNote}; ${uvLockNote})`,
-    );
+    emit(6, label, `OK (## [${version}] - ${today};${summaryNote})`);
   }
 
   // Step 7: ROADMAP refresh.

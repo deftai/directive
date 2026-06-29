@@ -72,12 +72,6 @@ describe("test_structure.py", () => {
   it("Taskfile.yml", () => {
     expect(isFile("Taskfile.yml")).toBe(true);
   });
-  it("run", () => {
-    expect(isFile("run")).toBe(true);
-  });
-  it("run.bat", () => {
-    expect(isFile("run.bat")).toBe(true);
-  });
   it("strategies/interview.md", () => {
     expect(isFile("strategies/interview.md")).toBe(true);
   });

@@ -82,7 +82,6 @@ export const CLI_MODULE_VERBS = [
   "changelog-check",
   "change-init",
   "commit-lint",
-  "parity",
   "policy",
   "pr-closing-keywords",
   "pr-merge-readiness",

@@ -313,10 +313,6 @@ includes:
     taskfile: ./tasks/core.yml
     optional: true
     internal: true
-  ci:
-    taskfile: ./tasks/ci.yml
-    optional: true
-    internal: true
   # npm consumer deposits resolve verbs through global `deft` when the vendored
   # packages/cli/dist/bin.js is absent (#2022 Phase 3).
   engine:
@@ -342,12 +338,8 @@ tasks:
           ENGINE_CMD: 'check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"' 
 
   check:framework-source:
-    desc: "Run all framework source-repo pre-commit checks explicitly (skips @pytest.mark.slow tests via pyproject addopts -- run `task check:slow` for the slow lane, #975). Sole wired consumer of maintainer-only core:* / ci:* Python lanes (#2022 Phase 2)."
+    desc: "Run all framework source-repo pre-commit checks (TS-only after #1860). Sole wired consumer of maintainer-only core:build / core:clean."
     deps:
-      # Maintainer-only Python lanes (tasks/core.yml) — not on check:consumer.
-      - core:validate
-      - core:lint
-      - core:test
       - ts:check-lane
       - toolchain:check
       - verify:stubs
@@ -442,22 +434,8 @@ tasks:
       # Oracle/fallback (parity): scripts/verify_no_task_runtime.py (#1854 s3).
       - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" verify-no-task-runtime
 
-  # `task check:slow` runs the @pytest.mark.slow lane that the default
-  # `task check` skips (#975). The slow lane is dominated by the
-  # triage_bootstrap watchdog regression suite (5 of the 6 marked tests),
-  # which burns ~5.85s on real time.sleep / thread joins -- the proper
-  # monkeypatch refactor is tracked as a follow-up to #975. The `-o
-  # addopts=` reset overrides the pyproject default of `-m 'not slow'`
-  # so the `-m slow` selector here actually picks up the marked tests.
-  check:slow:
-    desc: "Run the @pytest.mark.slow test lane (watchdog regression suite excluded from `task check` by default, #975). Maintainer-only Python lane — not part of `check:consumer`."
-    cmds:
-      # `--project` pins uv to the framework root so ancestor pyproject.toml
-      # files cannot hijack the resolver via uv's upward walk (#1011).
-      - uv --project "{{.TASKFILE_DIR}}" run pytest tests/ -o addopts= -m slow
-
-  # Maintainer-only packaging aliases (#2022 Phase 2). `core:*` is internal;
-  # these root aliases remain callable for release Step 6 (`task build`) and
+  # Maintainer-only packaging aliases (#1860). `core:*` is internal;
+  # these root aliases remain callable for release Step 8 (`task build`) and
   # local maintainer workflows. Not wired into `check:consumer`.
   build:
     desc: Package framework for distribution (maintainer-only; alias for core:build)

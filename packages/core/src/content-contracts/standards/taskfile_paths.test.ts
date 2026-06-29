@@ -64,17 +64,6 @@ describe("test_taskfile_paths.py", () => {
       expect(matches).toEqual([]);
     });
   });
-  describe("ci.yml", () => {
-    it("test_no_taskfile_dir_traversal_in_command_lines", () => {
-      const text = readFileSync(join(repoRoot(), "tasks/ci.yml"), { encoding: "utf8" });
-      const matches: string[] = [];
-      for (const line of text.split("\n")) {
-        if (line.trimStart().startsWith("#")) continue;
-        if (ANTIPATTERN_CMD.test(line) || ANTIPATTERN_FRAGMENT.test(line)) matches.push(line);
-      }
-      expect(matches).toEqual([]);
-    });
-  });
   describe("codebase.yml", () => {
     it("test_no_taskfile_dir_traversal_in_command_lines", () => {
       const text = readFileSync(join(repoRoot(), "tasks/codebase.yml"), { encoding: "utf8" });
@@ -541,9 +530,6 @@ describe("test_taskfile_paths.py", () => {
   });
   it("deft_root_joinpath changelog.yml", () => {
     expect(DEFT_ROOT_JOINPATH.test(readTaskfile("changelog.yml"))).toBe(true);
-  });
-  it("deft_root_joinpath ci.yml", () => {
-    expect(DEFT_ROOT_JOINPATH.test(readTaskfile("ci.yml"))).toBe(true);
   });
   it("deft_root_joinpath codebase.yml", () => {
     expect(DEFT_ROOT_JOINPATH.test(readTaskfile("codebase.yml"))).toBe(true);

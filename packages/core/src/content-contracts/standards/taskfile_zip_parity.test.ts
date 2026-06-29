@@ -12,9 +12,11 @@ describe("test_taskfile_zip_parity.py", () => {
     expect(readText("tasks/core.yml")).not.toMatch(/Compress-Archive\s+-Path/i);
   });
   it("test_build_dist_helper_dispatch_present", () => {
-    expect(readText("tasks/core.yml")).toContain("scripts/build_dist.py");
+    expect(readText("tasks/core.yml")).toContain("build-dist-runner.js");
   });
   it("test_build_dist_invoked_from_deft_root", () => {
-    expect(readText("tasks/core.yml")).toContain("{{.DEFT_ROOT}}/scripts/build_dist.py");
+    expect(readText("tasks/core.yml")).toContain(
+      "{{.DEFT_ROOT}}/packages/core/dist/release/build-dist-runner.js",
+    );
   });
 });

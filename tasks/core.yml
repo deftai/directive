@@ -1,136 +1,22 @@
 version: '3'
 
-# Maintainer-only Python self-test lane (#1813 contributor path / #2022 Phase 2).
-#
-# pytest, ruff, black, and mypy run here via `uv run` for framework-source-repo
-# pre-commit checks. This fragment is included from the root Taskfile with
-# `internal: true` so `core:*` tasks are NOT listed or callable from the CLI on
-# consumer installs — only `task check:framework-source` wires them as deps.
-#
-# Consumer `task check` dispatches to `check:consumer` (TS / deft verbs only).
-# Do NOT add these tasks to the consumer check aggregate.
+# Maintainer-only packaging lane (#1860). Build/clean dispatch the native
+# TypeScript build-dist helper; Python/uv paths removed.
 
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
-  validate:
-    desc: Validate all markdown files
-    env:
-      PYTHONUTF8: "1"
-    cmds:
-      - cmd: >-
-          uv --project "{{.DEFT_ROOT}}" run python -c "from pathlib import Path;
-          files=[f for f in sorted(Path('.').rglob('*.md')) if '.git' not in f.parts and 'backup' not in f.parts];
-          [print(f'\u2713 {f}') for f in files];
-          print(f'\u2713 All {len(files)} markdown files validated')"
-
-  test:
-    desc: Run test suite
-    cmds:
-      # #1474: tolerate a missing tests/ directory. The installer (#1482)
-      # prunes the vendored .deft/core/tests/ from the consumer deposit, so in
-      # a vendored consumer `task deft:check` -> framework check -> core:test
-      # would otherwise run `pytest tests/` against a now-absent directory and
-      # exit with a path error instead of 0 (blocking #1474 acceptance a1).
-      # A cross-platform pathlib guard (no bare shell conditional, per the
-      # AGENTS.md Windows rules) skips the run with a clear notice when tests/
-      # is absent; the framework's own repo (tests/ present) still runs the
-      # full suite unchanged. The check targets the same CWD-relative `tests`
-      # path pytest would run against, so it is correct regardless of CWD.
-      - cmd: >-
-          uv --project "{{.DEFT_ROOT}}" run python -c "import sys, subprocess;
-          from pathlib import Path;
-          _exists = Path('tests').exists();
-          print('no tests/ (vendored consumer) -- skipping') if not _exists else None;
-          sys.exit(subprocess.run([sys.executable, '-m', 'pytest', 'tests']).returncode if _exists else 0)"
-
-  test:coverage:
-    desc: Run tests with coverage (fails if < 85%)
-    cmds:
-      - uv --project "{{.DEFT_ROOT}}" run pytest tests/ --cov --cov-report=html
-
-  fmt:
-    desc: Format Python code
-    cmds:
-      - uv --project "{{.DEFT_ROOT}}" run ruff format .
-      - uv --project "{{.DEFT_ROOT}}" run black .
-
-  lint:
-    desc: Lint and type-check Python code
-    cmds:
-      - uv --project "{{.DEFT_ROOT}}" run ruff check .
-      # #1475: bring the local type-check gate to parity with CI. The CI
-      # Python job (.github/workflows/ci.yml) runs `mypy tests/`, but this
-      # local gate previously checked only run.py -- so a type error under
-      # tests/ shipped green locally (task check -> core:lint) and reddened
-      # master after merge. The tests/ tree is now part of the gate; run.py
-      # is retained for its pre-existing local-only coverage. Both surfaces
-      # share the [tool.mypy] config in pyproject.toml, including the
-      # tests.* override that relaxes disallow_untyped_defs while still
-      # failing on real type mismatches under tests/.
-      #
-      # #1474: the same vendored-consumer guard core:test uses. The installer
-      # (#1482) prunes the vendored .deft/core/tests/, and `task deft:check`
-      # runs core:lint too, so an unconditional `mypy run.py tests/` would
-      # fail on the now-absent tests/ path. The cross-platform pathlib guard
-      # (no bare shell conditional, per the AGENTS.md Windows rules) appends
-      # tests/ to the mypy target list only when it exists; run.py (always in
-      # the payload) stays checked either way.
-      - cmd: >-
-          uv --project "{{.DEFT_ROOT}}" run python -c "import sys, subprocess;
-          from pathlib import Path;
-          targets = ['run.py'] + (['tests'] if Path('tests').exists() else []);
-          sys.exit(subprocess.run([sys.executable, '-m', 'mypy', *targets]).returncode)"
-
-
   build:
-    desc: Package framework for distribution (cross-platform via Python helper, #736)
-    env:
-      PYTHONUTF8: "1"
+    desc: Package framework for distribution (cross-platform via TypeScript build-dist, #736 / #1860)
+    deps:
+      - task: :ts:build
     cmds:
-      # Single cross-platform dispatch (#736). The Python helper uses
-      # stdlib tarfile / zipfile with a canonical exclude list and
-      # auto-selects tar.gz on Linux/macOS, zip on Windows. The previous
-      # platform-split shape had the Windows branch missing the exclude
-      # list, ingesting .git history and the prior dist/ artifact.
-      # Regression-guarded by tests/content/test_taskfile_zip_parity.py.
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/build_dist.py" --version "{{.VERSION}}"
+      - node "{{.DEFT_ROOT}}/packages/core/dist/release/build-dist-runner.js" "{{.VERSION}}" "{{.DEFT_ROOT}}"
 
   clean:
-    desc: Clean generated artifacts (cross-platform via Python helper, #736)
-    env:
-      PYTHONUTF8: "1"
-    cmds:
-      # Single cross-platform dispatch (#736) -- mirrors the build target's
-      # simplification. Python's pathlib + shutil.rmtree handles the dist/
-      # directory removal identically on POSIX and Windows, replacing the
-      # prior rm -rf / Remove-Item duplication.
-      #
-      # The dist/ path is anchored at {{.DEFT_ROOT}} so `task clean` works
-      # the same way regardless of the operator's current working directory.
-      # The previous shape relied on `pathlib.Path('dist')` resolving against
-      # the inherited CWD, which silently no-ops when the operator runs
-      # `task -t tasks/core.yml clean` from a subdirectory (Greptile P2 on
-      # PR #773).
-      - cmd: >-
-          uv --project "{{.DEFT_ROOT}}" run python -c "import shutil, pathlib;
-          d = pathlib.Path(r'{{.DEFT_ROOT}}') / 'dist';
-          shutil.rmtree(d) if d.exists() else None;
-          print(f'Cleaned {d}')"
-
-  stats:
-    desc: Show framework statistics
+    desc: Clean generated dist/ artifacts (cross-platform, #736 / #1860)
     cmds:
       - cmd: >-
-          uv --project "{{.DEFT_ROOT}}" run python -c "from pathlib import Path;
-          v='{{.VERSION}}';
-          sep='='*42;
-          dirs=[('Core files','core'),('Languages','languages'),('Interfaces','interfaces'),('Tools','tools'),('Templates','templates')];
-          counts=[(n,len(list(Path(d).glob('*.md')))) for n,d in dirs];
-          total=len([f for f in Path('.').rglob('*.md') if '.git' not in str(f) and 'backup' not in str(f)]);
-          print(f'Deft Framework v{v} Statistics:');
-          print(sep);
-          [print(f'{n}: {c}') for n,c in counts];
-          print(f'Total files: {total}');
-          print(sep)"
+          node -e "const fs=require('node:fs');const path=require('node:path');const d=path.join(process.argv[1],'dist');if(fs.existsSync(d))fs.rmSync(d,{recursive:true,force:true});console.log('Cleaned '+d);"
+          "{{.DEFT_ROOT}}"
