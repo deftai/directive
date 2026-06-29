@@ -18,6 +18,21 @@ const MANIFEST_UPSTREAM_URL_KEYS = [
   "origin",
 ] as const;
 
+/** Reject git ls-remote targets that could be parsed as options (#CodeQL). */
+export function isSafeGitLsRemoteTarget(url: string): boolean {
+  const trimmed = url.trim();
+  return trimmed.length > 0 && !trimmed.startsWith("-");
+}
+
+function normalizePrereleaseForSort(pre: string): string {
+  const match = /^(alpha|beta|rc)\.(\d+)(.*)$/i.exec(pre);
+  if (match?.[1] && match[2]) {
+    const padded = match[2].padStart(8, "0");
+    return `${match[1].toLowerCase()}.${padded}${match[3] ?? ""}`;
+  }
+  return pre;
+}
+
 const SEMVER_TAG_RE = /^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<pre>-[\w][\w.-]*)?$/;
 
 export type RemoteProbeStatus = "ok" | "behind" | "skipped" | "no-upstream" | "no-tags" | "error";
@@ -46,12 +61,13 @@ export function parseSemverTag(tag: string): SemverKey | null {
     return null;
   }
   const pre = match.groups.pre ?? "";
+  const preStripped = pre.replace(/^-/, "");
   return [
     Number(match.groups.major),
     Number(match.groups.minor),
     Number(match.groups.patch),
     pre ? 0 : 1,
-    pre.replace(/^-/, ""),
+    normalizePrereleaseForSort(preStripped),
   ];
 }
 
@@ -157,8 +173,11 @@ export function parseLsRemoteTags(stdout: string): string[] {
 export function defaultGitRunner(): GitRunner {
   return {
     lsRemoteTags(upstreamUrl: string, timeoutMs: number): string[] | "timeout" | "os-error" {
+      if (!isSafeGitLsRemoteTarget(upstreamUrl)) {
+        return "os-error";
+      }
       try {
-        const proc = spawnSync("git", ["ls-remote", "--tags", "--refs", upstreamUrl], {
+        const proc = spawnSync("git", ["ls-remote", "--tags", "--refs", "--", upstreamUrl.trim()], {
           encoding: "utf8",
           timeout: timeoutMs,
         });

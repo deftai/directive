@@ -6,6 +6,7 @@ import {
   DEFT_UPSTREAM_URL,
   emitCheckUpdates,
   type GitRunner,
+  isSafeGitLsRemoteTarget,
   maxSemverTag,
   parseLsRemoteTags,
   parseSemverTag,
@@ -33,6 +34,12 @@ function fakeGit(tags: string[] | "timeout" | "os-error"): GitRunner {
 }
 
 describe("parseLsRemoteTags", () => {
+  it("rejects unsafe git ls-remote targets", () => {
+    expect(isSafeGitLsRemoteTarget("--upload-pack=echo pwned")).toBe(false);
+    expect(isSafeGitLsRemoteTarget("")).toBe(false);
+    expect(isSafeGitLsRemoteTarget(DEFT_UPSTREAM_URL)).toBe(true);
+  });
+
   it("extracts semver tag names and skips junk lines", () => {
     expect(parseLsRemoteTags("abc123\trefs/tags/v1.0.0\nignored\nsha\trefs/tags/\n")).toEqual([
       "v1.0.0",
@@ -83,6 +90,10 @@ describe("maxSemverTag", () => {
 
   it("orders prerelease suffixes lexicographically", () => {
     expect(maxSemverTag(["v1.0.0-alpha", "v1.0.0-beta"])).toBe("v1.0.0-beta");
+  });
+
+  it("orders numeric rc prereleases correctly", () => {
+    expect(maxSemverTag(["v1.0.0-rc.2", "v1.0.0-rc.10"])).toBe("v1.0.0-rc.10");
   });
 
   it("returns a tag when all candidates are equal semver", () => {

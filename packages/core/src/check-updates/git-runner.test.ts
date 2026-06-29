@@ -22,6 +22,16 @@ describe("defaultGitRunner", () => {
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toEqual([
       "v1.2.3",
     ]);
+    expect(spawnSyncMock).toHaveBeenCalledWith(
+      "git",
+      ["ls-remote", "--tags", "--refs", "--", "https://example.com/repo.git"],
+      expect.objectContaining({ encoding: "utf8", timeout: 5000 }),
+    );
+  });
+
+  it("returns os-error for option-like upstream urls", () => {
+    expect(defaultGitRunner().lsRemoteTags("--upload-pack=echo pwned", 5000)).toBe("os-error");
+    expect(spawnSyncMock).not.toHaveBeenCalled();
   });
 
   it("returns timeout when spawnSync errors with ETIMEDOUT", () => {
