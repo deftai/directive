@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- current Deft Directive identity, policy, scope registry, and authored architecture metadata.",
-    "updated": "2026-06-28T18:08:21Z"
+    "updated": "2026-06-29T13:28:35Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -15774,6 +15774,135 @@
         }
       },
       {
+        "id": "2026-06-28-2013-spec-authority-wave-0-context",
+        "title": "#2013 Wave 0 — spec-authority model locked decisions",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-2013-spec-authority-wave-0-context.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#2013"
+            },
+            {
+              "type": "github-issue",
+              "id": "#1502"
+            },
+            {
+              "type": "github-issue",
+              "id": "#2005"
+            },
+            {
+              "type": "github-issue",
+              "id": "#2022"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-2013-wave-1-spec-export-and-fidelity-gate",
+        "title": "#2013 Wave 1 — PROJECT-DEFINITION export + migration fidelity gate",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-2013-wave-1-spec-export-and-fidelity-gate.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#2013"
+            },
+            {
+              "type": "github-issue",
+              "id": "#1502"
+            },
+            {
+              "type": "github-issue",
+              "id": "#2005"
+            },
+            {
+              "type": "github-issue",
+              "id": "#2049"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-2050-docsskills-wave-1-operator-surfaces-projectexport-spec-deft",
+        "title": "docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-2050-docsskills-wave-1-operator-surfaces-projectexport-spec-deft.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2050",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2050: docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)"
+            },
+            {
+              "type": "github-issue",
+              "id": "#2013"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-2066-umbrella-current-shape-render",
+        "title": "Deterministic umbrella:current-shape render (#2066)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-2066-umbrella-current-shape-render.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2066",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2066: Agents conclude umbrella status from issue body",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-2066-umbrella-status-claim-cites-state-surface",
+        "title": "docs(agents): umbrella status claim-cites-state-surface (#2066)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-2066-umbrella-status-claim-cites-state-surface.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2066",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2066: umbrella status body-only misread recurrence"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1152",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1152: umbrella current-shape convention"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-2068-decide-migrate-vbrief-ts-port-or-pre-v020-cutoff",
+        "title": "Decide and execute migrate:vbrief -- TS port or pre-v0.20 cutoff (retires #1860 carve-out)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-2068-decide-migrate-vbrief-ts-port-or-pre-v020-cutoff.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2068",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2068: Decide migrate_vbrief.py disposition (TS port vs pre-v0.20 cutoff)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-06-28-add-acknowledgementclear-path-for-project-definition-stalene",
         "title": "Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags",
         "status": "completed",
@@ -15786,6 +15915,79 @@
               "type": "x-vbrief/github-issue",
               "title": "Issue #640: project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review",
               "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-bug-pass-doctor-agents-refresh",
+        "title": "doctor and agents:refresh: fix legacy skill paths and false-positive checks",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-bug-pass-doctor-agents-refresh.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1404",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1404: agents:refresh legacy skill paths"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1408",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1408: doctor skill-paths false positive"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-bug-pass-migrate-vbrief-hygiene",
+        "title": "migrate:vbrief: stamp .deft-version and track lifecycle folders in git",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-bug-pass-migrate-vbrief-hygiene.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1157",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1157: migrate:vbrief leaves .deft-version unstamped"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1159",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1159: empty lifecycle folders vanish in clones"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-bug-pass-npm-upgrade-discoverability",
+        "title": "npm upgrade happy path: surface deft migrate in docs and CLI output",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-bug-pass-npm-upgrade-discoverability.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2059",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2059: directive migrate undiscoverable"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/2012",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2012: release banner cites legacy installer"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1995",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1995: reconcile UPGRADING npm commands"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/2057",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2057: consumer npm upgrade path fragmented (umbrella)"
             }
           ]
         }
@@ -15819,6 +16021,23 @@
               "uri": "https://github.com/deftai/directive/issues/2022",
               "type": "x-vbrief/github-issue",
               "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-28-port-framework-check-updates-to-typescript-engine",
+        "title": "Port framework:check-updates to the TypeScript engine",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-28-port-framework-check-updates-to-typescript-engine.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/2069",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #2069: framework:check-updates still routes through legacy run + Python",
               "TrustLevel": "external"
             }
           ]
@@ -16316,6 +16535,7 @@
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'VERSION manifest moved from .deft/VERSION to .deft/core/VERSION without migration; legacy file persists as stale source-of-truth' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy' shares topics (legacy)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'doctor and agents:refresh: fix legacy skill paths and false-positive checks' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'feat(#1912 E): pinned legacy->bridge->npm-hybrid e2e leg (reads Tier-0 SoT, pending-pin until frozen)' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'feat(#1912 P): npm CLI legacy-layout refuse-preflight (two-step) + signpost-only stable-URL surfaces' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags' shares topics (legacy)",
@@ -16337,6 +16557,7 @@
         "Narrative 'Overview' may be stale: completed scope 'bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",
+        "Narrative 'ProjectConfig' may be stale: completed scope '#2013 Wave 1 — PROJECT-DEFINITION export + migration fidelity gate' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Allow users to change technical rating (1/2/3) when starting a new project' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (project)",
@@ -16357,6 +16578,7 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'Write SPECIFICATION.md and proper PROJECT.md for the deft project itself' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'bug(scripts/project_render): task project:render leaks vbrief/PROJECT-DEFINITION.vbrief.json.lock; trapped by git add -A on every chore commit' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'deft-setup project name fallback' shares topics (project)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'docs: reframe Go installer across consumer docs (Node always required) + project-directory note' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'docs: refresh project concepts and architecture' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'feat(coding): add coding/security.md — baseline security standards for every project' shares topics (project)",

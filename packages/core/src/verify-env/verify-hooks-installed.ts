@@ -99,14 +99,33 @@ function readHookContent(hookPath: string): string | null {
   }
 }
 
+/** Drop shell ``#`` comment lines before pattern scans (#2049 shipped-hook false positives). */
+export function stripShellCommentLines(content: string): string {
+  return content
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*#/.test(line))
+    .join("\n");
+}
+
+function executableHookBody(content: string): string {
+  return stripShellCommentLines(content);
+}
+
 function usesLegacyPythonDispatch(content: string): boolean {
-  return LEGACY_HOOK_PATTERNS.some((pattern) => pattern.test(content));
+  const body = executableHookBody(content);
+  return LEGACY_HOOK_PATTERNS.some((pattern) => pattern.test(body));
 }
 
 function hookInvokesDeftCli(content: string, requiredCommands: readonly string[]): boolean {
-  if (!/\bdeft\b/.test(content)) return false;
+  const body = executableHookBody(content);
+  if (!/\bdeft\b/.test(body)) return false;
   if (usesLegacyPythonDispatch(content)) return false;
-  return requiredCommands.every((cmd) => content.includes(cmd));
+  return requiredCommands.every((cmd) => body.includes(cmd));
+}
+
+function prePushInvokesVerifyBranch(content: string): boolean {
+  const body = executableHookBody(content);
+  return /\bdeft\s+verify:branch\b/.test(body);
 }
 
 function validateHookContent(
@@ -230,7 +249,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
       stream: "stderr",
     };
   }
-  if (prePushContent?.includes("verify:branch")) {
+  if (prePushContent && prePushInvokesVerifyBranch(prePushContent)) {
     return {
       code: 1,
       message:

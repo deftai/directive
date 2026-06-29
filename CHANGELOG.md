@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`verify:hooks-installed` no longer false-fails on canonical shipped hook comment headers** — the gate scanned full hook file text, so comment lines mentioning `Python` or `verify:branch` in the #2049 `.githooks/` templates tripped legacy-dispatch detectors even though the hooks dispatch only through the `deft` CLI. Pattern scans now ignore shell `#` comment lines; regression tests load the real repo hook files. Refs #2049.
+
 ### Removed
 
 ## [0.61.2] - 2026-06-28

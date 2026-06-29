@@ -1,8 +1,18 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { evaluate } from "./verify-hooks-installed.js";
+import { evaluate, stripShellCommentLines } from "./verify-hooks-installed.js";
+
+const REPO_ROOT = resolve(import.meta.dirname, "../../../..");
 
 const temps: string[] = [];
 afterEach(() => {
@@ -261,5 +271,36 @@ describe("evaluate", () => {
       gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
     });
     expect(result.code).toBe(0);
+  });
+
+  it("passes for canonical shipped hook comment headers (#2049 false-positive regression)", () => {
+    const root = makeRepo();
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    writeFileSync(
+      join(hooks, "pre-commit"),
+      readFileSync(join(REPO_ROOT, ".githooks/pre-commit"), "utf8"),
+      "utf8",
+    );
+    writeFileSync(
+      join(hooks, "pre-push"),
+      readFileSync(join(REPO_ROOT, ".githooks/pre-push"), "utf8"),
+      "utf8",
+    );
+    chmodSync(join(hooks, "pre-commit"), 0o755);
+    chmodSync(join(hooks, "pre-push"), 0o755);
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    expect(result.code).toBe(0);
+  });
+
+  it("stripShellCommentLines ignores comment-only trigger words", () => {
+    const body = stripShellCommentLines(`# no Python here
+# Pre-push does NOT invoke verify:branch
+deft verify:branch --project-root "$REPO_ROOT"
+`);
+    expect(body).toContain("deft verify:branch");
+    expect(body).not.toContain("no Python");
   });
 });

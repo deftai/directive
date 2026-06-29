@@ -76,6 +76,21 @@ def test_own_repo_layout_passes(gate, tmp_path, monkeypatch):
     assert "dispatch via deft CLI" in msg
 
 
+def test_canonical_shipped_hook_headers_pass(gate, tmp_path, monkeypatch):
+    """Regression: comment headers in repo .githooks/ must not false-fail (#2049)."""
+    hooks = tmp_path / ".githooks"
+    hooks.mkdir(parents=True, exist_ok=True)
+    for name in ("pre-commit", "pre-push"):
+        src = REPO_ROOT / ".githooks" / name
+        dst = hooks / name
+        dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+        dst.chmod(0o755)
+    _stub_hooks_path(monkeypatch, gate, ".githooks")
+    code, msg = gate.evaluate(tmp_path)
+    assert code == 0
+    assert "dispatch via deft CLI" in msg
+
+
 def test_vendored_layout_passes_without_scripts(gate, tmp_path, monkeypatch):
     """Python-free consumer: hooks at root, no scripts/ directory."""
     _make_hooks_dir(tmp_path)

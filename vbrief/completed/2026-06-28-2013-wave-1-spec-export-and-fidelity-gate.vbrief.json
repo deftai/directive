@@ -10,7 +10,7 @@
     "id": "story-2013-wave-1-export-fidelity",
     "title": "#2013 Wave 1 — PROJECT-DEFINITION export + migration fidelity gate",
     "status": "completed",
-    "planRef": "proposed/2026-06-28-2013-spec-authority-wave-0-context.vbrief.json",
+    "planRef": "completed/2026-06-28-2013-spec-authority-wave-0-context.vbrief.json",
     "narratives": {
       "Description": "Implements locked Wave 0 decisions: two-path spec authority, three-class banner/predicate, project:export-spec with audience-split proposed scopes, config-narrative filtering, and #2005 migration-fidelity gate blocking silent specification.vbrief.json deletion.",
       "ImplementationPlan": "1) packages/core spec-authority resolver + export-spec render path. 2) precutover + validate-strategy-output three-class predicates (TS + Python). 3) migration fidelity when premigrate snapshot exists without canonical landing. 4) Wire CLI/task project:export-spec; spec:render delegates. 5) Tests + skill/doc touch-ups.",

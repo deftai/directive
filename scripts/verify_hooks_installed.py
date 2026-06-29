@@ -50,6 +50,15 @@ _LEGACY_HOOK_PATTERNS = (
 )
 
 
+def _strip_shell_comment_lines(content: str) -> str:
+    """Drop shell ``#`` comment lines before pattern scans (#2049 false positives)."""
+    return "\n".join(line for line in content.splitlines() if not re.match(r"^\s*#", line))
+
+
+def _executable_hook_body(content: str) -> str:
+    return _strip_shell_comment_lines(content)
+
+
 def _configured_hooks_path(project_root: Path) -> tuple[str | None, str | None]:
     try:
         proc = subprocess.run(
@@ -69,15 +78,21 @@ def _configured_hooks_path(project_root: Path) -> tuple[str | None, str | None]:
 
 
 def _uses_legacy_python_dispatch(content: str) -> bool:
-    return any(pattern.search(content) for pattern in _LEGACY_HOOK_PATTERNS)
+    body = _executable_hook_body(content)
+    return any(pattern.search(body) for pattern in _LEGACY_HOOK_PATTERNS)
 
 
 def _hook_invokes_deft_cli(content: str, required_commands: tuple[str, ...]) -> bool:
-    if not re.search(r"\bdeft\b", content):
+    body = _executable_hook_body(content)
+    if not re.search(r"\bdeft\b", body):
         return False
     if _uses_legacy_python_dispatch(content):
         return False
-    return all(cmd in content for cmd in required_commands)
+    return all(cmd in body for cmd in required_commands)
+
+
+def _pre_push_invokes_verify_branch(content: str) -> bool:
+    return bool(re.search(r"\bdeft\s+verify:branch\b", _executable_hook_body(content)))
 
 
 def _validate_hook_content(
@@ -174,7 +189,7 @@ def evaluate(project_root: Path) -> tuple[int, str]:
             f"❌ deft hooks wired but NON-FUNCTIONAL: {pre_push_issue} (#2049).\n"
             "  Recovery: re-run the deft installer / `task setup` to refresh .githooks/."
         )
-    if pre_push_content and "verify:branch" in pre_push_content:
+    if pre_push_content and _pre_push_invokes_verify_branch(pre_push_content):
         return 1, (
             "❌ deft hooks wired but NON-FUNCTIONAL: pre-push must not invoke "
             "verify:branch (#1814).\n"
