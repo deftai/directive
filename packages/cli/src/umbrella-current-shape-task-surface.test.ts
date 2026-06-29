@@ -10,9 +10,10 @@ describe("umbrella:current-shape task surface (#2066)", () => {
     expect(resolveCanonicalVerb("umbrella:current-shape")).toBe("umbrella-current-shape");
   });
 
-  it("umbrella.yml uses engine:invoke with no legacy run shim", () => {
+  it("umbrella.yml uses engine:invoke with _ensure-ts rebuild", () => {
     const text = readFileSync(join(repoRoot(), "tasks", "umbrella.yml"), "utf8");
     expect(text).toContain(":engine:invoke");
+    expect(text).toContain("_ensure-ts");
     expect(text).toContain("umbrella:current-shape");
     expect(text).not.toContain("uv run python");
     expect(text).not.toContain("run umbrella");

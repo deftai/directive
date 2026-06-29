@@ -1,7 +1,7 @@
-import { type CompletedProcess, call } from "../scm/call.js";
+import { spawnSync } from "node:child_process";
+import { resolveBinary } from "../scm/binary.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveRepo } from "../triage/queue/repo.js";
-
-const SCM_SOURCE = "github-issue";
 
 /** Matches `## Current shape (as of pass-N)` — same pattern as vbrief-reconcile/umbrellas.ts. */
 export const CURRENT_SHAPE_HEADER_RE = /^## Current shape \(as of pass-(\d+)\)/m;
@@ -75,46 +75,109 @@ export interface RunCurrentShapeOptions {
   readonly writeErr?: (text: string) => void;
 }
 
+function mapCommentEntry(entry: unknown): IssueComment | null {
+  if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+    return null;
+  }
+  const rec = entry as Record<string, unknown>;
+  if (typeof rec.id !== "number" || typeof rec.body !== "string") {
+    return null;
+  }
+  return {
+    id: rec.id,
+    body: rec.body,
+    htmlUrl: typeof rec.html_url === "string" ? rec.html_url : "",
+    updatedAt: typeof rec.updated_at === "string" ? rec.updated_at : "",
+  };
+}
+
+/** Merge `gh api --paginate` concatenated JSON array pages into comment rows. */
+export function parseCommentsFromGhStdout(stdout: string): IssueComment[] {
+  const comments: IssueComment[] = [];
+  const text = stdout.trim();
+  if (!text) {
+    return comments;
+  }
+
+  const pages: unknown[] = [];
+  try {
+    pages.push(JSON.parse(text));
+  } catch {
+    let idx = 0;
+    while (idx < text.length) {
+      while (idx < text.length && /\s/.test(text[idx] ?? "")) {
+        idx += 1;
+      }
+      if (idx >= text.length) {
+        break;
+      }
+      const slice = text.slice(idx);
+      if (!slice.startsWith("[")) {
+        break;
+      }
+      let depth = 0;
+      let end = -1;
+      for (let j = 0; j < slice.length; j += 1) {
+        const ch = slice[j];
+        if (ch === "[") {
+          depth += 1;
+        } else if (ch === "]") {
+          depth -= 1;
+          if (depth === 0) {
+            end = j + 1;
+            break;
+          }
+        }
+      }
+      if (end < 0) {
+        throw new SyntaxError("invalid paginated JSON");
+      }
+      pages.push(JSON.parse(slice.slice(0, end)));
+      idx += end;
+    }
+  }
+
+  for (const page of pages) {
+    if (!Array.isArray(page)) {
+      continue;
+    }
+    for (const entry of page) {
+      const mapped = mapCommentEntry(entry);
+      if (mapped !== null) {
+        comments.push(mapped);
+      }
+    }
+  }
+  return comments;
+}
+
 function defaultFetchComments(
   repo: string,
   issueNumber: number,
 ): IssueComment[] | { error: string } {
-  const proc: CompletedProcess = call(SCM_SOURCE, "api", [
-    `repos/${repo}/issues/${issueNumber}/comments?per_page=100`,
-  ]);
-  if (proc.returncode !== 0) {
+  const binary = resolveBinary();
+  const path = `repos/${repo}/issues/${issueNumber}/comments?per_page=100`;
+  const proc = spawnSync(binary, ["api", "--paginate", path], {
+    encoding: "utf8",
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
+  });
+  if (proc.error !== undefined) {
+    return {
+      error: `fetch comments #${issueNumber} (${repo}) failed: ${proc.error.message}`,
+    };
+  }
+  if (proc.status !== 0) {
     return {
       error: `fetch comments #${issueNumber} (${repo}) failed: ${(proc.stderr || proc.stdout || "").trim()}`,
     };
   }
-  let data: unknown;
   try {
-    data = JSON.parse(proc.stdout || "[]");
+    return parseCommentsFromGhStdout(String(proc.stdout ?? ""));
   } catch (exc) {
     return {
       error: `fetch comments #${issueNumber} (${repo}) returned non-JSON: ${String(exc)}`,
     };
   }
-  if (!Array.isArray(data)) {
-    return [];
-  }
-  const comments: IssueComment[] = [];
-  for (const entry of data) {
-    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
-      continue;
-    }
-    const rec = entry as Record<string, unknown>;
-    if (typeof rec.id !== "number" || typeof rec.body !== "string") {
-      continue;
-    }
-    comments.push({
-      id: rec.id,
-      body: rec.body,
-      htmlUrl: typeof rec.html_url === "string" ? rec.html_url : "",
-      updatedAt: typeof rec.updated_at === "string" ? rec.updated_at : "",
-    });
-  }
-  return comments;
 }
 
 export function extractPassFromBody(body: string): number | null {
@@ -270,22 +333,17 @@ export function runCurrentShape(options: RunCurrentShapeOptions): number {
     return fetched.kind === "config" ? 2 : 1;
   }
 
-  const exitFromStrict =
-    options.strict === true && fetched.result.sections.missing.length > 0 ? 1 : 0;
-
-  const emitExit = emitCurrentShape(fetched.result, {
-    jsonMode: options.jsonMode ?? false,
-    writeOut,
-  });
-
-  if (exitFromStrict !== 0) {
+  if (options.strict === true && fetched.result.sections.missing.length > 0) {
     writeErr(
       `umbrella:current-shape: --strict: missing required section(s): ${fetched.result.sections.missing.join(", ")}\n`,
     );
     return 1;
   }
 
-  return emitExit;
+  return emitCurrentShape(fetched.result, {
+    jsonMode: options.jsonMode ?? false,
+    writeOut,
+  });
 }
 
 export function parseCurrentShapeArgv(argv: readonly string[]): {
