@@ -220,6 +220,44 @@ describe("migrate-preflight", () => {
     expect(err.join("")).toContain("#2068");
   });
 
+  it("runMigratePreflight returns config error for missing deft root", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const outcome = runMigratePreflight({
+      projectRoot: base,
+      deftRoot: join(base, "missing-deft"),
+      quiet: false,
+    });
+    expect(outcome.kind).toBe("config");
+  });
+
+  it("emitMigratePreflight quiet mode suppresses PASS lines", () => {
+    const lines: string[] = [];
+    emitMigratePreflight(
+      {
+        kind: "ready",
+        exitCode: 0,
+        results: [
+          { name: "layout", status: "PASS", message: "ok" },
+          { name: "document-model", status: "WARN", message: "warn" },
+        ],
+      },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+      true,
+    );
+    expect(lines.join("")).not.toContain("CHECK layout: PASS");
+    expect(lines.join("")).toContain("WARN");
+  });
+
+  it("checkGitClean warns when directory is not a git repository", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    mkdirSync(join(base, "project"), { recursive: true });
+    const result = checkGitClean(join(base, "project"));
+    expect(result.status).toBe("WARN");
+    expect(result.message).toContain("Not a git repository");
+  });
+
   it("emitMigratePreflight prints success footer on exit 0", () => {
     const lines: string[] = [];
     const code = emitMigratePreflight(

@@ -100,6 +100,22 @@ describe("precutover helpers", () => {
     expect(isCurrentGeneratedSpecification(base, content)).toBe(true);
   });
 
+  it("detectPreCutover ignores redirect PROJECT.md", () => {
+    const base = mkdtempSync(join(tmpdir(), "precutover-"));
+    temps.push(base);
+    writeFileSync(join(base, "PROJECT.md"), "<!-- Purpose: deprecation redirect -->\n", "utf8");
+    expect(detectPreCutover(base)).toEqual({ preCutover: false, reasons: [] });
+  });
+
+  it("detectPreCutover flags legacy PROJECT.md", () => {
+    const base = mkdtempSync(join(tmpdir(), "precutover-"));
+    temps.push(base);
+    writeFileSync(join(base, "PROJECT.md"), "# legacy\n", "utf8");
+    const result = detectPreCutover(base);
+    expect(result.preCutover).toBe(true);
+    expect(result.reasons.some((r) => r.includes("PROJECT.md"))).toBe(true);
+  });
+
   it("detectPreCutover aggregates legacy markdown and missing lifecycle reasons", () => {
     const base = mkdtempSync(join(tmpdir(), "precutover-"));
     temps.push(base);
