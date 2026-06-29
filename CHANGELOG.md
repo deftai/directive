@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Public contract layer on npm (#1799).** `@deftai/directive-types` now exports the v0.6 vBRIEF document model, policy types, reference shapes, gate exit codes, and a published `vbrief-core-0.6.schema.json` subpath so downstream TS and non-TS consumers stop hand-mirroring the canonical contract. Adds `verify:contract-drift` to keep the npm schema copy and TS constants aligned with `content/vbrief/schemas/vbrief-core.schema.json`. Closes #1799.
 
+### Fixed
+
+- **Biome export-order lint on verify-source barrel (#2091).** Reorders named `contract-drift` re-exports so `task ts:check-lane` passes. Closes #2091.
+
 ### Changed
 
 ### Fixed

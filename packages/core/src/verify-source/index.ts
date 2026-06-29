@@ -1,12 +1,12 @@
 export * from "./code-structure-validate.js";
+export * from "./content-manifest.js";
 export {
   CANONICAL_SCHEMA_REL,
-  evaluateContractDrift,
-  PUBLISHED_SCHEMA_REL,
   type ContractDriftOptions,
   type ContractDriftResult,
+  evaluateContractDrift,
+  PUBLISHED_SCHEMA_REL,
 } from "./contract-drift.js";
-export * from "./content-manifest.js";
 export * from "./cursor-tier1.js";
 export * from "./python-call-scan.js";
 export * from "./rule-ownership-lint.js";
