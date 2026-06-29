@@ -341,14 +341,16 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 
 1. ! **Probe for `start_agent` tool** — check the available tool set for `start_agent` (or equivalent agent-orchestration tool). Its presence indicates a Warp environment with native orchestration support.
 2. ! **Probe for Warp environment** — if `start_agent` is not available, check for `WARP_*` environment variables (e.g. `WARP_TERMINAL_SESSION`, `WARP_IS_WARP_TERMINAL`). Their presence indicates Warp without orchestration.
-3. ! **Probe for `spawn_subagent` tool** — when neither `start_agent` nor `WARP_*` is present, check for `spawn_subagent` (Grok Build / non-Warp TUI launch adapter, #1342 slice 2). Its presence indicates the grok-build platform.
-4. ! **Select launch path automatically** based on detection results — do NOT present static options:
+3. ! **Probe for the Cursor `Task` tool** — when neither `start_agent` nor `WARP_*` is present, check the tool set for the Cursor `Task` sub-agent tool (dispatchable in the background via `run_in_background: true`). Its presence indicates a Cursor environment with a **first-class Tier-1 sub-agent primitive** (#1877). Classify as `cursor-composer` for an interactive Composer session and `cursor-cloud-agent` for a Cursor cloud agent. Cursor is **Tier 1 → Approach 1** — do NOT let it fall through to `generic-terminal` / the Approach-3 blocking poll.
+4. ! **Probe for `spawn_subagent` tool** — when none of `start_agent`, `WARP_*`, or the Cursor `Task` tool is present, check for `spawn_subagent` (Grok Build / non-Warp TUI launch adapter, #1342 slice 2). Its presence indicates the grok-build platform.
+5. ! **Select launch path automatically** based on detection results — do NOT present static options:
    - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
    - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
-   - **`grok-build` (`spawn_subagent` available, no `start_agent`, no `WARP_*`)** → Grok Build launch (Step 2d) — first-class non-Warp path
+   - **Cursor `Task` tool available (no `start_agent`, no `WARP_*`)** → Cursor sub-agent launch (Step 2e) via the `Task` tool with `run_in_background: true` (Tier 1 / Approach 1) — keeps the monitor pane interactive; descriptor is `cursor-composer` (interactive) or `cursor-cloud-agent` (cloud)
+   - **`grok-build` (`spawn_subagent` available, no `start_agent`, no `WARP_*`, no Cursor `Task` tool)** → Grok Build launch (Step 2d) — first-class non-Warp path
    - **No orchestration primitive detected** → `generic-terminal` degraded launch. Offer a **Serial self-execution downgrade** first: with explicit operator consent, the monitor may execute the prepared worker prompts itself one story at a time from the isolated worktrees. This preserves forward progress but is not true concurrent swarm execution.
-5. ! **Return a stable platform descriptor** for downstream phases — one of `warp-orchestrated` (start_agent available), `warp-manual` (Warp without start_agent), `grok-build` (spawn_subagent available, non-Warp), or `generic-terminal` (no orchestration primitives). The detection matrix MUST include explicit absence checks for `start_agent` and `WARP_*` so the four descriptors are unambiguous. Phase 4 monitoring and Phase 6 sub-agent dispatch read this stable platform descriptor as a single source of truth instead of re-running detection per call.
-6. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
+6. ! **Return a stable platform descriptor** for downstream phases — one of `warp-orchestrated` (start_agent available), `warp-manual` (Warp without start_agent), `cursor-composer` (Cursor `Task` tool, interactive Composer), `cursor-cloud-agent` (Cursor `Task` tool, cloud agent), `grok-build` (spawn_subagent available, non-Warp, non-Cursor), or `generic-terminal` (no orchestration primitives). The detection matrix MUST include explicit absence checks for `start_agent`, `WARP_*`, and the Cursor `Task` tool so the six descriptors are unambiguous. Phase 4 monitoring and Phase 6 sub-agent dispatch read this stable platform descriptor as a single source of truth instead of re-running detection per call.
+7. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud. (The Cursor `cursor-cloud-agent` descriptor above is distinct — it is a Cursor-native cloud agent detected via the `Task` tool, not the `oz` escape hatch.)
 
 ! In `generic-terminal` mode, if the operator declines serial self-execution, the manual terminal prompt-paste fallback remains available: the user can paste each generated prompt into any terminal or agent interface with access to the matching worktree. Surface the tradeoff clearly: manual paste preserves user control but requires tab/process management and is still not automated orchestration.
 
@@ -493,6 +495,17 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 3. The worktree path set to the agent's isolated git worktree
 
 ~ This is the first-class non-Warp path. Workers use worktree state polling (`git status`, `git log`) and `get_command_or_subagent_output` as their coordination channel instead of Warp tab state.
+
+### Step 2e: Cursor Launch (Task tool available) — #1877
+
+! When the platform descriptor is `cursor-composer` or `cursor-cloud-agent` (Cursor `Task` tool detected, no `start_agent`, no `WARP_*`, no `spawn_subagent`), dispatch each worker via the Cursor `Task` tool with:
+1. The canonical `templates/agent-prompt-preamble.md` content as the preamble (AGENTS.md read mandate, #810 vBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates).
+2. The standard worktree prompt (STEP 1-6 from the Prompt Template below).
+3. The worktree path set to the agent's isolated git worktree.
+4. ! **`run_in_background: true`** for any worker or poller whose loop runs longer than a short task (~3 min) — implementation, fix, and review-cycle workers — so the monitor conversation pane stays interactive (#1880 Gap D). The parent is notified on completion.
+5. ! **Deliberate model routing (#1739):** pass the route's `resolved_model` (when non-null) as the Task tool's `model` argument — stamping the C2 manifest is prep; the recorded model MUST reach the actual spawn call.
+
+~ This is the first-class Cursor path. It is **Tier 1 → Approach 1** (a backgroundable sub-agent primitive), equivalent in tier to `start_agent` / `spawn_subagent`; it MUST NOT be downgraded to a `generic-terminal` blocking poll. Cursor pollers whose loop runs > ~3 min MUST honour the sub-agent heartbeat contract (`docs/subagent-heartbeat.md`, #1166), same as the `spawn_subagent` path.
 
 ## Phase 4 — Monitor
 

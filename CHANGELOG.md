@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Cursor is now a first-class Tier-1 runtime in the swarm and review-cycle monitoring matrices: an agent running in Cursor is detected via its `Task` tool and dispatches a backgrounded sub-agent poller (keeping the chat pane interactive) instead of silently degrading to a blocking poll loop. A new framework-source gate (`task verify:cursor-tier1`) keeps the Cursor → Tier-1 mapping from regressing in the skill docs. Closes #1877.
+
 ### Changed
 
 ### Fixed

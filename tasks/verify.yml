@@ -45,6 +45,17 @@ tasks:
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-content-manifest --project-root "{{.DEFT_ROOT}}"
 
+  cursor-tier1:
+    desc: "Framework-source content gate (#1877): assert Cursor (cursor-composer / cursor-cloud-agent, Task-tool primitive) is enumerated as a Tier-1 descriptor in the swarm Phase 3 capability matrix AND the review-cycle monitoring tier table. Fails when a doc edit drops the Cursor descriptor and silently re-opens the Tier-3 blocking-poll misclassification. Three-state exit (0 clean / 1 missing marker / 2 config error)."
+    deps:
+      - _ts-build
+    # Framework-source-only gate: it scans THIS repo's two skill docs, so it
+    # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer install renders
+    # these skills under .deft/core and does not author them. Mirrors
+    # verify:content-manifest / verify:rule-ownership.
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-cursor-tier1 --project-root "{{.DEFT_ROOT}}"
+
   go-freeze:
     desc: "Tier-1 freeze gate for the legacy Go-installer bridge (#1912). Advisory while the Tier-0 SoT (lastGoInstaller) is null; once the operator pins it, fails when cmd/deft-install is bumped above the frozen tag. Three-state exit (0 ok / 1 violation / 2 config error). Emergency bypass: DEFT_ALLOW_GO_INSTALLER_BUMP=1."
     deps:
