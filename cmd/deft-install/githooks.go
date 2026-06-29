@@ -50,6 +50,12 @@ const hookFileMode = 0o755
 // not ship a given hook name is tolerated (the read is skipped, not fatal).
 var hookFilenames = []string{"pre-commit", "pre-push"}
 
+// hookSupportFilenames lists non-hook helper scripts sourced by the deposited
+// hooks (e.g. _deft-run.sh for local deft CLI resolution #2067). Copied with
+// the same idempotent deposit logic as hookFilenames but not chmod'd into the
+// git index as executable hooks.
+var hookSupportFilenames = []string{"_deft-run.sh"}
+
 // gitConfigGetHooksPathFunc reads the configured core.hooksPath for the repo at
 // dir (empty string when unset). Indirected through a var so tests can drive
 // WriteConsumerGitHooks without a real repo. `git config --get` exits 1 when the
@@ -119,7 +125,7 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 	deposited := false
 	healed := false           // a present hook was non-executable and the chmod repaired it (#1477)
 	var hookRelPaths []string // POSIX repo-relative paths of hooks present on disk
-	for _, name := range hookFilenames {
+	for _, name := range append(append([]string{}, hookFilenames...), hookSupportFilenames...) {
 		data, err := os.ReadFile(filepath.Join(srcDir, name))
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -141,6 +147,10 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 				return false, fmt.Errorf("could not write hook %s: %w", name, err)
 			}
 			deposited = true
+		}
+		isHookScript := name == "pre-commit" || name == "pre-push"
+		if !isHookScript {
+			continue
 		}
 		// Detect a non-executable hook BEFORE the heal so the caller can report
 		// it -- otherwise a byte-identical 0o644 hook (the precise #1477 bug state

@@ -356,6 +356,7 @@ func TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit(t *testing.T) {
 	// .deft/core/.githooks/ (#2049: hooks dispatch deft CLI only).
 	copyHookLF(t, filepath.Join(repoRoot, ".githooks", "pre-commit"), filepath.Join(deftDir, ".githooks", "pre-commit"))
 	copyHookLF(t, filepath.Join(repoRoot, ".githooks", "pre-push"), filepath.Join(deftDir, ".githooks", "pre-push"))
+	copyHookLF(t, filepath.Join(repoRoot, ".githooks", "_deft-run.sh"), filepath.Join(deftDir, ".githooks", "_deft-run.sh"))
 
 	// A consumer PROJECT-DEFINITION that does NOT allow direct commits to the
 	// default branch -- so verify:branch blocks (exit 1) by policy.

@@ -20,7 +20,7 @@ describe("test_branch_gate.py", () => {
   it("test_deft_run_sh_falls_back_to_local_cli", () => {
     const text = readText(".githooks/_deft-run.sh");
     expect(text).toContain("command -v deft");
-    expect(text).toContain('packages/cli/dist/bin.js');
+    expect(text).toContain("packages/cli/dist/bin.js");
     expect(text).toContain("run_deft()");
   });
   it("test_taskfile_check_includes_verify_branch", () => {
