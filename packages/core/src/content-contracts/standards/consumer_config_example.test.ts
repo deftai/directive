@@ -160,8 +160,8 @@ describe("test_consumer_config_example.py", () => {
       mainText.indexOf("### Publishing deft tasks in your project root"),
       mainText.indexOf("### What migration produces"),
     );
-    expect(section).toContain("task deft:migrate:vbrief");
-    expect(section).toContain("task -t ./.deft/core/Taskfile.yml migrate:vbrief");
+    expect(section).toContain("Frozen pre-v0.20 document-model migration");
+    expect(section).toContain("v0.59.0");
   });
 
   it("test_main_preferred_workflow_uses_namespaced_consumer_tasks", () => {

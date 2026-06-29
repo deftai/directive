@@ -10,75 +10,18 @@ tasks:
   _ts-build:
     internal: true
     desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
-    # Match scope.yml _ensure-ts: run from USER_WORKING_DIR with pnpm --dir so
-    # Windows consumer invocations via `-t <abs Taskfile>` do not double-prefix
-    # DEFT_ROOT under go-task's dir: handling (#566 / Windows CI regression).
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   preflight:
-    # Agent-side environment preflight for `task migrate:vbrief` (#793).
-    # Reifies the prose contract documented in
-    # `skills/deft-directive-setup/SKILL.md` § Environment Preflight as a
-    # runnable task so consumers running `task migrate:vbrief` directly
-    # (not via the agent-driven setup skill) get the same checks
-    # (uv on PATH, v0.20+ layout, document model, git working tree) before
-    # any destructive mutation runs. Three-state exit (0 ready / 1 not-ready / 2 config
-    # error) mirrors `scripts/preflight_branch.py` (#747).
-    #
-    # Consumer path dispatches through the native deft-ts handler (#2022 Phase 2);
-    # the legacy Python script remains for maintainer parity only.
-    #
-    # NO `sources:` / `generates:` per `conventions/task-caching.md`: the
-    # script forwards user-facing CLI flags (`--project-root`, `--deft-root`,
-    # `--quiet`) via `{{.CLI_ARGS}}` and a cached cmds skip would silently
-    # swallow them.
-    desc: "Verify environment readiness for `task migrate:vbrief` (uv on PATH, v0.20+ layout, document model, git tree). Three-state exit (#793)."
+    # Pre-v0.20 document-model probe (#793, #2068 cutoff). Detects legacy
+    # SPECIFICATION.md / PROJECT.md or missing lifecycle folders and points
+    # operators at the frozen-release migration path in UPGRADING.md. Does NOT
+    # run the in-product migrator (retired from current npm deposits).
+    desc: "Detect pre-v0.20 document model and report the frozen-release migration path (#2068). Three-state exit (#793)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-preflight --project-root "{{.USER_WORKING_DIR}}" --deft-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}
-
-  vbrief:
-    desc: >
-      Migrate existing project files to vBRIEF-centric folder structure (RFC #309).
-      Pass safety flags after --, e.g. `task migrate:vbrief -- --dry-run`,
-      `task migrate:vbrief -- --force`, `task migrate:vbrief -- --rollback` (#497, #506 D7).
-      Pass `task migrate:vbrief -- --strict` to fail the run on any SPEC/ROADMAP
-      reconciliation conflict (#496, #506).
-      Self-invokes `task migrate:preflight` first (#793) so a non-zero preflight
-      exit aborts the run before any destructive mutation; pre-existing CLI
-      flags continue to dispatch to `scripts/migrate_vbrief.py` unchanged.
-      Emits framework events on guard trip: `dirty-tree:detected` (#497-3
-      dirty-tree guard) and `pre-cutover:detected` (when
-      run::_check_upgrade_gate is consulted by the CLI flow). See
-      events/registry.json for the payload contracts and `DEFT_EVENT_LOG` for
-      opt-in JSON-line capture (#635).
-      #2013 HOLDOUT: `migrate:vbrief` remains the sole consumer-path Python
-      entrypoint until the spec-authority umbrella resolves the
-      `migrate_vbrief.py` port-vs-cutoff decision (#2022 Phase 2).
-    deps:
-      # #793: gate destructive migration on the environment preflight. A
-      # non-zero exit from the preflight task aborts this task before any
-      # `cmds:` line runs. Operator-supplied `{{.CLI_ARGS}}` (e.g.
-      # `--dry-run`, `--force`, `--rollback`, `--strict`) belong to the
-      # migrator and are NOT valid migrate:preflight flags. go-task
-      # forwards parent CLI_ARGS into dependency tasks by default, so we
-      # explicitly clear CLI_ARGS here; otherwise `task migrate:vbrief --
-      # --dry-run` reaches the preflight argparse surface as
-      # `migrate:preflight -- --dry-run` and exits 2 (`unrecognized
-      # arguments: --dry-run`) before the migrator runs. This bug was
-      # caught by the Windows task-dispatch regression job on PR #860.
-      - task: preflight
-        vars:
-          CLI_ARGS: ""
-    dir: '{{.USER_WORKING_DIR}}'
-    env:
-      PYTHONUTF8: "1"
-    cmds:
-      # #2013 holdout: migrate_vbrief.py stays on the consumer path until the
-      # spec-authority umbrella closes the port-vs-cutoff decision (#2022).
-      # Preflight is TS-native; the migrator body remains Python for now.
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/migrate_vbrief.py" "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

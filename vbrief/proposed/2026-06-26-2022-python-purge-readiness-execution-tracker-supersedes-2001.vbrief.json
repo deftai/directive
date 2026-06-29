@@ -144,7 +144,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "proposed/2026-06-28-2068-decide-migrate-vbrief-ts-port-or-pre-v020-cutoff.vbrief.json",
+        "uri": "completed/2026-06-28-2068-decide-migrate-vbrief-ts-port-or-pre-v020-cutoff.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Wave 2: migrate:vbrief disposition decision (#2068) — retires #1860 carve-out",
         "TrustLevel": "internal"

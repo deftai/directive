@@ -6,7 +6,7 @@
   "plan": {
     "id": "migrate-vbrief-decision-2068",
     "title": "Decide and execute migrate:vbrief -- TS port or pre-v0.20 cutoff (retires #1860 carve-out)",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "proposed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.vbrief.json",
     "narratives": {
       "Description": "The migrate:vbrief verb still dispatches to scripts/migrate_vbrief.py -- the sole intentional consumer-path Python entrypoint carved out of #1860's bulk delete. This story resolves the open decision: either port the migrator to TypeScript behind the directive CLI, or document a hard pre-v0.20 legacy cutoff and remove the verb from the consumer surface. #2013 Wave 0 (locked) and Wave 1 (#1502 + #2005, closed 2026-06-28) settled the spec-authority output contract the migrator depends on, so the remaining unknown is exactly this port-vs-cutoff call.",
@@ -48,8 +48,14 @@
       "swarm": {
         "readiness": "needs_refinement",
         "parallel_safe": false,
-        "file_scope": ["scripts/migrate_vbrief.py", "tasks/migrate.yml"],
-        "verify_commands": ["task migrate:vbrief -- --dry-run", "task check"],
+        "file_scope": [
+          "scripts/migrate_vbrief.py",
+          "tasks/migrate.yml"
+        ],
+        "verify_commands": [
+          "task migrate:vbrief -- --dry-run",
+          "task check"
+        ],
         "expected_outputs": [
           "recorded migrate:vbrief decision",
           "either a TS migrate verb or a documented cutoff"
@@ -59,7 +65,9 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-29T12:41:00Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -69,6 +77,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-28T20:50:00Z"
+    "updated": "2026-06-29T12:41:00Z"
   }
 }

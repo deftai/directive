@@ -149,7 +149,7 @@ The vendored schema at [`vbrief/schemas/vbrief-core.schema.json`](./content/vbri
 
 ## Migrating from pre-v0.20
 
-Projects that pre-date v0.20 (pre-vBRIEF-centric model) can be upgraded with `task deft:migrate:vbrief` when using the canonical namespaced include. This section tells you how to recognize a pre-cutover project, how to run the migrator from the project root, and what the migrator produces. Cross-linked from [QUICK-START.md](./content/QUICK-START.md) Case H / Case I and from the consumer `AGENTS.md` pre-cutover branch (see [templates/agents-entry.md](./content/templates/agents-entry.md)).
+Projects that pre-date v0.20 (pre-vBRIEF-centric model) must migrate on a **pinned frozen release** before upgrading to current npm — current releases no longer ship in-product `task migrate:vbrief` (#2068). See [UPGRADING.md § Frozen pre-v0.20 document-model migration](./content/UPGRADING.md#frozen-pre-v020-document-model-migration-2068). This section describes how to recognize pre-cutover state and what the migrator produces. Cross-linked from [QUICK-START.md](./content/QUICK-START.md) Case H / Case I and from the consumer `AGENTS.md` pre-cutover branch (see [templates/agents-entry.md](./content/templates/agents-entry.md)).
 
 ### What pre-cutover looks like
 
@@ -164,7 +164,7 @@ The executable detection helper is [scripts/_precutover.py](./scripts/_precutove
 
 ### Publishing deft tasks in your project root
 
-! The recommended way to make `task deft:migrate:vbrief` (and every other deft task) resolvable from the project root is to add a namespaced deft include to your project-root `Taskfile.yml`. With the include in place, `task --list` from the project root shows every deft task under the `deft:` namespace, and `task deft:migrate:vbrief` dispatches into `./.deft/core/Taskfile.yml` the same way any other included taskfile works:
+! The recommended way to make deft tasks (including `task deft:migrate:preflight`) resolvable from the project root is to add a namespaced deft include to your project-root `Taskfile.yml`. With the include in place, `task --list` from the project root shows every deft task under the `deft:` namespace:
 
 ```yaml
 version: '3'
@@ -179,21 +179,24 @@ includes:
 - ~ If you already include other taskfiles, just add the `deft:` entry alongside them.
 - ⊗ Do NOT add an `install`-step mutation that writes migrate-task content into the project Taskfile. The include pattern above is the supported publish mechanism; inline mutation is explicitly out of scope (per #506 D6).
 
-### Canonical migration command
+### Canonical migration command (frozen v0.59.0 only)
 
-From the project root, once the consumer `Taskfile.yml` includes `./.deft/core/Taskfile.yml` as shown above, run:
-
-```
-task deft:migrate:vbrief
-```
-
-! If the task is not resolvable from the project root (e.g. the consumer `Taskfile.yml` has not yet been wired up to include `./.deft/core/Taskfile.yml`), use the explicit-taskfile fallback invocation:
+! Current npm deposits do not ship `migrate:vbrief`. Pin framework **v0.59.0** (frozen Go installer or git tag), install Python 3.11+ and `uv`, then run:
 
 ```
+task migrate:preflight
+task migrate:vbrief -- --dry-run
+task migrate:vbrief
+```
+
+! Fallback when the consumer Taskfile has no deft include:
+
+```
+task -t ./.deft/core/Taskfile.yml migrate:preflight
 task -t ./.deft/core/Taskfile.yml migrate:vbrief
 ```
 
-The fallback reads `migrate:vbrief` directly out of the framework's own Taskfile and works even when the project-root Taskfile has no `includes:` entry for deft. The namespaced `task deft:migrate:vbrief` invocation is preferred once the include is in place.
+After migration completes, upgrade to current npm per [UPGRADING.md](./content/UPGRADING.md). Full steps: [Frozen pre-v0.20 document-model migration](./content/UPGRADING.md#frozen-pre-v020-document-model-migration-2068).
 
 ### What migration produces
 

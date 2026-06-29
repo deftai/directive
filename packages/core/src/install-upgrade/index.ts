@@ -10,7 +10,10 @@ import {
 import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
 import { resolveVersion } from "../platform/resolve-version.js";
-import { detectPreCutoverLegacy } from "../vbrief-validate/precutover.js";
+import {
+  detectPreCutoverLegacy,
+  frozenPreCutoverMigrationGuidance,
+} from "../vbrief-validate/precutover.js";
 
 const ENGINE_PACKAGE_FALLBACK = "0.0.0";
 
@@ -223,7 +226,7 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
   const legacy = detectPreCutoverLegacy(projectRoot);
   if (legacy.length > 0) {
     io.writeOut(
-      `Pre-v0.20 document model detected (${legacy.join(", ")}). Run \`task migrate:vbrief\` first -- it migrates legacy artifacts and creates the lifecycle folder structure. This command only records the framework version.\n`,
+      `Pre-v0.20 document model detected (${legacy.join(", ")}). ${frozenPreCutoverMigrationGuidance()}\n`,
     );
   }
 
@@ -253,7 +256,7 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
     io.writeOut(`Updated .deft-version from ${recorded} to ${normalizedVersion}.\n`);
   }
   io.writeOut(
-    "If legacy SPECIFICATION.md or PROJECT.md content remains, run `task migrate:vbrief` to complete the upgrade.\n",
+    `If legacy SPECIFICATION.md or PROJECT.md content remains, see UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).\n`,
   );
 
   return runAgentsRefresh(projectRoot, agentsRoot, io);

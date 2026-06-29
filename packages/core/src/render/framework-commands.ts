@@ -71,7 +71,6 @@ export const COMMANDS: Readonly<Record<string, CommandSpec>> = {
   "triage:accept": spec("triage:accept", "triage_actions:main", { defaultArgs: ["accept"] }),
   "triage:status": spec("triage:status", "triage_actions:main", { defaultArgs: ["status"] }),
   "triage:scope": spec("triage:scope", "triage_scope:main"),
-  "migrate:vbrief": spec("migrate:vbrief", "framework_commands:_cmd_migrate_vbrief"),
   "cache:fetch-all": spec("cache:fetch-all", "cache:main", { defaultArgs: ["fetch-all"] }),
   "capacity:show": spec("capacity:show", "capacity_show:main", {
     projectRootArg: "--project-root",

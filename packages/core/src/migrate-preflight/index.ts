@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { defaultWhich } from "../scm/binary.js";
 import {
   detectPreCutoverLegacy,
+  frozenPreCutoverMigrationGuidance,
   isCurrentGeneratedSpecification,
   isGeneratedSpecificationExport,
   missingLifecycleFolders,
@@ -42,27 +42,7 @@ function resolveContentRoot(frameworkRoot: string): string {
   return frameworkRoot;
 }
 
-export function checkUv(which: (cmd: string) => string | null = defaultWhich): CheckResult {
-  if (which("uv") !== null) {
-    return { name: "uv", status: "PASS", message: "uv is on PATH." };
-  }
-  return {
-    name: "uv",
-    status: "FAIL",
-    message: "uv is not on PATH. Install from https://docs.astral.sh/uv/ and re-run.",
-  };
-}
-
 export function checkLayout(deftRoot: string, projectRoot: string): CheckResult {
-  const migrator = join(deftRoot, "scripts", "migrate_vbrief.py");
-  if (!existsSync(migrator) || !statSync(migrator).isFile()) {
-    return {
-      name: "layout",
-      status: "FAIL",
-      message: `Migrator script missing at ${migrator}. The framework checkout appears incomplete or pre-v0.20; refresh per deft/QUICK-START.md.`,
-    };
-  }
-
   const schemasDir = join(resolveContentRoot(deftRoot), "vbrief", "schemas");
   if (!existsSync(schemasDir) || !statSync(schemasDir).isDirectory()) {
     return {
@@ -77,14 +57,14 @@ export function checkLayout(deftRoot: string, projectRoot: string): CheckResult 
     return {
       name: "layout",
       status: "WARN",
-      message: `Project vbrief/ not present at ${projectVbrief} -- migrator will create it on first run; this is expected for greenfield projects.`,
+      message: `Project vbrief/ not present at ${projectVbrief} -- expected for greenfield projects.`,
     };
   }
 
   return {
     name: "layout",
     status: "PASS",
-    message: `Framework migrator + schemas present; project vbrief/ at ${projectVbrief}.`,
+    message: `Framework schemas present; project vbrief/ at ${projectVbrief}.`,
   };
 }
 
@@ -99,7 +79,7 @@ export function checkGitClean(projectRoot: string): CheckResult {
         name: "git-clean",
         status: "WARN",
         message:
-          "Working tree is dirty. The migrator will refuse to run without --force; preview with `task migrate:vbrief -- --dry-run` first.",
+          "Working tree is dirty. Commit or stash before running a frozen-release migration.",
       };
     }
     return { name: "git-clean", status: "PASS", message: "Working tree is clean." };
@@ -109,8 +89,7 @@ export function checkGitClean(projectRoot: string): CheckResult {
       return {
         name: "git-clean",
         status: "WARN",
-        message:
-          "git executable not on PATH; skipping working-tree check. Migrator's dirty-tree guard will still fire if applicable.",
+        message: "git executable not on PATH; skipping working-tree check.",
       };
     }
     return {
@@ -126,8 +105,8 @@ export function checkDocumentModel(projectRoot: string): CheckResult {
   if (legacy.length > 0) {
     return {
       name: "document-model",
-      status: "PASS",
-      message: `Legacy root artifact(s) detected: ${legacy.join(", ")}.`,
+      status: "FAIL",
+      message: `Pre-v0.20 document model detected (${legacy.join(", ")}). ${frozenPreCutoverMigrationGuidance()}`,
     };
   }
 
@@ -152,9 +131,9 @@ export function checkDocumentModel(projectRoot: string): CheckResult {
     if (isCurrentGeneratedSpecification(projectRoot, content)) {
       return {
         name: "document-model",
-        status: "FAIL",
+        status: "PASS",
         message:
-          "Current generated SPECIFICATION.md detected (source: vbrief/specification.vbrief.json); `task migrate:vbrief` is not needed.",
+          "Current generated SPECIFICATION.md detected (source: vbrief/specification.vbrief.json); pre-v0.20 migration is not needed.",
       };
     }
   }
@@ -165,27 +144,24 @@ export function checkDocumentModel(projectRoot: string): CheckResult {
     if (missing.length > 0) {
       return {
         name: "document-model",
-        status: "PASS",
-        message: `Partial vBRIEF layout detected; missing lifecycle folder(s): ${missing.join(", ")}.`,
+        status: "FAIL",
+        message: `Partial vBRIEF layout detected; missing lifecycle folder(s): ${missing.join(", ")}. Create the folders or follow ${frozenPreCutoverMigrationGuidance()}`,
       };
     }
   }
 
   return {
     name: "document-model",
-    status: "WARN",
-    message:
-      "No legacy root SPECIFICATION.md/PROJECT.md artifacts detected. Migration may have nothing to do.",
+    status: "PASS",
+    message: "No pre-v0.20 document-model artifacts detected.",
   };
 }
 
 export function evaluate(
   deftRoot: string,
   projectRoot: string,
-  which: (cmd: string) => string | null = defaultWhich,
 ): { exitCode: 0 | 1; results: CheckResult[] } {
   const results = [
-    checkUv(which),
     checkLayout(deftRoot, projectRoot),
     checkDocumentModel(projectRoot),
     checkGitClean(projectRoot),
@@ -239,10 +215,10 @@ export function emitMigratePreflight(
   }
   if (outcome.exitCode === 1) {
     io.writeErr(
-      "migrate:preflight FAILED -- resolve the FAIL line(s) above before running `task migrate:vbrief`.\n",
+      "migrate:preflight FAILED -- pre-v0.20 document model or incomplete vBRIEF layout. Resolve using UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).\n",
     );
   } else {
-    io.writeOut("migrate:preflight OK -- environment ready for `task migrate:vbrief`.\n");
+    io.writeOut("migrate:preflight OK -- no pre-v0.20 document-model migration required.\n");
   }
   return outcome.exitCode;
 }

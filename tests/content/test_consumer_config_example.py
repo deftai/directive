@@ -394,10 +394,8 @@ def test_main_taskfile_include_uses_resolvable_deft_namespace(main_text: str) ->
         "### Publishing deft tasks in your project root",
         "### What migration produces",
     )
-    assert "task deft:migrate:vbrief" in section
-    assert "task -t ./.deft/core/Taskfile.yml migrate:vbrief" in section
-    assert "task migrate:vbrief\n" not in section
-    assert "`task migrate:vbrief`" not in section
+    assert "Frozen pre-v0.20 document-model migration" in section
+    assert "v0.59.0" in section
 
 
 def test_main_preferred_workflow_uses_namespaced_consumer_tasks(

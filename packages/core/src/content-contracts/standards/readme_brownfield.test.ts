@@ -48,7 +48,7 @@ describe("test_readme_brownfield.py", () => {
     });
     it("test_covers_migrate_vbrief", () => {
       const content = readText("docs/BROWNFIELD.md");
-      expect(content).toContain("task migrate:vbrief");
+      expect(content).toContain("v0.59.0");
       expect(content.toLowerCase()).toContain("idempotent");
     });
     it("test_covers_rendered_views_semantics", () => {

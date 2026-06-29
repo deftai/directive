@@ -130,12 +130,12 @@ def test_combined_case_orders_refresh_before_migration() -> None:
     """The combined path MUST run the AGENTS.md refresh before the migration (a1)."""
     text = _QUICK_START.read_text(encoding="utf-8")
     body = _section_body(text, "Case G+H", max_level=3)
-    assert "AGENTS.md refresh first, migration second" in body, (
+    assert "AGENTS.md refresh first, frozen migration guidance second" in body, (
         "Case G+H must state the canonical ordering "
-        "'AGENTS.md refresh first, migration second' (#1114)."
+        "'AGENTS.md refresh first, frozen migration guidance second' (#1114)."
     )
     refresh_idx = body.find("Refresh AGENTS.md first")
-    migration_idx = body.find("Run migration second")
+    migration_idx = body.find("Surface frozen migration path second")
     assert refresh_idx != -1 and migration_idx != -1, (
         "Case G+H must contain a refresh step and a migration step (#1114)."
     )
@@ -156,23 +156,22 @@ def test_combined_case_emits_single_restart() -> None:
         "Case G+H must forbid emitting a second restart instruction (#1114)."
     )
     # Defers the per-case restarts so only one is emitted.
-    assert "step-5 restart" in body and "step 8 (restart)" in body, (
+    assert "step-5 restart" in body and "Single restart, exactly once" in body, (
         "Case G+H must defer the Case G and Case H restart instructions so a "
         "single restart is emitted at the end (#1114)."
     )
 
 
 def test_combined_case_documents_equivalent_end_state() -> None:
-    """The combined path MUST document the byte-identical-to-separate guarantee (a2)."""
+    """The combined path MUST document operator-confirmed migration (#2068)."""
     text = _QUICK_START.read_text(encoding="utf-8")
     body = _section_body(text, "Case G+H", max_level=3)
-    assert "byte-identical" in body, (
-        "Case G+H must state the end state is byte-identical to running the "
-        "cases separately (#1114, acceptance a2)."
+    assert "operator-confirmed migration" in body, (
+        "Case G+H must require operator-confirmed migration before restart "
+        "(#1114, #2068)."
     )
-    assert "separately" in body, (
-        "Case G+H must compare against running Case G and Case H separately "
-        "(#1114, acceptance a2)."
+    assert "v0.59.0" in body, (
+        "Case G+H must reference the frozen v0.59.0 migrator path (#2068)."
     )
 
 

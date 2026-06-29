@@ -47,7 +47,7 @@ Run `directive` (or the `deft` alias) from any project directory — for example
 
 > **🔄 Upgrading?** Run `npm i -g @deftai/directive@latest`, then `deft update`, `deft migrate` (one-time, idempotent), and `deft doctor` from your project root. Read [UPGRADING.md](./content/UPGRADING.md) before proceeding if coming from a Go-installer install. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
 
-> **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
+> **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) and UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).
 
 > **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
 

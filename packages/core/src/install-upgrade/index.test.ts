@@ -71,7 +71,7 @@ describe("install-upgrade", () => {
       { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
     );
     expect(lines.join("")).toContain("Pre-v0.20 document model detected");
-    expect(lines.join("")).toContain("task migrate:vbrief");
+    expect(lines.join("")).toContain("v0.59.0");
   });
 
   it("records first-time version marker when none exists", () => {

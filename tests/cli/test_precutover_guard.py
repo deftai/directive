@@ -280,12 +280,11 @@ class TestSkillActionableMessages:
         assert "task scope:activate" in content
 
     def test_setup_offers_to_run_migration(self):
-        """Setup skill offers to run migration on the user's behalf (#396)."""
+        """Setup skill must NOT offer in-product migration (#2068)."""
         content = read_skill("deft-directive-setup")
-        assert "Would you like me to run" in content
-        assert "task migrate:vbrief" in content
-        # Must re-run the guard after migration to verify clean state
-        assert "re-run" in content.lower()
+        assert "Would you like me to run" not in content
+        assert "not bundled" in content.lower()
+        assert "v0.59.0" in content
 
     def test_setup_precutover_message_text(self):
         """Setup skill contains the standard pre-cutover user message."""
@@ -309,8 +308,7 @@ class TestSkillAntiPatterns:
     def test_setup_prohibits_proceeding_past_guard(self):
         """Setup skill has anti-pattern against proceeding past guard."""
         content = read_skill("deft-directive-setup")
-        # Check for prohibition markers near the guard section
-        assert "redirect to migration first" in content.lower()
+        assert "always redirect to the frozen migration path first" in content.lower()
 
     def test_build_prohibits_proceeding_past_guard(self):
         """Build skill has anti-pattern against proceeding past guard."""

@@ -42,14 +42,43 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
 
 Start a **new agent session** after steps 2–3 so the refreshed AGENTS.md and skills load from a clean context.
 
-### `deft migrate` vs `migrate:vbrief`
+### `deft migrate` vs pre-v0.20 document-model migration
 
 These commands are unrelated — do not confuse them:
 
 | Command | When to use | What it does |
 | --- | --- | --- |
 | `deft migrate` / `directive migrate` | Canonical-vendored `.deft/core/` deposit after npm upgrade (#1941) | Stamps `managed_by: npm` into the install manifest. Idempotent; never downloads payload. |
-| `deft migrate:vbrief` / `task migrate:vbrief` | Pre-v0.20 cutover only (legacy `SPECIFICATION.md` / `PROJECT.md`) | Rewrites flat docs into deprecation redirects and creates vBRIEF lifecycle folders. See [From any pre-v0.20 version → v0.20.0](#from-any-pre-v020-version--v0200). |
+| Pre-v0.20 document-model migration | Legacy authoritative `SPECIFICATION.md` / `PROJECT.md` only | **Not shipped on current npm releases (#2068).** Use the [frozen-release path](#frozen-pre-v020-document-model-migration-2068) below. |
+
+### Frozen pre-v0.20 document-model migration (#2068)
+
+Current `@deftai/directive` npm releases no longer ship `task migrate:vbrief` or `scripts/migrate_vbrief.py` on the consumer deposit path (#2022 Phase 3). If your project still uses the pre-v0.20 flat document model (authoritative root `SPECIFICATION.md` / `PROJECT.md` without vBRIEF lifecycle folders), migrate **once** on a pinned release that still bundles the Python migrator, then join the normal npm upgrade path.
+
+**Applies when:** `deft doctor` reports `Pre-cutover: migration needed`, or `task migrate:preflight` exits non-zero with a `document-model` FAIL line.
+
+**Pinned release:** `v0.59.0` (last release before the Python-free npm deposit; includes `scripts/migrate_vbrief.py`).
+
+**Steps:**
+
+1. Install **Python 3.11+** and **[uv](https://docs.astral.sh/uv/)** on the migration machine.
+2. Deposit framework **v0.59.0** using one of:
+   - **Frozen Go installer** at [GitHub Releases tag v0.59.0](https://github.com/deftai/directive/releases/tag/v0.59.0) (layout migration + full source tarball under `.deft/core/`), or
+   - **Git submodule / clone:** `git checkout v0.59.0` in your framework checkout.
+3. From the project root, preview then apply:
+   ```bash
+   task migrate:preflight
+   task migrate:vbrief -- --dry-run
+   task migrate:vbrief
+   ```
+   Fallback when the consumer Taskfile has no deft include: `task -t ./.deft/core/Taskfile.yml migrate:vbrief`.
+4. Regenerate exports once: `task roadmap:render`, `task project:render`, and `task prd:render -- --force` when you maintain a `PRD.md`.
+5. Upgrade to current npm: `npm i -g @deftai/directive@latest`, then `deft update`, `deft migrate`, `deft doctor`.
+6. Start a **new agent session** so refreshed AGENTS.md and skills load from a clean context.
+
+⊗ Run `npm i -g @deftai/directive@latest` / `deft update` on a project that still has authoritative pre-v0.20 root docs — the current deposit cannot run the migrator; follow the frozen path first.
+
+See [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for what migration produces and how content is preserved.
 
 ### One-time migration from the Go installer (legacy → npm)
 
@@ -124,7 +153,7 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 
 **Version-range buckets (apply-order, oldest applicable first):**
 
-- **From pre-v0.20 (very old) — manual.** Run the pre-cutover migration, then refresh AGENTS.md: [From any pre-v0.20 version → v0.20.0](#from-any-pre-v020-version--v0200) and [From pre-#768 AGENTS.md → managed-section AGENTS.md](#from-pre-768-agentsmd--managed-section-agentsmd). Agents: when the project shows BOTH a stale AGENTS.md and pre-cutover artifacts, follow [QUICK-START.md Case G+H](./QUICK-START.md#case-gh--combined-stale-agentsmd--pre-cutover-migration-big-jump-one-session) to complete both in one session instead of two.
+- **From pre-v0.20 (very old) — manual.** Run the pre-cutover migration on pinned **v0.59.0**, then refresh AGENTS.md: [Frozen pre-v0.20 document-model migration (#2068)](#frozen-pre-v020-document-model-migration-2068) and [From pre-#768 AGENTS.md → managed-section AGENTS.md](#from-pre-768-agentsmd--managed-section-agentsmd). Agents: when the project shows BOTH a stale AGENTS.md and pre-cutover artifacts, follow [QUICK-START.md Case G+H](./QUICK-START.md#case-gh--combined-stale-agentsmd--pre-cutover-migration-big-jump-one-session) to complete both in one session instead of two.
 - **From v0.20–v0.24 — auto-handled (opt-in).** Triage v1 is purely additive; nothing breaks if you skip it: [Migration to triage v1](#migration-to-triage-v1).
 - **From v0.25.x — manual (breaking).** The deft-cache on-disk layout changed: [From v0.25.x → v0.26.0](#from-v025x--v0260-deft-cache-unified-layer-breaking).
 - **From v0.26.x — auto-handled (interactive).** Run the triage adoption ritual: [From v0.26.x → v0.27](#from-v026x---v027-triage-adoption-via-task-triagewelcome).
@@ -560,18 +589,19 @@ The contract is byte-stable by construction:
 
 ---
 
-## From any pre-v0.20 version → v0.20.0
+## From any pre-v0.20 version → v0.20.0 (historical; use frozen path)
 
-- **Applies when:** `.deft/core/run gate` reports `precutover=SPECIFICATION.md,PROJECT.md` (or any subset thereof) AND/OR `agents-md=missing`. The presence of legacy `SPECIFICATION.md` / `PROJECT.md` without the `<!-- deft:deprecated-redirect -->` sentinel is the canonical pre-cutover signal.
-- **Safe to auto-run:** No -- `task migrate:vbrief` rewrites `SPECIFICATION.md` and `PROJECT.md` into deprecation-redirect stubs and creates lifecycle folders; the operator must review the dry-run output and acknowledge the rewrite. `--dry-run` is recommended on any non-trivial project before the live run.
-- **Restart required:** Yes -- the agent's current session still holds stale rules from the previous `AGENTS.md`. After cleanup commands complete, stop the session and start a fresh one so the rewritten `AGENTS.md` and v0.20 skills are loaded from a clean context.
-- **Commands:**
-  - `task migrate:vbrief --dry-run` (preview)
+> **Current releases (#2068):** follow [Frozen pre-v0.20 document-model migration](#frozen-pre-v020-document-model-migration-2068) instead of upgrading straight to latest npm. The section below documents what the v0.20 cutover changed; commands assume framework **v0.59.0** (or another pinned release that still ships `migrate_vbrief.py`).
+
+- **Applies when:** `deft doctor` / `task migrate:preflight` reports pre-cutover state. Legacy `SPECIFICATION.md` / `PROJECT.md` without the `<!-- deft:deprecated-redirect -->` sentinel is the canonical signal.
+- **Safe to auto-run:** No — `task migrate:vbrief` on the pinned release rewrites `SPECIFICATION.md` and `PROJECT.md` into deprecation-redirect stubs and creates lifecycle folders; review `--dry-run` first.
+- **Restart required:** Yes — after migration completes, stop the session and start fresh so rewritten AGENTS.md and v0.20 skills load cleanly.
+- **Commands (on pinned v0.59.0 payload):**
+  - `task migrate:vbrief -- --dry-run` (preview)
   - `task migrate:vbrief` (apply)
-  - `.deft/core/run upgrade` (writes `vbrief/.deft-version` AND now refreshes the AGENTS.md managed section in one step per #768)
-  - `.deft/core/run agents:refresh` (idempotent; runs implicitly via `.deft/core/run upgrade` -- only invoke directly if you skipped that step)
+  - `deft upgrade` or `task upgrade` (record framework version + refresh AGENTS.md managed section)
   - `task roadmap:render` / `task project:render` / `task prd:render -- --force` (regenerate exports)
-  - `task check` (verify)
+  - `deft check` or `task check` (verify)
 
 ### Remote probe (#801)
 

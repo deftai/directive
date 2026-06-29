@@ -29,7 +29,8 @@ _AGENTS_ENTRY_TEMPLATE = _REPO_ROOT / "content/templates/agents-entry.md"
 _SETUP_SKILL = _REPO_ROOT / "content/skills/deft-directive-setup/SKILL.md"
 _SETUP_GO = _REPO_ROOT / "cmd" / "deft-install" / "setup.go"
 
-_FALLBACK_CMD = "task -t ./deft/Taskfile.yml migrate:vbrief"
+_FALLBACK_CMD = "task -t ./.deft/core/Taskfile.yml migrate:preflight"
+_FROZEN_TAG = "v0.59.0"
 _PRECUTOVER_SECTION_HEADING = "## Migrating from pre-v0.20"
 
 
@@ -74,13 +75,14 @@ def test_main_md_documents_taskfile_include_pattern() -> None:
 
 
 def test_quickstart_references_fallback_command() -> None:
-    """QUICK-START.md must reference the `task -t ./deft/Taskfile.yml migrate:vbrief`
-    fallback so operators hitting Case H / Case I from the project root still
-    have a working invocation (#500 problem 1)."""
+    """QUICK-START.md must reference the migrate:preflight fallback so operators
+    hitting Case H / Case I from the project root can confirm pre-cutover state
+    (#500 problem 1, #2068 frozen path)."""
     text = _QUICKSTART_MD.read_text(encoding="utf-8")
-    assert _FALLBACK_CMD in text, (
-        f"QUICK-START.md: missing fallback invocation '{_FALLBACK_CMD}' "
-        f"referenced from Case H / Case I (#500, #506 D6 fallback path)"
+    assert "task -t ./.deft/core/Taskfile.yml migrate:preflight" in text, (
+        "QUICK-START.md: missing fallback invocation "
+        "'task -t ./.deft/core/Taskfile.yml migrate:preflight' "
+        "referenced from Case H / Case I (#500, #2068)"
     )
 
 
@@ -103,75 +105,56 @@ def test_quickstart_cross_links_main_migration_section() -> None:
 
 
 def test_setup_skill_pre_cutover_guard_fallback_command() -> None:
-    """skills/deft-directive-setup/SKILL.md must surface the fallback command."""
+    """skills/deft-directive-setup/SKILL.md must surface the frozen-release path."""
     text = _SETUP_SKILL.read_text(encoding="utf-8")
     assert "Pre-Cutover Detection Guard" in text, (
         "setup SKILL.md: Pre-Cutover Detection Guard section missing "
         "(regression guard)"
     )
-    assert _FALLBACK_CMD in text, (
-        f"setup SKILL.md: Pre-Cutover Detection Guard must reference the "
-        f"fallback invocation '{_FALLBACK_CMD}' when `task migrate:vbrief` "
-        f"is not resolvable from the project root (Task 500-B, #506 D6)"
+    assert _FROZEN_TAG in text, (
+        f"setup SKILL.md: Pre-Cutover Detection Guard must reference pinned "
+        f"release {_FROZEN_TAG} (#2068)"
     )
 
 
 def test_setup_skill_documents_task_resolvability_check() -> None:
-    """The guard must describe a task resolvability check (e.g. `task --list`
-    grepped for `migrate:vbrief`)."""
+    """The guard must document migrate:preflight as the diagnostic task."""
     text = _SETUP_SKILL.read_text(encoding="utf-8")
-    assert "Task resolvability" in text or "task resolvability" in text.lower(), (
-        "setup SKILL.md: Pre-Cutover Detection Guard must document a task "
-        "resolvability check as the first preflight step (Task 500-B / B2)"
-    )
-    assert "task --list" in text, (
-        "setup SKILL.md: resolvability check must call out `task --list` as "
-        "the probe command so operators can reproduce it"
-    )
-    assert "migrate:vbrief" in text, (
-        "setup SKILL.md: resolvability check must grep `task --list` for "
-        "the `migrate:vbrief` task name"
+    assert "migrate:preflight" in text, (
+        "setup SKILL.md: Pre-Cutover Detection Guard must document "
+        "`task migrate:preflight` (#2068)"
     )
 
 
 def test_setup_skill_documents_uv_preflight() -> None:
-    """Preflight must verify `uv` is on PATH before offering to run migration."""
+    """Frozen-path guidance must mention uv for the pinned migrator."""
     text = _SETUP_SKILL.read_text(encoding="utf-8")
-    assert "uv" in text and ("on PATH" in text or "`uv --version`" in text), (
-        "setup SKILL.md: Pre-Cutover Detection Guard preflight must verify "
-        "`uv` is installed (the migrator runs `uv run python ...`) -- see "
-        "Task 500-B2"
+    assert "uv" in text, (
+        "setup SKILL.md: Pre-Cutover Detection Guard must mention "
+        "`uv` for the frozen v0.59.0 migrator path (#2068)"
     )
 
 
-def test_setup_skill_documents_migrate_script_preflight() -> None:
-    """Preflight must verify `deft/scripts/migrate_vbrief.py` is present."""
+def test_setup_skill_documents_frozen_migration_path() -> None:
+    """The guard must document the frozen-release migration path (#2068)."""
     text = _SETUP_SKILL.read_text(encoding="utf-8")
-    assert "migrate_vbrief.py" in text, (
-        "setup SKILL.md: Pre-Cutover Detection Guard preflight must verify "
-        "the migration script is on disk (Task 500-B2)"
-    )
+    assert _FROZEN_TAG in text
+    assert "#2068" in text
 
 
 def test_setup_skill_preflight_reports_before_prompt() -> None:
-    """The preflight results MUST be reported to the user BEFORE the yes/no
-    `Would you like me to run ... now?` prompt."""
+    """Preflight guidance must appear before the deterministic questions contract."""
     text = _SETUP_SKILL.read_text(encoding="utf-8")
-    # Ordering: the preflight section introduction line mentioning "Before"
-    # appears before the prompt-and-run subsection.
-    preflight_intro = text.find("Environment Preflight")
-    prompt_index = text.find("Prompt and Run")
+    preflight_intro = text.find("Preflight (optional diagnostic)")
+    deterministic_pos = text.find("## Deterministic Questions Contract")
     assert preflight_intro != -1, (
-        "setup SKILL.md: Pre-Cutover Detection Guard must include an "
-        "'Environment Preflight' subsection (Task 500-B2)"
+        "setup SKILL.md: Pre-Cutover Detection Guard must include "
+        "'Preflight (optional diagnostic)' (#2068)"
     )
-    assert prompt_index != -1, (
-        "setup SKILL.md: Pre-Cutover Detection Guard must include a "
-        "'Prompt and Run' subsection that runs after preflight"
-    )
-    assert preflight_intro < prompt_index, (
-        "setup SKILL.md: 'Environment Preflight' must appear BEFORE "
-        "'Prompt and Run' so the agent surfaces blockers first (Task 500-B2)"
+    assert deterministic_pos != -1
+    assert preflight_intro < deterministic_pos, (
+        "setup SKILL.md: preflight guidance must appear BEFORE "
+        "'## Deterministic Questions Contract'"
     )
 
 
@@ -324,17 +307,17 @@ def test_main_md_migration_section_covers_required_content() -> None:
     assert "pre-cutover" in section.lower(), (
         "main.md migration section must describe what pre-cutover looks like"
     )
-    # Canonical command under the namespaced consumer include (#1523)
-    assert "task deft:migrate:vbrief" in section, (
-        "main.md migration section must cite the canonical "
-        "`task deft:migrate:vbrief` command"
+    # Frozen-release path (#2068)
+    assert _FROZEN_TAG in section, (
+        f"main.md migration section must cite pinned release {_FROZEN_TAG} (#2068)"
     )
-    # Fallback command for projects without the namespaced include
-    main_fallback_cmd = "task -t ./.deft/core/Taskfile.yml migrate:vbrief"
+    assert "migrate:preflight" in section, (
+        "main.md migration section must document `task migrate:preflight`"
+    )
+    main_fallback_cmd = "task -t ./.deft/core/Taskfile.yml migrate:preflight"
     assert main_fallback_cmd in section, (
         f"main.md migration section must document the fallback invocation "
-        f"'{main_fallback_cmd}' for projects that don't have deft:migrate:vbrief "
-        f"in their root Taskfile"
+        f"'{main_fallback_cmd}'"
     )
     # RECONCILIATION.md + LEGACY-REPORT.md (produced by Agent A/B per #496/#495/#505)
     assert "RECONCILIATION.md" in section, (
@@ -393,19 +376,9 @@ def test_no_install_step_taskfile_mutation_language() -> None:
             )
 
 
-def test_setup_skill_explicitly_prohibits_install_step_mutation() -> None:
-    """setup SKILL.md should carry an explicit anti-pattern against proposing
-    install-step Taskfile mutation so future agents don't re-introduce option
-    (ii) from #500."""
+def test_setup_skill_explicitly_prohibits_in_product_migrate_vbrief() -> None:
+    """setup SKILL.md must prohibit offering in-product migrate:vbrief (#2068)."""
     text = _SETUP_SKILL.read_text(encoding="utf-8")
-    # The rule should be strong (\u2297) and reference the supported
-    # include pattern.
-    assert "install-step" in text.lower() or "install step" in text.lower(), (
-        "setup SKILL.md: should carry an explicit anti-pattern referencing "
-        "install-step Taskfile mutation (per #506 D6 skip)"
-    )
-    # And the skip rationale should reference the include pattern.
-    assert "includes: deft: deft/Taskfile.yml" in text or "deft/Taskfile.yml" in text, (
-        "setup SKILL.md: anti-pattern / skip rationale should reference the "
-        "include pattern as the supported alternative"
-    )
+    assert "migrate:vbrief" in text
+    assert "#2068" in text
+    assert "not bundled" in text.lower()

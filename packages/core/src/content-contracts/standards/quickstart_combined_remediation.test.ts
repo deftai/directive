@@ -78,9 +78,9 @@ describe("test_quickstart_combined_remediation.py", () => {
   });
   it("test_combined_case_orders_refresh_before_migration", () => {
     const body = sectionBody(readText("QUICK-START.md"), "Case G+H", 3);
-    expect(body).toContain("AGENTS.md refresh first, migration second");
+    expect(body).toContain("AGENTS.md refresh first, frozen migration guidance second");
     const refreshIdx = body.indexOf("Refresh AGENTS.md first");
-    const migrationIdx = body.indexOf("Run migration second");
+    const migrationIdx = body.indexOf("Surface frozen migration path second");
     expect(refreshIdx).not.toBe(-1);
     expect(migrationIdx).not.toBe(-1);
     expect(refreshIdx).toBeLessThan(migrationIdx);
@@ -90,12 +90,12 @@ describe("test_quickstart_combined_remediation.py", () => {
     expect(body).toContain("EXACTLY ONCE");
     expect(body).toContain("Do NOT emit a second restart");
     expect(body).toContain("step-5 restart");
-    expect(body).toContain("step 8 (restart)");
+    expect(body).toContain("Single restart, exactly once");
   });
   it("test_combined_case_documents_equivalent_end_state", () => {
     const body = sectionBody(readText("QUICK-START.md"), "Case G+H", 3);
-    expect(body).toContain("byte-identical");
-    expect(body).toContain("separately");
+    expect(body).toContain("operator-confirmed migration");
+    expect(body).toContain("v0.59.0");
   });
   it("test_combined_case_cross_reference_resolves", () => {
     const qsText = readText("QUICK-START.md");

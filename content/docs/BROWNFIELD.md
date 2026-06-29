@@ -51,15 +51,19 @@ git clone https://github.com/deftai/directive.git deft
 
 ---
 
-## 2. Migrate Existing Docs (`task migrate:vbrief`)
+## 2. Migrate Existing Docs (frozen-release path, #2068)
 
-If your project already contains `SPECIFICATION.md`, `PROJECT.md`, or `ROADMAP.md`, run the one-shot migration:
+If your project already contains authoritative root `SPECIFICATION.md`, `PROJECT.md`, or incomplete vBRIEF lifecycle folders, **current npm releases no longer ship the in-product migrator**. Pin framework **v0.59.0**, install Python 3.11+ and `uv`, then run the one-shot migration from that payload:
 
 ```bash
+task migrate:preflight
+task migrate:vbrief -- --dry-run
 task migrate:vbrief
 ```
 
-The migration is **idempotent** -- safe to re-run on a partially-migrated project.
+See [UPGRADING.md § Frozen pre-v0.20 document-model migration](../UPGRADING.md#frozen-pre-v020-document-model-migration-2068) for the full frozen Go-installer / git-tag path, then upgrade to current npm with `npm i -g @deftai/directive@latest` and `deft update`.
+
+The migration is **idempotent** on the pinned release — safe to re-run on a partially-migrated project.
 
 ### What migration does
 

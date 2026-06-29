@@ -118,13 +118,24 @@ export function detectPreCutover(projectRoot: string): PrecutoverDetection {
   return { preCutover: reasons.length > 0, reasons };
 }
 
+/** Last release that ships `scripts/migrate_vbrief.py` on the consumer deposit path (#2068). */
+export const FROZEN_PRECUTOVER_MIGRATION_TAG = "v0.59.0";
+
+export function frozenPreCutoverMigrationGuidance(): string {
+  return (
+    `Current npm releases no longer ship in-product \`task migrate:vbrief\`. Pin framework ${FROZEN_PRECUTOVER_MIGRATION_TAG} ` +
+    `(frozen Go installer or git tag), install Python 3.11+ and uv, run \`task migrate:vbrief\` once from that payload, ` +
+    `then upgrade to current npm. See UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).`
+  );
+}
+
 export function renderPrecutoverLine(projectRoot: string): string {
   const { preCutover, reasons } = detectPreCutover(projectRoot);
   if (!preCutover) {
     return "Pre-cutover: none -- project is on the current vBRIEF document model.";
   }
   const summary = reasons.join("; ").replace(/\r?\n/g, " ");
-  return `Pre-cutover: migration needed -- ${summary}. Run \`deft migrate:vbrief\` to migrate.`;
+  return `Pre-cutover: migration needed -- ${summary}. ${frozenPreCutoverMigrationGuidance()}`;
 }
 
 // Re-export for classify callers (#2013).

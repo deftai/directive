@@ -102,7 +102,7 @@ describe("doctor CLI", () => {
     });
     expect(out).toContain("Pre-cutover: migration needed");
     expect(out).toContain("SPECIFICATION.md");
-    expect(out).toContain("deft migrate:vbrief");
+    expect(out).toContain("v0.59.0");
   });
 
   it("reports a clean non-pre-cutover state for a current-layout project fixture", () => {
