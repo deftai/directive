@@ -335,11 +335,7 @@ describe("emitCheckUpdates text mode", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-check-updates-nonsemver-"));
     temps.push(root);
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
-    writeFileSync(
-      join(root, ".deft", "core", "VERSION"),
-      "tag: not-a-semver\n",
-      "utf8",
-    );
+    writeFileSync(join(root, ".deft", "core", "VERSION"), "tag: not-a-semver\n", "utf8");
     const result = runRemoteProbe({
       projectRoot: root,
       env: {},
