@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
@@ -20,17 +20,47 @@ const MANIFEST_UPSTREAM_URL_KEYS = [
 
 /** Reject git ls-remote targets that could be parsed as options (#CodeQL). */
 export function isSafeGitLsRemoteTarget(url: string): boolean {
+  return sanitizeGitLsRemoteTarget(url) !== null;
+}
+
+/** Return a trimmed upstream URL safe for `git ls-remote`, or null when rejected. */
+export function sanitizeGitLsRemoteTarget(url: string): string | null {
   const trimmed = url.trim();
-  return trimmed.length > 0 && !trimmed.startsWith("-");
+  if (!trimmed || trimmed.startsWith("-")) {
+    return null;
+  }
+  if (/^https?:\/\/\S+$/i.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^git@[\w.-]+:[\w./-]+\.git$/i.test(trimmed)) {
+    return trimmed;
+  }
+  return null;
 }
 
 function normalizePrereleaseForSort(pre: string): string {
-  const match = /^(alpha|beta|rc)\.(\d+)(.*)$/i.exec(pre);
-  if (match?.[1] && match[2]) {
-    const padded = match[2].padStart(8, "0");
-    return `${match[1].toLowerCase()}.${padded}${match[3] ?? ""}`;
+  const dot = pre.indexOf(".");
+  if (dot <= 0) {
+    return pre;
   }
-  return pre;
+  const kind = pre.slice(0, dot).toLowerCase();
+  if (kind !== "alpha" && kind !== "beta" && kind !== "rc") {
+    return pre;
+  }
+  const afterKind = pre.slice(dot + 1);
+  let numEnd = 0;
+  while (numEnd < afterKind.length) {
+    const ch = afterKind[numEnd];
+    if (ch === undefined || ch < "0" || ch > "9") {
+      break;
+    }
+    numEnd += 1;
+  }
+  if (numEnd === 0) {
+    return pre;
+  }
+  const padded = afterKind.slice(0, numEnd).padStart(8, "0");
+  return `${kind}.${padded}${afterKind.slice(numEnd)}`;
 }
 
 const SEMVER_TAG_RE = /^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?<pre>-[\w][\w.-]*)?$/;
@@ -131,7 +161,10 @@ export function resolveUpstreamUrl(projectRoot: string): string {
     for (const key of MANIFEST_UPSTREAM_URL_KEYS) {
       const value = manifest[key];
       if (typeof value === "string" && value.trim()) {
-        return value.trim();
+        const safe = sanitizeGitLsRemoteTarget(value);
+        if (safe) {
+          return safe;
+        }
       }
     }
   }
@@ -173,27 +206,21 @@ export function parseLsRemoteTags(stdout: string): string[] {
 export function defaultGitRunner(): GitRunner {
   return {
     lsRemoteTags(upstreamUrl: string, timeoutMs: number): string[] | "timeout" | "os-error" {
-      if (!isSafeGitLsRemoteTarget(upstreamUrl)) {
+      const safeUrl = sanitizeGitLsRemoteTarget(upstreamUrl);
+      if (!safeUrl) {
         return "os-error";
       }
       try {
-        const proc = spawnSync("git", ["ls-remote", "--tags", "--refs", "--", upstreamUrl.trim()], {
+        const stdout = execFileSync("git", ["ls-remote", "--tags", "--refs", "--", safeUrl], {
           encoding: "utf8",
           timeout: timeoutMs,
         });
-        if (proc.error) {
-          const code = (proc.error as NodeJS.ErrnoException).code;
-          if (code === "ETIMEDOUT" || proc.error.message.includes("timed out")) {
-            return "timeout";
-          }
-          return "os-error";
-        }
-        if (proc.status !== 0) {
-          return [];
-        }
-        return parseLsRemoteTags(proc.stdout ?? "");
+        return parseLsRemoteTags(stdout);
       } catch (exc) {
-        if (exc instanceof Error && exc.message.includes("ETIMEDOUT")) {
+        if (
+          exc instanceof Error &&
+          (exc.message.includes("ETIMEDOUT") || exc.message.includes("timed out"))
+        ) {
           return "timeout";
         }
         return "os-error";

@@ -350,6 +350,18 @@ describe("emitCheckUpdates text mode", () => {
     expect(resolveUpstreamUrl(root)).toBe(DEFT_UPSTREAM_URL);
   });
 
+  it("resolveUpstreamUrl rejects unsafe manifest urls", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-check-updates-unsafe-url-"));
+    temps.push(root);
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(root, ".deft", "core", "VERSION"),
+      "url: --upload-pack=echo pwned\ntag: v1.0.0\n",
+      "utf8",
+    );
+    expect(resolveUpstreamUrl(root)).toBe(DEFT_UPSTREAM_URL);
+  });
+
   it("returns ok when current version is not semver-parseable", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-check-updates-nonsemver-"));
     temps.push(root);

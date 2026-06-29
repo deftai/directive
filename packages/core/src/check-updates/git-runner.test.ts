@@ -1,28 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const spawnSyncMock = vi.hoisted(() => vi.fn());
+const execFileSyncMock = vi.hoisted(() => vi.fn());
 
 vi.mock("node:child_process", () => ({
-  spawnSync: spawnSyncMock,
+  execFileSync: execFileSyncMock,
+  spawnSync: vi.fn(),
 }));
 
 import { defaultGitRunner } from "./index.js";
 
 describe("defaultGitRunner", () => {
   beforeEach(() => {
-    spawnSyncMock.mockReset();
+    execFileSyncMock.mockReset();
   });
 
   it("returns parsed tags on success", () => {
-    spawnSyncMock.mockReturnValue({
-      status: 0,
-      stdout: "abc\trefs/tags/v1.2.3\n",
-      stderr: "",
-    });
+    execFileSyncMock.mockReturnValue("abc\trefs/tags/v1.2.3\n");
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toEqual([
       "v1.2.3",
     ]);
-    expect(spawnSyncMock).toHaveBeenCalledWith(
+    expect(execFileSyncMock).toHaveBeenCalledWith(
       "git",
       ["ls-remote", "--tags", "--refs", "--", "https://example.com/repo.git"],
       expect.objectContaining({ encoding: "utf8", timeout: 5000 }),
@@ -31,68 +28,46 @@ describe("defaultGitRunner", () => {
 
   it("returns os-error for option-like upstream urls", () => {
     expect(defaultGitRunner().lsRemoteTags("--upload-pack=echo pwned", 5000)).toBe("os-error");
-    expect(spawnSyncMock).not.toHaveBeenCalled();
+    expect(execFileSyncMock).not.toHaveBeenCalled();
   });
 
-  it("returns timeout when spawnSync errors with ETIMEDOUT", () => {
-    spawnSyncMock.mockReturnValue({
-      status: null,
-      stdout: "",
-      stderr: "",
-      error: Object.assign(new Error("timed out"), { code: "ETIMEDOUT" }),
+  it("returns timeout when execFileSync throws ETIMEDOUT", () => {
+    execFileSyncMock.mockImplementation(() => {
+      throw Object.assign(new Error("spawnSync ETIMEDOUT"), { code: "ETIMEDOUT" });
     });
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toBe("timeout");
   });
 
   it("returns timeout when error message mentions timed out", () => {
-    spawnSyncMock.mockReturnValue({
-      status: null,
-      stdout: "",
-      stderr: "",
-      error: new Error("spawnSync timed out after 5000ms"),
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error("spawnSync timed out after 5000ms");
     });
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toBe("timeout");
   });
 
   it("returns os-error for other spawn failures", () => {
-    spawnSyncMock.mockReturnValue({
-      status: null,
-      stdout: "",
-      stderr: "",
-      error: Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+    execFileSyncMock.mockImplementation(() => {
+      throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
     });
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toBe("os-error");
   });
 
-  it("returns empty list when git exits non-zero", () => {
-    spawnSyncMock.mockReturnValue({
-      status: 128,
-      stdout: "",
-      stderr: "fatal: repository not found",
-    });
-    expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toEqual([]);
-  });
-
-  it("treats missing stdout as empty", () => {
-    spawnSyncMock.mockReturnValue({
-      status: 0,
-      stdout: undefined,
-      stderr: "",
-    });
-    expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toEqual([]);
-  });
-
-  it("returns os-error when spawnSync throws", () => {
-    spawnSyncMock.mockImplementation(() => {
+  it("returns os-error when execFileSync throws", () => {
+    execFileSyncMock.mockImplementation(() => {
       throw new Error("boom");
     });
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toBe("os-error");
   });
 
-  it("returns timeout when spawnSync throws ETIMEDOUT", () => {
-    spawnSyncMock.mockImplementation(() => {
+  it("returns os-error when execFileSync throws ETIMEDOUT message", () => {
+    execFileSyncMock.mockImplementation(() => {
       throw new Error("ETIMEDOUT");
     });
     expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toBe("timeout");
+  });
+
+  it("treats missing stdout as empty", () => {
+    execFileSyncMock.mockReturnValue("");
+    expect(defaultGitRunner().lsRemoteTags("https://example.com/repo.git", 5000)).toEqual([]);
   });
 });
