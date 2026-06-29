@@ -7,7 +7,7 @@
   "plan": {
     "id": "story-umbrella-current-shape-2066",
     "title": "Deterministic umbrella:current-shape render (#2066)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Implement task umbrella:current-shape <N> as a native deft-ts verb that fetches the canonical ## Current shape comment via REST (scm shim) and prints or validates it — without reading the stale issue body.",
       "ImplementationPlan": "Add packages/core/src/umbrella-current-shape/; register umbrella-current-shape CLI verb and umbrella:current-shape Taskfile alias; update AGENTS.md #1152 v1 note and agents-entry.md; tests for found/not-found/--json/section-detection.",
@@ -60,7 +60,8 @@
         "file_scope_confidence": "high",
         "model_tier": "fast"
       },
-      "capacityBucket": "maintenance"
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-29T02:43:57Z"
     },
     "references": [
       {
@@ -70,6 +71,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-29T01:58:35Z"
+    "updated": "2026-06-29T02:43:57Z"
   }
 }
