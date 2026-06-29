@@ -6,6 +6,10 @@ import {
   DEFAULT_SLICES_LOG_REL_PATH,
 } from "./constants.js";
 import {
+  extractAuthor,
+  extractMilestone,
+} from "../scope-drift/cache-walker.js";
+import {
   hasActiveScopeIgnores,
   isRawIssueScopeIgnored,
   resolveScopeIgnores,
@@ -193,6 +197,8 @@ export function loadCachedIssues(
       title: typeof payload.title === "string" ? payload.title : "",
       state,
       labels: parseLabels(payload.labels),
+      author: extractAuthor(payload),
+      milestone: extractMilestone(payload),
       updatedAt: typeof payload.updated_at === "string" ? payload.updated_at : "",
       createdAt: typeof payload.created_at === "string" ? payload.created_at : "",
       metadataRank: rankMap.get(n) ?? null,

@@ -37,6 +37,8 @@ export interface CachedIssue {
   readonly title: string;
   readonly state: string;
   readonly labels: readonly string[];
+  readonly author?: string;
+  readonly milestone?: string;
   readonly updatedAt: string;
   readonly createdAt: string;
   readonly metadataRank: number | null;

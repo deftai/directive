@@ -56,6 +56,15 @@ var hookFilenames = []string{"pre-commit", "pre-push"}
 // git index as executable hooks.
 var hookSupportFilenames = []string{"_deft-run.sh"}
 
+func isHookFilename(name string) bool {
+	for _, hook := range hookFilenames {
+		if hook == name {
+			return true
+		}
+	}
+	return false
+}
+
 // gitConfigGetHooksPathFunc reads the configured core.hooksPath for the repo at
 // dir (empty string when unset). Indirected through a var so tests can drive
 // WriteConsumerGitHooks without a real repo. `git config --get` exits 1 when the
@@ -148,7 +157,7 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 			}
 			deposited = true
 		}
-		isHookScript := name == "pre-commit" || name == "pre-push"
+		isHookScript := isHookFilename(name)
 		if !isHookScript {
 			continue
 		}
