@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "docs(agents): umbrella status claim-cites-state-surface (#2066)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Codify the #2066 cheap layer: agents MUST NOT conclude umbrella/epic status from the GitHub issue body alone. Before any status claim, fetch issue comments via REST, read the ## Current shape comment and any linked context/LockedDecisions vBRIEF. Propagate through agent-prompt-preamble, AGENTS.md #1152, agents-entry.md, refinement/triage skills, and propagation contract markers.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2066",
@@ -25,10 +25,11 @@
         "title": "Issue #1152: umbrella current-shape convention"
       }
     ],
-    "updated": "2026-06-29T01:05:41Z",
+    "updated": "2026-06-29T01:19:07Z",
     "metadata": {
       "capacityBucket": "new-capability",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "completedAt": "2026-06-29T01:19:07Z"
     }
   }
 }
