@@ -124,6 +124,17 @@ describe("migrate-preflight", () => {
     expect(result.message).toContain(FROZEN_PRECUTOVER_MIGRATION_TAG);
   });
 
+  it("checkDocumentModel fails on legacy PROJECT.md with frozen guidance", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
+    temps.push(base);
+    const project = makeProjectRoot(base, { vbrief: false });
+    writeFileSync(join(project, "PROJECT.md"), "# legacy project\n", "utf8");
+    const result = checkDocumentModel(project);
+    expect(result.status).toBe("FAIL");
+    expect(result.message).toContain("PROJECT.md");
+    expect(result.message).toContain(FROZEN_PRECUTOVER_MIGRATION_TAG);
+  });
+
   it("checkDocumentModel passes on current generated SPECIFICATION.md", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
     temps.push(base);

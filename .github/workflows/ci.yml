@@ -523,7 +523,8 @@ jobs:
           $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
           $output = task -t $deftTaskfile migrate:preflight 2>&1 | Out-String
           Write-Host $output
-          if ($LASTEXITCODE -ne 1) {
+          # go-task surfaces failed task exit codes as 200+N on Windows (exit 1 -> 201).
+          if ($LASTEXITCODE -notin @(1, 201)) {
             throw "migrate:preflight expected exit 1 on pre-cutover fixture; got $LASTEXITCODE"
           }
           if ($output -notmatch 'v0\.59\.0') {

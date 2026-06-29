@@ -58,11 +58,11 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ! If pre-cutover state is detected, display the actionable migration message, then **skip Phases 1-6** and proceed directly to Phase 7 with the Document Model line set to "pre-v0.20 (legacy)":
 
-> "This project uses the pre-v0.20 document model. Run `task migrate:vbrief` to upgrade to the vBRIEF-centric model."
+> "This project uses the pre-v0.20 document model. Current npm releases no longer ship in-product `task migrate:vbrief` (#2068). Follow UPGRADING.md § Frozen pre-v0.20 document-model migration: pin framework v0.59.0, install Python 3.11+ and uv, run `task migrate:vbrief` once from that payload, then upgrade to current npm."
 
 ! Include specific details about what was detected:
 
-- Missing lifecycle folders: "Run `task migrate:vbrief` to create the lifecycle folder structure"
+- Missing lifecycle folders: "Create lifecycle folders via the frozen v0.59.0 migrator (#2068), or manually add `vbrief/{proposed,pending,active,completed,cancelled}/` after migrating narratives"
 - `SPECIFICATION.md` with real content: "SPECIFICATION.md contains non-redirect content -- this file is deprecated; use scope vBRIEFs in `vbrief/` instead"
 - `PROJECT.md` with real content: "PROJECT.md contains non-redirect content -- this file is deprecated; use `PROJECT-DEFINITION.vbrief.json` instead"
 - Missing `PROJECT-DEFINITION.vbrief.json`: "Run `task project:render` to generate the project definition"
@@ -72,7 +72,7 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ! Include a **Document Model** line in the Phase 7 summary:
 
-- Pre-cutover detected: "**Document Model**: pre-v0.20 (legacy) -- run `task migrate:vbrief` to upgrade"
+- Pre-cutover detected: "**Document Model**: pre-v0.20 (legacy) -- follow UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068)"
 - Post-cutover (lifecycle folders present, no stale artifacts): "**Document Model**: v0.20+ (vBRIEF-centric) -- OK"
 - Post-cutover with tampered placeholders: "**Document Model**: v0.20+ with warnings -- SPECIFICATION.md or PROJECT.md contains non-redirect content"
 
@@ -122,7 +122,7 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
    - `cancelled/`
 2. ! Report any missing folders with a clear warning:
    - "WARNING: vbrief/{folder}/ does not exist -- lifecycle structure is incomplete"
-3. ~ If folders are missing, suggest running `task migrate:vbrief` or creating them manually
+3. ~ If folders are missing, suggest `task migrate:preflight` and the frozen v0.59.0 migrator path (#2068), or creating them manually after migration
 
 ### 3b: PROJECT-DEFINITION.vbrief.json Validation
 

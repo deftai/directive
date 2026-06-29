@@ -313,7 +313,7 @@ class TestSkillAntiPatterns:
     def test_build_prohibits_proceeding_past_guard(self):
         """Build skill has anti-pattern against proceeding past guard."""
         content = read_skill("deft-directive-build")
-        assert "redirect to migration first" in content.lower()
+        assert "always redirect to the frozen migration path first" in content.lower()
 
     def test_sync_prohibits_skipping_model_state(self):
         """Sync skill has anti-pattern against skipping model state detection."""

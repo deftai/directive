@@ -76,11 +76,11 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ! If pre-cutover or strategy-nonconformant state is detected, **stop immediately** and display an actionable message that cites the exact validator:
 
-> "This project was generated with pre-v0.20 or non-conformant strategy output. Run the deterministic validator and follow its remediation: `task verify-strategy-output` (works in source and after `deft` package install) or `python .deft/core/scripts/validate_strategy_output.py --project-root .` . Then `task migrate:vbrief` / `task project:render` / strategy re-run as indicated."
+> "This project was generated with pre-v0.20 or non-conformant strategy output. Run the deterministic validator and follow its remediation: `task verify-strategy-output` (works in source and after `deft` package install) or `python .deft/core/scripts/validate_strategy_output.py --project-root .`. For document-model migration, follow UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068): pin v0.59.0, then run `task migrate:vbrief` from that payload. Otherwise `task project:render` / strategy re-run as indicated."
 
 ! Include specific details about what was detected (the validator output is authoritative):
 
-- Legacy specification.vbrief.json or missing lifecycle folders: "Run `task migrate:vbrief` to create the lifecycle folder structure and remove legacy dual-writes"
+- Legacy specification.vbrief.json or missing lifecycle folders: "Follow the frozen v0.59.0 migrator path (#2068) or run `task migrate:preflight` for current-release guidance"
 - Non-date-prefixed vBRIEFs: "Re-run the emitting strategy after the v0.20 migrations (#1166 s1+s2+...) or manually rename files to `YYYY-MM-DD-<slug>.vbrief.json` and `task scope:promote`"
 - Missing `PROJECT-DEFINITION.vbrief.json`: "Run `task project:render` to generate the project definition"
 - `SPECIFICATION.md` / `PROJECT.md` without sentinel: the classic pre-cutover messages
@@ -88,7 +88,7 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ! After the validator reports clean, re-run this guard before continuing.
 
-⊗ Proceed with build when pre-cutover or strategy-nonconformant artifacts are detected -- always redirect to migration first (or run the validator) and surface the exact remediation.
+⊗ Proceed with build when pre-cutover or strategy-nonconformant artifacts are detected -- always redirect to the frozen migration path first (or run the validator) and surface the exact remediation.
 ⊗ Silently ignore these artifacts or guess at fixes -- the validator (wired into `task check` and this guard) is the deterministic gate.
 
 ## USER.md Gate
