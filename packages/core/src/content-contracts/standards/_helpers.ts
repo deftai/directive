@@ -87,6 +87,8 @@ const SKIP_DIRS = new Set([
   "dist",
   "tests",
   ".deft-cache",
+  // Swarm worktrees under .deft-scratch/ are not framework content (#1656).
+  ".deft-scratch",
   // node_modules holds third-party markdown (dependency READMEs) that is not
   // framework content; scanning it produced volatile, version-pinned cases that
   // broke CI when dependency versions drifted (#1993 follow-up).
