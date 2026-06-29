@@ -23,30 +23,26 @@ tasks:
     desc: "Read-only remote-version probe (#801) -- task framework:check-updates [-- --force | --json]. Honors DEFT_NO_NETWORK=1 and DEFT_REMOTE_PROBE_TIMEOUT (default 5s)."
     dir: '{{.USER_WORKING_DIR}}'
     env:
-      PYTHONUTF8: "1"
       # When the operator passes `--force`, the task wrapper sets
       # DEFT_FORCE_REMOTE_PROBE=1 so the gate-integration helper bypasses
-      # the 24h throttle. The `run` CLI surface (`run check-updates`) is
-      # already idempotent (does not write to the throttle file), so this
-      # env var only affects callers that probe through the upgrade gate.
+      # the 24h throttle. The deft-ts CLI surface is idempotent (does not
+      # write to the throttle file), so this env var only affects callers
+      # that probe through the upgrade gate.
       DEFT_FORCE_REMOTE_PROBE: '{{if (mustRegexMatch "(^|\\s)--force(\\s|$)" .CLI_ARGS)}}1{{else}}{{.DEFT_FORCE_REMOTE_PROBE | default ""}}{{end}}'
     cmds:
-      # Strip our own `--force` from the args we pass through to `run` so it
-      # does not surface as an unknown flag in the JSON / text output. Other
-      # supported flags (e.g. `--json`) flow through unchanged.
+      # Strip our own `--force` from the args we pass through so it does not
+      # surface as an unknown flag in the JSON / text output. Other supported
+      # flags (e.g. `--json`) flow through unchanged.
       #
-      # #1059: invoke Python through `uv --project "{{.DEFT_ROOT}}" run python`
-      # rather than a bare `python3`. On Windows the bare `python3` command
-      # resolves to the Microsoft Store app-execution-alias stub (exit 49) on
-      # default-configured hosts where the user installed Python via the
-      # official installer, so the wrapper aborted before `run check-updates`
-      # ever started. The `uv` wrapper matches the canonical pattern used by
-      # every other tasks/*.yml file (see e.g. `tasks/prd.yml`,
-      # `tasks/vbrief.yml`) and pins the project root via #1011 so the
-      # uv environment never walks up into a hostile ancestor pyproject.
-      - >-
-        uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/run" check-updates
-        {{regexReplaceAll "(^|\\s)--force(\\s|$)" .CLI_ARGS " "}}
+      # #2069: consumer path dispatches through the native deft-ts handler
+      # via engine:invoke (vendored bin.js in source checkouts, global deft
+      # on npm consumer deposits — #2022 Phase 3).
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: >-
+            framework:check-updates --project-root "{{.USER_WORKING_DIR}}"
+            --deft-root "{{.DEFT_ROOT}}"
+            {{regexReplaceAll "(^|\\s)--force(\\s|$)" .CLI_ARGS " "}}
 
   doctor:
     # #1272: the legacy ``task framework:doctor`` surface is REDACTED.

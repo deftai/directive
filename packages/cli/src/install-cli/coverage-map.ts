@@ -57,9 +57,11 @@ export const INSTALL_CLI_TAIL_COVERAGE_MAP: readonly InstallCliTailEntry[] = [
   },
   {
     pythonTest: "tests/cli/test_cmd_check_updates.py",
-    classification: "retire-at-Wave-9",
+    classification: "retarget",
     rationale:
-      "Python run cmd_check_updates remote version probe — no TS port; retires with legacy run module.",
+      "Python run cmd_check_updates remote version probe — retargeted to deft-ts framework-check-updates on consumer task path (#2069).",
+    vitestSpec:
+      "packages/core/src/check-updates/index.test.ts, packages/cli/src/framework-check-updates-task-surface.test.ts",
   },
   {
     pythonTest: "tests/cli/test_cmd_doctor.py",

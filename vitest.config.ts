@@ -58,6 +58,8 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/swarm": sub("core", "swarm"),
   "@deftai/directive-core/platform": sub("core", "platform"),
   "@deftai/directive-core/init-deposit": sub("core", "init-deposit"),
+  "@deftai/directive-core/migrate-preflight": sub("core", "migrate-preflight"),
+  "@deftai/directive-core/check-updates": sub("core", "check-updates"),
   "@deftai/directive-core/ts-check-lane": sub("core", "ts-check-lane"),
   "@deftai/directive-core": src("core"),
 };

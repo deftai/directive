@@ -194,6 +194,10 @@
       "types": "./dist/migrate-preflight/index.d.ts",
       "default": "./dist/migrate-preflight/index.js"
     },
+    "./check-updates": {
+      "types": "./dist/check-updates/index.d.ts",
+      "default": "./dist/check-updates/index.js"
+    },
     "./install-upgrade": {
       "types": "./dist/install-upgrade/index.d.ts",
       "default": "./dist/install-upgrade/index.js"
