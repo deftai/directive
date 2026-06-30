@@ -1,0 +1,19 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Conformance fixture: extension value containing inner x-* key (#715)."
+  },
+  "plan": {
+    "id": "715-nested-extension-value",
+    "title": "Nested extension value preserves inner x-* keys",
+    "status": "draft",
+    "items": [],
+    "x-stream/container": {
+      "label": "outer",
+      "x-stream/inner": {
+        "token": "preserve-verbatim",
+        "depth": 2
+      }
+    }
+  }
+}

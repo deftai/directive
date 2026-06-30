@@ -1,0 +1,31 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Conformance fixture: extension keys at document root, plan, and item (#715)."
+  },
+  "x-stream/runtime": {
+    "session": "fixture-715-root"
+  },
+  "x-directive/trace": {
+    "fixture": "extension-at-root"
+  },
+  "plan": {
+    "id": "715-extension-at-root",
+    "title": "Extension keys at root, plan, and item",
+    "status": "draft",
+    "items": [
+      {
+        "id": "715-item",
+        "title": "Item-level extension",
+        "status": "pending",
+        "x-acme/widget": {
+          "enabled": true,
+          "label": "nested-object"
+        }
+      }
+    ],
+    "x-directive/tracking": {
+      "issue": 715
+    }
+  }
+}

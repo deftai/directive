@@ -8,7 +8,7 @@
   "plan": {
     "id": "715-extension-roundtrip-conformance",
     "title": "Extension round-trip conformance fixtures and validator preservation",
-    "status": "running",
+    "status": "completed",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Prove directive preserves x-consumer extension keys verbatim across a read and write, on the authority of xBRIEF v0.8 section 7. This story is independently buildable as a fixture set plus a round-trip test that does not depend on the rename or the corpus migration.",
@@ -69,7 +69,9 @@
         "size": "small",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-30T15:48:04Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -83,6 +85,6 @@
         "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
       }
     ],
-    "updated": "2026-06-30T15:39:50Z"
+    "updated": "2026-06-30T15:48:04Z"
   }
 }

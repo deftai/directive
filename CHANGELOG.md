@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Extension round-trip conformance fixtures and gate (#715).** Packaged fixtures under `content/vbrief/conformance/extensions/valid/` exercise `x-<consumer>/` keys at document, plan, item, and nested value levels; a new round-trip preservation check in the vBRIEF validator proves those keys survive load→re-emit with JSON-structural equality and fails the conformance gate when a key is dropped or mutated. Refs #2034. Closes #715.
+
 - **xBRIEF v0.6→v0.8 semantic transforms and legacy-layout detection (#2108).** The core engine now ships a tested migration primitive that rewrites in-document v0.6 artifacts to v0.8 (info block, reference prefixes, embedded paths) idempotently, detects legacy `vbrief/` layouts, and enforces the locked safety rules that block v0.8-only feature emission into unmigrated files and prevent split `vbrief/` + `xbrief/` trees. Refs #2034. Closes #2108.
 
 ### Changed

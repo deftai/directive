@@ -24,6 +24,19 @@ export {
   validateWipCapOnPlan,
 } from "./plan-hooks.js";
 export { validateProjectDefinition } from "./project-definition.js";
+export type {
+  ExtensionEntry,
+  ExtensionRoundtripEvaluateResult,
+  ExtensionRoundtripFinding,
+} from "./roundtrip.js";
+export {
+  collectExtensionEntries,
+  EXTENSION_CONFORMANCE_FIXTURES_DIR,
+  evaluateExtensionRoundtrip,
+  findExtensionPreservationViolations,
+  reEmitVbriefArtifact,
+  renderExtensionRoundtripFinding,
+} from "./roundtrip.js";
 export { normalizeNarrativeKey, validateVbriefSchema } from "./schema.js";
 export type { ValidateAllResult } from "./validate-all.js";
 export {

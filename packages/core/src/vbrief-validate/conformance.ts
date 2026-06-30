@@ -7,6 +7,7 @@ import {
   gitTrackedFiles,
 } from "../encoding/git.js";
 import { fnmatchCase } from "../encoding/text.js";
+import { evaluateExtensionRoundtrip } from "./roundtrip.js";
 import type { JsonObject } from "./schema.js";
 
 export const DOC_CORE = new Set(["vBRIEFInfo", "xBRIEFInfo", "plan"]);
@@ -320,11 +321,22 @@ export function evaluateConformance(
     return { exitCode: 1, findings, message: `${header}\n${body}` };
   }
 
+  const extensionRoundtrip = evaluateExtensionRoundtrip(root);
+  if (extensionRoundtrip.exitCode !== 0) {
+    return {
+      exitCode: extensionRoundtrip.exitCode,
+      findings,
+      message: extensionRoundtrip.message,
+    };
+  }
+
+  const bareKeysMessage =
+    `\u2713 verify_vbrief_conformance: ${candidates.length} vBRIEF file(s) ` +
+    "clean -- no bare keys (#1620).";
+
   return {
     exitCode: 0,
     findings,
-    message:
-      `\u2713 verify_vbrief_conformance: ${candidates.length} vBRIEF file(s) ` +
-      "clean -- no bare keys (#1620).",
+    message: [extensionRoundtrip.message, bareKeysMessage].filter(Boolean).join("\n"),
   };
 }
