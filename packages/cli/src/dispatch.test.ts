@@ -19,8 +19,8 @@ import {
   runDirectiveBootstrap,
   runSetupGhx,
   SETUP_SKILL_REL_PATH,
-  VERB_ALIASES,
   TRIAGE_ACTION_ALIAS_SUBCOMMANDS,
+  VERB_ALIASES,
 } from "./dispatch.js";
 
 const engineVersion = engineInfo().version;

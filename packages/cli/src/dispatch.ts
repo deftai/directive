@@ -2442,8 +2442,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
 
   try {
     const handler = await loadHandler(canonical, io);
-    const triageSubcommand =
-      verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const handlerArgv =
       canonical === "framework-commands" && verb !== undefined && verb !== canonical
         ? [verb, ...rest]
