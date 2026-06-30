@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **xBRIEF v0.6→v0.8 semantic transforms and legacy-layout detection (#2108).** The core engine now ships a tested migration primitive that rewrites in-document v0.6 artifacts to v0.8 (info block, reference prefixes, embedded paths) idempotently, detects legacy `vbrief/` layouts, and enforces the locked safety rules that block v0.8-only feature emission into unmigrated files and prevent split `vbrief/` + `xbrief/` trees. Refs #2034. Closes #2108.
+
 ### Changed
 
 - **xBRIEF v0.8 schema adoption (#2107).** The directive validator now accepts xBRIEF v0.8 documents alongside legacy v0.6 artifacts. New optional structural fields in v0.8 are validated when present; existing v0.6 files continue to pass unchanged. Refs #2034. Closes #2107.
