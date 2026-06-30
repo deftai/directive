@@ -10,6 +10,7 @@ import {
   evaluateExtensionRoundtrip,
   findExtensionPreservationViolations,
   reEmitVbriefArtifact,
+  VbriefSchemaValidationError,
 } from "./roundtrip.js";
 import type { JsonObject } from "./schema.js";
 
@@ -70,6 +71,15 @@ describe("extension round-trip preservation (#715)", () => {
     const result = evaluateConformance(REPO_ROOT);
     expect(result.exitCode).toBe(0);
     expect(result.message).toContain("extension fixture(s) round-trip clean (#715)");
+  });
+
+  it("rejects invalid artifacts in reEmitVbriefArtifact before round-trip", () => {
+    expect(() =>
+      reEmitVbriefArtifact(
+        { xBRIEFInfo: { version: "0.8" }, plan: { title: "T", status: "auto", items: [] } },
+        "invalid-status.json",
+      ),
+    ).toThrow(VbriefSchemaValidationError);
   });
 
   it("skips extension round-trip when packaged fixtures are absent", () => {

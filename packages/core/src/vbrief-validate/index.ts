@@ -36,6 +36,7 @@ export {
   findExtensionPreservationViolations,
   reEmitVbriefArtifact,
   renderExtensionRoundtripFinding,
+  VbriefSchemaValidationError,
 } from "./roundtrip.js";
 export { normalizeNarrativeKey, validateVbriefSchema } from "./schema.js";
 export type { ValidateAllResult } from "./validate-all.js";

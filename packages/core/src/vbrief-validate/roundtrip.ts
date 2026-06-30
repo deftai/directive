@@ -13,9 +13,15 @@ export interface ExtensionEntry {
   readonly value: unknown;
 }
 
-export interface ExtensionRoundtripFinding {
-  readonly path: string;
-  readonly message: string;
+/** Thrown when `reEmitVbriefArtifact` rejects an artifact that fails schema validation. */
+export class VbriefSchemaValidationError extends Error {
+  constructor(
+    readonly relPath: string,
+    readonly errors: readonly string[],
+  ) {
+    super(`schema validation failed for ${relPath}: ${errors.join("; ")}`);
+    this.name = "VbriefSchemaValidationError";
+  }
 }
 
 /** Recursively collect every `x-<consumer>/` key in `value` using the contract pattern. */
@@ -80,7 +86,10 @@ export function findExtensionPreservationViolations(
  * Extension properties MUST survive this path verbatim (xBRIEF v0.8 §7).
  */
 export function reEmitVbriefArtifact(artifact: JsonObject, relPath = "<roundtrip>"): JsonObject {
-  validateVbriefSchema(artifact, relPath);
+  const schemaErrors = validateVbriefSchema(artifact, relPath);
+  if (schemaErrors.length > 0) {
+    throw new VbriefSchemaValidationError(relPath, schemaErrors);
+  }
   const serialized = `${JSON.stringify(artifact, null, 2)}\n`;
   return JSON.parse(serialized) as JsonObject;
 }
@@ -110,8 +119,9 @@ export function evaluateExtensionRoundtrip(projectRoot: string): ExtensionRoundt
 
   let fixtureNames: string[];
   try {
-    fixtureNames = readdirSync(fixturesDir)
-      .filter((name) => name.endsWith(".vbrief.json"))
+    fixtureNames = readdirSync(fixturesDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".vbrief.json"))
+      .map((entry) => entry.name)
       .sort();
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException;
