@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2108 (TS-native semantic transforms + detectLegacyVbriefLayout); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
+  },
+  "plan": {
+    "id": "2108-xbrief-semantic-transforms",
+    "title": "TS-native semantic transforms and legacy-layout detector",
+    "status": "proposed",
+    "planRef": "https://github.com/deftai/directive/issues/2034",
+    "narratives": {
+      "Description": "Implement the idempotent in-document transforms that convert a v0.6 artifact to v0.8 and the detector that recognizes a legacy layout. This story is independently buildable as a self-contained migration module with unit tests, separate from the repo-wide rename and the consumer CLI surface.",
+      "ImplementationPlan": "1. Add a packages/core/src/xbrief-migrate module with a transform function (vBRIEFInfo->xBRIEFInfo, version 0.6->0.8, x-vbrief/->x-xbrief/, embedded path rewrites) plus the two locked safety rules, and a detect function mirroring precutover. 2. Write vitest tests that assert idempotency, transactional rollback, the version-gated feature-emission rule, and that a write into a legacy tree does not create a split layout; verify with targeted test runs.",
+      "UserStory": "As a directive maintainer, I want a tested transform-and-detect module, so that artifacts migrate to v0.8 idempotently without producing a split or downgrade-breaking tree.",
+      "Traces": "#2108, #2034"
+    },
+    "items": [
+      {
+        "id": "2108-a1",
+        "title": "Given a v0.6 artifact, when transformed, then it becomes valid v0.8 and rerun is a no-op",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a v0.6 artifact, when the transform runs twice, then the first run produces valid v0.8 and the second run makes no further changes."
+        }
+      },
+      {
+        "id": "2108-a2",
+        "title": "Given a version 0.6 file, when emitting, then v0.8-only constructs are rejected",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a file still declaring version 0.6, when feature emission is attempted, then the module rejects writing status auto, xBRIEFInfo, or container types into it."
+        }
+      },
+      {
+        "id": "2108-a3",
+        "title": "Given a legacy vbrief tree, when writing, then no split xbrief sibling is created",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project with a legacy vbrief layout, when a write occurs, then the detector reports the layout and the writer never creates an xbrief sibling tree."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2034",
+        "child_issue": "#2108"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/transforms.ts",
+          "packages/core/src/xbrief-migrate/detect.ts",
+          "packages/core/src/xbrief-migrate/transforms.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core vitest run src/xbrief-migrate",
+          "task ts:build"
+        ],
+        "expected_outputs": [
+          "xbrief-migrate module with idempotent transforms, detector, and passing unit tests"
+        ],
+        "depends_on": [
+          "2107-adopt-xbrief-v08-schema"
+        ],
+        "conflict_group": "xbrief-migrate-core",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2108",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2108: feat(vbrief): TS-native semantic transforms + detectLegacyVbriefLayout"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
+      }
+    ]
+  }
+}

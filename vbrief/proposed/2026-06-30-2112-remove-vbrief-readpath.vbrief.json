@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2112 (deferred back-compat removal of the vbrief read path); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
+  },
+  "plan": {
+    "id": "2112-remove-vbrief-readpath",
+    "title": "Remove the legacy vbrief read path after the back-compat window",
+    "status": "proposed",
+    "planRef": "https://github.com/deftai/directive/issues/2034",
+    "narratives": {
+      "Description": "After at least one minor release of signposting, drop the legacy vbrief layout read path so xbrief becomes the sole supported layout. This story is independently buildable as a small resolver change plus tests, deferred behind the locked one-minor back-compat window and conditional on signposting having shipped.",
+      "ImplementationPlan": "1. Update the layout resolver module packages/core/src/xbrief-migrate/resolve-layout.ts to stop resolving the legacy vbrief tree and to emit a clear hard-stop pointing at migrate:xbrief. 2. Update resolve-layout.test.ts to assert the legacy tree now fails resolution with the migration hint and the xbrief tree resolves; confirm no remaining source path silently reads the legacy layout.",
+      "UserStory": "As a directive maintainer, I want the legacy vbrief read path removed after the deprecation window, so that the engine resolves only the xbrief layout and unmigrated projects get a clear migration error.",
+      "Traces": "#2112, #2034"
+    },
+    "items": [
+      {
+        "id": "2112-a1",
+        "title": "Given an unmigrated tree, when the resolver runs, then it hard-stops with a migration hint",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project still on the legacy vbrief layout, when the resolver runs, then it fails and directs the operator to migrate:xbrief."
+        }
+      },
+      {
+        "id": "2112-a2",
+        "title": "Given a migrated tree, when the resolver runs, then it resolves the xbrief layout cleanly",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a migrated xbrief layout, when the resolver runs, then it resolves the artifacts without any legacy-path fallback."
+        }
+      },
+      {
+        "id": "2112-a3",
+        "title": "Given the codebase, when scanned, then no source silently reads the legacy layout",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the engine source, when scanned, then no remaining module reads the legacy vbrief tree without the migration hard-stop."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2034",
+        "child_issue": "#2112",
+        "deferred": "run no earlier than one minor release after consumer signposting ships"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/resolve-layout.ts",
+          "packages/core/src/xbrief-migrate/resolve-layout.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core vitest run src/xbrief-migrate/resolve-layout.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "legacy vbrief read path removed; resolver hard-stops unmigrated trees with a migrate:xbrief hint"
+        ],
+        "depends_on": [
+          "2110-consumer-xbrief-migration"
+        ],
+        "conflict_group": "xbrief-cleanup",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2112",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2112: chore(vbrief): remove legacy vbrief read path after back-compat window"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
+      }
+    ]
+  }
+}

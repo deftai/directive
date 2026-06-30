@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1650 (Category B corpus namespacing + allow-list removal); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
+  },
+  "plan": {
+    "id": "1650-category-b-namespacing",
+    "title": "Category B corpus namespacing and conformance allow-list removal",
+    "status": "proposed",
+    "planRef": "https://github.com/deftai/directive/issues/2034",
+    "narratives": {
+      "Description": "Migrate the existing vBRIEF corpus so non-core directive keys move under the x-xbrief/ extension namespace, then delete the temporary conformance allow-list once the corpus is clean. This is a corpus-wide scripted migration over hundreds of artifacts, so it is marked sequential and run solo as one operation.",
+      "ImplementationPlan": "1. Add a one-shot codemod script that rewrites Category B keys (such as plan.policy fields) into x-xbrief/ namespaced form across every vbrief artifact, run it, and validate the whole corpus. 2. Remove the ALLOW_LIST from the conformance module packages/core/src/vbrief-validate/conformance.ts and update its tests so the conformance gate enforces namespacing with no exceptions; run the conformance verify suite.",
+      "UserStory": "As a directive maintainer, I want the corpus namespaced and the allow-list removed, so that the conformance gate enforces x-xbrief/ extensions with no grandfathered exceptions.",
+      "Traces": "#1650, #2034"
+    },
+    "items": [
+      {
+        "id": "1650-a1",
+        "title": "Given the corpus, when the codemod runs, then every artifact validates with namespaced keys",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the full vbrief corpus, when the codemod runs, then every artifact validates and non-core keys are under x-xbrief/."
+        }
+      },
+      {
+        "id": "1650-a2",
+        "title": "Given a clean corpus, when the allow-list is removed, then the conformance gate stays green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the namespaced corpus, when the ALLOW_LIST is deleted, then the conformance gate runs green without exceptions."
+        }
+      },
+      {
+        "id": "1650-a3",
+        "title": "Given a stray non-namespaced key, when the gate runs, then it fails and names the artifact",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an artifact with a non-core key outside x-xbrief/, when the conformance gate runs, then it fails and names the artifact."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2034",
+        "child_issue": "#1650",
+        "sequential_reason": "corpus-wide migration over hundreds of files; single scripted operation"
+      },
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/vbrief-validate/conformance.ts",
+          "scripts/migrate_category_b.ts",
+          "packages/core/src/vbrief-validate/conformance.test.ts"
+        ],
+        "verify_commands": [
+          "task verify:vbrief-conformance",
+          "task check"
+        ],
+        "expected_outputs": [
+          "corpus namespaced under x-xbrief/; conformance ALLOW_LIST removed; conformance gate green"
+        ],
+        "depends_on": [
+          "715-extension-roundtrip-conformance"
+        ],
+        "conflict_group": "xbrief-corpus",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1650",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1650: chore(vbrief): Category B corpus namespacing + allow-list removal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
+      }
+    ]
+  }
+}

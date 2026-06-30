@@ -1,0 +1,87 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #715 (extension round-trip conformance, Phase B); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
+  },
+  "plan": {
+    "id": "715-extension-roundtrip-conformance",
+    "title": "Extension round-trip conformance fixtures and validator preservation",
+    "status": "proposed",
+    "planRef": "https://github.com/deftai/directive/issues/2034",
+    "narratives": {
+      "Description": "Prove directive preserves x-consumer extension keys verbatim across a read and write, on the authority of xBRIEF v0.8 section 7. This story is independently buildable as a fixture set plus a round-trip test that does not depend on the rename or the corpus migration.",
+      "ImplementationPlan": "1. Add extension fixtures under content/vbrief/conformance/extensions and a round-trip test in packages/core/src/vbrief-validate that loads each fixture, re-emits it, and asserts x-* keys are JSON-structurally equal. 2. Wire the round-trip test into the conformance gate so a dropped extension key fails the verify suite; assert the EXTENSION_KEY_PATTERN module is the single source for the namespace.",
+      "UserStory": "As an xBRIEF reference consumer, I want a round-trip conformance test, so that directive provably never drops x-consumer extension keys when reading and rewriting an artifact.",
+      "Traces": "#715, #2034"
+    },
+    "items": [
+      {
+        "id": "715-a1",
+        "title": "Given a fixture with x-consumer keys, when round-tripped, then keys survive verbatim",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fixture carrying x-stream and x-directive keys at root, plan, and item, when it is loaded and re-emitted, then every extension key and value is structurally equal."
+        }
+      },
+      {
+        "id": "715-a2",
+        "title": "Given a dropped extension key, when the gate runs, then the conformance suite fails",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a re-emit path that drops an x-* key, when the conformance gate runs, then it fails and names the dropped key."
+        }
+      },
+      {
+        "id": "715-a3",
+        "title": "Given nested extension values, when round-tripped, then inner x-* keys are preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an extension value that itself contains an inner x-consumer key, when round-tripped, then the nested key is preserved verbatim."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2034",
+        "child_issue": "#715"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-validate/roundtrip.test.ts",
+          "content/vbrief/conformance/extensions/valid/extension-at-root.vbrief.json"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core vitest run src/vbrief-validate/roundtrip.test.ts",
+          "task verify:vbrief-conformance"
+        ],
+        "expected_outputs": [
+          "extension round-trip fixtures + passing preservation test wired into the conformance gate"
+        ],
+        "depends_on": [
+          "2107-adopt-xbrief-v08-schema"
+        ],
+        "conflict_group": "xbrief-conformance",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/715",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #715: feat(vbrief): conformance fixture set + round-trip preservation in validator"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
+      }
+    ]
+  }
+}

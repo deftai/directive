@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2109 (maintainer-repo mechanical rename + gate); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
+  },
+  "plan": {
+    "id": "2109-maintainer-xbrief-rename",
+    "title": "Maintainer-repo mechanical vbrief->xbrief rename plus drift gate",
+    "status": "proposed",
+    "planRef": "https://github.com/deftai/directive/issues/2034",
+    "narratives": {
+      "Description": "Run the one-shot mechanical rename of the directive repo itself from the vbrief layout and tokens to xbrief, then add a gate that blocks reintroduction of the old tokens. This is a repo-wide atomic change that cannot be parallelized, so it is marked sequential and run solo as its own wave.",
+      "ImplementationPlan": "1. Use the xbrief-migrate module and a scripted pass to move the vbrief/ directory to xbrief/, rename *.vbrief.json to *.xbrief.json, and rewrite xbrief:* verbs, paths, and x-xbrief/ tokens across source, tasks, and config. 2. Add a verify gate (tasks/verify.yml + a checker module with tests) that fails when a legacy vbrief token reappears, and run the full task check suite to confirm the renamed repo is green.",
+      "UserStory": "As a directive maintainer, I want the repo mechanically renamed to xbrief with a drift gate, so that the codebase uses the new layout and old tokens cannot silently return.",
+      "Traces": "#2109, #2034"
+    },
+    "items": [
+      {
+        "id": "2109-a1",
+        "title": "Given the repo, when renamed, then xbrief layout resolves and task check passes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the renamed repo, when task check runs, then the xbrief layout resolves and the full suite passes green."
+        }
+      },
+      {
+        "id": "2109-a2",
+        "title": "Given a reintroduced legacy token, when the gate runs, then it fails and names the token",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a legacy vbrief token reintroduced anywhere tracked, when the drift gate runs, then it fails and names the offending path."
+        }
+      },
+      {
+        "id": "2109-a3",
+        "title": "Given history-sensitive paths, when renamed, then provenance references still resolve",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given existing references and planRefs, when the rename completes, then they are rewritten to xbrief paths and still resolve."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2034",
+        "child_issue": "#2109",
+        "sequential_reason": "repo-wide atomic rename; collides with every other file_scope, so run solo"
+      },
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "tasks/verify.yml",
+          "packages/core/src/xbrief-migrate/drift-gate.ts",
+          "packages/core/src/xbrief-migrate/drift-gate.test.ts"
+        ],
+        "verify_commands": [
+          "task verify:xbrief-drift",
+          "task check"
+        ],
+        "expected_outputs": [
+          "repo renamed to xbrief layout/tokens; drift gate blocks legacy-token reintroduction; task check green"
+        ],
+        "depends_on": [
+          "2107-adopt-xbrief-v08-schema",
+          "2108-xbrief-semantic-transforms"
+        ],
+        "conflict_group": "xbrief-rename",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2109",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2109: chore(vbrief): maintainer-repo mechanical rename + drift gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
+      }
+    ]
+  }
+}
