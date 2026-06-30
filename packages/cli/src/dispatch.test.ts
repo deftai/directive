@@ -769,7 +769,9 @@ describe("native policy-set handler (#2022)", () => {
       throw new Error("PROJECT-DEFINITION did not parse to an object");
     }
     const plan = (parsed as Record<string, unknown>).plan as Record<string, unknown> | undefined;
-    return (plan?.["x-directive/policy"] ?? plan?.policy ?? {}) as Record<string, unknown>;
+    // Assert ONLY the namespaced key: a regression that wrote the legacy bare
+    // `plan.policy` must surface as an empty block here, not be masked (#1650).
+    return (plan?.["x-directive/policy"] ?? {}) as Record<string, unknown>;
   }
 
   beforeEach(() => {

@@ -11,24 +11,24 @@
     "status": "completed",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
-      "Description": "Migrate the existing vBRIEF corpus so non-core directive keys move under the x-xbrief/ extension namespace, then delete the temporary conformance allow-list once the corpus is clean. This is a corpus-wide scripted migration over hundreds of artifacts, so it is marked sequential and run solo as one operation.",
-      "ImplementationPlan": "1. Add a one-shot codemod script that rewrites Category B keys (such as plan.policy fields) into x-xbrief/ namespaced form across every vbrief artifact, run it, and validate the whole corpus. 2. Remove the ALLOW_LIST from the conformance module packages/core/src/vbrief-validate/conformance.ts and update its tests so the conformance gate enforces namespacing with no exceptions; run the conformance verify suite.",
-      "UserStory": "As a directive maintainer, I want the corpus namespaced and the allow-list removed, so that the conformance gate enforces x-xbrief/ extensions with no grandfathered exceptions.",
+      "Description": "Migrate the existing vBRIEF corpus so the two directive-owned Category B keys (plan.policy, plan.completedNote) move under the x-directive/ extension namespace, then delete the temporary conformance allow-list once the corpus is clean. This is a corpus-wide scripted migration, so it is marked sequential and run solo as one operation.",
+      "ImplementationPlan": "1. Add an idempotent codemod that rewrites Category B keys (plan.policy -> plan[\"x-directive/policy\"], plan.completedNote -> plan[\"x-directive/completedNote\"]) across every vbrief artifact, run it, and validate the whole corpus. 2. Remove the ALLOW_LIST from the conformance module packages/core/src/vbrief-validate/conformance.ts and update its tests so the conformance gate enforces namespacing with no exceptions; run the conformance verify suite.",
+      "UserStory": "As a directive maintainer, I want the corpus namespaced and the allow-list removed, so that the conformance gate enforces x-directive/ namespacing with no grandfathered exceptions.",
       "Traces": "#1650, #2034"
     },
     "items": [
       {
         "id": "1650-a1",
         "title": "Given the corpus, when the codemod runs, then every artifact validates with namespaced keys",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
-          "Acceptance": "Given the full vbrief corpus, when the codemod runs, then every artifact validates and non-core keys are under x-xbrief/."
+          "Acceptance": "Given the full vbrief corpus, when the codemod runs, then every artifact validates and the Category B keys are under x-directive/."
         }
       },
       {
         "id": "1650-a2",
         "title": "Given a clean corpus, when the allow-list is removed, then the conformance gate stays green",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the namespaced corpus, when the ALLOW_LIST is deleted, then the conformance gate runs green without exceptions."
         }
@@ -36,9 +36,9 @@
       {
         "id": "1650-a3",
         "title": "Given a stray non-namespaced key, when the gate runs, then it fails and names the artifact",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
-          "Acceptance": "Given an artifact with a non-core key outside x-xbrief/, when the conformance gate runs, then it fails and names the artifact."
+          "Acceptance": "Given an artifact with a bare Category B key outside x-directive/, when the conformance gate runs, then it fails and names the artifact."
         }
       }
     ],
@@ -54,15 +54,15 @@
         "parallel_safe": false,
         "file_scope": [
           "packages/core/src/vbrief-validate/conformance.ts",
-          "scripts/migrate_category_b.ts",
-          "packages/core/src/vbrief-validate/conformance.test.ts"
+          "packages/core/src/category-b-namespace/index.ts",
+          "packages/core/src/policy/plan-extensions.ts"
         ],
         "verify_commands": [
           "task verify:vbrief-conformance",
           "task check"
         ],
         "expected_outputs": [
-          "corpus namespaced under x-xbrief/; conformance ALLOW_LIST removed; conformance gate green"
+          "corpus namespaced under x-directive/; conformance ALLOW_LIST removed; conformance gate green"
         ],
         "depends_on": [
           "715-extension-roundtrip-conformance"
