@@ -68,7 +68,7 @@ export function demoteOne(
   if (!hasArtifactSuffix(basename)) {
     return {
       ok: false,
-      message: `Not a vBRIEF file (expected .vbrief.json): ${basename}`,
+      message: `Not a vBRIEF file (expected .vbrief.json or .xbrief.json): ${basename}`,
       auditEntry: null,
     };
   }

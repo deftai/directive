@@ -412,7 +412,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
     return {
       code: 2,
       message: [
-        `❌ deft cache-fresh: ${CANDIDATES_RELPATH} not found at ${projectRoot}.`,
+        `❌ deft cache-fresh: ${candidatesPath} not found.`,
         REMEDIATION_NO_CANDIDATES,
       ].join("\n"),
     };
@@ -607,7 +607,7 @@ function evaluateForIssue(
     return {
       code: 1,
       message: [
-        `❌ deft cache-fresh: issue #${issueNumber} has no triage decision in ${CANDIDATES_RELPATH}.`,
+        `❌ deft cache-fresh: issue #${issueNumber} has no triage decision in ${candidatesPath}.`,
         `  Recovery: \`deft triage:accept -- --repo ${repo} --issue ${issueNumber}\` before dispatching an implementation agent.`,
       ].join("\n"),
     };

@@ -55,13 +55,18 @@ export function validateStrategyOutput(projectRoot: string, strict = false): str
   const projDef = resolveProjectDefinitionPath(root);
   if (!existsSync(projDef)) {
     errors.push(
-      "Missing vbrief/PROJECT-DEFINITION.vbrief.json. " +
+      `Missing ${layout.artifactDir}/PROJECT-DEFINITION${layout.artifactSuffix}. ` +
         "All v0.20-conformant strategy output must include a complete project definition " +
         "(see v0-20-contract.md and task project:render).",
     );
   }
 
-  const specLegacy = join(vbriefDir, `specification${layout.artifactSuffix}`);
+  // The legacy-spec guard intentionally stays pinned to the literal legacy
+  // path (#2109 part 2a): its job is to detect a stranded pre-v0.20
+  // vbrief/specification.vbrief.json, which is a legacy artifact regardless of
+  // the active layout -- routing it through the resolver would make it
+  // self-cancelling once an xbrief tree is live.
+  const specLegacy = join(root, "vbrief", "specification.vbrief.json");
   if (existsSync(specLegacy) && !isDeftFrameworkRoot(root) && !isFullSpecState(root)) {
     errors.push(
       "Legacy artifact vbrief/specification.vbrief.json present. " +

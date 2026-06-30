@@ -42,7 +42,10 @@ export function runTransition(
   }
   const basename = resolvedPath.split(/[/\\]/).pop() ?? "";
   if (!hasArtifactSuffix(basename)) {
-    return { ok: false, message: `Not a vBRIEF file (expected .vbrief.json): ${basename}` };
+    return {
+      ok: false,
+      message: `Not a vBRIEF file (expected .vbrief.json or .xbrief.json): ${basename}`,
+    };
   }
 
   const currentFolder = detectLifecycleFolder(resolvedPath);
