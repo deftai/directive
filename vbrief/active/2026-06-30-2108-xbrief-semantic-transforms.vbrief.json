@@ -8,7 +8,7 @@
   "plan": {
     "id": "2108-xbrief-semantic-transforms",
     "title": "TS-native semantic transforms and legacy-layout detector",
-    "status": "proposed",
+    "status": "running",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Implement the idempotent in-document transforms that convert a v0.6 artifact to v0.8 and the detector that recognizes a legacy layout. This story is independently buildable as a self-contained migration module with unit tests, separate from the repo-wide rename and the consumer CLI surface.",
@@ -83,6 +83,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
       }
-    ]
+    ],
+    "updated": "2026-06-30T15:18:06Z"
   }
 }
