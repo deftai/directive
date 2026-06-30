@@ -58,6 +58,10 @@ export function readDeclaredArtifactVersion(artifact: JsonObject): string | null
 
 /** Rewrite embedded path and reference tokens inside a string (idempotent). */
 export function rewriteEmbeddedTokens(value: string): string {
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
   let next = value;
   if (next.includes(VBRIEF_REFERENCE_PREFIX)) {
     next = next.replaceAll(VBRIEF_REFERENCE_PREFIX, XBRIEF_REFERENCE_PREFIX);
@@ -192,22 +196,29 @@ function walkForV08FeatureEmission(value: unknown, path: string, violations: str
 }
 
 /**
- * Locked rule #1 (#2034): refuse v0.8-only constructs when the artifact still declares v0.6.
+ * Locked rule #1 (#2034): refuse v0.8-only constructs unless the artifact declares v0.8.
+ * Fail closed when the version block is missing or unreadable.
  */
 export function assertFeatureEmissionAllowed(
   targetArtifact: JsonObject,
   emission: JsonObject,
 ): void {
   const declared = readDeclaredArtifactVersion(targetArtifact);
-  if (declared !== LEGACY_VBRIEF_VERSION) {
+  if (declared === VBRIEF_VERSION) {
     return;
   }
 
   const violations: string[] = [];
   walkForV08FeatureEmission(emission, "emission", violations);
-  if (violations.length > 0) {
-    throw new FeatureEmissionRejectedError(violations.join("; "));
+  if (violations.length === 0) {
+    return;
   }
+
+  const context =
+    declared === null
+      ? "artifact has no declared version"
+      : `artifact declares version ${declared}`;
+  throw new FeatureEmissionRejectedError(`${context}; ${violations.join("; ")}`);
 }
 
 /** Map a desired migrated-relative path to the legacy tree when required. */
@@ -218,16 +229,9 @@ export function resolveLayoutAwareRelativePath(
   if (!legacyLayout) {
     return relativePath;
   }
-  let mapped = relativePath;
-  if (mapped.startsWith(`${MIGRATED_ARTIFACT_DIR}/`)) {
-    mapped = `${LEGACY_ARTIFACT_DIR}/${mapped.slice(MIGRATED_ARTIFACT_DIR.length + 1)}`;
-  }
-  if (mapped.endsWith(MIGRATED_ARTIFACT_SUFFIX)) {
-    mapped = mapped.slice(0, -MIGRATED_ARTIFACT_SUFFIX.length) + LEGACY_ARTIFACT_SUFFIX;
-  }
-  mapped = mapped.replaceAll(`${MIGRATED_ARTIFACT_DIR}/`, `${LEGACY_ARTIFACT_DIR}/`);
-  mapped = mapped.replaceAll(MIGRATED_ARTIFACT_SUFFIX, LEGACY_ARTIFACT_SUFFIX);
-  return mapped;
+  return relativePath
+    .replaceAll(`${MIGRATED_ARTIFACT_DIR}/`, `${LEGACY_ARTIFACT_DIR}/`)
+    .replaceAll(MIGRATED_ARTIFACT_SUFFIX, LEGACY_ARTIFACT_SUFFIX);
 }
 
 /**

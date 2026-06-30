@@ -80,9 +80,7 @@ export function detectLegacyVbriefLayout(projectRoot: string): LegacyVbriefLayou
 
   if (isDirectory(migratedRoot)) {
     for (const jsonPath of walkJsonFiles(migratedRoot)) {
-      if (jsonPath.endsWith(LEGACY_ARTIFACT_SUFFIX)) {
-        reasons.add(`legacy artifact filename under ${MIGRATED_ARTIFACT_DIR}/: ${jsonPath}`);
-      }
+      scanFileContent(jsonPath, safeReadText(jsonPath), reasons);
     }
   }
 

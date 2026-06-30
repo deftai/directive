@@ -80,6 +80,11 @@ describe("transformArtifactV06ToV08", () => {
     expect(rewriteEmbeddedTokens(rewriteEmbeddedTokens(input))).toBe(rewriteEmbeddedTokens(input));
   });
 
+  it("does not rewrite external http(s) uri strings", () => {
+    const uri = "https://github.com/deftai/vbrief/blob/main/spec.md";
+    expect(rewriteEmbeddedTokens(uri)).toBe(uri);
+  });
+
   it("returns original artifact unchanged on transactional failure", () => {
     const bad = structuredClone(SAMPLE_V06) as Record<string, unknown>;
     (bad.vBRIEFInfo as Record<string, unknown>).version = "0.7";
@@ -138,6 +143,15 @@ describe("assertFeatureEmissionAllowed", () => {
         },
       }),
     ).not.toThrow();
+  });
+
+  it("rejects v0.8-only emission when the artifact has no declared version", () => {
+    expect(() =>
+      assertFeatureEmissionAllowed(
+        { plan: { title: "No info block", status: "running", items: [] } },
+        { xBRIEFInfo: { version: "0.8" } },
+      ),
+    ).toThrow(FeatureEmissionRejectedError);
   });
 });
 
@@ -212,5 +226,20 @@ describe("detectLegacyVbriefLayout", () => {
     expect(detection.reasons.length).toBeGreaterThan(1);
     expect(detection.reasons.some((r) => r.includes("legacy info root key"))).toBe(true);
     expect(detection.reasons.some((r) => r.includes("x-vbrief/"))).toBe(true);
+  });
+
+  it("flags v0.6 content inside an xbrief tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "xbrief-migrate-detect-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify(SAMPLE_V06),
+      "utf8",
+    );
+
+    const detection = detectLegacyVbriefLayout(root);
+    expect(detection.legacyLayout).toBe(true);
+    expect(detection.reasons.some((r) => r.includes("legacy info root key"))).toBe(true);
   });
 });
