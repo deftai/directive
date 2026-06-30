@@ -238,14 +238,7 @@ function handleLegacyXbriefLayout(
     io,
   );
   const code = emitXbriefMigration(outcome, io, { projectRoot: args.projectRoot });
-  if (code !== 0 || outcome.kind !== "migrated") {
-    return code;
-  }
-  return runAgentsRefresh(
-    args.projectRoot,
-    resolveInstallRoot(args.projectRoot) ?? args.frameworkRoot,
-    io,
-  );
+  return code;
 }
 
 /** Port of ``run upgrade`` / ``task install:upgrade`` for the consumer task surface (#1061 / #2022). */
@@ -266,9 +259,9 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
   const recorded = readVersionMarker(projectRoot);
   if (recorded === normalizedVersion) {
     io.writeOut(`Project already at ${normalizedVersion}. Nothing to do.\n`);
-    const refreshCode = runAgentsRefresh(projectRoot, agentsRoot, io);
     const xbriefCode = handleLegacyXbriefLayout(args, io, recorded, normalizedVersion);
-    return xbriefCode !== 0 ? xbriefCode : refreshCode;
+    if (xbriefCode !== 0) return xbriefCode;
+    return runAgentsRefresh(projectRoot, agentsRoot, io);
   }
 
   const legacy = detectPreCutoverLegacy(projectRoot);
@@ -307,7 +300,7 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
     `If legacy SPECIFICATION.md or PROJECT.md content remains, see UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).\n`,
   );
 
-  const refreshCode = runAgentsRefresh(projectRoot, agentsRoot, io);
   const xbriefCode = handleLegacyXbriefLayout(args, io, recorded, normalizedVersion);
-  return xbriefCode !== 0 ? xbriefCode : refreshCode;
+  if (xbriefCode !== 0) return xbriefCode;
+  return runAgentsRefresh(projectRoot, agentsRoot, io);
 }
