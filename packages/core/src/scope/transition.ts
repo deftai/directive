@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import {
@@ -40,7 +41,7 @@ export function runTransition(
     return { ok: false, message: `File not found: ${resolvedPath}` };
   }
   const basename = resolvedPath.split(/[/\\]/).pop() ?? "";
-  if (!basename.endsWith(".vbrief.json")) {
+  if (!hasArtifactSuffix(basename)) {
     return { ok: false, message: `Not a vBRIEF file (expected .vbrief.json): ${basename}` };
   }
 

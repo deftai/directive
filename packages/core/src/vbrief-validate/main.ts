@@ -20,9 +20,11 @@ export interface ConformanceCliOptions {
 
 /** CLI entry for vbrief_validate.py parity. */
 export function runValidate(argv: string[]): number {
-  // Layout-aware (#2109 part 1): default to the resolved lifecycle dir name
-  // (xbrief when migrated, else vbrief -- unchanged on today's repo).
+  // Layout-aware (#2109 part 1/2a): when --vbrief-dir is omitted, resolve the
+  // lifecycle layout root for --project-root (xbrief when migrated, else vbrief
+  // -- unchanged on today's repo). The prior false-green hardcoded the dir.
   let vbriefDir: string | null = null;
+  let projectRoot: string | null = null;
   let strictOriginTypes = false;
   let warningsAsErrors = false;
 
@@ -31,6 +33,9 @@ export function runValidate(argv: string[]): number {
     const arg = argv[i];
     if (arg === "--vbrief-dir" && i + 1 < argv.length) {
       vbriefDir = argv[i + 1] ?? vbriefDir;
+      i += 2;
+    } else if (arg === "--project-root" && i + 1 < argv.length) {
+      projectRoot = argv[i + 1] ?? projectRoot;
       i += 2;
     } else if (arg === "--strict-origin-types") {
       strictOriginTypes = true;
@@ -48,7 +53,7 @@ export function runValidate(argv: string[]): number {
     }
   }
 
-  const resolvedDir = vbriefDir ?? resolveLifecycleLayout(process.cwd()).artifactDir;
+  const resolvedDir = vbriefDir ?? resolveLifecycleLayout(projectRoot ?? process.cwd()).root;
 
   if (!existsSync(resolvedDir)) {
     process.stdout.write(`OK: No vbrief directory at ${resolvedDir} -- skipping validation\n`);

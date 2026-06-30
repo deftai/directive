@@ -1,5 +1,11 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  hasArtifactSuffix,
+  projectDefinitionRelPath,
+  resolveLifecycleRoot,
+  resolveProjectDefinitionPath,
+} from "../layout/resolve.js";
 
 export const CODE_STRUCTURE_VERSION = "0.1";
 export const DIRECTIVE_HOME = "x-directive/architecture.codeStructure";
@@ -673,7 +679,9 @@ export function validateFile(
   }
   if (projectRoot !== null && !allowStandalone) {
     const relPath = projectRelative(path, projectRoot);
-    if (relPath !== PROJECT_DEFINITION_PATH && homes.length > 0) {
+    // Layout-aware (#2109 part 2a): compare against the resolved lifecycle's
+    // PROJECT-DEFINITION rel path (vbrief/... on today's tree).
+    if (relPath !== projectDefinitionRelPath(projectRoot) && homes.length > 0) {
       errors.push(
         finding(
           "CS-HOME",
@@ -714,7 +722,8 @@ export function validateFile(
 
 export function discoverCodeStructurePaths(projectRoot: string): string[] {
   const paths = new Map<string, string>();
-  const projectDef = join(projectRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  // Layout-aware (#2109 part 2a): resolve PROJECT-DEFINITION + lifecycle root.
+  const projectDef = resolveProjectDefinitionPath(projectRoot);
   if (existsSync(projectDef)) {
     try {
       const data = loadJsonFile(projectDef);
@@ -725,7 +734,7 @@ export function discoverCodeStructurePaths(projectRoot: string): string[] {
       paths.set(projectDef.replace(/\\/g, "/"), projectDef);
     }
   }
-  const vbriefRoot = join(projectRoot, "vbrief");
+  const vbriefRoot = resolveLifecycleRoot(projectRoot);
   if (existsSync(vbriefRoot)) {
     const stack = [vbriefRoot];
     while (stack.length > 0) {
@@ -745,7 +754,7 @@ export function discoverCodeStructurePaths(projectRoot: string): string[] {
           stack.push(full);
           continue;
         }
-        if (!name.endsWith(".vbrief.json") || full === projectDef) {
+        if (!hasArtifactSuffix(name) || full === projectDef) {
           continue;
         }
         try {

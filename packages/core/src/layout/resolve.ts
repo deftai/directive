@@ -130,3 +130,54 @@ export function resolveLifecycleLayout(projectRoot: string): LifecycleLayout {
 export function resolveLifecycleRoot(projectRoot: string): string {
   return resolveLifecycleLayout(projectRoot).root;
 }
+
+/**
+ * Absolute path to a lifecycle folder under the resolved layout root
+ * (e.g. `<root>/<xbrief|vbrief>/active`). Layout-aware (#2109 part 2a).
+ */
+export function resolveLifecycleFolder(projectRoot: string, folder: string): string {
+  return join(resolveLifecycleRoot(projectRoot), folder);
+}
+
+/** Absolute path to the resolved lifecycle `.eval` cache directory (#2109 part 2a). */
+export function resolveEvalDir(projectRoot: string): string {
+  return join(resolveLifecycleRoot(projectRoot), ".eval");
+}
+
+/** Absolute path to a file or subpath under the resolved `.eval` cache directory. */
+export function resolveEvalPath(projectRoot: string, ...segments: string[]): string {
+  return join(resolveEvalDir(projectRoot), ...segments);
+}
+
+/** Absolute path to the resolved lifecycle `.audit` directory (#2109 part 2a). */
+export function resolveAuditDir(projectRoot: string): string {
+  return join(resolveLifecycleRoot(projectRoot), ".audit");
+}
+
+/** Absolute path to a file or subpath under the resolved `.audit` directory. */
+export function resolveAuditPath(projectRoot: string, ...segments: string[]): string {
+  return join(resolveAuditDir(projectRoot), ...segments);
+}
+
+/**
+ * The PROJECT-DEFINITION artifact filename for the resolved layout
+ * (`PROJECT-DEFINITION.xbrief.json` when migrated, else `.vbrief.json`).
+ */
+export function projectDefinitionFilename(projectRoot: string): string {
+  return `PROJECT-DEFINITION${resolveLifecycleLayout(projectRoot).artifactSuffix}`;
+}
+
+/** Absolute path to the resolved PROJECT-DEFINITION artifact (#2109 part 2a). */
+export function resolveProjectDefinitionPath(projectRoot: string): string {
+  const layout = resolveLifecycleLayout(projectRoot);
+  return join(layout.root, `PROJECT-DEFINITION${layout.artifactSuffix}`);
+}
+
+/**
+ * POSIX-style display path to the resolved PROJECT-DEFINITION artifact relative
+ * to the project root (e.g. `vbrief/PROJECT-DEFINITION.vbrief.json`).
+ */
+export function projectDefinitionRelPath(projectRoot: string): string {
+  const layout = resolveLifecycleLayout(projectRoot);
+  return `${layout.artifactDir}/PROJECT-DEFINITION${layout.artifactSuffix}`;
+}

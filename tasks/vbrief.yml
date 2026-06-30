@@ -17,9 +17,13 @@ tasks:
     deps:
       - task: :engine:_ts-build
     cmds:
+      # Layout-aware (#2109 part 2a): pass --project-root and let the engine
+      # resolve the lifecycle dir (xbrief when migrated, else vbrief). The prior
+      # hardcoded --vbrief-dir ".../vbrief" was a false-green that would validate
+      # zero files after the Part-2b flip.
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'vbrief:validate --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"'
+          ENGINE_CMD: 'vbrief:validate --project-root "{{.USER_WORKING_DIR}}"'
 
   preflight:
     # Implementation-intent preflight wrapper (#810 / PR #812 fixup;

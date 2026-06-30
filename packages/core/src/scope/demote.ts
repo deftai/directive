@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import { stripTrailingPathSeparators } from "../text/redos-safe.js";
 import { append, canonicalLogPath, latestForPath, newDecisionId } from "./audit-log.js";
 import { resolveProjectRoot } from "./project-context.js";
@@ -64,7 +65,7 @@ export function demoteOne(
     return { ok: false, message: `File not found: ${resolved}`, auditEntry: null };
   }
   const basename = resolved.split(/[/\\]/).pop() ?? "";
-  if (!basename.endsWith(".vbrief.json")) {
+  if (!hasArtifactSuffix(basename)) {
     return {
       ok: false,
       message: `Not a vBRIEF file (expected .vbrief.json): ${basename}`,
@@ -159,7 +160,7 @@ export function batchDemote(
     throw new Error(`--older-than-days must be >= 0, got ${olderThanDays}`);
   }
   const now = options.now ?? new Date();
-  const pendingDir = join(resolve(projectRoot), "vbrief", SOURCE_FOLDER);
+  const pendingDir = resolveLifecycleFolder(projectRoot, SOURCE_FOLDER);
   if (!existsSync(pendingDir)) {
     return [0, [], []];
   }
@@ -170,7 +171,7 @@ export function batchDemote(
   let demoted = 0;
 
   const files = readdirSync(pendingDir)
-    .filter((name) => name.endsWith(".vbrief.json"))
+    .filter((name) => hasArtifactSuffix(name))
     .sort();
 
   for (const name of files) {

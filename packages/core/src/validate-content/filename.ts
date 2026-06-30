@@ -1,8 +1,10 @@
-/** Linear filename validator for YYYY-MM-DD-<slug>.vbrief.json (no nested regex). */
+import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
+
+/** Linear filename validator for YYYY-MM-DD-<slug>.{vbrief,xbrief}.json (no nested regex). */
 export function isDatePrefixedVbriefFilename(name: string): boolean {
-  const suffix = ".vbrief.json";
-  if (!name.endsWith(suffix)) return false;
-  const base = name.slice(0, -suffix.length);
+  // Layout-aware (#2109 part 2a): accept either artifact suffix.
+  if (!hasArtifactSuffix(name)) return false;
+  const base = stripArtifactSuffix(name);
   if (base.length < 12) return false;
   const y = base.slice(0, 4);
   const sep1 = base[4];
