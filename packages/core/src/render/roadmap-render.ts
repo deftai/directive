@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 import { MIGRATOR_METADATA_KEY, ROADMAP_BANNER } from "./constants.js";
 import { phaseSortKey } from "./text-utils.js";
 
@@ -31,7 +32,7 @@ function loadVbriefs(folder: string): JsonObject[] {
   let files: string[];
   try {
     files = readdirSync(folder)
-      .filter((n) => n.endsWith(".vbrief.json"))
+      .filter((n) => hasArtifactSuffix(n))
       .sort();
   } catch {
     return [];
@@ -379,11 +380,11 @@ export function checkDrift(
   const expected = renderRoadmapToBuffer(pendingDir, completedDir);
   if (!existsSync(roadmapPath)) {
     const hasPending =
-      existsSync(pendingDir) && readdirSync(pendingDir).some((n) => n.endsWith(".vbrief.json"));
+      existsSync(pendingDir) && readdirSync(pendingDir).some((n) => hasArtifactSuffix(n));
     const inferredCompleted = resolveCompletedDir(pendingDir, completedDir);
     const hasCompleted =
       existsSync(inferredCompleted) &&
-      readdirSync(inferredCompleted).some((n) => n.endsWith(".vbrief.json"));
+      readdirSync(inferredCompleted).some((n) => hasArtifactSuffix(n));
     if (!hasPending && !hasCompleted) {
       return [true, "✓ No ROADMAP.md needed (no pending or completed vBRIEFs)"];
     }

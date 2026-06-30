@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { cmdDoctor } from "../doctor/main.js";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 
 export type RootMode = "project" | "framework";
 
@@ -265,7 +266,7 @@ function argvForSpec(
   if (commandSpec.projectRootArg) resolved.push(commandSpec.projectRootArg, projectRoot);
   if (commandSpec.frameworkRootArg) resolved.push(commandSpec.frameworkRootArg, frameworkRoot);
   if (commandSpec.vbriefDirArg)
-    resolved.push(commandSpec.vbriefDirArg, join(projectRoot, "vbrief"));
+    resolved.push(commandSpec.vbriefDirArg, resolveLifecycleRoot(projectRoot));
   if (commandSpec.rootArg) resolved.push(commandSpec.rootArg, frameworkRoot);
   resolved.push(...normalizeTaskSeparator(argv));
   return resolved;

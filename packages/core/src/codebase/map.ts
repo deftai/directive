@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { extractCodeStructure, loadJsonFile } from "../verify-source/code-structure-validate.js";
 import {
   CodeStructureConfigError,
@@ -91,7 +92,7 @@ export function projectionOutputPath(projectRoot: string, explicitOutput?: strin
     return explicitOutput;
   }
 
-  const projectDefinition = join(projectRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  const projectDefinition = resolveProjectDefinitionPath(projectRoot);
   if (!existsSync(projectDefinition)) {
     return DEFAULT_OUTPUT_PATH;
   }

@@ -1,10 +1,16 @@
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  hasArtifactSuffix,
+  resolveEvalPath,
+  resolveLifecycleFolder,
+  resolveProjectDefinitionPath,
+} from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
 import { countReconcilable } from "../reconcile/reconcile.js";
 import { computeDrift } from "../scope-drift/compute.js";
-import { SUMMARY_HISTORY_REL_PATH, shouldSuppressD2Emission } from "../summary/index.js";
+import { shouldSuppressD2Emission } from "../summary/index.js";
 import {
   CACHE_DIR_NAME,
   CACHE_SOURCE,
@@ -14,7 +20,6 @@ import {
   WIP_WARN_GLYPH,
 } from "./constants.js";
 
-const CANDIDATES_LOG_REL_PATH = "vbrief/.eval/candidates.jsonl";
 const FILESYSTEM_IN_FLIGHT_STATUS = "running";
 const TRIAGED_DECISIONS = new Set([
   "accept",
@@ -99,11 +104,11 @@ function latestDecisions(entries: Array<Record<string, unknown>>): Map<string, s
 }
 
 function countFilesystemInFlight(projectRoot: string): number {
-  const activeDir = join(resolve(projectRoot), "vbrief", "active");
+  const activeDir = resolveLifecycleFolder(projectRoot, "active");
   if (!existsSync(activeDir)) return 0;
   let count = 0;
   for (const name of readdirSync(activeDir)) {
-    if (!name.endsWith(".vbrief.json")) continue;
+    if (!hasArtifactSuffix(name)) continue;
     try {
       const data = JSON.parse(readFileSync(join(activeDir, name), "utf8")) as Record<
         string,
@@ -119,7 +124,7 @@ function countFilesystemInFlight(projectRoot: string): number {
 }
 
 function isTriageScopeConfigured(projectRoot: string): boolean {
-  const path = join(resolve(projectRoot), "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  const path = resolveProjectDefinitionPath(projectRoot);
   if (!existsSync(path)) return false;
   try {
     const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
@@ -145,7 +150,7 @@ function utcIso(): string {
 export function computeSummary(projectRoot: string): SummaryResult {
   const root = resolve(projectRoot);
   const cacheRoot = join(root, CACHE_DIR_NAME);
-  const logPath = join(root, CANDIDATES_LOG_REL_PATH);
+  const logPath = resolveEvalPath(root, "candidates.jsonl");
   const cached = iterCachedIssues(cacheRoot);
   const repos = [...new Set(cached.map(([r]) => r))].sort().slice(0, 8);
   const wipCapResult = resolveWipCap(root);
@@ -322,7 +327,7 @@ export function emitOneliner(
 ): string {
   const result = computeSummary(projectRoot);
   const line = formatSummary(result);
-  const historyPath = join(resolve(projectRoot), SUMMARY_HISTORY_REL_PATH);
+  const historyPath = resolveEvalPath(projectRoot, "summary-history.jsonl");
   const applySuppression = options.applyD2Suppression !== false;
   if (applySuppression && shouldSuppressD2Emission(result, historyPath, { now: options.now })) {
     return line;

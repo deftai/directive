@@ -2,6 +2,11 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { inferGithubAuthMode } from "../intake/github-auth-modes.js";
 import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
+import {
+  hasArtifactSuffix,
+  resolveLifecycleFolder,
+  stripArtifactSuffix,
+} from "../layout/resolve.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
 import { selectionOrderingKey } from "../triage/queue/selection.js";
@@ -83,9 +88,7 @@ function storyId(path: string, plan: Record<string, unknown>): string {
     return value.trim();
   }
   const name = basename(path);
-  return name.endsWith(".vbrief.json")
-    ? name.slice(0, -".vbrief.json".length)
-    : name.replace(/\.[^.]+$/, "");
+  return hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name.replace(/\.[^.]+$/, "");
 }
 
 function extractHashNumbers(text: string): number[] {
@@ -174,13 +177,13 @@ function projectRel(projectRoot: string, path: string): string {
 }
 
 function indexActiveStories(projectRoot: string): ActiveStory[] {
-  const activeDir = join(projectRoot, "vbrief", "active");
+  const activeDir = resolveLifecycleFolder(projectRoot, "active");
   const index: ActiveStory[] = [];
   if (!existsSync(activeDir)) {
     return index;
   }
   for (const name of readdirSync(activeDir).sort()) {
-    if (!name.endsWith(".vbrief.json")) {
+    if (!hasArtifactSuffix(name)) {
       continue;
     }
     const path = join(activeDir, name);
@@ -199,7 +202,7 @@ export function looksLikePath(token: string): boolean {
     token.endsWith(".json") ||
     token.includes("/") ||
     token.includes("\\") ||
-    (existsSync(token) && basename(token).endsWith(".vbrief.json"))
+    (existsSync(token) && hasArtifactSuffix(basename(token)))
   );
 }
 
@@ -541,7 +544,7 @@ export function swarmLaunch(args: LaunchArgs): {
     };
   }
 
-  if (!existsSync(join(projectRoot, "vbrief", "active"))) {
+  if (!existsSync(resolveLifecycleFolder(projectRoot, "active"))) {
     return {
       exitCode: EXIT_CONFIG_ERROR,
       stdout: "",

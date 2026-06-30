@@ -10,6 +10,7 @@ import {
   NPM_MANAGED_SENTINEL_KEY,
   NPM_MANAGED_SENTINEL_VALUE,
 } from "../init-deposit/migrate.js";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
 import {
   CANONICAL_UPGRADE_COMMAND,
@@ -173,7 +174,7 @@ export function checkManifestAgreement(
   const manifestPath = locateManifest(projectRoot, installRoot, isFile);
   const expectedManifestPath = manifestPath ?? manifestCandidatePaths(projectRoot, installRoot)[0];
   const bareCandidates = [
-    join(projectRoot, "vbrief", ".deft-version"),
+    join(resolveLifecycleRoot(projectRoot), ".deft-version"),
     join(projectRoot, ".deft-version"),
   ];
   const barePath = bareCandidates.find((p) => isFile(p)) ?? null;

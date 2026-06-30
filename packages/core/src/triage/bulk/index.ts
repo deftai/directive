@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { resolveEvalPath } from "../../layout/resolve.js";
 
 export const ACTION_FN_NAMES: Readonly<Record<string, string>> = {
   accept: "accept",
@@ -507,7 +508,7 @@ export function createFilesystemCacheModule(): CacheModule {
 }
 
 export function createFilesystemCandidatesLogModule(
-  logPath = "vbrief/.eval/candidates.jsonl",
+  logPath: string = resolveEvalPath(process.cwd(), "candidates.jsonl"),
 ): CandidatesLogModule {
   return {
     readAll(options: { repo: string }) {

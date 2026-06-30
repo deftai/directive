@@ -8,8 +8,8 @@ import {
   openSync,
   readFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { DEFAULT_SLICES_LOG_REL_PATH } from "./constants.js";
+import { dirname, resolve } from "node:path";
+import { resolveEvalPath } from "../layout/resolve.js";
 import { pythonJsonStringify } from "./json.js";
 import { withAppendLock } from "./lock.js";
 import { validateRecord } from "./validate.js";
@@ -49,7 +49,7 @@ const defaultDeps: Required<RecordModuleDeps> = {
 };
 
 function resolvePath(path: string | undefined): string {
-  return path !== undefined ? resolve(path) : resolve(DEFAULT_SLICES_LOG_REL_PATH);
+  return path !== undefined ? resolve(path) : resolveEvalPath(process.cwd(), "slices.jsonl");
 }
 
 export function newSliceId(): string {
@@ -197,5 +197,5 @@ export function findByUmbrella(
 }
 
 export function slicesPath(projectRoot: string): string {
-  return join(resolve(projectRoot), DEFAULT_SLICES_LOG_REL_PATH);
+  return resolveEvalPath(projectRoot, "slices.jsonl");
 }

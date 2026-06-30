@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { subscriptionHash } from "./normalize.js";
 import { pyListRepr } from "./python-repr.js";
 
@@ -9,7 +10,7 @@ export function extractReferencedIssues(
   projectRoot: string,
   lifecycleFolders: readonly string[] = LIFECYCLE_FOLDERS,
 ): { any: Set<number>; active: Set<number> } {
-  const root = join(projectRoot, "vbrief");
+  const root = resolveLifecycleRoot(projectRoot);
   const anySet = new Set<number>();
   const activeSet = new Set<number>();
   if (!existsSync(root)) return { any: anySet, active: activeSet };
@@ -18,7 +19,7 @@ export function extractReferencedIssues(
     const folderPath = join(root, folder);
     if (!existsSync(folderPath)) continue;
     for (const name of readdirSync(folderPath)) {
-      if (!name.endsWith(".vbrief.json")) continue;
+      if (!hasArtifactSuffix(name)) continue;
       const vbriefPath = join(folderPath, name);
       let data: unknown;
       try {

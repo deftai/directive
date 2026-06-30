@@ -8,7 +8,8 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, join } from "node:path";
+import { resolveEvalPath, resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 
 export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.eval/subscription-history.jsonl";
@@ -30,7 +31,7 @@ export class ProjectDefinitionIOError extends Error {
 type TriageRule = Record<string, unknown>;
 
 function projectDefinitionPath(projectRoot: string): string {
-  return join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+  return resolveProjectDefinitionPath(projectRoot);
 }
 
 export function loadProjectDefinitionForMutation(
@@ -126,7 +127,7 @@ export function recordSubscriptionChange(
     extra?: Record<string, unknown> | null;
   },
 ): void {
-  const historyPath = join(resolve(projectRoot), SUBSCRIPTION_HISTORY_REL_PATH);
+  const historyPath = resolveEvalPath(projectRoot, "subscription-history.jsonl");
   const record: Record<string, unknown> = {
     schema: SUBSCRIPTION_HISTORY_SCHEMA,
     change_id: randomUUID(),

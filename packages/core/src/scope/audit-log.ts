@@ -10,7 +10,7 @@ import {
   writeSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { AUDIT_LOG_REL_PATH } from "./constants.js";
+import { resolveEvalPath } from "../layout/resolve.js";
 import { utcNowIso } from "./vbrief-json.js";
 
 export class ScopeAuditLogError extends Error {
@@ -133,7 +133,8 @@ export function newDecisionId(): string {
 }
 
 export function canonicalLogPath(projectRoot: string): string {
-  return join(resolve(projectRoot), AUDIT_LOG_REL_PATH);
+  // Layout-aware (#2109 part 2a): xbrief/.eval when migrated, else vbrief/.eval.
+  return resolveEvalPath(resolve(projectRoot), "scope-lifecycle.jsonl");
 }
 
 function withAppendLock(logPath: string, fn: () => void): void {

@@ -11,6 +11,7 @@
  */
 import { type Dirent, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   LEGACY_PLAN_COMPLETED_NOTE_KEY,
   LEGACY_PLAN_POLICY_KEY,
@@ -108,7 +109,7 @@ function collectVbriefFiles(dir: string, acc: string[] = []): string[] {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       collectVbriefFiles(full, acc);
-    } else if (entry.isFile() && entry.name.endsWith(".vbrief.json")) {
+    } else if (entry.isFile() && hasArtifactSuffix(entry.name)) {
       acc.push(full);
     }
   }
@@ -122,7 +123,7 @@ function collectVbriefFiles(dir: string, acc: string[] = []): string[] {
  */
 export function migrateCategoryBCorpus(projectRoot: string): CorpusMigrationResult {
   const root = resolve(projectRoot);
-  const vbriefDir = join(root, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(root);
   let scanned = 0;
   const changed: string[] = [];
   const conflicts: CorpusMigrationConflict[] = [];

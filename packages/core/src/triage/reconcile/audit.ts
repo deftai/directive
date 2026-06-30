@@ -1,12 +1,13 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { hasArtifactSuffix } from "../../layout/resolve.js";
 import { extractIssueRef } from "./parse-uri.js";
 
 export function scanLifecycleRefs(folder: string): Array<[string | null, number, string]> {
   const results: Array<[string | null, number, string]> = [];
   if (!existsSync(folder)) return results;
   const files = readdirSync(folder)
-    .filter((name) => name.endsWith(".vbrief.json"))
+    .filter((name) => hasArtifactSuffix(name))
     .sort();
   for (const name of files) {
     const path = join(folder, name);

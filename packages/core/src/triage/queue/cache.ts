@@ -1,11 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { resolveEvalPath } from "../../layout/resolve.js";
 import { extractAuthor, extractMilestone } from "../scope-drift/cache-walker.js";
-import {
-  CACHE_DIR_NAME,
-  CACHE_SOURCE_GITHUB_ISSUE,
-  DEFAULT_SLICES_LOG_REL_PATH,
-} from "./constants.js";
+import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "./constants.js";
 import {
   hasActiveScopeIgnores,
   isRawIssueScopeIgnored,
@@ -36,7 +33,7 @@ export function resolveSlicesLogPath(
       : envRoot.length > 0
         ? resolve(envRoot)
         : process.cwd();
-  return join(root, DEFAULT_SLICES_LOG_REL_PATH);
+  return resolveEvalPath(root, "slices.jsonl");
 }
 
 /** Read slices.jsonl records. */

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { recommendAutonomyLevel, resolveAutonomy } from "../policy/autonomy.js";
 import {
   CAPACITY_UNIT_COST,
@@ -188,7 +189,7 @@ export function iterVbriefPlans(vbriefRoot: string): [string, Record<string, unk
       continue;
     }
     for (const name of names.sort()) {
-      if (!name.endsWith(".vbrief.json")) {
+      if (!hasArtifactSuffix(name)) {
         continue;
       }
       const child = join(folderPath, name);
@@ -247,7 +248,7 @@ export function computeReport(
 ): CapacityReport {
   const now = options.now ?? new Date();
   const allocation = options.allocation ?? resolveCapacityAllocation(projectRoot);
-  const vbriefRoot = join(resolve(projectRoot), "vbrief");
+  const vbriefRoot = resolveLifecycleRoot(projectRoot);
 
   const records = iterVbriefPlans(vbriefRoot).map(([folder, plan]) =>
     classifyRecord(plan, folder, allocation, now),

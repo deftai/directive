@@ -1,10 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { resolveEvalPath } from "../../layout/resolve.js";
 import { CandidatesLogError } from "./errors.js";
 import type { AuditEntry, CandidatesLog } from "./types.js";
 
+/** Display/back-compat constant; resolution flows through resolveEvalPath (#2109). */
 export const AUDIT_LOG_REL_PATH = "vbrief/.eval/candidates.jsonl";
+
+/** Layout-aware candidates audit-log path (xbrief when migrated, else vbrief). */
+export function resolveCandidatesLogPath(projectRoot: string): string {
+  return resolveEvalPath(projectRoot, "candidates.jsonl");
+}
 
 const VALID_DECISIONS = new Set([
   "accept",
@@ -133,7 +140,7 @@ function resolveLogPath(projectRoot: string, override?: string): string {
   if (override !== undefined) {
     return override;
   }
-  return join(projectRoot, AUDIT_LOG_REL_PATH);
+  return resolveCandidatesLogPath(projectRoot);
 }
 
 function stableStringify(entry: AuditEntry): string {
@@ -277,5 +284,5 @@ export function rollbackAuditEntry(
 }
 
 export function resolveAuditLogPath(projectRoot: string): string {
-  return join(projectRoot, AUDIT_LOG_REL_PATH);
+  return resolveCandidatesLogPath(projectRoot);
 }

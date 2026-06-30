@@ -1,10 +1,16 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  hasArtifactSuffix,
+  resolveAuditPath,
+  resolveEvalPath,
+  resolveLifecycleRoot,
+  resolveProjectDefinitionPath,
+} from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import {
   CACHE_DIR_NAME,
   CACHE_SOURCE,
-  CANDIDATES_RELPATH,
   DEFAULT_WIP_CAP,
   SUBSCRIPTION_PRESETS,
   WIP_LIFECYCLE_DIRS,
@@ -23,7 +29,7 @@ export interface PriorState {
 }
 
 function loadProjectDefinition(projectRoot: string): Record<string, unknown> | null {
-  const path = join(resolve(projectRoot), "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  const path = resolveProjectDefinitionPath(projectRoot);
   if (!existsSync(path)) return null;
   try {
     const data = JSON.parse(readFileSync(path, "utf8")) as unknown;
@@ -54,17 +60,17 @@ function countCacheEntries(projectRoot: string): number {
 }
 
 export function candidatesLogPath(projectRoot: string): string {
-  return join(resolve(projectRoot), ...CANDIDATES_RELPATH);
+  return resolveEvalPath(projectRoot, "candidates.jsonl");
 }
 
 function countWip(projectRoot: string): number {
   let total = 0;
-  const root = join(resolve(projectRoot), "vbrief");
+  const root = resolveLifecycleRoot(projectRoot);
   for (const sub of WIP_LIFECYCLE_DIRS) {
     const folder = join(root, sub);
     if (!existsSync(folder)) continue;
     for (const child of readdirSync(folder, { withFileTypes: true })) {
-      if (child.isFile() && child.name.endsWith(".vbrief.json")) total += 1;
+      if (child.isFile() && hasArtifactSuffix(child.name)) total += 1;
     }
   }
   return total;
@@ -97,7 +103,7 @@ function summarizeScope(rules: Array<Record<string, unknown>> | null): [boolean,
 }
 
 function countPendingDecisions(projectRoot: string): number {
-  const logPath = join(resolve(projectRoot), "vbrief", ".audit", "pending-human-decisions.jsonl");
+  const logPath = resolveAuditPath(projectRoot, "pending-human-decisions.jsonl");
   if (!existsSync(logPath)) return 0;
   let text: string;
   try {

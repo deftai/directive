@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
 import { depResolved, RESOLVED_FOLDERS } from "./graph.js";
@@ -111,7 +112,7 @@ export function reconcileLabels(
   options: ReconcileLabelsOptions = {},
 ): [number, ReconcileLabelsOutcome] {
   const root = resolve(projectRoot);
-  const vbriefDir = join(root, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(root);
   if (!existsSync(vbriefDir)) {
     return [
       2,
@@ -140,7 +141,7 @@ export function reconcileLabels(
     const folderPath = join(vbriefDir, folder);
     if (!existsSync(folderPath)) continue;
     const files = readdirSync(folderPath)
-      .filter((f) => f.endsWith(".vbrief.json"))
+      .filter((f) => hasArtifactSuffix(f))
       .sort();
     for (const file of files) {
       const path = join(folderPath, file);
@@ -155,7 +156,7 @@ export function reconcileLabels(
         typeof data.plan === "object" && data.plan !== null && !Array.isArray(data.plan)
           ? (data.plan as Record<string, unknown>)
           : {};
-      const storyId = String(plan.id ?? file.slice(0, -".vbrief.json".length));
+      const storyId = String(plan.id ?? stripArtifactSuffix(file));
 
       const [refRepo, number] = extractIssueRef(data);
       const effectiveRepo = refRepo ?? options.repo ?? null;

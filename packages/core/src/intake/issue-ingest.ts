@@ -1,6 +1,7 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
@@ -185,7 +186,7 @@ export function scanProvenanceRefs(vbriefDir: string): Map<number, string[]> {
       continue;
     }
     const files = readdirSync(folderPath)
-      .filter((f) => f.endsWith(".vbrief.json"))
+      .filter((f) => hasArtifactSuffix(f))
       .sort();
     for (const filename of files) {
       let data: Record<string, unknown>;
@@ -515,7 +516,7 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     return 2;
   }
 
-  const vbriefDir = resolve(args.vbriefDir ?? "./vbrief");
+  const vbriefDir = args.vbriefDir ? resolve(args.vbriefDir) : resolveLifecycleRoot(resolve("."));
   mkdirSync(vbriefDir, { recursive: true });
 
   const projectRoot = resolveProjectRoot(args.projectRoot ?? undefined);
@@ -586,7 +587,7 @@ export function ingestSingleForAccept(
   } = {},
 ): [IngestResult, string | null] {
   const root = resolve(options.projectRoot ?? process.cwd());
-  const vbriefDir = resolve(root, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(root);
   mkdirSync(vbriefDir, { recursive: true });
   const repoUrl = resolveRepoUrl(repo);
   const issue = fetchIssue(repo, n, {

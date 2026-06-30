@@ -9,6 +9,7 @@
 
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import { formatVbriefJson } from "./vbrief-json.js";
@@ -463,7 +464,7 @@ export function storyQualityIssues(opts: {
 // ---------------------------------------------------------------------------
 
 function vbriefDir(projectRoot: string): string {
-  return join(resolve(projectRoot), "vbrief");
+  return resolveLifecycleRoot(projectRoot);
 }
 
 function relToVbrief(vbriefDirPath: string, path: string): string {
@@ -834,7 +835,7 @@ function storyNarratives(story: JsonObj): Record<string, string> {
 
 function childFilename(story: JsonObj, stId: string, title: string, date: string): string {
   const fn = story.filename;
-  if (typeof fn === "string" && fn.endsWith(".vbrief.json")) return fn;
+  if (typeof fn === "string" && hasArtifactSuffix(fn)) return fn;
   const sl = slugify(title) || slugify(stId) || "story";
   return `${date}-${sl}.vbrief.json`;
 }

@@ -1,8 +1,9 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 
-/** Filesystem-relative location of the project-definition vBRIEF. */
+/** Filesystem-relative location of the project-definition vBRIEF (display/back-compat). */
 export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
 
 /** Environment variable emergency bypass for branch protection (#747). */
@@ -25,9 +26,13 @@ export interface PolicyResult {
   readonly error: string | null;
 }
 
-/** Resolve absolute path to PROJECT-DEFINITION.vbrief.json. */
+/**
+ * Resolve absolute path to PROJECT-DEFINITION. Layout-aware (#2109 part 2a):
+ * resolves PROJECT-DEFINITION.xbrief.json when the xbrief layout is present,
+ * else PROJECT-DEFINITION.vbrief.json (unchanged on today's tree).
+ */
 export function projectDefinitionPath(projectRoot: string): string {
-  return join(pathResolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+  return resolveProjectDefinitionPath(pathResolve(projectRoot));
 }
 
 function envBypassActive(): boolean {

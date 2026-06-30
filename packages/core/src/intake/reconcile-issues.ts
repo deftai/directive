@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -125,7 +126,7 @@ export function scanVbriefDir(vbriefDir: string): Map<number, string[]> {
       continue;
     }
     const files = readdirSync(folderPath)
-      .filter((f) => f.endsWith(".vbrief.json"))
+      .filter((f) => hasArtifactSuffix(f))
       .sort();
     for (const filename of files) {
       let data: Record<string, unknown>;
@@ -505,7 +506,7 @@ export function scanLifecycleAnchors(vbriefDir: string): Record<string, unknown>
       continue;
     }
     const files = readdirSync(folderPath)
-      .filter((f) => f.endsWith(".vbrief.json"))
+      .filter((f) => hasArtifactSuffix(f))
       .sort();
     for (const filename of files) {
       let data: Record<string, unknown>;
@@ -810,7 +811,7 @@ export interface ReconcileCliArgs {
 }
 
 export function reconcileMain(args: ReconcileCliArgs): number {
-  const vbriefDir = resolve(args.vbriefDir ?? "./vbrief");
+  const vbriefDir = args.vbriefDir ? resolve(args.vbriefDir) : resolveLifecycleRoot(resolve("."));
   try {
     if (!statSync(vbriefDir).isDirectory()) {
       process.stderr.write(`Error: vbrief directory not found: ${vbriefDir}\n`);

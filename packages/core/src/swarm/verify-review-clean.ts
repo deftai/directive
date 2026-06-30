@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
   defaultRunGh,
   fetchGreptileCommentBody,
@@ -60,7 +61,7 @@ function globPaths(pattern: string): string[] {
       return [];
     }
     return readdirSync(dir)
-      .filter((name) => (glob === "*.vbrief.json" ? name.endsWith(".vbrief.json") : name === glob))
+      .filter((name) => (glob === "*.vbrief.json" ? hasArtifactSuffix(name) : name === glob))
       .map((name) => resolve(dir, name));
   }
   return [resolve(pattern)];

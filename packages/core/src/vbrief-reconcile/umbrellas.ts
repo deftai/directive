@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
 import type { Child, ReconcileUmbrellasOutcome, UmbrellaChange, UmbrellaClient } from "./types.js";
@@ -77,13 +78,13 @@ export function buildChildIndex(vbriefDir: string): Record<string, Child> {
     const folderPath = join(vbriefDir, folder);
     if (!existsSync(folderPath)) continue;
     const files = readdirSync(folderPath)
-      .filter((f) => f.endsWith(".vbrief.json"))
+      .filter((f) => hasArtifactSuffix(f))
       .sort();
     for (const file of files) {
       const path = join(folderPath, file);
       const data = readJson(path);
       if (!data) continue;
-      const fallbackId = file.slice(0, -".vbrief.json".length);
+      const fallbackId = stripArtifactSuffix(file);
       index[file] = childFromData(data, folder, fallbackId);
     }
   }
@@ -419,7 +420,7 @@ export function reconcileUmbrellas(
   options: ReconcileUmbrellasOptions = {},
 ): [number, ReconcileUmbrellasOutcome] {
   const root = resolve(projectRoot);
-  const vbriefDir = join(root, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(root);
   if (!existsSync(vbriefDir)) {
     return [
       2,
@@ -449,7 +450,7 @@ export function reconcileUmbrellas(
     const folderPath = join(vbriefDir, folder);
     if (!existsSync(folderPath)) continue;
     const files = readdirSync(folderPath)
-      .filter((f) => f.endsWith(".vbrief.json"))
+      .filter((f) => hasArtifactSuffix(f))
       .sort();
     for (const file of files) {
       const path = join(folderPath, file);
@@ -464,7 +465,7 @@ export function reconcileUmbrellas(
           ? (plan.metadata as Record<string, unknown>)
           : {};
       if (metadata.kind !== "epic") continue;
-      const storyId = String(plan.id ?? file.slice(0, -".vbrief.json".length));
+      const storyId = String(plan.id ?? stripArtifactSuffix(file));
 
       const [refRepo, number] = extractIssueRef(data);
       const effectiveRepo = refRepo ?? options.repo ?? null;

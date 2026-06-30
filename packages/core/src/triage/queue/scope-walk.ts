@@ -1,5 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import {
+  hasArtifactSuffix,
+  resolveLifecycleFolder,
+  resolveLifecycleRoot,
+} from "../../layout/resolve.js";
 
 function loadPlan(path: string): Record<string, unknown> | null {
   try {
@@ -86,11 +91,11 @@ function dependsOnIds(plan: Record<string, unknown>): readonly string[] {
 
 function completedPlanIds(projectRoot: string): ReadonlySet<string> {
   const out = new Set<string>();
-  const base = join(resolve(projectRoot), "vbrief", "completed");
+  const base = resolveLifecycleFolder(projectRoot, "completed");
   if (!existsSync(base)) {
     return out;
   }
-  for (const name of readdirSync(base).filter((entry) => entry.endsWith(".vbrief.json"))) {
+  for (const name of readdirSync(base).filter((entry) => hasArtifactSuffix(entry))) {
     const plan = loadPlan(join(base, name));
     if (plan === null) {
       continue;
@@ -121,14 +126,14 @@ function walkScopeFolders(
   folders: readonly string[],
   visitor: (plan: Record<string, unknown>, filename: string) => void,
 ): void {
-  const base = join(resolve(projectRoot), "vbrief");
+  const base = resolveLifecycleRoot(projectRoot);
   for (const folder of folders) {
     const folderDir = join(base, folder);
     if (!existsSync(folderDir)) {
       continue;
     }
     for (const name of readdirSync(folderDir)
-      .filter((entry) => entry.endsWith(".vbrief.json"))
+      .filter((entry) => hasArtifactSuffix(entry))
       .sort()) {
       const plan = loadPlan(join(folderDir, name));
       if (plan !== null) {

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 import { PROPOSED_DISCLAIMER_LINES, PROPOSED_STATUS_FILTER } from "../spec-authority/constants.js";
 import { SCOPE_SUMMARY_NARRATIVES } from "./constants.js";
 
@@ -22,7 +23,7 @@ function loadScopeVbriefs(folder: string): ScopeTuple[] {
   let entries: string[];
   try {
     entries = readdirSync(folder)
-      .filter((n) => n.endsWith(".vbrief.json"))
+      .filter((n) => hasArtifactSuffix(n))
       .sort();
   } catch {
     return [];
@@ -31,7 +32,7 @@ function loadScopeVbriefs(folder: string): ScopeTuple[] {
   for (const name of entries) {
     try {
       const data = JSON.parse(readFileSync(join(folder, name), "utf8")) as JsonObject;
-      const stem = name.endsWith(".vbrief.json") ? name.slice(0, -".vbrief.json".length) : name;
+      const stem = stripArtifactSuffix(name);
       out.push([stem, data]);
     } catch {
       /* skip */

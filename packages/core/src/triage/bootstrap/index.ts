@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
+import { hasArtifactSuffix, resolveEvalPath, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { SUBPROCESS_MAX_BUFFER } from "../../subprocess/max-buffer.js";
 import {
   stepEnsureGitignoreEntry,
@@ -411,7 +412,7 @@ function scanLifecycleFolder(folder: string): Array<[number, string]> {
   const results: Array<[number, string]> = [];
   if (!existsSync(folder)) return results;
   const entries = readdirSync(folder)
-    .filter((name) => name.endsWith(".vbrief.json"))
+    .filter((name) => hasArtifactSuffix(name))
     .sort();
   for (const name of entries) {
     const path = join(folder, name);
@@ -484,7 +485,7 @@ export function stepBackfillAuditLog(
     );
   }
 
-  const vbriefRoot = join(projectRoot, "vbrief");
+  const vbriefRoot = resolveLifecycleRoot(projectRoot);
   if (!existsSync(vbriefRoot)) {
     return stepOutcome(
       "backfill_audit_log",
@@ -494,7 +495,7 @@ export function stepBackfillAuditLog(
     );
   }
 
-  const auditPath = join(projectRoot, AUDIT_LOG_RELPATH);
+  const auditPath = resolveEvalPath(projectRoot, "candidates.jsonl");
   const alreadyLogged = existingAuditIssueNumbers(auditPath);
   const nowIso = options.nowIso ?? nowIsoDefault;
   const appendEntry = options.appendAuditEntry ?? appendAuditEntryDefault;

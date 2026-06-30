@@ -1,5 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  resolveLifecycleLayout,
+  resolveLifecycleRoot,
+  resolveProjectDefinitionPath,
+} from "../layout/resolve.js";
 import { SPEC_RENDER_BANNER } from "../render/constants.js";
 import {
   EXPORT_SPEC_PD_BANNER,
@@ -19,16 +24,14 @@ export interface ResolvedSpecAuthority {
   readonly banner: string;
 }
 
-const SPEC_REL = join("vbrief", "specification.vbrief.json");
-const PD_REL = join("vbrief", "PROJECT-DEFINITION.vbrief.json");
-
 export function resolveSpecAuthority(projectRoot: string): ResolvedSpecAuthority | null {
   const root = projectRoot;
-  const vbriefDir = join(root, "vbrief");
-  const projectDefPath = join(root, PD_REL);
+  const layout = resolveLifecycleLayout(root);
+  const vbriefDir = resolveLifecycleRoot(root);
+  const projectDefPath = resolveProjectDefinitionPath(root);
   if (!existsSync(projectDefPath)) return null;
 
-  const specPath = join(root, SPEC_REL);
+  const specPath = join(vbriefDir, `specification${layout.artifactSuffix}`);
   const hasSpec = existsSync(specPath);
   const kind: SpecAuthorityKind = hasSpec ? "full-spec" : "greenfield";
   const banner = kind === "full-spec" ? SPEC_RENDER_BANNER : EXPORT_SPEC_PD_BANNER;

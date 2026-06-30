@@ -15,6 +15,7 @@ import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.js";
 import { readCorePackageVersion } from "../engine-version.js";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
 import { gitPorcelain } from "../story-ready/git.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
@@ -134,7 +135,7 @@ function readRecordedManagedBy(deftDir: string): string | null {
 function syncBareVersionMarker(projectDir: string, version: string): void {
   const normalized = normalizeVersion(version);
   if (!normalized || normalized === DEV_FALLBACK) return;
-  const vbriefDir = join(projectDir, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(projectDir);
   let targetDir = projectDir;
   try {
     if (statSync(vbriefDir).isDirectory()) targetDir = vbriefDir;

@@ -1,4 +1,5 @@
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { resolveLifecycleFolder } from "../../layout/resolve.js";
 import { type CacheLoader, detectDrift, type FetchLive } from "./drift.js";
 import { iterActiveVbriefs } from "./extract.js";
 import { type DriftRecord, type FreshnessSummary, PROMPT_OPTIONS } from "./types.js";
@@ -47,7 +48,7 @@ export function refreshActive(
   options: RefreshActiveOptions = {},
 ): FreshnessSummary {
   const root = resolve(projectRoot);
-  const activeDir = options.activeDir ?? join(root, "vbrief", "active");
+  const activeDir = options.activeDir ?? resolveLifecycleFolder(root, "active");
   const log = options.log ?? ((line: string) => process.stdout.write(`${line}\n`));
   const inputFn = options.inputFn ?? (() => "");
   const refreshLocal = options.refreshLocal ?? (() => {});

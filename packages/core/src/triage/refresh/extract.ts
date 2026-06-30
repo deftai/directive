@@ -1,12 +1,13 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { hasArtifactSuffix } from "../../layout/resolve.js";
 
 const ISSUE_URL_RE = /github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)/i;
 
 export function iterActiveVbriefs(activeDir: string): string[] {
   if (!existsSync(activeDir)) return [];
   return readdirSync(activeDir)
-    .filter((name) => name.endsWith(".vbrief.json"))
+    .filter((name) => hasArtifactSuffix(name))
     .sort()
     .map((name) => join(activeDir, name));
 }

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { pyRepr } from "./py-repr.js";
 import type { Candidate } from "./types.js";
 
@@ -52,17 +53,17 @@ function storyId(path: string, plan: Record<string, unknown>): string {
   const value = plan.id;
   if (typeof value === "string" && value.trim()) return value.trim();
   const name = path.split(/[/\\]/).pop() ?? "";
-  return name.endsWith(".vbrief.json") ? name.slice(0, -".vbrief.json".length) : name;
+  return hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name;
 }
 
 export function allScopeIds(projectRoot: string): Record<string, [string, string]> {
   const ids: Record<string, [string, string]> = {};
-  const vbriefDir = join(resolve(projectRoot), "vbrief");
+  const vbriefDir = resolveLifecycleRoot(projectRoot);
   for (const folder of LIFECYCLE_FOLDERS) {
     const folderPath = join(vbriefDir, folder);
     if (!existsSync(folderPath)) continue;
     const files = readdirSync(folderPath)
-      .filter((f) => f.endsWith(".vbrief.json"))
+      .filter((f) => hasArtifactSuffix(f))
       .sort();
     for (const file of files) {
       const path = join(folderPath, file);
@@ -72,7 +73,7 @@ export function allScopeIds(projectRoot: string): Record<string, [string, string
       const scopeId = storyId(path, plan);
       const status = String(plan.status ?? "");
       ids[scopeId] = [path, status];
-      const stem = file.endsWith(".vbrief.json") ? file.slice(0, -".vbrief.json".length) : file;
+      const stem = hasArtifactSuffix(file) ? stripArtifactSuffix(file) : file;
       if (!ids[stem]) ids[stem] = [path, status];
     }
   }

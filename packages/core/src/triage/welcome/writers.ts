@@ -9,18 +9,22 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import {
+  hasArtifactSuffix,
+  resolveLifecycleFolder,
+  resolveProjectDefinitionPath,
+} from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 import {
   AUDIT_LOG_REL_PATH,
   DEFAULT_RELIEF_AGE_DAYS,
   DEFAULT_WIP_CAP,
-  PROJECT_DEFINITION_REL_PATH,
   SUBSCRIPTION_PRESETS,
   WELCOME_AUDIT_TAG,
 } from "./constants.js";
 
 function projectDefinitionPath(projectRoot: string): string {
-  return join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+  return resolveProjectDefinitionPath(projectRoot);
 }
 
 function utcIso(): string {
@@ -171,16 +175,14 @@ export function previewWipRelief(
   projectRoot: string,
   olderThanDays = DEFAULT_RELIEF_AGE_DAYS,
 ): ReliefPreview {
-  const pendingDir = join(resolve(projectRoot), "vbrief", "pending");
+  const pendingDir = resolveLifecycleFolder(projectRoot, "pending");
   if (!existsSync(pendingDir)) {
     return { olderThanDays, eligibleCount: 0, eligibleFiles: [], skippedCount: 0 };
   }
   const now = new Date();
   const eligible: string[] = [];
   let skipped = 0;
-  for (const name of [...readdirSync(pendingDir)]
-    .filter((n) => n.endsWith(".vbrief.json"))
-    .sort()) {
+  for (const name of [...readdirSync(pendingDir)].filter((n) => hasArtifactSuffix(n)).sort()) {
     const path = join(pendingDir, name);
     const days = daysInPending(path, now);
     if (days >= olderThanDays) eligible.push(name);

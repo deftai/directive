@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
+import {
+  hasArtifactSuffix,
+  resolveEvalPath,
+  resolveLifecycleFolder,
+  resolveProjectDefinitionPath,
+} from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { loadProjectDefinition, PROJECT_DEFINITION_REL_PATH } from "../../policy/resolve.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
@@ -132,13 +138,13 @@ export function iterCachedIssues(cacheRoot: string): Array<[string, number]> {
 
 /** Count filesystem-truth in-flight vBRIEFs (#1270). */
 export function countFilesystemInFlight(projectRoot: string): number {
-  const folder = join(pathResolve(projectRoot), "vbrief", FILESYSTEM_IN_FLIGHT_FOLDER);
+  const folder = resolveLifecycleFolder(projectRoot, FILESYSTEM_IN_FLIGHT_FOLDER);
   if (!existsSync(folder)) {
     return 0;
   }
   let total = 0;
   for (const entry of readdirSync(folder, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".vbrief.json")) {
+    if (!entry.isFile() || !hasArtifactSuffix(entry.name)) {
       continue;
     }
     try {
@@ -165,7 +171,7 @@ export function countFilesystemInFlight(projectRoot: string): number {
 
 /** True iff `plan.policy.triageScope` is a non-empty list of dict rules. */
 export function isTriageScopeExplicitlyConfigured(projectRoot: string): boolean {
-  const path = join(pathResolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+  const path = resolveProjectDefinitionPath(projectRoot);
   if (!existsSync(path)) {
     return false;
   }
@@ -242,7 +248,7 @@ export function computeSummary(
 ): SummaryResult {
   const root = pathResolve(projectRoot);
   const resolvedCacheRoot = options.cacheRoot ?? join(root, CACHE_DIR_NAME);
-  const resolvedLogPath = options.auditLogPath ?? join(root, CANDIDATES_LOG_REL_PATH);
+  const resolvedLogPath = options.auditLogPath ?? resolveEvalPath(root, "candidates.jsonl");
 
   const cached = iterCachedIssues(resolvedCacheRoot);
   const repos = [...new Set(cached.map(([repo]) => repo))].sort();

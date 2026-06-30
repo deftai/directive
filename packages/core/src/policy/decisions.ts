@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { resolveAuditDir } from "../layout/resolve.js";
 
+/** Display/back-compat constant; resolution flows through resolveAuditDir (#2109). */
 export const PENDING_DECISIONS_AUDIT_DIR_REL = "vbrief/.audit";
 export const PENDING_DECISIONS_LOG_NAME = "pending-human-decisions.jsonl";
 export const DECISION_STATUS_PENDING = "pending";
@@ -17,7 +19,7 @@ export interface DecisionBacklog {
 }
 
 export function pendingDecisionsLogPath(projectRoot: string): string {
-  return join(resolve(projectRoot), PENDING_DECISIONS_AUDIT_DIR_REL, PENDING_DECISIONS_LOG_NAME);
+  return join(resolveAuditDir(projectRoot), PENDING_DECISIONS_LOG_NAME);
 }
 
 function parseIsoTs(value: unknown): Date | null {

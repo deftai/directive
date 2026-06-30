@@ -6,9 +6,11 @@ import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { resolveAuditDir } from "../layout/resolve.js";
 import { type JudgmentGatesPolicy, resolveJudgmentGates } from "./judgment-policy.js";
 import { matchAny } from "./pathspec.js";
 
+/** Display/back-compat constant; resolution flows through resolveAuditDir (#2109). */
 export const AUDIT_DIR_REL = "vbrief/.audit";
 export const CLEARANCE_LOG_NAME = "judgment-gate-clearances.jsonl";
 export const UNIVERSAL_SOURCE = "universal";
@@ -169,7 +171,7 @@ export function reportBlocking(report: JudgmentGateReport): GateOutcome[] {
 }
 
 export function clearanceLogPath(projectRoot: string): string {
-  return join(projectRoot, AUDIT_DIR_REL, CLEARANCE_LOG_NAME);
+  return join(resolveAuditDir(projectRoot), CLEARANCE_LOG_NAME);
 }
 
 function utcNowIso(now?: Date): string {
@@ -212,7 +214,7 @@ export function recordClearance(
   },
 ): Record<string, unknown> {
   const path = options.log_path ?? clearanceLogPath(projectRoot);
-  mkdirSync(join(projectRoot, AUDIT_DIR_REL), { recursive: true });
+  mkdirSync(resolveAuditDir(projectRoot), { recursive: true });
   const entry: Record<string, unknown> = {
     clearance_id: randomUUID(),
     timestamp: utcNowIso(options.now),

@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import {
   deriveRegistryItemStatus,
@@ -33,7 +34,7 @@ export function scanLifecycleFolders(vbriefDir: string): LifecycleItem[] {
     let files: string[];
     try {
       files = readdirSync(folder)
-        .filter((n) => n.endsWith(".vbrief.json"))
+        .filter((n) => hasArtifactSuffix(n))
         .sort();
     } catch {
       continue;

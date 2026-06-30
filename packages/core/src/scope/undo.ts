@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId, readAll } from "./audit-log.js";
 import { REVERSIBLE_ACTIONS, TERMINAL_ACTIONS } from "./constants.js";
 import { formatVbriefJson, utcNowIso } from "./vbrief-json.js";
@@ -11,7 +12,7 @@ export interface UndoResult {
 }
 
 function vbriefRoot(projectRoot: string): string {
-  return join(resolve(projectRoot), "vbrief");
+  return resolveLifecycleRoot(projectRoot);
 }
 
 function absForEntryPath(projectRoot: string, vbriefPath: string): string {

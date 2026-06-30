@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
-import { join, resolve as pathResolve } from "node:path";
+import { join } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import { loadProjectDefinition } from "./resolve.js";
 
@@ -75,7 +76,7 @@ export function resolveWipCap(projectRoot: string): WipCapResult {
 /** Count *.vbrief.json files in vbrief/pending/ + vbrief/active/ (#1124). */
 export function countVbriefWip(projectRoot: string): number {
   let total = 0;
-  const vbriefRoot = join(pathResolve(projectRoot), "vbrief");
+  const vbriefRoot = resolveLifecycleRoot(projectRoot);
   for (const sub of WIP_LIFECYCLE_DIRS) {
     const folder = join(vbriefRoot, sub);
     if (!existsSync(folder)) {
@@ -83,7 +84,7 @@ export function countVbriefWip(projectRoot: string): number {
     }
     const entries = readdirSync(folder, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.isFile() && entry.name.endsWith(".vbrief.json")) {
+      if (entry.isFile() && hasArtifactSuffix(entry.name)) {
         total += 1;
       }
     }

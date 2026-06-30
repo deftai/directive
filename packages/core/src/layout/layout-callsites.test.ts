@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { countVbriefWip } from "../policy/wip.js";
 import { expandReadinessPaths } from "../swarm/readiness.js";
 import { matchesFilenameConvention, validateFilename } from "../vbrief-validate/filename.js";
 import { discoverVbriefs } from "../vbrief-validate/validate-all.js";
@@ -46,5 +47,22 @@ describe("layout-aware call sites accept the xbrief layout (#2109 part 1)", () =
     expect(matchesFilenameConvention("2026-01-01-abc-def.xbrief.json")).toBe(true);
     expect(validateFilename("xbrief/PROJECT-DEFINITION.xbrief.json")).toEqual([]);
     expect(validateFilename("vbrief/PROJECT-DEFINITION.vbrief.json")).toEqual([]);
+  });
+
+  it("WIP count resolves pending+active under a vbrief/ tree", () => {
+    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "vbrief", "pending", "a.vbrief.json"), STORY, "utf8");
+    writeFileSync(join(root, "vbrief", "active", "b.vbrief.json"), STORY, "utf8");
+    expect(countVbriefWip(root)).toBe(2);
+  });
+
+  it("WIP count resolves pending+active under a migrated xbrief/ tree", () => {
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "pending", "a.xbrief.json"), STORY, "utf8");
+    writeFileSync(join(root, "xbrief", "active", "b.xbrief.json"), STORY, "utf8");
+    writeFileSync(join(root, "xbrief", "active", "c.xbrief.json"), STORY, "utf8");
+    expect(countVbriefWip(root)).toBe(3);
   });
 });

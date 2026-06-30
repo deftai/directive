@@ -1,5 +1,10 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  hasArtifactSuffix,
+  resolveLifecycleRoot,
+  resolveProjectDefinitionPath,
+} from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { pyRepr } from "../../scm/py-format.js";
 
@@ -326,8 +331,7 @@ export function validateHoldMarkers(markers: unknown): { errors: string[]; warni
 }
 
 export function projectDefinitionPath(projectRoot?: string): string {
-  const root = projectRoot ?? process.cwd();
-  return join(root, PROJECT_DEFINITION_REL_PATH);
+  return resolveProjectDefinitionPath(projectRoot ?? process.cwd());
 }
 
 function loadProjectDefinition(projectRoot?: string): Record<string, unknown> | null {
@@ -654,13 +658,13 @@ export function extractReferencedIssues(
   projectRoot?: string,
   lifecycleFolders: readonly string[] = ["pending", "active"],
 ): Set<number> {
-  const root = join(projectRoot ?? process.cwd(), "vbrief");
+  const root = resolveLifecycleRoot(projectRoot ?? process.cwd());
   const referenced = new Set<number>();
   for (const folder of lifecycleFolders) {
     const folderPath = join(root, folder);
     let entries: string[];
     try {
-      entries = readdirSync(folderPath).filter((f) => f.endsWith(".vbrief.json"));
+      entries = readdirSync(folderPath).filter((f) => hasArtifactSuffix(f));
     } catch {
       continue;
     }
@@ -848,7 +852,7 @@ export function validateProject(projectRoot: string): {
       code: 0,
       stdout:
         "OK: no PROJECT-DEFINITION at " +
-        `${join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json")} -- ` +
+        `${resolveProjectDefinitionPath(root)} -- ` +
         "framework defaults apply with no consumer overrides.\n",
       stderr: "",
     };
@@ -861,7 +865,7 @@ export function validateProject(projectRoot: string): {
       stderr: "FAIL: PROJECT-DEFINITION.plan is not an object\n",
     };
   }
-  const rel = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  const rel = resolveProjectDefinitionPath(root);
   const classifyErrs = validateTriageAutoClassifyOnPlan(plan, rel);
   const holderErrs = validateTriageHoldMarkersOnPlan(plan, rel);
   const errors = [...classifyErrs, ...holderErrs];

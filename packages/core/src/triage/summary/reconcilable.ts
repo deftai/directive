@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { hasArtifactSuffix, resolveEvalPath, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { AUDIT_LOG_REL_PATH, readAuditLog } from "../actions/candidates-log.js";
 
 /** Lifecycle folders scanned for reconcilable vBRIEFs (#1468). */
@@ -75,11 +76,11 @@ export function countReconcilable(
   } = {},
 ): number {
   try {
-    const auditPath = options.auditLogPath ?? join(projectRoot, CANDIDATES_LOG_REL_PATH);
+    const auditPath = options.auditLogPath ?? resolveEvalPath(projectRoot, "candidates.jsonl");
     const existing = existingAuditRefs(auditPath);
     const defaultRepo = options.defaultRepo ?? null;
     const keys = new Set<string>();
-    const vbriefRoot = join(projectRoot, "vbrief");
+    const vbriefRoot = resolveLifecycleRoot(projectRoot);
 
     for (const folderName of BACKFILL_FOLDERS) {
       const folder = join(vbriefRoot, folderName);
@@ -88,7 +89,7 @@ export function countReconcilable(
       }
       const entries = readdirSync(folder, { withFileTypes: true });
       for (const entry of entries) {
-        if (!entry.isFile() || !entry.name.endsWith(".vbrief.json")) {
+        if (!entry.isFile() || !hasArtifactSuffix(entry.name)) {
           continue;
         }
         const path = join(folder, entry.name);

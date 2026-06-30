@@ -19,6 +19,7 @@ import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { platform } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
 
 export interface InitDepositIo {
@@ -316,7 +317,7 @@ export async function writeConsumerVbrief(
   deftDir: string,
   io: InitDepositIo,
 ): Promise<boolean> {
-  const consumerVbrief = join(projectDir, "vbrief");
+  const consumerVbrief = resolveLifecycleRoot(projectDir);
   const schemasDst = join(consumerVbrief, "schemas");
   const vbriefMdDst = join(consumerVbrief, "vbrief.md");
 

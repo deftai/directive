@@ -7,8 +7,16 @@ import {
   hasArtifactSuffix,
   isLifecycleArtifactPath,
   LIFECYCLE_DIR_NAMES,
+  projectDefinitionFilename,
+  projectDefinitionRelPath,
+  resolveAuditDir,
+  resolveAuditPath,
+  resolveEvalDir,
+  resolveEvalPath,
+  resolveLifecycleFolder,
   resolveLifecycleLayout,
   resolveLifecycleRoot,
+  resolveProjectDefinitionPath,
   stripArtifactSuffix,
 } from "./resolve.js";
 
@@ -116,5 +124,76 @@ describe("artifact suffix helpers (#2109 part 1)", () => {
   it("exposes stable preference-ordered constants", () => {
     expect([...LIFECYCLE_DIR_NAMES]).toEqual(["xbrief", "vbrief"]);
     expect([...ARTIFACT_SUFFIXES]).toEqual([".xbrief.json", ".vbrief.json"]);
+  });
+});
+
+describe("layout-aware path helpers (#2109 part 2a)", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "layout-paths-"));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  function seedVbrief(): void {
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "active", "s.vbrief.json"),
+      JSON.stringify({ plan: { id: "s", status: "running", items: [] } }),
+      "utf8",
+    );
+  }
+
+  function seedXbrief(): void {
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "s.xbrief.json"),
+      JSON.stringify({ plan: { id: "s", status: "running", items: [] } }),
+      "utf8",
+    );
+  }
+
+  it("resolves lifecycle folder / eval / audit / project-definition under vbrief by default", () => {
+    seedVbrief();
+    expect(resolveLifecycleFolder(root, "pending")).toBe(join(root, "vbrief", "pending"));
+    expect(resolveEvalDir(root)).toBe(join(root, "vbrief", ".eval"));
+    expect(resolveEvalPath(root, "candidates.jsonl")).toBe(
+      join(root, "vbrief", ".eval", "candidates.jsonl"),
+    );
+    expect(resolveAuditDir(root)).toBe(join(root, "vbrief", ".audit"));
+    expect(resolveAuditPath(root, "pending-human-decisions.jsonl")).toBe(
+      join(root, "vbrief", ".audit", "pending-human-decisions.jsonl"),
+    );
+    expect(resolveProjectDefinitionPath(root)).toBe(
+      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    );
+    expect(projectDefinitionFilename(root)).toBe("PROJECT-DEFINITION.vbrief.json");
+    expect(projectDefinitionRelPath(root)).toBe("vbrief/PROJECT-DEFINITION.vbrief.json");
+  });
+
+  it("resolves the same helpers under xbrief once the migrated tree exists", () => {
+    seedXbrief();
+    expect(resolveLifecycleFolder(root, "pending")).toBe(join(root, "xbrief", "pending"));
+    expect(resolveEvalPath(root, "candidates.jsonl")).toBe(
+      join(root, "xbrief", ".eval", "candidates.jsonl"),
+    );
+    expect(resolveAuditPath(root, "pending-human-decisions.jsonl")).toBe(
+      join(root, "xbrief", ".audit", "pending-human-decisions.jsonl"),
+    );
+    expect(resolveProjectDefinitionPath(root)).toBe(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    );
+    expect(projectDefinitionFilename(root)).toBe("PROJECT-DEFINITION.xbrief.json");
+    expect(projectDefinitionRelPath(root)).toBe("xbrief/PROJECT-DEFINITION.xbrief.json");
+  });
+
+  it("resolveLifecycleRoot equals the resolved layout root under both layouts", () => {
+    seedVbrief();
+    expect(resolveLifecycleRoot(root)).toBe(resolveLifecycleLayout(root).root);
+    seedXbrief();
+    expect(resolveLifecycleRoot(root)).toBe(join(root, "xbrief"));
   });
 });

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import { countVbriefWip, resolveWipCap } from "../policy/wip.js";
 import { runTransition } from "../scope/transition.js";
 import {
@@ -50,7 +51,7 @@ export function reconcileGraph(
   options: ReconcileGraphOptions = {},
 ): [number, ReconcileGraphOutcome] {
   const root = resolve(projectRoot);
-  const proposedDir = join(root, "vbrief", "proposed");
+  const proposedDir = resolveLifecycleFolder(root, "proposed");
   if (!existsSync(proposedDir)) {
     return [
       2,
@@ -69,7 +70,7 @@ export function reconcileGraph(
   }
 
   const candidatePaths = readdirSync(proposedDir)
-    .filter((f) => f.endsWith(".vbrief.json"))
+    .filter((f) => hasArtifactSuffix(f))
     .sort()
     .map((f) => join(proposedDir, f));
 

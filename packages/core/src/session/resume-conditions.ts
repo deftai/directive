@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 
 export const RESUME_ELIGIBLE_DECISION = "resume-eligible";
 export const EVALUATOR_ACTOR = "agent:resume-evaluator";
@@ -305,7 +306,7 @@ function countPending(projectRoot: string): number {
     for (const name of readdirSync(folder)) {
       const full = join(folder, name);
       try {
-        if (statSync(full).isFile() && name.endsWith(".vbrief.json")) {
+        if (statSync(full).isFile() && hasArtifactSuffix(name)) {
           count += 1;
         }
       } catch {}

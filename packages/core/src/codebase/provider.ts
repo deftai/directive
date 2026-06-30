@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadJsonFile } from "../verify-source/code-structure-validate.js";
 import { CODEBASE_MAP_SCHEMA_PATH } from "./constants.js";
@@ -321,7 +322,7 @@ function isSafeRelativePath(value: unknown): boolean {
 }
 
 function projectDefinitionPath(projectRoot: string): string {
-  return join(projectRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  return resolveProjectDefinitionPath(projectRoot);
 }
 
 function expectValue(expect: unknown, ...keys: string[]): string | null {

@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 
 /** Resolve a vBRIEF reference URI to an absolute path, or null. */
 export function resolveVbriefRef(uri: unknown, vbriefDir: string): string | null {
@@ -63,8 +64,8 @@ export function collectChildUris(plan: Record<string, unknown>): string[] {
 /** Return registry IDs that may name a vBRIEF filename. */
 export function scopeIdsForFilename(filename: string): Set<string> {
   let fullId: string;
-  if (filename.endsWith(".vbrief.json")) {
-    fullId = filename.slice(0, -".vbrief.json".length);
+  if (hasArtifactSuffix(filename)) {
+    fullId = stripArtifactSuffix(filename);
   } else {
     fullId = filename.replace(/\.[^.]+$/, "");
   }

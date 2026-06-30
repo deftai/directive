@@ -1,4 +1,5 @@
 import { basename, relative, resolve, sep } from "node:path";
+import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 
 /** Return true when ``child`` resolves under ``parent``. */
 export function isRelativeTo(child: string, parent: string): boolean {
@@ -49,7 +50,7 @@ function splitMax(value: string, sep: string, maxsplit: number): string[] {
 export function scopeIdsForRefUri(uri: string): Set<string> {
   const rel = uri.startsWith("file://") ? uri.slice("file://".length) : uri;
   const name = basename(rel);
-  const fullId = name.endsWith(".vbrief.json") ? name.slice(0, -".vbrief.json".length) : name;
+  const fullId = hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name;
   const ids = new Set<string>([fullId]);
   const parts = splitMax(fullId, "-", 3);
   if (

@@ -7,6 +7,7 @@ import {
   CANONICAL_INSTALL_ROOT,
   type InstallManifestFields,
 } from "../init-deposit/scaffold.js";
+import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
 import { resolveVersion } from "../platform/resolve-version.js";
@@ -99,7 +100,10 @@ export interface InstallUpgradeIo {
 }
 
 function versionMarkerPaths(projectRoot: string): string[] {
-  return [join(projectRoot, "vbrief", ".deft-version"), join(projectRoot, ".deft-version")];
+  return [
+    join(resolveLifecycleRoot(projectRoot), ".deft-version"),
+    join(projectRoot, ".deft-version"),
+  ];
 }
 
 function readVersionMarker(projectRoot: string): string | null {
@@ -271,7 +275,7 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
     );
   }
 
-  const vbriefDir = join(projectRoot, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(projectRoot);
   const targetDir =
     existsSync(vbriefDir) && statSync(vbriefDir).isDirectory() ? vbriefDir : projectRoot;
   writeVersionMarker(targetDir, normalizedVersion);

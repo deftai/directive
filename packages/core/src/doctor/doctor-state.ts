@@ -1,9 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { resolveEvalPath } from "../layout/resolve.js";
 import { CLEAN_WINDOW_HOURS, DIRTY_WINDOW_HOURS, ENV_STATE_PATH } from "./constants.js";
 import type { DoctorState, ThrottleDecision } from "./types.js";
 
-const STATE_PARENT = join("vbrief", ".eval");
 const STATE_FILENAME = "doctor-state.json";
 
 export function statePath(projectRoot: string): string {
@@ -13,7 +13,7 @@ export function statePath(projectRoot: string): string {
       ? join(process.env.HOME ?? projectRoot, override.slice(1))
       : override;
   }
-  return join(projectRoot, STATE_PARENT, STATE_FILENAME);
+  return resolveEvalPath(projectRoot, STATE_FILENAME);
 }
 
 function parseIso(ts: unknown): Date | null {

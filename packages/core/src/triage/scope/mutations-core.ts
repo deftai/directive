@@ -9,12 +9,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { resolveEvalPath, resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
-import {
-  PROJECT_DEFINITION_REL_PATH,
-  SUBSCRIPTION_HISTORY_REL_PATH,
-  SUBSCRIPTION_HISTORY_SCHEMA,
-} from "./constants.js";
+import { SUBSCRIPTION_HISTORY_SCHEMA } from "./constants.js";
 import { pyStrRepr } from "./python-repr.js";
 import { utcIso } from "./time.js";
 
@@ -23,7 +20,7 @@ export class ProjectDefinitionIOError extends Error {
 }
 
 export function projectDefinitionPath(projectRoot: string): string {
-  return join(projectRoot, PROJECT_DEFINITION_REL_PATH);
+  return resolveProjectDefinitionPath(projectRoot);
 }
 
 export function loadProjectDefinitionForMutation(
@@ -94,7 +91,7 @@ export function recordSubscriptionChange(
     extra?: Record<string, unknown>;
   },
 ): void {
-  const historyPath = join(projectRoot, SUBSCRIPTION_HISTORY_REL_PATH);
+  const historyPath = resolveEvalPath(projectRoot, "subscription-history.jsonl");
   const record: Record<string, unknown> = {
     schema: SUBSCRIPTION_HISTORY_SCHEMA,
     change_id: randomUUID(),

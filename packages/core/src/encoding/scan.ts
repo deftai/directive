@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { hasArtifactSuffix, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
 import {
   MOJIBAKE_PATTERNS,
   NO_BOM_EXTENSIONS,
@@ -126,11 +127,13 @@ export function scanFile(relPath: string, fullPath: string): Finding[] {
 
 /** Return true for in-flight vBRIEF files that may receive issue ingest. */
 export function isVbriefNarrativeControlScope(relPath: string): boolean {
-  if (!relPath.endsWith(".vbrief.json")) {
+  if (!hasArtifactSuffix(relPath)) {
     return false;
   }
   const normalized = `/${relPath.replace(/\\/g, "/")}`;
-  return normalized.includes("/vbrief/proposed/") || normalized.includes("/vbrief/active/");
+  return LIFECYCLE_DIR_NAMES.some(
+    (dir) => normalized.includes(`/${dir}/proposed/`) || normalized.includes(`/${dir}/active/`),
+  );
 }
 
 function tabIsNonIndentation(value: string, index: number): boolean {

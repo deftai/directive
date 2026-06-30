@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
+import { resolveEvalPath, resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage/actions/candidates-log.js";
 
@@ -212,7 +213,7 @@ interface ScopeRule {
 }
 
 function loadScopeRules(projectRoot: string): ScopeRule[] | null {
-  const defPath = join(projectRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  const defPath = resolveProjectDefinitionPath(projectRoot);
   if (!existsSync(defPath)) return null;
   try {
     const data = JSON.parse(readFileSync(defPath, "utf8")) as unknown;
@@ -375,7 +376,8 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
     DEFAULT_MAX_AGE_HOURS;
 
   const cacheRoot = join(projectRoot, CACHE_DIR_NAME);
-  const candidatesPath = join(projectRoot, CANDIDATES_RELPATH);
+  // Layout-aware (#2109 part 2a): resolve under xbrief/.eval when migrated.
+  const candidatesPath = resolveEvalPath(projectRoot, "candidates.jsonl");
 
   // Step 1: Resolve repo slug
   const resolvedRepo = resolveRepo(projectRoot, cacheRoot, source, options.repo ?? null);

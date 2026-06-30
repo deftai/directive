@@ -11,6 +11,7 @@ import {
   writeSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stableJson } from "./json.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
@@ -387,7 +388,7 @@ export function detectLatestActiveVbrief(projectRoot: string): string | null {
   }
   const candidates: Array<[number, string]> = [];
   for (const name of children) {
-    if (!name.endsWith(".vbrief.json")) {
+    if (!hasArtifactSuffix(name)) {
       continue;
     }
     const full = join(activeDir, name);

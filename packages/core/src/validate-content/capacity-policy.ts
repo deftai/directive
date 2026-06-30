@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { resolveAuditPath } from "../layout/resolve.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 
@@ -349,7 +349,7 @@ function parseIsoTs(value: unknown): Date | null {
 }
 
 export function readDecisionEvents(projectRoot: string): Record<string, unknown>[] {
-  const path = join(projectRoot, "vbrief", ".audit", "pending-human-decisions.jsonl");
+  const path = resolveAuditPath(projectRoot, "pending-human-decisions.jsonl");
   if (!existsSync(path)) return [];
   const out: Record<string, unknown>[] = [];
   const text = readFileSync(path, "utf8");

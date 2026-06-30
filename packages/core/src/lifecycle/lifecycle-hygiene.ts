@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { computeReport } from "../capacity/show.js";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { resolveCapacityAllocation } from "../policy/capacity.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
@@ -189,14 +190,14 @@ function childRefNames(plan: Record<string, unknown>): string[] {
 
 function iterVbriefs(projectRoot: string): VbriefOnDisk[] {
   const out: VbriefOnDisk[] = [];
-  const vroot = join(resolve(projectRoot), "vbrief");
+  const vroot = resolveLifecycleRoot(projectRoot);
   for (const folder of LIFECYCLE_FOLDERS) {
     const fdir = join(vroot, folder);
     if (!existsSync(fdir)) {
       continue;
     }
     const children = readdirSync(fdir)
-      .filter((name) => name.endsWith(".vbrief.json"))
+      .filter((name) => hasArtifactSuffix(name))
       .sort();
     for (const name of children) {
       const child = join(fdir, name);

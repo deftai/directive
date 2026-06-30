@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { DEFAULT_AUDIT_LOG_REL_PATH } from "./constants.js";
+import { resolve } from "node:path";
+import { resolveEvalPath } from "../../layout/resolve.js";
 import type { AuditEntry } from "./types.js";
 
 /** Resolve audit log path; mirrors candidates_log._resolve_path (framework root). */
@@ -17,7 +17,7 @@ export function resolveAuditLogPath(
       : envRoot.length > 0
         ? resolve(envRoot)
         : process.cwd();
-  return join(root, DEFAULT_AUDIT_LOG_REL_PATH);
+  return resolveEvalPath(root, "candidates.jsonl");
 }
 
 /** Read audit log entries, optionally filtered by repo. */

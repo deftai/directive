@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { detectLifecycleFolder } from "../scope/decomposed-refs.js";
 import { runTransition } from "../scope/transition.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "../scope/vbrief-ref.js";
@@ -59,7 +60,7 @@ function globResolve(pattern: string, projectRoot: string): string[] {
     return [];
   }
   return readdirSync(dir)
-    .filter((name) => name.endsWith(".vbrief.json") || glob === name)
+    .filter((name) => hasArtifactSuffix(name) || glob === name)
     .map((name) => resolve(dir, name))
     .filter((p) => existsSync(p));
 }
@@ -297,7 +298,7 @@ export function sweepCohort(
   projectRoot: string,
   dryRun: boolean,
 ): SweepResult {
-  const vbriefDir = join(projectRoot, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(projectRoot);
   const result: SweepResult = {
     project_root: resolve(projectRoot),
     dry_run: dryRun,
@@ -312,7 +313,7 @@ export function sweepCohort(
     const termDir = join(vbriefDir, term);
     if (existsSync(termDir)) {
       for (const name of readdirSync(termDir)) {
-        if (name.endsWith(".vbrief.json")) {
+        if (hasArtifactSuffix(name)) {
           settled.add(resolve(join(termDir, name)));
         }
       }
@@ -442,7 +443,7 @@ export function completeCohort(args: {
       stderr: `Error: project root does not exist: ${projectRoot}\n`,
     };
   }
-  if (!existsSync(join(projectRoot, "vbrief"))) {
+  if (!existsSync(resolveLifecycleRoot(projectRoot))) {
     return {
       exitCode: 2,
       stdout: "",

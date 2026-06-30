@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { resolveEvalPath, resolveLifecycleFolder } from "../../layout/resolve.js";
 import { auditKey, existingAuditRefs, scanLifecycleRefs } from "./audit.js";
 import {
-  AUDIT_LOG_RELPATH,
   BACKFILL_FOLDERS,
   RECONCILE_ACTOR,
   type ReconcileItem,
@@ -49,14 +49,14 @@ export function findReconcilable(
   options: FindReconcilableOptions = {},
 ): ReconcileItem[] {
   const root = resolve(projectRoot);
-  const auditPath = options.auditLogPath ?? join(root, AUDIT_LOG_RELPATH);
+  const auditPath = options.auditLogPath ?? resolveEvalPath(root, "candidates.jsonl");
   const existing = existingAuditRefs(auditPath);
   const defaultRepo = options.defaultRepo ?? null;
   const items: ReconcileItem[] = [];
   const seen = new Set<string>();
 
   for (const folderName of BACKFILL_FOLDERS) {
-    const folderPath = join(root, "vbrief", folderName);
+    const folderPath = resolveLifecycleFolder(root, folderName);
     for (const [refRepo, number, path] of scanLifecycleRefs(folderPath)) {
       const effectiveRepo = refRepo ?? defaultRepo;
       if (effectiveRepo === null) continue;
@@ -84,7 +84,7 @@ function countSkippedExisting(
   let count = 0;
   const root = resolve(projectRoot);
   for (const folderName of BACKFILL_FOLDERS) {
-    for (const [refRepo, number] of scanLifecycleRefs(join(root, "vbrief", folderName))) {
+    for (const [refRepo, number] of scanLifecycleRefs(resolveLifecycleFolder(root, folderName))) {
       const effectiveRepo = refRepo ?? defaultRepo;
       if (effectiveRepo === null) continue;
       const key = auditKey(effectiveRepo, number);
@@ -106,7 +106,7 @@ function countNoRepo(projectRoot: string, defaultRepo: string | null, auditPath:
   let count = 0;
   const root = resolve(projectRoot);
   for (const folderName of BACKFILL_FOLDERS) {
-    for (const [refRepo, number] of scanLifecycleRefs(join(root, "vbrief", folderName))) {
+    for (const [refRepo, number] of scanLifecycleRefs(resolveLifecycleFolder(root, folderName))) {
       if ((refRepo ?? defaultRepo) === null && !existingNumbers.has(number)) count += 1;
     }
   }
@@ -148,7 +148,7 @@ export function reconcile(projectRoot: string, options: ReconcileOptions = {}): 
   if (defaultRepo === null) {
     defaultRepo = inferRepoFromGit(root);
   }
-  const auditPath = options.auditLogPath ?? join(root, AUDIT_LOG_RELPATH);
+  const auditPath = options.auditLogPath ?? resolveEvalPath(root, "candidates.jsonl");
   const dryRun = options.dryRun ?? false;
 
   const result: ReconcileResult = {

@@ -11,14 +11,15 @@ import {
   reconcile,
   scanVbriefDir,
 } from "../intake/reconcile-issues.js";
+import { resolveLifecycleFolder, resolveLifecycleRoot } from "../layout/resolve.js";
 import { renderRoadmap } from "../render/roadmap-render.js";
 import type { ReleaseSeams } from "./types.js";
 
 const BUILD_DIST_RUNNER = join(dirname(fileURLToPath(import.meta.url)), "build-dist-runner.js");
 
 export function refreshRoadmapNative(projectRoot: string): [boolean, string] {
-  const pending = join(projectRoot, "vbrief", "pending");
-  const completed = join(projectRoot, "vbrief", "completed");
+  const pending = resolveLifecycleFolder(projectRoot, "pending");
+  const completed = resolveLifecycleFolder(projectRoot, "completed");
   const roadmap = join(projectRoot, "ROADMAP.md");
   const [ok, msg] = renderRoadmap(pending, roadmap, completed);
   if (!ok) {
@@ -31,7 +32,7 @@ export function checkVbriefLifecycleSyncNative(
   projectRoot: string,
   repo: string,
 ): [boolean, number, string] {
-  const vbriefDir = join(projectRoot, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(projectRoot);
   try {
     const issueToVbriefs = scanVbriefDir(vbriefDir);
     const issueStateMap = fetchIssueStates(repo, new Set(issueToVbriefs.keys()), {

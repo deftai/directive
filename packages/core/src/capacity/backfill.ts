@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { sortedStringifyCompact } from "../codebase/json.js";
+import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import {
   classifyBucket,
   loadBucketMatchers,
@@ -257,7 +258,7 @@ export async function backfill(
     return result;
   }
 
-  const completedDir = join(resolve(projectRoot), "vbrief", COMPLETED_FOLDER);
+  const completedDir = resolveLifecycleFolder(projectRoot, COMPLETED_FOLDER);
   if (!existsSync(completedDir)) {
     return result;
   }
@@ -265,7 +266,7 @@ export async function backfill(
   let paths: string[];
   try {
     paths = readdirSync(completedDir)
-      .filter((name) => name.endsWith(".vbrief.json"))
+      .filter((name) => hasArtifactSuffix(name))
       .sort();
   } catch {
     return result;

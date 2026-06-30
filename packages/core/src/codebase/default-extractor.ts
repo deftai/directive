@@ -9,6 +9,7 @@ import {
   statSync,
 } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { extractCodeStructure, loadJsonFile } from "../verify-source/code-structure-validate.js";
 import { sortedStringifyPretty } from "./json.js";
 import {
@@ -122,7 +123,7 @@ function sourcePathRel(projectRoot: string, sourcePath: string): string | null {
 
 /** Return the authored codeStructure source path used by the default extractor. */
 export function defaultCodeStructurePath(projectRoot: string, codeStructurePath?: string): string {
-  return codeStructurePath ?? join(projectRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+  return codeStructurePath ?? resolveProjectDefinitionPath(projectRoot);
 }
 
 function stableId(value: string): string {

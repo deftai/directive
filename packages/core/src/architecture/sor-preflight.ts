@@ -16,6 +16,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, join, resolve } from "node:path";
+import { hasArtifactSuffix, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
 
 // ---------------------------------------------------------------------------
 // Classification constants
@@ -820,13 +821,14 @@ function changedStoryRecords(
 ): [Array<[string, JsonObj, JsonObj]>, GateResult | null] {
   const records: Array<[string, JsonObj, JsonObj]> = [];
   for (const rel of changedPaths) {
-    if (!rel.endsWith(".vbrief.json")) continue;
-    if (
-      !rel.startsWith("vbrief/active/") &&
-      !rel.startsWith("vbrief/pending/") &&
-      !rel.startsWith("vbrief/proposed/")
-    )
-      continue;
+    if (!hasArtifactSuffix(rel)) continue;
+    const inStoryFolder = LIFECYCLE_DIR_NAMES.some(
+      (dir) =>
+        rel.startsWith(`${dir}/active/`) ||
+        rel.startsWith(`${dir}/pending/`) ||
+        rel.startsWith(`${dir}/proposed/`),
+    );
+    if (!inStoryFolder) continue;
     const path = join(resolve(projectRoot), rel);
     const [payload, error] = loadJsonFile(path);
     if (error !== null) return [[], error];
