@@ -8,7 +8,7 @@
   "plan": {
     "id": "1650-category-b-namespacing",
     "title": "Category B corpus namespacing and conformance allow-list removal",
-    "status": "proposed",
+    "status": "running",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Migrate the existing vBRIEF corpus so non-core directive keys move under the x-xbrief/ extension namespace, then delete the temporary conformance allow-list once the corpus is clean. This is a corpus-wide scripted migration over hundreds of artifacts, so it is marked sequential and run solo as one operation.",
@@ -84,6 +84,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
       }
-    ]
+    ],
+    "updated": "2026-06-30T17:02:46Z"
   }
 }
