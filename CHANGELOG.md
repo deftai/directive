@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **reconcile:issues lifecycle fix rewrites child planRefs (#1667).** When `applyLifecycleFixes` moves a closed-issue parent vBRIEF to `completed/` or `cancelled/`, child story vBRIEFs now get their `planRef` and item-level back-links updated so `vbrief:validate` D4 checks no longer fail on stale `proposed/` paths. Closes #1667.
+
 - **Triage summary excludes closed cached issues (#1705).** Session-start `computeSummary` no longer counts closed github-issue cache entries toward untriaged or in-flight cache-scoped totals, so accepted-then-closed issues stop inflating the triage one-liner. Closes #1705.
 
 - **Git hooks resolve local deft CLI when not on PATH (#2067).** Pre-commit and pre-push now fall back to `node packages/cli/dist/bin.js` in the maintainer monorepo (and any repo with a built local CLI) instead of aborting when global `deft` is missing. Closes #2067.
