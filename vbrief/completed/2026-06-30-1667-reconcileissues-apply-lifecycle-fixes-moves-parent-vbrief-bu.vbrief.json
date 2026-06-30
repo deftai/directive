@@ -6,7 +6,7 @@
   "plan": {
     "id": "1667-reconcile-planref",
     "title": "reconcile:issues lifecycle fix rewrites child planRefs when parent moves",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`applyLifecycleFixes` in packages/core/src/intake/reconcile-issues.ts moves closed-issue vBRIEFs to completed/ but leaves child story vBRIEFs pointing at the old proposed/ path in planRef/items[].planRef. D4 validation then fails and blocks release.",
       "ImplementationPlan": "1. After moving a parent/epic vBRIEF in applyLifecycleFixes, scan vbrief/ for children referencing the old relative path and rewrite planRef to the new completed/ (or cancelled/) path.\n2. Update propagateItemStatus or add rewriteChildPlanRefs helper; cover epic items[] back-links.\n3. Add regression tests in packages/core/src/intake/intake-cli-and-branches.test.ts or reconcile-issues dedicated test.\n4. CHANGELOG entry. Closes #1667.",
@@ -33,10 +33,15 @@
         }
       }
     ],
-    "tags": ["bug", "triage"],
+    "tags": [
+      "bug",
+      "triage"
+    ],
     "metadata": {
       "kind": "story",
-      "x-tracking": { "parent_issue": "#1667" },
+      "x-tracking": {
+        "parent_issue": "#1667"
+      },
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
@@ -49,7 +54,11 @@
           "pnpm -w exec vitest run packages/core/src/intake/intake-cli-and-branches.test.ts",
           "pnpm -w run build"
         ],
-        "expected_outputs": ["planRef rewrite on parent move", "Regression test", "CHANGELOG"],
+        "expected_outputs": [
+          "planRef rewrite on parent move",
+          "Regression test",
+          "CHANGELOG"
+        ],
         "depends_on": [],
         "conflict_group": "bug-cohort-reconcile",
         "size": "medium",
@@ -57,8 +66,15 @@
         "model_tier": "strong",
         "missing_traces_justification": "Release blocker from issue #1667."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-30T00:19:10Z"
     },
-    "references": [{ "type": "github-issue", "uri": "https://github.com/deftai/directive/issues/1667" }]
+    "references": [
+      {
+        "type": "github-issue",
+        "uri": "https://github.com/deftai/directive/issues/1667"
+      }
+    ],
+    "updated": "2026-06-30T00:19:10Z"
   }
 }

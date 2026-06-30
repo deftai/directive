@@ -6,7 +6,7 @@
   "plan": {
     "id": "1705-summary-closed-filter",
     "title": "Triage summary counts exclude closed upstream issues",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "computeSummary in packages/core/src/triage/summary/index.ts classifies every cached github-issue by audit decision alone. Closed issues with accept still inflate in_flight_cache_scoped; closed issues with no decision still count as untriaged.",
       "ImplementationPlan": "1. When iterating cached issues in computeSummary, read raw.json state (or equivalent cache payload) and skip closed issues from untriaged / in_flight_cache_scoped / stale_defer counts.\n2. Optionally expose closed-issue skip in iterCachedIssues or a filter helper; keep reconcilable logic consistent.\n3. Add regression tests in packages/core/src/triage/summary/index.test.ts with closed+accepted and closed+untriaged fixtures.\n4. CHANGELOG entry. Closes #1705.",
@@ -33,10 +33,15 @@
         }
       }
     ],
-    "tags": ["bug", "triage"],
+    "tags": [
+      "bug",
+      "triage"
+    ],
     "metadata": {
       "kind": "story",
-      "x-tracking": { "parent_issue": "#1705" },
+      "x-tracking": {
+        "parent_issue": "#1705"
+      },
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
@@ -49,7 +54,11 @@
           "pnpm -w exec vitest run packages/core/src/triage/summary/index.test.ts",
           "pnpm -w run build"
         ],
-        "expected_outputs": ["Closed-issue filter in computeSummary", "Regression tests", "CHANGELOG"],
+        "expected_outputs": [
+          "Closed-issue filter in computeSummary",
+          "Regression tests",
+          "CHANGELOG"
+        ],
         "depends_on": [],
         "conflict_group": "bug-cohort-summary",
         "size": "medium",
@@ -57,8 +66,15 @@
         "model_tier": "strong",
         "missing_traces_justification": "Summary lie from issue #1705 evidence."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-30T00:27:48Z"
     },
-    "references": [{ "type": "github-issue", "uri": "https://github.com/deftai/directive/issues/1705" }]
+    "references": [
+      {
+        "type": "github-issue",
+        "uri": "https://github.com/deftai/directive/issues/1705"
+      }
+    ],
+    "updated": "2026-06-30T00:27:48Z"
   }
 }
