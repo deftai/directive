@@ -13,6 +13,11 @@ export interface ExtensionEntry {
   readonly value: unknown;
 }
 
+export interface ExtensionRoundtripFinding {
+  readonly path: string;
+  readonly message: string;
+}
+
 /** Thrown when `reEmitVbriefArtifact` rejects an artifact that fails schema validation. */
 export class VbriefSchemaValidationError extends Error {
   constructor(
