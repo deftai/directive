@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { parseDoctorFlags } from "@deftai/directive-core/dist/doctor/flags.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 import { renderPrecutoverLine } from "@deftai/directive-core/dist/vbrief-validate/precutover.js";
+import { renderXbriefMigrationLine } from "@deftai/directive-core/xbrief-migrate";
 
 export function run(argv: string[]): number {
   // #2022: surface pre-cutover (pre-v0.20 document model) migration state alongside the
@@ -13,6 +14,7 @@ export function run(argv: string[]): number {
   if (!flags.json && !flags.help && flags.unknown.length === 0) {
     const projectRoot = flags.projectRoot ?? process.cwd();
     process.stdout.write(`${renderPrecutoverLine(projectRoot)}\n`);
+    process.stdout.write(`${renderXbriefMigrationLine(projectRoot)}\n`);
   }
   return cmdDoctor(argv);
 }

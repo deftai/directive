@@ -14,6 +14,13 @@ import {
   detectPreCutoverLegacy,
   frozenPreCutoverMigrationGuidance,
 } from "../vbrief-validate/precutover.js";
+import {
+  detectLegacyVbriefLayout,
+  emitXbriefMigration,
+  isPatchOnlyUpgrade,
+  renderXbriefMigrationLine,
+  runXbriefMigration,
+} from "../xbrief-migrate/index.js";
 
 const ENGINE_PACKAGE_FALLBACK = "0.0.0";
 
@@ -82,6 +89,8 @@ function readManagedByAt(installRoot: string): string | null {
 export interface InstallUpgradeArgs {
   readonly projectRoot: string;
   readonly frameworkRoot: string;
+  readonly migrate?: boolean;
+  readonly force?: boolean;
 }
 
 export interface InstallUpgradeIo {
@@ -202,6 +211,43 @@ function runAgentsRefresh(
   return 0;
 }
 
+function handleLegacyXbriefLayout(
+  args: InstallUpgradeArgs,
+  io: InstallUpgradeIo,
+  recorded: string | null,
+  normalizedVersion: string,
+): number {
+  const detection = detectLegacyVbriefLayout(args.projectRoot);
+  if (!detection.legacyLayout) {
+    return 0;
+  }
+
+  io.writeOut(`${renderXbriefMigrationLine(args.projectRoot)}\n`);
+
+  const patchInert = isPatchOnlyUpgrade(recorded, normalizedVersion);
+  if (!args.migrate || patchInert) {
+    return 0;
+  }
+
+  const outcome = runXbriefMigration(
+    {
+      projectRoot: args.projectRoot,
+      frameworkRoot: args.frameworkRoot,
+      force: args.force,
+    },
+    io,
+  );
+  const code = emitXbriefMigration(outcome, io, { projectRoot: args.projectRoot });
+  if (code !== 0 || outcome.kind !== "migrated") {
+    return code;
+  }
+  return runAgentsRefresh(
+    args.projectRoot,
+    resolveInstallRoot(args.projectRoot) ?? args.frameworkRoot,
+    io,
+  );
+}
+
 /** Port of ``run upgrade`` / ``task install:upgrade`` for the consumer task surface (#1061 / #2022). */
 export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo): number {
   const projectRoot = resolve(args.projectRoot);
@@ -220,7 +266,9 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
   const recorded = readVersionMarker(projectRoot);
   if (recorded === normalizedVersion) {
     io.writeOut(`Project already at ${normalizedVersion}. Nothing to do.\n`);
-    return runAgentsRefresh(projectRoot, agentsRoot, io);
+    const refreshCode = runAgentsRefresh(projectRoot, agentsRoot, io);
+    const xbriefCode = handleLegacyXbriefLayout(args, io, recorded, normalizedVersion);
+    return xbriefCode !== 0 ? xbriefCode : refreshCode;
   }
 
   const legacy = detectPreCutoverLegacy(projectRoot);
@@ -259,5 +307,7 @@ export function runInstallUpgrade(args: InstallUpgradeArgs, io: InstallUpgradeIo
     `If legacy SPECIFICATION.md or PROJECT.md content remains, see UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).\n`,
   );
 
-  return runAgentsRefresh(projectRoot, agentsRoot, io);
+  const refreshCode = runAgentsRefresh(projectRoot, agentsRoot, io);
+  const xbriefCode = handleLegacyXbriefLayout(args, io, recorded, normalizedVersion);
+  return xbriefCode !== 0 ? xbriefCode : refreshCode;
 }

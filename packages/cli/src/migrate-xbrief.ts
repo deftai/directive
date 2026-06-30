@@ -1,27 +1,23 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runInstallUpgrade } from "@deftai/directive-core/install-upgrade";
+import { runXbriefMigrationCli } from "@deftai/directive-core/xbrief-migrate";
 
-export interface ParsedInstallUpgradeArgs {
+export interface ParsedMigrateXbriefArgs {
   projectRoot: string;
   frameworkRoot: string;
-  migrate: boolean;
   force: boolean;
   error?: string;
 }
 
-export function parseArgs(argv: readonly string[]): ParsedInstallUpgradeArgs {
+export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
   let projectRoot = ".";
   let frameworkRoot = resolve(import.meta.dirname, "..", "..", "..");
-  let migrate = false;
   let force = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
-    if (arg === "--migrate") {
-      migrate = true;
-    } else if (arg === "--force") {
+    if (arg === "--force") {
       force = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
@@ -29,7 +25,6 @@ export function parseArgs(argv: readonly string[]): ParsedInstallUpgradeArgs {
         return {
           projectRoot,
           frameworkRoot,
-          migrate,
           force,
           error: "argument --project-root: expected one argument",
         };
@@ -44,7 +39,6 @@ export function parseArgs(argv: readonly string[]): ParsedInstallUpgradeArgs {
         return {
           projectRoot,
           frameworkRoot,
-          migrate,
           force,
           error: "argument --framework-root: expected one argument",
         };
@@ -54,7 +48,7 @@ export function parseArgs(argv: readonly string[]): ParsedInstallUpgradeArgs {
     } else if (arg.startsWith("--framework-root=")) {
       frameworkRoot = arg.slice("--framework-root=".length);
     } else {
-      return { projectRoot, frameworkRoot, migrate, force, error: `unrecognized argument: ${arg}` };
+      return { projectRoot, frameworkRoot, force, error: `unrecognized argument: ${arg}` };
     }
   }
 
@@ -62,21 +56,20 @@ export function parseArgs(argv: readonly string[]): ParsedInstallUpgradeArgs {
     frameworkRoot = process.env.DEFT_ROOT;
   }
 
-  return { projectRoot, frameworkRoot, migrate, force };
+  return { projectRoot, frameworkRoot, force };
 }
 
 export function run(argv: readonly string[]): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
-    process.stderr.write(`install-upgrade: ${args.error}\n`);
+    process.stderr.write(`migrate:xbrief: ${args.error}\n`);
     return 2;
   }
 
-  return runInstallUpgrade(
+  return runXbriefMigrationCli(
     {
       projectRoot: args.projectRoot,
       frameworkRoot: args.frameworkRoot,
-      migrate: args.migrate,
       force: args.force,
     },
     {

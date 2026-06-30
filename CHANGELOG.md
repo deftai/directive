@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Consumer xbrief migration surface (#2110).** `deft migrate:xbrief` converts a legacy `vbrief/` tree to `xbrief/` with v0.6→v0.8 semantic transforms behind a clean-working-tree gate (`--force` to override). `deft doctor` signposts unmigrated layouts, and `deft update` signposts by default with opt-in `--migrate` on non-patch upgrades — patch releases stay migration-inert per #2034. Refs #2034. Closes #2110.
+
 - **Extension round-trip conformance fixtures and gate (#715).** Packaged conformance fixtures exercise `x-<consumer>/` keys at document, plan, item, and nested value levels; the vBRIEF validator now proves those keys survive load→re-emit with JSON-structural equality and fails the conformance gate when a key is dropped or mutated. Refs #2034. Closes #715.
 
 - **xBRIEF v0.6→v0.8 semantic transforms and legacy-layout detection (#2108).** The core engine now ships a tested migration primitive that rewrites in-document v0.6 artifacts to v0.8 (info block, reference prefixes, embedded paths) idempotently, detects legacy `vbrief/` layouts, and enforces the locked safety rules that block v0.8-only feature emission into unmigrated files and prevent split `vbrief/` + `xbrief/` trees. Refs #2034. Closes #2108.

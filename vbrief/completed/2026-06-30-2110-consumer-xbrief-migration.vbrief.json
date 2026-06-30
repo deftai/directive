@@ -8,7 +8,7 @@
   "plan": {
     "id": "2110-consumer-xbrief-migration",
     "title": "Consumer migration surface: migrate:xbrief verb, update trigger, doctor signpost",
-    "status": "running",
+    "status": "completed",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Ship the consumer-facing detect, signpost, and mutate triad for the xbrief rename. This story is independently buildable on top of the migration module: it wires a new CLI verb, a doctor signpost line, and the update-trigger behavior without changing the transform internals.",
@@ -70,7 +70,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-30T16:14:05Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -84,6 +86,6 @@
         "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
       }
     ],
-    "updated": "2026-06-30T16:06:36Z"
+    "updated": "2026-06-30T16:14:05Z"
   }
 }

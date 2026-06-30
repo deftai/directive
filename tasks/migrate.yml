@@ -25,3 +25,11 @@ tasks:
       - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-preflight --project-root "{{.USER_WORKING_DIR}}" --deft-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}
+
+  xbrief:
+    desc: "Migrate consumer vbrief/ layout to xbrief/ with semantic v0.6->v0.8 transforms (#2110 / #2034)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-xbrief --project-root "{{.USER_WORKING_DIR}}" --framework-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}

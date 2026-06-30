@@ -107,13 +107,24 @@ describe("doctor CLI", () => {
 
   it("reports a clean non-pre-cutover state for a current-layout project fixture", () => {
     const root = makeRoot("doctor-current-");
-    makeLifecycleDirs(root);
+    for (const folder of LIFECYCLE_FOLDERS) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "fixture" },
+        plan: { title: "Current", status: "running", items: [] },
+      }),
+      "utf8",
+    );
     const out = captureStdout(() => {
       run(["--project-root", root]);
     });
     expect(out).toContain("Pre-cutover: none");
     expect(out).toContain("current vBRIEF document model");
     expect(out).not.toContain("migration needed");
+    expect(out).toContain("xBrief migration: none");
   });
 
   it("flags a pre-cutover PROJECT.md and missing lifecycle folders", () => {
@@ -158,5 +169,23 @@ describe("doctor CLI", () => {
       run(["--project-root", root]);
     });
     expect(out).toContain("Pre-cutover: none");
+  });
+
+  it("flags legacy vbrief layout with migrate:xbrief guidance (#2110)", () => {
+    const root = makeRoot("doctor-xbrief-legacy-");
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "active", "story.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6", description: "fixture" },
+        plan: { title: "Legacy", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+    const out = captureStdout(() => {
+      run(["--project-root", root]);
+    });
+    expect(out).toContain("xBrief migration: legacy vbrief layout detected");
+    expect(out).toContain("migrate:xbrief");
   });
 });
