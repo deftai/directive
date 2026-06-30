@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **verify:cache-fresh --for-issue reads canonical audit fields (#1887).** The cache-fresh gate now resolves per-issue triage decisions via the shared candidates audit-log reader (`issue_number` / `timestamp`), so a valid `triage:accept` no longer false-fails with "no triage decision" during the pre-dispatch gate stack. Closes #1887.
 
+- **`task triage:reset` and related colon verbs reach triage-actions (#1888).** `deft triage:reset`, `deft triage:needs-ac`, and the other documented triage colon aliases now register in the CLI dispatcher and pass the correct subcommand to triage-actions instead of failing with unknown verb. Closes #1888.
+
 - **D2 triage summary suppression includes discrepancy fields (#1279).** Session-start triage one-liner re-emits within the 4-hour D2 window when the `[triage:scope]` discrepancy line appears or resolves, because the suppression key now includes `in_flight_filesystem`, `in_flight_cache_scoped`, and `triage_scope_configured`. Existing operators may see one extra emission after upgrade as the hash key changes. Closes #1279.
 
 - **Content-standards scans skip `.deft-scratch` worktrees (#1656).** Markdown scanners no longer treat stale swarm worktrees under `.deft-scratch/` as framework docs, so leftover worktrees do not cause false `task check` failures during release CI. Closes #1656.
