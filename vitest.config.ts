@@ -60,6 +60,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/init-deposit": sub("core", "init-deposit"),
   "@deftai/directive-core/migrate-preflight": sub("core", "migrate-preflight"),
   "@deftai/directive-core/xbrief-migrate": sub("core", "xbrief-migrate"),
+  "@deftai/directive-core/category-b-namespace": sub("core", "category-b-namespace"),
   "@deftai/directive-core/install-upgrade": sub("core", "install-upgrade"),
   "@deftai/directive-core/check-updates": sub("core", "check-updates"),
   "@deftai/directive-core/umbrella-current-shape": sub("core", "umbrella-current-shape"),

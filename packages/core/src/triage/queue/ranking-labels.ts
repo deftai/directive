@@ -1,3 +1,4 @@
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { DEFAULT_TRIAGE_RANKING_LABELS, PROJECT_DEFINITION_REL_PATH } from "./constants.js";
 import { loadProjectDefinition } from "./project.js";
 
@@ -11,7 +12,7 @@ export function resolveRankingLabels(projectRoot: string): readonly string[] {
   if (typeof plan !== "object" || plan === null) {
     return [...DEFAULT_TRIAGE_RANKING_LABELS];
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null) {
     return [...DEFAULT_TRIAGE_RANKING_LABELS];
   }

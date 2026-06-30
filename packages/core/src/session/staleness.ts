@@ -1,3 +1,4 @@
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 
 export interface SessionRitualStalenessResult {
@@ -62,7 +63,7 @@ export function resolveSessionRitualStalenessHours(
       error: "PROJECT-DEFINITION 'plan' is not an object",
     };
   }
-  const policyBlock = (plan as Record<string, unknown>).policy;
+  const policyBlock = readPlanPolicy(plan);
   if (
     typeof policyBlock !== "object" ||
     policyBlock === null ||

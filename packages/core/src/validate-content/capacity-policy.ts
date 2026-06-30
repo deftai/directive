@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 
 export const DEFAULT_CAPACITY_UNIT = "vbrief-count";
@@ -233,7 +234,7 @@ export function resolveCapacityAllocation(projectRoot: string): CapacityAllocati
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return defaultCapacityAllocation("default");
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return defaultCapacityAllocation("default");
   }
@@ -301,7 +302,7 @@ export function resolveAutonomy(projectRoot: string): AutonomyPolicy {
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return defaultAutonomyPolicy("default");
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return defaultAutonomyPolicy("default");
   }

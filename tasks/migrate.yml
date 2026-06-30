@@ -33,3 +33,11 @@ tasks:
       - _ts-build
     cmds:
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-xbrief --project-root "{{.USER_WORKING_DIR}}" --framework-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}
+
+  category-b:
+    desc: "Namespace Category B bare plan keys (policy / completedNote) under x-directive/ across the corpus (#1650 / #2034)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-category-b --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

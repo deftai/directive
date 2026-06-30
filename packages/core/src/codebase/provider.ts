@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadJsonFile } from "../verify-source/code-structure-validate.js";
 import { CODEBASE_MAP_SCHEMA_PATH } from "./constants.js";
 import {
@@ -354,7 +355,7 @@ export function loadProviderArtifactPolicy(
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return providerArtifactPolicyEmpty();
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return providerArtifactPolicyEmpty();
   }

@@ -31,7 +31,7 @@
         "title": "Pre-PR RWLDL hygiene loop on the trimmed PR #401 branch (Read-Write-Lint-Diff until clean)",
         "status": "completed",
         "narrative": {
-          "Action": "Run skills/deft-directive-pre-pr/SKILL.md end-to-end on the trim branch before pushing. Special attention to the AGENTS.md PS rule (Phase 1 Read): when the [AXIOM] block adds `!`/`\u2297` rules, scan main.md for any softer-strength `~`/`\u2249`/prose that softens prose-as-default-encoding before committing. Resolve all contradictions in the same commit per the pre-PR skill's RFC2119 contradiction rule.",
+          "Action": "Run skills/deft-directive-pre-pr/SKILL.md end-to-end on the trim branch before pushing. Special attention to the AGENTS.md PS rule (Phase 1 Read): when the [AXIOM] block adds `!`/`⊗` rules, scan main.md for any softer-strength `~`/`≉`/prose that softens prose-as-default-encoding before committing. Resolve all contradictions in the same commit per the pre-PR skill's RFC2119 contradiction rule.",
           "Acceptance": "Loop exits with zero changes on a full Read-Write-Lint-Diff cycle; final `task check` passes (validate + lint + test + toolchain:check + verify:stubs + verify:links + vbrief:validate); CHANGELOG.md carries an `[Unreleased]` entry covering the trim + [AXIOM] addition."
         }
       },
@@ -89,6 +89,6 @@
       }
     ],
     "updated": "2026-04-30T17:42:12Z",
-    "completedNote": "PR #401 merged 2026-04-28T01:31:25Z with `Refs #642` per the canonical workflow (not `Closes`). Issue #642 remains intentionally OPEN as the umbrella anchor for the four #635 split children (events-detection-bound, events-behavioral, rule-ownership-map, Phase 0 RFC) until they themselves land. The brief moves to completed/ because the trim-execution items (this brief's defined scope) are done; the umbrella role of #642 is tracked by the children's references and the GitHub issue's open state, not by keeping this brief in active/."
+    "x-directive/completedNote": "PR #401 merged 2026-04-28T01:31:25Z with `Refs #642` per the canonical workflow (not `Closes`). Issue #642 remains intentionally OPEN as the umbrella anchor for the four #635 split children (events-detection-bound, events-behavioral, rule-ownership-map, Phase 0 RFC) until they themselves land. The brief moves to completed/ because the trim-execution items (this brief's defined scope) are done; the umbrella role of #642 is tracked by the children's references and the GitHub issue's open state, not by keeping this brief in active/."
   }
 }

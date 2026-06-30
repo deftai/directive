@@ -1,3 +1,4 @@
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import {
   REFERENCED_BY_VBRIEF_SCOPES,
   SLICED_FROM_SCOPES,
@@ -308,10 +309,7 @@ function pointerForError(err: string, rawList: unknown[]): string {
 
 export function validateTriageScopeOnPlan(plan: unknown, filepath: string): string[] {
   const out: string[] = [];
-  const policy =
-    typeof plan === "object" && plan !== null && !Array.isArray(plan)
-      ? (plan as Record<string, unknown>).policy
-      : undefined;
+  const policy = readPlanPolicy(plan);
   const rawScope =
     typeof policy === "object" && policy !== null && !Array.isArray(policy)
       ? (policy as Record<string, unknown>).triageScope
@@ -326,10 +324,7 @@ export function validateTriageScopeOnPlan(plan: unknown, filepath: string): stri
 
 export function validateTriageScopeIgnoresOnPlan(plan: unknown, filepath: string): string[] {
   const out: string[] = [];
-  const policy =
-    typeof plan === "object" && plan !== null && !Array.isArray(plan)
-      ? (plan as Record<string, unknown>).policy
-      : undefined;
+  const policy = readPlanPolicy(plan);
   const raw =
     typeof policy === "object" && policy !== null && !Array.isArray(policy)
       ? (policy as Record<string, unknown>).triageScopeIgnores

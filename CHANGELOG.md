@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Directive policy/completedNote keys are now namespaced (#1650).** The two directive-owned plan keys are stored under the `x-directive/` extension prefix (`plan.policy` → `plan["x-directive/policy"]`, `plan.completedNote` → `plan["x-directive/completedNote"]`), and the conformance gate no longer grandfathers their bare forms — any future bare `plan.policy`/`plan.completedNote` now fails conformance. Engine readers tolerate the legacy bare form so unmigrated consumer project definitions keep working; run `deft migrate:category-b` to namespace an existing corpus. User-facing field names (e.g. `plan.policy.wipCap`) are unchanged. Refs #2034. Closes #1650.
+
 - **xBRIEF v0.8 schema adoption (#2107).** The directive validator now accepts xBRIEF v0.8 documents alongside legacy v0.6 artifacts. New optional structural fields in v0.8 are validated when present; existing v0.6 files continue to pass unchanged. Refs #2034. Closes #2107.
 
 ### Fixed

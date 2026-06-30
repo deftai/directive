@@ -769,7 +769,7 @@ describe("native policy-set handler (#2022)", () => {
       throw new Error("PROJECT-DEFINITION did not parse to an object");
     }
     const plan = (parsed as Record<string, unknown>).plan as Record<string, unknown> | undefined;
-    return (plan?.policy ?? {}) as Record<string, unknown>;
+    return (plan?.["x-directive/policy"] ?? plan?.policy ?? {}) as Record<string, unknown>;
   }
 
   beforeEach(() => {

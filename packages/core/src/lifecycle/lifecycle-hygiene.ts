@@ -9,6 +9,7 @@ import {
 import { basename, join, resolve } from "node:path";
 import { computeReport } from "../capacity/show.js";
 import { resolveCapacityAllocation } from "../policy/capacity.js";
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 
 /** Default dormancy (days) past which a partially-completed epic is stranded. */
@@ -93,7 +94,7 @@ export function resolveEpicThresholds(projectRoot: string): EpicThresholds {
   if (data !== null && typeof data === "object") {
     const plan = data.plan;
     if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
-      const pol = (plan as Record<string, unknown>).policy;
+      const pol = readPlanPolicy(plan);
       if (typeof pol === "object" && pol !== null && !Array.isArray(pol)) {
         const cap = (pol as Record<string, unknown>).capacityAllocation;
         if (typeof cap === "object" && cap !== null && !Array.isArray(cap)) {

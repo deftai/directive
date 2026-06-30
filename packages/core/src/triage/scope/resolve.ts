@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { DEFAULT_TRIAGE_SCOPE, PROJECT_DEFINITION_REL_PATH } from "./constants.js";
 
 export function projectDefinitionPath(projectRoot: string): string {
@@ -23,7 +24,7 @@ export function isDefaultApplied(data: Record<string, unknown> | null): boolean 
   if (data === null) return true;
   const plan = data.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return true;
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) return true;
   const scope = (policy as Record<string, unknown>).triageScope;
   return !Array.isArray(scope) || scope.length === 0;
@@ -33,7 +34,7 @@ export function getRawScope(data: Record<string, unknown> | null): unknown {
   if (data === null) return undefined;
   const plan = data.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return undefined;
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) return undefined;
   return (policy as Record<string, unknown>).triageScope;
 }
@@ -42,7 +43,7 @@ export function getRawIgnores(data: Record<string, unknown> | null): Record<stri
   if (data === null) return [];
   const plan = data.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return [];
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) return [];
   const raw = (policy as Record<string, unknown>).triageScopeIgnores;
   return Array.isArray(raw)
@@ -67,7 +68,7 @@ export function resolveScopeRules(
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return DEFAULT_TRIAGE_SCOPE.map((r) => ({ ...r }));
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return DEFAULT_TRIAGE_SCOPE.map((r) => ({ ...r }));
   }
@@ -104,7 +105,7 @@ export function resolveScopeIgnores(
   if (data === null) return out;
   const plan = data.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return out;
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) return out;
   const raw = (policy as Record<string, unknown>).triageScopeIgnores;
   if (!Array.isArray(raw)) return out;

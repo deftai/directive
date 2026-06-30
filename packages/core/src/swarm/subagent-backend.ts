@@ -12,6 +12,7 @@
  * @see {@link https://github.com/deftai/directive/issues/1860} Hard deletion tracking
  */
 
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 import { LEAF_CODING_WORKER_ROLE, SUBAGENT_BACKEND_SET_CMD } from "./constants.js";
 
@@ -92,11 +93,7 @@ export function probeSubagentBackends(
 }
 
 function getPolicyBlock(data: Record<string, unknown>): Record<string, unknown> {
-  const plan = data.plan;
-  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-    return {};
-  }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(data.plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return {};
   }

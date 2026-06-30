@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
+import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 
 /** Filesystem-relative location of the project-definition vBRIEF. */
 export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
@@ -124,7 +125,7 @@ export function resolvePolicy(projectRoot: string): PolicyResult {
   }
 
   const planObj = plan as Record<string, unknown>;
-  const policyBlock = planObj.policy;
+  const policyBlock = readPlanPolicy(planObj);
   if (
     typeof policyBlock === "object" &&
     policyBlock !== null &&
@@ -223,14 +224,20 @@ export function setPolicy(
     }
   }
   const plan = data.plan as Record<string, unknown>;
-  if (typeof plan.policy !== "object" || plan.policy === null || Array.isArray(plan.policy)) {
-    if (plan.policy === undefined) {
-      plan.policy = {};
+  migrateLegacyPolicyKey(plan);
+  const existingPolicy = plan[PLAN_POLICY_KEY];
+  if (
+    typeof existingPolicy !== "object" ||
+    existingPolicy === null ||
+    Array.isArray(existingPolicy)
+  ) {
+    if (existingPolicy === undefined) {
+      plan[PLAN_POLICY_KEY] = {};
     } else {
       throw new Error("plan.policy is not an object");
     }
   }
-  const policyBlock = plan.policy as Record<string, unknown>;
+  const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
 
   const previous = policyBlock.allowDirectCommitsToMaster;
   policyBlock.allowDirectCommitsToMaster = Boolean(allowDirectCommits);

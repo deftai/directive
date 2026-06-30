@@ -16,7 +16,7 @@ const projectDefinition = loadJson("vbrief/PROJECT-DEFINITION.vbrief.json") as R
   string,
   unknown
 >;
-const policy = (projectDefinition.plan as Record<string, unknown>).policy as Record<
+const policy = (projectDefinition.plan as Record<string, unknown>)["x-directive/policy"] as Record<
   string,
   unknown
 >;

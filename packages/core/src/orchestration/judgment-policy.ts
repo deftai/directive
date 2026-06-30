@@ -1,6 +1,7 @@
 /**
  * Judgment-gate policy resolution (#1419). Port of scripts/policy.py judgment-gate section.
  */
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 
 export const GATE_CLASSES = new Set(["mechanical", "declared"]);
@@ -217,12 +218,9 @@ function defaultPolicy(source: string, error: string | null = null): JudgmentGat
 }
 
 function getPolicyBlock(data: Record<string, unknown>): Record<string, unknown> {
-  const plan = data.plan;
-  if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
-    const policy = (plan as Record<string, unknown>).policy;
-    if (typeof policy === "object" && policy !== null && !Array.isArray(policy)) {
-      return policy as Record<string, unknown>;
-    }
+  const policy = readPlanPolicy(data.plan);
+  if (typeof policy === "object" && policy !== null && !Array.isArray(policy)) {
+    return policy as Record<string, unknown>;
   }
   return {};
 }

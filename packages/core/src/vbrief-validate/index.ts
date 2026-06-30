@@ -4,7 +4,6 @@ export type {
   ConformanceMode,
 } from "./conformance.js";
 export {
-  ALLOW_LIST,
   DOC_CORE,
   evaluateConformance,
   ITEM_CORE,

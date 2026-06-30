@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage/actions/candidates-log.js";
 
 // ---------------------------------------------------------------------------
@@ -218,7 +219,7 @@ function loadScopeRules(projectRoot: string): ScopeRule[] | null {
     if (data === null || typeof data !== "object" || Array.isArray(data)) return null;
     const plan = (data as Record<string, unknown>).plan;
     if (plan === null || typeof plan !== "object" || Array.isArray(plan)) return null;
-    const policy = (plan as Record<string, unknown>).policy;
+    const policy = readPlanPolicy(plan);
     if (policy === null || typeof policy !== "object" || Array.isArray(policy)) return null;
     const scope = (policy as Record<string, unknown>).triageScope;
     if (!Array.isArray(scope)) return null;

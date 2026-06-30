@@ -24,6 +24,8 @@ import {
 import {
   appendAuditLog,
   disclosureLine,
+  migrateLegacyPolicyKey,
+  PLAN_POLICY_KEY,
   projectDefinitionPath,
   resolvePolicy,
   resolveWipCap,
@@ -78,6 +80,7 @@ export const CLI_MODULE_VERBS = [
   "install-uninstall",
   "migrate-preflight",
   "migrate-xbrief",
+  "migrate-category-b",
   "framework-check-updates",
   "umbrella-current-shape",
   "changelog-check",
@@ -241,6 +244,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "agents:refresh": "agents-refresh",
   "migrate:preflight": "migrate-preflight",
   "migrate:xbrief": "migrate-xbrief",
+  "migrate:category-b": "migrate-category-b",
   "framework:check-updates": "framework-check-updates",
   "umbrella:current-shape": "umbrella-current-shape",
   upgrade: "install-upgrade",
@@ -1982,10 +1986,11 @@ function loadProjectDefinitionForWrite(projectRoot: string): PdWriteContext {
     throw new PolicySetError("PROJECT-DEFINITION 'plan' is not an object", "config");
   }
   const planObj = plan as Record<string, unknown>;
-  let policy = planObj.policy;
+  migrateLegacyPolicyKey(planObj);
+  let policy = planObj[PLAN_POLICY_KEY];
   if (policy === undefined) {
     policy = {};
-    planObj.policy = policy;
+    planObj[PLAN_POLICY_KEY] = policy;
   }
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     throw new PolicySetError("plan.policy is not an object", "config");

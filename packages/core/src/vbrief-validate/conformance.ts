@@ -74,8 +74,6 @@ export const ITEM_CORE = new Set([
 
 export const EXTENSION_PREFIXES = ["x-directive/", "x-vbrief/", "x-xbrief/"] as const;
 
-export const ALLOW_LIST = new Set(["plan.policy", "plan.completedNote"]);
-
 export interface ConformanceFinding {
   readonly path: string;
   readonly level: string;
@@ -87,7 +85,7 @@ export function renderFinding(finding: ConformanceFinding): string {
   return `  ${finding.path} [${finding.level}] bare key '${finding.key}' at ${finding.location}`;
 }
 
-function isConformant(level: string, key: string, core: ReadonlySet<string>): boolean {
+function isConformant(key: string, core: ReadonlySet<string>): boolean {
   if (core.has(key)) {
     return true;
   }
@@ -96,7 +94,8 @@ function isConformant(level: string, key: string, core: ReadonlySet<string>): bo
       return true;
     }
   }
-  return ALLOW_LIST.has(`${level}.${key}`);
+  // No allow-list exceptions: every non-core key MUST be namespaced (#1650).
+  return false;
 }
 
 function planPlanRefFinding(relPath: string, value: unknown): ConformanceFinding | null {
@@ -114,7 +113,7 @@ function planPlanRefFinding(relPath: string, value: unknown): ConformanceFinding
 function scanItem(relPath: string, item: JsonObject, location: string): ConformanceFinding[] {
   const findings: ConformanceFinding[] = [];
   for (const key of Object.keys(item)) {
-    if (!isConformant("item", key, ITEM_CORE)) {
+    if (!isConformant(key, ITEM_CORE)) {
       findings.push({ path: relPath, level: "item", key, location });
     }
   }
@@ -143,7 +142,7 @@ export function scanVbrief(relPath: string, data: unknown): ConformanceFinding[]
   const doc = data as JsonObject;
 
   for (const key of Object.keys(doc)) {
-    if (!isConformant("document", key, DOC_CORE)) {
+    if (!isConformant(key, DOC_CORE)) {
       findings.push({ path: relPath, level: "document", key, location: "<root>" });
     }
   }
@@ -162,7 +161,7 @@ export function scanVbrief(relPath: string, data: unknown): ConformanceFinding[]
       }
       continue;
     }
-    if (!isConformant("plan", key, PLAN_CORE)) {
+    if (!isConformant(key, PLAN_CORE)) {
       findings.push({ path: relPath, level: "plan", key, location: "plan" });
     }
   }

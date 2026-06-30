@@ -55,8 +55,8 @@ describe("deft-ts policy (maps tests/cli/test_policy.py CLI paths)", () => {
     expect(stdout).toContain("branch-protection ON");
     const data = JSON.parse(
       readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
-    ) as { plan: { policy: { allowDirectCommitsToMaster: boolean } } };
-    expect(data.plan.policy.allowDirectCommitsToMaster).toBe(false);
+    ) as { plan: Record<string, { allowDirectCommitsToMaster: boolean }> };
+    expect(data.plan["x-directive/policy"].allowDirectCommitsToMaster).toBe(false);
   });
 
   it("allow-direct-commits refuses without --confirm", () => {

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
+import { readPlanPolicy } from "./plan-extensions.js";
 import { loadProjectDefinition } from "./resolve.js";
 
 /** Framework default WIP cap (#1124 / umbrella #1119). */
@@ -49,7 +50,7 @@ export function resolveWipCap(projectRoot: string): WipCapResult {
     };
   }
 
-  const policyBlock = (plan as Record<string, unknown>).policy;
+  const policyBlock = readPlanPolicy(plan);
   if (
     typeof policyBlock !== "object" ||
     policyBlock === null ||

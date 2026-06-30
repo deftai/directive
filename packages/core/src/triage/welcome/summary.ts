@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
 import { countReconcilable } from "../reconcile/reconcile.js";
 import { computeDrift } from "../scope-drift/compute.js";
@@ -124,7 +125,7 @@ function isTriageScopeConfigured(projectRoot: string): boolean {
     const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return false;
-    const scope = (plan as Record<string, unknown>).policy;
+    const scope = readPlanPolicy(plan);
     if (typeof scope !== "object" || scope === null || Array.isArray(scope)) return false;
     const triageScope = (scope as Record<string, unknown>).triageScope;
     return (

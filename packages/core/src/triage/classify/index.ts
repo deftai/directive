@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { pyRepr } from "../../scm/py-format.js";
 
 function pythonTypeName(value: unknown): string {
@@ -350,7 +351,7 @@ function consumerRulesFromProject(data: Record<string, unknown> | null): Classif
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return [];
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return [];
   }
@@ -371,7 +372,7 @@ function holdMarkersFromProject(data: Record<string, unknown> | null): string[] 
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return null;
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return null;
   }
@@ -793,7 +794,7 @@ export function validateTriageAutoClassifyOnPlan(plan: unknown, filepath: string
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return out;
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   const raw =
     typeof policy === "object" && policy !== null && !Array.isArray(policy)
       ? (policy as Record<string, unknown>).triageAutoClassify
@@ -814,7 +815,7 @@ export function validateTriageHoldMarkersOnPlan(plan: unknown, filepath: string)
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return out;
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   const raw =
     typeof policy === "object" && policy !== null && !Array.isArray(policy)
       ? (policy as Record<string, unknown>).triageHoldMarkers

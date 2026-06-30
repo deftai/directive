@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
 
 function resolveDefaultCapacityBucket(projectRoot: string): string {
@@ -11,7 +12,7 @@ function resolveDefaultCapacityBucket(projectRoot: string): string {
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       return "";
     }
-    const policy = (plan as Record<string, unknown>).policy;
+    const policy = readPlanPolicy(plan);
     if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
       return "";
     }

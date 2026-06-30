@@ -1012,7 +1012,8 @@ describe("vbrief-validate extra coverage", () => {
     ).toEqual([]);
   });
 
-  it("covers conformance allowlisted keys and extension namespaces", () => {
+  it("covers namespaced Category B keys and extension namespaces", () => {
+    // Post-#1650: the two Category B keys MUST be namespaced under x-directive/.
     expect(
       scanVbrief("x.json", {
         vBRIEFInfo: { version: "0.6" },
@@ -1022,11 +1023,24 @@ describe("vbrief-validate extra coverage", () => {
           items: [],
           "x-vbrief/custom": true,
           "x-directive/extra": true,
-          policy: { wipCap: 10 },
-          completedNote: "done",
+          "x-directive/policy": { wipCap: 10 },
+          "x-directive/completedNote": "done",
         },
       }),
     ).toEqual([]);
+
+    // The previously-grandfathered bare forms now FAIL conformance (#1650).
+    const bareFindings = scanVbrief("bare.json", {
+      vBRIEFInfo: { version: "0.6" },
+      plan: {
+        title: "T",
+        status: "running",
+        items: [],
+        policy: { wipCap: 10 },
+        completedNote: "done",
+      },
+    });
+    expect(bareFindings.map((f) => f.key).sort()).toEqual(["completedNote", "policy"]);
 
     const root = mkdtempSync(join(tmpdir(), "vb-conf-many-"));
     mkdirSync(join(root, "vbrief"), { recursive: true });

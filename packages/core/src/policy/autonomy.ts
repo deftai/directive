@@ -1,3 +1,4 @@
+import { readPlanPolicy } from "./plan-extensions.js";
 import { loadProjectDefinition } from "./resolve.js";
 
 export const AUTONOMY_LEVELS = ["observe", "escalate", "execute"] as const;
@@ -124,12 +125,9 @@ export function validateAutonomy(value: unknown): string[] {
 }
 
 function getPolicyBlock(data: Record<string, unknown>): Record<string, unknown> {
-  const plan = data.plan;
-  if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
-    const policy = (plan as Record<string, unknown>).policy;
-    if (typeof policy === "object" && policy !== null && !Array.isArray(policy)) {
-      return policy as Record<string, unknown>;
-    }
+  const policy = readPlanPolicy(data.plan);
+  if (typeof policy === "object" && policy !== null && !Array.isArray(policy)) {
+    return policy as Record<string, unknown>;
   }
   return {};
 }

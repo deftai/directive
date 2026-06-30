@@ -29,8 +29,8 @@ describe("welcome writers", () => {
     const data = JSON.parse(
       readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
     );
-    expect(data.plan.policy.triageScope).toEqual(rules);
-    expect(data.plan.policy.wipCap).toBe(8);
+    expect(data.plan["x-directive/policy"].triageScope).toEqual(rules);
+    expect(data.plan["x-directive/policy"].wipCap).toBe(8);
     rmSync(root, { recursive: true, force: true });
   });
 

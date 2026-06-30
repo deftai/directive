@@ -25,8 +25,11 @@ function writePd(root: string, policy: Record<string, unknown> = {}): void {
 function readRules(root: string): unknown[] {
   const data = JSON.parse(
     readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
-  ) as { plan?: { policy?: { triageScope?: unknown[] } } };
-  return data.plan?.policy?.triageScope ?? [];
+  ) as { plan?: Record<string, unknown> };
+  const policy = (data.plan?.["x-directive/policy"] ?? data.plan?.policy) as
+    | { triageScope?: unknown[] }
+    | undefined;
+  return policy?.triageScope ?? [];
 }
 
 function makeRepo(policy?: Record<string, unknown>): string {

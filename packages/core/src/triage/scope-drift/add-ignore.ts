@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 
 const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
 
@@ -68,10 +69,11 @@ export function addIgnore(
     throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
   }
   const planRec = plan as Record<string, unknown>;
-  let policy = planRec.policy;
+  migrateLegacyPolicyKey(planRec);
+  let policy = planRec[PLAN_POLICY_KEY];
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     policy = {};
-    planRec.policy = policy;
+    planRec[PLAN_POLICY_KEY] = policy;
   }
   const policyRec = policy as Record<string, unknown>;
   const raw: unknown[] = Array.isArray(policyRec.triageScopeIgnores)

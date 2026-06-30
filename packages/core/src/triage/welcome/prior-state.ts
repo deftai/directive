@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import {
   CACHE_DIR_NAME,
   CACHE_SOURCE,
@@ -134,10 +135,7 @@ export function pendingDecisionsNudgeLine(count: number, threshold = 3): string 
 export function detectPriorState(projectRoot: string): PriorState {
   const data = loadProjectDefinition(projectRoot) ?? {};
   const plan = data.plan;
-  const policy =
-    typeof plan === "object" && plan !== null && !Array.isArray(plan)
-      ? (plan as Record<string, unknown>).policy
-      : null;
+  const policy = readPlanPolicy(plan);
   const rawScope =
     typeof policy === "object" && policy !== null && !Array.isArray(policy)
       ? (policy as Record<string, unknown>).triageScope

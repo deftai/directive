@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 
 export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.eval/subscription-history.jsonl";
 export const SUBSCRIPTION_HISTORY_SCHEMA = "deft.triage.subscription-change.v1";
@@ -330,14 +331,20 @@ function mutate(
     throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
   }
   const plan = data.plan as Record<string, unknown>;
-  if (typeof plan.policy !== "object" || plan.policy === null || Array.isArray(plan.policy)) {
-    if (plan.policy === undefined) {
-      plan.policy = {};
+  migrateLegacyPolicyKey(plan);
+  const existingPolicy = plan[PLAN_POLICY_KEY];
+  if (
+    typeof existingPolicy !== "object" ||
+    existingPolicy === null ||
+    Array.isArray(existingPolicy)
+  ) {
+    if (existingPolicy === undefined) {
+      plan[PLAN_POLICY_KEY] = {};
     } else {
       throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
     }
   }
-  const policy = plan.policy as Record<string, unknown>;
+  const policy = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
   if (!Array.isArray(policy.triageScope)) {
     if (policy.triageScope === undefined) {
       policy.triageScope = [];

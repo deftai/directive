@@ -16607,7 +16607,7 @@
         "Narrative 'tech stack' may be stale: completed scope 'migrate_vbrief: PROJECT-DEFINITION missing 'tech stack' narrative key -- validator D3 failure' shares topics (stack, tech)"
       ]
     },
-    "policy": {
+    "x-directive/policy": {
       "triageScope": [
         {
           "rule": "labels",

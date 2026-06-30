@@ -1,3 +1,4 @@
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../policy/resolve.js";
 
 export const DEFAULT_CAPACITY_UNIT = "vbrief-count";
@@ -183,12 +184,9 @@ export function validateCapacityAllocation(value: unknown): string[] {
 }
 
 function getPolicyBlock(data: Record<string, unknown>): Record<string, unknown> {
-  const plan = data.plan;
-  if (typeof plan === "object" && plan !== null && !Array.isArray(plan)) {
-    const policy = (plan as Record<string, unknown>).policy;
-    if (typeof policy === "object" && policy !== null && !Array.isArray(policy)) {
-      return policy as Record<string, unknown>;
-    }
+  const policy = readPlanPolicy(data.plan);
+  if (typeof policy === "object" && policy !== null && !Array.isArray(policy)) {
+    return policy as Record<string, unknown>;
   }
   return {};
 }

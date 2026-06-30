@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { loadProjectDefinition } from "../../policy/resolve.js";
 
 const DRIFT_MIN_ISSUES = 3;
@@ -104,7 +105,7 @@ function resolveScopeRules(projectRoot: string): Record<string, unknown>[] {
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return [{ rule: "all-open" }];
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return [{ rule: "all-open" }];
   }

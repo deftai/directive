@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 import {
   PROJECT_DEFINITION_REL_PATH,
   SUBSCRIPTION_HISTORY_REL_PATH,
@@ -179,8 +180,9 @@ export function subscribe(
     throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
   }
   const planRec = plan as Record<string, unknown>;
-  if (planRec.policy === undefined) planRec.policy = {};
-  const policy = planRec.policy;
+  migrateLegacyPolicyKey(planRec);
+  if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
+  const policy = planRec[PLAN_POLICY_KEY];
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
   }
@@ -225,8 +227,9 @@ export function addIgnore(projectRoot: string, label: string): [boolean, string]
     throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
   }
   const planRec = plan as Record<string, unknown>;
-  if (planRec.policy === undefined) planRec.policy = {};
-  const policy = planRec.policy;
+  migrateLegacyPolicyKey(planRec);
+  if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
+  const policy = planRec[PLAN_POLICY_KEY];
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
   }

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { loadProjectDefinition, PROJECT_DEFINITION_REL_PATH } from "../../policy/resolve.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
 import { AUDIT_LOG_REL_PATH, latestDecisions, readAuditLog } from "../actions/candidates-log.js";
@@ -177,7 +178,7 @@ export function isTriageScopeExplicitlyConfigured(projectRoot: string): boolean 
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       return false;
     }
-    const policy = (plan as Record<string, unknown>).policy;
+    const policy = readPlanPolicy(plan);
     if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
       return false;
     }

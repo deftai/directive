@@ -61,7 +61,7 @@ describe("writers error and edge branches", () => {
     const data = JSON.parse(
       readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
     );
-    expect(data.plan.policy.triageScope).toEqual(rules);
+    expect(data.plan["x-directive/policy"].triageScope).toEqual(rules);
     expect(readFileSync(join(root, "meta", "policy-changes.log"), "utf8")).toContain(
       "actor=tester",
     );

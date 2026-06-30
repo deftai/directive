@@ -1,3 +1,4 @@
+import { readPlanPolicy } from "./plan-extensions.js";
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import { DEFAULT_WIP_CAP } from "./wip.js";
 
@@ -5,6 +6,7 @@ export * from "./autonomy.js";
 export * from "./capacity.js";
 export * from "./decisions.js";
 export * from "./disclosure.js";
+export * from "./plan-extensions.js";
 export * from "./resolve.js";
 export * from "./wip.js";
 
@@ -52,7 +54,7 @@ function getPlan(data: Record<string, unknown> | null): Record<string, unknown> 
 }
 
 function getPolicyBlock(data: Record<string, unknown> | null): Record<string, unknown> {
-  const policy = getPlan(data).policy;
+  const policy = readPlanPolicy(getPlan(data));
   if (typeof policy === "object" && policy !== null && !Array.isArray(policy)) {
     return policy as Record<string, unknown>;
   }

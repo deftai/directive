@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 import {
   AUDIT_LOG_REL_PATH,
   DEFAULT_RELIEF_AGE_DAYS,
@@ -62,10 +63,11 @@ export function writeTriageScope(
     throw new Error("PROJECT-DEFINITION 'plan' is not an object");
   }
   const planRec = plan as Record<string, unknown>;
-  let policy = planRec.policy;
+  migrateLegacyPolicyKey(planRec);
+  let policy = planRec[PLAN_POLICY_KEY];
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     policy = {};
-    planRec.policy = policy;
+    planRec[PLAN_POLICY_KEY] = policy;
   }
   const policyRec = policy as Record<string, unknown>;
   const previous = policyRec.triageScope;
@@ -100,10 +102,11 @@ export function writeWipCap(
     throw new Error("PROJECT-DEFINITION 'plan' is not an object");
   }
   const planRec = plan as Record<string, unknown>;
-  let policy = planRec.policy;
+  migrateLegacyPolicyKey(planRec);
+  let policy = planRec[PLAN_POLICY_KEY];
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     policy = {};
-    planRec.policy = policy;
+    planRec[PLAN_POLICY_KEY] = policy;
   }
   const policyRec = policy as Record<string, unknown>;
   const previous = policyRec.wipCap;

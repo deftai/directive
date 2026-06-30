@@ -1,3 +1,4 @@
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import {
   validateTriageAutoClassifyOnPlan,
   validateTriageHoldMarkersOnPlan,
@@ -40,7 +41,7 @@ export function validateWipCapOnPlan(plan: unknown, filepath: string): string[] 
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return [];
   }
-  const policy = (plan as JsonObject).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return [];
   }
@@ -88,7 +89,7 @@ export function validateSessionRitualStalenessHoursOnPlan(
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return [];
   }
-  const policy = (plan as JsonObject).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return [];
   }
@@ -109,7 +110,7 @@ export function validateTriageRankingLabelsOnPlan(plan: unknown, filepath: strin
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return [];
   }
-  const policy = (plan as JsonObject).policy;
+  const policy = readPlanPolicy(plan);
   const raw =
     typeof policy === "object" && policy !== null && !Array.isArray(policy)
       ? (policy as JsonObject).triageRankingLabels

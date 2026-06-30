@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 
 const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
 const DEFAULT_TRIAGE_SCOPE = [{ rule: "all-open" }] as const;
@@ -28,7 +29,7 @@ export function resolveScopeRules(
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
     return DEFAULT_TRIAGE_SCOPE.map((r) => ({ ...r }));
   }
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
     return DEFAULT_TRIAGE_SCOPE.map((r) => ({ ...r }));
   }
@@ -60,7 +61,7 @@ export function resolveScopeIgnores(
   if (data === null) return out;
   const plan = data.plan;
   if (typeof plan !== "object" || plan === null || Array.isArray(plan)) return out;
-  const policy = (plan as Record<string, unknown>).policy;
+  const policy = readPlanPolicy(plan);
   if (typeof policy !== "object" || policy === null || Array.isArray(policy)) return out;
   const raw = (policy as Record<string, unknown>).triageScopeIgnores;
   if (!Array.isArray(raw)) return out;
