@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LEGACY_ARTIFACT_DIR, MIGRATED_ARTIFACT_DIR } from "./constants.js";
-import { runXbriefMigration, runXbriefMigrationCli } from "./migrate-project.js";
+import {
+  emitXbriefMigration,
+  runXbriefMigration,
+  runXbriefMigrationCli,
+} from "./migrate-project.js";
 
 const SAMPLE_V06 = {
   vBRIEFInfo: {
@@ -118,6 +122,73 @@ describe("runXbriefMigration", () => {
     );
     expect(outcome.kind).toBe("noop");
   });
+
+  it("returns config when xbrief/ already exists alongside vbrief/", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-split-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    mkdirSync(join(project, MIGRATED_ARTIFACT_DIR), { recursive: true });
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("config");
+  });
+
+  it("returns config when a legacy artifact cannot be transformed", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-bad-json-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "bad.vbrief.json"),
+      JSON.stringify({ plan: { title: "missing info block", status: "running", items: [] } }),
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(outcome.kind).toBe("config");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(true);
+  });
+
+  it("rewrites non-json text files during migration", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-text-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "notes.txt"),
+      "see vbrief/active/story.vbrief.json\n",
+      "utf8",
+    );
+
+    runXbriefMigration(
+      { projectRoot: project, force: true },
+      { writeOut: () => {}, writeErr: () => {} },
+    );
+    expect(readFileSync(join(project, MIGRATED_ARTIFACT_DIR, "notes.txt"), "utf8")).toBe(
+      "see xbrief/active/story.xbrief.json\n",
+    );
+  });
+});
+
+describe("emitXbriefMigration", () => {
+  it("supports signpost-only emission", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-emit-signpost-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    const lines: string[] = [];
+    expect(
+      emitXbriefMigration(
+        { kind: "noop", message: "unused" },
+        { writeOut: (t) => lines.push(t), writeErr: () => {} },
+        { signpostOnly: true, projectRoot: project },
+      ),
+    ).toBe(0);
+    expect(lines.join("")).toContain("migrate:xbrief");
+  });
 });
 
 describe("runXbriefMigrationCli", () => {
@@ -135,5 +206,22 @@ describe("runXbriefMigrationCli", () => {
       },
     );
     expect(code).toBe(1);
+  });
+
+  it("runs agents:refresh after a successful migration", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-cli-ok-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    const lines: string[] = [];
+    const code = runXbriefMigrationCli(
+      { projectRoot: project, frameworkRoot: join(project, ".deft", "core"), force: true },
+      {
+        writeOut: (t) => lines.push(t),
+        writeErr: (t) => lines.push(t),
+      },
+    );
+    expect(code).toBe(0);
+    expect(lines.join("")).toContain("Migrated 1 file(s)");
+    expect(existsSync(join(project, "AGENTS.md"))).toBe(true);
   });
 });

@@ -330,4 +330,21 @@ describe("install-upgrade", () => {
     expect(lines.join("")).toContain("migrate:xbrief refused");
     expect(existsSync(join(project, "xbrief"))).toBe(false);
   });
+
+  it("migrates inline on minor upgrade when --migrate and --force are set (#2110)", () => {
+    const base = mkdtempSync(join(tmpdir(), "deft-upgrade-xbrief-migrate-"));
+    temps.push(base);
+    const { project, deftDir } = scaffoldLegacyVbriefProject(base, "0.62.0");
+    writeFileSync(join(project, "vbrief", ".deft-version"), "0.61.0\n", "utf8");
+
+    const lines: string[] = [];
+    const code = runInstallUpgrade(
+      { projectRoot: project, frameworkRoot: deftDir, migrate: true, force: true },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+    );
+    expect(code).toBe(0);
+    expect(existsSync(join(project, "xbrief"))).toBe(true);
+    expect(existsSync(join(project, "vbrief"))).toBe(false);
+    expect(lines.join("")).toContain("Migrated");
+  });
 });

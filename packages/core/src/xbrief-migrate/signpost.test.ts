@@ -37,8 +37,14 @@ describe("renderXbriefMigrationLine", () => {
     const root = mkdtempSync(join(tmpdir(), "xbrief-signpost-legacy-"));
     temps.push(root);
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
     writeFileSync(
       join(root, "vbrief", "active", "story.vbrief.json"),
+      JSON.stringify(SAMPLE_V06),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "vbrief", "pending", "other.vbrief.json"),
       JSON.stringify(SAMPLE_V06),
       "utf8",
     );
@@ -46,5 +52,6 @@ describe("renderXbriefMigrationLine", () => {
     const line = renderXbriefMigrationLine(root);
     expect(line).toContain("legacy vbrief layout detected");
     expect(line).toContain("migrate:xbrief");
+    expect(line).toContain("more marker(s)");
   });
 });
