@@ -8,7 +8,7 @@
   "plan": {
     "id": "2109-maintainer-xbrief-rename",
     "title": "Maintainer-repo mechanical vbrief->xbrief rename plus drift gate",
-    "status": "proposed",
+    "status": "running",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Run the one-shot mechanical rename of the directive repo itself from the vbrief layout and tokens to xbrief, then add a gate that blocks reintroduction of the old tokens. This is a repo-wide atomic change that cannot be parallelized, so it is marked sequential and run solo as its own wave.",
@@ -85,6 +85,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
       }
-    ]
+    ],
+    "updated": "2026-06-30T17:53:38Z"
   }
 }
