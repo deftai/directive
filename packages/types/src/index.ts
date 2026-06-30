@@ -1,17 +1,14 @@
-/**
- * `@deftai/directive-types` — canonical vBRIEF/policy contract for downstream consumers (#1799).
- *
- * Supported public API: this package and its published JSON Schema subpaths.
- * Behavior access remains via the `deft` / `directive` CLI — not `@deftai/directive-core`.
- */
-
 export {
+  ACCEPTED_VBRIEF_VERSIONS,
   EXTENSION_KEY_PATTERN,
+  LEGACY_VBRIEF_CORE_SCHEMA_ID,
+  LEGACY_VBRIEF_VERSION,
   TYPES_PACKAGE,
   VBRIEF_CORE_SCHEMA_ID,
   VBRIEF_REFERENCE_PREFIX,
   VBRIEF_VERSION,
   type VBriefVersion,
+  XBRIEF_REFERENCE_PREFIX,
 } from "./constants.js";
 export type {
   EngineInfo,
@@ -57,5 +54,11 @@ export {
 /** Relative path to the published v0.6 core JSON Schema inside the npm package. */
 export const PUBLISHED_VBRIEF_CORE_SCHEMA_PATH = "schemas/vbrief-core-0.6.schema.json" as const;
 
+/** Relative path to the published v0.8 core JSON Schema inside the npm package. */
+export const PUBLISHED_XBRIEF_CORE_SCHEMA_PATH = "schemas/xbrief-core-0.8.schema.json" as const;
+
 /** npm subpath export for the v0.6 core JSON Schema artifact. */
 export const VBRIEF_CORE_SCHEMA_EXPORT = "./schemas/vbrief-core-0.6.schema.json" as const;
+
+/** npm subpath export for the v0.8 core JSON Schema artifact. */
+export const XBRIEF_CORE_SCHEMA_EXPORT = "./schemas/xbrief-core-0.8.schema.json" as const;

@@ -201,11 +201,7 @@ function decisionKey(repo: string, issueNumber: number): string {
 }
 
 /** Read `raw.json` state for a cached github-issue entry; defaults to open when absent. */
-export function readCachedIssueState(
-  cacheRoot: string,
-  repo: string,
-  issueNumber: number,
-): string {
+export function readCachedIssueState(cacheRoot: string, repo: string, issueNumber: number): string {
   const [owner, name] = repo.split("/", 2);
   const rawPath = join(
     cacheRoot,
@@ -231,11 +227,7 @@ export function readCachedIssueState(
 }
 
 /** True when a cached issue should participate in summary classification counts. */
-export function isCachedIssueOpen(
-  cacheRoot: string,
-  repo: string,
-  issueNumber: number,
-): boolean {
+export function isCachedIssueOpen(cacheRoot: string, repo: string, issueNumber: number): boolean {
   return readCachedIssueState(cacheRoot, repo, issueNumber) !== "closed";
 }
 

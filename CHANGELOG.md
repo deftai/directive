@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **xBRIEF v0.8 schema adoption (#2107).** The directive validator and `@deftai/directive-types` now pin to the xBRIEF v0.8 contract: documents with `xBRIEFInfo`, version `0.8`, and `x-xbrief/` references validate cleanly, including optional v0.8 fields (`PlanItem.type`, `summary`, `planRefs`, and `Source`/`Confidence` narratives). Existing v0.6 `vBRIEFInfo` / `x-vbrief/` artifacts continue to pass — this is additive, not a corpus rename (that lands in a later wave). Refs #2034. Closes #2107.
+
 ### Fixed
 
 ### Removed

@@ -9,7 +9,7 @@ import {
 import { fnmatchCase } from "../encoding/text.js";
 import type { JsonObject } from "./schema.js";
 
-export const DOC_CORE = new Set(["vBRIEFInfo", "plan"]);
+export const DOC_CORE = new Set(["vBRIEFInfo", "xBRIEFInfo", "plan"]);
 
 export const PLAN_CORE = new Set([
   "id",
@@ -39,11 +39,14 @@ export const PLAN_CORE = new Set([
 export const ITEM_CORE = new Set([
   "id",
   "uid",
+  "type",
+  "summary",
   "title",
   "status",
   "narrative",
   "subItems",
   "planRef",
+  "planRefs",
   "tags",
   "metadata",
   "created",
@@ -68,7 +71,7 @@ export const ITEM_CORE = new Set([
   "items",
 ]);
 
-export const EXTENSION_PREFIXES = ["x-directive/", "x-vbrief/"] as const;
+export const EXTENSION_PREFIXES = ["x-directive/", "x-vbrief/", "x-xbrief/"] as const;
 
 export const ALLOW_LIST = new Set(["plan.policy", "plan.completedNote"]);
 
@@ -304,8 +307,8 @@ export function evaluateConformance(
     const header =
       `\u274c verify_vbrief_conformance: detected ${findings.length} bare ` +
       `key(s) across ${uniquePaths.size} file(s) (#1620).\n` +
-      "  Every vBRIEF key MUST be 0.6 spec-core, x-directive/-namespaced, " +
-      "or x-vbrief/-namespaced -- never bare.\n" +
+      "  Every vBRIEF key MUST be spec-core, x-directive/-namespaced, " +
+      "x-vbrief/-namespaced, or x-xbrief/-namespaced -- never bare.\n" +
       "  Fix: migrate misused/misspelled core fields to their core home " +
       "(see scripts/vbrief_migrate_conformance.py), or namespace a genuine\n" +
       "  extension under x-directive/. Allow-list a documented file " +

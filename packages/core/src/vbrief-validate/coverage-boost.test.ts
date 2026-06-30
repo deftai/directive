@@ -22,7 +22,7 @@ describe("vbrief-validate coverage boost", () => {
   it("exercises schema validation branches", () => {
     expect(
       validateVbriefSchema({}, "f.json").some((e) =>
-        e.includes("missing required top-level key 'vBRIEFInfo'"),
+        e.includes("missing required top-level key 'vBRIEFInfo' or 'xBRIEFInfo'"),
       ),
     ).toBe(true);
     expect(

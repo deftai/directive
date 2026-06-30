@@ -15,7 +15,7 @@ function legacyOriginMatch(refType: string): boolean {
 }
 
 function schemaTrustingOrigin(refType: string): boolean {
-  return refType.startsWith("x-vbrief/");
+  return refType.startsWith("x-vbrief/") || refType.startsWith("x-xbrief/");
 }
 
 /** Warn if a scope vBRIEF in pending/ or active/ has no origin reference (D11). */

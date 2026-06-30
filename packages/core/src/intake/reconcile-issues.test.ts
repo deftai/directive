@@ -130,7 +130,9 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
             status: "running",
             items: [{ title: "slice", status: "running", planRef: `proposed/${parentName}` }],
             planRef: `proposed/${parentName}`,
-            references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/56" }],
+            references: [
+              { type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/56" },
+            ],
           },
         },
         null,

@@ -1,0 +1,786 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xbrief.dev/schemas/xbrief-core-0.8.schema.json",
+  "title": "xBRIEF Core Schema v0.8",
+  "description": "JSON Schema for xBRIEF core document structure (v0.8). Adds PlanItem type (task/group/milestone/epic), summary, planRefs, extension property namespace (x-<consumer>/), Source/Confidence narrative keys, and reference type registry.",
+  "type": "object",
+  "required": [
+    "xBRIEFInfo",
+    "plan"
+  ],
+  "properties": {
+    "xBRIEFInfo": {
+      "$ref": "#/$defs/xBRIEFInfo"
+    },
+    "plan": {
+      "$ref": "#/$defs/Plan"
+    }
+  },
+  "additionalProperties": true,
+  "patternProperties": {
+    "^x-[a-z0-9-]+/": {
+      "description": "Extension property. Consumer-scoped; MUST be preserved verbatim on round-trip."
+    }
+  },
+  "not": {
+    "anyOf": [
+      {
+        "required": [
+          "todoList"
+        ]
+      },
+      {
+        "required": [
+          "playbook"
+        ]
+      }
+    ]
+  },
+  "$defs": {
+    "xBRIEFInfo": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "0.8"
+        },
+        "author": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "created": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "updated": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "timezone": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "patternProperties": {
+        "^x-[a-z0-9-]+/": {}
+      }
+    },
+    "Plan": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "items"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/PlanStatus"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanItem"
+          }
+        },
+        "narratives": {
+          "type": "object",
+          "properties": {
+            "Proposal": {
+              "type": "string"
+            },
+            "Overview": {
+              "type": "string"
+            },
+            "Background": {
+              "type": "string"
+            },
+            "Problem": {
+              "type": "string"
+            },
+            "Constraint": {
+              "type": "string"
+            },
+            "Hypothesis": {
+              "type": "string"
+            },
+            "Alternative": {
+              "type": "string"
+            },
+            "Risk": {
+              "type": "string"
+            },
+            "Test": {
+              "type": "string"
+            },
+            "Action": {
+              "type": "string"
+            },
+            "Observation": {
+              "type": "string"
+            },
+            "Result": {
+              "type": "string"
+            },
+            "Reflection": {
+              "type": "string"
+            },
+            "Outcome": {
+              "type": "string"
+            },
+            "Strengths": {
+              "type": "string"
+            },
+            "Weaknesses": {
+              "type": "string"
+            },
+            "Lessons": {
+              "type": "string"
+            },
+            "Source": {
+              "type": "string",
+              "description": "How a fact was established. Recommended values: verified:<method>, observed:<method>, inferred:<reason>, assumed."
+            },
+            "Confidence": {
+              "type": "string",
+              "description": "Agent certainty level. Recommended values: high, medium, low."
+            }
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Edge"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "created": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "updated": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "author": {
+          "type": "string"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "uris": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/URI"
+          }
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VBriefReference"
+          }
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "agent": {
+          "$ref": "#/$defs/Agent"
+        },
+        "lastModifiedBy": {
+          "$ref": "#/$defs/Agent"
+        },
+        "changeLog": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Change"
+          }
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fork": {
+          "$ref": "#/$defs/Fork"
+        }
+      },
+      "additionalProperties": true,
+      "patternProperties": {
+        "^x-[a-z0-9-]+/": {}
+      }
+    },
+    "PlanItem": {
+      "type": "object",
+      "required": [
+        "title",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["task", "group", "milestone", "epic"],
+          "default": "task",
+          "description": "Item type. Containers (group, milestone, epic) support status rollup."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Single-sentence shorthand description. Equivalent to narrative.Overview when narrative is absent."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/PlanItemStatus"
+        },
+        "narrative": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "subItems": {
+          "type": "array",
+          "description": "Deprecated legacy alias for items; retained for compatibility.",
+          "items": {
+            "$ref": "#/$defs/PlanItem"
+          }
+        },
+        "planRef": {
+          "type": "string",
+          "pattern": "^(#[a-zA-Z0-9_.-]+|file://.*|https://.*)$"
+        },
+        "planRefs": {
+          "type": "array",
+          "description": "Array of plan reference URIs for container items aggregating multiple external xBRIEFs.",
+          "items": {
+            "type": "string",
+            "pattern": "^(#[a-zA-Z0-9_.-]+|file://.*|https://.*)$"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "created": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "updated": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "completed": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "priority": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "dueDate": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "startDate": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "endDate": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "percentComplete": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Participant"
+          }
+        },
+        "location": {
+          "$ref": "#/$defs/Location"
+        },
+        "uris": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/URI"
+          }
+        },
+        "recurrence": {
+          "$ref": "#/$defs/RecurrenceRule"
+        },
+        "reminders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Reminder"
+          }
+        },
+        "classification": {
+          "enum": [
+            "public",
+            "private",
+            "confidential"
+          ]
+        },
+        "relatedComments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastModifiedBy": {
+          "$ref": "#/$defs/Agent"
+        },
+        "lockedBy": {
+          "$ref": "#/$defs/Lock"
+        },
+        "items": {
+          "type": "array",
+          "description": "Preferred v0.6 nested PlanItem field.",
+          "items": {
+            "$ref": "#/$defs/PlanItem"
+          }
+        }
+      },
+      "additionalProperties": true,
+      "patternProperties": {
+        "^x-[a-z0-9-]+/": {}
+      }
+    },
+    "PlanStatus": {
+      "enum": [
+        "draft",
+        "proposed",
+        "approved",
+        "pending",
+        "running",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ],
+      "description": "Status values valid at plan level. 'auto' is excluded — it is only valid on container PlanItems with children."
+    },
+    "PlanItemStatus": {
+      "enum": [
+        "draft",
+        "proposed",
+        "approved",
+        "pending",
+        "running",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled",
+        "auto"
+      ],
+      "description": "Status values valid on PlanItems. 'auto' rolls up from children and is valid only on container items (group/milestone/epic) with children."
+    },
+    "Edge": {
+      "type": "object",
+      "required": [
+        "from",
+        "to",
+        "type"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"
+        },
+        "type": {
+          "type": "string",
+          "description": "Core types: blocks, informs, invalidates, suggests. Custom types allowed."
+        }
+      },
+      "additionalProperties": true
+    },
+    "Participant": {
+      "type": "object",
+      "required": [
+        "id",
+        "role"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "owner",
+            "assignee",
+            "reviewer",
+            "observer",
+            "contributor"
+          ]
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "declined",
+            "tentative",
+            "needsAction"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "URI": {
+      "type": "object",
+      "required": [
+        "uri"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "VBriefReference": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/URI"
+        },
+        {
+          "type": "object",
+          "required": [
+            "uri",
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "pattern": "^x-[a-zA-Z0-9_-]+/",
+              "description": "A xBRIEF reference type. Canonical types: x-xbrief/plan, x-xbrief/github-issue, x-xbrief/github-pr, x-xbrief/commit, x-xbrief/external, x-xbrief/research, x-xbrief/adr. Custom consumer types SHOULD use x-<consumer>/ namespace (e.g. x-myapp/ticket)."
+            }
+          }
+        }
+      ]
+    },
+    "Location": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "geo": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number"
+          }
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "RecurrenceRule": {
+      "type": "object",
+      "required": [
+        "frequency"
+      ],
+      "properties": {
+        "frequency": {
+          "enum": [
+            "daily",
+            "weekly",
+            "monthly",
+            "yearly"
+          ]
+        },
+        "interval": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "until": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "byDay": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "MO",
+              "TU",
+              "WE",
+              "TH",
+              "FR",
+              "SA",
+              "SU"
+            ]
+          }
+        },
+        "byMonth": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          }
+        },
+        "byMonthDay": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "Reminder": {
+      "type": "object",
+      "required": [
+        "trigger",
+        "action"
+      ],
+      "properties": {
+        "trigger": {
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "display",
+            "email",
+            "webhook",
+            "audio"
+          ]
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Agent": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "human",
+            "aiAgent",
+            "system"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "Change": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "timestamp",
+        "agent",
+        "operation"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestamp": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "agent": {
+          "$ref": "#/$defs/Agent"
+        },
+        "operation": {
+          "enum": [
+            "create",
+            "update",
+            "delete",
+            "fork",
+            "merge"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "oldValue": {},
+        "newValue": {},
+        "description": {
+          "type": "string"
+        },
+        "snapshotUri": {
+          "type": "string"
+        },
+        "relatedChanges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "Fork": {
+      "type": "object",
+      "required": [
+        "parentUid",
+        "parentSequence",
+        "forkedAt"
+      ],
+      "properties": {
+        "parentUid": {
+          "type": "string"
+        },
+        "parentSequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "forkedAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "forkReason": {
+          "type": "string"
+        },
+        "mergeStatus": {
+          "enum": [
+            "unmerged",
+            "mergePending",
+            "merged",
+            "conflict"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "Lock": {
+      "type": "object",
+      "required": [
+        "agent",
+        "acquiredAt",
+        "type"
+      ],
+      "properties": {
+        "agent": {
+          "$ref": "#/$defs/Agent"
+        },
+        "acquiredAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "type": {
+          "enum": [
+            "soft",
+            "hard"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(Z|[+-]\\d{2}:\\d{2})$"
+    }
+  }
+}

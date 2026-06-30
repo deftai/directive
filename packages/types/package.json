@@ -10,7 +10,8 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./schemas/vbrief-core-0.6.schema.json": "./schemas/vbrief-core-0.6.schema.json"
+    "./schemas/vbrief-core-0.6.schema.json": "./schemas/vbrief-core-0.6.schema.json",
+    "./schemas/xbrief-core-0.8.schema.json": "./schemas/xbrief-core-0.8.schema.json"
   },
   "files": [
     "dist/**/*.js",

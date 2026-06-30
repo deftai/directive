@@ -8,7 +8,7 @@
   "plan": {
     "id": "2107-adopt-xbrief-v08-schema",
     "title": "Adopt xBRIEF v0.8 schema; pin types and validator",
-    "status": "running",
+    "status": "completed",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Vendor the xBRIEF v0.8 core schema into directive and pin the engine constants to it so the validator accepts the new contract. This story is independently buildable because it only changes the vendored schema file and two constants modules without touching migration or rename logic.",
@@ -68,7 +68,9 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-30T14:44:08Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -82,6 +84,6 @@
         "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
       }
     ],
-    "updated": "2026-06-30T14:37:10Z"
+    "updated": "2026-06-30T14:44:08Z"
   }
 }

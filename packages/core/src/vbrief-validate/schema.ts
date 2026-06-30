@@ -1,7 +1,10 @@
 import { pyStrRepr, pythonTypeName } from "../triage/scope/python-repr.js";
 import {
   PROJECT_DEF_EXPECTED_NARRATIVES,
-  VALID_STATUSES,
+  VALID_INFO_ROOT_KEYS,
+  VALID_ITEM_STATUSES,
+  VALID_PLAN_ITEM_TYPES,
+  VALID_PLAN_STATUSES,
   VALID_VBRIEF_VERSIONS,
 } from "./constants.js";
 
@@ -19,6 +22,34 @@ function validateNarratives(narratives: unknown, path: string, errors: string[])
   }
 }
 
+function validatePlanRefs(planRefs: unknown, path: string, errors: string[]): void {
+  if (!Array.isArray(planRefs)) {
+    errors.push(`${path}.planRefs must be an array`);
+    return;
+  }
+  for (let i = 0; i < planRefs.length; i += 1) {
+    if (typeof planRefs[i] !== "string") {
+      errors.push(`${path}.planRefs[${i}] must be a string, got ${pythonTypeName(planRefs[i])}`);
+    }
+  }
+}
+
+function resolveInfoBlock(
+  data: JsonObject,
+): { key: "vBRIEFInfo" | "xBRIEFInfo"; info: JsonObject } | null {
+  for (const key of VALID_INFO_ROOT_KEYS) {
+    if (!(key in data)) {
+      continue;
+    }
+    const info = data[key];
+    if (typeof info !== "object" || info === null || Array.isArray(info)) {
+      return null;
+    }
+    return { key: key as "vBRIEFInfo" | "xBRIEFInfo", info: info as JsonObject };
+  }
+  return null;
+}
+
 function validatePlanItem(item: JsonObject, path: string, errors: string[]): void {
   const itemId = typeof item.id === "string" ? item.id : "<no-id>";
   const itemPath = `${path}[${itemId}]`;
@@ -28,8 +59,20 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
   }
   if (!("status" in item)) {
     errors.push(`${itemPath} missing 'status'`);
-  } else if (!VALID_STATUSES.has(String(item.status))) {
+  } else if (!VALID_ITEM_STATUSES.has(String(item.status))) {
     errors.push(`${itemPath} invalid status: ${pyStrRepr(String(item.status))}`);
+  }
+
+  if ("type" in item && !VALID_PLAN_ITEM_TYPES.has(String(item.type))) {
+    errors.push(`${itemPath} invalid type: ${pyStrRepr(String(item.type))}`);
+  }
+
+  if ("summary" in item && typeof item.summary !== "string") {
+    errors.push(`${itemPath}.summary must be a string, got ${pythonTypeName(item.summary)}`);
+  }
+
+  if ("planRefs" in item) {
+    validatePlanRefs(item.planRefs, itemPath, errors);
   }
 
   if ("narrative" in item) {
@@ -67,26 +110,32 @@ function validatePlanItem(item: JsonObject, path: string, errors: string[]): voi
   }
 }
 
-/** Validate vBRIEF structural requirements (v0.6). */
+/** Validate vBRIEF/xBRIEF structural requirements (v0.6 + v0.8 additive). */
 export function validateVbriefSchema(data: JsonObject, filepath: string): string[] {
   const errors: string[] = [];
 
-  if (!("vBRIEFInfo" in data)) {
-    errors.push(`${filepath}: missing required top-level key 'vBRIEFInfo'`);
-  } else {
-    const info = data.vBRIEFInfo;
-    if (typeof info !== "object" || info === null || Array.isArray(info)) {
-      errors.push(`${filepath}: 'vBRIEFInfo' must be an object`);
+  const resolved = resolveInfoBlock(data);
+  if (resolved === null) {
+    if (
+      ("vBRIEFInfo" in data && typeof data.vBRIEFInfo !== "object") ||
+      ("xBRIEFInfo" in data && typeof data.xBRIEFInfo !== "object") ||
+      Array.isArray(data.vBRIEFInfo) ||
+      Array.isArray(data.xBRIEFInfo)
+    ) {
+      errors.push(`${filepath}: document info block must be an object`);
     } else {
-      const version = (info as JsonObject).version;
-      if (!VALID_VBRIEF_VERSIONS.has(String(version))) {
-        errors.push(
-          `${filepath}: 'vBRIEFInfo.version' must be '0.6' ` +
-            `(canonical v0.6 schema, #533), got ` +
-            `${pyStrRepr(String(version))}. Run \`task migrate:vbrief\` to ` +
-            `upgrade pre-existing v0.5 vBRIEFs in-place.`,
-        );
-      }
+      errors.push(`${filepath}: missing required top-level key 'vBRIEFInfo' or 'xBRIEFInfo'`);
+    }
+  } else {
+    const version = resolved.info.version;
+    if (!VALID_VBRIEF_VERSIONS.has(String(version))) {
+      errors.push(
+        `${filepath}: '${resolved.key}.version' must be one of ` +
+          `${[...VALID_VBRIEF_VERSIONS].map((v) => `'${v}'`).join(", ")} ` +
+          `(canonical v0.6/v0.8 schema, #2107), got ` +
+          `${pyStrRepr(String(version))}. Run \`task migrate:vbrief\` to ` +
+          `upgrade pre-existing v0.5 vBRIEFs in-place.`,
+      );
     }
   }
 
@@ -108,8 +157,8 @@ export function validateVbriefSchema(data: JsonObject, filepath: string): string
         errors.push(`${filepath}: 'plan.title' must be a non-empty string`);
       }
 
-      if ("status" in planObj && !VALID_STATUSES.has(String(planObj.status))) {
-        const sorted = [...VALID_STATUSES]
+      if ("status" in planObj && !VALID_PLAN_STATUSES.has(String(planObj.status))) {
+        const sorted = [...VALID_PLAN_STATUSES]
           .sort()
           .map((s) => `'${s}'`)
           .join(", ");
