@@ -1,0 +1,65 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1888 — task/deft triage colon verbs route to triage-actions"
+  },
+  "plan": {
+    "id": "1888-triage-actions-verbs",
+    "title": "Wire task triage:* colon verbs to triage-actions subcommands",
+    "status": "running",
+    "narratives": {
+      "Description": "The triage-actions module implements accept/reject/defer/needs-ac/mark-duplicate/reset/history, and route-argv maps `deft triage reset` correctly. But `task triage:reset`, `task triage:needs-ac`, etc. fail with `unknown verb` because dispatch.ts VERB_ALIASES only registers triage:accept and triage:status, and does not inject the subcommand when invoking triage-actions.",
+      "ImplementationPlan": "1. Extend packages/cli/src/dispatch.ts VERB_ALIASES with triage:reject, triage:defer, triage:needs-ac, triage:mark-duplicate, triage:reset, triage:history.\n2. When dispatch resolves a colon alias to triage-actions, prepend the subcommand (e.g. reset) to handler argv — mirror route-argv SUBCOMMAND_ROUTES behavior.\n3. Add regression tests in packages/cli/src/dispatch.test.ts or triage-actions.test.ts proving `deft triage:reset` and `deft triage:needs-ac` reach the handler.\n4. CHANGELOG entry. Closes #1888.",
+      "UserStory": "As an operator running `task triage:reset`, I want the command to append a reset audit entry, so that Layer-5 triage reversibility works from the documented task surface.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1888",
+      "Overview": "Partial TS port: module has verbs; task/deft colon aliases missing.",
+      "Labels": "bug, triage, ts-migration"
+    },
+    "items": [
+      {
+        "id": "1888-a1",
+        "title": "Colon verbs dispatch to triage-actions",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `deft triage:reset --issue N --repo R`, when invoked, then triage-actions reset runs (not unknown verb)."
+        }
+      },
+      {
+        "id": "1888-a2",
+        "title": "Regression tests for colon routing",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given vitest covering dispatch alias + subcommand injection, when run, then needs-ac/reset/mark-duplicate colon forms pass."
+        }
+      }
+    ],
+    "tags": ["bug", "triage"],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": { "parent_issue": "#1888" },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/triage-actions.test.ts",
+          "packages/cli/src/cli-router/route-argv.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/cli/src/triage-actions.test.ts packages/cli/src/cli-router/router.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": ["VERB_ALIASES + subcommand injection", "Regression tests", "CHANGELOG"],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-cli",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "strong",
+        "missing_traces_justification": "Dispatch gap from issue #1888 evidence."
+      },
+      "capacityBucket": "bugfix"
+    },
+    "references": [{ "type": "github-issue", "uri": "https://github.com/deftai/directive/issues/1888" }]
+  }
+}

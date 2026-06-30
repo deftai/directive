@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1705 — triage summary excludes closed cached issues"
+  },
+  "plan": {
+    "id": "1705-summary-closed-filter",
+    "title": "Triage summary counts exclude closed upstream issues",
+    "status": "running",
+    "narratives": {
+      "Description": "computeSummary in packages/core/src/triage/summary/index.ts classifies every cached github-issue by audit decision alone. Closed issues with accept still inflate in_flight_cache_scoped; closed issues with no decision still count as untriaged.",
+      "ImplementationPlan": "1. When iterating cached issues in computeSummary, read raw.json state (or equivalent cache payload) and skip closed issues from untriaged / in_flight_cache_scoped / stale_defer counts.\n2. Optionally expose closed-issue skip in iterCachedIssues or a filter helper; keep reconcilable logic consistent.\n3. Add regression tests in packages/core/src/triage/summary/index.test.ts with closed+accepted and closed+untriaged fixtures.\n4. CHANGELOG entry. Closes #1705.",
+      "UserStory": "As an operator reading the session-start triage one-liner, I want counts to reflect only open upstream issues, so that accepted-then-closed issues do not inflate in-flight numbers.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1705",
+      "Overview": "Cache-scoped summary ignores GitHub state field.",
+      "Labels": "bug, triage"
+    },
+    "items": [
+      {
+        "id": "1705-a1",
+        "title": "Closed issues excluded from summary counts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a cached issue with state=closed and latest decision accept, when computeSummary runs, then in_flight_cache_scoped does not include it."
+        }
+      },
+      {
+        "id": "1705-a2",
+        "title": "Regression tests for closed cache entries",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given index.test.ts fixtures for closed accepted and closed untriaged entries, when vitest runs, then counts match open-issue-only semantics."
+        }
+      }
+    ],
+    "tags": ["bug", "triage"],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": { "parent_issue": "#1705" },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/summary/index.ts",
+          "packages/core/src/triage/summary/index.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/core/src/triage/summary/index.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": ["Closed-issue filter in computeSummary", "Regression tests", "CHANGELOG"],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-summary",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "strong",
+        "missing_traces_justification": "Summary lie from issue #1705 evidence."
+      },
+      "capacityBucket": "bugfix"
+    },
+    "references": [{ "type": "github-issue", "uri": "https://github.com/deftai/directive/issues/1705" }]
+  }
+}

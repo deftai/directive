@@ -1,9 +1,12 @@
 {
-  "vBRIEFInfo": { "version": "0.6", "description": "Story vBRIEF for #1800 — triage:queue honors triageScopeIgnores" },
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1800 — triage:queue honors triageScopeIgnores"
+  },
   "plan": {
     "id": "1800-queue-ignores",
     "title": "triage:queue honors plan.policy.triageScopeIgnores",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`plan.policy.triageScopeIgnores[]` suppresses issues in the drift detector but not in `task triage:queue`. Operators who add ignore entries still see those issues ranked as actionable untriaged work.",
       "ImplementationPlan": "1. Reuse `resolveScopeIgnores` from `packages/core/src/triage/scope-drift/scope-rules.ts` (or shared scope resolver) inside queue build path — filter cached issues in `packages/core/src/triage/queue/build-queue.ts` or `cache.ts` before ranking.\n2. Add regression test in `packages/core/src/triage/queue/queue.test.ts` with a PROJECT-DEFINITION ignore label and assert the issue is excluded from queue output.\n3. Run `pnpm -w exec vitest run packages/core/src/triage/queue/queue.test.ts` as verification evidence; CHANGELOG entry. Closes #1800.",
@@ -38,10 +41,15 @@
         }
       }
     ],
-    "tags": ["bug", "triage"],
+    "tags": [
+      "bug",
+      "triage"
+    ],
     "metadata": {
       "kind": "story",
-      "x-tracking": { "parent_issue": "#1800" },
+      "x-tracking": {
+        "parent_issue": "#1800"
+      },
       "swarm": {
         "readiness": "ready",
         "parallel_safe": true,
@@ -55,7 +63,11 @@
           "pnpm -w exec vitest run packages/core/src/triage/queue/queue.test.ts",
           "pnpm -w run build"
         ],
-        "expected_outputs": ["Queue filters triageScopeIgnores", "Regression test", "CHANGELOG entry"],
+        "expected_outputs": [
+          "Queue filters triageScopeIgnores",
+          "Regression test",
+          "CHANGELOG entry"
+        ],
         "depends_on": [],
         "conflict_group": "bug-cohort-queue",
         "size": "medium",
@@ -63,9 +75,16 @@
         "model_tier": "default",
         "missing_traces_justification": "Queue/policy mismatch from issue #1800."
       },
-      "capacityBucket": "bugfix"
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-29T23:58:19Z"
     },
-    "references": [{ "uri": "https://github.com/deftai/directive/issues/1800", "type": "x-vbrief/github-issue", "title": "Issue #1800" }],
-    "updated": "2026-06-29T23:45:00Z"
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1800",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1800"
+      }
+    ],
+    "updated": "2026-06-29T23:58:19Z"
   }
 }
