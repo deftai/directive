@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { resolveLifecycleLayout } from "../layout/resolve.js";
 import { evaluateConformance } from "./conformance.js";
 import { USAGE } from "./constants.js";
 import { validateAll } from "./validate-all.js";
@@ -19,7 +20,9 @@ export interface ConformanceCliOptions {
 
 /** CLI entry for vbrief_validate.py parity. */
 export function runValidate(argv: string[]): number {
-  let vbriefDir = "vbrief";
+  // Layout-aware (#2109 part 1): default to the resolved lifecycle dir name
+  // (xbrief when migrated, else vbrief -- unchanged on today's repo).
+  let vbriefDir: string | null = null;
   let strictOriginTypes = false;
   let warningsAsErrors = false;
 
@@ -45,12 +48,14 @@ export function runValidate(argv: string[]): number {
     }
   }
 
-  if (!existsSync(vbriefDir)) {
-    process.stdout.write(`OK: No vbrief directory at ${vbriefDir} -- skipping validation\n`);
+  const resolvedDir = vbriefDir ?? resolveLifecycleLayout(process.cwd()).artifactDir;
+
+  if (!existsSync(resolvedDir)) {
+    process.stdout.write(`OK: No vbrief directory at ${resolvedDir} -- skipping validation\n`);
     return 0;
   }
 
-  const { errors, warnings, scopeCount } = validateAll(vbriefDir, { strictOriginTypes });
+  const { errors, warnings, scopeCount } = validateAll(resolvedDir, { strictOriginTypes });
 
   for (const w of warnings) {
     process.stdout.write(`WARN: ${w}\n`);
@@ -67,8 +72,9 @@ export function runValidate(argv: string[]): number {
     if (scopeCount > 0) {
       parts.push(`${scopeCount} scope vBRIEF(s)`);
     }
-    const projectDef = resolve(vbriefDir, "PROJECT-DEFINITION.vbrief.json");
-    if (existsSync(projectDef)) {
+    const projectDef = resolve(resolvedDir, "PROJECT-DEFINITION.vbrief.json");
+    const projectDefXbrief = resolve(resolvedDir, "PROJECT-DEFINITION.xbrief.json");
+    if (existsSync(projectDef) || existsSync(projectDefXbrief)) {
       parts.push("PROJECT-DEFINITION");
     }
     const summary = parts.length > 0 ? parts.join(", ") : "no vBRIEF files";

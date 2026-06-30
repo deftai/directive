@@ -1,7 +1,8 @@
 import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-const PROJECT_ROOT_SENTINELS = ["vbrief", ".git"] as const;
+// Layout-aware (#2109 part 1): an xbrief-only tree is also a valid project root.
+const PROJECT_ROOT_SENTINELS = ["xbrief", "vbrief", ".git"] as const;
 
 function isProjectRoot(candidate: string): boolean {
   return PROJECT_ROOT_SENTINELS.some((sentinel) => existsSync(join(candidate, sentinel)));

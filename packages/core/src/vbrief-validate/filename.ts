@@ -1,9 +1,12 @@
+import { ARTIFACT_SUFFIXES, hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
+
 /** D7: filename convention without polynomial regex (#1782 s3). */
 export function matchesFilenameConvention(name: string): boolean {
-  if (!name.endsWith(".vbrief.json")) {
+  // Layout-aware (#2109 part 1): accept either .vbrief.json or .xbrief.json.
+  if (!ARTIFACT_SUFFIXES.some((suffix) => name.endsWith(suffix))) {
     return false;
   }
-  const stem = name.slice(0, -".vbrief.json".length);
+  const stem = stripArtifactSuffix(name);
   if (stem.length < 12) {
     return false;
   }
@@ -49,7 +52,7 @@ export function matchesFilenameConvention(name: string): boolean {
 /** Check filename matches YYYY-MM-DD-descriptive-slug.vbrief.json (D7). */
 export function validateFilename(filepath: string): string[] {
   const name = filepath.split("/").pop() ?? filepath;
-  if (name === "PROJECT-DEFINITION.vbrief.json") {
+  if (hasArtifactSuffix(name) && stripArtifactSuffix(name) === "PROJECT-DEFINITION") {
     return [];
   }
   if (!matchesFilenameConvention(name)) {

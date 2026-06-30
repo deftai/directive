@@ -1,6 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import {
+  ARTIFACT_SUFFIXES,
+  hasArtifactSuffix,
+  LIFECYCLE_DIR_NAMES,
+  resolveLifecycleLayout,
+  resolveLifecycleRoot,
+  stripArtifactSuffix,
+} from "../layout/resolve.js";
+import {
   acceptanceTextsFromItems,
   asStrList,
   deprecatedSubitemsIssues,
@@ -49,7 +57,9 @@ function projectRel(projectRoot: string, path: string): string {
 }
 
 function expandPaths(projectRoot: string, patterns: readonly string[]): string[] {
-  const usePatterns = patterns.length > 0 ? patterns : ["vbrief/active/*.vbrief.json"];
+  const layout = resolveLifecycleLayout(projectRoot);
+  const usePatterns =
+    patterns.length > 0 ? patterns : [`${layout.artifactDir}/active/*${layout.artifactSuffix}`];
   const out: string[] = [];
   const seen = new Set<string>();
 
@@ -59,12 +69,11 @@ function expandPaths(projectRoot: string, patterns: readonly string[]): string[]
       const globPart = pattern.includes("/")
         ? pattern.slice(pattern.lastIndexOf("/") + 1)
         : pattern;
-      if (existsSync(join(projectRoot, "vbrief", "active")) && pattern.startsWith("vbrief/")) {
-        const activeDir = join(
-          projectRoot,
-          pattern.split("/")[0] ?? "vbrief",
-          pattern.split("/")[1] ?? "active",
-        );
+      const firstSeg = pattern.split("/")[0] ?? "";
+      const secondSeg = pattern.split("/")[1] ?? "";
+      const lifecyclePattern = (LIFECYCLE_DIR_NAMES as readonly string[]).includes(firstSeg);
+      if (lifecyclePattern && existsSync(join(projectRoot, firstSeg, secondSeg))) {
+        const activeDir = join(projectRoot, firstSeg, secondSeg);
         if (existsSync(activeDir)) {
           for (const name of readdirSync(activeDir)) {
             if (matchGlob(name, globPart)) {
@@ -99,8 +108,10 @@ function dirnamePattern(projectRoot: string, pattern: string): string {
 }
 
 function matchGlob(name: string, glob: string): boolean {
-  if (glob === "*.vbrief.json") {
-    return name.endsWith(".vbrief.json");
+  // Layout-aware (#2109 part 1): an artifact-suffix glob matches either suffix,
+  // so a mixed/either lifecycle tree resolves the same way.
+  if (ARTIFACT_SUFFIXES.some((suffix) => glob === `*${suffix}`)) {
+    return hasArtifactSuffix(name);
   }
   if (glob.startsWith("*.")) {
     return name.endsWith(glob.slice(1));
@@ -197,9 +208,7 @@ function storyId(path: string, plan: Record<string, unknown>): string {
     return value.trim();
   }
   const name = basename(path);
-  return name.endsWith(".vbrief.json")
-    ? name.slice(0, -".vbrief.json".length)
-    : name.replace(/\.[^.]+$/, "");
+  return hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name.replace(/\.[^.]+$/, "");
 }
 
 function hasTraces(plan: Record<string, unknown>, swarm: Record<string, unknown>): boolean {
@@ -261,14 +270,14 @@ function acceptanceCountJustification(
 
 function allScopeIds(projectRoot: string): Map<string, [string, string]> {
   const ids = new Map<string, [string, string]>();
-  const vbriefDir = join(projectRoot, "vbrief");
+  const vbriefDir = resolveLifecycleRoot(projectRoot);
   for (const folder of LIFECYCLE_FOLDERS) {
     const dir = join(vbriefDir, folder);
     if (!existsSync(dir)) {
       continue;
     }
     for (const name of readdirSync(dir).sort()) {
-      if (!name.endsWith(".vbrief.json")) {
+      if (!hasArtifactSuffix(name)) {
         continue;
       }
       const path = join(dir, name);
@@ -279,9 +288,7 @@ function allScopeIds(projectRoot: string): Map<string, [string, string]> {
       const plan = planOf(data);
       const sid = storyId(path, plan);
       ids.set(sid, [path, String(plan.status ?? "")]);
-      const stem = name.endsWith(".vbrief.json")
-        ? name.slice(0, -".vbrief.json".length)
-        : name.replace(/\.[^.]+$/, "");
+      const stem = stripArtifactSuffix(name);
       if (!ids.has(stem)) {
         ids.set(stem, [path, String(plan.status ?? "")]);
       }

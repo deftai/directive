@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hasArtifactSuffix } from "../layout/resolve.js";
 import { LIFECYCLE_FOLDERS } from "./constants.js";
 import { validateNoRootDecompositionDrafts } from "./decomposition.js";
 import { validateEpicStoryLinks } from "./epic-links.js";
@@ -46,7 +47,7 @@ export function discoverVbriefs(vbriefDir: string): Array<{ display: string; abs
       continue;
     }
     const names = readdirSync(folderPath)
-      .filter((name) => name.endsWith(".vbrief.json"))
+      .filter((name) => hasArtifactSuffix(name))
       .sort();
     for (const name of names) {
       files.push({
@@ -108,8 +109,13 @@ export function validateAll(
   }
 
   const normalizedDir = normalizeVbriefDir(vbriefDir);
-  const projectDefDisplay = `${normalizedDir}/PROJECT-DEFINITION.vbrief.json`;
-  const projectDefAbsolute = join(vbriefDir, "PROJECT-DEFINITION.vbrief.json");
+  // Layout-aware (#2109 part 1): prefer an xbrief-named project definition when
+  // present, else fall back to the legacy vbrief-named file (unchanged default).
+  const projectDefName = existsSync(join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"))
+    ? "PROJECT-DEFINITION.xbrief.json"
+    : "PROJECT-DEFINITION.vbrief.json";
+  const projectDefDisplay = `${normalizedDir}/${projectDefName}`;
+  const projectDefAbsolute = join(vbriefDir, projectDefName);
   if (existsSync(projectDefAbsolute)) {
     const { data, error } = loadVbrief(projectDefAbsolute);
     if (error !== null) {

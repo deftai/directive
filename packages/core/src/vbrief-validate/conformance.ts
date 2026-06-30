@@ -7,6 +7,7 @@ import {
   gitTrackedFiles,
 } from "../encoding/git.js";
 import { fnmatchCase } from "../encoding/text.js";
+import { isLifecycleArtifactPath, LIFECYCLE_DIR_NAMES } from "../layout/resolve.js";
 import { evaluateExtensionRoundtrip } from "./roundtrip.js";
 import type { JsonObject } from "./schema.js";
 
@@ -200,7 +201,8 @@ function isAllowListed(relPath: string, patterns: readonly string[]): boolean {
 }
 
 function isVbriefPath(posix: string): boolean {
-  return posix.startsWith("vbrief/") && posix.endsWith(".vbrief.json");
+  // Layout-aware (#2109 part 1): accept either lifecycle root + either suffix.
+  return isLifecycleArtifactPath(posix);
 }
 
 export type ConformanceMode = "all" | "staged";
@@ -229,7 +231,7 @@ export function evaluateConformance(
     };
   }
 
-  if (!existsSync(join(root, "vbrief"))) {
+  if (!LIFECYCLE_DIR_NAMES.some((dir) => existsSync(join(root, dir)))) {
     return {
       exitCode: 2,
       findings: [],

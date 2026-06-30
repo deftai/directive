@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Layout-aware lifecycle resolution -- xbrief or vbrief (#2109, part 1 of 2).** The engine now resolves either an `xbrief/` layout (with `*.xbrief.json` artifacts) or the legacy `vbrief/` layout, preferring `xbrief/` only when both the directory and its artifacts are present. A shared resolver routes validation, conformance scanning, swarm-readiness globs, and project-root detection, and file matching accepts both `.vbrief.json` and `.xbrief.json` suffixes. This is purely additive: with only `vbrief/` present (today's tree) behavior is unchanged, and nothing is moved or renamed. Refs #2109 (part 1/2), #2034.
+
 - **Consumer xbrief migration surface (#2110).** `deft migrate:xbrief` converts a legacy `vbrief/` tree to `xbrief/` with v0.6→v0.8 semantic transforms behind a clean-working-tree gate (`--force` to override). `deft doctor` signposts unmigrated layouts, and `deft update` signposts by default with opt-in `--migrate` on non-patch upgrades — patch releases stay migration-inert per #2034. Refs #2034. Closes #2110.
 
 - **Extension round-trip conformance fixtures and gate (#715).** Packaged conformance fixtures exercise `x-<consumer>/` keys at document, plan, item, and nested value levels; the vBRIEF validator now proves those keys survive load→re-emit with JSON-structural equality and fails the conformance gate when a key is dropped or mutated. Refs #2034. Closes #715.
