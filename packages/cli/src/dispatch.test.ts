@@ -19,6 +19,7 @@ import {
   runDirectiveBootstrap,
   runSetupGhx,
   SETUP_SKILL_REL_PATH,
+  TRIAGE_ACTION_ALIAS_SUBCOMMANDS,
   VERB_ALIASES,
 } from "./dispatch.js";
 
@@ -301,6 +302,50 @@ describe("dispatch", () => {
     for (const [alias, canonical] of Object.entries(VERB_ALIASES)) {
       expect(resolveCanonicalVerb(alias)).toBe(canonical);
     }
+  });
+
+  it("registers all triage-actions colon aliases (#1888)", () => {
+    for (const alias of Object.keys(TRIAGE_ACTION_ALIAS_SUBCOMMANDS)) {
+      expect(resolveCanonicalVerb(alias)).toBe("triage-actions");
+    }
+    expect(resolveCanonicalVerb("triage:reset")).toBe("triage-actions");
+    expect(resolveCanonicalVerb("triage:needs-ac")).toBe("triage-actions");
+  });
+
+  it("injects triage-actions subcommand for colon aliases (#1888)", async () => {
+    const run = vi.fn(() => 0);
+    vi.doMock("./triage-actions.js", () => ({ run }));
+    resetHandlerCacheForTests();
+
+    await dispatch(["triage:reset", "--issue", "1", "--repo", "deftai/directive"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(run).toHaveBeenCalledWith(["reset", "--issue", "1", "--repo", "deftai/directive"]);
+
+    resetHandlerCacheForTests();
+    vi.doMock("./triage-actions.js", () => ({ run }));
+
+    await dispatch(["triage:needs-ac", "--issue", "2", "--repo", "deftai/directive"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(run).toHaveBeenCalledWith(["needs-ac", "--issue", "2", "--repo", "deftai/directive"]);
+
+    resetHandlerCacheForTests();
+    vi.doMock("./triage-actions.js", () => ({ run }));
+
+    await dispatch(["triage:mark-duplicate", "--issue", "3", "--repo", "deftai/directive"], {
+      writeOut: () => {},
+      writeErr: () => {},
+    });
+    expect(run).toHaveBeenCalledWith([
+      "mark-duplicate",
+      "--issue",
+      "3",
+      "--repo",
+      "deftai/directive",
+    ]);
   });
 });
 

@@ -126,6 +126,13 @@ describe("taskKeyToDispatchArgv", () => {
     ]);
     expect(taskKeyToDispatchArgv("vbrief:preflight")).toEqual(["vbrief:preflight"]);
     expect(taskKeyToDispatchArgv("triage:welcome")).toEqual(["triage:welcome"]);
+    expect(taskKeyToDispatchArgv("triage:reset", ["--issue", "1"])).toEqual([
+      "triage-actions",
+      "reset",
+      "--issue",
+      "1",
+    ]);
+    expect(taskKeyToDispatchArgv("triage:needs-ac")).toEqual(["triage-actions", "needs-ac"]);
   });
 });
 

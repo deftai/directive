@@ -200,6 +200,45 @@ function decisionKey(repo: string, issueNumber: number): string {
   return `${repo}\0${issueNumber}`;
 }
 
+/** Read `raw.json` state for a cached github-issue entry; defaults to open when absent. */
+export function readCachedIssueState(
+  cacheRoot: string,
+  repo: string,
+  issueNumber: number,
+): string {
+  const [owner, name] = repo.split("/", 2);
+  const rawPath = join(
+    cacheRoot,
+    CACHE_SOURCE,
+    owner ?? "",
+    name ?? "",
+    String(issueNumber),
+    "raw.json",
+  );
+  if (!existsSync(rawPath)) {
+    return "open";
+  }
+  try {
+    const raw = JSON.parse(readFileSync(rawPath, { encoding: "utf8" })) as unknown;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      return "open";
+    }
+    const stateRaw = (raw as Record<string, unknown>).state ?? "open";
+    return typeof stateRaw === "string" ? stateRaw.toLowerCase() : "open";
+  } catch {
+    return "open";
+  }
+}
+
+/** True when a cached issue should participate in summary classification counts. */
+export function isCachedIssueOpen(
+  cacheRoot: string,
+  repo: string,
+  issueNumber: number,
+): boolean {
+  return readCachedIssueState(cacheRoot, repo, issueNumber) !== "closed";
+}
+
 // ---------------------------------------------------------------------------
 // compute / format / persist
 // ---------------------------------------------------------------------------
@@ -245,6 +284,9 @@ export function computeSummary(
   const noDecisionKeys: Array<[string, number]> = [];
 
   for (const [repo, issueNumber] of cached) {
+    if (!isCachedIssueOpen(resolvedCacheRoot, repo, issueNumber)) {
+      continue;
+    }
     const decision = decisions.get(decisionKey(repo, issueNumber));
     if (decision === undefined || decision === "reset" || !TRIAGED_DECISIONS.has(decision)) {
       untriaged += 1;

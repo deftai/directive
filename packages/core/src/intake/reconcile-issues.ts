@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
+import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
 
@@ -774,6 +775,7 @@ export function applyLifecycleFixes(
       failures.push(`failed to move ${relPath} -> ${destFolder}/`);
       continue;
     }
+    updateDecomposedChildBackReferences(data, src, dst, vbriefDir);
     moved += 1;
   }
 

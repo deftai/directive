@@ -40,11 +40,17 @@ function mkRoot(): string {
   return root;
 }
 
-function makeCachedIssue(cacheRoot: string, repo: string, number: number): void {
+function makeCachedIssue(
+  cacheRoot: string,
+  repo: string,
+  number: number,
+  raw: Record<string, unknown> = { number, state: "open" },
+): void {
   const [owner, name] = repo.split("/", 2);
   const entry = join(cacheRoot, "github-issue", owner ?? "", name ?? "", String(number));
   mkdirSync(entry, { recursive: true });
   writeFileSync(join(entry, "meta.json"), "{}", "utf8");
+  writeFileSync(join(entry, "raw.json"), `${JSON.stringify(raw)}\n`, "utf8");
 }
 
 function writeAuditLog(root: string, entries: Record<string, unknown>[]): void {
@@ -166,6 +172,30 @@ describe("populated cache", () => {
     const result = computeSummary(root);
     expect(result.untriaged).toBe(0);
     expect(formatOneLiner(result)).toContain("0 untriaged");
+  });
+
+  it("excludes closed accepted issues from in-flight cache scope (#1705)", () => {
+    const root = mkRoot();
+    const cacheRoot = join(root, ".deft-cache");
+    makeCachedIssue(cacheRoot, "deftai/directive", 701, { number: 701, state: "closed" });
+    makeCachedIssue(cacheRoot, "deftai/directive", 702, { number: 702, state: "open" });
+    writeAuditLog(root, [
+      auditEntry("deftai/directive", 701, "accept", "77777777-7777-7777-7777-777777777701"),
+      auditEntry("deftai/directive", 702, "accept", "77777777-7777-7777-7777-777777777702"),
+    ]);
+    const result = computeSummary(root);
+    expect(result.inFlightCacheScoped).toBe(1);
+    expect(result.untriaged).toBe(0);
+  });
+
+  it("excludes closed untriaged issues from untriaged count (#1705)", () => {
+    const root = mkRoot();
+    const cacheRoot = join(root, ".deft-cache");
+    makeCachedIssue(cacheRoot, "deftai/directive", 801, { number: 801, state: "closed" });
+    makeCachedIssue(cacheRoot, "deftai/directive", 802, { number: 802, state: "open" });
+    const result = computeSummary(root);
+    expect(result.untriaged).toBe(1);
+    expect(result.inFlightCacheScoped).toBe(0);
   });
 
   it("counts backfilled accept toward in-flight cache scope (#1698)", () => {

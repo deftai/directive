@@ -183,6 +183,22 @@ export const CORE_MODULE_VERBS = [
   "architecture-preflight-sor",
 ] as const;
 
+/** Colon aliases for triage-actions (mirrors cli-router SUBCOMMAND_ROUTES). */
+export const TRIAGE_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "triage:accept": "accept",
+  "triage:reject": "reject",
+  "triage:defer": "defer",
+  "triage:needs-ac": "needs-ac",
+  "triage:mark-duplicate": "mark-duplicate",
+  "triage:status": "status",
+  "triage:reset": "reset",
+  "triage:history": "history",
+};
+
+const TRIAGE_ACTION_COLON_ALIASES = Object.fromEntries(
+  Object.keys(TRIAGE_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "triage-actions"]),
+) as Record<string, string>;
+
 /** Task-style aliases (framework_commands / Taskfile names). */
 export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:encoding": "verify-encoding",
@@ -220,8 +236,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "triage:summary": "triage-summary",
   "triage:queue": "triage-queue",
   "triage:scope": "triage-scope",
-  "triage:accept": "triage-actions",
-  "triage:status": "triage-actions",
+  ...TRIAGE_ACTION_COLON_ALIASES,
   "agents:refresh": "agents-refresh",
   "migrate:preflight": "migrate-preflight",
   "framework:check-updates": "framework-check-updates",
@@ -2427,10 +2442,13 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
 
   try {
     const handler = await loadHandler(canonical, io);
+    const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const handlerArgv =
       canonical === "framework-commands" && verb !== undefined && verb !== canonical
         ? [verb, ...rest]
-        : rest;
+        : triageSubcommand !== undefined && canonical === "triage-actions"
+          ? [triageSubcommand, ...rest]
+          : rest;
     return await invokeHandler(handler, handlerArgv);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { validateEpicStoryLinks } from "../vbrief-validate/epic-links.js";
 import {
+  applyLifecycleFixes,
+  buildLifecycleReport,
   extractReferencesFromVbrief,
   formatMarkdown,
   IssueState,
@@ -7,6 +13,7 @@ import {
   parseIssueNumber,
   reconcile,
   resolveLifecycleAnchor,
+  scanLifecycleAnchors,
 } from "./reconcile-issues.js";
 
 describe("reconcile-issues", () => {
@@ -72,5 +79,95 @@ describe("reconcile-issues", () => {
   it("detects terminal lifecycle paths", () => {
     expect(isTerminalLifecyclePath("completed/foo.vbrief.json")).toBe(true);
     expect(isTerminalLifecyclePath("active/foo.vbrief.json")).toBe(false);
+  });
+});
+
+describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
+  let root = "";
+
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  it("rewrites child planRefs when parent moves to completed/", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-planref-"));
+    const vbrief = join(root, "vbrief");
+    mkdirSync(join(vbrief, "proposed"), { recursive: true });
+    mkdirSync(join(vbrief, "active"), { recursive: true });
+
+    const parentName = "2026-01-01-parent.vbrief.json";
+    const childName = "2026-01-01-child.vbrief.json";
+    writeFileSync(
+      join(vbrief, "proposed", parentName),
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: { version: "0.6" },
+          plan: {
+            title: "Parent epic",
+            status: "proposed",
+            items: [],
+            references: [
+              { type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/55" },
+              { type: "x-vbrief/plan", uri: `active/${childName}` },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(vbrief, "active", childName),
+      `${JSON.stringify(
+        {
+          vBRIEFInfo: { version: "0.6" },
+          plan: {
+            title: "Child story",
+            status: "running",
+            items: [{ title: "slice", status: "running", planRef: `proposed/${parentName}` }],
+            planRef: `proposed/${parentName}`,
+            references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/56" }],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const anchors = scanLifecycleAnchors(vbrief);
+    const report = buildLifecycleReport(
+      anchors,
+      new Map([
+        [55, new IssueState("CLOSED", "COMPLETED")],
+        [56, new IssueState("OPEN")],
+      ]),
+      false,
+    );
+    const [moved, skipped, failures] = applyLifecycleFixes(vbrief, report, root);
+    expect(moved).toBe(1);
+    expect(skipped).toBe(0);
+    expect(failures).toEqual([]);
+
+    const childPath = join(vbrief, "active", childName);
+    const childData = JSON.parse(readFileSync(childPath, "utf8")) as {
+      plan: { planRef: string; items: { planRef: string }[] };
+    };
+    expect(childData.plan.planRef).toBe(`completed/${parentName}`);
+    expect(childData.plan.items[0]?.planRef).toBe(`completed/${parentName}`);
+
+    const parentPath = join(vbrief, "completed", parentName);
+    const all = new Map<string, Record<string, unknown>>();
+    all.set(parentPath, JSON.parse(readFileSync(parentPath, "utf8")) as Record<string, unknown>);
+    all.set(childPath, JSON.parse(readFileSync(childPath, "utf8")) as Record<string, unknown>);
+    const display = new Map([
+      [parentPath, `vbrief/completed/${parentName}`],
+      [childPath, `vbrief/active/${childName}`],
+    ]);
+    expect(validateEpicStoryLinks(all, vbrief, display)).toEqual([]);
   });
 });
