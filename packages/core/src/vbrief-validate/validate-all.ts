@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { hasArtifactSuffix } from "../layout/resolve.js";
+import { basename, join, resolve } from "node:path";
+import { hasArtifactSuffix, MIGRATED_ARTIFACT_DIR } from "../layout/resolve.js";
 import { LIFECYCLE_FOLDERS } from "./constants.js";
 import { validateNoRootDecompositionDrafts } from "./decomposition.js";
 import { validateEpicStoryLinks } from "./epic-links.js";
@@ -109,11 +109,14 @@ export function validateAll(
   }
 
   const normalizedDir = normalizeVbriefDir(vbriefDir);
-  // Layout-aware (#2109 part 1): prefer an xbrief-named project definition when
-  // present, else fall back to the legacy vbrief-named file (unchanged default).
-  const projectDefName = existsSync(join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"))
-    ? "PROJECT-DEFINITION.xbrief.json"
-    : "PROJECT-DEFINITION.vbrief.json";
+  // Layout-aware (#2109 part 1): key the project-definition suffix to the
+  // resolved lifecycle directory's identity (its basename) rather than probing
+  // the filesystem, so a stray xbrief-named file in a legacy tree cannot flip
+  // selection -- this stays consistent with resolveLifecycleLayout's output.
+  const projectDefName =
+    basename(normalizedDir) === MIGRATED_ARTIFACT_DIR
+      ? "PROJECT-DEFINITION.xbrief.json"
+      : "PROJECT-DEFINITION.vbrief.json";
   const projectDefDisplay = `${normalizedDir}/${projectDefName}`;
   const projectDefAbsolute = join(vbriefDir, projectDefName);
   if (existsSync(projectDefAbsolute)) {

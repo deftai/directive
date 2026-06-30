@@ -74,11 +74,9 @@ function expandPaths(projectRoot: string, patterns: readonly string[]): string[]
       const lifecyclePattern = (LIFECYCLE_DIR_NAMES as readonly string[]).includes(firstSeg);
       if (lifecyclePattern && existsSync(join(projectRoot, firstSeg, secondSeg))) {
         const activeDir = join(projectRoot, firstSeg, secondSeg);
-        if (existsSync(activeDir)) {
-          for (const name of readdirSync(activeDir)) {
-            if (matchGlob(name, globPart)) {
-              addPath(join(activeDir, name), seen, out);
-            }
+        for (const name of readdirSync(activeDir)) {
+          if (matchGlob(name, globPart)) {
+            addPath(join(activeDir, name), seen, out);
           }
         }
       } else {
