@@ -116,14 +116,19 @@ export function validateVbriefSchema(data: JsonObject, filepath: string): string
 
   const resolved = resolveInfoBlock(data);
   if (resolved === null) {
-    if (
-      ("vBRIEFInfo" in data && typeof data.vBRIEFInfo !== "object") ||
-      ("xBRIEFInfo" in data && typeof data.xBRIEFInfo !== "object") ||
-      Array.isArray(data.vBRIEFInfo) ||
-      Array.isArray(data.xBRIEFInfo)
-    ) {
-      errors.push(`${filepath}: document info block must be an object`);
-    } else {
+    let infoShapeError = false;
+    for (const key of VALID_INFO_ROOT_KEYS) {
+      if (!(key in data)) {
+        continue;
+      }
+      const info = data[key];
+      if (info === null || Array.isArray(info) || typeof info !== "object") {
+        errors.push(`${filepath}: '${key}' must be an object`);
+        infoShapeError = true;
+        break;
+      }
+    }
+    if (!infoShapeError) {
       errors.push(`${filepath}: missing required top-level key 'vBRIEFInfo' or 'xBRIEFInfo'`);
     }
   } else {

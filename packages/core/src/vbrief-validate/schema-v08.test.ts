@@ -74,6 +74,12 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     expect(errors.some((e) => e.includes("plan.status") && e.includes("auto"))).toBe(true);
   });
 
+  it("reports null info block as must-be-object, not missing key", () => {
+    const errors = validateVbriefSchema({ vBRIEFInfo: null, plan: {} }, "null-info.json");
+    expect(errors.some((e) => e.includes("'vBRIEFInfo' must be an object"))).toBe(true);
+    expect(errors.some((e) => e.includes("missing required top-level key"))).toBe(false);
+  });
+
   it("treats x-xbrief reference types as conformant and origin-trusting", () => {
     const rel = "vbrief/active/2026-06-30-story.xbrief.json";
     const data = {
