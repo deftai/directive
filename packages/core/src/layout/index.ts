@@ -20,5 +20,7 @@ export {
   resolveLifecycleLayout,
   resolveLifecycleRoot,
   resolveProjectDefinitionPath,
+  resolveSpecArtifactPath,
+  specArtifactRelPath,
   stripArtifactSuffix,
 } from "./resolve.js";

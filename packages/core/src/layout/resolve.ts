@@ -181,3 +181,24 @@ export function projectDefinitionRelPath(projectRoot: string): string {
   const layout = resolveLifecycleLayout(projectRoot);
   return `${layout.artifactDir}/PROJECT-DEFINITION${layout.artifactSuffix}`;
 }
+
+/**
+ * Absolute path to the resolved specification artifact (#2132).
+ *
+ * Prefers `xbrief/specification.xbrief.json` on a migrated tree; falls back to
+ * `vbrief/specification.vbrief.json` on an unmigrated tree. Consistent with the
+ * layout resolver used by the #2109 Part-2a call-site sweep.
+ */
+export function resolveSpecArtifactPath(projectRoot: string): string {
+  const layout = resolveLifecycleLayout(projectRoot);
+  return join(layout.root, `specification${layout.artifactSuffix}`);
+}
+
+/**
+ * POSIX-style display path to the resolved specification artifact relative to
+ * the project root (e.g. `xbrief/specification.xbrief.json`).
+ */
+export function specArtifactRelPath(projectRoot: string): string {
+  const layout = resolveLifecycleLayout(projectRoot);
+  return `${layout.artifactDir}/specification${layout.artifactSuffix}`;
+}

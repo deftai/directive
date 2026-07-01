@@ -70,8 +70,8 @@ export function renderPrd(
   }
   lines.push(
     "---\n" +
-      "*This document is auto-generated from `vbrief/specification.vbrief.json` " +
-      "via `task prd:render`. Do not edit directly.*\n",
+      "*This document is auto-generated from the specification artifact " +
+      "(e.g. `xbrief/specification.xbrief.json`) via `task prd:render`. Do not edit directly.*\n",
   );
 
   writeFileSync(outputPath, lines.join("\n"), "utf8");

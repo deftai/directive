@@ -13,24 +13,24 @@ vars:
 tasks:
 
   validate:
-    desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
+    desc: Validate that the specification artifact exists and is well-formed JSON
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'spec-validate "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"'
+          ENGINE_CMD: 'spec-validate --project-root "{{.USER_WORKING_DIR}}"'
 
   render:
-    desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
+    desc: Render the specification artifact to SPECIFICATION.md
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'spec-render "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"'
+          ENGINE_CMD: 'spec-render --project-root "{{.USER_WORKING_DIR}}"'
 
   pipeline:
     desc: Run full spec pipeline (validate then render)

@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for GitHub issue #2132"
+  },
+  "plan": {
+    "title": "Fix spec/prd render tasks to resolve xbrief layout (#2132)",
+    "status": "running",
+    "narratives": {
+      "Description": "After the vbrief/ -> xbrief/ rename (#2109), spec:validate, spec:render, and prd:render task fragments hardcode the legacy vbrief/specification.vbrief.json path. On migrated xbrief/ trees the path does not exist, causing all three tasks to fail. Fix by routing through the existing layout resolver (resolveSpecArtifactPath) so migrated trees use xbrief/specification.xbrief.json and unmigrated trees fall back to vbrief/specification.vbrief.json.",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/2132",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2132",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2132: spec:validate / spec:render / prd:render hardcode legacy vbrief/ path after xbrief rename"
+      }
+    ],
+    "metadata": {},
+    "updated": "2026-07-01T17:45:32Z"
+  }
+}

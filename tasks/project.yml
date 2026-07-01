@@ -19,7 +19,7 @@ vars:
 tasks:
 
   render:
-    desc: Regenerate PROJECT-DEFINITION.vbrief.json items registry from lifecycle folders
+    desc: Regenerate PROJECT-DEFINITION artifact items registry from lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
@@ -30,7 +30,7 @@ tasks:
 
   ack-staleness:
     desc: >-
-      Acknowledge reviewed PROJECT-DEFINITION narrative staleness (#640).
+      Acknowledge reviewed PROJECT-DEFINITION artifact narrative staleness (#640).
       Distinct from task reconcile:issues (scope origin freshness).
     dir: '{{.USER_WORKING_DIR}}'
     deps:
