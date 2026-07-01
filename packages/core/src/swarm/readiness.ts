@@ -238,7 +238,7 @@ function hasTraces(plan: Record<string, unknown>, swarm: Record<string, unknown>
         typeof ref === "object" &&
         ref !== null &&
         !Array.isArray(ref) &&
-        (ref as Record<string, unknown>).type === "x-vbrief/spec-section"
+        referenceTypeMatches(String((ref as Record<string, unknown>).type ?? ""), "spec-section")
       ) {
         return true;
       }
