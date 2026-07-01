@@ -330,6 +330,16 @@ v1 ships the read/render-and-validate command `task umbrella:current-shape <N>` 
 
 Cross-references: `content/skills/deft-directive-gh-slice/SKILL.md` (final phase -- file the umbrella, then file its current-shape comment per this convention), `content/skills/deft-directive-refinement/SKILL.md` and `content/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status, read the current-shape comment + linked xBRIEF, not the body), `content/templates/agent-prompt-preamble.md` (canonical orchestrator preamble that consumers of this convention dispatch against). Refs #1140 (parent meta-umbrella -- design-pass churn), #1119 (companion umbrella whose pattern motivated this convention; its v3 current-shape comment is the seed example pre-dating this convention), #2066 (claim-cites-state-surface -- forbid body-only status conclusions).
 
+## Issue body→comments reading (#2143)
+
+**Why this rule exists:** the #2126 dispatch recurrence built a worker envelope from the issue body only; a maintainer comment on the same issue had already invalidated the body's suggested fix and named the correct approach. The umbrella current-shape convention (#1152) encodes the same principle for umbrellas — body is pass-1, comments supersede — but that discipline was not generalized to ordinary issues or enforced at ingest time.
+
+- ! Before ingesting or dispatching against any GitHub issue, fetch both the issue body AND `repos/<owner>/<repo>/issues/<N>/comments` via REST. Read body first, then the comment thread in chronological order.
+- ! The issue-ingest path (`packages/core/src/intake/issue-ingest.ts` / `task issue:ingest`) fetches `/comments` by default and folds the thread into the ingested overview so a body-only artifact is not the default.
+- ⊗ Build a dispatch envelope or conclude what an issue asks for from the issue body alone when the issue has comments (#2143).
+
+Cross-references: `content/templates/agent-prompt-preamble.md` § 5.6, issue #2143. Refs #1152, #2066, #2126.
+
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
 

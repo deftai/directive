@@ -129,8 +129,11 @@ describe("fetchIssue", () => {
         { cacheRoot, clock, fetchedAt: clock.now() },
       );
 
-      const scmCall = vi.fn(() =>
-        completed(
+      const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[]) => {
+        if (args[0]?.endsWith("/comments")) {
+          return completed("[]", "", 0);
+        }
+        return completed(
           JSON.stringify({
             number: 1714,
             title: "Live rewritten title",
@@ -140,13 +143,13 @@ describe("fetchIssue", () => {
           }),
           "",
           0,
-        ),
-      );
+        );
+      });
 
       const issue = fetchIssue("o/r", 1714, { cacheRoot, scmCall });
       expect(issue?.title).toBe("Live rewritten title");
       expect(issue?.body).toBe("Live rewritten body");
-      expect(scmCall).toHaveBeenCalledTimes(1);
+      expect(scmCall).toHaveBeenCalledTimes(2);
     } finally {
       rmSync(cacheRoot, { recursive: true, force: true });
     }
@@ -167,10 +170,15 @@ describe("fetchIssue", () => {
         { cacheRoot },
       );
 
-      const scmCall = vi.fn(() => completed("", "network error", 1));
+      const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[]) => {
+        if (args[0]?.endsWith("/comments")) {
+          return completed("[]", "", 0);
+        }
+        return completed("", "network error", 1);
+      });
       const issue = fetchIssue("o/r", 99, { cacheRoot, scmCall });
       expect(issue?.title).toBe("Cached fallback title");
-      expect(scmCall).toHaveBeenCalledTimes(1);
+      expect(scmCall).toHaveBeenCalledTimes(2);
     } finally {
       rmSync(cacheRoot, { recursive: true, force: true });
     }

@@ -28,6 +28,17 @@ import {
 export const INGEST_STATUSES = ["proposed", "pending", "active"] as const;
 export type IngestStatus = (typeof INGEST_STATUSES)[number];
 
+/** GitHub issue comment thread entry (REST `repos/.../issues/N/comments`). */
+export interface IssueComment {
+  readonly id?: number;
+  readonly body?: string;
+  readonly user?: { readonly login?: string };
+  readonly created_at?: string;
+}
+
+/** Enriched on issues after `fetchIssue` when the comment thread is non-empty (#2143). */
+export const ISSUE_COMMENT_THREAD_KEY = "issueCommentThread" as const;
+
 const STATUS_MAP: Record<IngestStatus, [string, string]> = {
   proposed: ["proposed", "proposed"],
   pending: ["pending", "pending"],
@@ -234,6 +245,47 @@ export function scanProvenanceRefs(vbriefDir: string): Map<number, string[]> {
   return issueToVbriefs;
 }
 
+export function composeOverviewWithComments(
+  body: string,
+  comments: readonly IssueComment[],
+): string {
+  if (comments.length === 0) {
+    return body;
+  }
+  const parts: string[] = [];
+  if (body.length > 0) {
+    parts.push(body);
+    parts.push("");
+    parts.push("---");
+    parts.push("");
+  }
+  parts.push("## Issue comment thread");
+  parts.push("");
+  parts.push(
+    "_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._",
+  );
+  parts.push("");
+  for (const comment of comments) {
+    const author = comment.user?.login ?? "unknown";
+    const when = comment.created_at ?? "";
+    const header =
+      when.length > 0 ? `### Comment by @${author} (${when})` : `### Comment by @${author}`;
+    parts.push(header);
+    parts.push("");
+    parts.push(typeof comment.body === "string" ? comment.body : "");
+    parts.push("");
+  }
+  return parts.join("\n").trimEnd();
+}
+
+export function issueCommentThread(issue: Record<string, unknown>): IssueComment[] {
+  const raw = issue[ISSUE_COMMENT_THREAD_KEY];
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter((entry): entry is IssueComment => entry !== null && typeof entry === "object");
+}
+
 export function buildIssueVbrief(
   issue: Record<string, unknown>,
   status: IngestStatus,
@@ -249,6 +301,9 @@ export function buildIssueVbrief(
     (repoUrl.length > 0 ? `${repoUrl}/issues/${number}` : "");
   const bodyRaw = issue.body;
   const bodyStr = typeof bodyRaw === "string" && bodyRaw.length > 0 ? bodyRaw : "";
+  const commentThread = issueCommentThread(issue);
+  const overviewSource =
+    commentThread.length > 0 ? composeOverviewWithComments(bodyStr, commentThread) : bodyStr;
   const labelsRaw = issue.labels;
   const labelNames: string[] = [];
   if (Array.isArray(labelsRaw)) {
@@ -269,15 +324,15 @@ export function buildIssueVbrief(
     Description: title,
     Origin: url.length > 0 ? `Ingested from ${url}` : `Ingested from issue #${number}`,
   };
-  if (bodyStr.length > 0) {
-    warnBodyControlCharacters(number, bodyStr);
-    narratives.Overview = bodyStr;
+  if (overviewSource.length > 0) {
+    warnBodyControlCharacters(number, overviewSource);
+    narratives.Overview = overviewSource;
   }
   if (labelNames.length > 0) {
     narratives.Labels = labelNames.join(", ");
   }
 
-  const planItems = bodyStr.length > 0 ? extractPlanItems(bodyStr) : [];
+  const planItems = overviewSource.length > 0 ? extractPlanItems(overviewSource) : [];
   const plan: Record<string, unknown> = {
     title,
     status: planStatus,
@@ -296,8 +351,8 @@ export function buildIssueVbrief(
         title: `Issue #${number}: ${title}`,
       },
     ];
-    if (bodyStr.length > 0 && repoUrl.length > 0) {
-      references.push(...extractCrossRefs(bodyStr, repoUrl, new Set([number])));
+    if (overviewSource.length > 0 && repoUrl.length > 0) {
+      references.push(...extractCrossRefs(overviewSource, repoUrl, new Set([number])));
     }
     plan.references = references;
   }
@@ -347,6 +402,63 @@ export function fetchFromCache(
   }
 }
 
+export function fetchIssueComments(
+  repo: string,
+  number: number,
+  options: FetchIssueOptions = {},
+): IssueComment[] {
+  const scmCall = options.scmCall ?? call;
+  let result: CompletedProcess;
+  try {
+    result = scmCall("github-issue", "api", [`repos/${repo}/issues/${number}/comments`], {
+      timeout: 30,
+      cwd: options.cwd ?? undefined,
+    });
+  } catch {
+    return [];
+  }
+  if (result.returncode !== 0) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(result.stdout) as unknown;
+    return Array.isArray(parsed) ? (parsed as IssueComment[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function attachIssueCommentThread(
+  issue: Record<string, unknown>,
+  comments: readonly IssueComment[],
+): Record<string, unknown> {
+  if (comments.length === 0) {
+    return issue;
+  }
+  return { ...issue, [ISSUE_COMMENT_THREAD_KEY]: [...comments] };
+}
+
+export function repoSlugFromUrl(repoUrl: string): string | null {
+  const match = /github\.com\/([^/\s]+\/[^/\s]+)/.exec(repoUrl);
+  return match?.[1] ?? null;
+}
+
+export function enrichIssueWithComments(
+  issue: Record<string, unknown>,
+  repoUrl: string,
+  options: FetchIssueOptions = {},
+): Record<string, unknown> {
+  if (issueCommentThread(issue).length > 0) {
+    return issue;
+  }
+  const repo = repoSlugFromUrl(repoUrl);
+  const number = Number(issue.number);
+  if (repo === null || !Number.isFinite(number)) {
+    return issue;
+  }
+  return attachIssueCommentThread(issue, fetchIssueComments(repo, number, options));
+}
+
 export function fetchSingleIssue(
   repo: string,
   number: number,
@@ -387,9 +499,15 @@ export function fetchIssue(
 ): Record<string, unknown> | null {
   const live = fetchSingleIssue(repo, number, options);
   if (live !== null) {
-    return live;
+    const comments = fetchIssueComments(repo, number, options);
+    return attachIssueCommentThread(live, comments);
   }
-  return fetchFromCache(repo, number, options);
+  const cached = fetchFromCache(repo, number, options);
+  if (cached === null) {
+    return null;
+  }
+  const comments = fetchIssueComments(repo, number, options);
+  return attachIssueCommentThread(cached, comments);
 }
 
 export type IngestResult = "created" | "dryrun" | "duplicate";
@@ -415,7 +533,8 @@ export function ingestOne(
     ];
   }
 
-  const [vbrief, folder] = buildIssueVbrief(issue, options.status, options.repoUrl);
+  const enriched = enrichIssueWithComments(issue, options.repoUrl);
+  const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl);
   const filename = targetFilename(number, String(issue.title ?? ""));
   const target = join(options.vbriefDir, folder, filename);
 

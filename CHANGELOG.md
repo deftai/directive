@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Issue ingest now fetches GitHub issue comments by default and folds the thread into the ingested overview, so corrective maintainer comments reach workers instead of a body-only snapshot. Closes #2143.
+
 ### Changed
 
 ### Fixed

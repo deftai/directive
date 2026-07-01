@@ -96,6 +96,16 @@ Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canon
 
 Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.
 
+## Issue body→comments reading (#2143)
+
+When ingesting or dispatching against **any** GitHub issue (not only umbrellas), later maintainer comments may supersede the original body — the #2126 recurrence shipped the wrong fix from a body-only fetch.
+
+- ! Fetch both the issue body and `repos/<owner>/<repo>/issues/<N>/comments` via REST before concluding what the issue asks for or building a worker dispatch envelope. Read body first, then the comment thread in chronological order.
+- ! `deft issue:ingest` / `task issue:ingest` fetches `/comments` by default and folds the thread into the ingested overview (#2143).
+- ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
+
+Cross-references: `.deft/core/content/templates/agent-prompt-preamble.md` § 5.6. Refs #2143, #1152, #2066, #2126.
+
 ## Content packs
 
 Deft ships versioned content packs (e.g. lessons learned from prior work) under `.deft/core/packs/`. Discover and LOAD pack content via the slice surface instead of reading whole pack files into context:

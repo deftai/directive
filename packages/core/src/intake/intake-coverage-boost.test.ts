@@ -46,13 +46,19 @@ import {
   writeVbrief,
 } from "./issue-emit.js";
 import {
+  attachIssueCommentThread,
   bodyControlCharacterLabels,
   buildIssueVbrief,
+  composeOverviewWithComments,
   extractAcSectionItems,
+  fetchIssue,
+  fetchIssueComments,
   fetchSingleIssue,
+  ISSUE_COMMENT_THREAD_KEY,
   ingestBulk,
   ingestOne,
   ingestSingleForAccept,
+  issueCommentThread,
   issueIngestMain,
   provenanceIssueNumber,
   resolveRepoUrl,
@@ -172,6 +178,58 @@ describe("intake coverage boost", () => {
           vBRIEFInfo: { description: "Scope vBRIEF ingested from GitHub issue #77" },
         }),
       ).toBe(77);
+    });
+
+    it("folds comment thread into overview so corrections supersede body-only fetch (#2143)", () => {
+      const bodyFix = "Use `pnpm -r run build` / `--filter @deftai/directive build`.";
+      const commentFix =
+        "Do NOT use pnpm -r run build for vendored deposits. Route through `:engine:_ts-build` + `:engine:invoke` instead.";
+      const issue = attachIssueCommentThread(
+        { number: 2126, title: "Vendored build", body: bodyFix, labels: [] },
+        [{ user: { login: "maintainer" }, body: commentFix, created_at: "2026-07-01T12:00:00Z" }],
+      );
+      const [vbrief] = buildIssueVbrief(issue, "proposed", "https://github.com/deftai/directive");
+      const overview = String(
+        (vbrief.plan as Record<string, unknown>).narratives &&
+          ((vbrief.plan as Record<string, unknown>).narratives as Record<string, string>).Overview,
+      );
+      expect(overview).toContain(bodyFix);
+      expect(overview).toContain("Issue comment thread");
+      expect(overview).toContain(":engine:_ts-build");
+      expect(overview).toContain(commentFix);
+      expect(issueCommentThread(issue)).toHaveLength(1);
+      expect(composeOverviewWithComments("", [{ body: "only comment" }])).toContain("only comment");
+    });
+
+    it("fetchIssue attaches comment thread from scm", () => {
+      const scmCall = vi.fn((_source: string, _verb: string, args: readonly string[]) => {
+        if (args[0] === "repos/o/r/issues/99/comments") {
+          return completed(
+            JSON.stringify([
+              {
+                body: "Correct fix Y",
+                user: { login: "bot" },
+                created_at: "2026-07-01T00:00:00Z",
+              },
+            ]),
+          );
+        }
+        if (args[0] === "repos/o/r/issues/1/comments") {
+          return completed("[]");
+        }
+        return completed(
+          JSON.stringify({
+            number: 99,
+            title: "Issue",
+            body: "Wrong fix X",
+            html_url: "https://github.com/o/r/issues/99",
+          }),
+        );
+      });
+      expect(fetchIssueComments("o/r", 1, { scmCall })).toEqual([]);
+      const enriched = fetchIssue("o/r", 99, { scmCall });
+      expect(enriched?.[ISSUE_COMMENT_THREAD_KEY]).toHaveLength(1);
+      expect(String(enriched?.body ?? "")).toContain("Wrong fix X");
     });
 
     it("ingestOne handles duplicate and dry-run", () => {

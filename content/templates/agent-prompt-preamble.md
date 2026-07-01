@@ -233,19 +233,22 @@ task scm:body:pr:edit -- --repo OWNER/REPO --pr 42 --body-file "$bodyFile"
 
 The wrapper reads UTF-8 body text from a file or stdin, sends JSON to `gh api --input -` via `_safe_subprocess.run_text` with `shell=False`, and prints the live post-mutation read-back object. Use live `gh` for immediate verification after mutations; do not use `ghx` for the first read-back because it may serve a cached stale GET.
 
-## 5.6 Umbrella status — claim-cites-state-surface (#2066)
+## 5.6 Issue reading — body then comments (#2143 / #2066)
 
-Before stating an umbrella or epic's current status (what is done, what blocks, wave order), satisfy the claim-cites-state-surface rule:
+Before ingesting a GitHub issue, building a worker dispatch envelope, or concluding what an issue actually asks for, satisfy the body→comments reading discipline for **any** issue (not only umbrellas):
 
-1. ! Fetch issue comments via REST: `gh api repos/<owner>/<repo>/issues/<N>/comments` (or `ghx api ...` for cached read-only GET).
-2. ! Read the `## Current shape (as of pass-N)` comment and any linked context or `LockedDecisions` xBRIEF referenced there. Follow the AGENTS.md #1152 reading order: body -> current-shape comment -> amendment comments.
-3. ! Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact in the same message.
+1. ! Fetch the issue via REST: `gh api repos/<owner>/<repo>/issues/<N>` (or `ghx api ...` for cached read-only GET).
+2. ! Fetch the comment thread via REST: `gh api repos/<owner>/<repo>/issues/<N>/comments` (or `ghx api ...` for cached read-only GET). The issue-ingest path fetches `/comments` by default and folds the thread into the ingested overview (#2143).
+3. ! Read body first, then the comment thread in chronological order. Later maintainer comments may supersede the original body — the #2126 recurrence shipped the wrong fix because dispatch used a body-only fetch.
+4. ! Any scope, fix, or status conclusion about the issue MUST reflect the full thread, not the body alone.
 
-Anti-pattern: reading only the issue body (pass-1 plan, stale by design) and concluding umbrella status from it — e.g. `gh issue view <N> --json body` or REST `repos/.../issues/<N>` body field alone. The live recurrence on 2026-06-28 misread #2013 Wave 0 status this way despite #1152 being loaded.
+**Umbrellas and epics (#1152):** when the issue is an umbrella or epic, the reading order extends to body → `## Current shape (as of pass-N)` comment → amendment comments. Prefer `task umbrella:current-shape <N>` for the deterministic current-shape read path.
 
-⊗ Conclude umbrella or epic status from the issue body alone (#2066).
+Anti-pattern: reading only the issue body and building a dispatch envelope from it — e.g. `gh issue view <N> --json body` or REST `repos/.../issues/<N>` body field alone when `comments` count is greater than zero.
 
-Reference: AGENTS.md `## Umbrella current-shape convention (#1152)`, issue #2066.
+⊗ Conclude what an issue asks for, or build a dispatch envelope, from the issue body alone when the issue has comments (#2143 / #2066).
+
+Reference: AGENTS.md `## Issue body→comments reading (#2143)`, `## Umbrella current-shape convention (#1152)`, issue #2143.
 
 ## 6. No Draft re-toggling within a single review cycle
 
