@@ -188,4 +188,16 @@ describe("doctor CLI", () => {
     expect(out).toContain("xBrief migration: legacy vbrief layout detected");
     expect(out).toContain("migrate:xbrief");
   });
+
+  it("defaults projectRoot to process.cwd() when --project-root is omitted", () => {
+    // Exercises the `flags.projectRoot ?? process.cwd()` false branch in doctor.ts.
+    const out = captureStdout(() => {
+      run([]);
+    });
+    // The pre-cutover and migration lines are rendered using process.cwd().
+    // We only assert that both lines were emitted (not their exact content,
+    // since process.cwd() varies by environment).
+    expect(out).toContain("Pre-cutover:");
+    expect(out).toContain("xBrief migration:");
+  });
 });

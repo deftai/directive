@@ -156,4 +156,29 @@ describe("evaluateXbriefDrift", () => {
     expect(staged.code).toBe(1);
     expect(staged.findings[0]?.kind).toBe("legacy-suffix");
   });
+
+  it("exits 0 with empty message when quiet option is true (lines 246-247)", () => {
+    // quiet: true suppresses the success message, returning an empty string.
+    root = initRepo();
+    writeTracked(root, "xbrief/active/2026-06-30-1-thing.xbrief.json", CANONICAL_ARTIFACT);
+    const result = evaluateXbriefDrift(root, { quiet: true });
+    expect(result.code).toBe(0);
+    expect(result.message).toBe("");
+    expect(result.stream).toBe("stdout");
+  });
+
+  it("exits 2 when project root is not inside a git repo (lines 192-193)", () => {
+    // A directory that exists but is not a git repo causes gitTrackedFiles to
+    // throw GitCommandError, which listFiles converts to an error object.
+    // evaluateXbriefDrift then returns code 2 via the !Array.isArray(listed) branch.
+    const nonGitDir = mkdtempSync(join(tmpdir(), "xbrief-drift-non-git-"));
+    try {
+      const result = evaluateXbriefDrift(nonGitDir);
+      expect(result.code).toBe(2);
+      expect(result.stream).toBe("stderr");
+      expect(result.message).toContain("verify_xbrief_drift:");
+    } finally {
+      rmSync(nonGitDir, { recursive: true, force: true });
+    }
+  });
 });

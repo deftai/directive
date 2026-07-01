@@ -1,0 +1,41 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Restore global TypeScript branch coverage to >= 85% by adding targeted unit tests for uncovered branches in xbrief-migrate and related modules.",
+    "created": "2026-07-01T16:35:00Z",
+    "updated": "2026-07-01T16:35:00Z"
+  },
+  "plan": {
+    "id": "2135-branch-coverage",
+    "title": "Restore branch coverage above 85% threshold",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2135",
+    "narratives": {
+      "Description": "Global branch coverage sits at 84.99% (20922/24616) on master HEAD, just under the 85% threshold. Recent xbrief rename/layout PRs (#2109, #2110, #2119, #2122, #2125, #2127, #2128, #2130) added code branches (layout resolver, xbrief-migrate, dual-namespace readers, call-site wiring) without full branch coverage, tipping the global number just under the gate.",
+      "ImplementationPlan": "1. Run coverage locally; identify top uncovered branches in xbrief-migrate (drift-gate.ts, detect.ts, migrate-project.ts). 2. Add targeted unit tests for: (a) drift-gate.ts quiet mode and git-error path; (b) detect.ts root-level vbrief artifact detection and version-string detection; (c) migrate-project.ts emitXbriefMigration refused/config/migrated cases and runAgentsRefresh branches. 3. Re-run coverage and verify global branch coverage >= 85%.",
+      "UserStory": "As a directive CI maintainer, I want the TypeScript job to be green on master, so that merges are unblocked.",
+      "Traces": "#2135, #2130, #2109"
+    },
+    "items": [
+      {
+        "id": "2135-a1",
+        "title": "Given uncovered branches in xbrief-migrate modules, when targeted tests are added, then branch coverage >= 85%",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "pnpm -w test exits 0 with branch coverage >= 85% on master HEAD."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2135",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2135: Global branch coverage 84.99% < 85% threshold"
+      }
+    ],
+    "updated": "2026-07-01T16:49:58Z",
+    "metadata": {
+      "completedAt": "2026-07-01T16:49:58Z"
+    }
+  }
+}

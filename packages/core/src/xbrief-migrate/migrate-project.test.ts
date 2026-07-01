@@ -189,6 +189,48 @@ describe("emitXbriefMigration", () => {
     ).toBe(0);
     expect(lines.join("")).toContain("migrate:xbrief");
   });
+
+  it("uses process.cwd() when signpostOnly=true and projectRoot is omitted", () => {
+    const outs: string[] = [];
+    const code = emitXbriefMigration(
+      { kind: "noop", message: "unused" },
+      { writeOut: (t) => outs.push(t), writeErr: () => {} },
+      { signpostOnly: true },
+    );
+    expect(code).toBe(0);
+    expect(outs.length).toBeGreaterThan(0);
+  });
+
+  it("returns exit code 2 and writes to stderr for config outcome (line 231-232)", () => {
+    const errs: string[] = [];
+    const code = emitXbriefMigration(
+      { kind: "config", message: "xbrief/ already exists alongside vbrief/" },
+      { writeOut: () => {}, writeErr: (t) => errs.push(t) },
+    );
+    expect(code).toBe(2);
+    expect(errs.join("")).toContain("xbrief/ already exists alongside vbrief/");
+  });
+
+  it("returns exit code 1 and writes to stderr for refused outcome", () => {
+    const errs: string[] = [];
+    const code = emitXbriefMigration(
+      { kind: "refused", message: "working tree is dirty" },
+      { writeOut: () => {}, writeErr: (t) => errs.push(t) },
+    );
+    expect(code).toBe(1);
+    expect(errs.join("")).toContain("working tree is dirty");
+  });
+
+  it("returns exit code 0 and writes to stdout for migrated outcome", () => {
+    const outs: string[] = [];
+    const code = emitXbriefMigration(
+      { kind: "migrated", backupDir: "/tmp/backup-xyz", files: 5 },
+      { writeOut: (t) => outs.push(t), writeErr: () => {} },
+    );
+    expect(code).toBe(0);
+    expect(outs.join("")).toContain("5 file(s)");
+    expect(outs.join("")).toContain("/tmp/backup-xyz");
+  });
 });
 
 describe("runXbriefMigrationCli", () => {
@@ -223,5 +265,23 @@ describe("runXbriefMigrationCli", () => {
     expect(code).toBe(0);
     expect(lines.join("")).toContain("Migrated 1 file(s)");
     expect(existsSync(join(project, "AGENTS.md"))).toBe(true);
+  });
+
+  it("returns exit code 2 when agents:refresh cannot find the framework template (template-missing)", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-cli-tmpl-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    // An empty frameworkRoot has no templates/agents-entry.md so agentsRefreshPlan
+    // returns state="template-missing", causing runAgentsRefresh to return 2.
+    const emptyFwRoot = mkdtempSync(join(tmpdir(), "empty-fw-"));
+    temps.push(emptyFwRoot);
+
+    const errs: string[] = [];
+    const code = runXbriefMigrationCli(
+      { projectRoot: project, frameworkRoot: emptyFwRoot, force: true },
+      { writeOut: () => {}, writeErr: (t) => errs.push(t) },
+    );
+    expect(code).toBe(2);
+    expect(errs.join("")).toContain("agents:refresh failed");
   });
 });
