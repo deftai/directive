@@ -1813,7 +1813,7 @@ func PrintNextSteps(w *Wizard, result *WizardResult, configDir string, skillsCre
 	w.printf("  1. Open your AI coding assistant in %s%c\n", result.ProjectDir, os.PathSeparator)
 	w.printf("  2. Deft skill auto-discovery is partially implemented — if your agent doesn't\n")
 	w.printf("     start setup automatically, tell it: \"Use AGENTS.md\"\n")
-	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT-DEFINITION.vbrief.json\n")
+	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT-DEFINITION.xbrief.json\n")
 	w.printf("\n")
 }
 

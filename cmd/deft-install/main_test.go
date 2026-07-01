@@ -493,9 +493,9 @@ func TestWriteAgentsMD_CreateNew(t *testing.T) {
 	if strings.Contains(content, "deft/skills/deft-setup/") {
 		t.Error("AGENTS.md should not reference legacy deft-setup path")
 	}
-	// Verify vBRIEF-centric references.
-	if !strings.Contains(content, "PROJECT-DEFINITION.vbrief.json") {
-		t.Error("AGENTS.md should reference PROJECT-DEFINITION.vbrief.json")
+	// Verify xBRIEF-centric references (post vbrief->xbrief rename, #2109).
+	if !strings.Contains(content, "PROJECT-DEFINITION.xbrief.json") {
+		t.Error("AGENTS.md should reference PROJECT-DEFINITION.xbrief.json")
 	}
 }
 
@@ -841,7 +841,7 @@ func TestPrintNextSteps(t *testing.T) {
 		"AGENTS.md",
 		"User config",
 		"Use AGENTS.md",
-		"USER.md and PROJECT-DEFINITION.vbrief.json",
+		"USER.md and PROJECT-DEFINITION.xbrief.json",
 		"created",
 	} {
 		if !strings.Contains(out, want) {

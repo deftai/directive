@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Go installer test and next-steps output updated for `xbrief` layout (#2134).** After the `vbrief/`→`xbrief/` rename (#2109), the Go installer's generated AGENTS.md referenced `PROJECT-DEFINITION.xbrief.json` but the test still asserted the legacy name, causing the Go CI job to fail on master. The stale test assertion and the post-install next-steps message are now consistent with the `xbrief` layout. Closes #2134.
+
 - **Engine emit sites now produce canonical `x-xbrief/` reference tokens (#2128).** The intake, build, speckit, decompose, and reconcile paths previously minted legacy `x-vbrief/` tokens, causing freshly ingested or built artifacts committed under `xbrief/` to trip the `verify:xbrief-drift` pre-commit gate. All emit constants are flipped to `x-xbrief/` and reader matchers in capacity, scope, swarm, and lifecycle modules are made dual-namespace (accepting both prefixes) via a new shared `referenceTypeMatches` helper in `@deftai/directive-types`. `x-vbrief/` remains read-accepted for consumer back-compat. Closes #2128.
 
 ### Changed

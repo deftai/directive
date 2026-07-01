@@ -1,0 +1,77 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2134: update Go installer test and next-steps output for xbrief layout after vbrief->xbrief rename.",
+    "created": "2026-07-01T16:33:00Z",
+    "updated": "2026-07-01T16:33:00Z"
+  },
+  "plan": {
+    "id": "2134-go-installer-xbrief",
+    "title": "Fix Go installer test and next-steps for xbrief layout (fixes master CI red)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2134",
+    "narratives": {
+      "Description": "After the vbrief/->xbrief/ rename (#2109), the Go installer's AGENTS.md template now references PROJECT-DEFINITION.xbrief.json, but main_test.go:497-498 still asserts the legacy 'vbrief.json' string. Additionally, setup.go:1816 emits 'PROJECT-DEFINITION.vbrief.json' in its next-steps user-facing output. Fix the stale test assertion and the next-steps output string to match the current xbrief layout, making the Go (test + build) CI job pass on master.",
+      "ImplementationPlan": "1. Update main_test.go:497-498 to assert PROJECT-DEFINITION.xbrief.json instead of vbrief.json. 2. Update setup.go:1816 next-steps printf to reference PROJECT-DEFINITION.xbrief.json. 3. Update main_test.go:844 to assert the updated next-steps string. 4. Verify with 'go test ./cmd/deft-install/' that all tests pass. Leave the deposit directory name (vbrief/) and all related deposit tests unchanged -- the installer still deposits vbrief/ for back-compat, and consumers run 'deft migrate:xbrief' to rename.",
+      "UserStory": "As a framework maintainer, I want the Go installer test and next-steps output to reflect the xbrief layout so that the Go CI job is green on master and new consumers see accurate post-install guidance.",
+      "Traces": "#2134"
+    },
+    "items": [
+      {
+        "id": "2134-a1",
+        "title": "main_test.go asserts PROJECT-DEFINITION.xbrief.json in generated AGENTS.md",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the Go installer test suite, when TestWriteAgentsMD_CreateNew runs, then it passes because the AGENTS.md template now references xbrief not vbrief."
+        }
+      },
+      {
+        "id": "2134-a2",
+        "title": "setup.go next-steps output references PROJECT-DEFINITION.xbrief.json",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fresh deft install, when PrintNextSteps runs, then the user-facing step 3 message references PROJECT-DEFINITION.xbrief.json."
+        }
+      },
+      {
+        "id": "2134-a3",
+        "title": "All Go installer tests pass with 'go test ./cmd/deft-install/'",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the fixes applied, when 'go test ./cmd/deft-install/' runs, then the exit code is 0 with no FAIL lines."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/main_test.go",
+          "cmd/deft-install/setup.go"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/"
+        ],
+        "expected_outputs": [
+          "Go installer test suite passes; TestWriteAgentsMD_CreateNew green"
+        ],
+        "depends_on": [],
+        "conflict_group": "go-installer",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "small"
+      },
+      "completedAt": "2026-07-01T16:37:11Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2134",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2134: Go installer test asserts vbrief after xbrief rename -- master CI red (Go job)"
+      }
+    ],
+    "updated": "2026-07-01T16:37:11Z"
+  }
+}
