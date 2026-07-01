@@ -108,7 +108,8 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     // so cold framework checkouts still build while stray consumer packages/
     // trees without a root build script no-op instead of ERR_PNPM_NO_SCRIPT.
     expect(engine).toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/package\.json" \]/);
-    expect(engine).toMatch(/p\.scripts&&p\.scripts\.build/);
+    expect(engine).toMatch(/process\.argv\[1\]/);
+    expect(engine).toMatch(/readFileSync\(process\.argv\[1\]/);
     expect(engine).toMatch(RAW_PNPM_BUILD);
     expect(engine).toMatch(/invoke:/);
     expect(engine).toMatch(/command -v deft/);
@@ -122,7 +123,7 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     );
     expect(scriptMatch, "engine _ts-build guard block").not.toBeNull();
     const guardBlock = scriptMatch?.[0] ?? "";
-    expect(guardBlock).toMatch(/node -e "p=require/);
+    expect(guardBlock).toMatch(/process\.argv\[1\]/);
     expect(guardBlock).not.toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/dist\/bin\.js" \]/);
   });
 

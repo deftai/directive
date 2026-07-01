@@ -30,7 +30,8 @@ tasks:
       - |
         set -eu
         if [ -f "{{.DEFT_ROOT}}/packages/cli/package.json" ] \
-           && node -e "p=require('{{.DEFT_ROOT}}/package.json');process.exit(p.scripts&&p.scripts.build?0:1)"; then
+           && [ -f "{{.DEFT_ROOT}}/package.json" ] \
+           && node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.exit(j.scripts&&j.scripts.build?0:1)" "{{.DEFT_ROOT}}/package.json"; then
           pnpm --dir "{{.DEFT_ROOT}}" run build
         fi
 
