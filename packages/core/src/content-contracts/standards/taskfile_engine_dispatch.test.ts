@@ -57,7 +57,13 @@ function nonCommentLines(text: string): string[] {
 const DIRECT_NODE_CALL = /-\s*node\s+"\{\{\.[A-Z_]+\}\}\/packages\/cli\/dist\/bin\.js"/;
 const LOCAL_BUILD_DEF = /^ {2}(_ts-build|_ensure-ts):/m;
 const RAW_PNPM_BUILD = /pnpm\s+(?:--dir\s+"[^"]*"\s+|-C\s+"[^"]*"\s+)?run build/;
-const TS_BUILD_DEP = /-\s*task:\s*:ts:build\b/;
+// The unconditional :ts:build primitive appears as a dep in THREE spellings that
+// all break consumers (`:ts:build` = unguarded `pnpm run build` at DEFT_ROOT):
+//   1. bare long form   `- task: :ts:build`
+//   2. quoted long form `- task: ":ts:build"`   (packs.yml)
+//   3. inline array      `deps: [":ts:build"]`   (swarm/triage/pr/session/issue)
+// A name-scoped fix that only caught (1) left ~45 stragglers hidden (#2126, Greptile P1).
+const TS_BUILD_DEP = /(?:-\s*task:\s*"?:ts:build\b)|(?:deps:\s*\[[^\]]*":ts:build"[^\]]*\])/;
 const BARE_TS_BUILD_DEP = /^\s*-\s*(_ts-build|_ensure-ts)\s*$/m;
 
 describe("task surface routes through the guarded :engine:* pattern (#2126)", () => {
@@ -108,6 +114,17 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/deft \{\{\.ENGINE_CMD\}\}/);
   });
 
+  it("TS_BUILD_DEP catches all three :ts:build spellings (regex self-test, #2126 Greptile P1)", () => {
+    // Guards against the first-pass regex that only matched the bare long form
+    // and silently let ~45 inline-array / quoted stragglers through.
+    expect(TS_BUILD_DEP.test("      - task: :ts:build")).toBe(true);
+    expect(TS_BUILD_DEP.test('      - task: ":ts:build"')).toBe(true);
+    expect(TS_BUILD_DEP.test('    deps: [":ts:build"]')).toBe(true);
+    // Must NOT false-positive on the guarded engine build.
+    expect(TS_BUILD_DEP.test('    deps: [":engine:_ts-build"]')).toBe(false);
+    expect(TS_BUILD_DEP.test("      - task: :engine:_ts-build")).toBe(false);
+  });
+
   it("root Taskfile.yml carries no straggler build/dispatch fragments", () => {
     const root = readFileSync(join(repoRoot(), "Taskfile.yml"), { encoding: "utf8" });
     const body = nonCommentLines(root).join("\n");
@@ -134,6 +151,24 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
       "issue.yml",
       "reconcile.yml",
       "umbrella.yml",
+      // Second wave: the inline-array `deps: [":ts:build"]` + quoted long-form
+      // `- task: ":ts:build"` families the first-pass regex missed (#2126, Greptile P1).
+      "swarm.yml",
+      "packs.yml",
+      "session.yml",
+      "pr.yml",
+      "triage-actions.yml",
+      "triage-queue.yml",
+      "triage-bulk.yml",
+      "triage-bootstrap.yml",
+      "triage-classify.yml",
+      "triage-reconcile.yml",
+      "triage-scope.yml",
+      "triage-scope-drift.yml",
+      "triage-smoketest.yml",
+      "triage-subscribe.yml",
+      "triage-summary.yml",
+      "triage-welcome.yml",
     ];
     for (const name of named) {
       expect(names, `${name} should exist`).toContain(name);

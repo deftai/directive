@@ -25,7 +25,7 @@ tasks:
   scope:
     desc: "Inspect / mutate / diff the typed plan.policy.triageScope[] subscription + triageScopeIgnores[] (#1131 / D12, #1133 / D14, #1182 / D14c). -- task triage:scope -- [--list] [--add-label=L | --add-milestone=M | --ignore-label=L] [--diff-from-upstream --repo OWNER/NAME] [--refresh-denominator --repo OWNER/NAME --count N]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

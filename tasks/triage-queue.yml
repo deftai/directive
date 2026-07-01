@@ -28,7 +28,7 @@ tasks:
   queue:
     desc: "Print the ranked triage queue (#1128 / D11). -- task triage:queue [-- --repo OWNER/NAME] [--limit N]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -38,7 +38,7 @@ tasks:
   show:
     desc: "Per-issue triage detail (#1128 / D11). -- task triage:show -- <N> [--repo OWNER/NAME]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -48,7 +48,7 @@ tasks:
   audit:
     desc: "Audit-log surface (#1128 / D11, #1180). -- task triage:audit [-- --format=text|json] [--vbrief-staleness] [--since=<window>] [--action=<verb>] [--repo OWNER/NAME]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

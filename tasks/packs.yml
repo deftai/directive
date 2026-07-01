@@ -31,7 +31,7 @@ tasks:
     desc: "Named, structured slice access to a content pack (#1283, #1295). -- task packs:slice <pack> <name> [-- --since YYYY-MM | --tag T | --trigger KW] [--list] [--list-packs] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:
@@ -41,7 +41,7 @@ tasks:
     desc: "Regenerate every content-pack projection from its canonical source (ADR-001): meta/lessons.md (lessons), the proof SKILL.md (skills), coding/testing.md (rules), strategies/yolo.md (strategies). -- task packs:render [-- --pack rules] [--check]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:
@@ -51,7 +51,7 @@ tasks:
     desc: "One-shot migration: rebuild packs/skills/skills-pack-0.1.json from skills/*/SKILL.md + the AGENTS.md Skill Routing table (#1295)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:
@@ -61,7 +61,7 @@ tasks:
     desc: "One-shot migration: rebuild packs/rules/rules-pack-0.1.json from the RFC2119 directives in coding/*.md (#1296)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:
@@ -71,7 +71,7 @@ tasks:
     desc: "One-shot migration: rebuild packs/strategies/strategies-pack-0.1.json from strategies/*.md (#1296)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:
@@ -81,7 +81,7 @@ tasks:
     desc: "One-shot migration: rebuild packs/patterns/patterns-pack-0.1.json from patterns/*.md (#1637)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:
@@ -91,7 +91,7 @@ tasks:
     desc: "One-shot migration: rebuild packs/swarm-spec/swarm-spec-pack-0.1.json from swarm/*.md (#1637)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:
@@ -101,7 +101,7 @@ tasks:
     desc: "Drift gate: fail (exit 1) when ANY pack projection (meta/lessons.md, the skills proof SKILL.md, coding/testing.md, strategies/yolo.md) diverges from a freshly rendered buffer. Wired into `task check` and surfaced as `task verify:pack-drift`."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: ":ts:build"
+      - task: ":engine:_ts-build"
     cmds:
       - task: :engine:invoke
         vars:

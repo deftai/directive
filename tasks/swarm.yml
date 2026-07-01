@@ -7,7 +7,7 @@ tasks:
   readiness:
     desc: "Report whether story vBRIEFs are ready for concurrent swarm allocation"
     dir: '{{.USER_WORKING_DIR}}'
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     env:
       PYTHONUTF8: "1"
     cmds:
@@ -31,7 +31,7 @@ tasks:
   # Companion test:   tests/cli/test_swarm_launch.py
   launch:
     desc: "Resolve a pre-approved cohort, enforce the #810 + swarm:readiness gates and sub-agent backend policy per story, and emit the launch-manifest JSON (#1387, #1531e)"
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -45,7 +45,7 @@ tasks:
   # (resolved_model / model_source) so dispatch can actually honor it.
   routing-set:
     desc: "Record an operator coding sub-agent model decision (#1739): --role <role> (--model <slug> | --harness-default) [--provider <p>]. Writes the gitignored, per-machine .deft/routing.local.json."
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -65,7 +65,7 @@ tasks:
   # Skill citation:   skills/deft-directive-swarm/SKILL.md Phase 5 Exit Condition + Phase 5 -> 6 gate
   verify-review-clean:
     desc: "Verify EVERY PR in a swarm cohort is CLEAN on current HEAD (confidence > 3, no P0/P1, not errored) before raising the Phase 5 -> 6 merge gate (#1364)"
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -87,7 +87,7 @@ tasks:
   # Skill citation:   skills/deft-directive-swarm/SKILL.md Phase 6 cohort completion sweep
   complete-cohort:
     desc: "Sweep a finished swarm cohort's stories active/ -> completed/ and complete their epic parents, keeping vbrief:validate green (#1487)"
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

@@ -25,7 +25,7 @@ tasks:
   smoketest:
     desc: "Run the N6 (#1146) end-to-end smoketest against the hermetic 20-issue fixture. Exits 0 on PASS / 1 on first failure. -- task triage:smoketest [-- --verbose] [--keep-tempdir] [--cache-only]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     env:
       DEFT_ROOT: '{{.DEFT_ROOT}}'

@@ -37,7 +37,7 @@ tasks:
   bootstrap:
     desc: "Idempotent triage v1 installer (#845): populate cache, backfill audit log, ensure gitignore for .deft-cache/ and vbrief/.eval/. Re-runnable; per-step progress on stderr; cache:fetch-all wall-clock cap (#952). -- task triage:bootstrap [-- --repo OWNER/NAME] [--limit N] [--state open|closed|all] [--fetch-timeout-s N] [--quiet] [--json]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

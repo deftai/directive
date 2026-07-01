@@ -24,7 +24,7 @@ tasks:
   classify:
     desc: "Inspect / validate plan.policy.triageAutoClassify[] + triageHoldMarkers[] (#1129 / D10). -- task triage:classify -- [--list | --validate]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

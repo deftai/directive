@@ -21,7 +21,7 @@ vars:
 tasks:
   check-protected-issues:
     desc: "Verify NO protected (umbrella / staying-OPEN) issue is GitHub-side linked to a PR before squash merge (#701)"
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -41,7 +41,7 @@ tasks:
   check-closing-keywords:
     desc: "Scan PR body + commit messages for closing-keyword substrings in negation/quotation/example contexts that would trigger Layer 0 false-positive auto-closes (#737)"
     dir: '{{.USER_WORKING_DIR}}'
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     env:
       PYTHONUTF8: "1"
     cmds:
@@ -60,7 +60,7 @@ tasks:
   # Companion test:   tests/cli/test_pr_merge_readiness.py
   merge-ready:
     desc: "Verify a PR's Greptile review body satisfies the merge exit condition (confidence >3, no P0/P1, HEAD-SHA fresh, not errored)"
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -89,7 +89,7 @@ tasks:
   # Companion test:   tests/cli/test_pr_wait_mergeable.py
   wait-mergeable-and-merge:
     desc: "Wait until PR is mergeable (resilient cascade, #1368) and squash-merge with admin (#1369); Layer-3 protected-issue check (#701) chains before any merge call"
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

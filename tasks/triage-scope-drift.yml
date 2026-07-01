@@ -23,7 +23,7 @@ tasks:
   scope-drift:
     desc: "Detect subscription drift -- unsubscribed labels/milestones on cached open issues (#1133 / D14). -- task triage:scope-drift [-- --ignore-label=L | --ignore-milestone=M]"
     internal: true
-    deps: [":ts:build"]
+    deps: [":engine:_ts-build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
