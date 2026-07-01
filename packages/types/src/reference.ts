@@ -45,3 +45,16 @@ export interface VBriefReference {
 export function isVBriefReferenceType(type: string): boolean {
   return type.startsWith(VBRIEF_REFERENCE_PREFIX) || type.startsWith(XBRIEF_REFERENCE_PREFIX);
 }
+
+/**
+ * Return true when `value` matches either the legacy `x-vbrief/<bareType>` or
+ * the canonical `x-xbrief/<bareType>` form.  Use this for all reader/matcher
+ * comparisons so that both namespaces are accepted during the transition
+ * period while `x-vbrief/` remains read-accepted for consumer back-compat.
+ */
+export function referenceTypeMatches(value: string, bareType: string): boolean {
+  return (
+    value === `${VBRIEF_REFERENCE_PREFIX}${bareType}` ||
+    value === `${XBRIEF_REFERENCE_PREFIX}${bareType}`
+  );
+}

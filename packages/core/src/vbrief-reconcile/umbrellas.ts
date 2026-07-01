@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { extractIssueRef } from "../triage/reconcile/parse-uri.js";
@@ -8,7 +9,7 @@ import type { Child, ReconcileUmbrellasOutcome, UmbrellaChange, UmbrellaClient }
 export const OPEN_FOLDERS = ["proposed", "pending", "active"] as const;
 export const CLOSED_FOLDERS = ["completed", "cancelled"] as const;
 export const LIFECYCLE_FOLDERS = [...OPEN_FOLDERS, ...CLOSED_FOLDERS] as const;
-export const CHILD_REF_TYPE = "x-vbrief/plan";
+export const CHILD_REF_TYPE = "x-xbrief/plan";
 const SCM_SOURCE = "github-issue";
 
 const HEADER_RE = /^## Current shape \(as of pass-(\d+)\)/m;
@@ -106,7 +107,7 @@ export function computeChildren(
   for (const ref of refs) {
     if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
     const rec = ref as Record<string, unknown>;
-    if (rec.type !== CHILD_REF_TYPE) continue;
+    if (!referenceTypeMatches(String(rec.type ?? ""), "plan")) continue;
     const name = basename(String(rec.uri ?? ""));
     const child = index[name];
     if (!child || seen.has(child.story_id)) continue;

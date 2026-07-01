@@ -15,7 +15,11 @@ const CANCELLED_MARKERS = ["[cancelled]", "[canceled]"] as const;
 
 export const OVERRIDES_FILENAME = "migration-overrides.yaml";
 
-const GITHUB_ISSUE_REF_TYPES = new Set(["github-issue", "x-vbrief/github-issue"]);
+const GITHUB_ISSUE_REF_TYPES = new Set([
+  "github-issue",
+  "x-vbrief/github-issue",
+  "x-xbrief/github-issue",
+]);
 const GITHUB_ISSUE_URI_RE = /https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/(\d+)/;
 
 const PHASE_TITLE_RE = /^(Phase\s+\d|IP[-\s]\d|Milestone\s+\d)/i;

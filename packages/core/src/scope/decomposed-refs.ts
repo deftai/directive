@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { formatVbriefJson } from "./vbrief-json.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "./vbrief-ref.js";
 
@@ -47,7 +48,7 @@ function rewriteParentChildReference(
       continue;
     }
     const r = ref as Record<string, unknown>;
-    if (r.type !== "x-vbrief/plan") {
+    if (!referenceTypeMatches(String(r.type ?? ""), "plan")) {
       continue;
     }
     const resolved = resolveVbriefRef(r.uri, vbriefDir);

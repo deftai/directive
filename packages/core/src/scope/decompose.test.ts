@@ -343,7 +343,7 @@ describe("applyDecomposition", () => {
     const updatedParent = JSON.parse(readFileSync(parentPath, "utf8")) as Record<string, unknown>;
     const plan = updatedParent.plan as Record<string, unknown>;
     const refs = plan.references as unknown[];
-    expect(refs.some((r) => (r as Record<string, unknown>).type === "x-vbrief/plan")).toBe(true);
+    expect(refs.some((r) => (r as Record<string, unknown>).type === "x-xbrief/plan")).toBe(true);
   });
 
   it("throws when output_dir is active", () => {

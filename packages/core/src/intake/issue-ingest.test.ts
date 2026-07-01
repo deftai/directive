@@ -46,9 +46,9 @@ describe("extractCrossRefs", () => {
     const body = "Closes #10\nRefs #11\nBlocked by #12\n```\nCloses #99\n```";
     const refs = extractCrossRefs(body, "https://github.com/o/r", new Set());
     expect(refs.map((r) => r.type)).toEqual([
-      "x-vbrief/closes",
-      "x-vbrief/blocks",
-      "x-vbrief/refs",
+      "x-xbrief/closes",
+      "x-xbrief/blocks",
+      "x-xbrief/refs",
     ]);
   });
 });

@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { referenceWithDefaultTrust, slugify } from "./build.js";
 import { EMITTED_VBRIEF_VERSION } from "./constants.js";
 import { pythonJsonPretty } from "./json.js";
@@ -120,7 +121,7 @@ export function createSpeckitScopeVbrief(
   }
 
   const references: JsonObject[] = [
-    referenceWithDefaultTrust({ type: "x-vbrief/plan", uri: specRef }),
+    referenceWithDefaultTrust({ type: "x-xbrief/plan", uri: specRef }),
   ];
   const itemRefs = item.references;
   if (Array.isArray(itemRefs)) {
@@ -129,7 +130,7 @@ export function createSpeckitScopeVbrief(
         typeof ref === "object" &&
         ref !== null &&
         !Array.isArray(ref) &&
-        (ref as JsonObject).type !== "x-vbrief/plan"
+        !referenceTypeMatches(String((ref as JsonObject).type ?? ""), "plan")
       ) {
         references.push(referenceWithDefaultTrust(ref as JsonObject));
       }

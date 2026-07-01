@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Engine emit sites now produce canonical `x-xbrief/` reference tokens (#2128).** The intake, build, speckit, decompose, and reconcile paths previously minted legacy `x-vbrief/` tokens, causing freshly ingested or built artifacts committed under `xbrief/` to trip the `verify:xbrief-drift` pre-commit gate. All emit constants are flipped to `x-xbrief/` and reader matchers in capacity, scope, swarm, and lifecycle modules are made dual-namespace (accepting both prefixes) via a new shared `referenceTypeMatches` helper in `@deftai/directive-types`. `x-vbrief/` remains read-accepted for consumer back-compat. Closes #2128.
+
 ### Changed
 
 - **Docs and skills now describe the xBRIEF layout and migration path (#2111).** Agent-facing guidance (skills, templates, commands, and key docs) uses xBRIEF prose, `xbrief/` lifecycle paths, `*.xbrief.json` artifacts, and `deft migrate:xbrief` for legacy trees still read-accepted under `vbrief/` / `x-vbrief/`. The consumer AGENTS.md managed section and propagation contract tests were refreshed to match. Closes #2111.

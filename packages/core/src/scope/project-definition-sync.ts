@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 import { relativeToVbrief, resolveVbriefRef, scopeIdsForFilename } from "./vbrief-ref.js";
@@ -14,7 +15,7 @@ function rewriteProjectDefinitionPlanReference(
     return false;
   }
   const r = ref as Record<string, unknown>;
-  if (r.type !== "x-vbrief/plan") {
+  if (!referenceTypeMatches(String(r.type ?? ""), "plan")) {
     return false;
   }
   const resolved = resolveVbriefRef(r.uri, vbriefRoot);
@@ -53,7 +54,7 @@ function projectItemReferencesScope(
           continue;
         }
         const r = ref as Record<string, unknown>;
-        if (r.type !== "x-vbrief/plan") {
+        if (!referenceTypeMatches(String(r.type ?? ""), "plan")) {
           continue;
         }
         const resolved = resolveVbriefRef(r.uri, vbriefRoot);
@@ -70,7 +71,7 @@ function projectItemReferencesScope(
         continue;
       }
       const r = ref as Record<string, unknown>;
-      if (r.type !== "x-vbrief/plan") {
+      if (!referenceTypeMatches(String(r.type ?? ""), "plan")) {
         continue;
       }
       const resolved = resolveVbriefRef(r.uri, vbriefRoot);

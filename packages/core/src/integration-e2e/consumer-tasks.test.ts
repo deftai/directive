@@ -169,7 +169,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     expect(payload.vBRIEFInfo.version).toBe("0.6");
     const ref = payload.plan.references[0];
     expect(ref?.uri).toBe("https://github.com/owner/consumer/issues/101");
-    expect(ref?.type).toBe("x-vbrief/github-issue");
+    expect(ref?.type).toBe("x-xbrief/github-issue");
     expect(ref?.title).toBe("Issue #101: Consumer fixture issue");
     expect(ref).not.toHaveProperty("url");
     expect(ref).not.toHaveProperty("id");

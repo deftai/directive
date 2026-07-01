@@ -73,7 +73,7 @@ function githubIssueReference(params: {
       : `Issue #${cleanedNumber}`;
   return {
     uri: `${cleanedRepo}/issues/${cleanedNumber}`,
-    type: "x-vbrief/github-issue",
+    type: "x-xbrief/github-issue",
     title: refTitle,
   };
 }

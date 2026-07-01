@@ -12,6 +12,9 @@ export const INTERNAL_REFERENCE_TYPES = new Set([
   "x-vbrief/plan",
   "x-vbrief/spec-section",
   "x-vbrief/user-request",
+  "x-xbrief/plan",
+  "x-xbrief/spec-section",
+  "x-xbrief/user-request",
 ]);
 
 export const EXTERNAL_REFERENCE_TYPES = new Set([
@@ -19,6 +22,10 @@ export const EXTERNAL_REFERENCE_TYPES = new Set([
   "x-vbrief/github-pr",
   "x-vbrief/jira-ticket",
   "x-vbrief/web-page",
+  "x-xbrief/github-issue",
+  "x-xbrief/github-pr",
+  "x-xbrief/jira-ticket",
+  "x-xbrief/web-page",
 ]);
 
 export const FOLDER_TO_STATUSES: Readonly<Record<string, readonly string[]>> = {

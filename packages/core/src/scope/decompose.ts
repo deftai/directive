@@ -9,6 +9,7 @@
 
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
@@ -580,7 +581,7 @@ function storyHasTraces(story: JsonObj, items: unknown[], sw: JsonObj): boolean 
   if (Array.isArray(refs)) {
     for (const ref of refs) {
       if (typeof ref === "object" && ref !== null && !Array.isArray(ref)) {
-        if ((ref as JsonObj).type === "x-vbrief/spec-section") return true;
+        if (referenceTypeMatches(String((ref as JsonObj).type ?? ""), "spec-section")) return true;
       }
     }
   }
@@ -1016,7 +1017,7 @@ export function applyDecomposition(opts: ApplyDecompositionOptions): string[] {
     (references as JsonObj[]).push(
       referenceWithDefaultTrust({
         uri: relToVbrief(vbriefDirPath, target),
-        type: "x-vbrief/plan",
+        type: "x-xbrief/plan",
         title,
       }),
     );

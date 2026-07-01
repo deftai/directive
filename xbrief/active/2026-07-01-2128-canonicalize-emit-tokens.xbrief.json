@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2128 (canonicalize emit-site reference tokens to x-xbrief/ and make non-validate reader matchers dual-namespace); follow-up to #2109.",
+    "created": "2026-07-01T13:00:00Z",
+    "updated": "2026-07-01T13:00:00Z"
+  },
+  "plan": {
+    "id": "2128-canonicalize-emit-tokens",
+    "title": "Canonicalize emit-site reference tokens to x-xbrief/ and dual-namespace reader matchers",
+    "status": "running",
+    "planRef": "https://github.com/deftai/directive/issues/2128",
+    "narratives": {
+      "Description": "After the vbrief->xbrief flip (#2109), the engine still mints legacy reference tokens at its emit sites, so a freshly ingested or built artifact committed under xbrief/ trips the new verify:xbrief-drift pre-commit gate. This story flips the canonical emit constants to x-xbrief/ and makes the remaining single-namespace reader matchers dual-namespace so migrated x-xbrief/ refs are no longer silently skipped, while keeping legacy reference tokens read-accepted for consumer back-compat.",
+      "ImplementationPlan": "1. Add a shared dual-namespace helper referenceTypeMatches(value, bareType) in packages/types/src/reference.ts (accepting both legacy and canonical prefixes), with unit tests. 2. Flip the canonical emit constants to x-xbrief/ at the emit sites (packages/core/src/intake/issue-emit.ts, intake/issue-ingest.ts, vbrief-build/build.ts, vbrief-build/speckit.ts, scope/decompose.ts, vbrief-reconcile/umbrellas.ts, lifecycle/lifecycle-hygiene.ts) and update their parity fixtures/tests. 3. Sweep the non-validate reader matchers (capacity/backfill.ts, capacity/show.ts, validate-content/capacity-show.ts, scope/project-definition-sync.ts, scope/decompose.ts, scope/decomposed-refs.ts, swarm/readiness.ts, vbrief-build/speckit.ts) to use the shared helper. Verify by running task check and confirming a freshly ingested artifact no longer trips verify:xbrief-drift.",
+      "UserStory": "As a directive maintainer, I want newly emitted artifacts to use x-xbrief/ reference tokens and all readers to accept both namespaces, so that fresh ingest/build output does not trip the drift gate and migrated refs are never silently skipped.",
+      "Traces": "#2128, #2109, #2034"
+    },
+    "items": [
+      {
+        "id": "2128-a1",
+        "title": "Given a freshly ingested or built artifact, when committed under xbrief/, then verify:xbrief-drift passes",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a newly ingested or built vBRIEF written under xbrief/, when the pre-commit drift gate runs, then it passes because the artifact carries x-xbrief/ reference tokens."
+        }
+      },
+      {
+        "id": "2128-a2",
+        "title": "Given a migrated x-xbrief/ reference, when a reader matcher evaluates it, then it is matched not skipped",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an artifact using x-xbrief/ reference types, when capacity/scope/swarm reader matchers evaluate it, then they match it via the shared dual-namespace helper."
+        }
+      },
+      {
+        "id": "2128-a3",
+        "title": "Given a legacy reference, when a reader matcher evaluates it, then it is still accepted",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a legacy artifact using the old reference prefix, when the reader matchers evaluate it, then it is still accepted for consumer back-compat."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2109",
+        "child_issue": "#2128"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/types/src/reference.ts",
+          "packages/core/src/intake/issue-emit.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/vbrief-build/build.ts",
+          "packages/core/src/vbrief-build/speckit.ts",
+          "packages/core/src/scope/decompose.ts",
+          "packages/core/src/scope/decomposed-refs.ts",
+          "packages/core/src/scope/project-definition-sync.ts",
+          "packages/core/src/vbrief-reconcile/umbrellas.ts",
+          "packages/core/src/lifecycle/lifecycle-hygiene.ts",
+          "packages/core/src/capacity/backfill.ts",
+          "packages/core/src/capacity/show.ts",
+          "packages/core/src/validate-content/capacity-show.ts",
+          "packages/core/src/swarm/readiness.ts"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "emit sites produce x-xbrief/ tokens; shared dual-namespace matcher accepts both; fresh ingest/build no longer trips verify:xbrief-drift; legacy prefix still read-accepted"
+        ],
+        "depends_on": [],
+        "conflict_group": "xbrief-cleanup",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2128",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2128: canonicalize emit-site reference tokens + audit non-validate reader matchers"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2109",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2109: maintainer xbrief rename"
+      }
+    ],
+    "updated": "2026-07-01T14:30:00Z"
+  }
+}

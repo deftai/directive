@@ -45,9 +45,9 @@ const ORIGIN_URL_PATTERN = /https?:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/(\
 const ORIGIN_BARE_PATTERN = /issue\s*#(\d+)/i;
 
 const CROSS_REF_PATTERNS: readonly [string, RegExp][] = [
-  ["x-vbrief/closes", /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/i],
-  ["x-vbrief/blocks", /\bblocked[\s-]+by\s+#(\d+)\b/i],
-  ["x-vbrief/refs", /\b(?:refs?|references?|see\s+also|related(?:\s+to)?)\s+#(\d+)\b/i],
+  ["x-xbrief/closes", /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/i],
+  ["x-xbrief/blocks", /\bblocked[\s-]+by\s+#(\d+)\b/i],
+  ["x-xbrief/refs", /\b(?:refs?|references?|see\s+also|related(?:\s+to)?)\s+#(\d+)\b/i],
 ];
 
 function hasNonIndentationPrefix(text: string, index: number): boolean {
@@ -292,7 +292,7 @@ export function buildIssueVbrief(
     const references: Record<string, string>[] = [
       {
         uri: url,
-        type: "x-vbrief/github-issue",
+        type: "x-xbrief/github-issue",
         title: `Issue #${number}: ${title}`,
       },
     ];

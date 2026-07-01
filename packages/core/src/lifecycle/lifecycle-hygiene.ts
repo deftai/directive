@@ -7,6 +7,7 @@ import {
   statSync,
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { computeReport } from "../capacity/show.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { resolveCapacityAllocation } from "../policy/capacity.js";
@@ -35,7 +36,7 @@ export const LIFECYCLE_FOLDERS = [
 export const TERMINAL_STATUSES = new Set(["completed", "cancelled", "failed"]);
 
 /** Child reference type that marks an epic as decomposed. */
-export const CHILD_REF_TYPE = "x-vbrief/plan";
+export const CHILD_REF_TYPE = "x-xbrief/plan";
 
 /** Durable tech-debt acceptance ledger relative path segments. */
 export const TECH_DEBT_LEDGER_RELPATH = [
@@ -177,7 +178,7 @@ function childRefNames(plan: Record<string, unknown>): string[] {
       continue;
     }
     const rec = ref as Record<string, unknown>;
-    if (rec.type !== CHILD_REF_TYPE) {
+    if (!referenceTypeMatches(String(rec.type ?? ""), "plan")) {
       continue;
     }
     const uri = rec.uri;

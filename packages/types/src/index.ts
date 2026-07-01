@@ -42,6 +42,7 @@ export {
   isVBriefReferenceType,
   KNOWN_REFERENCE_TYPES,
   type KnownReferenceType,
+  referenceTypeMatches,
   type TrustLevel,
   type VBriefReference,
 } from "./reference.js";

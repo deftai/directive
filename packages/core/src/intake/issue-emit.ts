@@ -1,12 +1,13 @@
 import { globSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
 import type { ScmCallFn } from "./reconcile-issues.js";
 
-export const GITHUB_ISSUE_REF_TYPE = "x-vbrief/github-issue";
+export const GITHUB_ISSUE_REF_TYPE = "x-xbrief/github-issue";
 export const EXTERNAL_TRUST_LEVEL = "external";
 
 const ISSUE_URL_PATTERN = /https?:\/\/\S+?\/issues\/\d+/;
@@ -52,7 +53,7 @@ export function existingGithubIssueRef(data: Record<string, unknown>): string | 
   for (const ref of refs) {
     if (ref !== null && typeof ref === "object" && !Array.isArray(ref)) {
       const obj = ref as Record<string, unknown>;
-      if (obj.type === GITHUB_ISSUE_REF_TYPE) {
+      if (referenceTypeMatches(String(obj.type ?? ""), "github-issue")) {
         const uri = obj.uri ?? obj.url;
         return typeof uri === "string" && uri.length > 0 ? uri : "";
       }

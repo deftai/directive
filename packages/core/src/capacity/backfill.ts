@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { sortedStringifyCompact } from "../codebase/json.js";
 import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import {
@@ -71,7 +72,7 @@ export function extractIssueRef(plan: Record<string, unknown>): [string | null, 
       continue;
     }
     const rec = ref as Record<string, unknown>;
-    if (rec.type !== "x-vbrief/github-issue") {
+    if (!referenceTypeMatches(String(rec.type ?? ""), "github-issue")) {
       continue;
     }
     const uri = rec.uri;

@@ -17,7 +17,11 @@ export const LIFECYCLE_FOLDERS = [
 
 export const TERMINAL_LIFECYCLE_FOLDERS = new Set<string>(["completed", "cancelled"]);
 
-export const GITHUB_ISSUE_REF_TYPES = new Set<string>(["github-issue", "x-vbrief/github-issue"]);
+export const GITHUB_ISSUE_REF_TYPES = new Set<string>([
+  "github-issue",
+  "x-vbrief/github-issue",
+  "x-xbrief/github-issue",
+]);
 
 export const CANCELLED_STATE_REASONS = new Set<string>(["NOT_PLANNED", "DUPLICATE"]);
 

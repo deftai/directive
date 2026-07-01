@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import {
   type AutonomyRecommendation,
@@ -85,7 +86,7 @@ function planHasChildren(plan: Record<string, unknown>): boolean {
     (ref) =>
       typeof ref === "object" &&
       ref !== null &&
-      (ref as Record<string, unknown>).type === "x-vbrief/plan",
+      referenceTypeMatches(String((ref as Record<string, unknown>).type ?? ""), "plan"),
   );
 }
 

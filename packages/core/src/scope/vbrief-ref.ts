@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 
 /** Resolve a vBRIEF reference URI to an absolute path, or null. */
@@ -50,7 +51,7 @@ export function collectChildUris(plan: Record<string, unknown>): string[] {
       continue;
     }
     const r = ref as Record<string, unknown>;
-    if (r.type !== "x-vbrief/plan") {
+    if (!referenceTypeMatches(String(r.type ?? ""), "plan")) {
       continue;
     }
     const uri = r.uri;
