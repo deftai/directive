@@ -286,6 +286,10 @@ export function issueCommentThread(issue: Record<string, unknown>): IssueComment
   return raw.filter((entry): entry is IssueComment => entry !== null && typeof entry === "object");
 }
 
+export function issueCommentsAlreadyFetched(issue: Record<string, unknown>): boolean {
+  return Object.hasOwn(issue, ISSUE_COMMENT_THREAD_KEY);
+}
+
 export function buildIssueVbrief(
   issue: Record<string, unknown>,
   status: IngestStatus,
@@ -332,7 +336,7 @@ export function buildIssueVbrief(
     narratives.Labels = labelNames.join(", ");
   }
 
-  const planItems = overviewSource.length > 0 ? extractPlanItems(overviewSource) : [];
+  const planItems = bodyStr.length > 0 ? extractPlanItems(bodyStr) : [];
   const plan: Record<string, unknown> = {
     title,
     status: planStatus,
@@ -432,9 +436,6 @@ export function attachIssueCommentThread(
   issue: Record<string, unknown>,
   comments: readonly IssueComment[],
 ): Record<string, unknown> {
-  if (comments.length === 0) {
-    return issue;
-  }
   return { ...issue, [ISSUE_COMMENT_THREAD_KEY]: [...comments] };
 }
 
@@ -448,7 +449,7 @@ export function enrichIssueWithComments(
   repoUrl: string,
   options: FetchIssueOptions = {},
 ): Record<string, unknown> {
-  if (issueCommentThread(issue).length > 0) {
+  if (issueCommentsAlreadyFetched(issue)) {
     return issue;
   }
   const repo = repoSlugFromUrl(repoUrl);
@@ -520,6 +521,9 @@ export function ingestOne(
     repoUrl: string;
     dryRun?: boolean;
     existingRefs?: Map<number, string[]>;
+    scmCall?: ScmCallFn;
+    cwd?: string | null;
+    cacheRoot?: string | null;
   },
 ): [IngestResult, string | null, string] {
   const number = Number(issue.number);
@@ -533,7 +537,11 @@ export function ingestOne(
     ];
   }
 
-  const enriched = enrichIssueWithComments(issue, options.repoUrl);
+  const enriched = enrichIssueWithComments(issue, options.repoUrl, {
+    scmCall: options.scmCall,
+    cwd: options.cwd,
+    cacheRoot: options.cacheRoot,
+  });
   const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl);
   const filename = targetFilename(number, String(issue.title ?? ""));
   const target = join(options.vbriefDir, folder, filename);
@@ -555,6 +563,9 @@ export function ingestBulk(
     repoUrl: string;
     label?: string | null;
     dryRun?: boolean;
+    scmCall?: ScmCallFn;
+    cwd?: string | null;
+    cacheRoot?: string | null;
   },
 ): Record<string, string[] | number> {
   let filtered = issues;
@@ -664,6 +675,7 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
       repoUrl,
       label: args.label,
       dryRun: args.dryRun,
+      cwd: projectRoot,
     });
     const created = summary.created as string[];
     const duplicate = summary.duplicate as string[];
@@ -692,6 +704,7 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     status,
     repoUrl,
     dryRun: args.dryRun,
+    cwd: projectRoot,
   });
   process.stdout.write(`${msg}\n`);
   return result === "duplicate" ? 1 : 0;
