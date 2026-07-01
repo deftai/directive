@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveFrameworkRootForProject } from "@deftai/directive-core/doctor";
 import {
   emitMigratePreflight,
   runMigratePreflight,
@@ -15,7 +15,7 @@ export interface ParsedMigratePreflightArgs {
 
 export function parseArgs(argv: readonly string[]): ParsedMigratePreflightArgs {
   let projectRoot = ".";
-  let deftRoot = resolve(import.meta.dirname, "..", "..", "..");
+  let explicitDeftRoot: string | undefined;
   let quiet = false;
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -27,7 +27,7 @@ export function parseArgs(argv: readonly string[]): ParsedMigratePreflightArgs {
       if (value === undefined) {
         return {
           projectRoot,
-          deftRoot,
+          deftRoot: resolveFrameworkRootForProject(projectRoot, explicitDeftRoot),
           quiet,
           error: "argument --project-root: expected one argument",
         };
@@ -41,28 +41,26 @@ export function parseArgs(argv: readonly string[]): ParsedMigratePreflightArgs {
       if (value === undefined) {
         return {
           projectRoot,
-          deftRoot,
+          deftRoot: resolveFrameworkRootForProject(projectRoot, explicitDeftRoot),
           quiet,
           error: "argument --deft-root: expected one argument",
         };
       }
-      deftRoot = value;
+      explicitDeftRoot = value;
       i += 1;
     } else if (arg.startsWith("--deft-root=")) {
-      deftRoot = arg.slice("--deft-root=".length);
+      explicitDeftRoot = arg.slice("--deft-root=".length);
     } else {
-      return { projectRoot, deftRoot, quiet, error: `unrecognized argument: ${arg}` };
+      return {
+        projectRoot,
+        deftRoot: resolveFrameworkRootForProject(projectRoot, explicitDeftRoot),
+        quiet,
+        error: `unrecognized argument: ${arg}`,
+      };
     }
   }
 
-  if (
-    process.env.DEFT_ROOT &&
-    process.env.DEFT_ROOT.length > 0 &&
-    !argv.some((a) => a.startsWith("--deft-root"))
-  ) {
-    deftRoot = process.env.DEFT_ROOT;
-  }
-
+  const deftRoot = resolveFrameworkRootForProject(projectRoot, explicitDeftRoot);
   return { projectRoot, deftRoot, quiet };
 }
 

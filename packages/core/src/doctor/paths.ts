@@ -34,6 +34,41 @@ export function resolveVersion(frameworkRoot?: string): string {
   return "dev";
 }
 
+/**
+ * Resolve the framework root for a CLI command running against `projectRoot`.
+ *
+ * Priority: explicit `--deft-root` / `--framework-root` → `DEFT_ROOT` env →
+ * consumer deposit (`.deft/core`, legacy `deft/`) → maintainer checkout walk
+ * (`resolveDefaultFrameworkRoot`).
+ *
+ * Refs #2146 (npm global `deft` must not default to `node_modules/vbrief/schemas`).
+ */
+export function resolveFrameworkRootForProject(
+  projectRoot: string,
+  explicitRoot?: string | null,
+): string {
+  const explicit = explicitRoot?.trim();
+  if (explicit) {
+    return resolve(explicit);
+  }
+  const envRoot = process.env.DEFT_ROOT?.trim();
+  if (envRoot) {
+    return resolve(envRoot);
+  }
+  const root = resolve(projectRoot);
+  for (const rel of [join(".deft", "core"), "deft"] as const) {
+    const candidate = join(root, rel);
+    try {
+      if (statSync(candidate).isDirectory()) {
+        return candidate;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+  return resolveDefaultFrameworkRoot();
+}
+
 /** Return the deft framework repo root (the directory containing `main.md`). */
 export function resolveDefaultFrameworkRoot(): string {
   const envRoot = process.env.DEFT_ROOT?.trim();

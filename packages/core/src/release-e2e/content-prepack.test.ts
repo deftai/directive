@@ -46,9 +46,14 @@ function buildFakeRepo(options: { withScripts?: boolean } = {}): { root: string;
   );
 
   mkdirSync(join(root, "content"), { recursive: true });
-  writeFileSync(join(root, "content", "main.md"), "# Deft\n", "utf8");
-  mkdirSync(join(root, "content", "skills"), { recursive: true });
-  writeFileSync(join(root, "content", "skills", "SKILL.md"), "# skill\n", "utf8");
+  mkdirSync(join(root, "content", "skills", "deft-directive-setup"), { recursive: true });
+  writeFileSync(
+    join(root, "content", "skills", "deft-directive-setup", "SKILL.md"),
+    "# skill\n",
+    "utf8",
+  );
+  writeFileSync(join(root, "main.md"), "# Deft guidelines\n", "utf8");
+  writeFileSync(join(root, "SKILL.md"), "# Deft skill entry\n", "utf8");
 
   mkdirSync(join(root, ".githooks"), { recursive: true });
   writeFileSync(join(root, ".githooks", "pre-commit"), "#!/bin/sh\nexit 0\n", "utf8");
@@ -96,14 +101,18 @@ describe("@deftai/directive-content prepack (#1967 / #2022 Phase 3)", () => {
     for (const entry of FORBIDDEN_ENGINE_ENTRIES) {
       expect(script).not.toContain(`'${entry}'`);
     }
+    expect(script).toContain("main.md");
+    expect(script).toContain("SKILL.md");
   });
 
-  it("copies the content/ tree into the package", () => {
+  it("copies the content/ tree and root harness entries into the package", () => {
     const { root, pkgDir } = buildFakeRepo();
     created.push(root);
     runPrepack(pkgDir);
     expect(existsSync(join(pkgDir, "main.md"))).toBe(true);
-    expect(existsSync(join(pkgDir, "skills", "SKILL.md"))).toBe(true);
+    expect(readFileSync(join(pkgDir, "main.md"), "utf8")).toContain("# Deft guidelines");
+    expect(existsSync(join(pkgDir, "SKILL.md"))).toBe(true);
+    expect(existsSync(join(pkgDir, "skills", "deft-directive-setup", "SKILL.md"))).toBe(true);
   });
 
   it("bundles .githooks/, Taskfile.yml, and tasks/ from the repo root", () => {

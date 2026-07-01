@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseArgs, run } from "./migrate-xbrief.js";
 
@@ -18,5 +21,14 @@ describe("migrate-xbrief CLI", () => {
 
   it("returns 2 for unknown flags", () => {
     expect(run(["--not-real"])).toBe(2);
+  });
+
+  it("resolves the consumer .deft/core deposit when --framework-root is omitted (#2146)", () => {
+    const project = mkdtempSync(join(tmpdir(), "migrate-xbrief-cli-"));
+    const deposit = join(project, ".deft", "core");
+    mkdirSync(deposit, { recursive: true });
+    const args = parseArgs(["--project-root", project]);
+    expect(args.error).toBeUndefined();
+    expect(args.frameworkRoot).toBe(deposit);
   });
 });

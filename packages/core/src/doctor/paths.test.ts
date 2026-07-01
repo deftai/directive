@@ -1,0 +1,49 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { resolveFrameworkRootForProject } from "./paths.js";
+
+describe("resolveFrameworkRootForProject (#2146)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    vi.unstubAllEnvs();
+  });
+
+  function freshProject(): string {
+    const root = mkdtempSync(join(tmpdir(), "framework-root-"));
+    created.push(root);
+    return root;
+  }
+
+  it("prefers an explicit root over the consumer deposit", () => {
+    const project = freshProject();
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    expect(resolveFrameworkRootForProject(project, "/tmp/explicit")).toBe("/tmp/explicit");
+  });
+
+  it("uses DEFT_ROOT when no explicit root is supplied", () => {
+    const project = freshProject();
+    vi.stubEnv("DEFT_ROOT", "/tmp/from-env");
+    expect(resolveFrameworkRootForProject(project)).toBe("/tmp/from-env");
+  });
+
+  it("detects a consumer .deft/core deposit before the npm-engine fallback", () => {
+    const project = freshProject();
+    const deposit = join(project, ".deft", "core");
+    mkdirSync(join(deposit, "vbrief", "schemas"), { recursive: true });
+    writeFileSync(join(deposit, "QUICK-START.md"), "# qs\n", "utf8");
+    expect(resolveFrameworkRootForProject(project)).toBe(deposit);
+  });
+
+  it("detects legacy deft/ install root", () => {
+    const project = freshProject();
+    const deposit = join(project, "deft");
+    mkdirSync(deposit, { recursive: true });
+    expect(resolveFrameworkRootForProject(project)).toBe(deposit);
+  });
+});

@@ -93,6 +93,11 @@ describe("evaluateXbriefDrift", () => {
     writeTracked(root, "content/vbrief/conformance/valid/x.vbrief.json", CANONICAL_ARTIFACT);
     writeTracked(
       root,
+      ".deft/core/vbrief/conformance/valid/extension-at-root.vbrief.json",
+      CANONICAL_ARTIFACT,
+    );
+    writeTracked(
+      root,
       "docs/reference/forensic-research/templates/x.vbrief.json",
       CANONICAL_ARTIFACT,
     );

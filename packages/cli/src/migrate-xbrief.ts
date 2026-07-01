@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveFrameworkRootForProject } from "@deftai/directive-core/doctor";
 import { runXbriefMigrationCli } from "@deftai/directive-core/xbrief-migrate";
 
 export interface ParsedMigrateXbriefArgs {
@@ -12,7 +12,7 @@ export interface ParsedMigrateXbriefArgs {
 
 export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
   let projectRoot = ".";
-  let frameworkRoot = resolve(import.meta.dirname, "..", "..", "..");
+  let explicitFrameworkRoot: string | undefined;
   let force = false;
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -24,7 +24,7 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
       if (value === undefined) {
         return {
           projectRoot,
-          frameworkRoot,
+          frameworkRoot: resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot),
           force,
           error: "argument --project-root: expected one argument",
         };
@@ -38,24 +38,26 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
       if (value === undefined) {
         return {
           projectRoot,
-          frameworkRoot,
+          frameworkRoot: resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot),
           force,
           error: "argument --framework-root: expected one argument",
         };
       }
-      frameworkRoot = value;
+      explicitFrameworkRoot = value;
       i += 1;
     } else if (arg.startsWith("--framework-root=")) {
-      frameworkRoot = arg.slice("--framework-root=".length);
+      explicitFrameworkRoot = arg.slice("--framework-root=".length);
     } else {
-      return { projectRoot, frameworkRoot, force, error: `unrecognized argument: ${arg}` };
+      return {
+        projectRoot,
+        frameworkRoot: resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot),
+        force,
+        error: `unrecognized argument: ${arg}`,
+      };
     }
   }
 
-  if (process.env.DEFT_ROOT && process.env.DEFT_ROOT.length > 0) {
-    frameworkRoot = process.env.DEFT_ROOT;
-  }
-
+  const frameworkRoot = resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot);
   return { projectRoot, frameworkRoot, force };
 }
 

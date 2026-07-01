@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **npm consumer upgrade path no longer ships a dangling `.deft/core/main.md` reference, a broken `migrate:preflight` layout probe, or false-positive `verify:xbrief-drift` hits on vendored fixtures (#2146).** The content prepack now deposits repo-root `main.md` and `SKILL.md` into `.deft/core/`; bare `deft migrate:preflight` / `deft migrate:xbrief` resolve the consumer `.deft/core` deposit instead of probing `node_modules/vbrief/schemas`; and the xbrief drift gate excludes `.deft/core/**` from the consumer data-plane scan. Closes #2146.
+
 ### Removed
 
 ## [0.66.1] - 2026-07-01
