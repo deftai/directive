@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2023"
+  },
+  "plan": {
+    "id": "fix-2023-content-resolve",
+    "title": "Fix deft update/init refresh_deposit_failed by resolving the content package via its package.json subpath",
+    "status": "completed",
+    "narratives": {
+      "Description": "On v0.58.0, deft update and deft init against a canonical-vendored .deft/core install abort with refresh_deposit_failed and deposit nothing, because resolveInstalledContentRoot resolves @deftai/directive-content by its bare specifier and the content package ships no entry point (no main, no exports, no index.js). The fix resolves the package.json subpath instead and feeds it to the existing walk-up helper, restoring the npm refresh path for vendored deposits without shipping a dead entry module.",
+      "ImplementationPlan": "- In the packages/core/src/deposit/resolve-content.ts source module, change resolveInstalledContentRoot to call resolveSpecifier with `${CONTENT_PACKAGE_NAME}/package.json` and feed the result to the existing contentPackageRootFromResolvedEntry walk-up, which already dirname()s and walks up to the package root, so the bare-specifier resolve that throws is removed.\n- Add a regression test in resolve-content.test.ts that asserts resolution succeeds when the content package fixture has no main, exports, or index.js, and run the deposit test suite as evidence the refresh path resolves.",
+      "UserStory": "As a consumer upgrading via npm, I want deft update to refresh the vendored deposit, so that my .deft/core content updates instead of aborting with refresh_deposit_failed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2023",
+      "Overview": "On v0.58.0, `deft update` / `deft init` against a canonical-vendored `.deft/core/` install abort with `refresh_deposit_failed`. Root cause: `resolveInstalledContentRoot()` in `@deftai/directive-core/dist/deposit/resolve-content.js` resolves the content package by bare specifier (`import.meta.resolve(\"@deftai/directive-content\")`), but the content package ships no entry point, so the resolve throws. `import.meta.resolve(\"@deftai/directive-content/package.json\")` resolves fine, and the walk-up helper `contentPackageRootFromResolvedEntry` already handles any in-package path. Recommended fix (issue option 1): resolve the `package.json` subpath and feed it to the existing walk-up -- a one-line change with no downstream behavior change.",
+      "Traces": "deftai/directive#2023"
+    },
+    "items": [
+      {
+        "id": "fix-2023-content-resolve-a1",
+        "title": "Given a content package with no main, exports, or index.js, when resolveInstalledContentRoot runs, then it resolves the package root via the package.json subpath without throwing.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a content package with no main, exports, or index.js, when resolveInstalledContentRoot runs, then it resolves the package root via the package.json subpath without throwing.",
+          "Traces": "deftai/directive#2023"
+        }
+      },
+      {
+        "id": "fix-2023-content-resolve-a2",
+        "title": "Given deft update against a canonical-vendored .deft/core install, when it runs, then it deposits refreshed content and does not abort with refresh_deposit_failed.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given deft update against a canonical-vendored .deft/core install, when it runs, then it deposits refreshed content and does not abort with refresh_deposit_failed.",
+          "Traces": "deftai/directive#2023"
+        }
+      },
+      {
+        "id": "fix-2023-content-resolve-a3",
+        "title": "Given resolve-content.test.ts, when the deposit suite runs, then a regression test covers the no-entry-point resolution path and passes.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given resolve-content.test.ts, when the deposit suite runs, then a regression test covers the no-entry-point resolution path and passes.",
+          "Traces": "deftai/directive#2023"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/deposit/resolve-content.ts",
+          "packages/core/src/deposit/resolve-content.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test deposit"
+        ],
+        "expected_outputs": [
+          "resolveInstalledContentRoot resolves via package.json subpath",
+          "deft update refreshes vendored deposit without refresh_deposit_failed",
+          "regression test for no-entry-point resolution"
+        ],
+        "depends_on": [],
+        "conflict_group": "deposit",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-26T18:28:23Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2023",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2023: deft update/init aborts with refresh_deposit_failed: content package resolved by bare specifier has no entry point (v0.58.0)"
+      }
+    ],
+    "updated": "2026-06-26T18:28:23Z"
+  }
+}

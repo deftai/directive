@@ -59,12 +59,14 @@ vcontext/
 # Operators who want these versioned can delete these lines or override per-file.
 *.premigrate.*
 vbrief/*.premigrate.*
+xbrief/*.premigrate.*
 
 # Migration backups (created by `task migrate:vbrief`) -- do NOT commit.
 # Post-commit, pre-migration state is recoverable via git history; see
 # deft/main.md § Safety flags for the post-commit recovery path.
 *.premigrate.md
 *.premigrate.vbrief.json
+*.premigrate.xbrief.json
 
 # Local triage / refinement issue cache (#845 Story 1). Sidecar mirror of
 # `gh issue list` populated by `task triage:cache`; never versioned. See
@@ -92,7 +94,15 @@ vbrief/*.premigrate.*
 #                               `task doctor` per #1308 to gate the 24h/4h
 #                               re-probe window. Local to each clone; never
 #                               committed).
-# See vbrief/.eval/README.md for the full policy + merge=union rebase note.
+# See xbrief/.eval/README.md for the full policy + merge=union rebase note.
+# Canonical xbrief/ layout (#2109) -- same governance as the legacy vbrief/ block below.
+xbrief/.eval/candidates.jsonl
+xbrief/.eval/summary-history.jsonl
+xbrief/.eval/scope-lifecycle.jsonl
+xbrief/.eval/decompositions/
+xbrief/.eval/doctor-state.json
+xbrief/.eval/*.lock
+# Legacy vbrief/ layout (back-compat read window; removed by #2112).
 vbrief/.eval/candidates.jsonl
 vbrief/.eval/summary-history.jsonl
 vbrief/.eval/scope-lifecycle.jsonl
@@ -119,6 +129,7 @@ history/post-issue.py
 # One-off operator scripts left at root from prior sessions -- move to history/ or delete.
 poll-fetch.ps1
 vbrief/PROJECT-DEFINITION.vbrief.json.lock
+xbrief/PROJECT-DEFINITION.xbrief.json.lock
 
 # Generated codebase MAP projection (#1932) -- a per-project, code-derived
 # artifact (filesystem-walk fileCount/contentHash) that churns on any source

@@ -85,6 +85,25 @@ export const SCANNABLE_EXTENSIONS: ReadonlySet<string> = new Set([
  * POSIX form. Ported verbatim from the Python `BUILTIN_ALLOW_LIST`.
  */
 export const BUILTIN_ALLOW_LIST: ReadonlyArray<string> = [
+  // Migrated xbrief/ layout (#2109). The #798 vBRIEF legitimately carries
+  // mojibake byte sequences as its subject matter; keep it allow-listed under
+  // the canonical layout.
+  "xbrief/active/*-798-*.xbrief.json",
+  "xbrief/completed/*-798-*.xbrief.json",
+  "xbrief/cancelled/*-798-*.xbrief.json",
+  "xbrief/pending/*-798-*.xbrief.json",
+  "xbrief/proposed/*-798-*.xbrief.json",
+  ".deft/core/xbrief/active/*-798-*.xbrief.json",
+  ".deft/core/xbrief/completed/*-798-*.xbrief.json",
+  ".deft/core/xbrief/cancelled/*-798-*.xbrief.json",
+  ".deft/core/xbrief/pending/*-798-*.xbrief.json",
+  ".deft/core/xbrief/proposed/*-798-*.xbrief.json",
+  "deft/xbrief/active/*-798-*.xbrief.json",
+  "deft/xbrief/completed/*-798-*.xbrief.json",
+  "deft/xbrief/cancelled/*-798-*.xbrief.json",
+  "deft/xbrief/pending/*-798-*.xbrief.json",
+  "deft/xbrief/proposed/*-798-*.xbrief.json",
+  // Legacy vbrief/ layout (back-compat read support; removed by #2112).
   "vbrief/active/*-798-*.vbrief.json",
   "vbrief/completed/*-798-*.vbrief.json",
   "vbrief/cancelled/*-798-*.vbrief.json",

@@ -1,0 +1,91 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p.xbrief.json"
+  },
+  "plan": {
+    "id": "story-640-project-render-staleness-ack",
+    "title": "Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags",
+    "status": "completed",
+    "planRef": "cancelled/2026-06-28-640-projectrender-staleness-flags-need-an-acknowledgementclear-p.xbrief.json",
+    "narratives": {
+      "Description": "task project:render emits heuristic staleness_flags when completed scope titles overlap narrative keys, but re-rendering after manual review does not clear flags because no reviewed/acknowledged state is persisted. This story adds durable review metadata (watermark or per-narrative acknowledgement) so operators can mark narratives fresh after review and subsequent renders suppress repeat warnings until new completed work arrives.",
+      "ImplementationPlan": "Extend the project-render module in packages/core/src/render/project-render.ts to persist acknowledgement metadata on plan.metadata and filter staleness_flags using that watermark.\nAdd packages/core/src/render/project-render.test.ts cases for initial emission, acknowledgement, no-repeat after ack, and re-flag on new completed scopes; run pnpm test project-render as verify evidence.",
+      "UserStory": "As a maintainer updating PROJECT-DEFINITION narratives, I want staleness flags to clear after I review them, so that project:render stays actionable instead of noisy on every run.",
+      "Traces": "deftai/directive#640"
+    },
+    "items": [
+      {
+        "id": "story-640-project-render-staleness-ack-a1",
+        "title": "Given completed scopes trigger staleness_flags on first render, when the operator acknowledges reviewed narratives, then a subsequent project:render without new completed scopes emits zero repeat flags for those narratives.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given completed scopes trigger staleness_flags on first render, when the operator acknowledges reviewed narratives, then a subsequent project:render without new completed scopes emits zero repeat flags for those narratives.",
+          "Traces": "deftai/directive#640"
+        }
+      },
+      {
+        "id": "story-640-project-render-staleness-ack-a2",
+        "title": "Given new completed scopes land after acknowledgement, when project:render runs, then only the affected narratives are flagged again.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given new completed scopes land after acknowledgement, when project:render runs, then only the affected narratives are flagged again.",
+          "Traces": "deftai/directive#640"
+        }
+      },
+      {
+        "id": "story-640-project-render-staleness-ack-a3",
+        "title": "Given the acknowledgement path, when used, then it is documented as distinct from task reconcile:issues origin reconciliation.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the acknowledgement path, when used, then it is documented as distinct from task reconcile:issues origin reconciliation.",
+          "Traces": "deftai/directive#640"
+        }
+      },
+      {
+        "id": "story-640-project-render-staleness-ack-a4",
+        "title": "Given packages/core/src/render/project-render.test.ts, when it runs, then initial emission, acknowledgement, no-repeat, and re-flag scenarios pass.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/render/project-render.test.ts, when it runs, then initial emission, acknowledgement, no-repeat, and re-flag scenarios pass.",
+          "Traces": "deftai/directive#640"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/render/project-render.ts",
+          "packages/core/src/render/project-render.test.ts",
+          "tasks/project.yml"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test project-render"
+        ],
+        "expected_outputs": [
+          "staleness acknowledgement metadata persisted",
+          "repeat flags suppressed after review"
+        ],
+        "depends_on": [],
+        "conflict_group": "project-render",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-28T15:10:26Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/640",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #640: project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-28T15:10:26Z"
+  }
+}

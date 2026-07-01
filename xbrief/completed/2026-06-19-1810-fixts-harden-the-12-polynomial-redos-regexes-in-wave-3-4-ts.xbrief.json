@@ -1,0 +1,50 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1810"
+  },
+  "plan": {
+    "title": "fix(ts): harden the 12 polynomial-ReDoS regexes in Wave 3-4 TS ports (clear master CodeQL backlog)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(ts): harden the 12 polynomial-ReDoS regexes in Wave 3-4 TS ports (clear master CodeQL backlog)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1810",
+      "Overview": "## Parent\n#1530 (Part 1 of 2) — engine TS migration\n\n## Problem\nmaster currently has **13 open CodeQL alerts** (12 high-severity `js/polynomial-redos` across 9 files + 1 URL-sanitization). These were introduced by the Wave 3-4 TS ports and slipped past CodeQL because the wave PRs were `--admin`-merged. The default branch is effectively red on CodeQL, and CodeQL now mis-attributes these pre-existing alerts to every NEW PR via its diff baseline (e.g. it blocked the Wave 6 spec-render PR #1807 on `doctor/json.ts:4`, a file that PR never touched).\n\n## Affected files (open js/polynomial-redos)\n- `packages/core/src/cache/scanner.ts` (3)\n- `packages/core/src/scope/demote.ts` (2)\n- `packages/core/src/doctor/json.ts` (1)\n- `packages/core/src/doctor/checks.ts` (1)\n- `packages/core/src/doctor/manifest.ts` (1)\n- `packages/core/src/pr-merge-readiness/parse.ts` (1)\n- `packages/core/src/scm/py-format.ts` (1)\n- `packages/core/src/slice/json.ts` (1)\n- `packages/core/src/slice/project-context.ts` (1)\n- (+ 1 `js/incomplete-url-substring-sanitization` in `triage/queue/repo.ts`)\n\n## What to build\nRewrite each flagged regex as a parity-preserving **linear scanner** (no polynomial backtracking), keeping behavior byte-identical. Each affected module already has a golden-diff parity harness from its original wave — every one must stay CLEAN, cache-off.\n\n## Acceptance criteria\n- [ ] All 12 `js/polynomial-redos` alerts cleared (CodeQL green on the branch)\n- [ ] Every affected module's existing parity harness stays CLEAN (`task ts:parity-all` exit 0)\n- [ ] `task check` green; CHANGELOG entry\n- [ ] No behavior change (linear rewrites only)\n\n## Type\nAFK\n\nRefs #1530"
+    },
+    "items": [
+      {
+        "title": "All 12  alerts cleared (CodeQL green on the branch)",
+        "status": "proposed"
+      },
+      {
+        "title": "Every affected module's existing parity harness stays CLEAN ( exit 0)",
+        "status": "proposed"
+      },
+      {
+        "title": "green; CHANGELOG entry",
+        "status": "proposed"
+      },
+      {
+        "title": "No behavior change (linear rewrites only)",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1810",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1810: fix(ts): harden the 12 polynomial-ReDoS regexes in Wave 3-4 TS ports (clear master CodeQL backlog)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1530"
+      }
+    ],
+    "updated": "2026-06-19T22:00:05Z",
+    "metadata": {
+      "completedAt": "2026-06-19T22:00:05Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

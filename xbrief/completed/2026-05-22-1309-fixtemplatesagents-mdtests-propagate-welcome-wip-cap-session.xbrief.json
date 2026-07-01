@@ -1,0 +1,111 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1309",
+    "updated": "2026-05-22T16:30:00Z"
+  },
+  "plan": {
+    "title": "fix(templates,agents-md,tests): propagate welcome / WIP cap / session-start ritual / skill routing from maintainer AGENTS.md into templates/agents-entry.md + propagation-discipline gate",
+    "status": "completed",
+    "narratives": {
+      "Description": "The maintainer directive/AGENTS.md has grown with consumer-relevant rules (session-start ritual, WIP cap, triage:welcome onboarding, skill routing) that templates/agents-entry.md does not yet mirror, so every consumer-side AGENTS.md managed-section block is narrower than the maintainer intends. This story propagates those sections into the template, adds a propagation-discipline test gate keyed off a curated marker list, and extends scripts/triage_welcome.py with an --onboard flag plus a default-mode nudge so the welcome surface becomes self-bootstrapping.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1309",
+      "Overview": "## Problem\r\n\r\nThe maintainer's `directive/AGENTS.md` has grown with new rules over recent releases (#1149 session-start ritual, #1152 umbrella current-shape convention, #954 multi-agent orchestration discipline, #1242 CHANGELOG entry style, plus the welcome/WIP/triage discoverability surface from #1119 / #1143 / #1122 / #1124). `templates/agents-entry.md` -- which is the source-of-truth for every consumer-side AGENTS.md managed-section block -- has NOT been kept in lockstep.\r\n\r\nNet effect: a consumer who installs deft (or upgrades to the latest) gets a much narrower AGENTS.md than the maintainer has. A consumer agent reading their project's AGENTS.md has no idea that `task triage:welcome`, the WIP cap surface, the session-start ritual, or `task doctor` exist as canonical commands. The mechanism to propagate is sound (`cmd_agents_refresh` byte-replaces the managed-section from the template); the bug is that the template hasn't been updated.\r\n\r\n## What's in the maintainer file but NOT in `templates/agents-entry.md`\r\n\r\n- `## Session-start ritual (#1149)` -- the canonical ritual (alignment confirmation -> `task doctor` -> branch-policy disclosure -> `task triage:welcome` -> `task verify:cache-fresh`).\r\n- `task triage:welcome` -- the consolidated onboarding/status command (#1143; default mode subsumes `task triage:summary` plus first-time/incomplete nudge -- see Resolution below).\r\n- WIP cap surface (`plan.policy.wipCap` default 10; cap-reached relief commands).\r\n- `## Cache-as-authoritative work selection (#1149)` -- the `task triage:queue` rule for \"what's next?\".\r\n- `task doctor` -- the consolidated install-integrity + toolchain + AGENTS.md-freshness probe (#1308).\r\n- `## Skill Routing` -- the keyword-to-skill routing table (welcome / refinement / swarm / triage / build / cost / pre-pr / etc.).\r\n\r\n## Why this matters\r\n\r\nThe consumer has access to the TOOLS via the Taskfile (assuming the consumer's project Taskfile includes the deft Taskfile per the canonical pattern), but the AGENTS.md doesn't TELL them to use any of it. A consumer agent never emits `task triage:welcome` at session start because no rule in their AGENTS.md prescribes it. The maintainer-side discipline is rich; the consumer-side is bootstrap-only.\r\n\r\n## Resolution\r\n\r\n### Part 1 -- promote consumer-relevant rules into the template\r\n\r\nExtend `templates/agents-entry.md` to mirror the maintainer's prescriptive content where it's consumer-relevant. Sections to add:\r\n\r\n- **`## Session-start ritual`** -- canonical 5-step sequence (aligned with #1308):\r\n  1. Deft alignment confirmation (agent statement)\r\n  2. `task doctor` (install integrity gate; halts ritual on persistent-dirty)\r\n  3. Branch-policy disclosure (only when `allowDirectCommitsToMaster=true`)\r\n  4. `task triage:welcome` (default mode: summary + first-time/incomplete nudge)\r\n  5. `task verify:cache-fresh` (warning only when stale)\r\n\r\n- **`## WIP cap`** -- one paragraph documenting `plan.policy.wipCap`, the default (10), the cap-reached error message, and the relief commands (`task scope:demote`, `--force` override). **Prerequisite**: this same block lands in maintainer `AGENTS.md` FIRST so the \"mirror what's in maintainer AGENTS.md\" propagation discipline isn't self-violating. Maintainer currently mentions WIP cap only inside other sections; this issue adds the dedicated heading on both sides.\r\n\r\n- **`## Triage / what's next?`** -- surface `task triage:queue` per the cache-as-authoritative work-selection rule (mirrors maintainer's `## Cache-as-authoritative work selection (#1149)`).\r\n\r\n- **`## Skill Routing`** -- propagate the keyword-to-skill routing table. **Filter**: exclude only `deft-directive-release` (the only true maintainer-only skill; cuts deft framework releases against a temp clone of `deftai/directive`). All other `deft-directive-*` skills ship in `.deft/core/skills/` and are consumer-usable -- the `directive` in the skill name is branding, not a maintainer-scope marker.\r\n\r\n### Welcome surface design (paired with #1308)\r\n\r\n`task triage:welcome` becomes the unified onboarding + status surface that REPLACES `task triage:summary` in the session-start ritual:\r\n\r\n- **Default mode** (`task triage:welcome` no flag): emits the `task triage:summary` one-liner (queue state), then appends a state-conditional nudge:\r\n  - First-time (no `xbrief/.eval/candidates.jsonl`, no `triageScope`, no `wipCap`): `[welcome] First-time? Run \\`task triage:welcome --onboard\\` to set up triage.`\r\n  - Incomplete onboarding (partial state): `[welcome] Onboarding incomplete: <missing-piece>. Run \\`task triage:welcome --onboard\\` to resume.`\r\n  - Fully set up: nothing extra (just the summary line).\r\n  - No interactive prompts in default mode.\r\n- **`--onboard` flag**: runs the existing 6-phase interactive ritual (subscription scope, bootstrap, wipCap, WIP relief, summary, handoff).\r\n- **`task triage:summary` stays as a composable primitive** for non-session-start callers (deft-directive-sync, scripts). Welcome internally calls `triage_summary.emit_oneliner()` (Python, not subprocess) so the byte-shape of the summary line is identical.\r\n\r\nThis is the cleanest consolidation: one command at session-start covers state + first-time discoverability + handoff, with no separate hint-state file required (the existing `candidates.jsonl` + `triageScope` + `wipCap` fields are the state-of-truth). Skill Routing entry: `\"welcome\" / \"onboard triage\" -> task triage:welcome --onboard`.\r\n\r\n### Path rewriting\r\n\r\nThe template hand-edits all skill paths to `.deft/core/skills/...` once (consumer-install reality). The maintainer file uses root-relative `skills/...` paths because this repo IS the deft directory. The propagation gate (Part 2) keys off path-SUFFIX substrings (e.g. `deft-directive-build/SKILL.md`), so the same marker satisfies both files despite the prefix divergence -- no template DSL or dynamic rewrite needed.\r\n\r\n### Part 2 -- codify the propagation discipline\r\n\r\nToday nothing enforces lockstep between maintainer AGENTS.md and the consumer template. Fix:\r\n\r\n- Add a `!` MUST rule to AGENTS.md, placed **immediately after the `## Session-start ritual (#1149)` block** (the surface it most directly governs): *when a maintainer-side rule lands that is consumer-relevant (welcome / WIP cap / triage / install integrity / branch policy / encoding gates / canonical commands / skill routing), the same PR MUST update `templates/agents-entry.md` to mirror it.*\r\n\r\n- Add a `⊗` anti-pattern: *MUST NOT land a consumer-relevant rule without updating the template.*\r\n\r\n- **Deterministic gate**: `tests/content/test_agents_entry_contract.py` extends with a marker-list assertion that fails CI when a curated maintainer rule lacks a template mirror. Matching is **whitespace-normalized substring containment** (robust to em-dash spacing churn, but still byte-anchored on distinctive content).\r\n\r\n### v1 marker list\r\n\r\nThe gate asserts each marker exists (whitespace-normalized substring) in BOTH `directive/AGENTS.md` and `templates/agents-entry.md`. Markers are chosen to be **distinctive** (header anchors with issue numbers; full command-and-flag strings) to avoid substring collisions.\r\n\r\n**Commands:**\r\n- `task triage:welcome`\r\n- `task triage:queue`\r\n- `task verify:cache-fresh`\r\n- `task verify:branch`\r\n- `task doctor`\r\n- `task agents:refresh`\r\n\r\n**Policy keys:**\r\n- `plan.policy.wipCap`\r\n- `plan.policy.allowDirectCommitsToMaster`\r\n\r\n**Distinctive headers:**\r\n- `## Session-start ritual (#1149)`\r\n- `## Cache-as-authoritative work selection (#1149)`\r\n- `## Skill Routing`\r\n- `## WIP cap`\r\n\r\n**Action-verb directive list** (#810):\r\n- One combined assertion that the list `build`, `implement`, `ship`, `swarm`, `run agents`, `start agent` appears in both files (the list is the gate, not each verb individually).\r\n\r\nAdding a new consumer-relevant rule = extending this list in the same PR.\r\n\r\n## Acceptance\r\n\r\n- `templates/agents-entry.md` carries `## Session-start ritual` (5-step canonical order with `task doctor` at step 2), `## WIP cap`, `## Triage / what's next?`, and `## Skill Routing` (with `deft-directive-release` excluded; all other `deft-directive-*` routes included with `.deft/core/skills/` paths).\r\n- Consumer-side AGENTS.md (after `task agents:refresh`) carries the new sections inside the managed-section markers; the `<!-- deft:managed-section v3 -->` marker contract is preserved (no marker version bump -- additions are additive).\r\n- Maintainer `AGENTS.md` carries a new `## WIP cap` block (prerequisite to the template mirror, so the propagation discipline isn't self-violating).\r\n- `tests/content/test_agents_entry_contract.py` extends with the v1 marker-list assertion above; whitespace-normalized substring matching; fails CI when any marker is missing from EITHER file.\r\n- AGENTS.md (maintainer side) carries the `!` MUST rule + `⊗` anti-pattern, placed immediately after `## Session-start ritual (#1149)`.\r\n- `scripts/triage_welcome.py` adds `--onboard` flag (gates the existing 6-phase interactive ritual); default mode emits summary + conditional nudge; internally calls a shared `triage_summary.emit_oneliner()` so the summary byte-shape stays identical.\r\n- `task triage:summary` continues to work as the composable primitive (not removed, not deprecated).\r\n- Existing `test_render_is_byte_stable` regression continues to pass (template content additions are byte-stable in their final shape).\r\n- `task check` passes.\r\n\r\n## Out of scope\r\n\r\n- Bumping the managed-section marker version to v4 -- v3 is structurally fine; content additions are additive and don't require a marker bump.\r\n- Auto-running `task agents:refresh` from doctor or any gate -- read-only contract preserved.\r\n- Forking the template into multiple variants (maintainer vs consumer vs cloud) -- single template; sections are consumer-relevant or they don't propagate.\r\n- Propagating maintainer-only content (e.g. PowerShell 5.1 deterministic-gate rule body, SCM-tooling-ghx preference, umbrella current-shape convention, multi-agent orchestration discipline, CHANGELOG entry style, test performance discipline). Those stay in the maintainer file -- they're repo-development scope. The marker list explicitly names what propagates; anything not on the list doesn't.\r\n- Removing `task triage:summary` -- stays as composable primitive used outside the session-start ritual.\r\n\r\n## Cross-references\r\n\r\n- #1149 (N9) -- session-start ritual that needs propagation; this issue updates it to the new 5-step canonical order alongside #1308.\r\n- #1143 (N3) -- `task triage:welcome` underlying ritual; this issue adds the `--onboard` flag + default-mode nudge.\r\n- #1122 (D2) -- `task triage:summary` one-liner that welcome's default mode now subsumes.\r\n- #1124 (D4) -- WIP cap + relief surface.\r\n- #1128 (D11) -- `task triage:queue` for \"what's next?\".\r\n- #1308 -- companion issue; consolidates `run doctor` + `task framework:doctor`, adds AGENTS.md managed-section freshness check, makes `task doctor` session-start ritual step 2. Implementation order: this issue lands first (template carries the rules so the freshness check has a meaningful comparison target).\r\n- #768 / managed-section v3 contract -- the marker contract this PR works within.\r\n- `tests/content/test_agents_entry_contract.py` -- the byte-stability + structural assertions this PR extends with marker-list propagation gate.\r\n\r\n## Refinement history\r\n\r\nRefined 2026-05-22 via deep-think pass with operator. Body replaced in place per #1152 umbrella current-shape convention (issue not yet picked up; no prior design pass). Key shape changes from initial draft:\r\n\r\n- v1 marker list enumerated explicitly (was: 4-example placeholder).\r\n- Skill filter collapsed to single exclusion `deft-directive-release` (was: curated half-list; `deft-directive-*` is branding, not maintainer-scope marker).\r\n- Welcome surface unified: default mode subsumes `triage:summary` output + first-time/incomplete nudge; interactive 6-phase ritual moved behind `--onboard` flag. `triage:summary` stays as composable primitive.\r\n- Session-start ritual step 3 changes from `task triage:summary` to `task triage:welcome`.\r\n- Session-start ritual reordered to 5 steps with `task doctor` at step 2 (per #1308 gate-first ordering).\r\n- Static path rewriting (`.deft/core/skills/...` in template; `skills/...` in maintainer) with gate keying off path-SUFFIX substrings -- no template DSL.\r\n- WIP cap requires a new `## WIP cap` block in maintainer AGENTS.md FIRST so the propagation discipline doesn't self-violate.\r\n- Marker matching is whitespace-normalized substring containment with distinctive markers (e.g. `## Session-start ritual (#1149)` not bare `Session-start ritual`).\r\n- Discipline rule placement: immediately after `## Session-start ritual (#1149)` block.\r\n- No separate first-time hint state file; existing `candidates.jsonl` + `triageScope` + `wipCap` are the state-of-truth.\r\n",
+      "Labels": "documentation, enhancement, determinism",
+      "UserStory": "As a deft consumer, I want my AGENTS.md to carry the same session-start ritual, welcome, WIP cap, and skill routing prescriptions the maintainer follows, so that my agents have the same canonical discoverability surface and aren't bootstrap-only.",
+      "ImplementationPlan": "1. Extend templates/agents-entry.md with the four consumer-relevant sections (Session-start ritual 5-step with task doctor at step 2; WIP cap block; Triage / what's next; Skill Routing) and rewrite skill paths to .deft/core/skills/...; this is the template file the consumer AGENTS.md managed-section is rendered from.\n2. Update directive/AGENTS.md to add the new ## WIP cap heading plus the propagation-discipline MUST rule and anti-pattern immediately after the ## Session-start ritual (#1149) block, and to renumber the ritual to the 5-step canonical order including task doctor as step 2 (this edit moves under #1309 ownership per the Path B file-ownership split so #1308 has no AGENTS.md touches).\n3. Extend scripts/triage_welcome.py with the --onboard flag (gates the existing 6-phase interactive ritual), make default mode emit the triage:summary one-liner plus a state-conditional nudge for first-time / incomplete onboarding via a shared emit_oneliner() helper, and update the argparse surface in scripts/_triage_welcome_cli.py.\n4. Extend tests/content/test_agents_entry_contract.py with the v1 propagation-gate marker list (whitespace-normalized substring containment) so CI fails when a curated marker is missing from either file; add tests/test_triage_welcome.py to assert the --onboard flag and default-mode nudge behaviour against captured fixtures.",
+      "Traces": "Traces to GitHub issue #1309 and the maintainer/consumer AGENTS.md propagation gap."
+    },
+    "items": [
+      {
+        "title": "Template carries consumer-relevant sections",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a rendered templates/agents-entry.md, when the file is loaded, then it displays ## Session-start ritual, ## WIP cap, ## Triage / what's next?, and ## Skill Routing sections with .deft/core/skills/ paths.",
+          "Traces": "Traces to GitHub issue #1309 propagation gap."
+        }
+      },
+      {
+        "title": "Propagation gate test asserts marker parity",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When tests/content/test_agents_entry_contract.py runs, it fails the suite if any v1 marker (commands, policy keys, distinctive headers, action-verb list) is missing from either directive/AGENTS.md or templates/agents-entry.md.",
+          "Traces": "Traces to GitHub issue #1309 propagation gate."
+        }
+      },
+      {
+        "title": "Maintainer AGENTS.md gains WIP cap and propagation rule",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When directive/AGENTS.md is rendered, it shows a dedicated ## WIP cap block and displays the propagation MUST rule plus anti-pattern immediately after the ## Session-start ritual (#1149) block with task doctor renumbered as step 2.",
+          "Traces": "Traces to GitHub issue #1309 maintainer-side propagation seed."
+        }
+      },
+      {
+        "title": "Welcome script gains onboard flag and default nudge",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given scripts/triage_welcome.py is invoked without flags in an incomplete-onboarding state, then it emits the triage:summary one-liner followed by a nudge pointing at task triage:welcome --onboard, and the --onboard flag runs the 6-phase ritual.",
+          "Traces": "Traces to GitHub issue #1309 welcome consolidation."
+        }
+      },
+      {
+        "title": "Test coverage validates welcome behaviour",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When tests/test_triage_welcome.py runs, it asserts --onboard launches the interactive ritual and default mode emits the byte-stable summary line plus the conditional first-time / incomplete nudge against captured fixtures.",
+          "Traces": "Traces to GitHub issue #1309 welcome test coverage."
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "enhancement",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1309",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1309: fix(templates,agents-md,tests): propagate welcome / WIP cap / session-start ritual / skill routing from maintainer AGENTS.md into templates/agents-entry.md + propagation-discipline gate"
+      }
+    ],
+    "updated": "2026-05-22T18:43:50Z",
+    "id": "issue-1309",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "templates/agents-entry.md",
+          "directive/AGENTS.md",
+          "scripts/triage_welcome.py",
+          "scripts/_triage_welcome_cli.py",
+          "tests/content/test_agents_entry_contract.py",
+          "tests/test_triage_welcome.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "uv --project . run pytest tests/content/test_agents_entry_contract.py -v",
+          "uv --project . run pytest tests/test_triage_welcome.py -v",
+          "task agents:refresh -- --check"
+        ],
+        "expected_outputs": [
+          "templates/agents-entry.md renders the four new sections inside the managed-section markers",
+          "tests/content/test_agents_entry_contract.py fails when a v1 marker is missing from either file",
+          "scripts/triage_welcome.py emits the conditional nudge in default mode and runs the ritual under --onboard"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-start-ritual",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-05-22T19:13:17Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
+  }
+}

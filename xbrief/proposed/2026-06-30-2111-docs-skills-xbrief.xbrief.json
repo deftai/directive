@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2111 (docs/skills/templates xbrief alignment); part of the #2034 decomposition.",
+    "created": "2026-06-30T14:30:00Z",
+    "updated": "2026-06-30T14:30:00Z"
+  },
+  "plan": {
+    "id": "2111-docs-skills-xbrief",
+    "title": "Align docs, skills, and templates to xbrief naming and commands",
+    "status": "proposed",
+    "planRef": "https://github.com/deftai/directive/issues/2034",
+    "narratives": {
+      "Description": "Update the agent-facing surface (skills, templates, AGENTS entry, and docs) to the xBRIEF prose term and lowercase xbrief paths, verbs, and the migrate:xbrief command. This spans many content files that must stay internally consistent, so it is marked sequential and run solo after the rename lands.",
+      "ImplementationPlan": "1. Rewrite content skills, content/templates/agents-entry.md, and docs to use xBRIEF in prose and xbrief/ paths, *.xbrief.json files, and xbrief:* verbs, then run task agents:refresh to regenerate the consumer AGENTS.md managed section. 2. Update the content contract test markers so the agents-entry contract validates the new tokens; run the content contract test suite to confirm propagation.",
+      "UserStory": "As a directive user, I want docs and skills to describe xbrief consistently, so that guidance matches the renamed layout, verbs, and migrate:xbrief command.",
+      "Traces": "#2111, #2034"
+    },
+    "items": [
+      {
+        "id": "2111-a1",
+        "title": "Given the skills and docs, when scanned, then they use xBRIEF prose and xbrief paths",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the content skills and docs, when scanned, then they reference xBRIEF in prose and xbrief/ paths and verbs consistently."
+        }
+      },
+      {
+        "id": "2111-a2",
+        "title": "Given the template change, when agents:refresh runs, then the consumer AGENTS section updates",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the updated agents-entry template, when task agents:refresh runs, then the consumer AGENTS.md managed section regenerates with xbrief tokens."
+        }
+      },
+      {
+        "id": "2111-a3",
+        "title": "Given the new markers, when the contract test runs, then propagation validates green",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the updated marker list, when the agents-entry contract test runs, then it validates the xbrief tokens and passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2034",
+        "child_issue": "#2111",
+        "sequential_reason": "broad content surface that must stay internally consistent; run after rename"
+      },
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-sync/SKILL.md",
+          "tests/content/test_agents_entry_contract.py"
+        ],
+        "verify_commands": [
+          "task agents:refresh",
+          "task check"
+        ],
+        "expected_outputs": [
+          "docs/skills/templates aligned to xBRIEF prose + xbrief tokens; agents-entry contract green"
+        ],
+        "depends_on": [
+          "2109-maintainer-xbrief-rename"
+        ],
+        "conflict_group": "xbrief-docs",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2111",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2111: docs(vbrief): align docs/skills/templates to xbrief naming + commands"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
+      }
+    ]
+  }
+}

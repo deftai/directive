@@ -1,0 +1,57 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Epic scope vBRIEF for issue #1387 -- low-ceremony / headless swarm launch for pre-approved cohorts (builds on the merged #1378 allocation-context token)",
+    "updated": "2026-06-01T05:00:00Z"
+  },
+  "plan": {
+    "id": "1387-headless-swarm-launch",
+    "title": "Low-ceremony / headless swarm launch for pre-approved cohorts",
+    "status": "completed",
+    "narratives": {
+      "Description": "Add a low-ceremony / headless launch path so an operator with a pre-approved cohort of active/ stories can launch a swarm without walking the full Phase 0 promote-fill loop and per-phase approval gates. Builds on the merged #1378 allocation-context consent token and Gate 0 (task verify:story-ready). The deterministic work (story resolution, gate enforcement, worktree mapping, dispatch-envelope generation, launch-manifest emission) lands as a CLI; the actual agent spawn stays agent-driven through the existing swarm skill Phase 3 (start_agent / spawn_subagent).",
+      "ProblemStatement": "The swarm skill is a long, conversational, phase-driven workflow with multiple approval gates. For the common 'I have N ready stories, just launch them' case (experience report on deftvisage, #1387) it is too heavyweight, so consumers fall back to manual worktree creation + raw spawn_subagent, losing the blessed monitoring, conflict-group handling, and review-cycle tooling.",
+      "ImplementationPlan": "Decomposes into three parallel-safe stories that build against three contracts FROZEN here up front (mirroring how #1378 froze the allocation-context schema so Stories A/B/C ran concurrently):\n1. Contract C1 -- task swarm:launch CLI signature: `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`. Resolves named stories against xbrief/active, runs the #810 preflight gate (task vbrief:preflight) and task swarm:readiness per story, and exits nonzero naming the first failing story.\n2. Contract C2 -- launch-manifest JSON schema (emitted by C1, consumed by the monitor / skill Phase 3): an array of per-agent objects { story_id, vbrief_path, worktree_path, branch, allocation_context } where allocation_context is the populated #1378 token (dispatch_kind=swarm-cohort, allocation_plan_id, batching_rationale, cohort_vbriefs, operator_approval_evidence).\n3. Contract C3 -- worktree-map JSON schema (produced/validated by the worktree resolver, consumed by C1): an array of { story_id, worktree_path, base_branch } records; missing worktrees are created idempotently, collisions and base-branch mismatches are rejected.\nThe spawn boundary is fixed: scripts do PREP only; Phase 3 Step 2a/2d still owns the actual start_agent / spawn_subagent dispatch. Integration order after the three branches merge is engine <- worktree-resolver, then skill prose, identical to the #1378 A->B->C integration.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1387",
+      "Labels": "documentation, enhancement, swarm, agent-experience"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1387",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1387: feat(swarm): low-ceremony / headless launch for pre-approved cohorts (build on #1378 allocation-context token)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1378: allocation-context token + Gate 0 (merged enabler)"
+      },
+      {
+        "uri": "completed/2026-06-01-headless-swarm-launch-engine-task-swarmlaunch-deterministic.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Headless swarm launch engine: task swarm:launch deterministic prep CLI",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-01-pre-created-worktree-resolver-for-swarm-cohorts.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Pre-created worktree resolver for swarm cohorts",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-01-document-the-headless-low-ceremony-launch-path-in-the-swarm.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Document the headless / low-ceremony launch path in the swarm skill",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic",
+      "completedAt": "2026-06-01T05:00:49Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    },
+    "updated": "2026-06-01T05:00:00Z"
+  }
+}

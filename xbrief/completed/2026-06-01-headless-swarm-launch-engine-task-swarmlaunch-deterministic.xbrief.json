@@ -1,0 +1,101 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-01-1387-headless-swarm-launch.xbrief.json"
+  },
+  "plan": {
+    "id": "swarm-launch-cli",
+    "title": "Headless swarm launch engine: task swarm:launch deterministic prep CLI",
+    "status": "completed",
+    "planRef": "completed/2026-06-01-1387-headless-swarm-launch.xbrief.json",
+    "narratives": {
+      "Description": "Provides a deterministic task swarm:launch entry point that turns an operator-supplied, pre-approved cohort into a ready-to-spawn launch manifest. It resolves named stories, enforces the existing task swarm:readiness and #810 preflight gates, and pre-populates the #1378 allocation-context consent token so the monitor can spawn agents without re-running Phase 0 ceremony. This story owns only the launch engine and its Taskfile target, keeping it independently buildable against the frozen C2/C3 contracts.",
+      "ImplementationPlan": "1. Add scripts/swarm_launch.py implementing a CLI that resolves --stories (issue numbers) and explicit --paths against xbrief/active, then runs the #810 preflight gate (task vbrief:preflight) and task swarm:readiness per story, exiting nonzero and naming the first failing story.\n2. Consume the frozen worktree-map schema (C3), generate per-agent dispatch envelopes that populate the #1378 allocation-context token, and emit a launch-manifest JSON (C2); register a swarm:launch target in tasks/swarm.yml forwarding CLI_ARGS bare.\n3. Cover story resolution, gate-failure exit codes, and manifest shape with assertions in tests/cli/test_swarm_launch.py.",
+      "UserStory": "As a swarm operator, I want a deterministic launch command for a pre-approved cohort, so that agents can be spawned without re-running Phase 0 ceremony.",
+      "Traces": "#1387, #1378, #810"
+    },
+    "items": [
+      {
+        "id": "swarm-launch-cli-a1",
+        "title": "Resolve named stories",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When invoked with --stories 612,547,543,610, the command resolves each issue number to its xbrief/active story file and rejects any unresolved id with a nonzero exit.",
+          "Traces": "#1387, #1378"
+        }
+      },
+      {
+        "id": "swarm-launch-cli-a2",
+        "title": "Enforce gates",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When any named story has not passed task vbrief:preflight or task swarm:readiness, the command fails with a nonzero exit and names the failing story.",
+          "Traces": "#1387, #810"
+        }
+      },
+      {
+        "id": "swarm-launch-cli-a3",
+        "title": "Emit launch manifest",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When all stories pass the gates, the command emits a launch-manifest JSON that records each agent's worktree path, branch, and populated allocation-context token.",
+          "Traces": "#1387, #1378"
+        }
+      },
+      {
+        "id": "swarm-launch-cli-a4",
+        "title": "Autonomous mode",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When run with --autonomous, the command returns the manifest without prompting and records the batching rationale in each generated envelope.",
+          "Traces": "#1387"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/swarm_launch.py",
+          "tasks/swarm.yml",
+          "tests/cli/test_swarm_launch.py"
+        ],
+        "verify_commands": [
+          "uv run python -m pytest tests/cli/test_swarm_launch.py",
+          "task swarm:launch -- --help"
+        ],
+        "expected_outputs": [
+          "scripts/swarm_launch.py launch engine CLI",
+          "swarm:launch target in tasks/swarm.yml",
+          "launch-manifest JSON emitted to stdout/file",
+          "passing tests/cli/test_swarm_launch.py"
+        ],
+        "depends_on": [],
+        "conflict_group": "headless-swarm-launch",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-01T05:00:49Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1387",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1387: feat(swarm): low-ceremony / headless launch for pre-approved cohorts (build on #1378 allocation-context token)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1378: allocation-context token + Gate 0 (merged enabler)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-01T04:37:32Z"
+  }
+}

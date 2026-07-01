@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1877, refined 2026-06-29 to the downscoped residual after AC2/AC4 were delivered by #1880 and #1531/#1739."
+  },
+  "plan": {
+    "title": "platform: add Cursor as a Tier-1 descriptor in the swarm + review-cycle monitoring matrices (residual)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Add an explicit Cursor platform descriptor (cursor-composer interactive / cursor-cloud-agent cloud, Task-tool dispatch primitive) to the swarm Phase 3 Step 1 detection matrix and the review-cycle Review Monitoring tier-selection table, both mapped to Tier 1 / Approach 1, so a Cursor agent is machine-classified as Tier 1 instead of falling through to generic-terminal / Approach 3. The behavioral half of the original issue (background Task poller, dispatch_provider enumeration) already shipped; this scope is the remaining detection/tier-matrix gap plus the #1166 heartbeat extension and an optional deterministic verify check.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1877",
+      "CurrentShape": "Audit of the tree at v0.63.0 (2026-06-29) split the original five acceptance criteria into delivered vs residual. DELIVERED elsewhere: (AC2) backgrounded Task poller / no blocking loop — #1880, PR #1881, now in skills/deft-directive-swarm/SKILL.md Gap D and skills/deft-directive-review-cycle/SKILL.md Review Monitoring; (AC4) dispatch_provider enumeration includes cursor-composer + cursor-cloud-agent — #1531 / #1739, in templates/agent-prompt-preamble.md §2.6. RESIDUAL (this scope): (AC1) explicit Cursor Tier-1 descriptor missing from BOTH matrices — swarm Phase 3 Step 1 resolves only warp-orchestrated / warp-manual / grok-build / generic-terminal and never probes the Cursor Task tool, so Cursor falls through to generic-terminal; review-cycle tier table has no explicit Cursor -> Tier 1 / Approach 1 mapping. (AC3) #1166 heartbeat contract not extended to Cursor pollers >~3 min. (Stretch) no deterministic verify check; scripts/platform_capabilities.py emits cursor-native-sandbox but that is the #1557 gh-auth runtime-envelope probe, a different surface from the orchestration-tier descriptor. Status comment posted at https://github.com/deftai/directive/issues/1877#issuecomment-4836073332.",
+      "Problem": "Because the swarm Phase 3 capability matrix and the review-cycle monitoring tier table do not enumerate a Cursor descriptor, a Cursor agent (which has the backgroundable Task tool, a first-class Tier-1 sub-agent primitive) is not machine-classified as Tier 1. The detection probe checks only start_agent / WARP_* / spawn_subagent. The #1880 behavioral rules now tell a Cursor agent to use the background Task path, but the matrices that the rules read from still disagree — launch and monitoring do not share one source of truth for the Cursor case. Live recurrence: PR #1876 review cycle ran a ~6 min blocking sleep-poll and skipped the Approach-3 warning gate.",
+      "AcceptanceCriteria": "1. swarm Phase 3 Step 1 detection matrix enumerates a Cursor descriptor (cursor-composer / cursor-cloud-agent) and probes for the Cursor Task tool, mapping it to Tier 1 / Approach 1 with the Task-tool dispatch primitive. 2. review-cycle Review Monitoring tier-selection table explicitly maps the Cursor descriptor to Tier 1 / Approach 1 (backgrounded Task poller). 3. #1166 heartbeat contract (docs/subagent-heartbeat.md) explicitly extended to Cursor pollers whose loop runs >~3 min, same as the spawn_subagent path. 4. (Stretch) deterministic verify: check or detection helper so 'Cursor -> Tier 1' is machine-resolved rather than prose-trusted, with a test. 5. If any consumer-relevant managed-section rule changes, mirror into templates/agents-entry.md and run task agents:refresh (template-propagation discipline); otherwise note that no consumer-facing change was required.",
+      "OutOfScope": "AC2 (backgrounded Task poller / no blocking loop) — delivered by #1880 / PR #1881. AC4 (dispatch_provider enumeration includes Cursor) — delivered by #1531 / #1739. Cursor Plan Mode bridge (#1708) is a distinct concern.",
+      "Labels": "enhancement, swarm, beta, agent-experience, review-cycle, monitoring, runtime-portability"
+    },
+    "items": [
+      {
+        "title": "AC2 (DONE, #1880/PR #1881): review-cycle + swarm guidance instruct a Cursor agent to spawn a backgrounded Task poller (run_in_background:true), not a blocking loop, for multi-minute review monitoring.",
+        "status": "completed"
+      },
+      {
+        "title": "AC4 (DONE, #1531/#1739): dispatch_provider enumeration in agent-prompt-preamble.md includes cursor-composer + cursor-cloud-agent.",
+        "status": "completed"
+      },
+      {
+        "title": "AC1a: add cursor-composer / cursor-cloud-agent descriptor to swarm Phase 3 Step 1 detection matrix; probe for the Cursor Task tool; map to Tier 1 / Approach 1 with the Task-tool dispatch primitive (replace silent generic-terminal fall-through).",
+        "status": "proposed"
+      },
+      {
+        "title": "AC1b: add explicit Cursor -> Tier 1 / Approach 1 mapping to the review-cycle Review Monitoring tier-selection table (backgrounded Task poller).",
+        "status": "proposed"
+      },
+      {
+        "title": "AC3: extend the #1166 sub-agent heartbeat contract (docs/subagent-heartbeat.md) to Cursor pollers whose loop runs >~3 min, same as the spawn_subagent path.",
+        "status": "proposed"
+      },
+      {
+        "title": "Stretch: deterministic verify: check / detection helper so 'Cursor -> Tier 1' is machine-resolved rather than prose-trusted, with a corresponding test. MUST be TypeScript-native in packages/cli (no new Python in directive per #1530 migration); not a scripts/*.py helper.",
+        "status": "proposed"
+      },
+      {
+        "title": "Propagation: if any consumer-relevant managed-section rule changes, mirror into templates/agents-entry.md and run task agents:refresh; otherwise record that no consumer-facing change was required.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "swarm",
+      "beta",
+      "agent-experience",
+      "review-cycle",
+      "monitoring",
+      "runtime-portability"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1877",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1877: platform: add Cursor (Task tool / cursor-composer / cursor-cloud-agent) as a Tier-1 descriptor in the swarm + review-cycle monitoring matrix"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1877#issuecomment-4836073332",
+        "type": "x-xbrief/github-comment",
+        "title": "Status / current shape comment: AC-by-AC delivered-vs-residual breakdown + downscope proposal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1342",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1342 (CLOSED): runtime-aware monitoring matrices for non-Warp; added Grok Build, omitted Cursor"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1880",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1880 (CLOSED, PR #1881): orchestrator sub-agent dispatch doctrine — delivered AC2 (background Task dispatch)"
+      }
+    ],
+    "updated": "2026-06-29T19:32:24Z",
+    "metadata": {
+      "completedAt": "2026-06-29T19:32:24Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

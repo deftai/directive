@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { basename, resolve } from "node:path";
+import { isPlanReferenceType } from "./constants.js";
 import { resolveRefPath } from "./paths.js";
 import type { JsonObject } from "./schema.js";
 
@@ -88,7 +89,7 @@ export function validateEpicStoryLinks(
         if (typeof uri !== "string" || !uri || typeof refType !== "string" || !refType) {
           continue;
         }
-        if (refType !== "x-vbrief/plan") {
+        if (!isPlanReferenceType(refType)) {
           continue;
         }
         const childPath = resolveRefPath(uri, vbriefDir);
@@ -141,7 +142,7 @@ export function validateEpicStoryLinks(
                     typeof pref === "object" &&
                     pref !== null &&
                     !Array.isArray(pref) &&
-                    (pref as JsonObject).type === "x-vbrief/plan"
+                    isPlanReferenceType((pref as JsonObject).type)
                   ) {
                     const u = (pref as JsonObject).uri;
                     if (typeof u === "string") {

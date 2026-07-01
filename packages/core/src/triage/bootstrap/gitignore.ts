@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, relative } from "node:path";
+import { resolveEvalPath } from "../../layout/resolve.js";
 import type { StepOutcome } from "./types.js";
+
+/** POSIX-style display path for `absPath` relative to `projectRoot` (#2109). */
+function evalRelDisplay(projectRoot: string, absPath: string): string {
+  return relative(projectRoot, absPath).split(/[\\/]/).join("/");
+}
 
 export const GITIGNORE_LINE = ".deft-cache/";
 
@@ -141,8 +147,6 @@ operators should know:
 - \`.gitattributes\` -- the \`merge=union\` rule.
 - \`scripts/candidates_log.py\` -- the writer for \`candidates.jsonl\`.
 `;
-
-const CANDIDATES_RELPATH = "vbrief/.eval/candidates.jsonl";
 
 function stepOutcome(
   name: string,
@@ -412,10 +416,10 @@ function ensureGitattributesMergeUnion(gitattributesPath: string, stepName: stri
   );
 }
 
-function ensureEvalReadme(readmePath: string, stepName: string): StepOutcome {
+function ensureEvalReadme(readmePath: string, readmeRel: string, stepName: string): StepOutcome {
   try {
     readFileSync(readmePath, { encoding: "utf8" });
-    return stepOutcome(stepName, true, "vbrief/.eval/README.md already present (no-op)", {
+    return stepOutcome(stepName, true, `${readmeRel} already present (no-op)`, {
       readme_created: false,
       readme_already_present: true,
     });
@@ -435,7 +439,7 @@ function ensureEvalReadme(readmePath: string, stepName: string): StepOutcome {
       String(exc),
     );
   }
-  return stepOutcome(stepName, true, "created vbrief/.eval/README.md (#1144 hybrid policy)", {
+  return stepOutcome(stepName, true, `created ${readmeRel} (#1144 hybrid policy)`, {
     readme_created: true,
   });
 }
@@ -444,7 +448,10 @@ function ensureEvalReadme(readmePath: string, stepName: string): StepOutcome {
 export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome {
   const gitignorePath = `${projectRoot}/.gitignore`;
   const gitattributesPath = `${projectRoot}/.gitattributes`;
-  const readmePath = `${projectRoot}/vbrief/.eval/README.md`;
+  // Layout-aware (#2109): resolve the README under the active lifecycle `.eval`
+  // dir (xbrief/ when migrated, else vbrief/) instead of a hardcoded vbrief/ path.
+  const readmePath = resolveEvalPath(projectRoot, "README.md");
+  const readmeRel = evalRelDisplay(projectRoot, readmePath);
   const stepName = "ensure_gitignore_eval_entries";
   const details: Record<string, unknown> = {};
 
@@ -462,7 +469,7 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
   }
   Object.assign(details, gaResult.details);
 
-  const rdResult = ensureEvalReadme(readmePath, stepName);
+  const rdResult = ensureEvalReadme(readmePath, readmeRel, stepName);
   if (!rdResult.ok) {
     Object.assign(details, rdResult.details);
     return stepOutcome(stepName, false, rdResult.message, details, rdResult.error ?? null);
@@ -476,7 +483,7 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
   if (appendedLines === 0 && !appendedAttr && !createdReadme) {
     message =
       ".gitignore selective entries, .gitattributes merge=union, " +
-      "and vbrief/.eval/README.md already present (#1144 hybrid " +
+      `and ${readmeRel} already present (#1144 hybrid ` +
       "policy satisfied; no-op)";
   } else {
     const parts: string[] = [];
@@ -485,7 +492,7 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
       parts.push(`${appendedLines} selective .gitignore ${entryWord}`);
     }
     if (appendedAttr) parts.push(".gitattributes merge=union rule");
-    if (createdReadme) parts.push("vbrief/.eval/README.md");
+    if (createdReadme) parts.push(readmeRel);
     message = `wrote ${parts.join(" + ")} per #1144 hybrid policy`;
   }
   message += formatBlanketWarning(Boolean(details.blanket_present));
@@ -494,7 +501,10 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
 
 /** Ensure `vbrief/.eval/candidates.jsonl` exists (#1240 option A). */
 export function stepSeedCandidatesLog(projectRoot: string): StepOutcome {
-  const auditPath = `${projectRoot}/${CANDIDATES_RELPATH}`;
+  // Layout-aware (#2109): seed under the active lifecycle `.eval` dir (xbrief/
+  // when migrated, else vbrief/) instead of a hardcoded vbrief/ path.
+  const auditPath = resolveEvalPath(projectRoot, "candidates.jsonl");
+  const auditRel = evalRelDisplay(projectRoot, auditPath);
   const auditDir = dirname(auditPath);
   try {
     mkdirSync(auditDir, { recursive: true });
@@ -510,8 +520,7 @@ export function stepSeedCandidatesLog(projectRoot: string): StepOutcome {
 
   try {
     readFileSync(auditPath, { encoding: "utf8" });
-    const relative = CANDIDATES_RELPATH;
-    return stepOutcome("seed_candidates_log", true, `${relative} already present (no-op)`, {
+    return stepOutcome("seed_candidates_log", true, `${auditRel} already present (no-op)`, {
       created: false,
       already_present: true,
     });
@@ -530,7 +539,7 @@ export function stepSeedCandidatesLog(projectRoot: string): StepOutcome {
       String(exc),
     );
   }
-  return stepOutcome("seed_candidates_log", true, `created empty ${CANDIDATES_RELPATH}`, {
+  return stepOutcome("seed_candidates_log", true, `created empty ${auditRel}`, {
     created: true,
     already_present: false,
   });

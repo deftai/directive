@@ -1,0 +1,56 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1441"
+  },
+  "plan": {
+    "title": "Windows installer binary auto-triggers UAC elevation (install-* filename heuristic + no asInvoker manifest); breaks headless --yes installs/upgrades",
+    "status": "completed",
+    "metadata": {
+      "kind": "story",
+      "completedAt": "2026-06-03T01:11:52Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    },
+    "narratives": {
+      "Description": "Windows installer binary auto-triggers UAC elevation (install-* filename heuristic + no asInvoker manifest); breaks headless --yes installs/upgrades",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1441",
+      "Problem": "The released Windows installer binaries (install-windows-amd64.exe / -arm64.exe) auto-trigger a UAC elevation prompt on launch despite needing no admin rights, because (1) the install-* filename matches Windows' legacy installer-detection heuristic and (2) the Go binary ships with no application manifest declaring an execution level. This breaks the canonical headless flow (deft-install --yes --upgrade --repo-root . --json) on Windows: the prompt blocks unattended runs or fails with 'requires elevation'.",
+      "Action": "Embed a Windows application manifest declaring requestedExecutionLevel level=asInvoker uiAccess=false via per-arch .syso resources committed in cmd/deft-install/ (named resource_windows_amd64.syso / resource_windows_arm64.syso so go build links them only for GOOS=windows), generated with goversioninfo (or rsrc). Wire generation into scripts/build_dist.py / the release path and keep Linux cross-compilation working. Add a build/release check verifying the embedded manifest declares asInvoker. The optional asset rename is NOT pursued; the manifest fix is filename-robust.",
+      "Test": "A check verifies the embedded manifest declares level=asInvoker (parse the committed manifest/versioninfo or the built PE resource). Confirm linux/darwin/windows cross-builds still succeed and the windows .syso links only on windows. Acceptance (manual): install-windows-amd64.exe from a non-elevated shell raises no UAC prompt and --yes --upgrade completes unattended.",
+      "Overview": "## Severity\r\n\r\n**High on Windows / affects all Windows users.** The released Windows installer binary auto-triggers a **UAC elevation prompt** on launch even though it needs no admin rights. Interactively it's a surprising prompt; **non-interactively it breaks the canonical headless flow** — `deft-install --yes --upgrade --repo-root . --json` cannot run unattended (agent/CI) because the elevation prompt blocks or the process fails with an elevation error. This defeats the \"have your agent do the upgrade\" story on Windows (related: #1322).\r\n\r\n## Symptoms (observed this session)\r\n\r\nRunning the official `install-windows-amd64.exe` (v0.39.x) on Windows 11 + pwsh 7:\r\n- Interactive launch raised a UAC prompt; declining it returned:\r\n  ```\r\n  Program 'deft-install.exe' failed to run: An error occurred trying to start process ... The operation was canceled by the user.\r\n  ```\r\n- Non-interactive `Start-Process -NoNewWindow` failed with:\r\n  ```\r\n  Start-Process: This command cannot be run due to the error: The requested operation requires elevation.\r\n  ```\r\n- An earlier plain invocation appeared to \"succeed\" (exit 0) but did nothing — consistent with the elevated child never running.\r\n\r\n**What unblocked it:** setting `__COMPAT_LAYER=RunAsInvoker` (bypasses Windows installer-detection and runs as the invoking user) **and/or** renaming the binary to a name without `install` (e.g. `dftbin.exe`). With both, the binary ran with no prompt and completed `--yes --upgrade` successfully (exit 0).\r\n\r\n## Root cause\r\n\r\nTwo compounding factors:\r\n1. **Filename heuristic.** Windows' legacy *installer detection* auto-elevates executables whose names contain tokens like `install`, `setup`, `update`, `patch`. The asset is named `install-windows-amd64.exe` / `install-windows-arm64.exe`, so it matches.\r\n2. **No embedded `asInvoker` manifest.** Installer detection is applied **only** to executables that lack an application manifest declaring an execution level. The Go binary ships without one, so the heuristic kicks in. A manifest declaring `asInvoker` disables the heuristic regardless of filename.\r\n\r\n## Proposed fix\r\n\r\n**Primary — embed a Windows application manifest with `asInvoker`** in the Windows builds:\r\n```xml\r\n<requestedExecutionLevel level=\"asInvoker\" uiAccess=\"false\" />\r\n```\r\nGenerate a `.syso` resource carrying this manifest and place it in `cmd/deft-install/` so `go build` for `GOOS=windows` links it automatically (per-arch `.syso` for amd64 + arm64). Tooling options: `github.com/josephspurrier/goversioninfo` or `akavel/rsrc`. Wire it into `scripts/build_dist.py` / the release workflow. This makes UAC stay silent even though the file is named `install-*.exe`, and restores headless capability.\r\n\r\n**Secondary (optional, not a substitute)** — rename the release assets to drop the heuristic token (e.g. `deft-windows-amd64.exe`). Note this is a breaking change for the README + #1411/#1413 banner download links, and is fragile (a user who renames it back re-triggers the heuristic). The manifest fix is robust to any filename and should land regardless.\r\n\r\n**Interim doc/workaround** — until the manifest ships, document the `__COMPAT_LAYER=RunAsInvoker` workaround for Windows headless/agent runs.\r\n\r\n## Acceptance criteria\r\n\r\n- The released Windows binaries (amd64 + arm64), run from a non-elevated shell, do **not** raise a UAC prompt and do **not** fail with \"requires elevation\" — even named `install-*.exe`.\r\n- `deft-install --yes --upgrade --repo-root . --json` completes unattended on Windows (no prompt, no elevation error).\r\n- A build/release check verifies the embedded manifest declares `level=\"asInvoker\"`.\r\n\r\n## Related\r\n\r\n- #1322 — installer agent-mode / non-interactive hardening (UAC elevation is a Windows-specific reason headless runs fail).\r\n- #1411 / #1413 — upgrade banner + release-notes guidance pointing Windows users at the canonical headless command.\r\n\r\nEvidence: reproduced with `deft-install v0.39.2`–`v0.39.4` on Windows 11 + PowerShell 7.6.2; workaround `__COMPAT_LAYER=RunAsInvoker` + neutral filename consistently bypassed the prompt.\r\n",
+      "Labels": "bug, installer, Upgrade Blocker"
+    },
+    "items": [
+      {
+        "title": "Embed an asInvoker Windows application manifest via per-arch .syso resources (resource_windows_amd64.syso / resource_windows_arm64.syso) in cmd/deft-install/, generated with goversioninfo/rsrc",
+        "status": "proposed"
+      },
+      {
+        "title": "Wire .syso generation into scripts/build_dist.py / the release path; keep linux/darwin/windows cross-builds green and windows-only linkage intact",
+        "status": "proposed"
+      },
+      {
+        "title": "Add a build/release check that verifies the embedded manifest declares level=asInvoker",
+        "status": "proposed"
+      },
+      {
+        "title": "Released Windows binaries (amd64+arm64) run from a non-elevated shell with no UAC prompt; --yes --upgrade --repo-root . --json completes unattended",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer",
+      "Upgrade Blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1441",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1441: Windows installer binary auto-triggers UAC elevation (install-* filename heuristic + no asInvoker manifest); breaks headless --yes installs/upgrades"
+      }
+    ],
+    "updated": "2026-06-03T01:11:29Z"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1454"
+  },
+  "plan": {
+    "title": "Harden vendored version resolution: guard git to the payload's own root + never persist 0.0.0-dev (salvaged from #1447, credit @dbcall2)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Harden vendored version resolution: guard git to the payload's own root + never persist 0.0.0-dev (salvaged from #1447, credit @dbcall2)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1454",
+      "Overview": "## Summary\r\n\r\nTwo hardenings to vendored version resolution, salvaged with credit from @dbcall2's PR #1447. #1323 (version resolver -> `0.0.0-dev` on vendored installs) was fixed and shipped in v0.39.6 via #1449 (manifest-first resolution chain). PR #1447 independently fixed #1323 with a slightly different approach and was closed as superseded -- but it carried two correctness hardenings that go beyond what shipped and are worth landing.\r\n\r\n## Residual edges (not covered by #1449)\r\n\r\n1. **`git describe` fallback can still walk up into the consumer repo.** The shipped chain in `run::_resolve_version()` and `scripts/resolve_version.py` is: env -> `<install>/VERSION` (tag/ref) -> `<install>/.deft-version` -> `git describe` (cwd=`.deft/core/`) -> `0.0.0-dev`. On a vendored install that has **neither** a `VERSION` manifest **nor** a `.deft-version` (hand-copied or partially-deposited install -- the original #1323 failure mode for non-binary-installer installs), the `git describe` fallback's upward `.git` discovery resolves the **consumer** repo and returns the consumer's tag (wrong), not a framework version.\r\n2. **Nothing prevents persisting the `0.0.0-dev` sentinel** into a consumer's `VERSION` / `.deft-version` markers.\r\n\r\n## Proposed (from #1447, credit @dbcall2)\r\n\r\n1. **Guard git resolution to the payload's own git root.** Only run `git describe` when the framework payload directory is itself the git top-level (e.g. `git rev-parse --show-toplevel` equals the payload dir), so it never walks up into the consumer repo. Apply identically to `run::_resolve_version()` and `scripts/resolve_version.py` (keep the two surfaces in lockstep, as #1449 did).\r\n2. **Refuse to persist `0.0.0-dev`** into `VERSION` / `.deft-version` markers (skip the write / preserve the prior value), while preserving standalone dev-checkout behavior (a real dev checkout may legitimately compute `0.0.0-dev` in-process; the rule is about not *writing* the sentinel into a consumer marker).\r\n3. (Minor / optional) consider `.deft/core/pyproject.toml` `[project].version` as an additional on-disk source -- it ships a real version per #771, though `VERSION` already covers the common case.\r\n\r\n## Acceptance criteria\r\n\r\n- A vendored install with no `VERSION` and no `.deft-version` does NOT resolve the consumer repo's tag; it resolves to a sane value (manifest/marker if present, else `0.0.0-dev`) and never the consumer's tag.\r\n- `run::_resolve_version()` and `scripts/resolve_version.py` remain in lockstep (identical chain + git-top-level guard).\r\n- The `0.0.0-dev` sentinel is never written into a consumer `VERSION` / `.deft-version`.\r\n- Tests: payload-is-its-own-git-root vs payload-inside-a-consumer-repo (no consumer-tag bleed), and the no-persist-sentinel behavior.\r\n\r\n## Credit\r\n\r\nApproach and initial implementation by @dbcall2 in #1447 (closed as superseded by #1449). This issue carries the additive hardenings forward; @dbcall2 is welcome to take it with a small rebased PR on current master.\r\n\r\n## Related\r\n\r\n- #1323 -- the original bug (closed, shipped v0.39.6).\r\n- #1449 -- the shipped manifest-first fix (v0.39.6).\r\n- #1447 -- @dbcall2's superseded PR these hardenings come from.\r\n",
+      "Labels": "bug, installer"
+    },
+    "items": [
+      {
+        "title": "A vendored install with no  and no  does NOT resolve the consumer repo's tag; it resolves to a sane value (manifest/marker if present, else ) and never the consumer's tag.",
+        "status": "proposed"
+      },
+      {
+        "title": "and  remain in lockstep (identical chain + git-top-level guard).",
+        "status": "proposed"
+      },
+      {
+        "title": "The  sentinel is never written into a consumer  / .",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests: payload-is-its-own-git-root vs payload-inside-a-consumer-repo (no consumer-tag bleed), and the no-persist-sentinel behavior.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1454",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1454: Harden vendored version resolution: guard git to the payload's own root + never persist 0.0.0-dev (salvaged from #1447, credit @dbcall2)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1323",
+        "type": "x-xbrief/closes",
+        "title": "Issue #1323"
+      }
+    ],
+    "updated": "2026-06-03T14:37:53Z",
+    "metadata": {
+      "completedAt": "2026-06-03T14:38:10Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #1595 PR6 codebase MAP propagation after PR4 merged.",
+    "created": "2026-06-22T11:30:00Z",
+    "updated": "2026-06-22T11:55:50Z"
+  },
+  "plan": {
+    "title": "docs: propagate codebase MAP projection guidance after #1595 PR4",
+    "status": "completed",
+    "narratives": {
+      "Description": "PR4 for #1595 shipped generated `.planning/codebase/MAP.md` plus `task codebase:map` and `task verify:codebase-map-fresh`. The remaining PR6 work is to update agent-facing and consumer-facing guidance so agents know how to use the MAP projection for orientation while preserving the vBRIEF source-of-truth boundary.",
+      "Origin": "Operator-approved follow-up after #1839 merged and #1498/#1595 status was evaluated from latest master.",
+      "Acceptance": "Relevant skills and docs mention the live MAP projection only where it improves orientation. Guidance states that `xbrief/PROJECT-DEFINITION.xbrief.json` `plan.architecture.codeStructure` remains canonical and `.planning/codebase/MAP.md` is a generated projection. Consumer-facing template guidance is updated only if the instruction is useful outside the directive repo, and AGENTS.md/template propagation discipline is followed. No consumer hard-block is introduced. Generated source headers remain a split follow-up, and brownfield/spec extraction is explicitly coordinated with #1589 rather than folded into this PR6 slice.",
+      "NonGoals": "No changes to MAP generation, provider selection, freshness logic, schema shape, optional generated headers, local index implementation, or brownfield/spec reconstruction machinery."
+    },
+    "items": [
+      {
+        "title": "Reconcile #1498/#1595/#958 status now that #1839 has merged",
+        "status": "completed"
+      },
+      {
+        "title": "Update relevant agent-facing guidance to use the generated MAP for codebase orientation",
+        "status": "completed"
+      },
+      {
+        "title": "Mirror any consumer-relevant guidance into templates/agents-entry.md and refresh AGENTS.md if needed",
+        "status": "completed"
+      },
+      {
+        "title": "Keep generated headers and brownfield extraction explicitly out of this PR6 scope",
+        "status": "completed"
+      },
+      {
+        "title": "Run focused content, vBRIEF, codeStructure, and MAP freshness validation",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "skills",
+      "source-of-truth",
+      "context-engineering"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1595",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1595: feat(codebase): generate codebase MAP from vBRIEF-owned codeStructure metadata"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1498",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1498: RFC: Directive must dogfood vBRIEF-as-source-of-truth -- source code & headers are projections, not stores"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/1839",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #1839: feat(codebase): generate codebase MAP projection"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/958",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #958: feat: Agent-centric codebase conventions (file headers, repo map, glossary-driven comments)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1589",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1589: epic: spec reconstruction + drift guard - recover and keep project specs fresh"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-06-22T11:56:03Z"
+    },
+    "updated": "2026-06-22T11:56:03Z"
+  }
+}

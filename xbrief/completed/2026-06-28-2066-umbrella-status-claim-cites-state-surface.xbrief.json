@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: #2066 cheap layer — codify claim-cites-state-surface umbrella status rule (preamble + AGENTS.md + agents-entry + skills).",
+    "updated": "2026-06-29T01:05:41Z"
+  },
+  "plan": {
+    "title": "docs(agents): umbrella status claim-cites-state-surface (#2066)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Codify the #2066 cheap layer: agents MUST NOT conclude umbrella/epic status from the GitHub issue body alone. Before any status claim, fetch issue comments via REST, read the ## Current shape comment and any linked context/LockedDecisions vBRIEF. Propagate through agent-prompt-preamble, AGENTS.md #1152, agents-entry.md, refinement/triage skills, and propagation contract markers.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2066",
+      "Overview": "## What to build\n\n1. `content/templates/agent-prompt-preamble.md` — binding rule: before stating umbrella status, fetch comments + read current-shape + linked vBRIEF; claim-cites-state-surface.\n2. `AGENTS.md` — extend `## Umbrella current-shape convention (#1152)` with `!` MUST + `⊗` anti-pattern lines.\n3. `content/templates/agents-entry.md` — mirror consumer-relevant rule; run `task agents:refresh`.\n4. `content/skills/deft-directive-refinement/SKILL.md` and `deft-directive-triage/SKILL.md` — final-phase step before reporting umbrella status.\n5. Extend `tests/content/test_agents_entry_contract.py` marker list; keep TS `agents_md_current_shape.test.ts` green.\n6. CHANGELOG `[Unreleased]` entry ending `Refs #2066`.\n\n## Out of scope\n\n- `task umbrella:current-shape <N>` deterministic render (separate PR closes #2066).\n\n## Acceptance\n\n- Codified rule forbids body-only umbrella status conclusions across preamble + AGENTS.md + propagated agents-entry + skills.\n- `task verify:encoding` clean; `TMPDIR=$(mktemp -d) task check` green.\n- PR uses `Refs #2066` (NOT Closes)."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2066",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2066: umbrella status body-only misread recurrence"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1152",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1152: umbrella current-shape convention"
+      }
+    ],
+    "updated": "2026-06-29T01:19:07Z",
+    "metadata": {
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match",
+      "completedAt": "2026-06-29T01:19:07Z"
+    }
+  }
+}

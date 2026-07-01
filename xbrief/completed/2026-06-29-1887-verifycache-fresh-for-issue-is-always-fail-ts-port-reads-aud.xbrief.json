@@ -1,0 +1,92 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1887 — fix verify:cache-fresh --for-issue audit field",
+    "updated": "2026-06-30T00:41:10Z"
+  },
+  "plan": {
+    "id": "1887-cache-fresh-for-issue",
+    "title": "verify:cache-fresh --for-issue reads issue_number from audit log",
+    "status": "completed",
+    "narratives": {
+      "Description": "The TS cache-fresh gate's per-issue path fails to match triage decisions because `parseCandidates` in preflight-cache reads `issue` instead of the canonical audit field `issue_number`. Operators see \"no triage decision\" after a valid accept, blocking the pre-dispatch gate stack.",
+      "ImplementationPlan": "1. Fix `packages/core/src/preflight-cache/evaluate.ts` `parseCandidates` to read `issue_number` (and `timestamp`) per `packages/core/src/triage/actions/candidates-log.ts` schema; align with queue reader in candidates-log.ts.\n2. Add regression tests in `packages/core/src/preflight-cache/evaluate.test.ts` with audit rows using `issue_number` only (no legacy `issue` key).\n3. Run `pnpm -w exec vitest run packages/core/src/preflight-cache/evaluate.test.ts` as verification evidence; CHANGELOG entry. Closes #1887.",
+      "UserStory": "As an operator dispatching agents after triage:accept, I want verify:cache-fresh --for-issue to recognize the accepted issue, so that the pre-start_agent gate stack does not false-fail.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1887",
+      "Overview": "See issue #1887 — TS port regression in preflight-cache evaluate.ts parseCandidates field names.",
+      "Labels": "bug, triage, ts-migration"
+    },
+    "items": [
+      {
+        "id": "1887-a1",
+        "title": "parseCandidates honors issue_number",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given an audit log row with `issue_number` and `timestamp` (no `issue` field), when `verify:cache-fresh --for-issue N` runs after accept, then the gate exits 0 and reports the latest accept decision."
+        },
+        "completed": "2026-06-30T00:41:10Z"
+      },
+      {
+        "id": "1887-a2",
+        "title": "Regression test coverage",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given unit tests in evaluate.test.ts with canonical audit schema rows, when vitest runs, then for-issue matching passes without requiring legacy `issue` key."
+        },
+        "completed": "2026-06-30T00:41:10Z"
+      },
+      {
+        "id": "1887-a3",
+        "title": "CHANGELOG entry",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents the cache-fresh for-issue gate fix. Closes #1887."
+        },
+        "completed": "2026-06-30T00:41:10Z"
+      }
+    ],
+    "tags": [
+      "bug",
+      "triage"
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1887"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "packages/core/src/preflight-cache/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/core/src/preflight-cache/evaluate.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": [
+          "for-issue gate matches issue_number rows",
+          "Regression tests",
+          "CHANGELOG entry"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-cache",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "default",
+        "missing_traces_justification": "TS-port regression from ingested issue #1887."
+      },
+      "capacityBucket": "bugfix"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1887",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1887"
+      }
+    ],
+    "updated": "2026-06-30T00:41:10Z"
+  }
+}

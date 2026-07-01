@@ -1,0 +1,43 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1450"
+  },
+  "plan": {
+    "title": "Migration leaves *.premigrate.* snapshots untracked at repo root (not gitignored, not allowlisted) -- git add -A + deft-core-guard footgun",
+    "status": "completed",
+    "narratives": {
+      "Description": "Migration leaves *.premigrate.* snapshots untracked at repo root (not gitignored, not allowlisted) -- git add -A + deft-core-guard footgun",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1450",
+      "Overview": "## Summary\r\n\r\nThe vBRIEF migration / spec-render step run during install/upgrade writes `*.premigrate.*` safety snapshots of the pre-migration files into the consumer working tree, but leaves them **untracked, not gitignored, and not in the installer-managed allowlist**. Same hygiene class as #1445 (backups) and #1311 (`.lock`): a `git add -A` sweeps them in, and mixed with a `.deft/core/**` change they trip the deft-core-guard.\r\n\r\n## Reproduction / evidence\r\n\r\n`deft-install v0.39.6 --yes --upgrade --repo-root .` (v0.33.0 -> v0.39.6, vendored install) left three new untracked files at the repo root / vbrief:\r\n- `ROADMAP.premigrate.md`\r\n- `SPECIFICATION.premigrate.md`\r\n- `xbrief/specification.premigrate.xbrief.json`\r\n\r\nThese are not matched by the canonical `.gitignore` deposit (which after v0.39.6 covers `xbrief/.eval/`, `xbrief/*.lock`, `.deft/core.bak-*/`, `.deft/*.bak-*` -- but not `*.premigrate.*`), and not by the #1440 installer-managed allowlist. So:\r\n1. `git add -A` / `git add .` stages them -- committing pre-migration snapshots into the consumer repo.\r\n2. Mixed with a `.deft/core/**` change they trip the deft-core-guard (#1440) as \"app\" files (verified: a `*.premigrate.*` path matches neither `^\\.deft/core/` nor the allowlist).\r\n\r\n(Observed while committing the v0.39.6 upgrade: the three files had to be manually excluded to keep the PR guard-clean -- deftai/statusreport#8.)\r\n\r\n## Proposed fix (ranked -- mirrors #1445)\r\n\r\n1. **Best -- keep them out of the consumer tree:** write the snapshots under the migration audit dir `xbrief/migration/` (already in the #1440 allowlist and the documented migration audit trail), or under a gitignored / out-of-tree location like the #1445 backup dir.\r\n2. **Or -- gitignore them:** add `*.premigrate.*` (or `**/*.premigrate.*`) to the canonical `.gitignore` deposit, alongside the `xbrief/*.lock` / `.deft/*.bak-*` patterns added in v0.39.6.\r\n3. **Or -- prune after success:** treat them as transient and remove (or fold into the `LEGACY-REPORT` audit) once migration/render completes.\r\n\r\n## Acceptance criteria\r\n\r\n- After an install/upgrade that runs migration/spec-render, no `*.premigrate.*` file is left as an untracked, non-gitignored artifact that `git add -A` would stage.\r\n- If any remain in-tree, they are excluded from the deft-core-guard (allowlisted or relocated) and from linguist / CodeQL / greptile.\r\n\r\n## Related\r\n\r\n- #1445 -- vendored-upgrade backups relocated out of tree + gitignore hardening (same class, fixed v0.39.6).\r\n- #1311 -- `xbrief/*.lock` gitignore (same class, fixed v0.39.6).\r\n- #1440 -- deft-core-guard installer-managed allowlist (these files are non-core / non-allowlist -> \"app\").\r\n\r\nEvidence: reproduced on a v0.33.0 -> v0.39.6 vendored upgrade (Windows); files excluded from the upgrade commit in deftai/statusreport#8.\r\n",
+      "Labels": "bug, installer"
+    },
+    "items": [
+      {
+        "title": "After an install/upgrade that runs migration/spec-render, no  file is left as an untracked, non-gitignored artifact that  would stage.",
+        "status": "proposed"
+      },
+      {
+        "title": "If any remain in-tree, they are excluded from the deft-core-guard (allowlisted or relocated) and from linguist / CodeQL / greptile.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1450",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1450: Migration leaves *.premigrate.* snapshots untracked at repo root (not gitignored, not allowlisted) -- git add -A + deft-core-guard footgun"
+      }
+    ],
+    "updated": "2026-06-03T13:21:37Z",
+    "metadata": {
+      "completedAt": "2026-06-03T13:21:46Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

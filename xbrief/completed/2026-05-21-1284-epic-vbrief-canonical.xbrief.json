@@ -1,0 +1,151 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Epic umbrella vBRIEF for #1284 (epic(vbrief): vBRIEF-as-canonical for the agentic-consumed surface); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-25T22:35:08Z"
+  },
+  "plan": {
+    "id": "1284-epic-vbrief-canonical",
+    "title": "Epic 1 umbrella: vBRIEF-as-canonical for the agentic-consumed surface (approved direction)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Approved direction (token-economics rationale; peripheral-content qualifier; defense-in-depth layers A-D). Carved out from #742 (decomposed). The pack rollout proceeds through Phase 1 (lessons-pack-0.1), Phase 2 (skills-pack-0.1), Phase 3 (rules-pack + strategies-pack). Wave-1 children build the supporting mechanisms (queue blocked-awareness, three reconcile verbs, stateReason routing, ADR doc, #336 reframe).",
+      "Overview": "Umbrella tracking the vBRIEF-as-canonical migration. 11 children across 4 waves. Wave-1: #1286, #1274, #1287, #1288, #1289, #1290, #1291, #1292. Wave-2: #1294. Wave-3: #1295. Wave-4: #1296. The §1152 current-shape comment on the SCM issue carries the canonical state."
+    },
+    "items": [
+      {
+        "title": "Decompose to children + maintain current-shape comment",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Children are filed; §1152 current-shape comment is seeded and kept current via task vbrief:reconcile:umbrellas once Child 1.0e lands."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "epic",
+      "x-tracking": {
+        "parent_issue": "#1284",
+        "decomposition_origin": "#742"
+      },
+      "completedAt": "2026-05-25T22:36:03Z",
+      "capacityBucket": "agentic-debt",
+      "capacityBucketSource": "match"
+    },
+    "edges": [
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1286-triage-queue-blocked-filter",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1274-task-deft-issue-emit",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1287-vbrief-reconcile-graph",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1288-vbrief-reconcile-labels",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1289-vbrief-reconcile-umbrellas",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1290-reconcile-state-reason",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1291-adr-001-doc",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1292-issue-336-reframe",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1294-lessons-pack-pilot",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1295-skills-pack",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
+        "to": "1296-rules-and-strategies-pack",
+        "type": "contains"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical for the agentic-consumed surface"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/742",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #742: doc(adr): ADR-001 (decomposed)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1283: rfc(vbrief,consumption): pack-aware slice API"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1285",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1285: epic(vbrief,crud): CRUD harness epic"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/714",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #714: feat(vbrief): four-tier model"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/715",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #715: feat(vbrief): round-trip preservation"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/748",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #748: rules-classification vocabulary"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1119: operational-state carve-out"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1273",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1273: research-strategy lifecycle footgun"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1274",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1274: task deft:issue:emit (adopted as Child 1.0b)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/336",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #336: migration umbrella (reframe target)"
+      }
+    ],
+    "updated": "2026-05-25T22:35:08Z"
+  }
+}

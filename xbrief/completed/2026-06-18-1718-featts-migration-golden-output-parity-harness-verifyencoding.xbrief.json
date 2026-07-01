@@ -1,0 +1,61 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1718"
+  },
+  "plan": {
+    "title": "feat(ts-migration): golden-output parity harness + verify:encoding tracer-bullet port (Wave 1)",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(ts-migration): golden-output parity harness + verify:encoding tracer-bullet port (Wave 1)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1718",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nBuild the golden-output parity harness (feeds identical fixtures to the Python implementation and the TS implementation, diffs structured outputs / exit states / filesystem effects) and use it to port **one real gate end-to-end** as the tracer bullet: `verify:encoding`. The ported gate is invoked through the existing `task` surface, golden-diffed against the Python oracle, and tested on Windows. Proves the entire end-to-end path before any other gate moves.\n\n## Acceptance criteria\n\n- [ ] Golden-output parity harness compares TS vs Python structured output, exit state, and filesystem effects\n- [ ] `verify:encoding` ported to `@deft/core` + a thin CLI executable with the three-state exit preserved\n- [ ] The ported gate is invoked via `task` and golden-diffs clean against the Python oracle (cache-off)\n- [ ] Windows path/encoding edge cases covered\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nAFK\n\n## Blocked by\n\n- Blocked by #1717\n",
+      "Labels": "determinism, refactor, runtime-portability, tooling"
+    },
+    "items": [
+      {
+        "title": "Golden-output parity harness compares TS vs Python structured output, exit state, and filesystem effects",
+        "status": "proposed"
+      },
+      {
+        "title": "ported to  + a thin CLI executable with the three-state exit preserved",
+        "status": "proposed"
+      },
+      {
+        "title": "The ported gate is invoked via  and golden-diffs clean against the Python oracle (cache-off)",
+        "status": "proposed"
+      },
+      {
+        "title": "Windows path/encoding edge cases covered",
+        "status": "proposed"
+      },
+      {
+        "title": "passes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "determinism",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1718",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1718: feat(ts-migration): golden-output parity harness + verify:encoding tracer-bullet port (Wave 1)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1717",
+        "type": "x-xbrief/blocks",
+        "title": "Issue #1717"
+      }
+    ],
+    "updated": "2026-06-18T19:05:04Z",
+    "metadata": {
+      "completedAt": "2026-06-18T19:05:04Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

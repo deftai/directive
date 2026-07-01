@@ -1,0 +1,62 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1000"
+  },
+  "plan": {
+    "title": "docs(agents): wire refinement skill's full trigger-word set into AGENTS.md Skill Routing (#995 follow-up)",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs(agents): wire refinement skill's full trigger-word set into AGENTS.md Skill Routing (#995 follow-up)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1000",
+      "Overview": "## Problem\r\n\r\n`README.md` and `docs/getting-started.md` (added under #979 / PR #995) document four trigger phrases for the refinement skill's Phase 0 triage workflow:\r\n\r\n- `triage`\r\n- `work the cache`\r\n- `pre-ingest`\r\n- `action menu`\r\n\r\nThese phrases ARE listed inside `skills/deft-directive-refinement/SKILL.md` `triggers:` frontmatter (already present today) and in its Session Model section, so an agent that loads that skill recognises them. **However**, `AGENTS.md` Skill Routing (currently around line 51) only maps:\r\n\r\n```\r\n\"refinement\" / \"reprioritize\" / \"refine\" → skills/deft-directive-refinement/SKILL.md\r\n```\r\n\r\nA user who reads the new README \"Backlog triage\" subsection or `docs/getting-started.md` \"Working an existing backlog\" and types one of the additional phrases (e.g. `triage`, `pre-ingest`) into a fresh agent session may not get automatic routing to the refinement skill from the `AGENTS.md` routing table on its own -- the discovery path goes via the skill's internal triggers, not via the top-level routing table.\r\n\r\nThis was surfaced by Greptile review on PR #995 (issue 3 of 3).\r\n\r\n## Proposed remediation\r\n\r\nUpdate the AGENTS.md Skill Routing table line for `deft-directive-refinement` to add the four additional phrases:\r\n\r\n```\r\n- \"refinement\" / \"reprioritize\" / \"refine\" / \"triage\" / \"work the cache\" / \"pre-ingest\" / \"action menu\" → skills/deft-directive-refinement/SKILL.md — chains to deft-directive-review-cycle at exit\r\n```\r\n\r\nThis matches the canonical `triggers:` set already in `skills/deft-directive-refinement/SKILL.md` frontmatter and closes the documented-vs-routed gap end users see.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] AGENTS.md Skill Routing entry for `deft-directive-refinement` lists all seven trigger phrases (the existing three plus `triage` / `work the cache` / `pre-ingest` / `action menu`).\r\n- [ ] Wording matches the canonical phrasing in `skills/deft-directive-refinement/SKILL.md` `triggers:` frontmatter.\r\n- [ ] No drift between AGENTS.md routing and the skill's own `triggers:` list.\r\n\r\n## Out of scope\r\n\r\n- This is purely a routing-table addition. The skill itself already lists these triggers; the skill body, README, getting-started, and commands.md docs are unchanged.\r\n- Not a duplicate of #979 -- #979 was the docs surface; this is the AGENTS.md routing-table follow-up specifically.\r\n\r\n## Related\r\n\r\n- #979 -- the docs surface that introduced the user-facing trigger words.\r\n- #984 -- the companion webinstaller callout (shipped in the same PR #995).\r\n- PR #995 -- where the gap was first surfaced (Greptile P2 follow-up).\r\n- `skills/deft-directive-refinement/SKILL.md` -- canonical source of the four additional trigger phrases.\r\n",
+      "Labels": "docs, adoption-blocker"
+    },
+    "items": [
+      {
+        "title": "AGENTS.md Skill Routing entry for `deft-directive-refinement` lists all seven trigger phrases (the existing three plus `triage` / `work the cache` / `pre-ingest` / `action menu`).",
+        "status": "proposed"
+      },
+      {
+        "title": "Wording matches the canonical phrasing in `skills/deft-directive-refinement/SKILL.md` `triggers:` frontmatter.",
+        "status": "proposed"
+      },
+      {
+        "title": "No drift between AGENTS.md routing and the skill's own `triggers:` list.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "docs",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1000",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1000: docs(agents): wire refinement skill's full trigger-word set into AGENTS.md Skill Routing (#995 follow-up)"
+      }
+    ],
+    "updated": "2026-06-03T23:23:53Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "AGENTS.md",
+          "templates/agents-entry.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "conflict_group": "agents-md",
+        "size": "small",
+        "file_scope_confidence": "high"
+      },
+      "completedAt": "2026-06-03T23:23:54Z",
+      "capacityBucket": "cognitive-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

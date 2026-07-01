@@ -58,6 +58,19 @@ export const STRICT_ORIGIN_ALLOWLIST = new Set([
   "x-xbrief/adr",
 ]);
 
+/**
+ * Scope plan-link reference types under both the legacy `x-vbrief/` and the
+ * migrated `x-xbrief/` namespaces (#2109). Cross-file link validation (D4) and
+ * registry-status filtering must recognize both so a migrated corpus and a
+ * legacy corpus validate identically.
+ */
+export const PLAN_REFERENCE_TYPES = new Set(["x-vbrief/plan", "x-xbrief/plan"]);
+
+/** True when `value` is a scope plan-link reference type under either namespace. */
+export function isPlanReferenceType(value: unknown): boolean {
+  return typeof value === "string" && PLAN_REFERENCE_TYPES.has(value);
+}
+
 export const LEGACY_ORIGIN_TYPES = new Set(["github-issue", "jira-ticket", "user-request"]);
 
 export const DEPRECATED_FILES = ["SPECIFICATION.md", "PROJECT.md"] as const;

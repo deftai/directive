@@ -1,0 +1,38 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1985"
+  },
+  "plan": {
+    "title": "Exclude __pycache__/*.pyc from @deftai/directive-content prepack",
+    "status": "completed",
+    "narratives": {
+      "Description": "Exclude __pycache__/*.pyc from @deftai/directive-content prepack",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1985",
+      "Overview": "Surfaced by the #1972 Step 2 dry-run rehearsal (npm pack --dry-run on @deftai/directive-content).\n\n## Problem\nThe #1967 prepack bundles repo-root scripts/ into the content package via a wholesale cpSync with no filter. As a result the package ships 161 scripts/__pycache__/*.pyc compiled cpython-3.14 bytecode files (one per .py), inflating the package to ~9.92MB / 623 files. The .py source is legitimately needed for now (the engine invokes it via the bundled Taskfile.yml until the Python purge #1860), but the compiled .pyc bytecode is pure bloat and must never publish. Since the #1972 freeze release will be the first time these packages hit npm, this should be fixed before the freeze cut.\n\n## Fix\n- Add a filter to the two cpSync calls in packages/content/package.json prepack that skips any path containing __pycache__ or ending in .pyc. (A .npmignore will not survive the postpack cleanup, which removes everything except package.json.)\n- Extend content-prepack.test.ts to assert the packed file set contains zero .pyc / __pycache__ entries.\n\n## Acceptance\n- npm pack --dry-run on @deftai/directive-content lists no __pycache__ or *.pyc entries.\n- .py source, .githooks/, Taskfile.yml, tasks/ remain present (no #1967 regression).\n- The prepack test asserts the exclusion deterministically.\n\nRefs #1967 #1972 #1860"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1985",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1985: Exclude __pycache__/*.pyc from @deftai/directive-content prepack"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1967",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1967"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1972",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1972"
+      }
+    ],
+    "updated": "2026-06-25T14:53:08Z",
+    "metadata": {
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-25T14:53:08Z"
+    }
+  }
+}

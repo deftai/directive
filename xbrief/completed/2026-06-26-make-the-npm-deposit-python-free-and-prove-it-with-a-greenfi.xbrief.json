@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 9 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
+  },
+  "plan": {
+    "id": "py-purge-npm-deposit-python-free",
+    "title": "Make the npm deposit Python-free and prove it with a greenfield smoke (Phase 3)",
+    "status": "completed",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json",
+    "narratives": {
+      "Description": "The @deftai/directive-content prepack still bundles the scripts/ tree (added by #1984) and the deposit can still contain .py files and a repo-root run shim. This story stops the prepack from bundling Python and verifies a greenfield directive init plus task check on a machine with no Python installed. It depends on Phases 1 and 2 because the deposit can only drop Python once nothing on the consumer path still calls it.",
+      "ImplementationPlan": "- Update the @deftai/directive-content prepack so it no longer bundles scripts/ or any other Python-only tree, and ensure directive init and update produce a deposit with no .py files and no repo-root run shim.\n- Add a greenfield smoke check that runs directive init and task check in a Python-free environment and asserts a clean pass.",
+      "UserStory": "As a new user installing directive, I want a Python-free deposit, so that init and task check succeed on a machine with no Python installed.",
+      "Traces": "deftai/directive#2022 Phase 3"
+    },
+    "items": [
+      {
+        "id": "py-purge-npm-deposit-python-free-a1",
+        "title": "Given the @deftai/directive-content prepack, when it builds, then it bundles no scripts/ tree or other Python-only files.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the @deftai/directive-content prepack, when it builds, then it bundles no scripts/ tree or other Python-only files."
+        }
+      },
+      {
+        "id": "py-purge-npm-deposit-python-free-a2",
+        "title": "Given directive init or update output, when inspected, then the deposit contains no .py files and no repo-root run shim.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given directive init or update output, when inspected, then the deposit contains no .py files and no repo-root run shim."
+        }
+      },
+      {
+        "id": "py-purge-npm-deposit-python-free-a3",
+        "title": "Given a Python-free environment, when directive init then task check run, then both complete successfully as a greenfield smoke.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a Python-free environment, when directive init then task check run, then both complete successfully as a greenfield smoke."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/content/package.json",
+          "packages/cli/src/init",
+          "packages/core/src/install",
+          ".github/workflows"
+        ],
+        "verify_commands": [
+          "task verify:no-task-runtime"
+        ],
+        "expected_outputs": [
+          "Python-free npm deposit",
+          "greenfield Python-free smoke passes"
+        ],
+        "depends_on": [],
+        "conflict_group": "npm-deposit",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-28T16:45:44Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-28T16:45:44Z"
+  }
+}

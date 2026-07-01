@@ -1,0 +1,107 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1643 (consumer discoverability for task packs:slice) plus the #1637 --list-packs pack-discovery affordance it depends on; delivered as one coherent story under epic #1284.",
+    "created": "2026-06-15T14:30:00Z",
+    "updated": "2026-06-15T14:30:00Z"
+  },
+  "plan": {
+    "id": "1643-packs-discoverability",
+    "title": "Pack discovery (--list-packs) + consumer discoverability wiring for packs:slice",
+    "status": "completed",
+    "narratives": {
+      "Description": "Make the content-pack slice surface discoverable end-to-end so a consumer agent actually knows to use it. First add a pack-level discovery affordance (task packs:slice --list-packs) so the surface is self-describing: --list-packs to find packs, then <pack> --list to find slices. Then wire that discovery path into the surfaces a consumer agent loads -- the managed AGENTS.md section, main.md, and skill routing -- so the agent loads lessons via the slice instead of reading the whole 100KB file or never loading them at all. Every wiring surface references the discovery commands (--list-packs / --list), never hardcoded pack or slice names, so the v2 expansion (#1637) adds packs and slices without churning this wiring.",
+      "ImplementationPlan": "1. Add --list-packs to scripts/packs_slice.py: discover available packs by scanning the pack registry (e.g. packs/*/ sources or xbrief/schemas/*-pack.schema.json), print pack short-name + version + one-liner, same text|json + provenance + three-state-exit conventions as the existing --list; extend tests/cli/test_packs_slice.py in-process. 2. Add a Content Packs note to templates/agents-entry.md naming task deft:packs:slice --list-packs and task deft:packs:slice <pack> --list as the canonical discovery + lessons read-path; run task agents:refresh to regenerate AGENTS.md from the template (byte-identical refresh). 3. Upgrade main.md's Continuous Improvement lessons reference (lines ~241-245) from write-only (codify in lessons.md) to also name the slice read-path (load relevant lessons via task packs:slice before implementing). 4. Add a skill-routing trigger so lessons / prior-art queries route to the slice surface. 5. Extend tests/content/test_agents_entry_contract.py: add the new rule to the curated marker list (#1309) and assert the rendered section references --list-packs / --list and does NOT hardcode individual slice or pack names.",
+      "UserStory": "As a consumer agent that just installed deft, I want the loaded guidance to name task packs:slice --list-packs as the way to discover and load lessons, so that I read only the slice I need instead of the whole lessons file or skipping lessons entirely.",
+      "Traces": "planRef #1643; affordance Refs #1637; epic #1284; mirrors the #1274 discoverability fix; pilot #1294; design #1283."
+    },
+    "items": [
+      {
+        "title": "task packs:slice --list-packs pack-discovery affordance",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task packs:slice --list-packs displays each available pack's short-name, version, and description read from the pack registry, emits text by default and json under --json, and a new pack appearing in the registry shows up without any code change."
+        }
+      },
+      {
+        "title": "Consumer managed-section names the discovery path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "After task agents:refresh, the rendered AGENTS.md managed section names task deft:packs:slice --list-packs and <pack> --list as the lessons read-path, and the byte-identical-refresh contract test still passes."
+        }
+      },
+      {
+        "title": "main.md and skill routing name the slice read-path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "main.md documents loading lessons via the slice alongside the existing write-path, and a skill-routing trigger directs lessons / prior-art queries to task packs:slice."
+        }
+      },
+      {
+        "title": "Wiring references discovery, never enumerates names",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A contract test asserts the rendered managed section references --list-packs and --list and rejects any hardcoded individual slice or pack name, so v2 pack/slice additions require no edit here."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1643",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/packs_slice.py",
+          "tests/cli/test_packs_slice.py",
+          "templates/agents-entry.md",
+          "AGENTS.md",
+          "main.md",
+          "tests/content/test_agents_entry_contract.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_packs_slice.py tests/content/test_agents_entry_contract.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "task packs:slice --list-packs lists registry-discovered packs",
+          "rendered AGENTS.md names the discovery path without hardcoding slice/pack names"
+        ],
+        "depends_on": [],
+        "conflict_group": "packs-discoverability",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-15T15:06:09Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1643",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1643: consumer discoverability for task packs:slice"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1637: packs:slice v2 (--list-packs affordance)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1294",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1294: lessons-pack-0.1 pilot"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ],
+    "updated": "2026-06-15T15:06:09Z"
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1941"
+  },
+  "plan": {
+    "title": "feat(cli): directive migrate (stage-2 canonical-vendored -> npm-hybrid) -- thin provenance verb",
+    "status": "completed",
+    "narratives": {
+      "Description": "The legacy-layout migration to 1.0 is a two-stage bridge (#1912). Stage 1 (frozen Go installer) normalizes any old on-disk layout to canonical .deft/core/. Stage 2 -- this story -- is a NEW top-level TS verb `directive migrate` (alias `deft migrate`) that only ever covers canonical-vendored -> npm-hybrid: detect a canonical-vendored .deft/core deposit, stamp its VERSION/manifest as npm-managed (the handshake sentinel doctor/update recognize), verify the global engine resolves (signpost the README if absent, never install), idempotent + safe with a timestamped backup, three-state exit. Per the locked F decision the on-disk shape is UNCHANGED this wave -- this is a thin provenance verb, not a content engine. It blocks the #1912 freeze as prerequisite (b) and contributes the stage-2 leg of the pinned legacy -> stage-1 -> stage-2 -> npm-hybrid e2e.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1941",
+      "Overview": "## What to build\n\nA new top-level `directive migrate` (alias `deft migrate`) verb in the TS engine.\n\n### Does\n1. Detect a canonical-vendored `.deft/core` deposit (the vendored install state; reuse the manifest locator in packages/core/src/doctor/manifest.ts).\n2. Stamp provenance: rewrite `.deft/core/VERSION` / the install manifest to mark it npm-managed (a handshake sentinel field doctor / future `directive update` recognize), so npm owns the payload.\n3. Verify the global engine resolves (`@deftai/directive` on PATH / resolvable via packages/core/src/content-root.ts resolveContentPackageRoot). If absent, signpost the README (`npm i -g ...`) -- do NOT attempt an install (#1933 never-first-start decree).\n4. Idempotent + safe: no-op when already hybrid (sentinel present); write a timestamped backup before any rewrite.\n5. Three-state exit: 0 migrated/already-hybrid · 1 needs action (e.g. engine missing -> README) · 2 config error.\n\n### Does NOT\n- Normalize legacy layouts (stage-1 frozen Go guarantees canonical-vendored input).\n- Move / rename / trim `.deft/core` content (F: shape unchanged this wave).\n- Download any payload (npm / `directive update` own content delivery).\n\n## Integration points\n- packages/cli/src/cli-router/route-argv.ts: add `migrate` to TOP_LEVEL_UX_VERBS (the #1670 locked vocabulary) + a routeTopLevel branch routing `directive migrate` -> dispatch [\"migrate\", ...rest]; `deft migrate` resolves identically.\n- packages/cli/src/dispatch.ts: wire the `migrate` verb to a runMigrate handler the same way `init`/`update` are dispatched (dedicated branch, NOT a CLI_MODULE_VERBS entry unless that matches the init/update pattern); update any help/contract verb list.\n- Reuse the installer's safe-rewrite + timestamped-backup conventions used by the manifest writes.\n\nNOTE: distinct from the legacy `task migrate:vbrief` (pre-v0.20 document-model migration, Python). This is the npm provenance verb.",
+      "Labels": "feat, area:cli, Wave 5",
+      "ImplementationPlan": "- packages/core/src/init-deposit/migrate.ts (new): detectCanonicalVendored(projectRoot) using doctor/manifest.ts locateManifest/parseManifest; stampNpmManaged(manifestPath) with timestamped backup; engine-resolve check via content-root.ts resolveContentPackageRoot; orchestrator returning a three-state result + structured reason.\n- packages/cli/src/init-cli/migrate.ts (new): runMigrate(argv, io) CLI handler that calls the core orchestrator, prints the README signpost on engine-absent, and maps the result to the 0/1/2 exit code.\n- packages/cli/src/cli-router/route-argv.ts: register `migrate` in TOP_LEVEL_UX_VERBS + routeTopLevel.\n- packages/cli/src/dispatch.ts: dispatch `migrate` to runMigrate.\n- Tests (packages/core/src/init-deposit/migrate.test.ts + packages/cli/src/init-cli/migrate.test.ts + route-argv.test.ts): canonical-vendored fixture -> migrate -> assert provenance flip + idempotent no-op on second run; engine-present vs engine-absent (README signpost) branches; three-state exit; routing of `directive migrate` / `deft migrate`.",
+      "UserStory": "As an operator on a canonical-vendored Deft install, I want `directive migrate` to stamp my `.deft/core` as npm-managed (idempotently, with a backup, no content move, no download), so that the npm channel cleanly owns my payload and `directive update` takes over upgrades."
+    },
+    "items": [
+      {
+        "title": "migrate stamps canonical-vendored deposit npm-managed",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When directive migrate runs on a canonical-vendored .deft/core, it rewrites VERSION/manifest with the npm-managed sentinel and writes a timestamped backup first."
+        }
+      },
+      {
+        "title": "idempotent no-op when already hybrid",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When migrate runs a second time on an already-npm-managed deposit, it makes no change and exits 0 (already-hybrid)."
+        }
+      },
+      {
+        "title": "engine-absent signposts README without installing",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the global engine does not resolve, migrate prints the README npm signpost and exits 1 (needs action) without attempting any install or download."
+        }
+      },
+      {
+        "title": "no content move and no payload download",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When migrate runs, it does not move/rename/trim .deft/core content and does not download any payload (shape unchanged per decision F)."
+        }
+      },
+      {
+        "title": "migrate verb routes from directive and deft",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When a user runs `directive migrate` or `deft migrate`, the router dispatches the runMigrate handler (migrate registered in the #1670 top-level vocabulary)."
+        }
+      },
+      {
+        "title": "three-state exit implemented and tested",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When migrate completes, it returns 0 (migrated/already-hybrid), 1 (needs action), or 2 (config error), each covered by a unit test."
+        }
+      }
+    ],
+    "tags": [
+      "feat",
+      "area:cli",
+      "Wave 5"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1941: stage-2 directive migrate (canonical-vendored -> npm-hybrid)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-xbrief/related",
+        "title": "Issue #1912: frozen Go binary -- freeze prerequisite (b)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1933",
+        "type": "x-xbrief/related",
+        "title": "Issue #1933: decree stop-fetch + gate + never-first-start"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1670",
+        "type": "x-xbrief/related",
+        "title": "Issue #1670: verb vocabulary owner"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-xbrief/related",
+        "title": "Epic #1669 (distributable Deft) -- Wave 5"
+      }
+    ],
+    "id": "2026-06-24-1941-directive-migrate-stage2-provenance",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "feature",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/init-deposit/migrate.ts",
+          "packages/core/src/init-deposit/migrate.test.ts",
+          "packages/cli/src/init-cli/migrate.ts",
+          "packages/cli/src/init-cli/migrate.test.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "packages/cli/src/cli-router/route-argv.test.ts",
+          "packages/cli/src/dispatch.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- migrate",
+          "pnpm --filter @deftai/directive test -- migrate",
+          "pnpm --filter @deftai/directive test -- route-argv",
+          "task check"
+        ],
+        "expected_outputs": [
+          "directive/deft migrate stamps canonical-vendored .deft/core npm-managed, idempotent, with backup; no content move/download",
+          "three-state exit; engine-absent README signpost; verb registered in #1670 vocabulary"
+        ],
+        "depends_on": [],
+        "conflict_group": "init-deposit",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to GitHub issue #1941 (scope) + #1912 / #1933 / #1670 locked decisions and the existing doctor/manifest.ts + content-root.ts surfaces, not a spec section."
+      },
+      "completedAt": "2026-06-24T21:33:21Z"
+    },
+    "updated": "2026-06-24T21:33:21Z"
+  }
+}

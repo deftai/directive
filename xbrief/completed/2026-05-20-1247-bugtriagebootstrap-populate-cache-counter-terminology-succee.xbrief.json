@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1247"
+  },
+  "plan": {
+    "title": "bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1247",
+      "Overview": "## Summary\r\n\r\n`triage:bootstrap` step 1 (\"populate_cache\") reports its result as `succeeded=1 failed=0 skipped=396`, which is ambiguous. The operator reads this as \"1 of 397 items processed, 396 skipped\" and assumes something is wrong — when in fact \"succeeded\" refers to the overall fetch operation (1 fetch invocation) and \"skipped\" refers to per-item filter decisions. Same `cache:fetch-all` output appears verbatim in the recap section.\r\n\r\n## Reproduction (2026-05-20 session)\r\n\r\n```\r\n$ task triage:bootstrap\r\ntriage:bootstrap step 1/5 populate_cache -- starting (repo=deftai/directive; fetch_timeout_s=3600)\r\ntriage:bootstrap step 1/5 populate_cache -- done (cache:fetch-all source=github-issue repo=deftai/directive succeeded=1 failed=0 skipped=396)\r\n...\r\nTriage v1 bootstrap recap:\r\n  ✓ populate_cache: cache:fetch-all source=github-issue repo=deftai/directive succeeded=1 failed=0 skipped=396\r\n```\r\n\r\nAfter reading this output it took an explicit cache inspection (`Test-Path` + `Get-Content`) to confirm the cache was actually populated correctly.\r\n\r\n## Expected\r\n\r\nEither:\r\n- Use unambiguous nouns: `issues_fetched=396 audit_entries_seeded=1 issues_failed=0`, OR\r\n- Add a top-line summary: `populate_cache: fetched 396 open issues in 1 batched call`.\r\n\r\n## Why it matters\r\n\r\nThis output is the first signal an operator sees about whether their cache bootstrap worked. Ambiguity here costs trust and triggers debugging dives that the deterministic gate stack is explicitly designed to prevent.\r\n\r\n## Suggested fix\r\n\r\nRename the counters in `scripts/cache_fetch_all.py` (or wherever `succeeded/failed/skipped` originate) to be at a single level of abstraction. If multiple counter dimensions are necessary, surface them as separate keys (e.g. `fetched=`, `cached=`, `skipped_existing=`).\r\n\r\n## Severity\r\n\r\nCosmetic / observability — not functionally broken, but actively misleading on first read.\r\n",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1247",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1247: bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators"
+      }
+    ],
+    "updated": "2026-05-20T19:24:33Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

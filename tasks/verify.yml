@@ -215,6 +215,18 @@ tasks:
       # Oracle/fallback (parity): scripts/verify_scm_boundary.py (#1828 Wave 8 / #1854 s3).
       - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-scm-boundary --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  xbrief-drift:
+    desc: "Data-plane drift gate for the #2109 vbrief->xbrief rename. FAILS when a NEW legacy-layout token is reintroduced: a tracked `*.vbrief.json` artifact, a tracked file under a top-level `vbrief/` lifecycle dir, or a bare `x-vbrief/` reference type inside a canonical `xbrief/**/*.xbrief.json` corpus artifact. Sanctioned back-compat shims (the Part 1 layout-resolver fallback, the EXTENSION_PREFIXES legacy entry, the #2110 migrate path, the #1650 policy fallback) are TS source -- outside the scanned data plane -- and the legacy fixture trees (tests/, content/vbrief/, docs/, history/, xbrief/migration/) are allowlisted. Three-state exit (0 clean / 1 drift / 2 config error). Document an exception via `--allow-list <path>`."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - _ts-build
+    # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+    # because the gate forwards user-facing flags via {{.CLI_ARGS}}
+    # (`--allow-list <path>` / `--staged` / `--quiet`) that go-task's
+    # incremental-build cache would silently swallow.
+    cmds:
+      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:xbrief-drift --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   story-ready:
     desc: "Deterministic story-start Gate 0 (#1378 Story C). Inspects working-tree cleanliness, the target vBRIEF lifecycle (active/ + plan.status==running), and the dispatch envelope's `## Allocation context` consent token (Story A schema). Three-state exit (0 ready / 1 not ready / 2 config error). -- task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>] [--allow-dirty] [--json]"
     dir: '{{.USER_WORKING_DIR}}'

@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
+  },
+  "plan": {
+    "id": "1637-s1-deeper-slices",
+    "title": "packs:slice v2 -- deeper slices across all four packs",
+    "status": "completed",
+    "planRef": "completed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json",
+    "narratives": {
+      "Description": "Extend each existing pack's slice registry with the deeper slices deferred from the 0.1 pilot: lessons gains `anti-patterns`, `must`, and `by-authority`; skills, rules, and strategies gain additional named slices beyond their pilot set. All new slices are additive registry entries plus any new named-filter helpers in the shared slice engine, never JSONPath. This story is independently buildable because it only touches the slice resolver and the per-pack schema `x-sliceRegistry` blocks, leaving pack JSON bodies and render registries untouched.",
+      "ImplementationPlan": "1. Add new slice definitions to the `x-sliceRegistry` blocks in the four `xbrief/schemas/*-pack.schema.json` schema files (lessons `anti-patterns`/`must`/`by-authority`, plus skills/rules/strategies additions), declaring `path` and `filters[]` per slice.\n2. Implement any new named-filter helpers (e.g. an `authority` filter) in the `scripts/packs_slice.py` slice engine alongside the existing `apply_since`/`apply_tags`/`apply_scalar` dispatch, keeping the constrained dotted-path contract.\n3. Add coverage to `tests/cli/test_packs_slice.py` that asserts each new slice resolves, filters correctly, and surfaces in `--list`, and verify drift via `task verify:pack-drift`.",
+      "UserStory": "As an agent loading framework context, I want deeper named slices for each pack, so that I can pull a precise subset (e.g. only anti-patterns) without reading the whole pack into my context window."
+    },
+    "items": [
+      {
+        "id": "1637-s1-a1",
+        "title": "lessons anti-patterns + by-issue slices resolve; rules must/prohibitions added",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice lessons anti-patterns` returns only lesson entries carrying anti-pattern guidance in their body, and `task packs:slice rules prohibitions` returns only MUST_NOT/SHOULD_NOT-tier rules."
+        }
+      },
+      {
+        "id": "1637-s1-a2",
+        "title": "by-issue filter narrows results",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice lessons by-issue --issue 810` returns only lessons whose issue_refs include the requested issue number (the lessons pack has no authority field, so the issue-ref filter replaces the illustrative by-authority slice)."
+        }
+      },
+      {
+        "id": "1637-s1-a3",
+        "title": "skills/rules/strategies gain new slices",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Each of the skills, rules, and strategies packs returns at least one new named slice beyond its 0.1 pilot set when invoked."
+        }
+      },
+      {
+        "id": "1637-s1-a4",
+        "title": "new slices are discoverable and drift-clean",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Each new slice name appears in `task packs:slice <pack> --list` output and `task verify:pack-drift` validates with no drift."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/packs_slice.py",
+          "xbrief/schemas/lessons-pack.schema.json",
+          "xbrief/schemas/skills-pack.schema.json",
+          "xbrief/schemas/rules-pack.schema.json",
+          "xbrief/schemas/strategies-pack.schema.json",
+          "tests/cli/test_packs_slice.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_packs_slice.py",
+          "task verify:pack-drift"
+        ],
+        "expected_outputs": [
+          "New x-sliceRegistry entries in all four pack schemas",
+          "New filter helper(s) in scripts/packs_slice.py",
+          "New passing assertions in tests/cli/test_packs_slice.py"
+        ],
+        "depends_on": [],
+        "conflict_group": "slice-engine",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637 and design RFC #1283; no specification.xbrief.json spec-section applies to maintainer tooling."
+      },
+      "completedAt": "2026-06-16T00:02:37Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1637: feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1283"
+      }
+    ],
+    "updated": "2026-06-16T00:02:37Z"
+  }
+}

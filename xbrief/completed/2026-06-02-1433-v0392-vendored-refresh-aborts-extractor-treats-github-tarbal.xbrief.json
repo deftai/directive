@@ -1,0 +1,56 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1433"
+  },
+  "plan": {
+    "title": "v0.39.2 vendored refresh aborts: extractor treats GitHub tarball pax_global_header as content root; README still says installer clones",
+    "status": "completed",
+    "metadata": {
+      "kind": "story",
+      "completedAt": "2026-06-02T23:30:27Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    },
+    "narratives": {
+      "Description": "v0.39.2 vendored refresh aborts: extractor treats GitHub tarball pax_global_header as content root; README still says installer clones",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1433",
+      "Overview": "## Summary\r\n\r\nTesting the new **v0.39.2** vendored-refresh path (the #1425 fix) on a real vendored (no-`.git`) install: **detection and the git-safety guardrail now work, but the upgrade aborts during tarball extraction.** Two related defects from the same incompletely-finished work, in one issue:\r\n\r\n1. **Bug (Upgrade Blocker):** `extractCoreTarball` mis-identifies the content root as `pax_global_header`, so every vendored refresh fails.\r\n2. **Docs:** the README still says the installer \"clones deft\" with no mention of the vendored / git-free file-swap path that v0.39.2 now implements.\r\n\r\n## 1. Extraction bug -- `cmd/deft-install/upgrade.go` (@ v0.39.2)\r\n\r\n### Repro\r\nVendored install (`.deft/core/` committed into the project, no `.git/` of its own):\r\n```\r\ndeft-install --yes --upgrade --repo-root . --json\r\n```\r\nOutput (exit 1):\r\n```\r\nDetected a vendored framework payload at ...\\.deft\\core (no .git of its own).\r\nRefreshing via git-free file swap -- the installer will NOT run git against your project repo ...\r\nError: vendored refresh: could not extract tarball: tarball content root \"pax_global_header\" missing after extract\r\n```\r\nGood news: detection (L252) and the git-safety guardrail (L253) are correct, and the atomic swap rolled back cleanly -- `.deft/core` untouched, no `.bak`/temp left. Only extraction fails.\r\n\r\n### Root cause\r\nGitHub source tarballs (`GET /repos/{owner}/{repo}/tarball/{ref}`) begin with a global PAX header entry: `hdr.Name == \"pax_global_header\"`, `hdr.Typeflag == tar.TypeXGlobalHeader` (`'g'`). Go's `tar.Reader.Next()` returns that entry. `extractCoreTarball` captures `rootName` from the **first** entry it sees, *before* inspecting the typeflag:\r\n\r\n`cmd/deft-install/upgrade.go` (v0.39.2):\r\n- **L376-378** -- rootName taken from the first entry unconditionally:\r\n  ```go\r\n  if rootName == \"\" {\r\n      rootName = parts[0]   // == \"pax_global_header\" for GitHub tarballs\r\n  }\r\n  ```\r\n- The `switch hdr.Typeflag` only skips the header for *extraction* (**L425-428**, `default: continue`) -- too late; `rootName` was already set at L377.\r\n- **L432-438** then computes `contentRoot = destDir/pax_global_header` and `os.Stat` fails -> **L437** `tarball content root %q missing after extract`.\r\n\r\nReal content extracts fine under `deftai-directive-<sha>/`, but `rootName` is stuck at `pax_global_header`.\r\n\r\n### Fix\r\nSkip PAX global/extended header entries before computing `rootName`. After the `name == \"\"` check (~L374), add:\r\n```go\r\nif hdr.Typeflag == tar.TypeXGlobalHeader || hdr.Typeflag == tar.TypeXHeader {\r\n    continue\r\n}\r\n```\r\n(Equivalently: only set `rootName` for `TypeDir`/`TypeReg` entries.) The webinstaller's TS extractor (`deftai/webinstaller` `src/lib/bootstrap/emitDeftCore.ts`) is immune because it derives the top level per-entry (`stripTopLevel`) rather than trusting the first entry.\r\n\r\n### Test\r\nAdd a fixture tarball that begins with a `pax_global_header` (mirrors GitHub's `/tarball` output) and assert `extractCoreTarball` returns the `deftai-directive-<sha>/` root, not the header.\r\n\r\n## 2. Docs -- README still says the installer \"clones\"\r\n\r\nREADME \"Getting Started\" still describes only the clone model:\r\n> \"The installer ... installs git if needed, **clones deft**, wires it into your project's `AGENTS.md` ...\"\r\n\r\nand the Canonical-path banner frames `deft-install --upgrade` purely as a payload refresh without noting that there are **two on-disk layouts**. As of v0.39.2 the installer also supports a **vendored (no-`.git`) payload** refreshed via git-free file swap. README should document both origins -- binary (clone, with `.git`) vs webinstaller (vendored, no `.git`) -- and that `--upgrade` detects the layout, refreshes accordingly, and never runs git against the consumer repo.\r\n\r\n## Related\r\n- #1425 -- vendored-install upgrade support + safety guardrail. This is the direct follow-up: detection + guardrail landed in v0.39.2, but extraction regressed and the docs were not updated.\r\n- #1411 / #1413 -- \"stuck on old version\" banner + release-notes guidance.\r\n- deftai/webinstaller#217 -- handoff prompt should point agents at the remote README/UPGRADING.\r\n\r\nEvidence: tested with `deft-install v0.39.2` on a vendored `.deft/core` (no `.git`); `upgrade.go` read at tag `v0.39.2`.\r\n",
+      "Problem": "On a real vendored (no-.git) install, deft-install --upgrade aborts during extraction with 'tarball content root \"pax_global_header\" missing after extract'. extractCoreTarball captures rootName from the FIRST tar entry, which for GitHub source tarballs is the global PAX header (tar.TypeXGlobalHeader), so the content root resolves to pax_global_header instead of the deftai-directive-<sha> wrapper dir. Separately, the README still describes only the clone install model and never documents the v0.39.2 vendored git-free file-swap path.",
+      "Action": "Skip PAX global/extended header entries (tar.TypeXGlobalHeader / tar.TypeXHeader) before resolving rootName in extractCoreTarball, add a regression test using a tarball that begins with a pax_global_header, and update the README to document both on-disk layouts (clone with .git vs vendored without .git) and the layout-aware, git-safe --upgrade behaviour.",
+      "Test": "go test ./cmd/deft-install/... (new regression test fails before the fix, passes after) + gofmt clean; task verify:links for the README change; full task ci:local during the release pre-flight.",
+      "Labels": "bug, installer, Upgrade Blocker"
+    },
+    "items": [
+      {
+        "title": "Fix extractCoreTarball to skip PAX global/extended header entries (tar.TypeXGlobalHeader/TypeXHeader) before resolving rootName, so the GitHub tarball wrapper dir becomes the content root (#1433)",
+        "status": "running"
+      },
+      {
+        "title": "Add a regression test that builds a tarball beginning with a pax_global_header and asserts extractCoreTarball returns the deftai-directive-<sha> wrapper root, not pax_global_header",
+        "status": "running"
+      },
+      {
+        "title": "Update README to document vendored (git-free, no .git) vs clone install layouts and that deft-install --upgrade detects the layout and never runs git against the consumer repo",
+        "status": "running"
+      },
+      {
+        "title": "Add CHANGELOG [Unreleased] entries for the extractor fix (Fixed) and the README docs change (Changed)",
+        "status": "running"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer",
+      "Upgrade Blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1433",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1433: v0.39.2 vendored refresh aborts: extractor treats GitHub tarball pax_global_header as content root; README still says installer clones"
+      }
+    ],
+    "updated": "2026-06-02T23:30:14Z"
+  }
+}

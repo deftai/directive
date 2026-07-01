@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1027"
+  },
+  "plan": {
+    "title": "Coverage threshold blind spot: pygame/tkinter event loops can't run headlessly, dragging overall % below 85% threshold",
+    "status": "completed",
+    "narratives": {
+      "Description": "The deft 85% coverage threshold assumes logic-heavy code, so a project whose entry point runs a pygame or tkinter event loop cannot execute headlessly and reports an inflated per-session coverage that collapses when the full src/ is measured. The fix teaches the setup skill and the Python language guide to flag display-dependent modules and the headless-test pattern so the blind spot is caught during scaffolding instead of at the check gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1027",
+      "Overview": "## Summary\nThe deft 85% coverage threshold assumption fails for projects where the primary source file contains pygame/tkinter/Electron event loops that cannot execute without a display. This causes a silent false-pass during agent implementation (agent reports high coverage) followed by a check failure when the full src/ is measured.\n\n## Observed impact\nDuring a desktop-UI swarm agent run:\n- Agent reported 97% coverage (measured only files it had imported in its test session)\n- After the fix commit, full \task check showed 69% — src/ui.py at 43% dragged the total below threshold\n- Required adding src/ui.py to [tool.coverage.run] omit in pyproject.toml as a workaround\n\nThe 85% threshold is correct for logic-heavy code but creates friction for any project whose project_type is Desktop App or TUI.\n\n## Proposed fix\nOne or more of:\n1. The deft-directive-setup Phase 2 output for project_type = Desktop App should scaffold pyproject.toml with a coverage.run.omit entry for src/ui.py (or equivalent display-dependent entry point)\n2. The Python language file (languages/python.md) should document the headless-test pattern: os.environ.setdefault(\"SDL_VIDEODRIVER\", \"dummy\") and coverage omit for event-loop modules\n3. The setup skill should warn when project_type = Desktop App: \"pygame/tkinter event loops cannot be tested headlessly — consider excluding UI entry points from coverage measurement\"\n\n## Source\nDiscovered during tic-tac-toe desktop-UI swarm agent (2026-05-10). pyproject.toml patched mid-session.\r\n",
+      "Labels": "documentation, enhancement, python:uv",
+      "ImplementationPlan": "Update the skills/deft-directive-setup/SKILL.md file so the Phase 2 Desktop App path warns about display-dependent event loops and suggests a coverage omit entry for the UI entry-point module. Update languages/python.md to record the headless-test pattern, including the SDL_VIDEODRIVER=dummy environment setting and a coverage.run omit example for event-loop source files. Reference the desktop-UI swarm recurrence so the guidance ties back to a concrete failure and its test evidence.",
+      "UserStory": "As a deft user scaffolding a desktop-UI project, I want the setup skill and Python guide to cover headless coverage handling, so that display-dependent event-loop modules do not silently drag coverage below the threshold.",
+      "Traces": "https://github.com/deftai/directive/issues/1027"
+    },
+    "items": [
+      {
+        "title": "Setup skill warns about headless coverage for Desktop App projects.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given project_type is Desktop App, when the setup skill runs Phase 2, then it emits a warning that pygame/tkinter event loops cannot be tested headlessly and suggests a coverage omit for the UI entry point."
+        }
+      },
+      {
+        "title": "python.md records the headless-test pattern and a coverage omit example.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When languages/python.md is read, then it records the SDL_VIDEODRIVER=dummy headless-test pattern and a coverage.run omit example for event-loop modules."
+        }
+      },
+      {
+        "title": "Applying the omit lets task check pass on a desktop-UI project.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a desktop-UI project, when the recommended coverage omit is applied, then task check measures only logic modules and no longer fails on the display-dependent entry point."
+        }
+      }
+    ],
+    "tags": [
+      "documentation",
+      "enhancement",
+      "python:uv"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1027",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1027: Coverage threshold blind spot: pygame/tkinter event loops can't run headlessly, dragging overall % below 85% threshold"
+      }
+    ],
+    "updated": "2026-06-05T17:49:35Z",
+    "id": "story-1027-coverage-headless-docs",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-setup/SKILL.md",
+          "languages/python.md"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/ -k setup",
+          "task check"
+        ],
+        "expected_outputs": [
+          "setup skill warns about headless coverage for Desktop App projects",
+          "python.md documents the SDL_VIDEODRIVER headless-test pattern",
+          "coverage omit guidance for event-loop entry points"
+        ],
+        "depends_on": [],
+        "conflict_group": "1027-coverage-headless",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-05T17:49:35Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
+  }
+}

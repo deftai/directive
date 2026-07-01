@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Cleanup of the 3 non-blocking P2s flagged on #1378 Story C (PR #1402).",
+    "updated": "2026-06-01T03:05:00Z"
+  },
+  "plan": {
+    "title": "chore(scripts): address #1378 Story C P2 follow-ups in preflight_story_start.py",
+    "status": "completed",
+    "narratives": {
+      "Description": "Fold the three non-blocking P2 review findings from #1378 Story C (PR #1402) into scripts/preflight_story_start.py: (1) remove the redundant double parse_allocation_section call between evaluate() and main(); (2) broaden the _git_porcelain spawn-failure catch from FileNotFoundError to OSError so PermissionError/NotADirectoryError fail closed (config error) instead of crashing; (3) correct the OK-message wording so a --allow-dirty run does not claim 'tree clean'.",
+      "Origin": "Follow-up to https://github.com/deftai/directive/issues/1378 Story C review (PR #1402).",
+      "UserStory": "As a maintainer, I want the story-start Gate 0 script free of the three P2 nits so the gate's diagnostics are accurate and it fails closed on any git spawn failure.",
+      "ImplementationPlan": "1. evaluate() gains an optional pre-parsed `parsed` kwarg (defaults to None => parse internally, preserving the 2-tuple return + existing tests); main() parses once and passes it, deriving dispatch_kind from the same parse. 2. _git_porcelain catches OSError (not just FileNotFoundError). 3. evaluate() computes a tree-state note (tree clean | dirty tree allowed (--allow-dirty)) and uses it in all three OK messages. 4. Add tests: --allow-dirty OK message wording, and _git_porcelain returns None on a PermissionError spawn failure. 5. CHANGELOG [Unreleased] entry referencing #1378.",
+      "Traces": "Traces to GitHub issue #1378 Story C P2 follow-ups (PR #1402 review)."
+    },
+    "items": [
+      {
+        "title": "Remove redundant double parse_allocation_section call",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "main() parses the allocation section exactly once and passes the result to evaluate() via an optional `parsed` kwarg; evaluate()'s (exit_code, message) return arity is unchanged and all existing tests pass.",
+          "Traces": "Traces to #1378 Story C P2 -- double parse."
+        }
+      },
+      {
+        "title": "Broaden _git_porcelain spawn-failure catch to OSError",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "_git_porcelain returns None (=> config error exit 2) on any OSError spawning git (FileNotFoundError, PermissionError, NotADirectoryError), proven by a test that monkeypatches subprocess.run to raise PermissionError.",
+          "Traces": "Traces to #1378 Story C P2 -- OSError catch."
+        }
+      },
+      {
+        "title": "Correct --allow-dirty OK-message wording",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "When --allow-dirty lets a dirty tree through, the OK message reports 'dirty tree allowed (--allow-dirty)' rather than 'tree clean'; a clean tree still reports 'tree clean'. A test asserts the dirty-allowed wording.",
+          "Traces": "Traces to #1378 Story C P2 -- message wording."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "determinism",
+      "cleanup",
+      "cluster:1378-allocation-context"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1378: first-class allocation-plan reference in dispatch envelope (post #1371 deterministic-tier enabler)"
+      }
+    ],
+    "id": "issue-1378-p2-cleanup",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/preflight_story_start.py",
+          "tests/cli/test_preflight_story_start.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "uv --project . run pytest tests/cli/test_preflight_story_start.py -v"
+        ],
+        "expected_outputs": [
+          "single parse_allocation_section call path",
+          "_git_porcelain fails closed on any OSError",
+          "OK message reflects --allow-dirty accurately"
+        ],
+        "depends_on": [],
+        "conflict_group": "gate",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-01T03:18:12Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    },
+    "updated": "2026-06-01T03:06:14Z"
+  }
+}

@@ -3,7 +3,7 @@ import { validateVbriefSchema } from "../../vbrief-validate/index.js";
 import { isFile, loadJson, readText } from "./_helpers.js";
 
 const LEGACY_TOP_LEVEL_KEYS = new Set(["vbrief", "tasks", "overview", "architecture"]);
-const VBRIEF_PATHS = ["vbrief/specification.vbrief.json", "vbrief/plan.vbrief.json"] as const;
+const VBRIEF_PATHS = ["xbrief/specification.xbrief.json", "xbrief/plan.xbrief.json"] as const;
 
 function schemaStatusEnum(): Set<string> {
   const schema = loadJson("vbrief/schemas/vbrief-core.schema.json") as {
@@ -82,23 +82,23 @@ describe("test_vbrief_schema.py", () => {
     });
   }
   it("test_spec_has_required_top_level_keys", () => {
-    const data = loadJson("vbrief/specification.vbrief.json") as Record<string, unknown>;
+    const data = loadJson("xbrief/specification.xbrief.json") as Record<string, unknown>;
     expect(data).toHaveProperty("vBRIEFInfo");
     expect(data).toHaveProperty("plan");
     expect(typeof data.plan).toBe("object");
   });
   it("test_spec_has_no_legacy_top_level_fields", () => {
-    const data = loadJson("vbrief/specification.vbrief.json") as Record<string, unknown>;
+    const data = loadJson("xbrief/specification.xbrief.json") as Record<string, unknown>;
     const found = Object.keys(data).filter((k) => LEGACY_TOP_LEVEL_KEYS.has(k));
     expect(found).toEqual([]);
   });
   it("test_plan_has_no_legacy_top_level_fields", () => {
-    const data = loadJson("vbrief/plan.vbrief.json") as Record<string, unknown>;
+    const data = loadJson("xbrief/plan.xbrief.json") as Record<string, unknown>;
     const found = Object.keys(data).filter((k) => LEGACY_TOP_LEVEL_KEYS.has(k));
     expect(found).toEqual([]);
   });
   it("test_spec_plan_has_title_status_items", () => {
-    const plan = (loadJson("vbrief/specification.vbrief.json") as { plan: Record<string, unknown> })
+    const plan = (loadJson("xbrief/specification.xbrief.json") as { plan: Record<string, unknown> })
       .plan;
     expect(plan).toHaveProperty("title");
     expect(plan).toHaveProperty("status");

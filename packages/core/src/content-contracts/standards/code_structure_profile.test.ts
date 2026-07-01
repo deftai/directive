@@ -32,8 +32,8 @@ describe("test_code_structure_profile.py", () => {
     ).toMatchObject({ codeStructure: { $ref: "#/$defs/CodeStructure" } });
   });
   it("test_directive_dogfood_code_structure_validates", () => {
-    const path = join(repoRoot(), "vbrief/PROJECT-DEFINITION.vbrief.json");
-    const data = loadJson("vbrief/PROJECT-DEFINITION.vbrief.json") as Record<string, unknown>;
+    const path = join(repoRoot(), "xbrief/PROJECT-DEFINITION.xbrief.json");
+    const data = loadJson("xbrief/PROJECT-DEFINITION.xbrief.json") as Record<string, unknown>;
     expect((data.plan as Record<string, unknown>).architecture).toHaveProperty("codeStructure");
     const directiveTopLevel = DIRECTIVE_HOME.split(".")[0] ?? "";
     expect(Object.keys(data)).not.toContain(directiveTopLevel);

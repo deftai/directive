@@ -1,0 +1,91 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story B of #1378 -- build skill recognizes the structured consent token; swarm skill populates it.",
+    "updated": "2026-06-01T02:30:00Z"
+  },
+  "plan": {
+    "title": "feat(skills): recognize + populate ## Allocation context consent token (#1378 Story B)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Teach skills/deft-directive-build/SKILL.md Step 0 to recognize the structured `## Allocation context` section (from Story A) as the canonical consent-token recognition path, keeping the #1371 prose carve-out as the fallback for pre-elevation dispatches; and teach skills/deft-directive-swarm/SKILL.md Phase 3 (Launch) to populate the section in every dispatched prompt (cohort + solo).",
+      "Origin": "Decomposed from https://github.com/deftai/directive/issues/1378 (Story B of A/B/C).",
+      "UserStory": "As a swarm-dispatched build agent, I want to recognize a structured allocation-context section as the consent token, so I process my cohort vBRIEFs without re-prompting for batching approval mid-cohort even on weaker models or context-pressure sessions.",
+      "ImplementationPlan": "1. In skills/deft-directive-build/SKILL.md Step 0, add a `!` bullet: when the dispatch envelope's `## Allocation context` reports dispatch_kind: swarm-cohort with a non-null allocation_plan_id and batching_rationale, the consent token is satisfied; process each cohort_vbriefs entry sequentially under the checkpoint-commit + task scope:complete discipline. Keep the #1371 prose carve-out as the explicit fallback when the section is absent. 2. In skills/deft-directive-swarm/SKILL.md Phase 3 (Launch), add a `!` step requiring the dispatcher to populate `## Allocation context` in every dispatched prompt (cohort AND solo), referencing the Story A schema. 3. Add content tests under tests/content/ pinning the build-skill recognition prose and the swarm-skill population step. 4. CHANGELOG.md [Unreleased] entry referencing #1378.",
+      "Traces": "Traces to GitHub issue #1378 Story B. Recognition semantics derive from #1371's merged build-skill carve-out wording (Step 0)."
+    },
+    "items": [
+      {
+        "title": "Build skill Step 0 recognizes the structured field (prose carve-out stays fallback)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "skills/deft-directive-build/SKILL.md Step 0 references the `## Allocation context` section as the canonical consent-token recognition path (swarm-cohort + non-null allocation_plan_id + batching_rationale), and explicitly keeps the #1371 prose carve-out as the fallback when the section is absent.",
+          "Traces": "Traces to #1378 Story B -- build skill recognition."
+        }
+      },
+      {
+        "title": "Swarm skill Phase 3 populates the section on every dispatch",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "skills/deft-directive-swarm/SKILL.md Phase 3 (Launch) carries a `!` step requiring `## Allocation context` to be populated in every dispatched prompt (cohort + solo), citing the Story A schema.",
+          "Traces": "Traces to #1378 Story B -- swarm skill population."
+        }
+      },
+      {
+        "title": "Content tests pin recognition + population",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "tests/content/ assertions verify the build-skill recognition prose and the swarm-skill population step; pass under task check.",
+          "Traces": "Traces to #1378 Story B -- content tests."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "agent-experience",
+      "skills",
+      "cluster:1378-allocation-context"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1378: first-class allocation-plan reference in dispatch envelope (post #1371 deterministic-tier enabler)"
+      }
+    ],
+    "id": "issue-1378-skills",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-build/SKILL.md",
+          "skills/deft-directive-swarm/SKILL.md",
+          "tests/content/test_allocation_context_skills.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "uv --project . run pytest tests/content/test_allocation_context_skills.py -v"
+        ],
+        "expected_outputs": [
+          "build SKILL Step 0 recognizes the structured consent token with #1371 prose fallback",
+          "swarm SKILL Phase 3 populates ## Allocation context on every dispatch",
+          "content tests pin both"
+        ],
+        "depends_on": [
+          "issue-1378-schema"
+        ],
+        "conflict_group": "skills",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-01T02:54:49Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    },
+    "updated": "2026-06-01T02:39:41Z"
+  }
+}

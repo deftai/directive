@@ -1,0 +1,73 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #640"
+  },
+  "plan": {
+    "title": "project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review",
+    "status": "cancelled",
+    "narratives": {
+      "Description": "project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/640",
+      "Overview": "## Problem\r\n\r\n`task project:render` currently computes `plan.metadata.staleness_flags` in `scripts/project_render.py` by heuristically comparing:\r\n\r\n- completed scope titles in `xbrief/completed/`\r\n- narrative-key words in `xbrief/PROJECT-DEFINITION.xbrief.json`\r\n\r\nThis is useful as a rough “maybe stale” detector, but it does not support a real freshness lifecycle.\r\n\r\nCurrent behavior:\r\n\r\n1. `task project:render` flags narratives that may need review.\r\n2. An agent/user can manually review and update the affected narratives.\r\n3. On the next render, the same flags can still come back because the renderer does not track:\r\n   - whether a narrative was reviewed\r\n   - which completed scopes were already incorporated\r\n   - per-narrative freshness timestamps or acknowledgements\r\n\r\nSo the system can detect possible staleness, but it cannot reliably represent “reviewed and now fresh.” In practice this makes the flag count noisy and hard to action, especially once a project has many completed scopes.\r\n\r\nThis also creates workflow confusion:\r\n\r\n- `reconcile:issues` handles origin freshness for scope vBRIEFs\r\n- `project:render` emits PROJECT-DEFINITION narrative staleness flags\r\n\r\nBut unlike reconcile, `project:render` has no corresponding acknowledgement/clear path.\r\n\r\n## Desired Outcome\r\n\r\n`task project:render` should support a staleness model that can be acted on and cleared after review, instead of re-emitting the same heuristic warnings indefinitely.\r\n\r\n## Possible Approaches\r\n\r\nAny one of these would be a valid fix:\r\n\r\n1. **Per-narrative review metadata**\r\n   - store `lastReviewedAt` / `lastIncorporatedCompletionAt` metadata per narrative\r\n   - only flag when newer completed scopes exist beyond that watermark\r\n\r\n2. **Completed-scope acknowledgement set**\r\n   - track which completed scope IDs have already been reflected in PROJECT-DEFINITION\r\n   - only flag scopes not yet acknowledged\r\n\r\n3. **Project-level freshness watermark**\r\n   - compare PROJECT-DEFINITION narrative review/update timestamps against completed-scope timestamps\r\n   - less precise than per-narrative tracking, but still better than repeated heuristic overlap warnings\r\n\r\n4. **Two-tier model**\r\n   - keep heuristic “review suggested” warnings\r\n   - add a separate acknowledged/cleared state so users can distinguish new work from already-reviewed work\r\n\r\n## Acceptance Criteria\r\n\r\n- There is a documented and implemented way for PROJECT-DEFINITION staleness flags to become “fresh” again after review.\r\n- Re-running `task project:render` without new completed-scope changes does not keep surfacing the same stale warnings indefinitely.\r\n- The solution clearly distinguishes PROJECT-DEFINITION narrative staleness from origin reconciliation (`task reconcile:issues`).\r\n- Tests cover at least:\r\n  - initial flag emission\r\n  - review/acknowledgement\r\n  - no-repeat behavior after acknowledgement\r\n  - new completed work causing the flag to reappear appropriately\r\n",
+      "Labels": "bug, enhancement, operational, source-of-truth"
+    },
+    "items": [
+      {
+        "title": "There is a documented and implemented way for PROJECT-DEFINITION staleness flags to become “fresh” again after review.",
+        "status": "proposed"
+      },
+      {
+        "title": "Re-running  without new completed-scope changes does not keep surfacing the same stale warnings indefinitely.",
+        "status": "proposed"
+      },
+      {
+        "title": "The solution clearly distinguishes PROJECT-DEFINITION narrative staleness from origin reconciliation ().",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests cover at least:",
+        "status": "proposed"
+      },
+      {
+        "title": "initial flag emission",
+        "status": "proposed"
+      },
+      {
+        "title": "review/acknowledgement",
+        "status": "proposed"
+      },
+      {
+        "title": "no-repeat behavior after acknowledgement",
+        "status": "proposed"
+      },
+      {
+        "title": "new completed work causing the flag to reappear appropriately",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "enhancement",
+      "operational",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/640",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #640: project:render staleness flags need an acknowledgement/clear path after PROJECT-DEFINITION review"
+      },
+      {
+        "uri": "completed/2026-06-28-add-acknowledgementclear-path-for-project-definition-stalene.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Add acknowledgement/clear path for PROJECT-DEFINITION staleness flags",
+        "TrustLevel": "internal"
+      }
+    ],
+    "metadata": {
+      "kind": "epic"
+    },
+    "updated": "2026-06-28T18:03:08Z"
+  }
+}

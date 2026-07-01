@@ -1,0 +1,123 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1595 PR3 deterministic extractor, provider contract, and discipline gate.",
+    "created": "2026-06-16T19:03:00Z",
+    "updated": "2026-06-16T20:20:00Z"
+  },
+  "plan": {
+    "id": "1595-pr3-extractor-provider-discipline-gate",
+    "title": "Add codebase extractor provider contract and discipline gate",
+    "status": "cancelled",
+    "narratives": {
+      "Description": "PR3 for #1595 adds the contract layer between authored codeStructure metadata and the later MAP projection: a deterministic dependency-free default extractor, an out-of-process provider handshake, an architecture-map artifact format, a kind-to-command registry, and the PR3 discipline gate. This preserves the current-shape decision that directive owns contracts and a safe default path, not a heavy in-repo map engine.",
+      "ImplementationPlan": "1. Define the tier-1 architecture-map output format and provider handshake with independent formatVersion and contractVersion fields. 2. Implement an AST-free default extractor that uses repository tree walking and import-line heuristics only, with no network, model, or parser dependency. 3. Add provider selection/validation that accepts a conformant external provider artifact when configured and falls back to the default extractor on absence, mismatch, or provider failure. 4. Add a projection-kind registry for codebase-map so canonical projectionManifest entries remain invocation-agnostic. 5. Extend task codebase:validate-structure with PR3 discipline checks: hard-block derived-fact keys and undeclared canonical siblings, warn on boundedness heuristics, and validate deterministic referential integrity where possible. 6. Add focused tests, docs, and a brief CHANGELOG entry.",
+      "UserStory": "As a maintainer, I want directive to own the codebase-map contract and safe default extraction path before MAP rendering lands, so future providers can enrich the map without moving authority out of vBRIEF-owned metadata.",
+      "NonGoals": "No generated .planning/codebase/MAP.md output, no codebase-map-fresh freshness check, no generated source headers, no consumer AGENTS/template propagation, no heavy crawl/summarize engine, no network/model dependency, and no parser/AST dependency in the default path."
+    },
+    "items": [
+      {
+        "title": "Tier-1 architecture-map artifact format and provider handshake are defined and tested.",
+        "status": "completed"
+      },
+      {
+        "title": "Default extractor emits a non-empty AST-free structural skeleton with provenance and degraded markers.",
+        "status": "completed"
+      },
+      {
+        "title": "Provider selection validates conformant artifacts and gracefully falls back to the default extractor.",
+        "status": "completed"
+      },
+      {
+        "title": "Projection kind registry resolves codebase-map behavior without storing runner commands in canonical data.",
+        "status": "completed"
+      },
+      {
+        "title": "codeStructure discipline gate enforces canonical/derived boundaries and reports boundedness warnings.",
+        "status": "completed"
+      },
+      {
+        "title": "Docs, tests, and CHANGELOG describe PR3 without implying MAP rendering has shipped.",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "context-engineering",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1595",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1595: feat(codebase): generate codebase MAP from vBRIEF-owned codeStructure metadata"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/1642",
+        "type": "x-xbrief/github-pr",
+        "title": "PR #1642: feat(codebase): add codeStructure profile validator"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1498",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1498: RFC: Directive must dogfood vBRIEF-as-source-of-truth"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1530: RFC: Migrate Deft Directive's implementation from Python to TypeScript"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1659",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1659: Decouple framework runtime + guidance from the task runner"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1595",
+        "series_pr": "PR3"
+      },
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/code_structure_validate.py",
+          "scripts/codebase_default_extractor.py",
+          "scripts/codebase_provider.py",
+          "scripts/codebase_projection_registry.py",
+          "tests/cli/test_code_structure_validate.py",
+          "tests/cli/test_codebase_default_extractor.py",
+          "tests/cli/test_codebase_provider.py",
+          "tests/cli/test_codebase_projection_registry.py",
+          "docs/code-structure-profile.md",
+          "docs/codebase-map-source-of-truth.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/schemas/vbrief-core.schema.json",
+          "tasks/codebase.yml",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task codebase:validate-structure",
+          "uv run pytest tests/cli/test_code_structure_validate.py tests/cli/test_codebase_default_extractor.py tests/cli/test_codebase_provider.py tests/cli/test_codebase_projection_registry.py tests/content/test_code_structure_profile.py -q",
+          "task vbrief:validate",
+          "task check"
+        ],
+        "expected_outputs": [
+          "PR3 contract layer exists before MAP rendering",
+          "default extraction is AST-free and offline",
+          "provider mismatch or absence gracefully falls back",
+          "discipline checks keep codeStructure canonical-intent only"
+        ],
+        "depends_on": [],
+        "conflict_group": "code-structure-pr3",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "advanced"
+      },
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-06-18T14:37:55Z"
+  }
+}

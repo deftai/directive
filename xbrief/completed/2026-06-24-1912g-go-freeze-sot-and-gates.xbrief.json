@@ -1,0 +1,117 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Freeze-prep story G decomposed from GitHub issue #1912 (Tier-0 SoT + Tier-1 freeze/drift gates)"
+  },
+  "plan": {
+    "title": "feat(#1912 G): Tier-0 lastGoInstaller SoT (null-until-frozen) + Tier-1 freeze gate + cross-surface drift gate",
+    "status": "completed",
+    "narratives": {
+      "Description": "Freeze-prep story G of the #1912 capstone (build + freeze the last Go installer as the legacy stage-1 bridge). Builds the durability scaffolding that makes a future freeze enforceable WITHOUT cutting the tag (the literal freeze is an operator action). gate (a) (53.x adoption blockers) is treated as N/A per operator decision 2026-06-24. Three pieces: (1) Tier-0 single-source-of-truth for the bridge version (`lastGoInstaller`), null-until-frozen, so docs / release skill / doctor / e2e all read ONE source and nobody hardcodes; (2) Tier-1 freeze gate -- once the SoT is pinned, `task check`/CI refuses any attempt to release/build a Go installer past the pinned tag (inert/advisory while null); (3) Tier-1 cross-surface drift gate -- asserts every surface that references the bridge version reads the SoT rather than hardcoding a number (modeled on the AGENTS.md managed-section freshness #1308 / template-propagation #1309 gates).",
+      "Origin": "Decomposed from https://github.com/deftai/directive/issues/1912 (freeze-prep, agent-buildable subset). Operator approved scaffold-now + gate-(a)=N/A on 2026-06-24.",
+      "Overview": "## What to build\n\n### Tier-0 SoT (`lastGoInstaller`)\nA single typed constant/module that holds the frozen final Go-installer version. Semantics: **null-until-frozen** -- it is unset/null today and the OPERATOR sets it at freeze time. Provide a reader API (e.g. `lastGoInstaller(): string | null` and `isFrozen(): boolean`). This is the ONLY place the bridge version lives. Suggested home: `packages/core/src/legacy-bridge/sot.ts` (new module) exported via an index; mirror the `engine-version.ts` style.\n\n### Tier-1 freeze gate (`verify:go-freeze`)\nA deterministic gate (new CLI verb + core logic) wired into `task check` (`check:framework-source` deps in Taskfile.yml + a task in `tasks/verify.yml`). Behaviour:\n- SoT null (not yet frozen): PASS (advisory) -- Go installer development is still allowed up to the cut.\n- SoT pinned (frozen): FAIL if the Go installer source version (`cmd/deft-install` version constant) is bumped ABOVE the pinned tag, or a new Go installer release is attempted past the line. Allow only re-publishing the pinned tag.\n- Three-state exit (0 ok / 1 violation / 2 config error). Document the env-var/flag escape hatch consistent with other gates.\n\n### Tier-1 cross-surface drift gate (`verify:bridge-drift`)\nA deterministic gate that asserts the documented bridge version, the `deft doctor` legacy-layout message, the UPGRADING.md instruction, and the pinned-e2e all agree with the Tier-0 SoT. In the null-until-frozen state, this means asserting those surfaces READ the SoT (reference the symbol / a stable pointer) and contain NO hardcoded competing Go-installer version number. Scanner-style (read-only); modeled on #1308/#1309 freshness gates. Three-state exit.\n\n## Must NOT\n- Cut/tag/build any Go installer release (operator-only freeze).\n- Hardcode a version number anywhere (the whole point of the SoT).\n- Edit the consumer-facing legacy-layout messaging surfaces (UPGRADING.md two-step wording, doctor signpost) -- those belong to story P; this story's drift gate only READS them.\n\n## Integration points\n- `packages/cli/src/dispatch.ts`: add `verify-go-freeze` + `verify-bridge-drift` to CLI_MODULE_VERBS and any alias maps.\n- `packages/cli/src/cli-router/route-argv.ts`: add `go-freeze` / `bridge-drift` to VERIFY_VERB_MAP if the stems do not hyphenate 1:1.\n- `tasks/verify.yml`: add `go-freeze` and `bridge-drift` gate tasks.\n- `Taskfile.yml` `check:framework-source`: add both gates to the deps list.\n- Follow the existing `verify-content-manifest` / `verify-stubs` gate structure (core logic + cli wrapper + three-state exit + test) as the template.",
+      "Labels": "enhancement, ci-cd, installer, Wave 5",
+      "ImplementationPlan": "- packages/core/src/legacy-bridge/sot.ts (+ index.ts): the null-until-frozen SoT constant + reader API.\n- packages/core/src/legacy-bridge/freeze-gate.ts + bridge-drift.ts: the gate logic (three-state).\n- packages/cli/src/gates-cli/ (or matching existing verify wrapper location): verify-go-freeze.ts + verify-bridge-drift.ts CLI wrappers.\n- dispatch.ts + route-argv.ts: register the two verbs.\n- tasks/verify.yml + Taskfile.yml check:framework-source: wire both gates.\n- Tests: sot.test.ts (null + pinned), freeze-gate.test.ts (advisory-when-null, fail-on-bump-when-pinned, three-state), bridge-drift.test.ts (passes clean, fails on a planted hardcoded version fixture).",
+      "UserStory": "As a deft maintainer, I want the bridge version to live in one null-until-frozen source of truth with a freeze gate and a drift gate, so that when I cut the final Go installer the freeze becomes self-enforcing and no future agent can hardcode or drift the bridge version."
+    },
+    "items": [
+      {
+        "title": "Tier-0 lastGoInstaller SoT module, null-until-frozen",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When nothing is frozen, the SoT reader returns null/unset and isFrozen() is false; the value can be set in exactly one place to pin it."
+        }
+      },
+      {
+        "title": "freeze gate advisory while null, blocks Go bump when pinned",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the SoT is null, verify:go-freeze passes; when pinned, it fails if the Go installer version is bumped above the pinned tag (three-state exit)."
+        }
+      },
+      {
+        "title": "cross-surface drift gate asserts surfaces read the SoT",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When any tracked surface hardcodes a Go-installer version instead of reading the SoT, verify:bridge-drift fails; otherwise it passes (three-state exit)."
+        }
+      },
+      {
+        "title": "both gates wired into task check (framework-source)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When task check runs on the maintainer repo, verify:go-freeze and verify:bridge-drift execute as part of check:framework-source."
+        }
+      },
+      {
+        "title": "no version hardcoded and no Go release cut",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the story lands, no Go-installer version number is hardcoded anywhere and no Go installer tag/release is created."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "installer",
+      "Wave 5"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1912: build + freeze the last Go installer (parent capstone)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-xbrief/related",
+        "title": "Epic #1669 distributable Deft -- Wave 5"
+      }
+    ],
+    "id": "2026-06-24-1912g-go-freeze-sot-and-gates",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "feature",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/legacy-bridge/sot.ts",
+          "packages/core/src/legacy-bridge/sot.test.ts",
+          "packages/core/src/legacy-bridge/freeze-gate.ts",
+          "packages/core/src/legacy-bridge/freeze-gate.test.ts",
+          "packages/core/src/legacy-bridge/bridge-drift.ts",
+          "packages/core/src/legacy-bridge/bridge-drift.test.ts",
+          "packages/core/src/legacy-bridge/index.ts",
+          "packages/cli/src/gates-cli/verify-go-freeze.ts",
+          "packages/cli/src/gates-cli/verify-go-freeze.test.ts",
+          "packages/cli/src/gates-cli/verify-bridge-drift.ts",
+          "packages/cli/src/gates-cli/verify-bridge-drift.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/cli-router/route-argv.ts",
+          "tasks/verify.yml",
+          "Taskfile.yml"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- legacy-bridge",
+          "pnpm --filter @deftai/directive test -- verify-go-freeze",
+          "pnpm --filter @deftai/directive test -- verify-bridge-drift",
+          "task check"
+        ],
+        "expected_outputs": [
+          "lastGoInstaller SoT (null-until-frozen) is the single source; freeze + drift gates run in task check; three-state exits; no hardcoded version; no Go release cut"
+        ],
+        "depends_on": [],
+        "conflict_group": "legacy-bridge-gates",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to #1912 Durability Tier-0/Tier-1 checklist + operator scaffold-now decision; design latitude on gate mechanics is intentional."
+      },
+      "completedAt": "2026-06-24T22:21:54Z"
+    },
+    "updated": "2026-06-24T22:21:54Z"
+  }
+}

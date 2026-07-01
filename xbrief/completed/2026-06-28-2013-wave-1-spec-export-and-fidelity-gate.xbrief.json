@@ -1,0 +1,118 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "Scott",
+    "description": "Wave 1 coordinated implementation for #2013 (#1502 + #2005) plus urgent #2049 consumer githooks TS-native fix",
+    "created": "2026-06-28T20:00:00Z",
+    "updated": "2026-06-28T20:00:00Z"
+  },
+  "plan": {
+    "id": "story-2013-wave-1-export-fidelity",
+    "title": "#2013 Wave 1 — PROJECT-DEFINITION export + migration fidelity gate",
+    "status": "completed",
+    "planRef": "completed/2026-06-28-2013-spec-authority-wave-0-context.xbrief.json",
+    "narratives": {
+      "Description": "Implements locked Wave 0 decisions: two-path spec authority, three-class banner/predicate, project:export-spec with audience-split proposed scopes, config-narrative filtering, and #2005 migration-fidelity gate blocking silent specification.xbrief.json deletion.",
+      "ImplementationPlan": "1) packages/core spec-authority resolver + export-spec render path. 2) precutover + validate-strategy-output three-class predicates (TS + Python). 3) migration fidelity when premigrate snapshot exists without canonical landing. 4) Wire CLI/task project:export-spec; spec:render delegates. 5) Tests + skill/doc touch-ups.",
+      "UserStory": "As a greenfield setup operator, I can export SPECIFICATION.md from PROJECT-DEFINITION without creating forbidden specification.xbrief.json, and agents cannot pass verify-strategy-output after deleting spec content without migration proof.",
+      "Traces": "deftai/directive#2013, #1502, #2005, #2049 (urgent)"
+    },
+    "items": [
+      {
+        "id": "wave1-a1-export",
+        "title": "Greenfield PROJECT-DEFINITION export produces SPECIFICATION.md with PD source banner and Scope outlook sections",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a v0.20 tree with PROJECT-DEFINITION, lifecycle folders, proposed+pending scopes, and no specification.xbrief.json, when project:export-spec runs, then SPECIFICATION.md is generated with the PD source-of-truth banner, filtered config narratives, and pending scopes; proposed scopes appear only with --audience=internal.",
+          "Traces": "#1502"
+        }
+      },
+      {
+        "id": "wave1-a2-predicate",
+        "title": "Three-class precutover and strategy-output predicates recognize full-spec and greenfield exports",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given full-spec and greenfield fixture trees, when verify-strategy-output and precutover helpers run, then each class is recognized without cross-classifying greenfield exports as legacy hand-authored SPECIFICATION.md.",
+          "Traces": "#2013 Wave 0 decision 2"
+        }
+      },
+      {
+        "id": "wave1-a3-fidelity",
+        "title": "Migration fidelity gate blocks silent spec deletion when premigrate snapshot narratives lack canonical landing",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given specification.premigrate.xbrief.json with narratives not present in PROJECT-DEFINITION or scope vBRIEFs and no specification.xbrief.json, when verify-strategy-output runs, then it fails with actionable recovery guidance referencing #2005.",
+          "Traces": "#2005"
+        }
+      },
+      {
+        "id": "wave1-a4-parity",
+        "title": "Python mirror surfaces stay aligned for maintainer task check paths",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given scripts/_precutover.py and scripts/validate_strategy_output.py, when run against the same fixtures as TS, then classification and fidelity outcomes match.",
+          "Traces": "#2013 port checklist"
+        }
+      },
+      {
+        "id": "wave1-a5-hooks",
+        "title": "Consumer deposit githooks invoke Node deft only (no Python scripts/)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given a Python-free 0.60.0-style consumer deposit (no scripts/), when git commit/push runs with core.hooksPath=.githooks, then branch/encoding/conformance/gh gates run via deft CLI; deft verify:hooks-installed passes; greenfield smoke succeeds with Python absent from PATH.",
+          "Traces": "#2049, #2046, #2022"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/spec-authority/",
+          "packages/core/src/render/",
+          "packages/core/src/vbrief-validate/precutover.ts",
+          "packages/core/src/validate-content/validate-strategy-output.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.ts",
+          "packages/core/src/init-deposit/",
+          "packages/cli/src/",
+          ".githooks/",
+          "scripts/_precutover.py",
+          "scripts/validate_strategy_output.py",
+          "scripts/spec_render.py",
+          "scripts/prd_render.py",
+          "tasks/project.yml"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test spec-authority",
+          "task check:framework-source"
+        ],
+        "depends_on": [],
+        "conflict_group": "2013-wave-1",
+        "size": "L"
+      },
+      "completedAt": "2026-06-28T20:23:09Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#2013"
+      },
+      {
+        "type": "github-issue",
+        "id": "#1502"
+      },
+      {
+        "type": "github-issue",
+        "id": "#2005"
+      },
+      {
+        "type": "github-issue",
+        "id": "#2049"
+      }
+    ],
+    "updated": "2026-06-28T20:23:09Z"
+  }
+}

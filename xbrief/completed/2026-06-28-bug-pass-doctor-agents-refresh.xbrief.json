@@ -1,0 +1,93 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Bug-pass story: doctor and agents:refresh hygiene after upgrade (#1404, #1408).",
+    "created": "2026-06-28T23:00:00Z",
+    "updated": "2026-06-28T23:00:00Z"
+  },
+  "plan": {
+    "id": "bug-pass-doctor-agents-refresh",
+    "title": "doctor and agents:refresh: fix legacy skill paths and false-positive checks",
+    "status": "completed",
+    "narratives": {
+      "Description": "After upgrade or agents:refresh, consumers see doctor failures: agents:refresh can restore legacy .deft/core/skills/ paths that doctor rejects as stubs (#1404), and skill-paths-resolve false-positives on documentation text containing sentinel substrings (#1408). This story fixes refresh output paths and tightens doctor matching so post-upgrade verification is trustworthy.",
+      "ImplementationPlan": "1. Fix agents:refresh / template rendering so skill symlinks or paths point to current .deft/core/skills/ layout, not legacy stub paths (#1404). 2. Fix doctor skill-paths-resolve check to match actual skill file paths, not arbitrary documentation substrings (#1408). 3. Add regression tests in packages/core/src/doctor/ and packages/cli/src/agents-refresh.test.ts. 4. Run task agents:refresh only if maintainer AGENTS.md template changes require it.",
+      "UserStory": "As a consumer who ran deft update or agents:refresh, I want deft doctor to pass when my install is healthy, so that I am not sent on a false repair loop after every upgrade.",
+      "Traces": "Refs #1404 #1408; upgrade path #2057 #1993."
+    },
+    "items": [
+      {
+        "id": "agents-refresh-paths",
+        "title": "agents:refresh emits current skill paths not legacy stubs",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a consumer runs deft agents:refresh on a canonical-vendored install, when AGENTS.md managed section is rewritten, then referenced skill paths resolve to live .deft/core/skills/ entries and doctor skill-paths-resolve does not FAIL due to legacy .deft/core/skills/ stub paths.",
+          "Traces": "#1404"
+        }
+      },
+      {
+        "id": "doctor-false-positive",
+        "title": "skill-paths-resolve ignores doc-only sentinel matches",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given AGENTS.md or templates contain documentation prose mentioning skill path patterns, when deft doctor runs skill-paths-resolve, then the check does not FAIL on substring matches in non-path documentation text; real missing skill files still FAIL.",
+          "Traces": "#1408"
+        }
+      },
+      {
+        "id": "tests-changelog",
+        "title": "Regression tests and CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given regression tests cover agents:refresh path output and doctor skill-paths-resolve edge cases, when uv run pytest on those tests passes and task check passes, then CHANGELOG records the fix with Closes #1404 #1408.",
+          "Traces": "#1404 #1408"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/agents-refresh.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/agents-refresh/",
+          "content/templates/agents-entry.md",
+          "tests/cli/test_agents_refresh.py",
+          "packages/cli/src/agents-refresh.test.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "uv run pytest packages/cli/src/agents-refresh.test.ts packages/core/src/doctor/ -q",
+          "task check"
+        ],
+        "expected_outputs": [
+          "agents:refresh no longer writes legacy stub skill paths",
+          "doctor skill-paths-resolve passes on doc prose false-positive fixture"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-agents-refresh",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-28T23:24:36Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1404",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1404: agents:refresh legacy skill paths"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1408",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1408: doctor skill-paths false positive"
+      }
+    ],
+    "updated": "2026-06-28T23:24:36Z"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
+  },
+  "plan": {
+    "id": "py-purge-doctor-precutover-line",
+    "title": "Extend deft doctor with a precutover status line (Phase 0)",
+    "status": "completed",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json",
+    "narratives": {
+      "Description": "The TypeScript doctor does not yet surface a pre-cutover detection line even though the predicates already exist in packages/core/src/vbrief-validate/precutover.ts. This story wires the existing isDeprecationRedirect and isCurrentGeneratedSpecification predicates into the doctor output as a short precutover line so operators see migration state without a Python port.",
+      "ImplementationPlan": "- Import the existing precutover predicates into packages/cli/src/doctor.ts and add a precutover status line to the doctor report that reflects whether the project is pre-cutover.\n- Add a unit test in packages/cli/src/doctor.test.ts that asserts the precutover line renders for a pre-cutover fixture and is absent for a current-layout fixture.",
+      "UserStory": "As a maintainer running deft doctor, I want a precutover status line, so that I can tell whether a project still needs migration without reading the Python migrator.",
+      "Traces": "deftai/directive#2022 Phase 0"
+    },
+    "items": [
+      {
+        "id": "py-purge-doctor-precutover-line-a1",
+        "title": "Given a pre-cutover project fixture, when deft doctor runs, then the report includes a precutover line flagging the migration-needed state.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a pre-cutover project fixture, when deft doctor runs, then the report includes a precutover line flagging the migration-needed state."
+        }
+      },
+      {
+        "id": "py-purge-doctor-precutover-line-a2",
+        "title": "Given a current-layout project fixture, when deft doctor runs, then the precutover line reports a clean non-pre-cutover state.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a current-layout project fixture, when deft doctor runs, then the precutover line reports a clean non-pre-cutover state."
+        }
+      },
+      {
+        "id": "py-purge-doctor-precutover-line-a3",
+        "title": "Given packages/cli/src/doctor.test.ts, when the suite runs, then the new precutover-line assertions pass for both fixtures.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given packages/cli/src/doctor.test.ts, when the suite runs, then the new precutover-line assertions pass for both fixtures."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/doctor.ts",
+          "packages/cli/src/doctor.test.ts",
+          "packages/core/src/vbrief-validate/precutover.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-cli test doctor"
+        ],
+        "expected_outputs": [
+          "doctor report shows precutover line",
+          "doctor.test.ts covers both fixtures"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor",
+        "size": "S",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-26T18:28:07Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-26T18:28:07Z"
+  }
+}

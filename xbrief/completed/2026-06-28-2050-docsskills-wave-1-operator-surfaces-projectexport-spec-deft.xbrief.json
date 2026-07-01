@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2050"
+  },
+  "plan": {
+    "id": "story-2050-wave-1-docs-followup",
+    "title": "docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2050",
+      "Overview": "## Summary\n\nWave 1 (#2013 / #1502 / #2005) and #2049 land engine + deposit behavior, but operator docs and skills still steer greenfield consumers through legacy `task spec:render` / `specification.xbrief.json` paths. Release notes also need an explicit post-upgrade hook refresh step.\n\nThis is **follow-up polish**, not a blocker for merging Wave 1 code — but it should ship in the same release cycle (before or immediately after Wave 1 merge) so 0.61.x operators discover the new surfaces.\n\n## Problem\n\n- `deft-directive-setup` Phase 3 export prompt still recommends `task spec:render` / `task prd:render` and gates speckit on spec-file approval (#2013 Wave 0 §3 / §6).\n- `strategies/speckit.md` and `strategies/v0-20-contract.md` do not mention `task project:export-spec` or greenfield PD-sourced export.\n- `content/scm/github.md` / hook docs may still cite `scripts/preflight_branch.py` as the hook backend (Wave 0 port checklist).\n- Release / upgrade guidance does not tell consumers to run `deft update` to refresh project-root `.githooks/` after #2049.\n\n## Scope (disjoint from Wave 1 implementation files)\n\n- `content/skills/deft-directive-setup/SKILL.md` — Phase 3 export prompt → `task project:export-spec`; speckit gate → export succeeded (not spec-file approved).\n- `content/strategies/speckit.md` — post-Phase-3 gate references unified export verb.\n- `content/strategies/v0-20-contract.md` — greenfield export contract + Scope outlook naming.\n- `content/scm/github.md` — hooks invoke `deft` CLI (#2049); not Python scripts.\n- `UPGRADING.md` / consumer README touch — after upgrade run `deft update` to refresh `.githooks/`.\n- `content/templates/agents-entry.md` + `task agents:refresh` if consumer-relevant hook/export routing changes.\n\n## Acceptance\n\n- [ ] Setup skill Phase 3 documents `task project:export-spec` as the greenfield export path; internal handoff uses `--audience=internal` where proposed scopes are needed.\n- [ ] Speckit strategy Phase 3→4 gate is \"export succeeded\" not \"specification.xbrief.json approved\".\n- [ ] v0-20-contract and github.md align with Scope outlook + TS-native hooks.\n- [ ] UPGRADING.md tells 0.60.0→0.61.x consumers to run `deft update` for hook refresh.\n- [ ] `task agents:refresh` run if agents-entry.md changes; content contract tests pass.\n\n## Sequencing\n\n- **Parallel-safe** with Wave 1 implementation (#2013-wave-1 branch) — disjoint file scope (content/skills/strategies only).\n- Merge **after** Wave 1 PR or in parallel; both should land before npm cut for 0.61.x.\n\n## Refs\n\n- Parent: #2013 (umbrella — stays open)\n- Depends on: Wave 1 + #2049 landing (behavior the docs describe)\n- Related: #1502, #2049, #2046, #2022",
+      "Labels": "adoption-blocker, area:cli"
+    },
+    "items": [
+      {
+        "title": "Setup skill Phase 3 documents  as the greenfield export path; internal handoff uses  where proposed scopes are needed.",
+        "status": "proposed"
+      },
+      {
+        "title": "Speckit strategy Phase 3→4 gate is \"export succeeded\" not \"specification.xbrief.json approved\".",
+        "status": "proposed"
+      },
+      {
+        "title": "v0-20-contract and github.md align with Scope outlook + TS-native hooks.",
+        "status": "proposed"
+      },
+      {
+        "title": "UPGRADING.md tells 0.60.0→0.61.x consumers to run  for hook refresh.",
+        "status": "proposed"
+      },
+      {
+        "title": "run if agents-entry.md changes; content contract tests pass.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2050",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2050: docs(skills): Wave 1 operator surfaces — project:export-spec + deft update hook refresh (#2013 follow-up)"
+      },
+      {
+        "type": "github-issue",
+        "id": "#2013"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/strategies/speckit.md",
+          "content/strategies/v0-20-contract.md",
+          "content/scm/github.md",
+          "content/templates/agents-entry.md",
+          "UPGRADING.md",
+          "README.md"
+        ],
+        "verify_commands": [
+          "task agents:refresh",
+          "task check:framework-source"
+        ],
+        "depends_on": [],
+        "conflict_group": "2013-wave-1-docs",
+        "size": "S"
+      },
+      "completedAt": "2026-06-28T19:51:45Z",
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-06-28T19:51:45Z"
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
+  },
+  "plan": {
+    "id": "py-purge-pack-migrate-ts",
+    "title": "Convert the five pack-migrate dispatch routes to native TypeScript (Phase 1)",
+    "status": "completed",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json",
+    "narratives": {
+      "Description": "The pack-migrate-skills, -rules, -strategies, -patterns, and -swarm-spec verbs are still served by loadPythonScriptHandler routes in packages/cli/src/dispatch.ts (lines ~491-499), shelling into Python pack_migrate_*.py scripts. This story replaces those five routes with native TypeScript handlers so the pack-render surface no longer depends on bundled Python.",
+      "ImplementationPlan": "- Implement native TypeScript pack-migrate handlers (skills, rules, strategies, patterns, swarm-spec) under packages/cli/src that reproduce the render/slice output contract of the current pack_migrate_*.py scripts.\n- Replace the five loadPythonScriptHandler routes at dispatch.ts ~491-499 with the new native handlers and add dispatch tests asserting each verb routes to TypeScript rather than Python.",
+      "UserStory": "As a consumer running deft pack-migrate verbs, I want native TypeScript handlers, so that pack rendering works on a machine with no Python installed.",
+      "Traces": "deftai/directive#2022 Phase 1"
+    },
+    "items": [
+      {
+        "id": "py-purge-pack-migrate-ts-a1",
+        "title": "Given dispatch.ts, when the five pack-migrate verbs are dispatched, then each routes to a native TypeScript handler with no loadPythonScriptHandler call.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given dispatch.ts, when the five pack-migrate verbs are dispatched, then each routes to a native TypeScript handler with no loadPythonScriptHandler call."
+        }
+      },
+      {
+        "id": "py-purge-pack-migrate-ts-a2",
+        "title": "Given a TypeScript pack-migrate handler, when it renders a pack, then the emitted output matches the prior pack_migrate_*.py contract for the same input.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a TypeScript pack-migrate handler, when it renders a pack, then the emitted output matches the prior pack_migrate_*.py contract for the same input."
+        }
+      },
+      {
+        "id": "py-purge-pack-migrate-ts-a3",
+        "title": "Given the dispatch test suite, when it runs, then it asserts all five pack-migrate verbs resolve to TypeScript handlers.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the dispatch test suite, when it runs, then it asserts all five pack-migrate verbs resolve to TypeScript handlers."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-cli test dispatch"
+        ],
+        "expected_outputs": [
+          "five native TS pack-migrate handlers",
+          "dispatch.ts free of pack_migrate python routes"
+        ],
+        "depends_on": [],
+        "conflict_group": "dispatch-ts",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-26T18:47:42Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-26T18:47:42Z"
+  }
+}

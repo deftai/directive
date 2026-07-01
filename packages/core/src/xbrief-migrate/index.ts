@@ -3,6 +3,16 @@ export {
   type LegacyVbriefLayoutDetection,
 } from "./detect.js";
 export {
+  BUILTIN_ALLOW_LIST,
+  type DriftEvaluateOptions,
+  type DriftEvaluateResult,
+  type DriftFinding,
+  type DriftScanMode,
+  evaluateXbriefDrift,
+  LEGACY_REFERENCE_PREFIX,
+  scanCorpusToken,
+} from "./drift-gate.js";
+export {
   emitXbriefMigration,
   runXbriefMigration,
   runXbriefMigrationCli,

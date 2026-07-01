@@ -1,0 +1,159 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { evaluateXbriefDrift } from "./drift-gate.js";
+
+function git(root: string, args: string[]): void {
+  execFileSync("git", args, { cwd: root, stdio: ["ignore", "ignore", "ignore"] });
+}
+
+function initRepo(): string {
+  const root = mkdtempSync(join(tmpdir(), "xbrief-drift-"));
+  git(root, ["init", "-q"]);
+  return root;
+}
+
+function writeTracked(root: string, rel: string, body: string): void {
+  const full = join(root, rel);
+  mkdirSync(dirname(full), { recursive: true });
+  writeFileSync(full, body, "utf8");
+  git(root, ["add", "--", rel]);
+}
+
+/** A canonical corpus artifact using the migrated reference token. */
+const CANONICAL_ARTIFACT = JSON.stringify(
+  { xBRIEFInfo: { version: "0.8" }, refs: [{ type: "x-xbrief/reference" }] },
+  null,
+  2,
+);
+
+/** A corpus artifact that smuggled in the legacy reference token. */
+const LEGACY_TOKEN_ARTIFACT = JSON.stringify(
+  { xBRIEFInfo: { version: "0.8" }, refs: [{ type: "x-vbrief/reference" }] },
+  null,
+  2,
+);
+
+describe("evaluateXbriefDrift", () => {
+  let root: string | undefined;
+
+  afterEach(() => {
+    if (root !== undefined) {
+      rmSync(root, { recursive: true, force: true });
+      root = undefined;
+    }
+  });
+
+  it("exits 0 on a clean canonical xbrief tree", () => {
+    root = initRepo();
+    writeTracked(root, "xbrief/active/2026-06-30-1-thing.xbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "xbrief/PROJECT-DEFINITION.xbrief.json", CANONICAL_ARTIFACT);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+    expect(result.message).toContain("no legacy-layout drift");
+  });
+
+  it("exits 1 on a NEW *.vbrief.json artifact (legacy suffix)", () => {
+    root = initRepo();
+    writeTracked(root, "packages/core/regression.vbrief.json", CANONICAL_ARTIFACT);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(1);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.kind).toBe("legacy-suffix");
+    expect(result.message).toContain("regression.vbrief.json");
+  });
+
+  it("exits 1 on a NEW top-level vbrief/ lifecycle dir", () => {
+    root = initRepo();
+    writeTracked(root, "vbrief/active/2026-06-30-1-thing.xbrief.json", CANONICAL_ARTIFACT);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(1);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.kind).toBe("legacy-lifecycle-dir");
+  });
+
+  it("exits 1 on a bare x-vbrief/ reference token in a canonical corpus artifact", () => {
+    root = initRepo();
+    writeTracked(root, "xbrief/active/2026-06-30-1-thing.xbrief.json", LEGACY_TOKEN_ARTIFACT);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(1);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.kind).toBe("legacy-reference-token");
+  });
+
+  it("does NOT trip on sanctioned back-compat fixture trees (allowlisted)", () => {
+    root = initRepo();
+    // Legacy read-path regression fixtures + the shipped content/vbrief surface +
+    // forensic doc template + archived history + framework migration RESULT artifacts
+    // legitimately retain the legacy layout / token and must stay green.
+    writeTracked(root, "tests/fixtures/migration/clean/vbrief/x.vbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "content/vbrief/conformance/valid/x.vbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(
+      root,
+      "docs/reference/forensic-research/templates/x.vbrief.json",
+      CANONICAL_ARTIFACT,
+    );
+    writeTracked(root, "history/archive/2026-03-20-thing/x.vbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "xbrief/migration/legacy-note.xbrief.json", LEGACY_TOKEN_ARTIFACT);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("does NOT trip on TS source shims that intentionally mention legacy tokens", () => {
+    root = initRepo();
+    // The Part 1 resolver fallback, EXTENSION_PREFIXES legacy entry, #2110 migrate
+    // path, and #1650 policy fallback are source files outside the scanned data plane.
+    writeTracked(
+      root,
+      "packages/core/src/vbrief-validate/conformance.ts",
+      `export const EXTENSION_PREFIXES = ["x-directive/", "x-vbrief/", "x-xbrief/"] as const;\n`,
+    );
+    writeTracked(
+      root,
+      "packages/core/src/layout/resolve.ts",
+      `export const LEGACY_ARTIFACT_DIR = "vbrief";\nexport const LEGACY_ARTIFACT_SUFFIX = ".vbrief.json";\n`,
+    );
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("honors a custom --allow-list file to sanction an additional path", () => {
+    root = initRepo();
+    writeTracked(root, "sandbox/legacy.vbrief.json", CANONICAL_ARTIFACT);
+    const allowFile = join(root, "allow.txt");
+    writeFileSync(allowFile, "# extra exception\nsandbox/**\n", "utf8");
+    const withAllow = evaluateXbriefDrift(root, { allowListPath: allowFile });
+    expect(withAllow.code).toBe(0);
+    const withoutAllow = evaluateXbriefDrift(root);
+    expect(withoutAllow.code).toBe(1);
+  });
+
+  it("exits 2 when --project-root is not a directory", () => {
+    const result = evaluateXbriefDrift(join(tmpdir(), "xbrief-drift-does-not-exist-xyz"));
+    expect(result.code).toBe(2);
+    expect(result.stream).toBe("stderr");
+  });
+
+  it("exits 2 when --allow-list file is missing", () => {
+    root = initRepo();
+    const result = evaluateXbriefDrift(root, { allowListPath: join(root, "nope.txt") });
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("--allow-list file not found");
+  });
+
+  it("staged mode only inspects staged files", () => {
+    root = initRepo();
+    // Commit a clean tree, then stage a NEW legacy artifact: staged mode must catch it.
+    writeTracked(root, "xbrief/active/x.xbrief.json", CANONICAL_ARTIFACT);
+    git(root, ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"]);
+    writeTracked(root, "new.vbrief.json", CANONICAL_ARTIFACT);
+    const staged = evaluateXbriefDrift(root, { mode: "staged" });
+    expect(staged.code).toBe(1);
+    expect(staged.findings[0]?.kind).toBe("legacy-suffix");
+  });
+});

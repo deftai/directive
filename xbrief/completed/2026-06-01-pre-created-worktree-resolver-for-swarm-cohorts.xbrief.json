@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-01-1387-headless-swarm-launch.xbrief.json"
+  },
+  "plan": {
+    "id": "swarm-worktree-map",
+    "title": "Pre-created worktree resolver for swarm cohorts",
+    "status": "completed",
+    "planRef": "completed/2026-06-01-1387-headless-swarm-launch.xbrief.json",
+    "narratives": {
+      "Description": "Adds reusable worktree-map resolution so the swarm can accept pre-created worktrees instead of always creating them inside the phased skill flow. It validates each story-to-worktree path against real git worktree state and the configured base branch, creates any missing worktrees idempotently, and emits a normalized mapping the launch engine consumes. Owning a standalone helper script keeps this independently buildable and unit-testable in isolation against the frozen C3 contract.",
+      "ImplementationPlan": "1. Add scripts/swarm_worktrees.py exposing a resolver function that validates a story-to-worktree mapping against git worktree state and the configured base branch, rejecting base mismatches.\n2. Create any missing worktrees idempotently from the base branch and emit a normalized worktree-map JSON matching the frozen C3 schema that the launch engine imports.\n3. Add tests in tests/cli/test_swarm_worktrees.py asserting validation, idempotent creation, and same-path collision rejection.",
+      "UserStory": "As a swarm operator, I want the swarm to accept my pre-created worktrees, so that I do not have to let the skill recreate them on every run.",
+      "Traces": "#1387, #1378"
+    },
+    "items": [
+      {
+        "id": "swarm-worktree-map-a1",
+        "title": "Validate mapping",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When given a story-to-worktree mapping, the resolver validates each path is a git worktree on the configured base branch and rejects mismatches with a nonzero exit.",
+          "Traces": "#1387"
+        }
+      },
+      {
+        "id": "swarm-worktree-map-a2",
+        "title": "Idempotent creation",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When a mapped worktree does not yet exist, the resolver creates it idempotently from the base branch and records the created path in its output.",
+          "Traces": "#1387"
+        }
+      },
+      {
+        "id": "swarm-worktree-map-a3",
+        "title": "Collision rejection",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When two stories map to the same worktree path, the resolver fails with a nonzero exit and names the colliding stories.",
+          "Traces": "#1387"
+        }
+      },
+      {
+        "id": "swarm-worktree-map-a4",
+        "title": "Normalized output",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When validation succeeds, the resolver emits a normalized worktree-map JSON that the launch engine consumes via the frozen C3 schema.",
+          "Traces": "#1387, #1378"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/swarm_worktrees.py",
+          "tests/cli/test_swarm_worktrees.py"
+        ],
+        "verify_commands": [
+          "uv run python -m pytest tests/cli/test_swarm_worktrees.py"
+        ],
+        "expected_outputs": [
+          "scripts/swarm_worktrees.py resolver with validate/create functions",
+          "normalized worktree-map JSON output",
+          "passing tests/cli/test_swarm_worktrees.py"
+        ],
+        "depends_on": [],
+        "conflict_group": "headless-swarm-launch",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-01T05:00:49Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1387",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1387: feat(swarm): low-ceremony / headless launch for pre-approved cohorts (build on #1378 allocation-context token)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1378: allocation-context token + Gate 0 (merged enabler)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-01T04:37:32Z"
+  }
+}

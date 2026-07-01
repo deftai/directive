@@ -1,0 +1,115 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1637",
+    "updated": "2026-06-16T13:15:41Z"
+  },
+  "plan": {
+    "title": "feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1637",
+      "Acceptance": "Parent epic context (not directly executable -- decompose into child stories first). The v2 surface is complete when: (a) each pack exposes deeper slices beyond its 0.1 pilot set; (b) skills-pack and strategies-pack carry full bodies for every entry (not just the single proof); (c) rules-pack source coverage broadens beyond coding/* to AGENTS.md + main.md with full bodies; (d) the candidate swarm-spec and patterns packs exist (demand permitting); and (e) the pack-render drift gate (task verify:pack-drift) stays green throughout. Rules-pack schema enrichment (determinism_tier / trigger_time / enforcement_status / phrasing_findings[]) is OUT OF SCOPE here -- owned by #748. Whole-corpus .md migration (#336) and pack-JSON encoding allow-list / banner token (#1641) remain deferred.",
+      "Overview": "## Why this exists\n\nSpun out of the #1283 pack-slicing design pass (see the converged-decisions comment). Q3 locked a **single `task packs:slice <pack> <name> <path>` namespace** (pack is an argument, not a per-pack namespace) so the namespace-collision surface never grows as packs are added. That decision deliberately defers everything beyond the v1 pilot to this explicit v2 issue so nothing is dropped.\n\n## Status (updated 2026-06-15)\n\nMuch of the original \"additional pack surfaces\" scope has since **landed at the 0.1 pilot tier** — this issue's body is updated to reflect that and to enumerate only what genuinely remains. The epic #1284 (vBRIEF-as-canonical) is now **closed**; all four anticipated pilot packs exist:\n\n| Pack | Surface | Coverage at 0.1 | Tracked by |\n|---|---|---|---|\n| `lessons-0.1` | ✅ shipped | **Full** (all of `meta/lessons.md`) | #1294 |\n| `skills-0.1`  | ✅ shipped | metadata-complete + **one** full-body proof (`deft-directive-cost`) | #1295 |\n| `rules-0.1`   | ✅ shipped | `coding/*` directives + **one** proof body (`coding/testing.md`) | #1296 |\n| `strategies-0.1` | ✅ shipped | `strategies/*` metadata + **one** proof body (`strategies/yolo.md`) | #1296 |\n\nAlso shipped since the original write-up: the `--list-packs` discovery affordance and consumer discoverability wiring (#1643), so all four packs are self-describing via `task packs:slice --list-packs`.\n\nSo the \"create the pack surfaces\" half of this issue is **done**. What remains is (a) deeper slices per pack, (b) finishing each pilot's full-body/full-source coverage, and (c) the candidate `swarm-spec` pack.\n\n## v2 — what is still left to do\n\n### 1. Deeper slices (beyond each pack's pilot slices)\nUsing the same schema registry + constrained dotted-path + named-filter dialect (never JSONPath, per ADR-001):\n- [ ] **lessons-pack**: slices beyond `recent` / `by-tag` — e.g. `anti-patterns`, `must`, `by-authority` (`domain` / `authority` / `since` filters).\n- [ ] **skills-pack**: slices beyond `by-trigger` / `list`.\n- [ ] **rules-pack**: slices beyond `by-tier` / `by-domain` / `list` — e.g. an audit slice surfacing tier/trigger-time mismatches (overlaps #748).\n- [ ] **strategies-pack**: slices beyond `list` / `by-trigger`.\n\n### 2. Finish each pilot's coverage (pilot = metadata + ONE body proof, by design)\n- [ ] **skills-pack**: capture full body for **every** skill (currently only `deft-directive-cost`), turning all `SKILL.md` into drift-checked projections.\n- [ ] **rules-pack**: broaden source coverage beyond `coding/*` to **AGENTS.md** + **main.md**, and capture full bodies beyond the `coding/testing.md` proof.\n- [ ] **strategies-pack**: capture full body for **every** strategy (currently only `strategies/yolo.md`).\n- [ ] **lessons-pack**: already full coverage — no body work, slices only (item 1).\n\n### 3. New candidate pack surfaces (not yet created)\n- [ ] **`swarm-spec`** pack (candidate from #1283 Q-list).\n- [ ] **`patterns`** pack — the `patterns/` dir exists but has no pack yet (candidate; confirm demand before building).\n\n### 4. Schema enrichment (cross-cutting, tracked primarily by #748)\n- [ ] **rules-pack** native fields `determinism_tier` / `trigger_time` / `enforcement_status` / `phrasing_findings[]` + the enforcement-audit pass — owned by #748 (re-framed 2026-06-15). This issue defers the rules-pack enrichment to #748 to avoid duplication.\n\n### Out of scope (still deferred elsewhere)\n- Whole-corpus migration of **all** `.md` files → #336.\n- Pack-JSON encoding allow-list + rendered-lessons banner-token registration → #1641.\n\n## Constraints carried from #1283 (unchanged)\n\n- Agent-facing contract = the **slice name** only (stable, versioned, `--list`-discoverable); the selector stays an authoring detail.\n- Slices read the **canonical vBRIEF/pack source directly, never the rendered `.md`** (anti-drift).\n- Pack version lives in the pack name; slice names additive within a major.minor; removed/renamed slices stay resolvable for one minor with a deprecation warning.\n- `text` default (token-cheapest for the read-into-context path the ADR optimizes), `--json` always available.\n\n## Cross-references\n\n- #1283 — pack-slicing RFC (design converged)\n- #1294 / #1295 / #1296 — lessons / skills / rules+strategies pilots (all shipped)\n- #1643 — `--list-packs` + consumer discoverability (shipped)\n- #748 — rules-classification vocabulary + rules-pack schema enrichment (re-framed; owns item 4)\n- #1641 — banner-token registration + pack-JSON encoding allow-list\n- #336 — full `.md` corpus migration (end-state)\n- #1284 — vBRIEF-as-canonical epic (closed)\n\nRefs #1283 #1294 #1295 #1296 #1284\n",
+      "Labels": "enhancement"
+    },
+    "metadata": {
+      "kind": "epic"
+    },
+    "items": [
+      {
+        "title": "lessons-pack: deeper slices beyond `recent` / `by-tag` -- e.g. `anti-patterns`, `must`, `by-authority` (`domain` / `authority` / `since` filters)",
+        "status": "proposed"
+      },
+      {
+        "title": "skills-pack: deeper slices beyond `by-trigger` / `list`",
+        "status": "proposed"
+      },
+      {
+        "title": "rules-pack: deeper slices beyond `by-tier` / `by-domain` / `list` -- e.g. an audit slice surfacing tier/trigger-time mismatches (overlaps #748)",
+        "status": "proposed"
+      },
+      {
+        "title": "strategies-pack: deeper slices beyond `list` / `by-trigger`",
+        "status": "proposed"
+      },
+      {
+        "title": "skills-pack: capture full body for every skill (currently only `deft-directive-cost`), turning all `SKILL.md` into drift-checked projections",
+        "status": "proposed"
+      },
+      {
+        "title": "rules-pack: broaden source coverage beyond `coding/*` to AGENTS.md + main.md, and capture full bodies beyond the `coding/testing.md` proof",
+        "status": "proposed"
+      },
+      {
+        "title": "strategies-pack: capture full body for every strategy (currently only `strategies/yolo.md`)",
+        "status": "proposed"
+      },
+      {
+        "title": "swarm-spec: new candidate pack surface (from #1283 Q-list)",
+        "status": "proposed"
+      },
+      {
+        "title": "patterns: new candidate pack -- `patterns/` dir exists but has no pack yet (confirm demand before building)",
+        "status": "proposed"
+      },
+      {
+        "title": "rules-pack schema enrichment (`determinism_tier` / `trigger_time` / `enforcement_status` / `phrasing_findings[]`) -- DEFERRED to #748 (out of scope here)",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1637: feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1283"
+      },
+      {
+        "uri": "completed/2026-06-15-packsslice-v2-deeper-slices-across-all-four-packs.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "packs:slice v2 -- deeper slices across all four packs",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-15-packsslice-v2-capture-full-body-for-every-skill.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "packs:slice v2 -- capture full body for every skill",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-15-packsslice-v2-capture-full-body-for-every-strategy.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "packs:slice v2 -- capture full body for every strategy",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-15-packsslice-v2-broaden-rules-pack-source-to-agentsmd-mainmd.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "packs:slice v2 -- broaden rules-pack source to AGENTS.md + main.md",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-15-packsslice-v2-new-patterns-pack-surface.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "packs:slice v2 -- new patterns pack surface",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-15-packsslice-v2-new-swarm-spec-pack-surface.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "packs:slice v2 -- new swarm-spec pack surface",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-16T13:15:41Z"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Bug-pass story: migrate:vbrief version marker and lifecycle folder hygiene (#1157, #1159).",
+    "created": "2026-06-28T23:00:00Z",
+    "updated": "2026-06-28T23:00:00Z"
+  },
+  "plan": {
+    "id": "bug-pass-migrate-vbrief-hygiene",
+    "title": "migrate:vbrief: stamp .deft-version and track lifecycle folders in git",
+    "status": "completed",
+    "narratives": {
+      "Description": "Greenfield and migrate:vbrief paths leave xbrief/.deft-version unstamped so gates report recorded=unknown (#1157). migrate:vbrief also creates empty lifecycle folders that git does not track, so fresh clones and swarm worktrees lack xbrief/proposed|pending|active|completed|cancelled (#1159). This story stamps the version marker during migration and adds tracked .gitkeep sentinels so lifecycle layout survives clone/worktree.",
+      "ImplementationPlan": "1. In scripts/migrate_vbrief.py cmd_migrate path, after successful migration, write/sync xbrief/.deft-version from .deft/core/VERSION install manifest fields (#1157). 2. During lifecycle folder mkdir in migrate_vbrief.py, write tracked .gitkeep sentinel files in each vbrief lifecycle directory and record them in the safety manifest for rollback (#1159). 3. Add pytest cases in tests/test_migrate_vbrief.py asserting .deft-version content and .gitkeep files on disk. 4. Run uv run pytest tests/test_migrate_vbrief.py and task check as verification evidence.",
+      "UserStory": "As an operator who ran migrate:vbrief, I want lifecycle folders and .deft-version to exist in every clone and worktree, so that swarm agents and preflight gates do not block on missing directories or unknown version.",
+      "Traces": "Refs #1157 #1159; swarm worktree recurrence."
+    },
+    "items": [
+      {
+        "id": "deft-version-stamp",
+        "title": "migrate:vbrief stamps xbrief/.deft-version",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project completes task migrate:vbrief successfully, when xbrief/.deft-version is read, then it records the current framework version ref/sha consistent with .deft/core/VERSION and gates no longer report recorded=unknown for greenfield-migrated projects.",
+          "Traces": "#1157"
+        }
+      },
+      {
+        "id": "lifecycle-gitkeep",
+        "title": "Lifecycle folders survive clone via tracked placeholders",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given migrate:vbrief creates the five lifecycle folders, when the project is cloned or a git worktree is added, then xbrief/proposed pending active completed cancelled directories exist on disk because each contains a tracked .gitkeep sentinel file; rollback removes those sentinels per safety manifest.",
+          "Traces": "#1159"
+        }
+      },
+      {
+        "id": "migrate-tests-changelog",
+        "title": "migrate_vbrief tests and CHANGELOG",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given tests in tests/test_migrate_vbrief.py cover version stamp and gitkeep creation, when uv run pytest tests/test_migrate_vbrief.py passes and task check passes, then CHANGELOG records fixes with Closes #1157 #1159.",
+          "Traces": "#1157 #1159"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/migrate_vbrief.py",
+          "tests/cli/test_migrate_vbrief.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_migrate_vbrief.py -q",
+          "task check"
+        ],
+        "expected_outputs": [
+          "migrate:vbrief writes xbrief/.deft-version",
+          "lifecycle folders contain tracked .gitkeep after migration"
+        ],
+        "depends_on": [],
+        "conflict_group": "migrate-vbrief-hygiene",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-28T22:35:30Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1157",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1157: migrate:vbrief leaves .deft-version unstamped"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1159",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1159: empty lifecycle folders vanish in clones"
+      }
+    ],
+    "updated": "2026-06-28T22:35:30Z"
+  }
+}

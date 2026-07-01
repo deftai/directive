@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #1860: TS migration Wave 9 — full Python removal (Bucket B delete)"
+  },
+  "plan": {
+    "id": "wave-9-python-removal-1860",
+    "title": "TS migration Wave 9: full Python removal (#1860 Bucket B delete)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Execute the operator-authorized Bucket B delete on #1860: remove run/, scripts/*.py, pytest suite, pyproject/uv, parity oracles, and Python CI legs; rewire release build/reconcile/roadmap to native TS; confirm task check green with zero Python on disk.",
+      "ImplementationPlan": "- Port release build-dist to TypeScript; rewire release pipeline off python-steps.ts.\n- Delete run, run.bat, run.py, scripts/, tests/ (pytest), pyproject.toml, uv.lock.\n- Remove packages/cli parity harnesses and ts:parity* tasks; collapse check:framework-source to TS-only.\n- Strip Python + parity jobs from .github/workflows/ci.yml; simplify windows-task-dispatch.\n- Update content-contract tests and docs; CHANGELOG entry. Closes #1860.",
+      "UserStory": "As a deft maintainer, I want zero Python on disk in the framework repo, so the TS migration epic (#1530) can close and consumers never depend on uv/pytest parity oracles.",
+      "Traces": "deftai/directive#1860, deftai/directive#1530, deftai/directive#2022"
+    },
+    "items": [
+      {
+        "id": "1860-a1",
+        "title": "Given operator sign-off on #1860, when Bucket B delete lands, then run/, scripts/, pyproject.toml, uv.lock, and the pytest tree are removed.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "No scripts/*.py, run entrypoints, pyproject.toml, or tests/**/*.py remain in the repo.",
+          "Traces": "deftai/directive#1860"
+        }
+      },
+      {
+        "id": "1860-a2",
+        "title": "Given the delete, when task check:framework-source runs, then it passes with TS-only gates (no uv run python, no parity harness).",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "check:framework-source exits 0; CI python and parity jobs removed.",
+          "Traces": "deftai/directive#1860"
+        }
+      },
+      {
+        "id": "1860-a3",
+        "title": "Given release pipeline steps, when cutting a release, then roadmap refresh, lifecycle reconcile, and dist build run without Python.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Release pipeline uses native TS for roadmap, reconcile, and build-dist; no uv lock step.",
+          "Traces": "deftai/directive#1860"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/",
+          "tests/",
+          "run",
+          "pyproject.toml",
+          "packages/cli/src/*-parity.ts",
+          ".github/workflows/ci.yml"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "zero Python on disk",
+          "green task check"
+        ],
+        "depends_on": [],
+        "conflict_group": "python-purge",
+        "size": "XL",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-06-29T15:43:48Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1860",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1860: TS migration Wave 9 — full Python removal",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-xbrief/parent",
+        "title": "Issue #1530: TS migration epic"
+      }
+    ],
+    "updated": "2026-06-29T15:43:48Z"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #1659: decouple framework runtime and guidance from the task runner"
+  },
+  "plan": {
+    "title": "Decouple framework runtime and guidance from the task runner",
+    "status": "completed",
+    "narratives": {
+      "Overview": "Package-manager installs must be able to run Deft through the `deft`/`run` surface without requiring go-task on PATH. Runtime code should call Python entrypoints or the shared framework command dispatcher, while generated guidance should prefer `deft <verb>` and reserve `task deft:<verb>` for Taskfile include users.",
+      "AcceptanceCriteria": "No runtime code path hard-depends on `task`; the `run`/future `deft` surface reaches the framework verbs needed by session, cache, triage, check, and release flows; generated AGENTS guidance points package consumers at `deft`; and a deterministic guard fails on future runtime go-task subprocess dependencies."
+    },
+    "items": [
+      {
+        "id": "A",
+        "title": "Add shared no-task framework command dispatcher",
+        "status": "completed"
+      },
+      {
+        "id": "B",
+        "title": "Migrate Class A runtime call sites away from go-task subprocesses",
+        "status": "completed"
+      },
+      {
+        "id": "C",
+        "title": "Update generated/session guidance to package-first commands",
+        "status": "completed"
+      },
+      {
+        "id": "D",
+        "title": "Add regression guard for runtime go-task dependencies",
+        "status": "completed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1659",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1659: Decouple framework runtime + guidance from the `task` runner (npm/pip readiness)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #11: Proposal: Publish Deft as an NPM + PIP CLI"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1670",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1670: spec: unified `deft` CLI surface"
+      }
+    ],
+    "updated": "2026-06-18T14:37:54Z",
+    "metadata": {
+      "completedAt": "2026-06-18T14:37:54Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

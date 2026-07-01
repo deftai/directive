@@ -1,0 +1,112 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-24-1942-ts-native-init-update-deposit.xbrief.json"
+  },
+  "plan": {
+    "id": "s1-content-deposit-primitive",
+    "title": "S1: content dependency + TS resolve-and-copy deposit primitive",
+    "status": "completed",
+    "planRef": "completed/2026-06-24-1942-ts-native-init-update-deposit.xbrief.json",
+    "narratives": {
+      "Description": "directive init/update currently obtain framework content only via the Go binary's GitHub-tarball download, and @deftai/directive depends solely on @deftai/directive-core. This story adds @deftai/directive-content as a dependency of the engine package and builds a pure TS deposit primitive that resolves the installed content package via Node module resolution and recursively copies its tree into a target directory with file-mode preservation. It is the foundation every later init/update story builds on, and is independently buildable and testable in isolation from the CLI verbs.",
+      "ImplementationPlan": "- Add @deftai/directive-content (workspace:*) to packages/cli/package.json dependencies alongside @deftai/directive-core.\n- Implement packages/core/src/deposit/resolve-content.ts using import.meta.resolve('@deftai/directive-content') with a graceful error when the package is unresolvable, and packages/core/src/deposit/copy-tree.ts that recursively copies a source tree preserving the executable bit (mirroring cmd/deft-install copyFile/copyDir #1477).\n- Unit-test resolution success/failure and a copy round-trip (including mode preservation and nested dirs) in colocated *.test.ts files.",
+      "UserStory": "As a Deft engine package, I want to resolve and copy the installed content package tree locally, so that init/update can deposit .deft/core from npm without any network download."
+    },
+    "items": [
+      {
+        "id": "s1-content-deposit-primitive-a1",
+        "title": "When pnpm install runs, it resolves @deftai/directive-content as a dependency of the engine package without error.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When pnpm install runs, it resolves @deftai/directive-content as a dependency of the engine package without error."
+        }
+      },
+      {
+        "id": "s1-content-deposit-primitive-a2",
+        "title": "resolve-content.ts returns the resolved content package root and rejects an uninstalled package with an actionable error.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "resolve-content.ts returns the resolved content package root and rejects an uninstalled package with an actionable error."
+        }
+      },
+      {
+        "id": "s1-content-deposit-primitive-a3",
+        "title": "copy-tree.ts creates a recursive copy of the source tree preserving the executable bit and nested directories.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "copy-tree.ts creates a recursive copy of the source tree preserving the executable bit and nested directories."
+        }
+      },
+      {
+        "id": "s1-content-deposit-primitive-a4",
+        "title": "When the unit tests run, they cover resolution success, resolution failure, and a copy round-trip that preserves file modes.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the unit tests run, they cover resolution success, resolution failure, and a copy round-trip that preserves file modes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/package.json",
+          "packages/core/src/deposit/resolve-content.ts",
+          "packages/core/src/deposit/resolve-content.test.ts",
+          "packages/core/src/deposit/copy-tree.ts",
+          "packages/core/src/deposit/copy-tree.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm install",
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- deposit",
+          "task check"
+        ],
+        "expected_outputs": [
+          "@deftai/directive-content resolvable from the CLI package",
+          "resolve-content + copy-tree primitives exported with passing unit tests"
+        ],
+        "depends_on": [],
+        "conflict_group": "deposit-primitive",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to cmd/deft-install/setup.go (copyFile/copyDir, #1477) and the #1942 deposit-mechanism comment (resolve-and-copy), not a spec section."
+      },
+      "completedAt": "2026-06-24T19:23:06Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1942: TS-native directive init/update deposit + gitignore .deft/core (HARD prereq for Go neuter)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-xbrief/related",
+        "title": "Epic #1669 (distributable Deft) -- Wave 5"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-xbrief/related",
+        "title": "Issue #1912 (frozen Go binary + gate) -- gated on this issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-xbrief/related",
+        "title": "Issue #1941 (stage-2 migrate) -- owns the vendored->hybrid un-commit transition"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1933",
+        "type": "x-xbrief/related",
+        "title": "Issue #1933 (decree: stop-fetch + never-first-start)"
+      }
+    ],
+    "updated": "2026-06-24T19:23:06Z"
+  }
+}

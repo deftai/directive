@@ -1,0 +1,45 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1884"
+  },
+  "plan": {
+    "title": "bug(verify-session-ritual): gated tier fails with 'unknown session ritual command: doctor'",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(verify-session-ritual): gated tier fails with 'unknown session ritual command: doctor'",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1884",
+      "Overview": "## Summary\n\n`task verify:session-ritual -- --tier=gated` exits 1 with:\n\n```\nsession ritual gated step 'doctor' failed: unknown session ritual command: doctor\n```\n\nThe gated-tier verifier (TS port, `packages/cli` → `verify-session-ritual`) tries to lazily record a `doctor` session-ritual entrypoint, but the underlying session-ritual command dispatcher does not recognize a `doctor` command, so the gated tier can never pass. This blocks the pre-`start_agent` gate stack (step 0) for any interactive dispatch on a fresh ritual state.\n\n## Repro\n\n```\ntask session:start\ntask verify:session-ritual -- --tier=gated\n```\n\nQuick tier records fine; gated tier fails on the `doctor` step.\n\n## Impact\n\n- Blocks the canonical pre-`start_agent` gate stack (#1149/#1348) step 0 for orchestrators dispatching implementation sub-agents.\n- Current workaround is the sanctioned `DEFT_SESSION_RITUAL_SKIP=1` bypass, which exits 0 but warns — hides the failure rather than fixing it.\n\n## Likely cause\n\nThe #1828/#1854 TS port of the session-ritual verifier wires the gated tier to record `doctor` and `cache_fresh` Python entrypoints, but the `doctor` command name was not registered in the TS session-ritual command table (the `cache_fresh`/`cache-fresh` path may have the same class of mismatch).\n\n## Acceptance\n\n- [ ] `task verify:session-ritual -- --tier=gated` exits 0 on a fresh `task session:start` state.\n- [ ] Regression test covers the gated-tier doctor + cache-fresh lazy-record path.\n\nDiscovered 2026-06-22 while setting up the pre-dispatch gate stack for #1875.",
+      "Labels": "bug, determinism, test-debt, ts-migration, area:cli"
+    },
+    "items": [
+      {
+        "title": "exits 0 on a fresh  state.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test covers the gated-tier doctor + cache-fresh lazy-record path.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "test-debt",
+      "ts-migration",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1884",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1884: bug(verify-session-ritual): gated tier fails with 'unknown session ritual command: doctor'"
+      }
+    ],
+    "updated": "2026-06-22T23:08:38Z",
+    "metadata": {
+      "completedAt": "2026-06-22T23:08:38Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

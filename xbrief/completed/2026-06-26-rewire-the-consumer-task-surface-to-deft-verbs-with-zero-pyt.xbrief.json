@@ -1,0 +1,103 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 8 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json Completed in v0.60.0 (#2022 Phase 2); lifecycle reconciled 2026-06-29.",
+    "updated": "2026-06-29T14:00:00Z"
+  },
+  "plan": {
+    "id": "py-purge-consumer-task-surface",
+    "title": "Rewire the consumer task surface to deft verbs with zero Python entrypoints (Phase 2)",
+    "status": "completed",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json",
+    "narratives": {
+      "Description": "The consumer .deft/core/Taskfile.yml and tasks/*.yml files still invoke python3, uv run, and scripts/*.py directly across roughly two dozen task files. This story rewires every consumer-path task to dispatch through deft verbs and clearly separates or removes maintainer-only Python tasks, so the consumer deposit has no Python entrypoints. It depends on the Phase 1 conversions because each rewired task needs its native handler to already exist.",
+      "ImplementationPlan": "- Audit Taskfile.yml and tasks/*.yml for python3, uv run, and scripts/*.py entrypoints on the consumer path and replace each with the corresponding deft verb now available from Phase 1.\n- Move any genuinely maintainer-only Python tasks behind the #1813 contributor path or remove them, then run task verify:no-task-runtime to confirm the consumer surface is Python-free.",
+      "UserStory": "As a consumer running task verbs, I want the task surface to call deft verbs only, so that no consumer task shells into Python.",
+      "Traces": "deftai/directive#2022 Phase 2",
+      "CompletionNote": "Shipped in directive v0.60.0 (2026-06-28): consumer `task check` dispatches `check:consumer` (TS/deft only); `tasks/core.yml` and `tasks/ci.yml` are `internal: true` maintainer lanes; `task relocate` dropped from consumer surface; `task verify:no-task-runtime` passes. Implementation split across completed child scopes (migrate/install rewire, inline python -c removal, maintainer gating). This umbrella story vBRIEF was stale in proposed/ until 2026-06-29 reconciliation."
+    },
+    "items": [
+      {
+        "id": "py-purge-consumer-task-surface-a1",
+        "title": "Given the consumer Taskfile and tasks/*.yml, when scanned, then no python3, uv run, or scripts/*.py entrypoint remains on the consumer deposit path.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the consumer Taskfile and tasks/*.yml, when scanned, then no python3, uv run, or scripts/*.py entrypoint remains on the consumer deposit path."
+        }
+      },
+      {
+        "id": "py-purge-consumer-task-surface-a2",
+        "title": "Given maintainer-only Python tasks, when the rewire lands, then they are separated behind the contributor path or removed entirely.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given maintainer-only Python tasks, when the rewire lands, then they are separated behind the contributor path or removed entirely."
+        }
+      },
+      {
+        "id": "py-purge-consumer-task-surface-a3",
+        "title": "Given task verify:no-task-runtime, when it runs against the consumer surface, then it passes with zero Python entrypoints reported.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given task verify:no-task-runtime, when it runs against the consumer surface, then it passes with zero Python entrypoints reported."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "Taskfile.yml",
+          "tasks/verify.yml",
+          "tasks/vbrief.yml",
+          "tasks/relocate.yml"
+        ],
+        "verify_commands": [
+          "task verify:no-task-runtime"
+        ],
+        "expected_outputs": [
+          "consumer task surface free of Python entrypoints"
+        ],
+        "depends_on": [
+          "py-purge-pack-migrate-ts",
+          "py-purge-policy-set-ts",
+          "py-purge-relocate-ts-or-drop",
+          "py-purge-setup-ghx-ts-or-drop",
+          "py-purge-ci-local-ts"
+        ],
+        "conflict_group": "task-surface",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "completed/2026-06-28-rewire-migrate-and-install-task-entrypoints-off-python-on-th.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Rewire migrate and install task entrypoints off Python on the consumer path",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-28-move-maintainer-only-python-tasks-behind-checkframework-sour.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Move maintainer-only Python tasks behind check:framework-source",
+        "TrustLevel": "internal"
+      },
+      {
+        "uri": "completed/2026-06-28-replace-inline-uv-run-python-c-helpers-in-consumer-task-file.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Replace inline uv run python -c helpers in consumer task files",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-26T18:08:35Z"
+  }
+}

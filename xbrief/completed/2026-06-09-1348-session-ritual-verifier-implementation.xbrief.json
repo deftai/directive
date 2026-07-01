@@ -1,0 +1,120 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Implementation iteration vBRIEF for #1348 after the original story artifact was found in completed/ while the GitHub issue remained open.",
+    "created": "2026-06-09T00:56:40Z",
+    "updated": "2026-06-11T18:08:00Z"
+  },
+  "plan": {
+    "id": "1348-session-ritual-verifier-implementation",
+    "title": "Implement fail-closed session ritual verifier",
+    "status": "completed",
+    "narratives": {
+      "Description": "Implement the #1348 two-tier session ritual sentinel and verifier against the current directive master. This iteration exists because the prior #1348 vBRIEF is marked completed even though the GitHub issue remains open and the implementation surfaces are absent.",
+      "ImplementationPlan": "Add a separate .deft/ritual-state.json state contract beside the existing fail-open last-session sentinel, implement task session:start and task verify:session-ritual, wire gated verification into vbrief:preflight, add the typed staleness policy field, update AGENTS/template/headless documentation, and cover the new contract with focused CLI/content/policy tests.",
+      "UserStory": "As a directive maintainer, I want session-start ritual completion verified by a fail-closed gate before implementation dispatch, so skipped startup discipline is caught deterministically and headless workers can bypass it explicitly."
+    },
+    "items": [
+      {
+        "title": "Add ritual-state data model and atomic writer",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": ".deft/ritual-state.json has a strict schema, writes atomically, preserves the existing #1269 last-session behavior, and keeps both sentinels under the .deft umbrella."
+        }
+      },
+      {
+        "title": "Add session:start and verify:session-ritual tasks",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "task session:start records quick-tier steps and deferrals; task verify:session-ritual fails closed for missing, stale, corrupt, wrong-worktree, or failed state while supporting --tier and --json."
+        }
+      },
+      {
+        "title": "Wire gated ritual verification into implementation preflight",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "task vbrief:preflight invokes the gated ritual verifier before the #810 lifecycle check unless DEFT_SESSION_RITUAL_SKIP=1 is set, and JSON callers receive a stable failure payload."
+        }
+      },
+      {
+        "title": "Add sessionRitualStalenessHours policy field",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "plan.policy.sessionRitualStalenessHours defaults to 4, rejects malformed values, appears in policy:show, and participates in vBRIEF validation."
+        }
+      },
+      {
+        "title": "Update docs, templates, CI, and tests",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "AGENTS.md, templates/agents-entry.md, templates/agent-prompt-preamble.md, CI env, CHANGELOG, and deterministic tests all reflect the new verifier and bypass contract."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "completedAt": "2026-06-11T16:20:00Z",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/ritual_sentinel.py",
+          "scripts/session_start.py",
+          "scripts/verify_session_ritual.py",
+          "scripts/preflight_implementation.py",
+          "scripts/policy.py",
+          "scripts/vbrief_validate.py",
+          "tasks/session.yml",
+          "tasks/verify.yml",
+          "Taskfile.yml",
+          "AGENTS.md",
+          "templates/agents-entry.md",
+          "templates/agent-prompt-preamble.md",
+          ".github/workflows/ci.yml",
+          "xbrief/schemas/vbrief-core.schema.json",
+          "CHANGELOG.md",
+          "tests/cli/test_session_start.py",
+          "tests/cli/test_verify_session_ritual.py",
+          "tests/cli/test_preflight_implementation.py",
+          "tests/test_policy_show.py",
+          "tests/cli/test_policy.py",
+          "tests/content/test_agents_md_session_start.py",
+          "tests/content/test_agents_entry_contract.py"
+        ],
+        "verify_commands": [
+          "DEFT_SESSION_RITUAL_SKIP=1 task vbrief:preflight -- xbrief/active/2026-06-09-1348-session-ritual-verifier-implementation.xbrief.json",
+          "task verify:session-ritual -- --tier=quick",
+          "task policy:show -- --field=plan.policy.sessionRitualStalenessHours",
+          "task check"
+        ],
+        "expected_outputs": [
+          "vBRIEF preflight passes with explicit headless bypass",
+          "quick-tier verifier reports fresh state after task session:start",
+          "policy show reports current/default staleness window",
+          "full check suite passes"
+        ],
+        "depends_on": [],
+        "conflict_group": "session-ritual-gates",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "high",
+        "missing_traces_justification": "Issue #1348 already carries the detailed trace set; this active iteration exists to satisfy the current implementation gate after stale completed lifecycle metadata was discovered."
+      },
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1348",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1348: feat(ritual): two-tier ritual sentinel + fail-closed verifier for the pre-start_agent gate stack"
+      },
+      {
+        "uri": "file://cancelled/2026-05-25-1348-ritual-state-sentinel-fail-closed-verifier.xbrief.json",
+        "type": "x-xbrief/refs",
+        "title": "Prior #1348 artifact cancelled after this implementation became canonical"
+      }
+    ],
+    "updated": "2026-06-11T18:08:00Z"
+  }
+}

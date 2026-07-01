@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for the operator freeze action of epic #1912"
+  },
+  "plan": {
+    "title": "Freeze the Go installer at v0.56.0 (pin LAST_GO_INSTALLER)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Operator freeze action for epic #1912: pin the final Go-installer tag in the Tier-0 source of truth so the legacy stage-1 bridge is frozen and all future Deft upgrades flow through npm.",
+      "Origin": "Epic #1912 (freeze the Go installer / retire the Go bridge), Wave 5 runbook #1972 Step 3.",
+      "Overview": "The freeze-prep gates (verify:go-freeze, verify:bridge-drift), the npm handoff message, the pinned legacy-bridge e2e leg, and the freeze-gate graceful-skip (#1987) all landed and shipped in v0.56.0. v0.56.0 is published as the final Go installer (carries the npm-handoff guidance). This is the single operator edit that flips the freeze:\n\n- Set LAST_GO_INSTALLER = \"v0.56.0\" in packages/core/src/legacy-bridge/sot.ts (the only place the literal is allowed to live).\n\nOnce pinned: isFrozen() returns true; verify:go-freeze enforces the version ceiling (tags at/below v0.56.0 OK, above skip the Go build via the #1987 graceful-skip); verify:bridge-drift continues to refuse any surface that hardcodes a competing version; the pinned legacy-bridge e2e leg runs the real handoff instead of the PENDING advisory.\n\n## Acceptance\n- LAST_GO_INSTALLER pinned to \"v0.56.0\".\n- verify:go-freeze passes (advisory-to-enforcing flip is clean for the current tag state).\n- verify:bridge-drift passes (no competing hardcoded version surfaced).\n- task check green.\n- CHANGELOG [Unreleased] notes the freeze.\n\nCloses #1912. Refs #1972."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1912: Freeze the Go installer / retire the Go bridge"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1972",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1972: Wave 5 finalization runbook"
+      }
+    ],
+    "updated": "2026-06-25T16:46:21Z",
+    "metadata": {
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-25T16:46:21Z"
+    }
+  }
+}

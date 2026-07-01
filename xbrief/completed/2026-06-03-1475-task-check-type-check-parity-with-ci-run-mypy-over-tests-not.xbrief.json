@@ -1,0 +1,57 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1475"
+  },
+  "plan": {
+    "title": "task check: type-check parity with CI (run mypy over tests/, not just run.py)",
+    "status": "completed",
+    "narratives": {
+      "Description": "task check: type-check parity with CI (run mypy over tests/, not just run.py)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1475",
+      "Overview": "## Problem\r\n\r\nLocal `task check` is **not at type-check parity with CI**, so a mypy error that lives outside `run.py`'s import closure escapes every local pre-merge gate and breaks `master` for everyone after merge.\r\n\r\nThis happened for real this cycle:\r\n\r\n- PR #1466 (issue #1465) passed `task check` locally and merged green, but immediately turned `master`'s **\"Python (lint + type-check + test)\"** job RED.\r\n- Root cause: a mypy error in `tests/cli/test_behavioral_events.py` — a binding named `ignored` was first a `CompletedProcess[str]` and then reassigned to `list[str]`.\r\n- CI runs `mypy tests/` (broad scope); local `core:lint` / `task check` only runs `mypy run.py`. The error was invisible locally and to every dispatched worker.\r\n- It required an emergency one-line hotfix (PR #1472) and forced re-syncs across the in-flight cohort (#1463 / #1464 / #1468), each of which had inherited the red `tests/` file by merging `master`.\r\n\r\n## Impact\r\n\r\n- Any mypy error under `tests/` (or anywhere outside `run.py`'s import graph) ships green locally and breaks `master` post-merge.\r\n- In a swarm/worktree workflow this is amplified: every concurrent branch that merges `master` inherits the red state and must re-sync after the hotfix.\r\n\r\n## Proposed fix\r\n\r\n- Expand the local type-check gate (`core:lint` / `task check`) to run mypy over the **same target set CI uses** — at minimum `mypy tests/`, ideally the whole tree (`mypy .` or the configured packages).\r\n- Ensure the mypy configuration (pyproject / mypy.ini) is shared between local and CI so scope and strictness match.\r\n- Make the broader scope **fail** `task check` (not advisory).\r\n\r\n## Acceptance criteria\r\n\r\n- `task check` (or `core:lint`) runs mypy with the same scope as the CI \"Python (lint + type-check + test)\" job, including `tests/`.\r\n- A deliberately introduced type error under `tests/` causes `task check` to FAIL locally.\r\n- Any docs/comments that describe the lint/type-check scope are updated to reflect parity.\r\n\r\n## References\r\n\r\n- Introduced by: PR #1466 (#1465)\r\n- Hotfix: PR #1472\r\n- Cohort affected by the inherited red: #1463, #1464, #1468\r\n",
+      "Labels": "enhancement, ci-cd, determinism, test-debt, process"
+    },
+    "items": [
+      {
+        "title": "task check (or core:lint) runs mypy with the same scope as the CI \"Python (lint + type-check + test)\" job, including tests/.",
+        "status": "proposed"
+      },
+      {
+        "title": "A deliberately introduced type error under tests/ causes task check to FAIL locally.",
+        "status": "proposed"
+      },
+      {
+        "title": "Any docs/comments that describe the lint/type-check scope are updated to reflect parity.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "determinism",
+      "test-debt",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1475",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)"
+      },
+      {
+        "uri": "completed/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Bring task check mypy scope to parity with CI (cover tests/)",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-03T21:38:05Z",
+    "metadata": {
+      "kind": "epic",
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2069 — port framework:check-updates off legacy run/Python",
+    "updated": "2026-06-29T01:05:25Z"
+  },
+  "plan": {
+    "id": "story-framework-check-updates-ts",
+    "title": "Port framework:check-updates to the TypeScript engine",
+    "status": "completed",
+    "narratives": {
+      "Description": "task framework:check-updates is the last consumer-callable task that shells through uv run python run check-updates. Port the read-only remote-version probe (#801) to a native deft-ts verb and rewire tasks/framework.yml so consumer installs need zero Python for this surface.",
+      "ImplementationPlan": "Port cmd_check_updates / _run_remote_probe from run to packages/core; add packages/cli handler; register framework:check-updates alias; rewire tasks/framework.yml via engine:invoke; add vitest coverage; update coverage-map and CHANGELOG.",
+      "UserStory": "As a consumer on a Python-free npm install, I want task framework:check-updates to probe upstream releases via deft only, so the check survives #1860 run deletion.",
+      "Traces": "deftai/directive#2069, #1860, #2022 Phase 5 audit 6.2"
+    },
+    "items": [
+      {
+        "id": "story-framework-check-updates-ts-a1",
+        "title": "Given tasks/framework.yml check-updates, when invoked, then it routes through deft-ts with no uv run python or run shim.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given tasks/framework.yml check-updates, when invoked, then it routes through deft-ts with no uv run python or run shim.",
+          "Traces": "deftai/directive#2069"
+        }
+      },
+      {
+        "id": "story-framework-check-updates-ts-a2",
+        "title": "Given the TS check-updates verb, when probed with mocked git ls-remote, then OK/BEHIND/SKIPPED/NO-TAGS/ERROR statuses and --json output match the #801 contract.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the TS check-updates verb, when probed with mocked git ls-remote, then OK/BEHIND/SKIPPED/NO-TAGS/ERROR statuses and --json output match the #801 contract.",
+          "Traces": "deftai/directive#801, #1320"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/framework.yml",
+          "packages/core/src/check-updates/",
+          "packages/cli/src/check-updates.ts"
+        ],
+        "verify_commands": [
+          "task ts:build",
+          "pnpm --filter @deftai/directive-cli test check-updates",
+          "task verify:no-task-runtime"
+        ],
+        "expected_outputs": [
+          "framework:check-updates Python-free on consumer path"
+        ],
+        "depends_on": [],
+        "conflict_group": "pypurge-residuals",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "fast"
+      },
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-29T01:18:02Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2069",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2069: framework:check-updates still routes through legacy run + Python",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-29T01:18:02Z"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Refresh project concept and architecture documentation to match the implemented Deft Directive system.",
+    "created": "2026-06-17T15:05:00Z",
+    "updated": "2026-06-17T15:45:00Z"
+  },
+  "plan": {
+    "title": "docs: refresh project concepts and architecture",
+    "status": "completed",
+    "narratives": {
+      "Description": "The current project concept and architecture documents still describe an older four-component, run-centric Deft Directive shape. The implementation has evolved into a Taskfile-first framework with Python automation, vBRIEF lifecycle metadata, installer/doctor handoff, triage/cache/scope workflows, content packs, release/PR automation, and codebase-structure projection contracts.",
+      "Origin": "Operator request after reviewing directive/AGENTS.md and comparing current documentation against implemented project behavior.",
+      "Acceptance": "PROJECT-DEFINITION and specification vBRIEF narratives are updated to describe the current architecture. Generated SPECIFICATION.md is rendered from the updated source. docs/ARCHITECTURE.md, docs/CONCEPTS.md, docs/FILES.md, commands.md, README.md, and codebase architecture docs are reconciled with implemented paths and task surfaces. Stale planning architecture docs are marked historical. A brief CHANGELOG [Unreleased] entry is added. Validation passes.",
+      "NonGoals": "No behavior changes, no new codebase MAP generator, no schema migration, and no changes to installer or task implementations."
+    },
+    "metadata": {
+      "kind": "story",
+      "completedAt": "2026-06-17T15:14:48Z",
+      "capacityBucket": "new-capability"
+    },
+    "items": [
+      {
+        "title": "Update project-definition and specification vBRIEF narratives",
+        "status": "completed"
+      },
+      {
+        "title": "Render SPECIFICATION.md from the updated specification vBRIEF",
+        "status": "completed"
+      },
+      {
+        "title": "Refresh architecture, concept, command, file-map, README, and codebase docs",
+        "status": "completed"
+      },
+      {
+        "title": "Mark stale planning architecture docs as historical or deprecated",
+        "status": "completed"
+      },
+      {
+        "title": "Add a concise CHANGELOG entry and run validation",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "architecture",
+      "vbrief"
+    ],
+    "references": [
+      {
+        "uri": "user-request:2026-06-17-docs-refresh-project-concepts-architecture",
+        "type": "x-xbrief/user-request",
+        "title": "Direct user request: refresh project concepts and architecture docs"
+      }
+    ],
+    "updated": "2026-06-17T15:14:48Z"
+  }
+}

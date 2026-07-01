@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
+  },
+  "plan": {
+    "id": "1637-s5-patterns-pack",
+    "title": "packs:slice v2 -- new patterns pack surface",
+    "status": "completed",
+    "planRef": "completed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json",
+    "narratives": {
+      "Description": "Create a new `patterns` pack that ingests the five documents under `patterns/` (which exist today with no pack) following the established 0.1 pilot pattern: a schema with a slice registry, a migration script, the pack JSON, a render registry entry, and tests. This story is independently buildable as greenfield work scoped to net-new files plus a single additive entry in the shared render registry.",
+      "ImplementationPlan": "1. Add a new `xbrief/schemas/patterns-pack.schema.json` schema file defining the pattern entry shape and an `x-sliceRegistry` with at least `list` and `by-trigger` slices.\n2. Add a new `scripts/pack_migrate_patterns.py` migration script that parses `patterns/*.md` into `packs/patterns/patterns-pack-0.1.json`, and register the pack in the `scripts/pack_render.py` RENDER_REGISTRY.\n3. Add `tests/cli/test_pack_migrate_patterns.py` asserting migration shape and slice resolution, and confirm `task packs:slice --list-packs` discovers the new pack and `task verify:pack-drift` validates.",
+      "UserStory": "As an agent looking for architectural patterns, I want a patterns pack I can slice, so that I can pull pattern guidance into context the same way I load lessons, skills, rules, and strategies."
+    },
+    "items": [
+      {
+        "id": "1637-s5-a1",
+        "title": "patterns pack discoverable",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice --list-packs` shows the new patterns pack with its description alongside the existing four packs."
+        }
+      },
+      {
+        "id": "1637-s5-a2",
+        "title": "patterns slices resolve",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice patterns list` returns every pattern entry migrated from the patterns directory."
+        }
+      },
+      {
+        "id": "1637-s5-a3",
+        "title": "patterns pack drift-clean",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task verify:pack-drift` validates the patterns pack with no drift between source and rendered projection."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "xbrief/schemas/patterns-pack.schema.json",
+          "scripts/pack_migrate_patterns.py",
+          "packs/patterns/patterns-pack-0.1.json",
+          "scripts/pack_render.py",
+          "tests/cli/test_pack_migrate_patterns.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_pack_migrate_patterns.py",
+          "task verify:pack-drift"
+        ],
+        "expected_outputs": [
+          "New xbrief/schemas/patterns-pack.schema.json",
+          "New packs/patterns/patterns-pack-0.1.json and migration script",
+          "RENDER_REGISTRY entry in scripts/pack_render.py"
+        ],
+        "depends_on": [],
+        "conflict_group": "pack-registry",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637 and RFC #1283 Q-list; no specification.xbrief.json spec-section applies."
+      },
+      "completedAt": "2026-06-15T23:54:40Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1637: feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1283"
+      }
+    ],
+    "updated": "2026-06-15T23:54:40Z"
+  }
+}

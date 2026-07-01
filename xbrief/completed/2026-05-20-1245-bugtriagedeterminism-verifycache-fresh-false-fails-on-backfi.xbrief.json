@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1245"
+  },
+  "plan": {
+    "title": "bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1245",
+      "Overview": "## Summary\r\n\r\n`task verify:cache-fresh` fails with \"every cached entry is outside the active plan.policy.triageScope[] subscription\" when the cache contains only `triage:bootstrap`'s backfilled audit-log entries (one per historical completed scope vBRIEF). The freshness gate treats the backfill as \"no in-scope cached candidates\", aborts pre-`start_agent` dispatch, and recommends widening subscription or re-fetching — neither of which is the correct remediation.\r\n\r\n## Reproduction (2026-05-20 session)\r\n\r\n```\r\n$ task triage:bootstrap\r\ntriage:bootstrap step 1/5 populate_cache -- done (cache:fetch-all source=github-issue repo=deftai/directive succeeded=1 failed=0 skipped=396)\r\ntriage:bootstrap step 2/5 backfill_audit_log -- done (appended 38 accepted entries; skipped 3; skipped 0)\r\n[... 5/5 done]\r\n\r\n$ task verify:cache-fresh\r\n❌ deft cache-fresh: every cached entry is outside the active plan.policy.triageScope[] subscription.\r\n  Recovery: widen the subscription (see `task triage:scope --list`) or repopulate via `task cache:fetch-all`.\r\ntask: Failed to run task \"verify:cache-fresh\": exit status 1\r\n```\r\n\r\n`candidates.jsonl` contains 38 entries, all of them backfilled \"accepted\" history entries from `completed/` scope vBRIEFs (issues that were valid at decision time but whose current GH state is closed/relabeled and so falls outside the subscription).\r\n\r\n## Expected\r\n\r\n`verify:cache-fresh` should treat the audit log and the active candidate set as distinct populations:\r\n- Backfilled `action=accept` history entries are immutable historical records — they should not be evaluated against the live subscription scope.\r\n- Freshness should be assessed against the live in-scope candidate set (currently open issues matching `plan.policy.triageScope[]`), which `triage:bootstrap` step 1 should be populating separately.\r\n\r\n## Actual\r\n\r\nThe bootstrap output `populate_cache -- done (succeeded=1 failed=0 skipped=396)` already hints at the underlying issue: only 1 entry was \"succeeded\" (the audit-log seed) and 396 candidates were \"skipped\". The candidate cache appears to never be populated in this code path — only the audit log is — but `verify:cache-fresh` evaluates them as if they were the same population.\r\n\r\n## Impact\r\n\r\n- Breaks the pre-`start_agent` gate stack (#1149) immediately after a clean bootstrap.\r\n- Operator gets a misleading recovery hint (\"widen the subscription\") that, if followed, would broaden scope unnecessarily without addressing the underlying separation-of-concerns bug.\r\n- `task check` will likely cascade-fail on consumer projects too.\r\n\r\n## Suggested investigation\r\n\r\n- `scripts/preflight_cache.py`: does the in-scope check iterate `candidates.jsonl` indiscriminately or only over `action=untriaged` / candidate-population entries?\r\n- `scripts/triage_bootstrap.py` step 1: confirm whether `populate_cache` is supposed to write candidate entries to `candidates.jsonl` in addition to / instead of audit entries.\r\n- Schema audit: are candidate entries and audit-log entries supposed to live in the same `.jsonl` file? If yes, they need a discriminator field that the freshness gate honors.\r\n\r\n## Related\r\n\r\n- Bug filed in same session: `triage:welcome` silently skips bootstrap. Together these defects mean the gate stack composability (#1149) is broken in two places along the same path.\r\n",
+      "Labels": "bug, determinism, adoption-blocker"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "determinism",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1245",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1245: bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state"
+      }
+    ],
+    "updated": "2026-05-20T19:24:32Z",
+    "metadata": {
+      "completedAt": "2026-05-20T19:35:34Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

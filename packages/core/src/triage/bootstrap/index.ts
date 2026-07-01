@@ -399,7 +399,9 @@ function extractIssueNumber(vbriefData: Record<string, unknown>): number | null 
   for (const ref of refs) {
     if (typeof ref !== "object" || ref === null) continue;
     const typed = ref as Record<string, unknown>;
-    if (typed.type !== "x-vbrief/github-issue") continue;
+    // Dual-namespace (#2109): accept the migrated `x-xbrief/` corpus token and
+    // the legacy `x-vbrief/` token (still read-accepted for back-compat).
+    if (typed.type !== "x-xbrief/github-issue" && typed.type !== "x-vbrief/github-issue") continue;
     const uri = typed.uri;
     if (typeof uri !== "string") continue;
     const tail = uri.replace(/\/$/, "").split("/").pop() ?? "";

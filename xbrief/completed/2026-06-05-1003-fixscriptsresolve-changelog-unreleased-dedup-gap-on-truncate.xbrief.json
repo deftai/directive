@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1003"
+  },
+  "plan": {
+    "title": "fix(scripts/resolve_changelog_unreleased): dedup gap on truncated/issue-numberless entries (#911 follow-up)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The task changelog:resolve-unreleased helper from #911 dedups entries by their parenthesized (#NNN) issue number, so a truncated orphan header that lacks a closing ** and an issue number has no dedup key and is preserved as a distinct entry. Across the v0.26.2 cohort cascade four sequential rebases compounded this into two duplicate gh_rest.py stubs in the published CHANGELOG, and the fix adds orphan-header detection plus a content-prefix dedup fallback so the stubs collapse.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1003",
+      "Overview": "## Problem\n\nThe `task changelog:resolve-unreleased` helper (shipped in v0.26.2 from #911) was dogfooded across the v0.26.2 cohort cascade (5 PRs, 4 sequential rebases). The helper resolved every CHANGELOG conflict cleanly, BUT the published `CHANGELOG.md` for v0.26.2 contains **two truncated `gh_rest.py` header lines** (lines 26 and 28 of the released file) that are partial duplicates of the full entry on line 30:\n\n```markdown\n- **feat(scripts): `gh_rest.py` REST-fallback helpers\n- **perf(tests,tasks): mark watchdog tests slow ... (#975)** -- ...\n- **feat(scripts): `gh_rest.py` REST-fallback helpers\n- **feat(scripts,tasks,skills): CHANGELOG union-merge helper for swarm cascade conflicts (#911)** -- ...\n- **feat(scripts): `gh_rest.py` REST-fallback helpers for `gh` mutations and reads (#961)** -- ...\n```\n\nThe truncated stubs are orphan headers (entry-start `- **` with no closing `**`, no body, no `(#NNN)` issue number) that the helper preserved as if they were distinct entries.\n\n## Root cause\n\nThe helper's dedup heuristic (per `scripts/resolve_changelog_unreleased.py`) is:\n\n> Keep all HEAD entries; for each branch entry, if not present in HEAD by `(#NNN)` issue-number heuristic, prepend it under its subsection.\n\nThe heuristic matches by parenthesized issue numbers. When an entry is **truncated** mid-line and lacks a closing `**` and a `(#NNN)` reference, the helper has no key to dedup on — it treats the stub as a unique entry and prepends it on the next rebase. The cascading rebases in the v0.26.2 release (4 sequential rebases of agent5 → agent2 → agent4 → agent3 onto master) compounded this: each rebase introduced a new truncated stub of the upstream `gh_rest.py` header, and the helper preserved each as distinct.\n\nLikely upstream cause: an earlier branch resolved a CHANGELOG conflict via a different path (manual `edit_files` or pre-helper splice) that produced the first truncated stub. Once a truncated stub exists in master, every subsequent rebase reproduces it because the helper cannot collapse it with the full entry.\n\n## Reproduction\n\nThe v0.26.2 published `CHANGELOG.md` is the recurrence record. To reproduce synthetically:\n\n1. Construct a CHANGELOG with `[Unreleased]/### Added` containing a full entry `- **feat(scripts): \\`gh_rest.py\\` REST-fallback helpers for \\`gh\\` mutations and reads (#961)** -- <body>`.\n2. Inject a truncated orphan header above it: `- **feat(scripts): \\`gh_rest.py\\` REST-fallback helpers` (no closing `**`, no `(#NNN)`).\n3. Add a conflict block with branch-side adding ANOTHER orphan stub.\n4. Run `task changelog:resolve-unreleased` -- the orphan stub is preserved instead of collapsed.\n\nUnit-test surface: `tests/cli/test_resolve_changelog_unreleased.py` adds a fixture with the orphan-stub shape and asserts post-resolve content has at most one occurrence of the header prefix.\n\n## Impact\n\n- **Cosmetic now** (v0.26.2 already published with the duplicates).\n- **Recurring** — the helper will keep producing these on every future cascade until fixed. The bug compounds: 4 rebases produced 2 stubs; an 8-rebase cascade would produce 4+.\n- **Not a load-bearing data loss** — the full entry on line 30 has the canonical content; the orphan stubs are visual noise, not lost commits.\n\n## Suggested fix\n\nThree options (ordered by preference):\n\n1. **Detect orphan-header lines in `parse_side`** -- treat any entry-start (`- **` or `* **`) that lacks a closing `**` on the same line as a malformed entry. Either (a) attach the malformed line to the next valid entry as continuation, or (b) refuse to dedup against valid entries (so a manual edit_files fallback is the resolution). Option (b) is the smaller patch.\n\n2. **Content-based dedup fallback** -- when an entry has no `(#NNN)`, fall back to a content-prefix match against existing HEAD entries. Compute a normalized prefix (e.g. first 60 chars of the entry text) and skip the branch entry if any HEAD entry has the same prefix.\n\n3. **Refuse-on-orphan, exit 1 \"unresolvable\"** -- detect malformed entries and exit 1 with a diagnostic pointing at line numbers, forcing manual `edit_files`. Safest but loses the auto-resolve property.\n\nRecommend option 1(b) + option 2 layered: malformed entries don't dedup against valid ones, AND content-prefix match catches the orphan-stub case before it propagates.\n\n## Acceptance criteria\n\n- [ ] AC-1: `scripts/resolve_changelog_unreleased.py` detects orphan-header lines (entry-start without closing `**` AND without `(#NNN)`) and either attaches to next valid entry OR drops them with a stderr WARN.\n- [ ] AC-2: Content-prefix dedup fallback for entries without `(#NNN)` references.\n- [ ] AC-3: New regression tests in `tests/cli/test_resolve_changelog_unreleased.py` covering: (a) orphan-stub on HEAD side, (b) orphan-stub on branch side, (c) orphan-stub on both sides matching same content, (d) cascading rebase synthetic that produces multiple orphan stubs and verifies they collapse into one.\n- [ ] AC-4: Run the new test suite against the v0.26.2 published CHANGELOG as a fixture; assert the helper would have collapsed the line-26/28 stubs.\n- [ ] AC-5: Optional follow-up commit on master that cleans up the v0.26.2 line-26/28 stubs in the existing `[0.26.2]` section. NOT a release-tag amend (the dist zip is published); just a chore commit on master so the next release's `[Unreleased]` slate inherits a clean prior section.\n- [ ] AC-6: CHANGELOG entry under `[Unreleased]` / `### Fixed`.\n\n## Recurrence record\n\nFirst occurrence: v0.26.2 release on 2026-05-08, 5-PR cohort cascade with 4 sequential rebases produced 2 truncated `gh_rest.py` stubs in published CHANGELOG.md.\n\n## Related\n\n- #911 -- the helper that ships with this dedup gap (the bug ships in the same release as the helper itself, ironically validated by the helper's own dogfood)\n- #999 -- PR that landed #911\n- #961 -- the `gh_rest.py` entry that the orphan stubs partially duplicate\n- The 2026-05-04 v0.25.1 cascade is the original recurrence record that motivated #911 (HEAD-take dropped entries); the new bug is a different failure mode of the union-merge fix\n\n## Out of scope\n\n- Refactoring the helper's data model from line-based parsing to AST-style tokenization; the prefix-match heuristic is sufficient for the v1 patch\n- Releasing a v0.26.3 just for this fix; queue under `[Unreleased]` for the next batch",
+      "ImplementationPlan": "Update the scripts/resolve_changelog_unreleased.py module so parse_side flags entry-start lines that lack a closing ** and a (#NNN) reference as malformed and refuses to dedup them against valid entries. Add a content-prefix dedup fallback that skips a branch entry when an existing HEAD entry shares the same normalized prefix. Add regression tests in tests/cli/test_resolve_changelog_unreleased.py covering orphan stubs on the HEAD side, the branch side, and a cascading-rebase synthetic that asserts the stubs collapse into one.",
+      "UserStory": "As a deft release operator, I want resolve_changelog_unreleased to collapse truncated orphan-header entries, so that cascading rebases stop accumulating duplicate CHANGELOG stubs.",
+      "Traces": "https://github.com/deftai/directive/issues/1003"
+    },
+    "items": [
+      {
+        "title": "Truncated orphan headers do not dedup against valid entries.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a truncated orphan header without a closing ** or a (#NNN) reference, when the helper resolves the section, then it refuses to dedup the stub against valid entries and drops it with a stderr warning."
+        }
+      },
+      {
+        "title": "Content-prefix fallback dedups entries that lack an issue number.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an entry with no (#NNN) reference, when the helper dedups, then a content-prefix match collapses it against an existing HEAD entry that shares the same prefix."
+        }
+      },
+      {
+        "title": "Matching orphan stubs on both sides collapse to a single header.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given orphan stubs on both the HEAD and branch sides matching the same content, when the helper resolves, then the output retains at most one occurrence of the header prefix."
+        }
+      },
+      {
+        "title": "Regression test replays a cascading-rebase synthetic.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A regression test in tests/cli/test_resolve_changelog_unreleased.py replays a cascading-rebase synthetic and validates that multiple orphan stubs collapse into a single entry."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1003",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1003: fix(scripts/resolve_changelog_unreleased): dedup gap on truncated/issue-numberless entries (#911 follow-up)"
+      }
+    ],
+    "updated": "2026-06-05T17:49:35Z",
+    "id": "story-1003-changelog-unreleased-dedup",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/resolve_changelog_unreleased.py",
+          "tests/cli/test_resolve_changelog_unreleased.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_resolve_changelog_unreleased.py",
+          "uv run pytest tests/cli -k resolve_changelog"
+        ],
+        "expected_outputs": [
+          "orphan-header detection in resolve_changelog_unreleased",
+          "content-prefix dedup fallback for issue-numberless entries",
+          "regression tests for the cascading-rebase stub collapse"
+        ],
+        "depends_on": [],
+        "conflict_group": "1003-changelog-dedup",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-05T17:49:35Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json"
+  },
+  "plan": {
+    "id": "py-purge-setup-ghx-ts-or-drop",
+    "title": "Port setup:ghx to a native TypeScript verb and mark ghx a supported consumer capability (Phase 1)",
+    "status": "completed",
+    "planRef": "completed/2026-06-26-2022-python-purge-readiness-execution-tracker-supersedes-2001.xbrief.json",
+    "narratives": {
+      "Description": "Decision: PORT to TypeScript, not drop. The ghx runtime preference is already TS-native -- packages/core/src/scm/binary.ts resolveBinary prefers ghx over gh -- so consumers already benefit automatically when ghx is on PATH; the only gap is a supported, discoverable way to install it. This story reimplements the consent-gated installer as a native directive setup:ghx dispatch verb, removes the scripts/setup_ghx.py Python entrypoint from the setup tasks, documents ghx as a supported proxy in README and the SCM docs, and adds a setup-time nudge when gh is present but ghx is missing.",
+      "ImplementationPlan": "- Add a native TypeScript setup:ghx handler routed in packages/cli/src/dispatch.ts that reuses defaultWhich/resolveBinary for PATH detection, prompts for explicit consent defaulting to no, runs the host-aware upstream installer (curl pipe bash on unix, irm pipe iex on Windows), and returns the three-state exit; remove the scripts/setup_ghx.py invocations from the Taskfile setup and setup:ghx tasks so the verb is the single entrypoint.\n- Add a setup-time nudge in the --check path that detects gh-present-but-ghx-missing and points the operator at directive setup:ghx, document ghx as a supported proxy in README.md and content/scm/github.md, and add a dispatch test asserting the verb routes to TypeScript and preserves consent-default-no.",
+      "UserStory": "As a consumer running deft GitHub workflows, I want a supported directive setup:ghx verb and a setup-time nudge, so that I can easily install the ghx proxy and know it is supported.",
+      "Traces": "deftai/directive#2022 Phase 1"
+    },
+    "items": [
+      {
+        "id": "py-purge-setup-ghx-ts-or-drop-a1",
+        "title": "Given directive setup:ghx, when invoked while ghx is missing, then it prompts for explicit consent defaulting to no and installs only on approval.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given directive setup:ghx, when invoked while ghx is missing, then it prompts for explicit consent defaulting to no and installs only on approval."
+        }
+      },
+      {
+        "id": "py-purge-setup-ghx-ts-or-drop-a2",
+        "title": "Given the Taskfile setup and setup:ghx tasks, when scanned after the port, then no scripts/setup_ghx.py or python3 entrypoint remains and the TS verb is the single entrypoint.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the Taskfile setup and setup:ghx tasks, when scanned after the port, then no scripts/setup_ghx.py or python3 entrypoint remains and the TS verb is the single entrypoint."
+        }
+      },
+      {
+        "id": "py-purge-setup-ghx-ts-or-drop-a3",
+        "title": "Given a host with gh present but ghx missing, when the setup-time check runs, then it emits a nudge pointing the operator at directive setup:ghx.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a host with gh present but ghx missing, when the setup-time check runs, then it emits a nudge pointing the operator at directive setup:ghx."
+        }
+      },
+      {
+        "id": "py-purge-setup-ghx-ts-or-drop-a4",
+        "title": "Given README.md and content/scm/github.md, when read, then ghx is documented as a supported recommended proxy with the directive setup:ghx install verb.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given README.md and content/scm/github.md, when read, then ghx is documented as a supported recommended proxy with the directive setup:ghx install verb."
+        }
+      },
+      {
+        "id": "py-purge-setup-ghx-ts-or-drop-a5",
+        "title": "Given the dispatch test suite, when it runs, then it asserts setup:ghx routes to TypeScript and preserves consent-default-no behavior.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the dispatch test suite, when it runs, then it asserts setup:ghx routes to TypeScript and preserves consent-default-no behavior."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts",
+          "Taskfile.yml",
+          "README.md",
+          "content/scm/github.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-cli test dispatch"
+        ],
+        "expected_outputs": [
+          "native TS directive setup:ghx verb",
+          "setup-time ghx nudge when missing",
+          "ghx documented as a supported consumer capability"
+        ],
+        "depends_on": [],
+        "conflict_group": "dispatch-ts",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-06-28T18:02:49Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2022: Python purge readiness — execution tracker (supersedes #2001)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-28T18:02:49Z"
+  }
+}

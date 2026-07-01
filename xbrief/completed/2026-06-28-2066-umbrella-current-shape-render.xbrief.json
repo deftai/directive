@@ -1,0 +1,76 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2066 — deterministic umbrella:current-shape render",
+    "updated": "2026-06-29T01:58:36Z"
+  },
+  "plan": {
+    "id": "story-umbrella-current-shape-2066",
+    "title": "Deterministic umbrella:current-shape render (#2066)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Implement task umbrella:current-shape <N> as a native deft-ts verb that fetches the canonical ## Current shape comment via REST (scm shim) and prints or validates it — without reading the stale issue body.",
+      "ImplementationPlan": "Add packages/core/src/umbrella-current-shape/; register umbrella-current-shape CLI verb and umbrella:current-shape Taskfile alias; update AGENTS.md #1152 v1 note and agents-entry.md; tests for found/not-found/--json/section-detection.",
+      "UserStory": "As an agent reporting umbrella status, I want a deterministic command that yields the live current-shape comment so I never conclude status from the pass-1 body alone.",
+      "Traces": "deftai/directive#2066, #1152, #2071"
+    },
+    "items": [
+      {
+        "id": "story-umbrella-current-shape-2066-a1",
+        "title": "Given issue N with a current-shape comment, when task umbrella:current-shape N runs, then it prints the comment body without reading the issue body.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given issue N with a current-shape comment, when task umbrella:current-shape N runs, then it prints the comment body without reading the issue body.",
+          "Traces": "deftai/directive#2066"
+        }
+      },
+      {
+        "id": "story-umbrella-current-shape-2066-a2",
+        "title": "Given no current-shape comment, when the verb runs, then it exits 1 with an actionable message (no body fallback).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given no current-shape comment, when the verb runs, then it exits 1 with an actionable message (no body fallback).",
+          "Traces": "deftai/directive#2066"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/umbrella-current-shape/",
+          "packages/cli/src/umbrella-current-shape.ts",
+          "tasks/umbrella.yml",
+          "AGENTS.md",
+          "content/templates/agents-entry.md"
+        ],
+        "verify_commands": [
+          "task ts:build",
+          "task verify:scm-boundary",
+          "TMPDIR=$(mktemp -d) task check"
+        ],
+        "expected_outputs": [
+          "task umbrella:current-shape <N> yields live current shape"
+        ],
+        "depends_on": [],
+        "conflict_group": "pypurge-residuals",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "fast"
+      },
+      "capacityBucket": "maintenance",
+      "completedAt": "2026-06-29T02:43:57Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2066",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2066: Agents conclude umbrella status from issue body",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-29T02:43:57Z"
+  }
+}

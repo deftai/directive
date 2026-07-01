@@ -1,0 +1,65 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1476"
+  },
+  "plan": {
+    "title": "bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
+    "status": "completed",
+    "narratives": {
+      "Description": "bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1476",
+      "Overview": "## Summary\r\n\r\n`task triage:queue` can surface closed upstream GitHub issues as actionable `[untriaged]` work when the local cache still says the issue is open. The failure mode survives `task cache:fetch-all -- --source=github-issue --repo deftai/directive` because the fetch defaults to `state=open`; once an issue closes upstream it is no longer enumerated, so its cached `raw.json` is never rewritten to `state=closed`. The cache entry can remain \"fresh\" for its 7-day TTL, and `task verify:cache-fresh` can still pass because it checks the newest in-scope `fetched_at`, not every queue candidate's live state.\r\n\r\nThis is a queue correctness bug, separate from #1424's queue-speed/N+1 issue.\r\n\r\n## Observed live\r\n\r\nAfter #1322 closed upstream:\r\n\r\n- GitHub live state:\r\n  - `gh api repos/deftai/directive/issues/1322 --jq '{state:.state,closed:.closed_at}'`\r\n  - returned `state: closed`, `closed: 2026-06-03T02:07:37Z`\r\n- Local cache state:\r\n  - `.deft-cache/github-issue/deftai/directive/1322/raw.json` still had `\"state\": \"open\"`\r\n  - `.deft-cache/github-issue/deftai/directive/1322/meta.json` had:\r\n    - `fetched_at: 2026-06-01T17:09:02Z`\r\n    - `expires_at: 2026-06-08T17:09:02Z`\r\n    - `ttl_seconds: 604800`\r\n- After `task cache:fetch-all -- --source=github-issue --repo deftai/directive`, the report showed many `already_fresh` / `skipped` entries and the queue still ranked #1322.\r\n- `task triage:queue -- --limit=10` continued to show:\r\n  - `[untriaged] #1322 deft-install ... (label: adoption-blocker)`\r\n- `task verify:cache-fresh` passed:\r\n  - `✓ deft cache-fresh: deftai/directive -- 175 entry/ies in scope; newest fetched 0.0h ago ...`\r\n\r\nThe operator had to manually notice that #1322 was closed and correct the recommendation.\r\n\r\n## Root-cause sketch\r\n\r\nFrom the current code:\r\n\r\n- `scripts/triage_queue.py::load_cached_issues()` excludes closed issues only when cached `raw.json` has `state != \"open\"`:\r\n  - stale `raw.json` with `\"state\": \"open\"` still enters the queue.\r\n- `scripts/cache.py::cache_fetch_all()` defaults `state=\"open\"` and delegates to `_cache_fetch.run_fetch_all()`.\r\n- `scripts/_cache_fetch.py::run_fetch_all()` enumerates `rest_issue_list_paginated(repo, state=state, limit=limit)`.\r\n  - closed upstream issues are absent from the default open-only enumeration, so already-cached entries that closed upstream are not revisited.\r\n  - even `--state=all` would likely skip a still-TTL-fresh entry unless there is a force/invalidation path, because `_is_fresh(meta.json)` gates `do_put`.\r\n- `scripts/preflight_cache.py::evaluate()` computes freshness from the max/newest `fetched_at` among scoped entries.\r\n  - A fresh newly-fetched issue can make the gate pass while older cached queue candidates remain stale and wrong.\r\n\r\n## Expected behavior\r\n\r\nThe queue's answer to \"what should I work on next?\" MUST NOT include upstream-closed issues as actionable untriaged work.\r\n\r\nAt least one of these should become true:\r\n\r\n1. `task triage:queue` excludes or warns on candidates whose cached entry is stale enough that live state may have changed, especially top-ranked candidates.\r\n2. `task cache:fetch-all` has a state-refresh mode for previously-cached entries that are no longer returned by the open-issue enumeration.\r\n3. `task cache:fetch-all --state=all` or a new `--force` / `--refresh-existing` mode rewrites still-TTL-fresh cached entries when the caller explicitly wants authoritative state.\r\n4. `task verify:cache-fresh` fails or warns when ranked queue candidates have `fetched_at` older than the freshness window, even if another scoped entry was fetched recently.\r\n\r\nThe exact implementation is open, but the operator-facing invariant is not: closed upstream issues should not rank as work.\r\n\r\n## Acceptance criteria\r\n\r\n- Reproduce with a cached issue whose `raw.json` says `state=open`, whose upstream GitHub issue is now closed, and whose cache `expires_at` is still in the future.\r\n- After the fix, `task triage:queue -- --limit=10` does not surface that issue as `[untriaged]` actionable work.\r\n- A cache refresh path exists that can update already-cached entries to `state=closed` even when the default open-only enumeration no longer returns them.\r\n- `task verify:cache-fresh` no longer gives a misleading all-clear when the queue can still rank stale closed candidates, or the queue performs its own defensive stale-state handling.\r\n- Regression test covers the #1322 shape: closed upstream, cached open, TTL-fresh cache entry.\r\n\r\n## Related\r\n\r\n- #1119 — cache-as-operator-working-set umbrella\r\n- #1128 — `triage:queue` / `triage:audit` / `triage:show`\r\n- #1127 — `verify:cache-fresh`\r\n- #1322 — observed stale candidate after upstream closure\r\n- #1379 — related but broader multi-machine cache continuity; not a duplicate\r\n- #1424 — queue/cache freshness performance issue; separate from this correctness gap\r\n",
+      "Labels": "bug, determinism, triage, agent-experience, process"
+    },
+    "items": [
+      {
+        "title": "Reproduce with a cached issue whose raw.json says state=open, whose upstream GitHub issue is now closed, and whose cache expires_at is still in the future.",
+        "status": "proposed"
+      },
+      {
+        "title": "After the fix, task triage:queue -- --limit=10 does not surface that issue as [untriaged] actionable work.",
+        "status": "proposed"
+      },
+      {
+        "title": "A cache refresh path exists that can update already-cached entries to state=closed even when the default open-only enumeration no longer returns them.",
+        "status": "proposed"
+      },
+      {
+        "title": "task verify:cache-fresh no longer gives a misleading all-clear when the queue can still rank stale closed candidates, or the queue performs its own defensive stale-state handling.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test covers the #1322 shape: closed upstream, cached open, TTL-fresh cache entry.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "triage",
+      "agent-experience",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1476",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh"
+      },
+      {
+        "uri": "completed/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-03T21:38:05Z",
+    "metadata": {
+      "kind": "epic",
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

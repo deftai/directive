@@ -1,0 +1,104 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1259"
+  },
+  "plan": {
+    "title": "Review-cycle skill can exit on partial Greptile review and allow unsafe merge",
+    "status": "completed",
+    "narratives": {
+      "Description": "The review-cycle skill's Step 6 exit predicate can evaluate true against a partial or stale Greptile review, letting an agent merge un-reviewed code while a P0/P1 finding is still in flight. Separately, the poller's 'Last reviewed commit:' regex breaks on markdown-escaped brackets in link text and wedges on clean reviews; this story rewrites the exit predicate to fail closed and fixes the regex to non-greedy matching across both the skill and the poller template, closing #1259 and #1326.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1259",
+      "Overview": "## Lead anomaly\r\n\r\n`skills/deft-directive-review-cycle/SKILL.md` Phase 2 Step 6 (exit condition) can evaluate `true` against a **partial, non-terminal Greptile review**, allowing the calling agent to treat the PR as 100% mergeable while a P1/P0 finding is still in flight. Observed in production on a multi-round review cycle: Greptile experienced a service-side stall, posted a comment body containing `Confidence: 4/5`, never reached a terminal check-run state, and the agent exited the loop and offered to merge. After the stalled review was retriggered, Greptile completed with a P1 critical finding.\r\n\r\nThis is a **silent path to merging un-reviewed code**. The skill currently permits it.\r\n\r\n## Where the gap lives\r\n\r\n`skills/deft-directive-review-cycle/SKILL.md` — Step 6 exit predicate, Stall Detection Rubric (#564), and the implicit hand-off to merge.\r\n\r\n### Step 6 exit predicate is permissive-by-default\r\n\r\nCurrent (verbatim):\r\n\r\n> Exit the loop and report to the user when ALL of these are true:\r\n> - No P0 or P1 issues remain (P2 issues are non-blocking style suggestions and do not gate the loop)\r\n> - Greptile confidence score is greater than 3\r\n\r\nTwo missing constraints:\r\n\r\n1. The predicate does not require the Greptile check-run to be in a terminal state. A `check_run.status=in_progress` (or `status=completed` with `conclusion ∈ {null, cancelled, timed_out, stale, action_required}`) is accepted as long as a confidence number can be parsed.\r\n2. The predicate does not SHA-pin the confidence read. The skill does require SHA pinning earlier (Step 4 \"Review Monitoring\" — comparing `Last reviewed commit` to HEAD), but that requirement is not re-stated at the exit gate, so an agent parsing the confidence field from a stale-against-HEAD comment can still satisfy Step 6.\r\n\r\n### Stall Detection Rubric (#564) models only one stall signature\r\n\r\nThe rubric measures elapsed time on the same `commit.oid` for an `IN_PROGRESS` check-run. That is the **timeout signature**. The observed failure is a **second signature**: the check-run terminated abnormally (or the comment shows a partial body with a confidence number but no completion markers) — Greptile \"rated and went away\" rather than \"is still working.\" That signature never crosses the 10-minute threshold and therefore never surfaces the escalation menu.\r\n\r\n### No pre-merge re-poll gate exists\r\n\r\nThe skill ends at \"exit the loop and report to the user.\" Nothing in `deft-directive-review-cycle` or (as far as I can see) `deft-directive-pre-pr` requires the agent to re-fetch reviewer state immediately before executing `gh pr merge` / the merge MCP call. The window between loop-exit-at-T0 and merge-at-T0+Δ is exactly where late-arriving completed reviews land.\r\n\r\n### Anti-patterns list does not name the failure shape\r\n\r\nThe Anti-Patterns block at the bottom of the skill calls out many adjacent traps (single-finding fix commits, single-source comment fetch, stale-against-HEAD review reads, etc.) but does **not** name the two specific anti-patterns that produced this bug:\r\n\r\n- treating a confidence score as a verdict without confirming the check-run terminated and the comment contains a completion marker\r\n- merging based on a cached review state rather than a fresh pre-merge fetch\r\n\r\n## Proposed fixes\r\n\r\nIn priority order. All four are local to `skills/deft-directive-review-cycle/SKILL.md` except the merge-gate cross-link.\r\n\r\n### 1. Rewrite Step 6 exit condition as a fail-closed `ReviewerStatus` all-of\r\n\r\nReplace the two-bullet exit predicate with: the loop MAY exit only when a single fresh fetch produces a `ReviewerStatus` record satisfying ALL of:\r\n\r\n- `check_run.status == completed`\r\n- `check_run.conclusion ∈ {success, neutral}` (explicitly NOT `null`, `cancelled`, `timed_out`, `stale`, `action_required`, `failure`)\r\n- `head_sha_reviewed == current_head_sha` (SHA-pinned at read time, not earlier in the loop)\r\n- comment body contains the canonical completion marker (`Last reviewed commit: <sha>` line present and matching HEAD)\r\n- `confidence > 3`\r\n- no P0/P1 findings present in the most recent completed review body\r\n\r\nIf any field is missing, ambiguous, or unparseable, the predicate is `unknown`, NOT `true`. `unknown` ≠ exit loop. The current predicate is the inverse — it defaults to \"exit unless I see a reason not to.\"\r\n\r\n### 2. Add an `INCOMPLETE_BUT_RATED` signature to the Stall Detection Rubric (#564)\r\n\r\nExtend the rubric (lines ~156–179) to recognize a second stall signature alongside the existing `IN_PROGRESS too long` case:\r\n\r\n- `check_run.status == completed` AND `conclusion ∈ {null, cancelled, timed_out, stale, action_required}` → treat as stalled/incomplete, surface the same four-option escalation menu.\r\n- Comment body contains a confidence rating but is missing the canonical completion marker (no `Last reviewed commit:` line, or `Last reviewed commit:` does not match HEAD) → treat as incomplete, do not exit Step 6.\r\n\r\nThe same menu (Wait / `@greptileai` re-trigger / Skip with documented reason / Cancel cycle / Discuss / Back) applies — only the entry signature changes.\r\n\r\n### 3. Add an explicit pre-merge re-poll gate\r\n\r\nNew short section at the end of Phase 2, before \"Submitting GitHub Reviews\":\r\n\r\n> ## Phase 3 — Pre-Merge Re-Poll Gate\r\n> ! Immediately before executing any merge action (`gh pr merge`, MCP `pull_request_merge`, or equivalent), the agent MUST re-fetch reviewer state and re-evaluate the Step 6 `ReviewerStatus` predicate on the fresh fetch. If any field has regressed since loop exit (new P0/P1 finding, conclusion flipped to `failure`/`cancelled`, new commit pushed since exit, freshness window exceeded), the agent MUST abort the merge and re-enter Phase 2 Step 2.\r\n> ⊗ Merge based on the cached exit-condition snapshot from when the loop exited — always re-poll first.\r\n\r\n(Open question for the maintainer: this might fit better as a sibling skill `deft-directive-merge-gate` rather than a phase of `deft-directive-review-cycle`. Either placement closes the gap; sibling skill is cleaner if other skills also feed into merge.)\r\n\r\n### 4. Anti-pattern additions\r\n\r\nAppend two entries to the Anti-Patterns list:\r\n\r\n- `⊗ Treat a confidence score as a verdict without confirming the check_run reached a terminal conclusion AND the comment body contains the Last-reviewed-commit completion marker matching HEAD.`\r\n- `⊗ Execute a merge based on the cached Step 6 exit-condition snapshot — always re-poll reviewer state immediately before merge.`\r\n\r\n## Out of scope\r\n\r\n- Greptile's own service reliability — the fix must work assuming any external reviewer (Greptile, CodeRabbit, Copilot review, human) can stall, time out, or post partial output.\r\n- Relaxing the existing `⊗ Auto-retrigger Greptile without explicit user approval` rule — the escalation menu's `@greptileai` option already provides the user-gated retrigger path. This issue does not argue for auto-retrigger; only for *detecting* the second stall signature and surfacing the same menu.\r\n\r\n## Acceptance\r\n\r\n- Step 6 exit predicate expressed as an all-of `ReviewerStatus` record with terminal check-run state, SHA pinning, and completion marker; `unknown` documented as ≠ `true`.\r\n- Stall Detection Rubric (#564) recognizes the `INCOMPLETE_BUT_RATED` signature in addition to the existing timeout signature.\r\n- A pre-merge re-poll gate exists (either as Phase 3 of this skill or as a sibling `deft-directive-merge-gate` skill) and is referenced from any skill that can trigger a merge.\r\n- Two new anti-pattern bullets present at the bottom of the skill.\r\n- (Nice-to-have) The example in the skill's monitoring section is updated to show the `ReviewerStatus` record shape so the predicate is unambiguous for downstream agents.\r\n",
+      "Labels": "bug, skills",
+      "ImplementationPlan": "- (A, #1259) Rewrite the review-cycle skill file skills/deft-directive-review-cycle/SKILL.md Step 6 exit predicate as a fail-closed ReviewerStatus all-of: the loop MAY exit only when a single fresh fetch shows check_run.status==completed, conclusion in {success,neutral}, head_sha_reviewed==current HEAD (SHA-pinned at read time), the completion marker 'Last reviewed commit: <sha>' present and matching HEAD, confidence>3, and no P0/P1 findings; any missing or ambiguous field yields 'unknown' (NOT exit).\n- (A) Add an INCOMPLETE_BUT_RATED signature to the Stall Detection Rubric (a confidence number with no terminal check-run / no completion marker), add a mandatory pre-merge re-poll gate before gh pr merge, and name the two anti-patterns (confidence-as-verdict without terminal state; merge on cached review state).\n- (B, #1326) Fix the 'Last reviewed commit:' SHA regex from greedy [^\\]]* to non-greedy .*? so escaped brackets in link text parse correctly, in BOTH the poller template file templates/swarm-greptile-poller-prompt.md (inline example + Implementation Notes) and the review-cycle skill file skills/deft-directive-review-cycle/SKILL.md.\n- Update the test file tests/content/test_swarm_poller_template.py (sync test pins the new string) and add a positive regression test with a fixture body containing escaped brackets; update tests/content/test_review_cycle_skill.py to assert the fail-closed exit predicate; add a meta/lessons.md cross-reference. Re-render packs (task packs:render). Add a CHANGELOG.md [Unreleased] entry. Closes #1259 and #1326.",
+      "UserStory": "As a review-cycle agent, I want the exit gate to fail closed against partial or stale Greptile reviews and to re-poll immediately before merge, so that I never merge un-reviewed code and never wedge on a textbook-clean review.",
+      "Approach": "2026-06-17 file-overlap audit: #1259 (fail-closed exit) and #1326 (poller regex) BOTH edit skills/deft-directive-review-cycle/SKILL.md, so they are combined into one carrier and one PR to avoid a self-collision. Primary file_scope is the review-cycle skill + poller template + their two content tests; the rendered packs/skills-pack-0.1.json + meta/lessons.md are generated artifacts re-rendered via task packs:render and reconciled at merge like CHANGELOG (not listed in file_scope to keep readiness clean). Disjoint primary scope from the other cohort carriers. Parallel-safe; no depends_on."
+    },
+    "items": [
+      {
+        "title": "Step 6 exit predicate rewritten as a fail-closed ReviewerStatus all-of.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a partial/non-terminal or stale-against-HEAD Greptile review, when the review-cycle skill evaluates Step 6, then the predicate is 'unknown' (not exit); exit requires terminal+SHA-pinned+completion-marker+confidence>3+no P0/P1 (asserted in tests/content/test_review_cycle_skill.py)."
+        }
+      },
+      {
+        "title": "INCOMPLETE_BUT_RATED stall signature + pre-merge re-poll gate added.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a confidence number with no terminal check-run, when the skill runs, then the stall rubric flags INCOMPLETE_BUT_RATED and a pre-merge re-poll is mandated before gh pr merge (asserted in the content test)."
+        }
+      },
+      {
+        "title": "Poller 'Last reviewed commit:' regex uses non-greedy .*? in template and skill.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a Greptile link text containing escaped brackets, when the SHA-extraction regex runs, then last_reviewed_sha is extracted correctly in both templates/swarm-greptile-poller-prompt.md and skills/deft-directive-review-cycle/SKILL.md (asserted in tests/content/test_swarm_poller_template.py)."
+        }
+      },
+      {
+        "title": "Content tests updated: sync + escaped-bracket regression + fail-closed exit.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the test suite, when pytest tests/content/test_swarm_poller_template.py tests/content/test_review_cycle_skill.py runs, then the sync test pins the new regex, a new escaped-bracket fixture passes, and the fail-closed exit is asserted; tests fail before the fix."
+        }
+      },
+      {
+        "title": "Lessons cross-ref, packs re-rendered, CHANGELOG; closes both issues.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the diff, when reviewed, then meta/lessons.md carries a cross-reference, packs are in sync, and CHANGELOG.md has an [Unreleased] entry referencing #1259 and #1326."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "skills"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1259",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1259: Review-cycle skill can exit on partial Greptile review and allow unsafe merge"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1326",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1326: templates/swarm-greptile-poller-prompt.md Last reviewed commit regex breaks on markdown-escaped brackets"
+      }
+    ],
+    "id": "1259-1326-review-cycle-fail-closed-exit-and-poller-regex",
+    "updated": "2026-06-17T01:41:12Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-review-cycle/SKILL.md",
+          "templates/swarm-greptile-poller-prompt.md",
+          "tests/content/test_swarm_poller_template.py",
+          "tests/content/test_review_cycle_skill.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_swarm_poller_template.py tests/content/test_review_cycle_skill.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "fail-closed Step 6 exit predicate + INCOMPLETE_BUT_RATED stall + pre-merge re-poll",
+          "non-greedy .*? SHA regex in template + skill; escaped-bracket regression test",
+          "packs re-rendered; lessons cross-ref; closes #1259 and #1326"
+        ],
+        "conflict_group": "review-cycle",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "missing_traces_justification": "Two coupled bugs on the same skill (#1259 exit gate, #1326 regex) combined into one carrier. No spec-section trace applies.",
+        "depends_on": []
+      },
+      "completedAt": "2026-06-17T01:41:12Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1114"
+  },
+  "plan": {
+    "title": "enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
+    "status": "completed",
+    "narratives": {
+      "Description": "enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1114",
+      "Overview": "## Problem\r\n\r\n**Reported during a Slizard upgrade from deft v0.18 to v0.29.**\r\n\r\nWhat happens (actual behavior):\r\n\r\nQUICK-START.md Step 2 runs its detection in this order: 2b (managed-section staleness, fires Case G) -> 2c (pre-cutover artifacts SPECIFICATION.md / PROJECT.md, fires Case H). On a big-jump upgrade (eleven minor versions in this report's case), AGENTS.md is byte-stale (Case G) AND the consumer project still has un-migrated pre-cutover `.md` files (Case H). Case G fires first, refreshes AGENTS.md, then instructs: \"Framework updated. Start a new agent session to pick up the changes.\" The new agent session then enters Case H and runs `task migrate:vbrief`. Two agent sessions to complete remediation that could have been done in one.\r\n\r\nWhat should happen (expected behavior):\r\n\r\nFor a stale-AGENTS.md condition that is detected alongside a pre-cutover condition (both true), the QUICK-START flow should:\r\n\r\n- run Case G's AGENTS.md refresh (it touches only the managed section -- safe),\r\n- proceed into Case H's migration (the migration re-reads project state at every invocation, so it does not need the new AGENTS.md to be in agent context to function correctly),\r\n- emit a single \"Framework updated. Start a new agent session to pick up the changes.\" message at the end of the combined remediation.\r\n\r\nThis collapses the two-session friction into one without breaking the underlying contracts (Case G's refresh is byte-deterministic; the migrator re-reads the filesystem; the post-remediation new-session requirement is the same either way).\r\n\r\nHow to reproduce:\r\n\r\n1. Set up a deft v0.18 project that has SPECIFICATION.md + PROJECT.md without the `<!-- deft:deprecated-redirect -->` sentinel.\r\n2. Update the framework to v0.29 in place (or any multi-minor jump past v0.20).\r\n3. Have an agent read QUICK-START.md and follow it.\r\n4. Observe: agent fires Case G, refreshes AGENTS.md, tells the operator to start a new session. New session then fires Case H and runs migration. Two sessions total.\r\n\r\n## Root Cause Analysis\r\n\r\nQUICK-START's decision tree is structured around \"exactly one case wins per session\", and Case G's exit prescription explicitly halts the current session (\"! Instruct the user: 'Framework updated. Start a new agent session to pick up the changes. The current session has stale context.' Do not continue past this instruction in the current session.\"). The halt is correct in spirit -- the agent's loaded skills / rules / paths are stale -- but in practice the halt also blocks Case H, which:\r\n\r\n- runs `task migrate:vbrief`, a fully out-of-process command,\r\n- re-reads project state at invocation time,\r\n- does not rely on the agent's in-memory rules for correctness.\r\n\r\nThe conservative single-session-per-case prescription costs a full agent-session round-trip for every big-jump upgrade. The decision tree could safely cascade Case G -> Case H within a single session because Case H's migrator is filesystem-driven, not agent-context-driven.\r\n\r\nContributing factors:\r\n\r\n- The decision tree treats every case as a leaf rather than as a node in a remediation graph; there is no syntax for \"Case G then Case H\".\r\n- The \"start a new session\" hand-off is the same end-state for both cases, so combining them does not add new restart cost -- it just stops doubling up.\r\n- Big-version jumps are the canonical \"both stale and pre-cutover\" trigger; small jumps usually have only one of the two conditions present.\r\n\r\n## TDD Fix Plan\r\n\r\n1. **RED**: Write a test that asserts: given a project with (a) stale AGENTS.md and (b) pre-cutover `.md` artifacts, a single QUICK-START session can execute Case G's refresh AND Case H's migration without an intermediate session restart. Assert that the post-remediation state matches the state produced by running Case G + Case H in separate sessions today (byte-equivalent AGENTS.md, byte-equivalent migrated `xbrief/` lifecycle).\r\n   **GREEN**: Add a \"combined remediation\" path to QUICK-START's Step 2 / Step 3 that detects the (stale AGENTS.md AND pre-cutover) joint condition and prescribes: refresh AGENTS.md first (Case G's writes), then run migration (Case H's flow), then a single end-of-session new-session instruction.\r\n\r\n2. **RED**: Write a contract test that the QUICK-START prose contains explicit guidance for the combined-condition case (either as a top-level Case or as a callout in Case G / Case H pointing at the joint path). The test fails today because the prose only treats the two cases as mutually exclusive.\r\n   **GREEN**: Update QUICK-START.md to document the cascade explicitly. Keep the standalone Case G / Case H prose for the single-condition cases; add a new \"Case G+H -- combined remediation\" subsection that names the order.\r\n\r\n3. **RED**: Write a test that asserts the migrator's `task migrate:vbrief` invocation succeeds (or fails closed with a clear error) when invoked after an AGENTS.md refresh in the same session -- i.e. the migrator does not depend on agent-context state to do its job.\r\n   **GREEN**: This is likely already true; the test is a regression guard so a future change cannot quietly tie the migrator to in-process agent state.\r\n\r\n**REFACTOR**: Once the combined path is documented, consider letting Case G's \"halt\" prescription become conditional on whether Case H was also triggered. Single-condition Case G keeps the halt; joint Case G+H delays the halt until after migration.\r\n\r\n## Acceptance Criteria\r\n\r\n- [ ] Root cause is addressed -- big-jump upgrades complete in one agent session (not two).\r\n- [ ] All RED tests are now GREEN.\r\n- [ ] Existing tests still pass.\r\n- [ ] QUICK-START prose explicitly documents the joint-condition case.\r\n- [ ] `task check` passes.\r\n\r\n## Provenance\r\n\r\nSurfaced during a Slizard project v0.18 → v0.29 upgrade. The eleven-minor-version jump triggered both Case G and Case H; the round-trip cost a full session restart that the migration itself did not require.\r\n",
+      "Labels": "enhancement, docs, adoption-blocker"
+    },
+    "items": [
+      {
+        "title": "Root cause is addressed -- big-jump upgrades complete in one agent session (not two).",
+        "status": "proposed"
+      },
+      {
+        "title": "All RED tests are now GREEN.",
+        "status": "proposed"
+      },
+      {
+        "title": "Existing tests still pass.",
+        "status": "proposed"
+      },
+      {
+        "title": "QUICK-START prose explicitly documents the joint-condition case.",
+        "status": "proposed"
+      },
+      {
+        "title": "task check passes.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "docs",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1114",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades"
+      },
+      {
+        "uri": "completed/2026-06-03-combine-quick-start-case-g-and-case-h-into-one-session-for-b.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Combine QUICK-START Case G and Case H into one session for big-jump upgrades",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-03T21:38:03Z",
+    "metadata": {
+      "kind": "epic",
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    }
+  }
+}

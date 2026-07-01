@@ -1,0 +1,42 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "Scott + agent:deft-directive-release-session",
+    "description": "Wave 0 authority-model locked decisions for umbrella #2013. Wave 1 (#1502 + #2005) completed in PR #2051; residual track is #2068.",
+    "created": "2026-06-28T19:00:00Z",
+    "updated": "2026-06-29T12:00:00Z"
+  },
+  "plan": {
+    "title": "#2013 Wave 0 — spec-authority model locked decisions",
+    "status": "completed",
+    "narratives": {
+      "Overview": "Discuss-phase lock for deftai/directive#2013. Wave 0 is decision-only — no renderer or gate code. Wave 1 (#1502 render/export + #2005 fidelity gate) inherited these decisions verbatim and landed in PR #2051 (2026-06-28). Umbrella #2013 remains OPEN for Wave 2 (#2068 migrator disposition). Operator: Scott (2026-06-28). Origin sync: 2026-06-29 session.",
+      "OriginReconciliation": "Synced 2026-06-29 against GitHub REST origins and umbrella #2013 current-shape pass-3.\n\n- **#2013** (umbrella): OPEN — updated 2026-06-29; Wave 2 (#2068) is the remaining open child track.\n- **#1502** (Wave 1 renderer): CLOSED 2026-06-29 — implemented by PR #2051.\n- **#2005** (Wave 1 fidelity gate): CLOSED 2026-06-29 — implemented by PR #2051.\n- **#2022** (Python purge tracker): OPEN — separate execution track; not a Wave 1 child of #2013.\n\nWave 1 implementation scope: `completed/2026-06-28-2013-wave-1-spec-export-and-fidelity-gate.xbrief.json`.",
+      "LockedDecisions": "## 1. Source precedence and merge\n\n**Decided:** Two-path authority resolver (not one file always wins).\n\n- When `xbrief/specification.xbrief.json` exists: product narratives and scope aggregation use the spec file path (full-spec / maintainer / migrated back-compat).\n- When absent: product narratives come from `PROJECT-DEFINITION.plan.narratives` (greenfield v0.20).\n- When **both** exist: product narratives from spec; **project identity** narratives (Overview, architecture, risks) from PROJECT-DEFINITION are **additive only when missing** from spec (no blind overwrite of spec keys).\n- Scope bodies always from lifecycle folders via the export aggregator (never from monolithic spec items alone).\n\n**Why:** PD is a superset for identity; spec file remains canonical for product content on migrated/full-spec trees. Prevents dropping PD-only identity on deftai/directive.\n\n**Alternatives rejected:** PD-only always; spec-only when both exist; dual-write specification.xbrief.json on greenfield.\n\n## 2. Banner + classification predicate (three-class model)\n\n**Decided:** Lockstep banner and predicate across **all mirrors** (Python `validate_strategy_output.py`, `_precutover.py`, `migrate_preflight.py`, `vbrief_validate.py`; TS `validate-strategy-output.ts`, `precutover.ts`; Go `deft-install` gate references).\n\n| Class | `specification.xbrief.json` | Banner source-of-truth line |\n|-------|----------------------------|-----------------------------|\n| Full-spec | present | `<!-- Source of truth: xbrief/specification.xbrief.json -->` |\n| Greenfield | absent | `<!-- Source of truth: xbrief/PROJECT-DEFINITION.xbrief.json -->` |\n| Redirect | absent | deprecation redirect stub (no generated export) |\n\nPredicate helpers: `is_full_spec_state()` vs `is_greenfield_spec_export()` — not one boolean stretched across both.\n\n**Why:** #2005 coupling — changing PD render banner without predicate re-arms destructive deletion. Greenfield PD-only exports must not be classified as legacy hand-authored SPECIFICATION.md.\n\n**Alternatives rejected:** Single banner string; predicate change in Wave 1 without Wave 0 contract.\n\n## 3. Status gate (render eligibility)\n\n**Decided:**\n- Spec-file path: retain `approved | running | completed` on `specification.xbrief.json` before render.\n- PD-sourced path: **no approval lifecycle** — render allowed when PROJECT-DEFINITION passes validation and Overview (D3) is non-empty.\n- Speckit/setup Phase 3→4 gates become **export succeeded** (not spec-file approved).\n\n**Why:** PROJECT-DEFINITION has no spec-approval workflow; greenfield must export without creating forbidden specification.xbrief.json.\n\n## 4. Proposed scopes in export (`--include-proposed`)\n\n**Decided:** Audience-split defaults.\n\n- **Default OFF** for `spec:render` / stakeholder export (commitment-only: pending + active + completed).\n- **ON** for setup internal handoff via `project:export-spec --audience=internal` (or equivalent flag on unified export verb).\n- Section structure: top-level `## Scope outlook` with `### Not yet accepted (proposed)` and `### Accepted backlog (pending)` — not a single ambiguous \"Implementation Plan\" parent.\n- Fixed 2-line disclaimer under proposed heading: scopes are ideas, not approved backlog; promote required before work.\n- Proposed bucket filter: only files with `plan.status` in `{draft, proposed}` (mirror completed-bucket status pin).\n- Optional `--proposed-limit=N` for large speckit outputs; remainder summarized.\n- Cross-bucket dependency edges: footnote when dependency targets pending/active scope.\n- **Never** include `cancelled/` in export (unless future debug-only flag).\n- Proposed scopes appear in SPEC/export-spec only — **not** in PRD.md, **not** in ROADMAP.md (pending-only backlog).\n\n**Why:** Lifecycle truth (proposed ≠ accepted) must be structurally obvious; default-on risks stakeholder misread and document bloat.\n\n**Alternatives rejected:** Default-on with label only; mixing proposed into Pending section.\n\n## 5. Config-narrative filtering\n\n**Decided:** Stakeholder SPEC and PRD exports **exclude** machine-oriented narratives: `ProjectConfig`, raw `tech stack` (and case-fold variants). These remain on `project:render` / PROJECT.md surfaces.\n\n**Why:** Stakeholder docs are product intent, not vendored config blobs.\n\n## 6. Export surface naming\n\n**Decided:** Wave 1 introduces unified export verb (umbrella name `project:export-spec`) with `--audience=stakeholder|internal`; `spec:render` may delegate to resolver or remain alias. Setup skill and speckit transition gates point at export verb, not legacy spec-file-only path.\n\n**Why:** Clear operator surface; avoids \"render can't find specification.xbrief.json\" on greenfield.\n\n## 7. Duplication discipline\n\n**Decided:** SPEC/export-spec body does **not** duplicate PROJECT-DEFINITION `plan.items` registry table — scopes appear only in Scope outlook sections. Items registry stays in PROJECT-DEFINITION / project:render.\n\n**Why:** `project:render` already lists proposed in items; double-listing confuses acceptance state.\n\n## 8. Wave boundaries\n\n**Decided:** Wave 0 does **not** implement #2005 fidelity gate or `migrate_vbrief.py` port. Wave 1 owns #1502 (render/export) + #2005 (deletion gate) as coordinated PR(s). `migrate:vbrief` disposition (#2001 §3) remains post-Wave-1 / separate track (#2068).\n\n**Why:** Banner work must not be mistaken for fidelity enforcement; deletion gate is separate deliverable.\n\n## Port surfaces (Wave 1 checklist)\n\nPython: `spec_render.py`, `prd_render.py`, `validate_strategy_output.py`, `_precutover.py`, `migrate_preflight.py`, `vbrief_validate.py`.\n\nTypeScript: `packages/core/src/validate-content/validate-strategy-output.ts`, `packages/core/src/vbrief-validate/precutover.ts`, export handlers in core/cli.\n\nGo: `cmd/deft-install/gate.go` (classification comments / parity).\n\nSkills: `deft-directive-setup` Phase 3 export prompt, `strategies/speckit.md` post-Phase-3 gate, `strategies/v0-20-contract.md`."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#2013"
+      },
+      {
+        "type": "github-issue",
+        "id": "#1502"
+      },
+      {
+        "type": "github-issue",
+        "id": "#2005"
+      },
+      {
+        "type": "github-issue",
+        "id": "#2022"
+      },
+      {
+        "type": "x-xbrief/plan",
+        "uri": "completed/2026-06-28-2013-wave-1-spec-export-and-fidelity-gate.xbrief.json",
+        "title": "#2013 Wave 1 — export + fidelity gate"
+      }
+    ]
+  }
+}

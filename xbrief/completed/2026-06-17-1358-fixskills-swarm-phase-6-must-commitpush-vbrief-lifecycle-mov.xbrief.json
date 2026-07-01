@@ -1,0 +1,91 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1358"
+  },
+  "plan": {
+    "title": "fix(skills): swarm Phase 6 must commit+push vBRIEF lifecycle moves to master after merge cascade",
+    "status": "completed",
+    "narratives": {
+      "Description": "After a swarm merge cascade, the vBRIEF lifecycle moves (active/ to completed/) are not committed and pushed as part of Phase 6, so they sit uncommitted until an operator hand-runs scope:complete and a chore(vbrief) commit. This story makes the Phase 6 close-out deterministic by mandating scope:complete plus a single chore(vbrief) commit and push to the base branch, preventing the release ceremony's lifecycle-sync gate from flagging false drift.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1358",
+      "Overview": "## Summary\r\n\r\nAfter a swarm run, the vBRIEF lifecycle closeout (`task scope:complete` + commit to master) was not performed as part of Phase 6. The vBRIEFs remained in `xbrief/active/` on master after both PRs merged, requiring a manual `chore(vbrief)` commit by the operator after the fact.\r\n\r\n## What happened\r\n\r\n- Two vBRIEFs (#1353, #1331) were activated via `task scope:activate` before swarm dispatch (correct).\r\n- Agents pushed their PRs and the monitor merged them via Phase 6.\r\n- After both PRs merged, the monitor did NOT run `task scope:complete` on the vBRIEFs or push the lifecycle moves to master.\r\n- The vBRIEFs sat in `xbrief/active/` on master until the operator noticed and ran `task scope:complete` manually, requiring a separate `chore(vbrief)` commit and push.\r\n\r\n## Expected behavior\r\n\r\nPhase 6 Step 2 (Close Issues and Update Origins) of `skills/deft-directive-swarm/SKILL.md` already says to move vBRIEFs via `task scope:complete`. But the step does not explicitly require the monitor to **commit and push** the resulting lifecycle moves to master as a Phase 6 post-merge action. The skill says \"move the vBRIEF from active/ to completed/\" but the commit discipline is not enforced.\r\n\r\n## Proposed fix\r\n\r\nAdd a mandatory step to swarm Phase 6 Step 2 (or a new Phase 6 Step 2b):\r\n\r\n> ! After all PRs are merged, for each completed scope vBRIEF:\r\n> 1. Run `task scope:complete <file>` to move it from `xbrief/active/` to `xbrief/completed/`\r\n> 2. Stage and commit all lifecycle moves in a single `chore(vbrief): complete <slugs> post-merge` commit directly to the base branch\r\n> 3. Push to origin\r\n\r\nThis commit is the authoritative post-swarm lifecycle record and prevents the release ceremony's `check_vbrief_lifecycle_sync` gate from flagging drift.\r\n\r\n## Why it matters\r\n\r\nWithout this, the release ceremony's Step 3 (`check_vbrief_lifecycle_sync`) will catch the drift and block the release until the operator manually closes the loop. That's a friction point that should be eliminated by making the swarm Phase 6 close-out deterministic.\r\n\r\n## Related\r\n\r\n- `skills/deft-directive-swarm/SKILL.md` Phase 5 \"Complete vBRIEFs\" + Phase 6 Step 2\r\n- `scripts/reconcile_issues.py` (`--apply-lifecycle-fixes`)\r\n- Release pre-flight Step 3 (`check_vbrief_lifecycle_sync`)\r\n",
+      "Labels": "bug, swarm, agent-experience",
+      "ImplementationPlan": "- Add a mandatory step to skills/deft-directive-swarm/SKILL.md Phase 6 (Step 2 / a new Step 2b) requiring that, after all PRs merge, the monitor for each completed scope vBRIEF: (1) runs task scope:complete <file> to move active/ -> completed/, (2) stages and commits all lifecycle moves in a single 'chore(vbrief): complete <slugs> post-merge' commit to the base branch, and (3) pushes to origin.\n- Frame it as the authoritative post-swarm lifecycle record that prevents the release ceremony's check_vbrief_lifecycle_sync gate from flagging drift; cross-reference scripts/reconcile_issues.py --apply-lifecycle-fixes and the release skill Phase 1 sync gate.\n- Add a content test in tests/content/test_swarm_skill.py asserting Phase 6 contains the commit+push lifecycle directive (scope:complete + chore(vbrief) commit + push). Re-render packs (task packs:render).\n- Add a CHANGELOG.md [Unreleased] entry in #1242 style referencing #1358.",
+      "UserStory": "As a swarm operator, I want Phase 6 to deterministically commit and push the vBRIEF lifecycle moves to the base branch after the merge cascade, so that the next release ceremony's lifecycle-sync gate does not flag drift.",
+      "Approach": "2026-06-17 file-overlap audit: touches skills/deft-directive-swarm/SKILL.md + tests/content/test_swarm_skill.py only. The rendered packs/skills-pack-0.1.json is a generated artifact re-rendered via task packs:render and reconciled at merge (not listed in file_scope). Disjoint primary scope from the review-cycle carrier (different skill) and the code carriers. Dogfooding motivation: this exact manual chore(vbrief) closeout was performed by hand after the 2026-06-16 swarm. Parallel-safe; no depends_on."
+    },
+    "items": [
+      {
+        "title": "Phase 6 mandates scope:complete + chore(vbrief) commit + push after the cascade.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given all cohort PRs merged, when the operator follows Phase 6, then the skill requires task scope:complete per vBRIEF, a single chore(vbrief) commit of the lifecycle moves to the base branch, and a push (asserted in tests/content/test_swarm_skill.py)."
+        }
+      },
+      {
+        "title": "Cross-reference to the release lifecycle-sync gate.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the skill text, when reviewed, then it explains this closeout prevents the release ceremony's check_vbrief_lifecycle_sync gate from flagging drift."
+        }
+      },
+      {
+        "title": "Content test asserts the commit+push directive is present.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the test suite, when pytest tests/content/test_swarm_skill.py runs, then it asserts the Phase 6 commit+push lifecycle directive and fails before the change."
+        }
+      },
+      {
+        "title": "Packs re-rendered + CHANGELOG entry.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the diff, when reviewed, then packs are in sync and CHANGELOG.md has an [Unreleased] entry referencing #1358."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1358",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1358: fix(skills): swarm Phase 6 must commit+push vBRIEF lifecycle moves to master after merge cascade"
+      }
+    ],
+    "id": "1358-swarm-phase6-commit-push-lifecycle",
+    "updated": "2026-06-17T01:41:12Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "skills/deft-directive-swarm/SKILL.md",
+          "tests/content/test_swarm_skill.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_swarm_skill.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "Phase 6 requires scope:complete + chore(vbrief) commit + push",
+          "content test asserts the directive",
+          "packs re-rendered; CHANGELOG entry"
+        ],
+        "conflict_group": "swarm-skill",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bug ingested from GitHub issue #1358; no spec-section trace applies. File scope disjoint from other cohort carriers.",
+        "depends_on": []
+      },
+      "completedAt": "2026-06-17T01:41:12Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1474"
+  },
+  "plan": {
+    "title": "deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
+    "status": "completed",
+    "narratives": {
+      "Description": "deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1474",
+      "Overview": "## Summary\r\n\r\nIn a vendored consumer install, `task deft:check` delegates to the framework's own check (`.deft/core/Taskfile.yml`), which runs the **framework's full pytest self-test suite** under `.deft/core/tests/`. Many of those tests assert on artifacts that only exist in the framework's own repo (`deftai/directive`), so they **fail by construction in any consumer checkout** — producing a wall of red that is pure noise to the consumer and buries any real, consumer-relevant check failures.\r\n\r\nNet effect: `task deft:check` can never be green in a consumer, so the consumer-facing quality gate is unusable as a pass/fail signal and every consumer PR must invoke the review-cycle skill's pre-existing-failure carve-out.\r\n\r\nSibling to #1463 / #1464 / #1465 / #1468 (framework runtime behavior that misbehaves in the vendored consumer layout).\r\n\r\n## Observed live in `deftai/statusreport`\r\n\r\n`task deft:check` on a clean consumer checkout (vendored framework v0.39.7):\r\n\r\n```\r\n6823 passed, 14 failed, 6 errors, 4 skipped, 9 deselected, 1 xfailed\r\n```\r\n\r\nAll 14 failures + 6 errors are framework self-tests under `.deft/core/tests/`. Categories:\r\n\r\n- Tests asserting framework CI workflow files exist — e.g. `.deft/core/.github/workflows/release.yml`, `.deft/core/.github/workflows/branch-gate.yml` (not shipped in the vendored payload).\r\n- Tests asserting the framework's own docs exist — e.g. `test_eval_readme_documents_policy` checks `.deft/core/xbrief/.eval/README.md` (a framework-repo file; the consumer's bootstrap writes the README at repo-root `xbrief/.eval/README.md` instead).\r\n- Version-resolution tests expecting a dev/older version but getting the pinned release `0.39.7`.\r\n\r\nProven pre-existing + path-independent (consumer-side): stashing an unrelated consumer doc edit and re-running still reproduces the same failures. Tracked consumer-side in `deftai/statusreport#12`.\r\n\r\n## Root cause\r\n\r\nThe committed `.deft/core/` payload (#11) ships the framework's **own test suite**, and the consumer-facing `task deft:check` runs it. Those tests were written to validate the framework *in its own repo* and depend on framework-repo-only artifacts (CI workflows, the framework's `xbrief/.eval/README.md`, the framework's dev version string). There is no \"am I running inside the framework repo vs. a vendored consumer?\" guard, and no consumer-scoped check target that runs only consumer-relevant validation.\r\n\r\n## Gaps\r\n\r\n- The vendored payload includes `.deft/core/tests/` (framework self-tests) and exposes them through the consumer `deft:check` path.\r\n- No consumer-vs-framework execution-context detection to skip framework-repo-only tests when running outside `deftai/directive`.\r\n- No separate consumer-scoped check target (lint/fmt/typecheck + consumer content validation such as vbrief validate / spec render) distinct from the framework's self-test suite.\r\n- The review-cycle and pre-pr skills mandate \"task check passes,\" which is unsatisfiable in a consumer without the carve-out — so the gate is effectively always bypassed.\r\n\r\n## Suggested fix (directive)\r\n\r\nPick one or combine:\r\n\r\n1. **Don't ship framework self-tests to consumers.** Exclude `.deft/core/tests/` (and any framework-repo-only fixtures) from the installer/relocator payload deposit so the consumer never runs them.\r\n2. **Scope `task deft:check` for consumers.** Make the consumer-facing check run only consumer-relevant checks (lint/fmt/typecheck + `vbrief:validate` / spec render / governance), and move the framework's pytest suite behind a framework-dev-only target (e.g. `task deft:selftest`).\r\n3. **Context-guard the self-tests.** Have framework-repo-only tests `skip`/`xfail` when an execution-context probe detects a vendored consumer (e.g. absence of `.deft/core/.github/` or a `deftai/directive`-repo marker), so a stray run is clean rather than red.\r\n\r\n## Acceptance criteria\r\n\r\n- On a fresh vendored consumer install with valid consumer content, `task deft:check` exits 0 (no framework-self-test failures/errors).\r\n- Framework-repo-only tests are either not shipped to consumers or skip cleanly outside the framework's own repo.\r\n- Real consumer-relevant failures (lint, vbrief validation, spec render) are still surfaced and still fail the check.\r\n- Regression coverage: a consumer-layout fixture asserts `deft:check` is green when consumer content is valid and red when a consumer-relevant check actually fails.\r\n\r\n---\r\nRelated: #11 (committed `.deft/core/` payload), the `no-mixed-core-and-app` guard, the review-cycle pre-existing-failure carve-out (`skills/deft-directive-review-cycle/SKILL.md` Phase 2 Step 3). Consumer-side tracker: `deftai/statusreport#12`. Sibling consumer-layout bugs: #1463, #1464, #1465, #1468.\r\n",
+      "Labels": "bug, adoption-blocker, installer"
+    },
+    "items": [
+      {
+        "title": "On a fresh vendored consumer install with valid consumer content, task deft:check exits 0 (no framework-self-test failures/errors).",
+        "status": "proposed"
+      },
+      {
+        "title": "Framework-repo-only tests are either not shipped to consumers or skip cleanly outside the framework's own repo.",
+        "status": "proposed"
+      },
+      {
+        "title": "Real consumer-relevant failures (lint, vbrief validation, spec render) are still surfaced and still fail the check.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression coverage: a consumer-layout fixture asserts task deft:check is green when consumer content is valid and red when a consumer-relevant check actually fails.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1474",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)"
+      },
+      {
+        "uri": "completed/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Scope consumer deft:check so it does not run framework self-tests",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-03T21:38:04Z",
+    "metadata": {
+      "kind": "epic",
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

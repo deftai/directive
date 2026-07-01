@@ -1,0 +1,114 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Bug-pass story: npm consumer upgrade discoverability (#2059, #2012, #1995). Closes #2057 cluster discoverability gap.",
+    "created": "2026-06-28T23:00:00Z",
+    "updated": "2026-06-28T23:00:00Z"
+  },
+  "plan": {
+    "id": "bug-pass-npm-upgrade-discoverability",
+    "title": "npm upgrade happy path: surface deft migrate in docs and CLI output",
+    "status": "completed",
+    "narratives": {
+      "Description": "Operators following README and UPGRADING.md never encounter `deft migrate` until `deft doctor` warns them. This story adds the one-time npm provenance stamp to the canonical upgrade path, fixes the release upgrade banner that still cites legacy deft-install, and reconciles UPGRADING.md npm-migration steps with the shipped CLI. Includes a one-line disambiguation between `deft migrate` (npm handshake) and `migrate:vbrief` (pre-v0.20 cutover).",
+      "ImplementationPlan": "1. Update content/UPGRADING.md canonical npm section and Go-to-npm one-time migration to document npm i -g, deft update, deft migrate (idempotent), deft doctor; add migrate verb disambiguation table. 2. Update README Getting Started upgrade note if needed. 3. Replace .github/release-notes/upgrade-banner.md with npm canonical path (#2012). 4. Add migrate nudge to directive init/update completion output when managed_by is absent (packages/core/src/init-deposit/). 5. Optionally add non-blocking session:start line when signpost would fire. 6. Extend doc-cli-parity or content tests so UPGRADING cites only registered verbs; verify #1994 closable.",
+      "UserStory": "As a consumer who upgraded via npm, I want the documented upgrade path to include deft migrate before I need doctor, so that my vendored .deft/core install completes the npm hybrid handshake without guesswork.",
+      "Traces": "Refs #2059 #2012 #1995 #2057 #1993; related #1941 #2009 #2056 (fixed)."
+    },
+    "items": [
+      {
+        "id": "upgrading-migrate-step",
+        "title": "UPGRADING.md documents full npm path including migrate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a reader follows content/UPGRADING.md canonical npm upgrade section, when they complete the documented steps, then they run deft migrate as an explicit step before or immediately after first deft update, and a table distinguishes deft migrate from migrate:vbrief.",
+          "Traces": "#2059 #1995"
+        }
+      },
+      {
+        "id": "release-banner-npm",
+        "title": "Release upgrade banner cites npm not deft-install",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given .github/release-notes/upgrade-banner.md is rendered into a release body, when an operator reads the banner, then it recommends npm i -g @deftai/directive@latest and deft update/migrate path, not deft-install --yes --upgrade.",
+          "Traces": "#2012"
+        }
+      },
+      {
+        "id": "cli-init-update-nudge",
+        "title": "init and update output nudge migrate when needed",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a canonical-vendored deposit without managed_by npm in VERSION, when directive init or directive update completes successfully, then stdout includes a one-line nudge to run deft migrate once (idempotent); when already npm-managed, no nudge is emitted.",
+          "Traces": "#2059"
+        }
+      },
+      {
+        "id": "tests-and-changelog",
+        "title": "Tests and CHANGELOG for discoverability fixes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the implementation lands, when uv run pytest targets new or updated tests for init/update output and doc parity pass, then task check passes and CHANGELOG [Unreleased] records the user-visible discoverability fix with Closes #2059 #2012 #1995.",
+          "Traces": "#2059"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/UPGRADING.md",
+          "README.md",
+          ".github/release-notes/upgrade-banner.md",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/cli/src/doc-cli-parity.test.ts",
+          "tests/cli/test_init_deposit_cli.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "uv run pytest packages/cli/src/doc-cli-parity.test.ts packages/core/src/init-deposit/init-deposit.test.ts -q",
+          "task check"
+        ],
+        "expected_outputs": [
+          "UPGRADING.md lists deft migrate on canonical npm path",
+          "upgrade-banner.md cites npm upgrade command",
+          "init/update print migrate nudge when managed_by absent"
+        ],
+        "depends_on": [],
+        "conflict_group": "npm-upgrade-discoverability",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-28T22:31:32Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2059",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2059: directive migrate undiscoverable"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2012",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2012: release banner cites legacy installer"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1995",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1995: reconcile UPGRADING npm commands"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2057",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2057: consumer npm upgrade path fragmented (umbrella)"
+      }
+    ],
+    "updated": "2026-06-28T22:31:32Z"
+  }
+}

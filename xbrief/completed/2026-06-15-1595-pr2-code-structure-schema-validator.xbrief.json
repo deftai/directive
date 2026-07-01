@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #1595 PR 2 codeStructure schema/profile and validator"
+  },
+  "plan": {
+    "title": "feat(codebase): define codeStructure profile and validator",
+    "status": "completed",
+    "narratives": {
+      "Description": "PR 2 for #1595 defines the first concrete codeStructure metadata profile and validation behavior.",
+      "Origin": "Derived from https://github.com/deftai/directive/issues/1595 after PR 1 (#1607) landed the source-of-truth decision record.",
+      "Overview": "## Summary\n\nImplement the #1595 PR 2 slice: define a concrete codeStructure shape, validate it deterministically, and dogfood a minimal Directive-owned record.\n\n## Plan Validity Check\n\nThe 2026-06-15 #1595 current-shape override resolved the physical home: canonical codeStructure lives only at PROJECT-DEFINITION.plan.architecture.codeStructure, typed through xbrief/schemas/vbrief-core.schema.json. Standalone paths are reserved for generated projections only, and x-directive/architecture.codeStructure remains a consumer fallback rather than Directive's dogfood home.\n\n## Scope\n\n- Add a codeStructure schema/profile for modules, path ownership, allowed patterns, projection manifest entries, optional file-purpose overrides, and optional glossary references.\n- Add a validator for stable module IDs, safe relative globs/paths, module references, conflicting ownership declarations, projection manifest entries, and unknown-key tolerance.\n- Add a minimal Directive dogfood record at PROJECT-DEFINITION.plan.architecture.codeStructure.\n- Add task and tests for valid/invalid records.\n\n## Non-Goals\n\n- No deterministic extractor or provider handshake.\n- No generated MAP projection.\n- No local index or materialized-view implementation.\n- No generated source headers.\n- No consumer AGENTS/template propagation or hard task-check gate.",
+      "Labels": "enhancement, context-engineering, source-of-truth"
+    },
+    "items": [
+      {
+        "title": "PR 2 scope is revalidated against the #1595 current-shape override and uses PROJECT-DEFINITION.plan.architecture.codeStructure as the canonical home.",
+        "status": "completed"
+      },
+      {
+        "title": "codeStructure schema/profile defines the initial metadata shape.",
+        "status": "completed"
+      },
+      {
+        "title": "Validator checks stable IDs, safe globs/paths, module references, ownership conflicts, projection manifest entries, and unknown-key tolerance.",
+        "status": "completed"
+      },
+      {
+        "title": "Directive dogfoods a minimal PROJECT-DEFINITION codeStructure record.",
+        "status": "completed"
+      },
+      {
+        "title": "Tests cover valid and invalid codeStructure records.",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "context-engineering",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1595",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1595: feat(codebase): generate codebase MAP from vBRIEF-owned codeStructure metadata"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1498",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1498: RFC: Directive must dogfood vBRIEF-as-source-of-truth -- source code & headers are projections, not stores"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1492",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1492: RFC: promote the system-of-record gate from advisory to wired"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1618",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1618: RFC: Separate source-of-truth from materialized views"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1379",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1379: multi-machine operator continuity -- cache and audit log sync strategy"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/958",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #958: superseded header-first codebase conventions proposal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1589",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1589: spec reconstruction + drift guard"
+      },
+      {
+        "uri": "https://github.com/deftai/vBRIEF/pull/23",
+        "type": "x-xbrief/github-pr",
+        "title": "deftai/vBRIEF#23: Proposal: add plan architecture system-of-record schema"
+      }
+    ],
+    "updated": "2026-06-15T13:25:48Z",
+    "metadata": {
+      "completedAt": "2026-06-15T13:25:48Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

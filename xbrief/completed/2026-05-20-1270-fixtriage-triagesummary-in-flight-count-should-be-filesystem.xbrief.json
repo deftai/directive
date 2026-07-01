@@ -1,0 +1,71 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1270",
+    "updated": "2026-05-21T16:33:43Z"
+  },
+  "plan": {
+    "title": "fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1270",
+      "Overview": "## Why\r\n\r\nThe session-start ritual's `task triage:summary` headline silently disagrees with the filesystem. Worked example from the 2026-05-20 session that motivated this issue:\r\n\r\n1. Ritual at session start: `[triage] 359 untriaged · 38 in-flight · WIP 1/10`\r\n2. `task issue:ingest -- 1269` → vBRIEF lands in `xbrief/proposed/`\r\n3. `task scope:promote` → moves to `xbrief/pending/`, ritual now reads `… · 38 in-flight · WIP 2/10` (WIP moved, in-flight didn't)\r\n4. `task scope:activate` → moves to `xbrief/active/` with `plan.status: \"running\"`, ritual still reads `… · 38 in-flight · WIP 2/10`\r\n\r\nThe activate succeeded — `xbrief/active/2026-05-20-1269-...xbrief.json` exists with the right status, and every downstream gate (`task vbrief:preflight`, #810 implementation-intent gate, dispatch, queue ranker) sees the new in-flight scope correctly. Only the **ritual headline** silently lies.\r\n\r\nRoot cause: `WIP` is computed from the live filesystem (`xbrief/pending/` + `xbrief/active/` glob), while `in-flight` is computed from the **triage-scoped cache view** filtered by `plan.policy.triageScope[]`. When `triageScope[]` is empty or backfill-only (current deftai/directive clone state per `verify:cache-fresh`), the cache view structurally cannot see freshly-activated scopes. The two numbers in the same one-liner come from different sources, which is a coherence bug even when they happen to agree.\r\n\r\nThis is a worse failure mode than verbose-but-correct output: silent absence trains operators to distrust the ritual headline, which erodes the whole #1149 ritual's value. For Cohort 1 returning users, it breaks the \"did anything change since yesterday?\" feedback loop. For Cohort 2 multi-version-absence users, it misrepresents project state on arrival.\r\n\r\n## Recommendation\r\n\r\nThe `in-flight` count should be **filesystem-truth**: live count of `xbrief/active/*.xbrief.json` files with `plan.status == \"running\"`. When (and only when) that count diverges from the triage-scoped cache view, append a conditional second line.\r\n\r\n```\r\n[triage] 359 untriaged · 39 in-flight · WIP 2/10\r\n[triage:scope] 1 in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)\r\n```\r\n\r\nThis restores single-source-of-truth for the headline, surfaces scope-filter mismatches loudly (not silently), and keeps the ritual line clean in the common case where scope is aligned.\r\n\r\n### Why filesystem-truth, not cache-truth or side-by-side\r\n\r\n- **Composability**: all downstream gates and verbs operate on the filesystem. Headline and gates must share a source of truth or the operator's mental model drifts from system behavior.\r\n- **WIP is already filesystem-driven** — making `in-flight` match removes an internal incoherence bug independent of scope filtering.\r\n- **Operator mental model** — \"I activated something, the count should go up\". Honoring this is the most basic ritual contract.\r\n- **Conditional discrepancy line preserves the scope-filter signal** without doubling headline width in the common case.\r\n\r\n### Why not pure side-by-side (`38 in-scope (39 total)`)\r\n\r\n- Adds noise to every line even when scope is aligned.\r\n- Doesn't tell the operator *why* the numbers differ or what to do about it.\r\n- The discrepancy-line variant gives equal information density at higher per-line clarity.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] `scripts/triage_summary.py` `in-flight` count reads `len(glob(\"xbrief/active/*.xbrief.json\"))` filtered by `plan.status == \"running\"` (filesystem-truth)\r\n- [ ] When `filesystem_count != cache_scoped_count`, append `[triage:scope] N in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)` (loud discrepancy line)\r\n- [ ] When `plan.policy.triageScope[]` is empty / backfill-only, fall back to filesystem-truth AND emit a config-not-set discrepancy line (`[triage:scope] N in-flight; plan.policy.triageScope[] not configured (uncounted in queue ranking)`) so the empty-scope state is surfaced as an actionable signal rather than silently hidden (revised from suppression per SLizard P2 advisory on PR #1271)\r\n- [ ] When the triage cache is stale (per `verify:cache-fresh`), the discrepancy line distinguishes `(cache stale)` from `(out of scope)` so the operator knows which corrective action applies (refresh cache vs. configure scope)\r\n- [ ] D2 suppression key hashes only the primary headline line, so the conditional discrepancy line can appear / disappear without re-triggering D2's 4h throttling\r\n- [ ] Failure modes: if either count source raises, fall back to the other and append `(degraded)` marker on the primary line; never let a count failure block the ritual\r\n- [ ] Unit tests cover: aligned counts, scope-filtered divergence, empty `triageScope[]`, stale cache, cache fetch failure, filesystem failure, D2 suppression interaction\r\n- [ ] `AGENTS.md ## Session-start ritual (#1149)` step 3 updated to document the new headline contract (filesystem-truth) and the discrepancy-line behavior\r\n- [ ] `CHANGELOG.md [Unreleased]` entry in #1242-compliant style (lead with user-visible benefit: \"Ritual headline now reflects activated work correctly\")\r\n- [ ] `task check` passes\r\n\r\n## Non-goals for v1\r\n\r\n- Refactoring the triage cache surface itself (out of scope; this fix only touches the in-flight count source)\r\n- Auto-populating `plan.policy.triageScope[]` on the deftai/directive clone (separate decision; the discrepancy line is enough to nudge it)\r\n- Adding a similar discrepancy line to `WIP` (already filesystem-driven; no divergence possible)\r\n\r\n## Risks\r\n\r\n- **D2 suppression hash change**: existing operators with active D2 state may see one extra emission after the upgrade as the hash key changes. Document this in the CHANGELOG entry; not worth a migration step.\r\n- **(degraded) marker overuse**: keep the failure-fallback as truly exceptional — most ops should never see it. If it fires often in practice, that's a separate bug to investigate.\r\n- **Cache-vs-filesystem race**: under heavy concurrent activity (e.g. swarm with many parallel scope:activate calls), the two counts may legitimately diverge for a few seconds. Acceptable; the discrepancy line will self-clear on the next ritual run.\r\n\r\n## Refs\r\n\r\n- AGENTS.md `## Session-start ritual (#1149)` step 3 — the headline this fix corrects\r\n- AGENTS.md `## Cache-as-authoritative work selection (#1149)` — context for why the cache view exists and what it's actually for\r\n- #1269 — companion scope (session sentinel + welcome-back banner) that surfaced this bug during validation\r\n- D2 / #1122 — triage:summary suppression contract (hash-key adjustment scoped here)\r\n- D5 / #1127 — verify:cache-fresh (cross-referenced by the new `(cache stale)` distinction)\r\n"
+    },
+    "items": [
+      {
+        "title": "`scripts/triage_summary.py` `in-flight` count reads `len(glob(\"xbrief/active/*.xbrief.json\"))` filtered by `plan.status == \"running\"` (filesystem-truth)",
+        "status": "proposed"
+      },
+      {
+        "title": "When `filesystem_count != cache_scoped_count`, append `[triage:scope] N in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)` (loud discrepancy line)",
+        "status": "proposed"
+      },
+      {
+        "title": "When `plan.policy.triageScope[]` is empty / backfill-only, fall back to filesystem-truth AND emit `[triage:scope] N in-flight; plan.policy.triageScope[] not configured (uncounted in queue ranking)` so the operator sees the config gap as an actionable signal (replaces prior suppression design per SLizard P2 advisory on PR #1271)",
+        "status": "proposed"
+      },
+      {
+        "title": "When the triage cache is stale (per `verify:cache-fresh`), the discrepancy line distinguishes `(cache stale)` from `(out of scope)` so the operator knows which corrective action applies (refresh cache vs. configure scope)",
+        "status": "proposed"
+      },
+      {
+        "title": "D2 suppression key hashes only the primary headline line, so the conditional discrepancy line can appear / disappear without re-triggering D2's 4h throttling",
+        "status": "proposed"
+      },
+      {
+        "title": "Failure modes: if either count source raises, fall back to the other and append `(degraded)` marker on the primary line; never let a count failure block the ritual",
+        "status": "proposed"
+      },
+      {
+        "title": "Unit tests cover: aligned counts, scope-filtered divergence, empty `triageScope[]`, stale cache, cache fetch failure, filesystem failure, D2 suppression interaction",
+        "status": "proposed"
+      },
+      {
+        "title": "`AGENTS.md ## Session-start ritual (#1149)` step 3 updated to document the new headline contract (filesystem-truth) and the discrepancy-line behavior",
+        "status": "proposed"
+      },
+      {
+        "title": "`CHANGELOG.md [Unreleased]` entry in #1242-compliant style (lead with user-visible benefit: \"Ritual headline now reflects activated work correctly\")",
+        "status": "proposed"
+      },
+      {
+        "title": "`task check` passes",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1270",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1270: fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line"
+      }
+    ],
+    "updated": "2026-05-21T16:33:43Z",
+    "metadata": {
+      "completedAt": "2026-05-21T17:15:08Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1478"
+  },
+  "plan": {
+    "title": "deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
+    "status": "completed",
+    "narratives": {
+      "Description": "deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1478",
+      "Overview": "## Summary\r\n\r\nv0.40.0's `deft-core-guard` (\"no-mixed-core-and-app\") **rejects every consumer upgrade PR** because its installer-managed allowlist does not exempt `.githooks/`, even though v0.40.0's installer (`githooks.go`, #1463) now deposits repo-root `.githooks/pre-commit` + `.githooks/pre-push` as part of the framework install. The guard sees `.deft/core/**` (payload) mixed with `.githooks/*` (classified as \"app\") and fails the PR.\r\n\r\nThis is a hard **adoption-blocker regression**: the #1463 hook deposit and the #1430/#1440 guard fell out of sync. Distinct from #1477 (hook executable mode); this one blocks the upgrade PR from merging at all.\r\n\r\n## Observed live in `deftai/statusreport`\r\n\r\nA clean `deft-install --yes --upgrade` to v0.40.0, committed framework-only (the installer pre-staged exactly its managed paths), still fails `deft-core-guard` on the resulting PR:\r\n\r\n```\r\n##[error]This PR changes the vendored framework payload (.deft/core/**) AND non-framework files. Split the framework update into its own PR.\r\n--- non-framework changes ---\r\n.githooks/pre-commit\r\n.githooks/pre-push\r\n```\r\n\r\nThose two files are the *only* members of the \"app\" set; everything else is either `.deft/core/**` or already allowlisted.\r\n\r\n## Root cause\r\n\r\nIn `cmd/deft-install/deposit.go`, `installerManagedMatchers()` (the single source of truth feeding both the deposited guard ERE and the Go classifier) lists `AGENTS.md`, `.agents/`, `.gitattributes`, `.gitignore`, `greptile.json`, the codeql config, the guard workflow, and vbrief scaffolding — but **not `.githooks/`**. Meanwhile `githooks.go` (#1463) deposits repo-root `.githooks/pre-commit` + `.githooks/pre-push`. So a legitimate `--upgrade` PR that includes the hook deposit is rejected by construction.\r\n\r\nCompounding: the installer **skips updating an existing `.github/workflows/deft-core-guard.yml`**, so even once the allowlist is fixed upstream, already-installed consumers won't receive the corrected guard on a subsequent `--upgrade` unless the installer re-deposits/refreshes it.\r\n\r\n## Suggested fix (directive)\r\n\r\n- Add `{prefix: \".githooks/\"}` to `installerManagedMatchers()` so both the deposited guard regex (`installerManagedGuardERE`) and the Go classifier (`classifyChangedPaths`) exempt the hook deposit.\r\n- Refresh the deposited `deft-core-guard.yml` on `--upgrade` (or version it) so existing consumers pick up allowlist changes instead of keeping a stale guard.\r\n- Add regression coverage in the `classifyChangedPaths` / `guardWouldFail` tests asserting `.githooks/pre-commit` and `.githooks/pre-push` are installer-managed (not \"app\").\r\n\r\n## Acceptance criteria\r\n\r\n- A consumer `--upgrade` PR that deposits `.githooks/*` alongside `.deft/core/**` passes `deft-core-guard`.\r\n- Existing consumers receive the corrected guard workflow on their next `--upgrade` (not skipped).\r\n- Tests pin `.githooks/` as installer-managed in the guard classifier.\r\n\r\n---\r\nFound on `deftai/statusreport` PR #15 (v0.40.0 upgrade). Related: #1463 (consumer git hooks deposit), #1477 (hooks ship non-executable), #1430 / #1440 (deft-core-guard + installer-managed allowlist).\r\n",
+      "Labels": "bug, adoption-blocker, installer"
+    },
+    "items": [
+      {
+        "title": "A consumer --upgrade PR that deposits .githooks/* alongside .deft/core/** passes deft-core-guard.",
+        "status": "proposed"
+      },
+      {
+        "title": "Existing consumers receive the corrected guard workflow on their next --upgrade (not skipped).",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests pin .githooks/ as installer-managed in the guard classifier.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1478",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)"
+      },
+      {
+        "uri": "completed/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-03T21:37:54Z",
+    "metadata": {
+      "kind": "epic",
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

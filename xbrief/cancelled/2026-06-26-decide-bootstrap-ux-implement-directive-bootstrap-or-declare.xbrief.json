@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from proposed/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json"
+  },
+  "plan": {
+    "id": "bootstrap-policy-decision",
+    "title": "Decide bootstrap UX -- implement `directive bootstrap` or declare skill-only setup canonical",
+    "status": "cancelled",
+    "planRef": "cancelled/2026-06-26-2001-wave-5-python-purge-readiness-gate-before-1860.xbrief.json",
+    "narratives": {
+      "Description": "The bootstrap UX still points operators at the Python run bootstrap/project/spec shims, which are being removed. This story resolves the open decision: either implement the deferred `directive bootstrap` CLI verb for terminal operators, or declare the deft-directive-setup skill the canonical path and remove CLI bootstrap from operator docs.",
+      "ImplementationPlan": "- Decide between the CLI verb and skill-only setup and record the rationale, identifying whether the dispatch source or the setup skill file is the resulting change.\n- If implementing, add the directive bootstrap handler in the CLI dispatch module with a test; if skill-only, update the setup skill file and operator docs to redirect.\n- Verify by scanning operator docs that no run bootstrap path remains without a documented replacement.",
+      "UserStory": "As a terminal operator setting up deft, I want a single canonical bootstrap path, so that I am not pointed at a Python run bootstrap shim that is being removed.",
+      "Traces": "deftai/directive#2001 §6"
+    },
+    "items": [
+      {
+        "id": "bootstrap-policy-decision-a1",
+        "title": "Given the CLI path, when an operator runs `directive bootstrap`, then it scaffolds setup and the operator docs show it as canonical.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the CLI path, when an operator runs `directive bootstrap`, then it scaffolds setup and the operator docs show it as canonical.",
+          "Traces": "deftai/directive#2001 §6"
+        }
+      },
+      {
+        "id": "bootstrap-policy-decision-a2",
+        "title": "Given the skill-only path instead, when chosen, then operator docs remove CLI bootstrap and redirect to the deft-directive-setup skill.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the skill-only path instead, when chosen, then operator docs remove CLI bootstrap and redirect to the deft-directive-setup skill.",
+          "Traces": "deftai/directive#2001 §6"
+        }
+      },
+      {
+        "id": "bootstrap-policy-decision-a3",
+        "title": "Given either resolution, when operator docs are scanned, then no run bootstrap path remains without a documented replacement.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given either resolution, when operator docs are scanned, then no run bootstrap path remains without a documented replacement.",
+          "Traces": "deftai/directive#2001 §6"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "needs_refinement",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/skills/deft-directive-setup/SKILL.md",
+          "packages/cli/src/dispatch.ts"
+        ],
+        "verify_commands": [
+          "node packages/cli/dist/bin.js bootstrap --help",
+          "task check"
+        ],
+        "expected_outputs": [
+          "recorded bootstrap decision",
+          "operator docs reflect the canonical path"
+        ],
+        "depends_on": [],
+        "conflict_group": "bootstrap",
+        "size": "M",
+        "file_scope_confidence": "low",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2001",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2001: Wave 5: Python purge readiness (gate before #1860)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-26T17:22:54Z"
+  }
+}

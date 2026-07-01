@@ -1,0 +1,106 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1563"
+  },
+  "plan": {
+    "title": "Deterministic questions break when host UI renders structured prompts alphabetically",
+    "status": "completed",
+    "narratives": {
+      "Description": "Deterministic question flows can break when host-native structured UI renders choices with alphabetic affordances while Directive expects numbered menus. This story makes deterministic menus host-portable by requiring visible numeric labels and strict answer mapping.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1563",
+      "Overview": "## Problem\n\nDirective's deterministic-questions contract requires numbered menus with `Discuss` and `Back` as the final two options. In Cursor, an agent can accidentally use the structured question UI for a deterministic flow, but the client may render options as form choices / alphabetic affordances rather than as the canonical numbered menu.\n\nThat creates an ambiguity gap:\n\n- Directive expects users to answer with the displayed number.\n- A host UI may show alphabetic option affordances instead.\n- If the user replies in chat with a letter like `d` or `b`, the structured question tool may report no selection.\n- The agent may then incorrectly reinterpret the raw letter semantically, e.g. `d` as Defer/Discuss ambiguity or `b` as Back.\n\nThis breaks deterministic navigation and can cause the agent to take the wrong branch in triage/refinement flows.\n\n## Observed Example\n\nDuring `deft-directive-triage`, the canonical decision menu should be:\n\n1. Accept\n2. Reject\n3. Defer\n4. Needs-AC\n5. Mark duplicate\n6. Discuss\n7. Back\n\nThe agent instead used Cursor's structured question UI. The user saw/used alphabetic list letters and replied `d` / `b`. The tool returned no structured answer, and the agent interpreted those letters outside the canonical contract.\n\nNo destructive triage action was written in this case, but the failure mode is real.\n\n## Proposed Solution\n\nUpdate Directive's deterministic-questions contract and affected skills to define a host-portable rendering rule:\n\n- Deterministic flows MUST render the canonical numbered menu in plain chat text unless the host UI is known to preserve numeric option labels and return numeric selections.\n- Agents MUST accept only the displayed number or exact option text for deterministic choices.\n- Agents MUST NOT infer from alphabetic letters unless the displayed menu itself used those letters.\n- `Discuss` and `Back` remain the final two options in the rendered menu.\n- If a host-native structured question tool is used, the prompt must visibly include the canonical number in each option label, and fallback chat replies must be mapped only against those visible numbers/text.\n\n## Acceptance Criteria\n\n- `contracts/deterministic-questions.md` documents the host-UI portability rule.\n- Triage/refinement/swarm/setup skills stop implying that structured question tools are automatically safe.\n- The canonical triage action menu remains numbered and portable.\n- A regression test or content check prevents deterministic menus from depending on non-numbered host UI affordances.",
+      "Labels": "bug, determinism, triage, agent-experience, runtime-portability",
+      "ImplementationPlan": "1. Update contracts/deterministic-questions.md and the affected skill guidance files so deterministic flows render canonical numbered menus in chat unless the host UI visibly preserves numeric option labels.\n2. Add content-test verification in tests/content/test_deterministic_questions.py and focused skill tests for triage/refinement/swarm/setup language so alphabetic host affordances are not treated as canonical deterministic replies.",
+      "UserStory": "As a Deft operator, I want deterministic menus to be host-portable, so that agents do not misinterpret alphabetic UI affordances as canonical choices.",
+      "Traces": "Issue #1563; contracts/deterministic-questions.md; triage/refinement/swarm/setup deterministic menu guidance."
+    },
+    "items": [
+      {
+        "id": "1563-a1",
+        "title": "Contract requires host-portable numbered rendering",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a deterministic choice flow, when the contract is followed, then the canonical numbered menu is visible in chat or preserved verbatim in host-native option labels.",
+          "Traces": "Issue #1563; contracts/deterministic-questions.md; triage/refinement/swarm/setup deterministic menu guidance."
+        }
+      },
+      {
+        "id": "1563-a2",
+        "title": "Fallback replies map only to visible choices",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a user replies in chat, when the menu was numbered, then agents accept only the displayed number or exact option text and do not infer from unrelated letters like d or b.",
+          "Traces": "Issue #1563; contracts/deterministic-questions.md; triage/refinement/swarm/setup deterministic menu guidance."
+        }
+      },
+      {
+        "id": "1563-a3",
+        "title": "Affected skills stop treating structured UI as automatically safe",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given triage/refinement/swarm/setup skills discuss deterministic questions, then they require the portable rendering rule rather than assuming structured question tools preserve the contract.",
+          "Traces": "Issue #1563; contracts/deterministic-questions.md; triage/refinement/swarm/setup deterministic menu guidance."
+        }
+      },
+      {
+        "id": "1563-a4",
+        "title": "Content tests pin the portability rule",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content tests run, then they fail if the deterministic question contract or affected skill guidance drops numeric labels, Discuss/Back finality, or strict fallback mapping.",
+          "Traces": "Issue #1563; contracts/deterministic-questions.md; triage/refinement/swarm/setup deterministic menu guidance."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "determinism",
+      "triage",
+      "agent-experience",
+      "runtime-portability"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1563",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1563: Deterministic questions break when host UI renders structured prompts alphabetically"
+      }
+    ],
+    "id": "1563-host-portable-deterministic-questions",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "contracts/deterministic-questions.md",
+          "skills/deft-directive-triage/SKILL.md",
+          "skills/deft-directive-refinement/SKILL.md",
+          "skills/deft-directive-swarm/SKILL.md",
+          "skills/deft-directive-setup/SKILL.md",
+          "tests/content/test_deterministic_questions.py",
+          "tests/content/test_triage_skill.py",
+          "tests/content/test_refinement_skill.py",
+          "tests/content/test_swarm_skill.py",
+          "tests/content/test_interview_deterministic.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_deterministic_questions.py tests/content/test_triage_skill.py tests/content/test_refinement_skill.py tests/content/test_swarm_skill.py tests/content/test_interview_deterministic.py"
+        ],
+        "expected_outputs": [
+          "content tests assert host-portable numbered deterministic menus across contract and skill guidance"
+        ],
+        "depends_on": [],
+        "conflict_group": "deterministic-question-portability",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-06-09T19:43:21Z",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    },
+    "updated": "2026-06-09T19:43:21Z"
+  }
+}

@@ -286,12 +286,12 @@ describe("test_contracts.py", () => {
   it("contracts/deterministic-questions.md::../skills/deft-directive-interview/SKILL.md", () => {
     expect(existsSync(resolveContentPath("skills/deft-directive-interview/SKILL.md"))).toBe(true);
   });
-  it("contracts/deterministic-questions.md::../vbrief/completed/2026-04-20-431-deterministic-questions-rc2-defects.vbrief.json", () => {
+  it("contracts/deterministic-questions.md::../xbrief/completed/2026-04-20-431-deterministic-questions-rc2-defects.xbrief.json", () => {
     expect(
       existsSync(
         join(
           repoRoot(),
-          "vbrief/completed/2026-04-20-431-deterministic-questions-rc2-defects.vbrief.json",
+          "xbrief/completed/2026-04-20-431-deterministic-questions-rc2-defects.xbrief.json",
         ),
       ),
     ).toBe(true);

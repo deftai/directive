@@ -1,0 +1,99 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Freeze-prep story E decomposed from GitHub issue #1912 (pinned legacy->bridge->npm e2e leg)"
+  },
+  "plan": {
+    "title": "feat(#1912 E): pinned legacy->bridge->npm-hybrid e2e leg (reads Tier-0 SoT, pending-pin until frozen)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Freeze-prep story E of the #1912 capstone. Adds the Tier-1 pinned migration e2e leg: legacy on-disk layout (pre-v0.27 / git-clone / submodule) -> the frozen Go bridge installer (stage 1) -> npm hybrid via `directive migrate` + `directive init`/`update` (stage 2). Mirrors the existing `task release:e2e` harness shape (packages/core/src/release-e2e/). The leg reads the Tier-0 SoT (`lastGoInstaller()` from packages/core/src/legacy-bridge/sot.ts, landed in story G #1969) for which bridge tag to pin. SEMANTICS: pending-pin -- while the SoT is null (unfrozen, today), the leg cannot download/run a real frozen bridge binary, so it runs the fixture-shape assertions it can and SKIPS the real frozen-binary download with a clear advisory ('pending SoT pin'); once the operator freezes (SoT set), the same leg runs the real pinned bridge->npm handoff. This satisfies the #1912 'pinned migration e2e' Tier-1 checkbox and the 'freeze-on-real-handoff' sequencing intent without itself cutting the freeze.",
+      "Origin": "Decomposed from https://github.com/deftai/directive/issues/1912 (freeze-prep). Depends on story G (the SoT module) which is now merged on master.",
+      "Overview": "## What to build\n\nA new e2e leg in the release-e2e harness exercising the two-stage bridge:\n1. Provision a LEGACY-layout fixture in a throwaway dir (at least: pre-v0.27 sentinel-only AGENTS.md / git-clone-style / orphan `.deft/VERSION`).\n2. Stage 1: run the frozen Go bridge installer to normalize -> canonical-vendored `.deft/core` + correct AGENTS.md managed-section + handshake VERSION. (While SoT null: the locally-built Go installer may stand in for shape assertions, but the REAL frozen-tag download is skipped as pending-pin.)\n3. Stage 2: run `directive migrate` (npm-managed stamp) then `directive init`/`update`, asserting the end state is a valid npm-hybrid deposit.\n4. Read the pin from `lastGoInstaller()`; emit `PENDING (SoT unfrozen)` vs run-for-real when frozen. Three-state-friendly result consistent with the other e2e legs.\n\nExpose via a `--legacy-bridge` flag on the release-e2e CLI (parseE2EFlags / ParsedE2EFlags / runE2e + cmdReleaseE2e in main.ts), defaulting OFF so it does not slow the default `task release:e2e` budget (mirror the `--skip-npm` pattern). Soft-skip cleanly when the Go toolchain / npm is absent.\n\n## Must NOT\n- Cut/tag/build/freeze any Go installer release, or set the SoT value (operator-only).\n- Hardcode a bridge version -- read `lastGoInstaller()`; carry the `deft:last-go-installer` sentinel marker on any line that STATES the version so the drift gate stays green.\n- Touch the SoT module, the freeze/drift gates (story G), or the npm legacy refuse-preflight surfaces (story P, merged).\n\n## Integration points\n- Mirror the npm-ops leg (`packages/core/src/release-e2e/npm-ops.ts`) structure: a self-contained function returning [ok, reason], invoked from `main.ts` behind the new flag.\n- Reuse `release-e2e/git-ops.ts` for the throwaway-repo provisioning + cleanup try/finally pattern.",
+      "Labels": "enhancement, ci-cd, installer, Wave 5",
+      "ImplementationPlan": "- packages/core/src/release-e2e/legacy-bridge-leg.ts (+ .test.ts): the pinned legacy->bridge->npm leg; reads lastGoInstaller(); pending-pin advisory when null.\n- packages/core/src/release-e2e/flags.ts + types.ts: add `--legacy-bridge` flag (default off).\n- packages/core/src/release-e2e/main.ts: invoke the leg behind the flag; thread the result into the summary.\n- Tests: fixture-shape assertions for each legacy input; pending-pin path (SoT null) emits PENDING and exits ok; a frozen-SoT path (monkeypatched/seam) runs the real handoff assertions.",
+      "UserStory": "As a deft maintainer preparing the freeze, I want a pinned legacy->bridge->npm e2e leg that reads the SoT and stays pending until I freeze, so that the moment I pin the bridge tag the two-stage migration is regression-guarded end-to-end before I rely on it."
+    },
+    "items": [
+      {
+        "title": "legacy-fixture -> bridge -> npm-hybrid leg exists",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the --legacy-bridge leg runs, it provisions a legacy-layout fixture, drives it through the bridge to canonical-vendored, then through directive migrate/init to a valid npm-hybrid deposit."
+        }
+      },
+      {
+        "title": "leg reads the Tier-0 SoT and is pending-pin while null",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When lastGoInstaller() is null, the leg emits a PENDING (SoT unfrozen) advisory and does not attempt a real frozen-binary download; when set, it runs the real pinned handoff."
+        }
+      },
+      {
+        "title": "leg is opt-in and does not slow default release:e2e",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When task release:e2e runs without --legacy-bridge, the new leg does not execute; with the flag it runs and reports a [ok, reason] result."
+        }
+      },
+      {
+        "title": "no freeze, no SoT edit, no hardcoded version",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the story lands, the SoT value stays null, no Go release is cut, and any version reference reads the SoT (drift gate stays green)."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "ci-cd",
+      "installer",
+      "Wave 5"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1912: build + freeze the last Go installer (parent capstone)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1669",
+        "type": "x-xbrief/related",
+        "title": "Epic #1669 distributable Deft -- Wave 5"
+      }
+    ],
+    "id": "2026-06-24-1912e-pinned-bridge-e2e",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "feature",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-e2e/legacy-bridge-leg.ts",
+          "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
+          "packages/core/src/release-e2e/flags.ts",
+          "packages/core/src/release-e2e/types.ts",
+          "packages/core/src/release-e2e/main.ts"
+        ],
+        "verify_commands": [
+          "pnpm run build",
+          "pnpm --filter @deftai/directive-core test -- legacy-bridge-leg",
+          "pnpm --filter @deftai/directive-core test -- release-e2e",
+          "task check"
+        ],
+        "expected_outputs": [
+          "opt-in --legacy-bridge e2e leg drives legacy->bridge->npm-hybrid; reads SoT; pending-pin advisory while null; drift gate stays green"
+        ],
+        "depends_on": [],
+        "conflict_group": "release-e2e",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "leaf-implementation",
+        "missing_traces_justification": "Traced to #1912 Tier-1 'pinned migration e2e' checkbox + freeze-on-real-handoff sequencing; depends on the now-merged story G SoT module."
+      },
+      "completedAt": "2026-06-24T23:10:28Z"
+    },
+    "updated": "2026-06-24T23:10:28Z"
+  }
+}

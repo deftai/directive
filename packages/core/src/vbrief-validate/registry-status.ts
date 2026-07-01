@@ -1,5 +1,7 @@
+import { isPlanReferenceType } from "./constants.js";
 import type { JsonObject } from "./schema.js";
 
+/** @deprecated Use {@link isPlanReferenceType}; kept for back-compat re-exports. */
 export const REGISTRY_SCOPE_LINK_TYPE = "x-vbrief/plan";
 
 /** Derive the registry item status from a scope vBRIEF (render side). */
@@ -15,7 +17,7 @@ function isScopeLinkRef(ref: unknown): ref is JsonObject {
     typeof ref === "object" &&
     ref !== null &&
     !Array.isArray(ref) &&
-    (ref as JsonObject).type === REGISTRY_SCOPE_LINK_TYPE
+    isPlanReferenceType((ref as JsonObject).type)
   );
 }
 

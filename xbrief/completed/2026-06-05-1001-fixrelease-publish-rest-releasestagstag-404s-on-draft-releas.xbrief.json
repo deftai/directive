@@ -1,0 +1,87 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1001",
+    "updated": "2026-06-08T17:35:57Z"
+  },
+  "plan": {
+    "title": "fix(release_publish): REST `/releases/tags/{tag}` 404s on draft releases (post-#961 regression)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The REST migration in #961 routed scripts/release_publish.py through GET /repos/{owner}/{repo}/releases/tags/{tag}, which returns 404 for draft releases and breaks task release:publish on a freshly cut draft. The fix resolves the release by id (or by scanning the releases list for the matching tag_name) so the publish step flips draft=false without the manual gh release edit recovery used during the v0.26.2 cut.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1001",
+      "Overview": "## Problem\n\nDuring the v0.26.2 release on 2026-05-08, `task release:publish -- 0.26.2` failed with:\n\n```\n[publish] View v0.26.2 on deftai/directive... FAIL (release v0.26.2 not found on deftai/directive: gh: Not Found (HTTP 404))\n```\n\nThis blocked the canonical Phase 6 publish branch in `skills/deft-directive-release/SKILL.md`.\n\n## Root cause\n\n`scripts/release_publish.py` was migrated to REST in #961 to route around the GraphQL bucket. The REST `GET /repos/{owner}/{repo}/releases/tags/{tag}` endpoint **only finds published releases** by tag — it returns 404 for drafts, even though the draft has a `tag_name` field.\n\nGitHub's draft release URL format confirms this asymmetry: `https://github.com/<owner>/<repo>/releases/tag/untagged-<hash>` (note the `untagged-` prefix on drafts vs `v<version>` on published).\n\nThe legacy `gh release view <tag>` CLI surface uses GraphQL and does find drafts. The REST migration in #961 inadvertently regressed this case.\n\n## Reproduction\n\n1. `task release -- <version>` → lands draft\n2. Verify draft via `gh release view v<version>` (works — GraphQL)\n3. `task release:publish -- <version>` → 404 (REST `/releases/tags/{tag}` doesn't find drafts)\n\n## Workaround used during v0.26.2 cut\n\n```\ngh release edit v0.26.2 --repo deftai/directive --draft=false\n```\n\nDirect `gh release edit` is GraphQL-backed and works on drafts. This is the manual recovery the operator used when `release_publish.py` failed.\n\n## Suggested fix\n\nThree options (ordered by preference):\n\n1. **Fetch by ID, not by tag.** `release_publish.py` already calls `gh release view` (or could) to get the release ID, then PATCH `/releases/{id}` with `draft=false`. The by-ID REST endpoint works for both drafts and published releases.\n2. **List all releases and match `tag_name`.** `GET /repos/{owner}/{repo}/releases` returns drafts in the list; iterate to find the matching `tag_name`. Slower (paginated) but works.\n3. **Document the gap** and route this specific call through `gh release edit --draft=false` (GraphQL) as a documented exception, similar to the `gh pr ready` and `gh pr review --approve` exceptions already documented in `scripts/gh_rest.py` module docstring.\n\nOption 1 is the cleanest. Option 3 is the smallest patch.\n\n## Acceptance criteria\n\n- [ ] AC-1: `task release:publish -- <version>` succeeds against a draft release without falling back to manual `gh release edit`.\n- [ ] AC-2: New regression test in `tests/cli/test_release_publish.py` covering the draft-tag-lookup case (REST 404 -> draft-aware fallback).\n- [ ] AC-3: `scripts/gh_rest.py` module docstring updated if option 3 is taken (route documentation).\n- [ ] AC-4: CHANGELOG entry under `[Unreleased]` / `### Fixed`.\n\n## Related\n\n- #961 — `gh_rest.py` REST helpers + `release_publish.py` REST refactor (the regression source).\n- #954 — REST-default rule for `gh` reads.\n- #74 / #716 / #724 — `task release` / `task release:publish` / `task release:rollback` surface.\n- #784 — pre-flight tag availability gate.\n\n## Recurrence record\n\nFirst occurrence: v0.26.2 release on 2026-05-08. Recovery via manual `gh release edit --draft=false`.",
+      "ImplementationPlan": "Update the scripts/release_publish.py module to fetch the release by id (via gh release view or the releases list) instead of the tag-only REST endpoint, so draft releases resolve before the draft=false PATCH. Update the scripts/gh_rest.py module docstring to record the draft-aware lookup route alongside the existing GraphQL exceptions. Add a regression test in tests/cli/test_release_publish.py that simulates a REST 404 on the tag endpoint and asserts the draft-aware fallback still publishes.",
+      "UserStory": "As a deft release operator, I want task release:publish to resolve a draft release by id instead of by tag, so that publishing a drafted version succeeds without a manual gh release edit fallback.",
+      "Traces": "https://github.com/deftai/directive/issues/1001"
+    },
+    "items": [
+      {
+        "title": "Draft releases publish without a manual gh release edit fallback.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a draft release for the target version, when task release:publish runs, then it publishes the release and never falls back to manual gh release edit."
+        }
+      },
+      {
+        "title": "release_publish resolves a draft by id when the tag endpoint 404s.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the REST tag endpoint returns 404 for a draft, when release_publish resolves the release, then it locates the draft by id and flips draft to false."
+        }
+      },
+      {
+        "title": "Regression test covers the draft-tag 404 fallback path.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A regression test in tests/cli/test_release_publish.py simulates the draft-tag 404 and validates that the draft-aware fallback publishes the release successfully."
+        }
+      },
+      {
+        "title": "Published (non-draft) releases still resolve via the by-id path.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the by-id lookup path, when a published non-draft release is requested, then task release:publish still resolves and publishes it without regression."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1001",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1001: fix(release_publish): REST `/releases/tags/{tag}` 404s on draft releases (post-#961 regression)"
+      }
+    ],
+    "updated": "2026-06-08T17:35:57Z",
+    "id": "story-1001-release-publish-draft-404",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/release_publish.py",
+          "scripts/gh_rest.py",
+          "tests/cli/test_release_publish.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_release_publish.py",
+          "uv run pytest tests/cli -k release_publish"
+        ],
+        "expected_outputs": [
+          "release:publish resolves draft releases by id",
+          "regression test for the draft-tag 404 fallback",
+          "pull request fixing the #961 REST regression"
+        ],
+        "depends_on": [],
+        "conflict_group": "1001-release-publish",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-08T17:41:02Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "default"
+    }
+  }
+}

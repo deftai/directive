@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1714 — issue ingest must not silently use stale cache"
+  },
+  "plan": {
+    "id": "1714-ingest-fresh",
+    "title": "issue:ingest must not silently replay stale cached issue bodies",
+    "status": "completed",
+    "narratives": {
+      "Description": "`task issue:ingest` is cache-first: it returns `.deft-cache/github-issue/.../raw.json` when present (7-day TTL) and never hits GitHub. Operators expect the current issue body; stale cache produces wrong vBRIEFs silently.",
+      "ImplementationPlan": "1. Change `fetchIssue` in `packages/core/src/intake/issue-ingest.ts` so ingest prefers a live `gh api` fetch (or revalidates cache freshness against issue `updated_at`) instead of blindly returning cache hits.\n2. Add regression tests in `packages/core/src/intake/issue-ingest.test.ts` simulating a cache entry older than the live issue edit.\n3. Run `pnpm -w exec vitest run packages/core/src/intake/issue-ingest.test.ts` as verification evidence; CHANGELOG entry. Closes #1714.",
+      "UserStory": "As a maintainer ingesting a rewritten GitHub issue, I want `task issue:ingest` to reflect the current issue body, so that the produced vBRIEF matches live GitHub state rather than a week-old snapshot.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1714",
+      "Overview": "See issue #1714 — #1530 rewrite incident; cache-first ingest non-authoritative.",
+      "Labels": "bug, triage, agent-safety"
+    },
+    "items": [
+      {
+        "id": "1714-a1",
+        "title": "Ingest uses fresh issue body",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a cached raw.json older than the issue's GitHub updated_at, when `task issue:ingest` runs, then the ingested vBRIEF reflects the live issue title/body, not the stale cache."
+        }
+      },
+      {
+        "id": "1714-a2",
+        "title": "Regression test for stale cache",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given unit tests with a stale cache fixture and a mocked live fetch returning newer content, when vitest runs, then fetchIssue/ingestOne uses the live payload."
+        }
+      },
+      {
+        "id": "1714-a3",
+        "title": "CHANGELOG entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents ingest no longer silently replaying stale github-issue cache. Closes #1714."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "triage"
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1714"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/core/src/intake/issue-ingest.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": [
+          "Live-first or revalidated ingest",
+          "Stale-cache regression test",
+          "CHANGELOG entry"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-intake",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "strong",
+        "missing_traces_justification": "Ingest authority bug from issue #1714."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-29T23:46:55Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1714",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1714"
+      }
+    ],
+    "updated": "2026-06-29T23:46:55Z"
+  }
+}

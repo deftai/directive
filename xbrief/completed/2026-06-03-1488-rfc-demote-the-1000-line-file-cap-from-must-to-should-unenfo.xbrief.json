@@ -1,0 +1,48 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1488"
+  },
+  "plan": {
+    "title": "RFC: demote the 1000-line file cap from MUST to SHOULD (unenforced, self-violated, anti-deep-modules)",
+    "status": "completed",
+    "narratives": {
+      "Description": "RFC: demote the 1000-line file cap from MUST to SHOULD (unenforced, self-violated, anti-deep-modules)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1488",
+      "Overview": "## Summary\r\n\r\nThe 1000-line file cap is currently encoded as an RFC2119 `MUST` (`coding/coding.md:43`, `coding/coding.md:202`), but it is **unenforced**, **routinely violated by our own production code**, and **in tension with the framework's own \"deep modules\" architecture goal**. An unenforced, widely-broken `MUST` erodes the authority of every other `MUST` in the framework.\r\n\r\nThis issue proposes demoting the hard per-file line cap to a `SHOULD`/review-trigger and keeping cohesion (one responsibility per file) as the real hard rule.\r\n\r\n## Where the rule lives\r\n\r\n```\r\n- ~ Files <300 lines ideal; files <500 lines recommended; ! files <1000 lines maximum   (coding/coding.md:43)\r\n- ⊗ Files over 1000 lines                                                                (coding/coding.md:202)\r\n```\r\n\r\nNote: `pyproject.toml:78-80` attributes the cap to \"deft/main.md\", but `main.md` does not actually state it — the rule lives only in `coding/coding.md`. `coding/hygiene.md` (the ongoing-codebase-health doc) never mentions file size at all.\r\n\r\n## Evidence\r\n\r\n### 1. We don't obey our own MUST (dogfooding failure)\r\n\r\n24 Python files exceed 1000 lines; **12 are production source** under `scripts/`:\r\n\r\n- `scripts/migrate_vbrief.py` — 2,589 (2.6x the cap)\r\n- `scripts/doctor.py` — 2,217\r\n- `scripts/release.py` — 2,027\r\n- `scripts/triage_help.py` — 1,684\r\n- `scripts/triage_queue.py` — 1,139\r\n- `scripts/triage_bootstrap.py` — 1,085\r\n- `scripts/vbrief_validate.py` — 1,083\r\n- `scripts/reconcile_issues.py` — 1,063\r\n- `scripts/relocate.py` — 1,030\r\n- `scripts/cache.py` — 1,021\r\n- `scripts/issue_ingest.py` — 1,017\r\n- `scripts/triage_summary.py` — 1,011\r\n\r\n(The remaining 12 are test files, e.g. `tests/cli/test_migrate_vbrief.py` at 2,954.)\r\n\r\n`pyproject.toml:76-80` even documents a workaround (`combine-as-imports = true`) introduced specifically to keep `migrate_vbrief.py` \"under the 1000-line MUST limit.\" That file is now 2.6x over — the workaround failed and the rule was never enforced.\r\n\r\n### 2. It is enforced nowhere\r\n\r\n- `ruff` config (`pyproject.toml:72-73`) selects no module-length rule (no `PLR0915`, no pylint `C0302`).\r\n- `scripts/doctor.py` has no line-count check.\r\n- The `deft-directive-pre-pr` skill has no file-size check.\r\n- No `task` target checks it.\r\n\r\nThe cap relies entirely on agent goodwill.\r\n\r\n### 3. It violates our own Rule Authority axiom\r\n\r\n`main.md:50-58` (Rule Authority [AXIOM]): *\"Every rule MUST use the strongest applicable layer. Order: deterministic > Taskfile > vBRIEF > RFC2119 > prose.\"* A line count is trivially deterministic, so encoding it as RFC2119 prose is itself an axiom violation. Either enforce it deterministically or stop calling it a `MUST`.\r\n\r\n### 4. It is in tension with our \"deep modules\" goal\r\n\r\nThe `deft-directive-gh-arch` skill is explicitly about \"deepen shallow modules.\" A hard per-file line cap pressures contributors toward the shallow-module fragmentation (Ousterhout's \"classitis\") that this skill — and good architecture — warns against. Line count is a weak proxy; the real rule is one line above at `coding/coding.md:42`: `! One responsibility per file/module`.\r\n\r\n## Industry context\r\n\r\n- Linters that cap file length ship the rule as a **warning with per-file opt-outs**, not a build-breaking error (pylint `max-module-lines` default 1000 — likely our origin; ESLint `max-lines` default 300; Checkstyle `FileLength` default 2000; SonarQube treats it as a \"code smell\").\r\n- Empirical evidence linking file size to defects is weak and confounded by total code volume; LOC is a poor quality metric and no study establishes 1000 as meaningful.\r\n- Mature teams cap **function length / cyclomatic complexity** far more often than whole files, and optimize for **cohesion**, not raw line count.\r\n\r\nThe mainstream position: a 1000-line `MUST` is stricter than the tools that inspired it, unsupported by evidence, and architecturally counterproductive.\r\n\r\n## Recommendations\r\n\r\n### Option A (recommended) — demote to a SHOULD heuristic\r\n\r\n- `coding/coding.md:43` → `~ files <300 ideal, <500 recommended, <1000 a review trigger — split when exceeded unless the file is genuinely single-responsibility`\r\n- `coding/coding.md:202` → reframe the anti-pattern from \"Files over 1000 lines\" to \"Large multi-responsibility files (size is a trigger to check cohesion, not an automatic defect)\"\r\n- Keeps the load-bearing `MUST` (\"one responsibility per file\"); makes size advisory.\r\n- Zero code changes required; the codebase becomes immediately honest about the rule.\r\n- Update the stale `pyproject.toml:76-80` comment (drop the \"MUST limit\" / \"deft/main.md\" references).\r\n\r\n### Option B — keep the MUST but make it real (per the axiom)\r\n\r\n- Add a deterministic line-count check wired into `task check` (and/or `doctor.py` / pre-pr).\r\n- Bring the 12 production offenders into compliance by splitting, OR record documented exemptions (generated/aggregator files) with justification.\r\n- More work, and arguably overkill given cohesion — not line count — is the actual goal.\r\n\r\n## Acceptance criteria\r\n\r\n- A decision is recorded (Option A, Option B, or a documented alternative).\r\n- If Option A: `coding/coding.md:43`, `coding/coding.md:202`, and the `pyproject.toml` comment are updated; content tests referencing the cap (if any) are updated.\r\n- If Option B: a deterministic check exists and passes, and either all offenders are split or each has a recorded exemption.\r\n\r\n## References\r\n\r\n- `coding/coding.md:42-43`, `coding/coding.md:202`\r\n- `coding/hygiene.md` (no file-size rule)\r\n- `main.md:50-58` (Rule Authority axiom)\r\n- `pyproject.toml:72-80`\r\n- `deft-directive-gh-arch` skill (deep modules)\r\n",
+      "Labels": "rfc, coding-standards, determinism"
+    },
+    "items": [
+      {
+        "title": "A decision is recorded (Option A, Option B, or a documented alternative).",
+        "status": "proposed"
+      },
+      {
+        "title": "If Option A: `coding/coding.md:43`, `coding/coding.md:202`, and the `pyproject.toml` comment are updated; content tests referencing the cap (if any) are updated.",
+        "status": "proposed"
+      },
+      {
+        "title": "If Option B: a deterministic check exists and passes, and either all offenders are split or each has a recorded exemption.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "rfc",
+      "coding-standards",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1488",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1488: RFC: demote the 1000-line file cap from MUST to SHOULD (unenforced, self-violated, anti-deep-modules)"
+      }
+    ],
+    "updated": "2026-06-03T21:46:02Z",
+    "metadata": {
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "agentic-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

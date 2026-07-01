@@ -1,0 +1,51 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Release-blocker fix: adapt build-dist to archiver v8 class API so the dist artifact builds"
+  },
+  "plan": {
+    "id": "fix-archiver-v8-release-build",
+    "title": "Fix release dist build under archiver v8 (factory API removed)",
+    "status": "completed",
+    "narratives": {
+      "Description": "The v0.63.0 release cut failed at the build-dist step with `TypeError: archiver is not a function`. archiver v8 (declared as ^8.0.0 in packages/core) removed the v7 `archiver(format, opts)` factory in favour of per-format classes (ZipArchive/TarArchive). build-dist.ts (added in #1860) still used the factory convention, and the archive unit test had been removed during #1860, so the break went uncaught until a production cut.",
+      "ImplementationPlan": "- Require archiver via createRequire and destructure { ZipArchive, TarArchive }; instantiate the per-format class.\n- Ensure the output dist/ directory exists (mkdir recursive) and reject on output-stream errors so a missing dir no longer hangs the build.\n- Restore an archive-build test (tar + zip + main end-to-end) that actually produces an artifact, closing the coverage gap that let the regression land.",
+      "UserStory": "As a deft maintainer cutting a release, I want the dist build to work under the declared archiver version so the release pipeline can package the framework.",
+      "Traces": "deftai/directive#1860"
+    },
+    "items": [
+      {
+        "id": "arcv8-a1",
+        "title": "Given archiver v8, when buildArchive runs, then it produces a non-empty tar.gz and zip without error.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "buildArchive + main build real archives; build-dist-runner produces dist/deft-<v>.tar.gz.",
+          "Traces": "deftai/directive#1860"
+        }
+      },
+      {
+        "id": "arcv8-a2",
+        "title": "Given a fresh project without a dist/ dir, when buildArchive runs, then it creates the output dir instead of hanging.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "buildArchive mkdirs the output dir; output-stream errors reject the promise.",
+          "Traces": "deftai/directive#1860"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "tech-debt",
+      "completedAt": "2026-06-29T17:53:50Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1860",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1860: full Python removal (introduced the TS build-dist port)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-29T17:53:50Z"
+  }
+}

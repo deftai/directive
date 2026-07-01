@@ -1,0 +1,67 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1115"
+  },
+  "plan": {
+    "title": "docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
+    "status": "completed",
+    "narratives": {
+      "Description": "docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1115",
+      "Overview": "## Problem\r\n\r\n**Reported during a Slizard upgrade from deft v0.18 to v0.29.**\r\n\r\nWhat happens (actual behavior):\r\n\r\n`UPGRADING.md` is organised newest-first by version: v0.27.x -> v0.28, drifted-AGENTS.md repair, `deft/` -> `.deft/core/` (v0.27), v0.25.x -> v0.26, triage v1, pre-v0.20 -> v0.20. Each section is internally thorough. But when a consumer is jumping eleven minor versions in one go (v0.18 -> v0.29 in this report's case), there is no triage paragraph at the top telling the operator which sections apply, what order to read them in, or what to skip. The operator has to read every section and infer relevance from version ranges and \"Applies when\" prose.\r\n\r\nWhat should happen (expected behavior):\r\n\r\n`UPGRADING.md` should open with a short \"Big jump?\" triage section that:\r\n\r\n- names the relevant version-range buckets (\"pre-v0.20\", \"v0.20.x to v0.25.x\", \"v0.25.x to v0.27.x\", \"v0.27.x onwards\"),\r\n- tells the operator which sections to apply and in what order,\r\n- explicitly calls out which sections are auto-handled by `task upgrade` / QUICK-START vs. manual,\r\n- offers an \"I am jumping more than N versions, start here\" entry point.\r\n\r\nHow to reproduce:\r\n\r\n1. Open `UPGRADING.md` in the repo root with the mindset of an operator on deft v0.18 wanting to land on v0.29.\r\n2. Try to determine which sections apply, in what order, without already knowing the framework's release history.\r\n3. Observe that there is no top-of-file triage; the operator must read every section.\r\n\r\n## Root Cause Analysis\r\n\r\n`UPGRADING.md` was written incrementally: each release cycle prepends a new section at the top. The doc has no overview / table-of-contents pass, no \"applies to N -> M\" navigation, and no joint-section guidance for multi-version jumps. The \"Future upgrade sections will be prepended here\" closing line tells the maintainer's workflow but does not help the consumer triage.\r\n\r\nThis is a docs-only issue but it has operational cost: every big-jump consumer spends time reading sections that do not apply, and risks running migration / refresh commands out of order. The cost compounds the operational issues surfaced in the sibling Slizard findings -- when each step already takes longer than expected, the doc-navigation cost is the difference between \"frustrating\" and \"blocking\".\r\n\r\nContributing factors:\r\n\r\n- The doc grows monotonically; there is no shaping pass at release time to surface cross-section guidance.\r\n- Each section is internally self-contained but does not link forward / backward to predecessor / successor sections that a big-jump consumer also needs.\r\n- The version-by-version layout is the right organising principle for incremental upgraders, but big-jump consumers need a different entry surface that the current layout does not provide.\r\n\r\n## TDD Fix Plan\r\n\r\n1. **RED**: Write a contract test that `UPGRADING.md` contains a top-of-file triage section (heading like \"Jumping multiple versions?\" or \"Big-jump entry point\") with explicit guidance for multi-version jumps. The test fails today because no such section exists.\r\n   **GREEN**: Add the triage section at the top of `UPGRADING.md`. Include: (a) a \"find your starting version\" pointer table or paragraph, (b) the canonical command sequence for a big-jump upgrade (likely \"have your agent read QUICK-START.md and follow it\" plus the manual fallbacks), (c) explicit links into the version-specific subsections in apply-order.\r\n\r\n2. **RED**: Write a contract test that every version-specific section in `UPGRADING.md` opens with an \"Applies when\" paragraph that names the detectable signal (today some sections have this, some do not). The test enumerates sections and asserts each one has a discoverable applicability rule.\r\n   **GREEN**: Audit each section; add an \"Applies when\" line where missing. This is mostly already present in the v0.27-onwards sections; older sections may be lighter.\r\n\r\n3. **RED**: Write a test that the QUICK-START / AGENTS.md guidance pointers in `UPGRADING.md` align with the actual case detection in QUICK-START.md (no broken cross-references after a future restructure).\r\n   **GREEN**: Add a cross-reference index; this also catches bit-rot from future releases prepending sections that point at moved anchors.\r\n\r\n**REFACTOR**: Once the triage entry point exists, consider promoting the most common big-jump path (pre-v0.20 -> latest) to its own runbook in `docs/` and have `UPGRADING.md` link to it; keeps the version-by-version sections lean and the big-jump path single-sourced.\r\n\r\n## Acceptance Criteria\r\n\r\n- [ ] Root cause is addressed -- `UPGRADING.md` has a discoverable big-jump entry point.\r\n- [ ] An operator new to the project can determine which sections apply to a multi-version jump in under 60 seconds.\r\n- [ ] All RED tests are now GREEN.\r\n- [ ] Existing tests still pass.\r\n- [ ] Cross-references between `UPGRADING.md`, `QUICK-START.md`, and the framework-doctor command surface are mutually consistent.\r\n- [ ] `task check` passes.\r\n\r\n## Provenance\r\n\r\nSurfaced during a Slizard project v0.18 → v0.29 upgrade. The eleven-minor-version jump required reading every section to determine applicability and order.\r\n",
+      "Labels": "documentation, docs, adoption-blocker"
+    },
+    "items": [
+      {
+        "title": "Root cause is addressed -- UPGRADING.md has a discoverable big-jump entry point.",
+        "status": "proposed"
+      },
+      {
+        "title": "An operator new to the project can determine which sections apply to a multi-version jump in under 60 seconds.",
+        "status": "proposed"
+      },
+      {
+        "title": "All RED tests are now GREEN.",
+        "status": "proposed"
+      },
+      {
+        "title": "Existing tests still pass.",
+        "status": "proposed"
+      },
+      {
+        "title": "Cross-references between UPGRADING.md, QUICK-START.md, and the framework-doctor command surface are mutually consistent.",
+        "status": "proposed"
+      },
+      {
+        "title": "task check passes.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "docs",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1115",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades"
+      },
+      {
+        "uri": "completed/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.xbrief.json",
+        "type": "x-xbrief/plan",
+        "title": "Add a big-jump triage entry point to UPGRADING.md for multi-version upgrades",
+        "TrustLevel": "internal"
+      }
+    ],
+    "updated": "2026-06-03T21:38:03Z",
+    "metadata": {
+      "kind": "epic",
+      "completedAt": "2026-06-03T22:21:16Z",
+      "capacityBucket": "cognitive-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}

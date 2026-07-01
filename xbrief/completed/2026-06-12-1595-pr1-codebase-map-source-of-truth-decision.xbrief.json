@@ -1,0 +1,69 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #1595 PR 1 decision record"
+  },
+  "plan": {
+    "title": "docs: record #1595 PR 1 codebase MAP source-of-truth decision",
+    "status": "completed",
+    "narratives": {
+      "Description": "PR 1 for #1595 records the #958 disposition and source-of-truth decision for codebase MAP projections.",
+      "Origin": "Derived from https://github.com/deftai/directive/issues/1595, limited to the PR 1 decision-record slice.",
+      "Overview": "## Summary\n\nThis PR documents the accepted reframe of #958 for the #1595 rollout: durable codebase-structure metadata belongs in vBRIEF-owned architecture metadata, while the codebase MAP and any optional file headers are generated projections.\n\nThe slice is intentionally documentation-only. It does not add schema, validators, extraction, MAP rendering, generated headers, task gates, or consumer AGENTS/template propagation.\n\n## Scope\n\n- Record that #958 is superseded as an implementation plan while preserving its orientation goal.\n- Record that the MAP is the primary deliverable.\n- Record that headers are optional generated projections only.\n- Record that canonical metadata belongs in vBRIEF / PROJECT-DEFINITION, with an x-directive fallback only if needed.\n- Record that glossary semantics stay with the existing glossary path.\n\n## Next\n\nPR 2 should define the first concrete codeStructure shape and validation behavior.",
+      "Labels": "enhancement, context-engineering, source-of-truth"
+    },
+    "items": [
+      {
+        "title": "#958 is documented as superseded for implementation while preserving the orientation goal.",
+        "status": "completed"
+      },
+      {
+        "title": "The codebase MAP is documented as the primary projection deliverable.",
+        "status": "completed"
+      },
+      {
+        "title": "Source file headers are documented as optional generated projections only.",
+        "status": "completed"
+      },
+      {
+        "title": "vBRIEF-owned architecture metadata is documented as the canonical metadata home.",
+        "status": "completed"
+      },
+      {
+        "title": "Glossary and comment semantics are documented as out of scope for this path.",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "context-engineering",
+      "source-of-truth"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1595",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1595: feat(codebase): generate codebase MAP from vBRIEF-owned codeStructure metadata"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/958",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #958: superseded header-first codebase mapping proposal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1498",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1498: RFC: Directive must dogfood vBRIEF-as-source-of-truth -- source code & headers are projections, not stores"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1492",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1492: RFC: promote the system-of-record gate from advisory to wired (schema home, gate tier, sentinel integration)"
+      }
+    ],
+    "updated": "2026-06-12T20:09:35Z",
+    "metadata": {
+      "completedAt": "2026-06-12T20:09:35Z"
+    }
+  }
+}

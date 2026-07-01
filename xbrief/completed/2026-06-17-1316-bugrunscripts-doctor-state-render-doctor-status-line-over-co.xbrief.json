@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1316"
+  },
+  "plan": {
+    "title": "bug(run,scripts/_doctor_state): _render_doctor_status_line over-counts warnings by 1 on dirty throttle-skip when AGENTS.md freshness check emits severity=skip",
+    "status": "completed",
+    "narratives": {
+      "Description": "On a dirty throttle-skip, the doctor status line counts the AGENTS.md-freshness severity=skip finding as a warning, so the rendered tally is off by one (for example it shows 2 warnings when there is 1 warning plus 1 skip). This story excludes skip-severity findings from the persisted last_finding_count so the displayed warning count is correct, while decision logic, exit codes, and state persistence are otherwise unchanged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1316",
+      "Overview": "## Problem\r\n\r\n`run` `cmd_doctor._render_doctor_status_line` (lines ~109-116) over-counts warnings by 1 on a dirty throttle-skip in repos where the AGENTS.md freshness check emits a `severity=\"skip\"` finding (typical consumer repo with no `<!-- deft:managed-section v3 -->` markers; also the maintainer repo itself).\r\n\r\nFlagged as a P2 (non-blocking style suggestion) by Greptile on PR #1315 review of `agent2/feat/1308-doctor-consolidation @ 8e0105a` -- merged into master via the swarm cascade after #1308 landed. The reviewer described it as: \"The fix is trivial (filter skip-severity out of `finding_count` OR persist `warning_count` separately) but only affects the displayed warning tally on a dirty-skip line -- decision logic, exit codes, and state persistence are unaffected.\"\r\n\r\n## Root cause\r\n\r\n`_persist_doctor_state` writes `last_finding_count = len(findings)` after every full doctor run. The findings list now includes the `severity=\"skip\"` entry the `agents-md-managed-section-fresh` check emits when a repo lacks the v3 managed-section markers. `_render_doctor_status_line` then computes:\r\n\r\n```python\r\nwarns = max(decision.last_finding_count - decision.last_error_count, 0)\r\n```\r\n\r\nWhich counts the skip entry as a warning, off-by-one on the user-visible status line.\r\n\r\n## Impact\r\n\r\nDisplay-only. Specifically:\r\n\r\n- Decision logic (throttle 24h/4h, --full bypass, ritual-halt-on-persistent-dirty): unaffected.\r\n- Exit codes: unaffected.\r\n- State persistence: unaffected.\r\n- `--json` `last_finding_count` and `last_error_count` fields: technically also include the skip entry, but JSON consumers can filter or just read severity.\r\n\r\nUser-visible symptom: dirty throttle-skip line on a consumer repo reads `1 error / 2 warnings -- UNRESOLVED` when the actual rendered findings list has 1 error + 1 warning + 1 skip. The off-by-one shows up only on dirty-skip; clean-skip is unaffected (silent of warnings).\r\n\r\n## Resolution options\r\n\r\nPick whichever lands cleaner:\r\n\r\n- **(a)** Filter skip-severity out of `last_finding_count` at persistence time in `_persist_doctor_state`. Cleanest because the count semantically means \"findings that mattered\", and skips never matter for the next-throttle decision.\r\n- **(b)** Persist a separate `last_warning_count` field on `xbrief/.eval/doctor-state.json` and read it directly in `_render_doctor_status_line` instead of computing `last_finding_count - last_error_count`. More explicit; slightly bigger surface.\r\n- **(c)** Filter skip-severity inside `_render_doctor_status_line` only -- leaves the persisted count semantically off but quickly fixes the display. Smallest diff, least clean.\r\n\r\nRecommendation: (a). The state file is consumer-facing tooling, not just doctor-internal; \"findings that mattered\" is the right semantic.\r\n\r\n## Acceptance\r\n\r\n- [ ] `_render_doctor_status_line` displays the correct warning count on dirty throttle-skip for repos where the AGENTS.md freshness check emits a `severity=\"skip\"` finding (maintainer repo + consumer repos with no `<!-- deft:managed-section v3 -->` markers).\r\n- [ ] State persistence semantics documented (or adjusted) in `scripts/_doctor_state.py` docstring + `run` `cmd_doctor` docstring so future contributors know whether `last_finding_count` includes skip entries.\r\n- [ ] Unit test added covering the dirty-skip + skip-severity-finding case end-to-end (probably in `tests/cli/test_doctor_throttle.py`).\r\n- [ ] `task check` passes.\r\n- [ ] CHANGELOG entry under `[Unreleased]` in #1242-compliant style (1-2 sentences -- this is a display nit, lead with the observable behaviour).\r\n\r\n## Cross-references\r\n\r\n- PR #1315 (the parent: `agent2/feat/1308-doctor-consolidation -> master`).\r\n- Greptile review comment on PR #1315 that surfaced this P2 (id 4521525308; see the PR comments).\r\n- #1308 (parent issue closed by PR #1315).\r\n- `scripts/_doctor_state.py`, `run` `cmd_doctor._render_doctor_status_line`, `tests/cli/test_doctor_throttle.py` (the implementation surface).\r\n\r\n## Out of scope\r\n\r\n- Re-architecting the findings-list shape -- the skip severity is a real third state alongside warning/error, just needs to be counted (or not counted) consistently.\r\n- Backporting to any pre-#1308 doctor implementation -- the consolidation IS #1308; this is a follow-up nit on the new code path.\r\n",
+      "Labels": "bug",
+      "ImplementationPlan": "- In scripts/doctor.py::_persist_doctor_state, exclude severity=='skip' findings from the persisted last_finding_count so the count means 'findings that mattered' (resolution option (a) from the issue); _render_doctor_status_line then computes the warning tally correctly on a dirty throttle-skip line.\n- Document the count semantics in the scripts/_doctor_state.py module docstring and the scripts/doctor.py cmd_doctor docstring so contributors know last_finding_count excludes skips.\n- Add a unit test in tests/cli/test_doctor_throttle.py reproducing the dirty throttle-skip + severity=='skip' AGENTS.md-freshness finding case end-to-end; assert the rendered status line reports the correct warning count and the test fails before the fix.\n- Add a CHANGELOG.md [Unreleased] / ### Fixed entry in #1242 style referencing #1316.",
+      "UserStory": "As an operator reading the doctor status line on a dirty throttle-skip, I want the warning tally to exclude skip-severity findings, so that the displayed count matches the real findings and I am not misled by an off-by-one.",
+      "Approach": "2026-06-17 file-overlap audit: touches scripts/doctor.py + scripts/_doctor_state.py + tests/cli/test_doctor_throttle.py only; disjoint from the other cohort carriers (reconcile script, triage-filter CLI, review-cycle skill, swarm skill). Display-only nit; decision logic / exit codes / state persistence semantics are otherwise unchanged. Parallel-safe; no depends_on."
+    },
+    "items": [
+      {
+        "title": "Exclude severity=='skip' findings from persisted last_finding_count in scripts/doctor.py::_persist_doctor_state.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a full doctor run that emits 1 error + 1 warning + 1 skip finding, when _persist_doctor_state writes state, then last_finding_count excludes the skip entry (verified by tests/cli/test_doctor_throttle.py)."
+        }
+      },
+      {
+        "title": "Status line shows the correct warning count on a dirty throttle-skip.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a dirty throttle-skip with a severity=skip AGENTS.md-freshness finding, when _render_doctor_status_line renders, then the warning tally counts only real warnings (asserted in tests/cli/test_doctor_throttle.py)."
+        }
+      },
+      {
+        "title": "Document count semantics in scripts/_doctor_state.py and scripts/doctor.py docstrings.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the diff, when reviewed, then both docstrings state that last_finding_count excludes skip-severity findings."
+        }
+      },
+      {
+        "title": "Regression test covering the dirty-skip + skip-severity case.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the test suite, when pytest tests/cli/test_doctor_throttle.py runs, then it asserts the correct count and fails before the fix is applied."
+        }
+      },
+      {
+        "title": "CHANGELOG entry under [Unreleased] / ### Fixed.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the diff, when reviewed, then CHANGELOG.md has a 1-2 sentence [Unreleased] / ### Fixed entry referencing #1316."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1316",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1316: bug(run,scripts/_doctor_state): _render_doctor_status_line over-counts warnings by 1 on dirty throttle-skip when AGENTS.md freshness check emits severity=skip"
+      }
+    ],
+    "id": "1316-doctor-skip-severity-warning-count",
+    "updated": "2026-06-17T01:41:12Z",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/doctor.py",
+          "scripts/_doctor_state.py",
+          "tests/cli/test_doctor_throttle.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_doctor_throttle.py",
+          "task check"
+        ],
+        "expected_outputs": [
+          "last_finding_count excludes severity=skip findings",
+          "doctor status line warning tally correct on dirty throttle-skip",
+          "regression test in tests/cli/test_doctor_throttle.py"
+        ],
+        "conflict_group": "doctor",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Bug ingested from GitHub issue #1316; no spec-section trace applies. File scope disjoint from other cohort carriers.",
+        "depends_on": []
+      },
+      "completedAt": "2026-06-17T01:41:12Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

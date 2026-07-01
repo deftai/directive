@@ -12,7 +12,7 @@ import { isFile, loadJson, readText } from "./_helpers.js";
 
 const docText = readText("docs/example-project-definition.md");
 const mainText = readText("main.md");
-const projectDefinition = loadJson("vbrief/PROJECT-DEFINITION.vbrief.json") as Record<
+const projectDefinition = loadJson("xbrief/PROJECT-DEFINITION.xbrief.json") as Record<
   string,
   unknown
 >;
@@ -138,7 +138,7 @@ describe("test_consumer_config_example.py", () => {
     expect(ignored.has("duplicate")).toBe(true);
   });
 
-  const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+  const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
   it("test_triage_scope_passes_d12_validator", () => {
     expect(validateTriageScopeOnPlan(projectDefinition.plan, fp)).toEqual([]);
   });

@@ -1,0 +1,135 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1799 — implement Open-Q2 canonical contract publish surface.",
+    "created": "2026-06-29T20:45:00Z",
+    "updated": "2026-06-29T20:45:00Z"
+  },
+  "plan": {
+    "id": "1799-contract-layer",
+    "title": "Implement Open-Q2: publish canonical contract layer",
+    "status": "completed",
+    "narratives": {
+      "Description": "Deliver the locked Open-Q2 decision (#1799): downstream TS and non-TS consumers import the canonical vBRIEF/policy contract from `@deftai/directive-types` and published JSON Schema artifacts instead of hand-mirroring shapes. Replace the #1717 Wave-1 skeleton (`EngineInfo` placeholder) with real contract types, ship schema files from npm, add a deterministic TS↔schema drift gate, and document the supported public API boundary (contract-only; behavior stays CLI). Reconcile npm reality: `@deftai/directive-core` may remain on the registry for the install dependency graph but is explicitly unsupported as a library API.",
+      "ImplementationPlan": "1. Define the v1 public contract surface in `packages/types/` — vBRIEF document model (`vBRIEFInfo`, `plan`, items, narratives, references with `x-xbrief/*`), typed `plan.policy` fields consumers mirror today, and gate result/exit-code types where downstream tools need them. Honor deftai/vBRIEF#12 extension namespace (`^x-[a-z0-9-]+/`) and preserve-verbatim round-trip semantics.\n2. Bundle JSON Schema artifacts in `@deftai/directive-types` (subpath exports): minimum `vbrief-core-0.6.schema.json` sourced from `content/vbrief/schemas/vbrief-core.schema.json`; document v1 vs follow-up for auxiliary schemas (`candidates`, `cache-meta`, pack schemas).\n3. Add `verify:contract-drift` (or extend an existing gate) — fail closed when TS types, published schema copies, and `content/vbrief/schemas/` diverge.\n4. Update consumer docs (README / UPGRADING / content/conventions): import examples for `@deftai/directive-types`, `$schema` / `$id` usage for non-TS, and clarify single source of truth vs install-time `xbrief/schemas/` mirror.\n5. Document `@deftai/directive-core` as published-but-unsupported (no semver guarantee on deep imports); supported public contract = types + schemas only.\n6. Verify release path: `npm pack @deftai/directive-types` includes types + schemas; `task check` green with new tests.",
+      "UserStory": "As a downstream TS consumer (e.g. vBRIEF tooling in another repo), I want `import type { … } from '@deftai/directive-types'` and a published JSON Schema so I stop hand-mirroring the vBRIEF shape and drifting from directive's canonical contract.",
+      "OutOfScope": "v1 explicitly excludes: `@deftai/directive-core` as a supported library API, MCP/in-process engine export (#1707), and #2087 automation-declaration schema (cross-link only; v1.1 follow-up). Publishing all 11 auxiliary schemas beyond documented v1 subset is follow-up unless required for contract drift."
+    },
+    "items": [
+      {
+        "id": "1799-a1",
+        "title": "Real vBRIEF contract types replace #1717 skeleton",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `@deftai/directive-types` is built, when a consumer imports the public entrypoint, then exported types include the vBRIEF document model (not merely `EngineInfo`), reference types (`x-xbrief/*`), and typed policy fields; `packages/types/src/index.ts` no longer describes itself as a Wave-1 skeleton-only package."
+        }
+      },
+      {
+        "id": "1799-a2",
+        "title": "JSON Schema artifacts ship from npm",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `npm pack @deftai/directive-types`, when the tarball is inspected, then it includes `vbrief-core-0.6.schema.json` (or equivalent subpath) matching `content/vbrief/schemas/vbrief-core.schema.json`; package.json exports document the schema subpath(s)."
+        }
+      },
+      {
+        "id": "1799-a3",
+        "title": "Contract drift gate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a deliberate mismatch between TS contract definitions and the canonical JSON Schema, when `task verify:contract-drift` (or wired equivalent in `task check`) runs, then it exits non-zero with an actionable message."
+        }
+      },
+      {
+        "id": "1799-a4",
+        "title": "vBRIEF#12 extension semantics preserved",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given types/schema definitions for extension fields, when validated against deftai/vBRIEF#12 requirements, then `^x-[a-z0-9-]+/` extension keys round-trip preserve-verbatim (tests or gate cite #12)."
+        }
+      },
+      {
+        "id": "1799-a5",
+        "title": "Public API boundary documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given maintainer docs are updated, when a consumer reads UPGRADING or conventions guidance, then supported public contract imports are `@deftai/directive-types` + published schemas; `@deftai/directive-core` is documented as unsupported library surface despite npm presence."
+        }
+      },
+      {
+        "id": "1799-a6",
+        "title": "Install mirror vs npm channel clarified",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given docs describe both `deft` install-time `xbrief/schemas/` mirror and npm-published schemas, when read side-by-side, then single source of truth (`content/vbrief/schemas/`) and refresh path are unambiguous."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1799",
+        "decision_locked": "2026-06-19",
+        "blocked_by_resolved": "#1731"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/types/**",
+          "content/vbrief/schemas/vbrief-core.schema.json",
+          "packages/core/src/** (read-only reference for contract shapes)",
+          "tasks/verify.yml or packages/core/src/** (new drift gate)",
+          "UPGRADING.md",
+          "content/conventions/**",
+          "tests/**"
+        ],
+        "verify_commands": [
+          "pnpm -w run build",
+          "task check",
+          "npm pack --dry-run --prefix packages/types"
+        ],
+        "expected_outputs": [
+          "@deftai/directive-types exports real vBRIEF contract types",
+          "JSON Schema artifacts in npm tarball with subpath exports",
+          "verify:contract-drift gate wired into task check",
+          "Consumer docs for import path and unsupported core API"
+        ],
+        "depends_on": [],
+        "size": "L",
+        "model_tier": "strong",
+        "missing_traces_justification": "Open-Q2 contract publish tracked at #1799; decision locked 2026-06-19; TS cutover #1731 complete; npm rename #1670 landed."
+      },
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-06-29T21:18:46Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1799",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1799: Implement Open-Q2 — publish canonical contract layer"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1530",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1530: RFC — migrate enforcement engine Python to TypeScript (Part 1)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1731",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1731: TS migration cutover — delete Python after parity"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1717",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1717: TS monorepo scaffold (Wave-1 skeleton — superseded by this story)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2087",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2087: RFC — consumer project automation declaration (v1.1 cross-link)"
+      }
+    ],
+    "updated": "2026-06-29T21:18:46Z"
+  }
+}

@@ -95,7 +95,7 @@ const SKIP_DIRS = new Set([
   "node_modules",
 ]);
 
-const MIGRATION_ARTIFACT_TREES = ["vbrief/migration"];
+const MIGRATION_ARTIFACT_TREES = ["xbrief/migration", "vbrief/migration"];
 
 export function isMigrationArtifact(rel: string): boolean {
   if (MIGRATION_ARTIFACT_TREES.some((t) => rel.startsWith(`${t}/`))) {

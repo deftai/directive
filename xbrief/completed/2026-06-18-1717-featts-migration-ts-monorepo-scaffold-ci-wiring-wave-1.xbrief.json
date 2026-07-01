@@ -1,0 +1,56 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1717"
+  },
+  "plan": {
+    "title": "feat(ts-migration): TS monorepo scaffold + CI wiring (Wave 1)",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(ts-migration): TS monorepo scaffold + CI wiring (Wave 1)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1717",
+      "Overview": "## Parent\n\n#1530 (Part 1 of 2; umbrella epic #1545)\n\n## What to build\n\nStand up the TypeScript monorepo skeleton alongside the existing Python engine, with **no behavior moved** (zero parity risk). pnpm workspaces; `@deft/types` (leaf, zero-dep), `@deft/core` (domain, no I/O), and `@deft/cli` package skeletons; `tsc -b` project references; a Node CI lane (Vitest + ESLint + `tsc`) running alongside the Python pipeline. No monorepo orchestrator on day one -- incrementality comes from `tsc -b`, `vitest --changed`, and the in-engine content-hash cache tracked at #1713 (cross-reference, not duplicated here).\n\n## Acceptance criteria\n\n- [ ] pnpm workspaces + `@deft/types`/`@deft/core`/`@deft/cli` skeletons build with `tsc -b`\n- [ ] Node CI lane (Vitest/ESLint/tsc) runs green alongside the Python pipeline\n- [ ] No runtime behavior is ported in this slice (skeleton only)\n- [ ] No monorepo orchestrator is introduced (no Nx, no Turborepo)\n- [ ] `task check` passes\n\n## Standing invariants (all Part-1 children)\n- The Python suite is the **parity oracle** and runs **wholesale** (not affected-sliced) until deleted.\n- `task check` stays green at every step (strangler-fig; no big-bang).\n- The parity gate runs **cache-off** so a golden diff is never served from cache.\n- No Python module is deleted until its TS replacement covers historical bug fixtures (not just happy-path) and CI usage.\n- No agent-runtime dependency (that is Part 2, #1707); no monorepo orchestrator on day one (Nx never; Turborepo only on a measured trigger).\n\n## Type\n\nHITL\n\n## Blocked by\n\nNone -- can start immediately\n",
+      "Labels": "ci-cd, refactor, runtime-portability, tooling"
+    },
+    "items": [
+      {
+        "title": "pnpm workspaces + // skeletons build with",
+        "status": "proposed"
+      },
+      {
+        "title": "Node CI lane (Vitest/ESLint/tsc) runs green alongside the Python pipeline",
+        "status": "proposed"
+      },
+      {
+        "title": "No runtime behavior is ported in this slice (skeleton only)",
+        "status": "proposed"
+      },
+      {
+        "title": "No monorepo orchestrator is introduced (no Nx, no Turborepo)",
+        "status": "proposed"
+      },
+      {
+        "title": "passes",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "ci-cd",
+      "refactor",
+      "runtime-portability",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1717",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1717: feat(ts-migration): TS monorepo scaffold + CI wiring (Wave 1)"
+      }
+    ],
+    "updated": "2026-06-18T18:31:15Z",
+    "metadata": {
+      "completedAt": "2026-06-18T18:31:15Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

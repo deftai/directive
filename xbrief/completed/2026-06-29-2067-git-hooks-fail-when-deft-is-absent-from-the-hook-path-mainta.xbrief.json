@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2067 — git hooks resolve local deft CLI"
+  },
+  "plan": {
+    "id": "2067-hooks-deft-path",
+    "title": "Git hooks resolve local deft CLI when not on PATH",
+    "status": "completed",
+    "narratives": {
+      "Description": "Consumer git hooks (`.githooks/pre-commit`, `pre-push`) hard-require global `deft` on PATH. In the maintainer monorepo and other layouts where the runnable CLI lives at `packages/cli/dist/bin.js`, commits and pushes fail even though a local CLI exists.",
+      "ImplementationPlan": "1. Add a POSIX hook helper (or inline resolver in `.githooks/pre-commit` and `.githooks/pre-push`) that falls back to `node \"$REPO_ROOT/packages/cli/dist/bin.js\"` (or equivalent) when `command -v deft` fails.\n2. Mirror the resolver in deposited hook templates under `packages/core/src/init-deposit/` if consumer hooks are generated from there.\n3. Add tests in `packages/core/src/content-contracts/standards/branch_gate.test.ts` or a focused hook-resolver test asserting maintainer-monorepo fallback; run `pnpm -w exec vitest run packages/core/src/content-contracts/standards/branch_gate.test.ts` as verification evidence. CHANGELOG entry. Closes #2067.",
+      "UserStory": "As a maintainer cutting a release from the directive monorepo, I want git hooks to find the local deft CLI, so that `git commit` during release does not abort with 'deft not found on PATH'.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2067",
+      "Overview": "See issue #2067 — v0.61.2 release blocked at git commit; hooks need local CLI fallback.",
+      "Labels": "bug, tooling, area:cli"
+    },
+    "items": [
+      {
+        "id": "2067-a1",
+        "title": "Hooks invoke local CLI fallback",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `deft` is absent from PATH but `packages/cli/dist/bin.js` exists in the repo root, when pre-commit runs, then it invokes the local CLI and exits 0 on a clean tree."
+        }
+      },
+      {
+        "id": "2067-a2",
+        "title": "pre-push uses same resolver",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the same PATH condition, when pre-push runs branch/encoding gates, then it uses the identical deft resolution helper as pre-commit."
+        }
+      },
+      {
+        "id": "2067-a3",
+        "title": "CHANGELOG entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents hook local-CLI fallback for maintainer monorepo. Closes #2067."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "tooling"
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#2067"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          ".githooks/pre-commit",
+          ".githooks/pre-push",
+          "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm -w exec vitest run packages/core/src/content-contracts/standards/branch_gate.test.ts",
+          "pnpm -w run build"
+        ],
+        "expected_outputs": [
+          "Hook local deft resolver",
+          "pre-commit/pre-push fallback",
+          "CHANGELOG entry"
+        ],
+        "depends_on": [],
+        "conflict_group": "bug-cohort-hooks",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "default",
+        "missing_traces_justification": "Release-blocker from ingested issue #2067."
+      },
+      "capacityBucket": "bugfix",
+      "completedAt": "2026-06-29T23:59:58Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2067",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2067"
+      }
+    ],
+    "updated": "2026-06-29T23:59:58Z"
+  }
+}

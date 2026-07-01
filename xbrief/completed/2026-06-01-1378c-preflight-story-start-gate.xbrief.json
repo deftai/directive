@@ -1,0 +1,95 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story C of #1378 -- deterministic Gate 0: scripts/preflight_story_start.py + task verify:story-ready.",
+    "updated": "2026-06-01T02:30:00Z"
+  },
+  "plan": {
+    "title": "feat(scripts): scripts/preflight_story_start.py Gate 0 + verify:story-ready (#1378 Story C)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Add a deterministic-tier preflight gate (scripts/preflight_story_start.py, exposed as task verify:story-ready) that inspects working-tree state, target vBRIEF lifecycle state, and the dispatch envelope's `## Allocation context` section (Story A schema), returning the framework three-state exit (0 ready / 1 not ready / 2 config error). Wire it as Gate 0 of the pre-start_agent gate stack and document it in AGENTS.md (+ templates/agents-entry.md mirror per #1309).",
+      "Origin": "Decomposed from https://github.com/deftai/directive/issues/1378 (Story C of A/B/C).",
+      "UserStory": "As a swarm dispatcher, I want a machine-checkable Gate 0 that inspects the allocation-context consent token directly, so the #1371 carve-out becomes load-bearing instead of prose-trusted and the next #954-class failure is foreclosed.",
+      "ImplementationPlan": "1. Add scripts/preflight_story_start.py mirroring the shape of scripts/preflight_implementation.py / scripts/preflight_branch.py (pure stdlib, evaluate() separated from CLI, --json variant, UTF-8 self-reconfigure at main). It inspects: git status --porcelain (clean OR branch-start-allowed), target vBRIEF in active/ with plan.status==running, and the `## Allocation context` section when present (solo path when absent; valid-cohort path when dispatch_kind: swarm-cohort + non-null allocation_plan_id + batching_rationale; config error on malformed/missing required fields). Three-state exit 0/1/2. 2. Wire task verify:story-ready in tasks/verify.yml. 3. Update AGENTS.md `## Session-start ritual` / pre-start_agent gate stack (#1149) to insert Gate 0 ahead of vbrief:preflight; mirror into templates/agents-entry.md per #1309 and extend tests/content/test_agents_entry_contract.py marker list. 4. Add tests/cli/test_preflight_story_start.py covering dirty-tree, missing-allocation-context (solo), valid-cohort (batched), and invalid-allocation-context (malformed/missing fields) exit codes. 5. CHANGELOG.md [Unreleased] entry referencing #1378.",
+      "Traces": "Traces to GitHub issue #1378 Story C. Gate-stack position per AGENTS.md `## Session-start ritual (#1149)`; exit-code convention per scripts/preflight_implementation.py (#810) and scripts/preflight_branch.py (#747)."
+    },
+    "items": [
+      {
+        "title": "scripts/preflight_story_start.py with three-state exit",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "scripts/preflight_story_start.py exists, exposes evaluate() + a --json CLI, and returns 0 (ready) / 1 (not ready: dirty tree or invalid cohort consent token) / 2 (config error: malformed/missing allocation-context fields), matching the framework gate convention.",
+          "Traces": "Traces to #1378 Story C -- preflight script."
+        }
+      },
+      {
+        "title": "task verify:story-ready wired as Gate 0 + AGENTS.md doc (mirrored)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "tasks/verify.yml exposes verify:story-ready; AGENTS.md pre-start_agent gate stack documents Gate 0 ahead of vbrief:preflight; templates/agents-entry.md mirrors it and tests/content/test_agents_entry_contract.py marker list is extended (#1309).",
+          "Traces": "Traces to #1378 Story C -- task wiring + gate-stack doc."
+        }
+      },
+      {
+        "title": "Behavioral tests for the four cases",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "tests/cli/test_preflight_story_start.py covers dirty-tree, missing-allocation-context (solo path), valid-cohort (batched path), and invalid-allocation-context (malformed JSON / missing fields), each asserting the documented exit code; passes under task check.",
+          "Traces": "Traces to #1378 Story C -- behavioral tests."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "agent-experience",
+      "determinism",
+      "cluster:1378-allocation-context"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1378: first-class allocation-plan reference in dispatch envelope (post #1371 deterministic-tier enabler)"
+      }
+    ],
+    "id": "issue-1378-gate",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/preflight_story_start.py",
+          "tasks/verify.yml",
+          "AGENTS.md",
+          "templates/agents-entry.md",
+          "tests/cli/test_preflight_story_start.py",
+          "tests/content/test_agents_entry_contract.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "uv --project . run pytest tests/cli/test_preflight_story_start.py -v",
+          "task verify:story-ready -- --help"
+        ],
+        "expected_outputs": [
+          "scripts/preflight_story_start.py returns three-state exit and inspects the allocation-context section",
+          "task verify:story-ready wired; AGENTS.md gate stack documents Gate 0; template mirror + contract test updated",
+          "behavioral tests cover the four cases"
+        ],
+        "depends_on": [
+          "issue-1378-schema"
+        ],
+        "conflict_group": "gate",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      },
+      "completedAt": "2026-06-01T02:55:25Z",
+      "capacityBucket": "new-capability",
+      "capacityBucketSource": "match"
+    },
+    "updated": "2026-06-01T02:47:54Z"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from proposed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json"
+  },
+  "plan": {
+    "id": "1637-s6-swarm-spec-pack",
+    "title": "packs:slice v2 -- new swarm-spec pack surface",
+    "status": "completed",
+    "planRef": "completed/2026-06-15-1637-featpacks-packsslice-v2-remaining-lessons-slices-skillsrules.xbrief.json",
+    "narratives": {
+      "Description": "Create a new `swarm-spec` pack candidate (from the #1283 Q-list) that ingests the swarm specification source so agents can slice swarm contract guidance like any other pack. This story follows the same 0.1 pilot shape as the patterns pack and is greenfield except for one additive entry in the shared render registry, making it independently buildable.",
+      "ImplementationPlan": "1. Add a new `xbrief/schemas/swarm-spec-pack.schema.json` schema file defining the swarm-spec entry shape and an `x-sliceRegistry` with at least a `list` slice.\n2. Add a new `scripts/pack_migrate_swarm_spec.py` migration script that parses the swarm spec source into `packs/swarm-spec/swarm-spec-pack-0.1.json`, and register it in the `scripts/pack_render.py` RENDER_REGISTRY.\n3. Add `tests/cli/test_pack_migrate_swarm_spec.py` asserting migration shape and slice resolution, and confirm `task packs:slice --list-packs` discovers the pack and `task verify:pack-drift` validates.",
+      "UserStory": "As an agent orchestrating a swarm, I want a swarm-spec pack I can slice, so that I can load the swarm contract guidance into context without reading the full swarm specification document."
+    },
+    "items": [
+      {
+        "id": "1637-s6-a1",
+        "title": "swarm-spec pack discoverable",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice --list-packs` shows the new swarm-spec pack with its description alongside the other packs."
+        }
+      },
+      {
+        "id": "1637-s6-a2",
+        "title": "swarm-spec slices resolve",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task packs:slice swarm-spec list` returns the swarm-spec entries migrated from the swarm specification source."
+        }
+      },
+      {
+        "id": "1637-s6-a3",
+        "title": "swarm-spec pack drift-clean",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running `task verify:pack-drift` validates the swarm-spec pack with no drift between source and rendered projection."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "xbrief/schemas/swarm-spec-pack.schema.json",
+          "scripts/pack_migrate_swarm_spec.py",
+          "packs/swarm-spec/swarm-spec-pack-0.1.json",
+          "scripts/pack_render.py",
+          "tests/cli/test_pack_migrate_swarm_spec.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_pack_migrate_swarm_spec.py",
+          "task verify:pack-drift"
+        ],
+        "expected_outputs": [
+          "New xbrief/schemas/swarm-spec-pack.schema.json",
+          "New packs/swarm-spec/swarm-spec-pack-0.1.json and migration script",
+          "RENDER_REGISTRY entry in scripts/pack_render.py"
+        ],
+        "depends_on": [],
+        "conflict_group": "pack-registry",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "missing_traces_justification": "Framework-internal packs:slice v2 work traced to GitHub issue #1637 and RFC #1283 Q-list; no specification.xbrief.json spec-section applies."
+      },
+      "completedAt": "2026-06-15T23:56:34Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1637",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1637: feat(packs): packs:slice v2 -- remaining lessons slices + skills/rules/strategies pack surfaces",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1283",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1283"
+      }
+    ],
+    "updated": "2026-06-15T23:56:34Z"
+  }
+}

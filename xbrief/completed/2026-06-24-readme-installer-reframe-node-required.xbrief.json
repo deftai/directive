@@ -1,0 +1,51 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "README frames the Go installer as a no-Node bootstrap and omits the project-directory requirement for setup."
+  },
+  "plan": {
+    "title": "docs: reframe Go installer across consumer docs (Node always required) + project-directory note",
+    "status": "completed",
+    "narratives": {
+      "Description": "The root README Getting Started section frames the frozen Go installer as a 'no-Node bootstrap' (lines 52-54, 93). That is misleading: Deft's live gates run through the TypeScript engine, so Node 20+ is always required to RUN the framework regardless of how files are deposited -- there is no Node-free runtime. The README also never states explicitly that project setup writes .deft/ and AGENTS.md into the current working directory, so a newcomer can run setup in the wrong folder.",
+      "Origin": "Operator request during an interactive session reviewing the Wave-5 installer issue (#1912); follow-on from the #761 npm-canonical doc cutover.",
+      "Acceptance": "README.md (1) reframes the legacy Go-installer section away from 'no-Node bootstrap' to a legacy/offline + layout-migration bridge, with an explicit 'install Node 20+ first' note for machines without Node; (2) adds a short 'where your project lands' note that setup writes .deft/ + AGENTS.md into the current working directory; (3) keeps the internal section anchor reference consistent after the heading rename. A CHANGELOG [Unreleased] entry is added. task check passes.",
+      "Overview": "Documentation-only change. Started README-only, then extended (operator request) to reframe the same 'no-Node bootstrap' wording consistently across content/UPGRADING.md, content/QUICK-START.md, and the AGENTS.md managed-section template (content/templates/agents-entry.md, regenerated into AGENTS.md via run agents:refresh). Aligns all consumer-facing installer docs with the npm-canonical reality (#761) and the frozen-installer design (#1912 amendment 2026-06-24). The deeper UPGRADING.md reduction (deleting the per-version historical sections + retiring the stale 'canonical headless = deft-install --yes --upgrade' framing) stays a Wave-5 item on #1912, gated on the frozen installer existing.",
+      "Labels": "documentation"
+    },
+    "metadata": {
+      "kind": "story",
+      "completedAt": "2026-06-24T12:54:38Z",
+      "capacityBucket": "new-capability"
+    },
+    "items": [
+      {
+        "title": "Reframe the legacy Go-installer section: drop 'no-Node bootstrap', add 'install Node first' note",
+        "status": "proposed"
+      },
+      {
+        "title": "Add a 'where your project lands' note (setup writes into the current working directory)",
+        "status": "proposed"
+      },
+      {
+        "title": "Fix the internal section anchor reference after the heading rename",
+        "status": "proposed"
+      },
+      {
+        "title": "Add a CHANGELOG [Unreleased] entry",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "documentation"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1912",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1912: build + freeze the last Go installer (legacy stage-1 bridge)"
+      }
+    ],
+    "updated": "2026-06-24T12:54:38Z"
+  }
+}
