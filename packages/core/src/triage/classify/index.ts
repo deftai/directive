@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   hasArtifactSuffix,
   resolveLifecycleRoot,
@@ -688,7 +689,7 @@ export function extractReferencedIssues(
             continue;
           }
           const r = ref as Record<string, unknown>;
-          if (r.type !== "x-vbrief/github-issue") {
+          if (!referenceTypeMatches(String(r.type ?? ""), "github-issue")) {
             continue;
           }
           const uri = r.uri;

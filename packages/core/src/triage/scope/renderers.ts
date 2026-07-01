@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { subscriptionHash } from "./normalize.js";
 import { pyListRepr } from "./python-repr.js";
@@ -35,7 +36,7 @@ export function extractReferencedIssues(
       for (const ref of refs) {
         if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
         const rec = ref as Record<string, unknown>;
-        if (rec.type !== "x-vbrief/github-issue") continue;
+        if (!referenceTypeMatches(String(rec.type ?? ""), "github-issue")) continue;
         const uri = rec.uri;
         if (typeof uri !== "string") continue;
         const tail = uri.replace(/\/$/, "").split("/").pop() ?? "";

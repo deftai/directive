@@ -1,3 +1,5 @@
+import { referenceTypeMatches } from "@deftai/directive-types";
+
 /** Parse (repo, issue_number) from a github-issue reference URI. */
 export function parseGithubIssueUri(uri: unknown): [string | null, number | null] {
   if (typeof uri !== "string") return [null, null];
@@ -26,7 +28,7 @@ export function extractIssueRef(data: Record<string, unknown>): [string | null, 
   for (const ref of refs) {
     if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
     const rec = ref as Record<string, unknown>;
-    if (rec.type !== "x-vbrief/github-issue") continue;
+    if (!referenceTypeMatches(String(rec.type ?? ""), "github-issue")) continue;
     const [repo, number] = parseGithubIssueUri(rec.uri);
     if (number !== null) return [repo, number];
   }

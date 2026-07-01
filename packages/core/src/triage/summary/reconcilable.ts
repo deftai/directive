@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { hasArtifactSuffix, resolveEvalPath, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { AUDIT_LOG_REL_PATH, readAuditLog } from "../actions/candidates-log.js";
 
@@ -41,7 +42,7 @@ function extractIssueRef(data: Record<string, unknown>): [string | null, number 
       continue;
     }
     const obj = ref as Record<string, unknown>;
-    if (obj.type !== "x-vbrief/github-issue") {
+    if (!referenceTypeMatches(String(obj.type ?? ""), "github-issue")) {
       continue;
     }
     const [repo, number] = parseGithubIssueUri(obj.uri);

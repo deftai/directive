@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { hasArtifactSuffix } from "../../layout/resolve.js";
 
 const ISSUE_URL_RE = /github\.com\/([^/]+\/[^/]+)\/issues\/(\d+)/i;
@@ -28,7 +29,7 @@ export function extractIssueRefs(vbriefPath: string): Array<[string, number]> {
   for (const ref of refs) {
     if (typeof ref !== "object" || ref === null || Array.isArray(ref)) continue;
     const rec = ref as Record<string, unknown>;
-    if (rec.type !== "x-vbrief/github-issue") continue;
+    if (!referenceTypeMatches(String(rec.type ?? ""), "github-issue")) continue;
     const uri = String(rec.uri ?? "");
     const match = ISSUE_URL_RE.exec(uri);
     if (!match) continue;

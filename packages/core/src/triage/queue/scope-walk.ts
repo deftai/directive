@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   hasArtifactSuffix,
   resolveLifecycleFolder,
@@ -31,7 +32,7 @@ export function issueNumbersFromPlan(plan: Record<string, unknown>): ReadonlySet
       continue;
     }
     const typed = ref as Record<string, unknown>;
-    if (typed.type !== "x-vbrief/github-issue") {
+    if (!referenceTypeMatches(String(typed.type ?? ""), "github-issue")) {
       continue;
     }
     const uri = typed.uri;
