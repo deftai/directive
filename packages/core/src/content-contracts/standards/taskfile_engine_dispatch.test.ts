@@ -19,10 +19,11 @@ import { repoRoot } from "./_helpers.js";
  * would miss: a local `_ts-build`, a local `_ensure-ts` (`pnpm --dir DEFT_ROOT
  * run build`), and a `deps: [:ts:build]` on the unconditional maintainer build
  * primitive. The canonical guarded pattern lives in tasks/engine.yml:
- *   - `:engine:_ts-build` guards the build behind `[ -f {{.DEFT_ROOT}}/packages/
- *     cli/package.json ]` -- SOURCE presence, so it builds on a cold framework
- *     checkout (dist/ is gitignored) yet no-ops on a consumer deposit -- and
- *     runs from `{{.USER_WORKING_DIR}}` so an absolute `dir:` cannot double on a
+ *   - `:engine:_ts-build` guards the build behind packages/cli/package.json
+ *     AND a root `build` script (#2142) so it builds on a cold framework
+ *     checkout (dist/ is gitignored) yet no-ops on a consumer deposit or a
+ *     git-vendored stray packages/ tree without a root build script -- and runs
+ *     from `{{.USER_WORKING_DIR}}` so an absolute `dir:` cannot double on a
  *     Windows `task -t <abs>` invocation (#2126), and
  *   - `:engine:invoke` runs the vendored bin.js when present, else falls back to
  *     the globally-installed `deft` command.
@@ -103,15 +104,26 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
   it("engine.yml still owns the guarded build + global-deft fallback", () => {
     const engine = readTask(ENGINE_FILE);
     expect(engine).toMatch(/_ts-build:/);
-    // Guard is SOURCE presence (packages/cli/package.json), referenced by
-    // absolute path so the check stays cwd-independent on Windows
-    // `task -t <abs>` invocations AND still builds on a cold framework checkout
-    // where dist/ is gitignored/absent (#2126).
+    // Guard requires packages/cli/package.json AND a root build script (#2142)
+    // so cold framework checkouts still build while stray consumer packages/
+    // trees without a root build script no-op instead of ERR_PNPM_NO_SCRIPT.
     expect(engine).toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/package\.json" \]/);
+    expect(engine).toMatch(/p\.scripts&&p\.scripts\.build/);
     expect(engine).toMatch(RAW_PNPM_BUILD);
     expect(engine).toMatch(/invoke:/);
     expect(engine).toMatch(/command -v deft/);
     expect(engine).toMatch(/deft \{\{\.ENGINE_CMD\}\}/);
+  });
+
+  it("_ts-build guard no-ops on stray packages/ without root build script (#2142)", () => {
+    const engine = readTask(ENGINE_FILE);
+    const scriptMatch = engine.match(
+      /if \[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/package\.json" \][\s\S]*?fi/m,
+    );
+    expect(scriptMatch, "engine _ts-build guard block").not.toBeNull();
+    const guardBlock = scriptMatch?.[0] ?? "";
+    expect(guardBlock).toMatch(/node -e "p=require/);
+    expect(guardBlock).not.toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/dist\/bin\.js" \]/);
   });
 
   it("TS_BUILD_DEP catches all three :ts:build spellings (regex self-test, #2126 Greptile P1)", () => {

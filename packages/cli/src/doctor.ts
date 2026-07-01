@@ -1,9 +1,24 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseDoctorFlags } from "@deftai/directive-core/dist/doctor/flags.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 import { renderPrecutoverLine } from "@deftai/directive-core/dist/vbrief-validate/precutover.js";
 import { renderXbriefMigrationLine } from "@deftai/directive-core/xbrief-migrate";
+
+/** Advisory when a consumer deposit carries git-vendored framework source (#2142). */
+export function renderStrayPackagesAdvisoryLine(projectRoot: string): string {
+  const packagesDir = join(projectRoot, ".deft", "core", "packages");
+  if (!existsSync(packagesDir)) {
+    return "Deposit hygiene: none -- .deft/core contains no stray packages/ source tree.";
+  }
+  return (
+    "Deposit hygiene: advisory -- .deft/core/packages/ is present (git-vendored framework source, " +
+    "not shipped by npm @deftai/directive-content). Upgrade directive to pick up task guard fixes; " +
+    "consider removing the stray tree from version control."
+  );
+}
 
 export function run(argv: string[]): number {
   // #2022: surface pre-cutover (pre-v0.20 document model) migration state alongside the
@@ -15,6 +30,7 @@ export function run(argv: string[]): number {
     const projectRoot = flags.projectRoot ?? process.cwd();
     process.stdout.write(`${renderPrecutoverLine(projectRoot)}\n`);
     process.stdout.write(`${renderXbriefMigrationLine(projectRoot)}\n`);
+    process.stdout.write(`${renderStrayPackagesAdvisoryLine(projectRoot)}\n`);
   }
   return cmdDoctor(argv);
 }

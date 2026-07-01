@@ -8,7 +8,7 @@ vi.mock("@deftai/directive-core/dist/doctor/main.js", () => ({
 }));
 
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
-import { run } from "./doctor.js";
+import { renderStrayPackagesAdvisoryLine, run } from "./doctor.js";
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
@@ -189,6 +189,29 @@ describe("doctor CLI", () => {
     expect(out).toContain("migrate:xbrief");
   });
 
+  it("reports clean deposit hygiene when .deft/core has no packages/ (#2142)", () => {
+    const root = makeRoot("doctor-deposit-clean-");
+    makeLifecycleDirs(root);
+    const out = captureStdout(() => {
+      run(["--project-root", root]);
+    });
+    expect(out).toContain("Deposit hygiene: none");
+    expect(renderStrayPackagesAdvisoryLine(root)).toContain("Deposit hygiene: none");
+  });
+
+  it("flags stray packages/ under .deft/core (#2142)", () => {
+    const root = makeRoot("doctor-stray-packages-");
+    makeLifecycleDirs(root);
+    mkdirSync(join(root, ".deft", "core", "packages", "cli"), { recursive: true });
+    writeFileSync(join(root, ".deft", "core", "packages", "cli", "package.json"), "{}\n", "utf8");
+    const out = captureStdout(() => {
+      run(["--project-root", root]);
+    });
+    expect(out).toContain("Deposit hygiene: advisory");
+    expect(out).toContain(".deft/core/packages/");
+    expect(renderStrayPackagesAdvisoryLine(root)).toContain("advisory");
+  });
+
   it("defaults projectRoot to process.cwd() when --project-root is omitted", () => {
     // Exercises the `flags.projectRoot ?? process.cwd()` false branch in doctor.ts.
     const out = captureStdout(() => {
@@ -199,5 +222,6 @@ describe("doctor CLI", () => {
     // since process.cwd() varies by environment).
     expect(out).toContain("Pre-cutover:");
     expect(out).toContain("xBrief migration:");
+    expect(out).toContain("Deposit hygiene:");
   });
 });

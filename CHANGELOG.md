@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`task deft:*` no longer fails on git-vendored deposits with a stray `packages/` tree (#2142).** The v0.66.0 `_ts-build` guard treated any `packages/cli/package.json` as a build signal and ran `pnpm run build` at deposits that lack a root `build` script, breaking `task check` for repos that committed framework source under `.deft/core`. The guard now requires a root `build` script before building, and `deft doctor` warns when `.deft/core/packages/` is present. Closes #2142.
+
 ### Removed
 
 ## [0.66.0] - 2026-07-01
