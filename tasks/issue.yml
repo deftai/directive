@@ -27,7 +27,7 @@ tasks:
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'issue-ingest --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+          ENGINE_CMD: 'issue-ingest --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   # issue emit task -- the write-direction counterpart to issue:ingest
   # (#1274 Change 2). Files GitHub issue(s) from scope vBRIEFs and records

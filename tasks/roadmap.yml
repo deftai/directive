@@ -12,14 +12,14 @@ vars:
 
 tasks:
   render:
-    desc: Render ROADMAP.md from vbrief/pending/ (Active) and vbrief/completed/ (Completed) lifecycle folders
+    desc: Render ROADMAP.md from pending/ and completed/ lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
     deps:
       - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'roadmap-render "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"'
+          ENGINE_CMD: 'roadmap-render --project-root "{{.USER_WORKING_DIR}}"'
 
   check:
     desc: Verify ROADMAP.md matches what roadmap:render would produce
@@ -29,4 +29,4 @@ tasks:
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'roadmap-render "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check'
+          ENGINE_CMD: 'roadmap-render --project-root "{{.USER_WORKING_DIR}}" --check'

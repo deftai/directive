@@ -357,3 +357,60 @@ describe("roadmap-render idempotency", () => {
     expect(checkDrift(pending, outPath)[0]).toBe(true);
   });
 });
+
+describe("roadmap-render main() --project-root layout resolver (#2139)", () => {
+  const tmpDirs: string[] = [];
+  afterEach(() => {
+    for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  function writePendingVbrief(root: string, layoutDir: string): void {
+    const pending = join(root, layoutDir, "pending");
+    mkdirSync(pending, { recursive: true });
+    const suffix = layoutDir === "xbrief" ? ".xbrief.json" : ".vbrief.json";
+    writeFileSync(
+      join(pending, `2026-01-01-feature${suffix}`),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: {
+          title: "Feature X",
+          status: "pending",
+          references: [{ id: "#7", type: "github-issue" }],
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  it("resolves xbrief/pending/ via --project-root on migrated tree (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-xbrief-"));
+    tmpDirs.push(root);
+    writePendingVbrief(root, "xbrief");
+    const outPath = join(root, "ROADMAP.md");
+    const exit = roadmapRenderMain(["--project-root", root, outPath]);
+    expect(exit).toBe(0);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("Feature X");
+  });
+
+  it("falls back to vbrief/pending/ via --project-root on legacy tree (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-vbrief-"));
+    tmpDirs.push(root);
+    writePendingVbrief(root, "vbrief");
+    const outPath = join(root, "ROADMAP.md");
+    const exit = roadmapRenderMain(["--project-root", root, outPath]);
+    expect(exit).toBe(0);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("Feature X");
+  });
+
+  it("--check mode resolves xbrief/pending/ via --project-root (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-roadmap-check-"));
+    tmpDirs.push(root);
+    writePendingVbrief(root, "xbrief");
+    const outPath = join(root, "ROADMAP.md");
+    roadmapRenderMain(["--project-root", root, outPath]);
+    const exit = roadmapRenderMain(["--project-root", root, outPath, "--check"]);
+    expect(exit).toBe(0);
+  });
+});

@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { hasArtifactSuffix } from "../layout/resolve.js";
+import { dirname, join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { MIGRATOR_METADATA_KEY, ROADMAP_BANNER } from "./constants.js";
 import { phaseSortKey } from "./text-utils.js";
 
@@ -397,10 +397,35 @@ export function checkDrift(
 
 /** CLI entry (mirrors ``scripts/roadmap_render.main``). */
 export function main(argv: readonly string[]): number {
-  const positional = argv.filter((a) => !a.startsWith("--"));
-  const pendingDir = positional[0] ?? join(process.cwd(), "vbrief", "pending");
-  const outPath = positional[1] ?? join(process.cwd(), "ROADMAP.md");
-  if (argv.includes("--check")) {
+  let projectRoot: string | undefined;
+  let check = false;
+  const positional: string[] = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i] as string;
+    if (arg === "--project-root") {
+      projectRoot = argv[i + 1] as string | undefined;
+      i += 1;
+    } else if (arg.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
+    } else if (arg === "--check") {
+      check = true;
+    } else {
+      positional.push(arg);
+    }
+  }
+
+  let pendingDir: string;
+  let outPath: string;
+  if (projectRoot !== undefined) {
+    const lifecycleRoot = resolveLifecycleRoot(resolve(projectRoot));
+    pendingDir = join(lifecycleRoot, "pending");
+    outPath = positional[0] ?? join(resolve(projectRoot), "ROADMAP.md");
+  } else {
+    pendingDir = positional[0] ?? join(process.cwd(), "vbrief", "pending");
+    outPath = positional[1] ?? join(process.cwd(), "ROADMAP.md");
+  }
+
+  if (check) {
     const [ok, msg] = checkDrift(pendingDir, outPath);
     process.stdout.write(`${msg}\n`);
     return ok ? 0 : 1;

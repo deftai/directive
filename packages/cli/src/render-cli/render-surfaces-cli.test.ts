@@ -184,6 +184,38 @@ describe("deft-ts project-render", () => {
       "vBRIEFInfo",
     );
   });
+
+  it("resolves xbrief/ layout via --project-root on migrated tree (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-proj-xbrief-"));
+    temps.push(root);
+    const xbrief = join(root, "xbrief");
+    for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(xbrief, f), { recursive: true });
+    }
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6", created: "2026-07-01T00:00:00Z" },
+        plan: { title: "T", status: "running", narratives: {}, items: [], metadata: {} },
+      }),
+      "utf8",
+    );
+    const result = runDeftTs("project-render", ["--project-root", root]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("PROJECT-DEFINITION.vbrief.json");
+  });
+
+  it("falls back to vbrief/ via --project-root on legacy tree (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-proj-vbrief-"));
+    temps.push(root);
+    const vbrief = join(root, "vbrief");
+    for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(vbrief, f), { recursive: true });
+    }
+    const result = runDeftTs("project-render", ["--project-root", root]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("PROJECT-DEFINITION.vbrief.json");
+  });
 });
 
 describe("deft-ts roadmap-render", () => {
@@ -218,6 +250,45 @@ describe("deft-ts roadmap-render", () => {
     const result = runDeftTs("roadmap-render", [pending, outPath]);
     expect(result.exitCode).toBe(0);
     expect(readFileSync(outPath, "utf8")).toContain("No pending work items");
+  });
+
+  it("resolves xbrief/pending/ via --project-root on migrated tree (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-roadmap-xbrief-"));
+    temps.push(root);
+    const pending = join(root, "xbrief", "pending");
+    mkdirSync(pending, { recursive: true });
+    writeFileSync(
+      join(pending, "2026-01-01-feature.xbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.8" },
+        plan: { title: "Feature X", status: "pending", references: [{ id: "#9" }] },
+      }),
+      "utf8",
+    );
+    const outPath = join(root, "ROADMAP.md");
+    const result = runDeftTs("roadmap-render", ["--project-root", root, outPath]);
+    expect(result.exitCode).toBe(0);
+    const content = readFileSync(outPath, "utf8");
+    expect(content).toContain("Feature X");
+  });
+
+  it("--check mode resolves xbrief/pending/ via --project-root (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-cli-roadmap-check-xbrief-"));
+    temps.push(root);
+    const pending = join(root, "xbrief", "pending");
+    mkdirSync(pending, { recursive: true });
+    writeFileSync(
+      join(pending, "2026-01-01-feature.xbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.8" },
+        plan: { title: "Feature Y", status: "pending", references: [{ id: "#10" }] },
+      }),
+      "utf8",
+    );
+    const outPath = join(root, "ROADMAP.md");
+    runDeftTs("roadmap-render", ["--project-root", root, outPath]);
+    const result = runDeftTs("roadmap-render", ["--project-root", root, outPath, "--check"]);
+    expect(result.exitCode).toBe(0);
   });
 });
 

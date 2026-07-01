@@ -815,7 +815,9 @@ export interface ReconcileCliArgs {
 }
 
 export function reconcileMain(args: ReconcileCliArgs): number {
-  const vbriefDir = args.vbriefDir ? resolve(args.vbriefDir) : resolveLifecycleRoot(resolve("."));
+  const vbriefDir = args.vbriefDir
+    ? resolve(args.vbriefDir)
+    : resolveLifecycleRoot(args.projectRoot ? resolve(args.projectRoot) : resolve("."));
   try {
     if (!statSync(vbriefDir).isDirectory()) {
       process.stderr.write(`Error: vbrief directory not found: ${vbriefDir}\n`);

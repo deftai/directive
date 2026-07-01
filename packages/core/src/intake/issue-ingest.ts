@@ -516,10 +516,11 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     return 2;
   }
 
-  const vbriefDir = args.vbriefDir ? resolve(args.vbriefDir) : resolveLifecycleRoot(resolve("."));
-  mkdirSync(vbriefDir, { recursive: true });
-
   const projectRoot = resolveProjectRoot(args.projectRoot ?? undefined);
+  const vbriefDir = args.vbriefDir
+    ? resolve(args.vbriefDir)
+    : resolveLifecycleRoot(args.projectRoot ? resolve(args.projectRoot) : resolve("."));
+  mkdirSync(vbriefDir, { recursive: true });
   let repo = resolveProjectRepo(args.repo ?? undefined, projectRoot);
   if (repo === null) {
     repo = detectRepo();

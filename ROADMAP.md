@@ -8,18 +8,18 @@
 ## Completed
 
 - **#365** -- bdd strategy: move context and scenarios to vbrief; remove specs/ folder -- `[completed]`
-- **#371** -- deft:change proposal.md and design.md should be proposal.vbrief.json -- `[completed]`
+- **#371** -- deft:change proposal.md and design.md should be proposal.xbrief.json -- `[completed]`
 - **#372** -- deft:change spec deltas should be delta vBRIEFs -- `[completed]`
 - **#359** -- Deterministic questions: instant number acceptance is disorienting -- `[completed]`
 - **#366** -- discuss strategy: scope-context.md should be a vBRIEF -- `[completed]`
 - **#364** -- enterprise strategy: PRD.md and SPECIFICATION.md should be rendered from vbrief -- `[completed]`
 - **#368** -- map strategy: .planning/codebase/*.md should be vBRIEFs -- `[completed]`
 - **#345** -- Replace PRD.md approval gate with vBRIEF draft approval -- `[completed]`
-- **#363** -- rapid strategy: SPECIFICATION.md should be rendered from specification.vbrief.json -- `[completed]`
+- **#363** -- rapid strategy: SPECIFICATION.md should be rendered from specification.xbrief.json -- `[completed]`
 - **#367** -- research strategy: feature-research.md should be a vBRIEF -- `[completed]`
 - **#369** -- roadmap strategy: redirect to deft-directive-refinement skill (superseded) -- `[completed]`
-- **#361** -- speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.vbrief.json -- `[completed]`
-- **#362** -- speckit Phase 2/3 should write to vbrief/specification.vbrief.json, not specs/*.md -- `[completed]`
+- **#361** -- speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.xbrief.json -- `[completed]`
+- **#362** -- speckit Phase 2/3 should write to xbrief/specification.xbrief.json, not specs/*.md -- `[completed]`
 - **#358** -- feat(ux): make AGENTS.md readily available for users who clone directive without the installer -- `[completed]`
 - **#391** -- CHANGELOG v0.20.0 missing Tier 6 strategy/skill conversions (14 issues, 5 PRs) -- `[completed]`
 - **#390** -- deft-directive-setup SKILL.md: deft_version still 0.19.0 -- should be 0.20.0 -- `[completed]`
@@ -45,7 +45,7 @@
 - **#433** -- Greenfield projects can complete speckit with no PRD/SPECIFICATION export and no prompt -- `[completed]`
 - **#434** -- spec_render.py is item-centric and silently drops all speckit narratives -- `[completed]`
 - **#435** -- spec rendering does not aggregate scope vBRIEFs from lifecycle folders (v0.20 model) -- `[completed]`
-- **#436** -- speckit Phase 4 collides with plan.vbrief.json definition (no scope vBRIEFs emitted) -- `[completed]`
+- **#436** -- speckit Phase 4 collides with plan.xbrief.json definition (no scope vBRIEFs emitted) -- `[completed]`
 - **#454** -- v0.20.0 GA blocker: add task issue:ingest for GitHub issue -> vBRIEF ingestion -- `[completed]`
 - **#457** -- v0.20.0 GA blocker: add deft/glossary.md with v0.20 canonical vocabulary -- `[completed]`
 - **#458** -- v0.20.0 GA blocker: align plan.edges[] field names (from/to vs source/target) -- `[completed]`
@@ -58,7 +58,7 @@
 - **#499** -- migrate:vbrief lifecycle folder routing per reconciled status (#499) -- `[completed]`
 - **#500** -- Pre-cutover migration discoverability from project root and AGENTS.md (#500) -- `[completed]`
 - **#505** -- migrate:vbrief LegacyArtifacts mechanism for non-canonical pre-cutover content (#505) -- `[completed]`
-- **#527** -- rollback: empty `vbrief/legacy/` directory left behind after --rollback -- `[completed]`
+- **#527** -- rollback: empty `xbrief/legacy/` directory left behind after --rollback -- `[completed]`
 - **#528** -- rollback: orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename (companion to #527) -- `[completed]`
 - **#529** -- migrate: disagreeing `Traces` tables in `plan.items[].subItems` vs `LegacyArtifacts` (25/36 tasks drift) -- `[completed]`
 - **#530** -- migrate: .premigrate.* not gitignored by default; post-commit recovery path undocumented -- `[completed]`
@@ -67,7 +67,7 @@
 - **#533** -- vendor: deft/vbrief schema is mixed-state v0.5/v0.6 hybrid; vendor canonical v0.6 from deftai/vBRIEF -- `[completed]`
 - **#534** -- refinement: documented `references` shape violates vBRIEF schema (type pattern, uri vs url, undefined id field) -- `[completed]`
 - **#535** -- scope: all `task scope:*` commands fail with file-not-found (path resolved from deft/ CWD, not project root) -- `[completed]`
-- **#536** -- vbrief:validate: D11 rejects schema-conformant x-vbrief/* origins AND exits 1 on warnings-only runs -- `[completed]`
+- **#536** -- vbrief:validate: D11 rejects schema-conformant x-xbrief/* origins AND exits 1 on warnings-only runs -- `[completed]`
 - **#537** -- refinement: Phase 1 Ingest and Phase 3 Reconcile duplicate `task issue:ingest` / `task reconcile:issues`; skill should wrap tasks -- `[completed]`
 - **#538** -- issue:ingest and reconcile:issues query deftai/directive instead of consumer project's GitHub repo (same root cause as #535) -- `[completed]`
 - **#539** -- audit: 5 of 11 task namespaces broken for consumer use (prd:render destructively overwrites deft/PRD.md) -- `[completed]`
@@ -96,7 +96,7 @@
 - **#118** -- CLI code quality sweep -- `[completed]`
 - **#123** -- Change lifecycle gate enforcement -- strengthened /deft:change rule -- `[completed]`
 - **#124** -- Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes -- `[completed]`
-- **#126** -- specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests -- `[completed]`
+- **#126** -- specification.xbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests -- `[completed]`
 - **#131** -- Mac installer post-install text -- `[completed]`
 - **#133** -- Generated vBRIEF files use invalid reference types -- upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191 -- `[completed]`
 - **#134** -- Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets -- `[completed]`
@@ -227,7 +227,7 @@
 - **#57** -- GitHub Actions CI workflow -- Python (ruff, mypy, pytest+cov) + Go (test + 3-platform build); pyproject.toml fail_under raised to 85% -- `[completed]`
 - **#58** -- Stale cross-references to legacy paths -- `[completed]`
 - **#59** -- history/changes/ directory created with README.md -- `[completed]`
-- **#593** -- migrator: ROADMAP.md Completed section items routed to vbrief/proposed/ instead of vbrief/completed/ -- `[completed]`
+- **#593** -- migrator: ROADMAP.md Completed section items routed to xbrief/proposed/ instead of xbrief/completed/ -- `[completed]`
 - **#6** -- Programming languages asked too early / limited options -- `[completed]`
 - **#60** -- pressEnterToExit() Windows-only -- `[completed]`
 - **#62** -- beta branch 50+ unmerged commits -- `[completed]`
@@ -315,7 +315,7 @@
 - **#845** -- feat(scripts,tasks,docs): triage bootstrap + UPGRADING.md + parent Taskfile wiring + quarantine spec + privacy NFR -- `[completed]`
 - **#845** -- feat(scripts,tasks): triage bulk ops + pre-swarm freshness gate -- `[completed]`
 - **#845** -- feat(scripts,tasks): triage cache infra + #583 quarantine on cache path -- `[completed]`
-- **#845** -- feat(scripts,vbrief/schemas): triage candidates.jsonl audit log + JSON schema -- `[completed]`
+- **#845** -- feat(scripts,xbrief/schemas): triage candidates.jsonl audit log + JSON schema -- `[completed]`
 - **#845** -- feat(skills): extend deft-directive-refinement with Phase 0 (cache + triage) -- `[completed]`
 - **#899** -- Installer fails on a clean Windows machine: reinstalls git, then exits without completing -- `[completed]`
 - **#900** -- task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache -- `[completed]`
@@ -343,7 +343,7 @@
 - **#979** -- docs: surface refinement/triage workflow to end users (Phase 0 / cache / ingest) -- `[completed]`
 - **#983** -- feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT -- `[completed]`
 - **#984** -- docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README -- `[completed]`
-- **#985** -- bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/` -- `[completed]`
+- **#985** -- bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `xbrief/proposed/` -- `[completed]`
 - **#988** -- bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready -- `[completed]`
 - **#992** -- feat(installer): adopt .deft/core/ as canonical install layout; ship relocator and contract flip in v0.27 (#992) -- `[completed]`
 - **#1005** -- feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them -- `[completed]`
@@ -388,7 +388,7 @@
 - **#1128** -- feat(triage): triage:queue + audit + show with group-by-state and updated_at within-group (#1128) -- `[completed]`
 - **#1129** -- feat(triage): auto-classification universal rules + plan.policy.triageAutoClassify[] (#1129) -- `[completed]`
 - **#1131** -- feat(triage): typed plan.policy.triageScope[] subscription + denominator cache + triage:scope verb (#1131) -- `[completed]`
-- **#1144** -- feat(eval): govern vbrief/.eval/ tracking + merge=union (#1144) -- `[completed]`
+- **#1144** -- feat(eval): govern xbrief/.eval/ tracking + merge=union (#1144) -- `[completed]`
 - **#1149** -- feat(agents-md): consolidate Wave-1 session-start + skill-routing edits (#1149) -- `[completed]`
 - **#1123** -- feat(triage): triage:defer --resume-on structured grammar + resume-eligible evaluation (#1123) -- `[completed]`
 - **#1124** -- feat(policy): plan.policy.wipCap (default 10) + scope:promote enforcement + D2 default-drift fix (#1124) -- `[completed]`
@@ -422,10 +422,10 @@
 - **#1247** -- bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators -- `[completed]`
 - **#1248** -- enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items) -- `[completed]`
 - **#1250** -- bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1 -- `[completed]`
-- **#1251** -- bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy -- `[completed]`
+- **#1251** -- bug(triage,policy): task triage:bootstrap blanket-ignores xbrief/.eval/, violating #1144 hybrid policy -- `[completed]`
 - **#1269** -- feat(ritual): session sentinel + version-aware welcome-back banner for returning users -- `[completed]`
 - **#1270** -- fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line -- `[completed]`
-- **#1179** -- Installer leaves vbrief/ in partial state -> AGENTS.md pre-cutover guard fires on every fresh install -- `[completed]`
+- **#1179** -- Installer leaves xbrief/ in partial state -> AGENTS.md pre-cutover guard fires on every fresh install -- `[completed]`
 - **#1272** -- Onboarding: detect missing root Taskfile.yml include and either auto-create or loud-fail with the fix -- `[completed]`
 - **#1281** -- deft-install (Go): 19 P1 defects in cmd/deft-install/* and supporting docs (timeouts, discarded errors, error-wrap, doc/code mismatch) -- `[completed]`
 - **#1283** -- Pack-aware slice API -- surface, semantics, mechanisms (design RFC) -- `[completed]`
@@ -480,7 +480,7 @@
 - **#1429** -- v0.39.2 Go-installer vendoring + neutralization deposit -- `[completed]`
 - **#1114** -- enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades -- `[completed]`
 - **#1115** -- docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades -- `[completed]`
-- **#1311** -- bug(scripts/project_render): task project:render leaks vbrief/PROJECT-DEFINITION.vbrief.json.lock; trapped by git add -A on every chore commit -- `[completed]`
+- **#1311** -- bug(scripts/project_render): task project:render leaks xbrief/PROJECT-DEFINITION.xbrief.json.lock; trapped by git add -A on every chore commit -- `[completed]`
 - **#1320** -- framework:check-updates probes consumer origin (statusreport.git) on vendored installs; never detects framework drift -- `[completed]`
 - **#1323** -- Version resolver returns 0.0.0-dev on vendored installs (.deft/core/ without .git): every framework surface reports wrong version -- `[completed]`
 - **#1325** -- VERSION manifest moved from .deft/VERSION to .deft/core/VERSION without migration; legacy file persists as stale source-of-truth -- `[completed]`
@@ -497,7 +497,7 @@
 - **#1454** -- Harden vendored version resolution: guard git to the payload's own root + never persist 0.0.0-dev (salvaged from #1447, credit @dbcall2) -- `[completed]`
 - **#1458** -- fix(deft-install): fail loudly on a dirty working tree by default for --upgrade (--force to bypass) + structured --json signals (#1458) -- `[completed]`
 - **#1463** -- fix(installer): wire git hooks in vendored consumer projects (#1463) -- `[completed]`
-- **#1464** -- fix(installer): installer + relocator deposit selective vbrief/.eval/ ignores and heal the forbidden blanket (#1464, supersedes #1452) -- `[completed]`
+- **#1464** -- fix(installer): installer + relocator deposit selective xbrief/.eval/ ignores and heal the forbidden blanket (#1464, supersedes #1452) -- `[completed]`
 - **#1465** -- fix(events): relocate default event log out of the no-longer-gitignored .deft/ so it stops leaking untracked in consumers (#1465) -- `[completed]`
 - **#1468** -- triage: reconcile/self-heal audit log from proposed/pending/active vBRIEF inventory (#1468) -- `[completed]`
 - **#1474** -- deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction) -- `[completed]`
@@ -683,7 +683,7 @@
 - **#1838** -- Retarget cache/scm/triage integration e2e tests at TS entrypoints -- `[completed]`
 - **#1838** -- Retarget pack/spec/render/codebase CLI tests at the deft-ts dispatcher -- `[completed]`
 - **#1838** -- Retarget pr/swarm/release CLI tests at the deft-ts dispatcher -- `[completed]`
-- **#1838** -- Retarget vbrief/scope/issue/reconcile CLI tests at the deft-ts dispatcher -- `[completed]`
+- **#1838** -- Retarget xbrief/scope/issue/reconcile CLI tests at the deft-ts dispatcher -- `[completed]`
 - **#1838** -- Retarget verify/doctor/policy/session CLI tests at the deft-ts dispatcher -- `[completed]`
 - **#1854** -- Wire + flip every remaining Python gate in tasks/verify.yml + the two root-Taskfile gates -- `[completed]`
 - **#1854** -- Wire + flip the render family (spec:validate, spec:render, prd:render, project:render) -- `[completed]`
@@ -790,7 +790,16 @@
 - **#2083** -- Tear down orphaned TS-vs-Python parity harnesses (#2083) -- `[completed]`
 - **#2083** -- Restore vitest branch-coverage threshold to 85 (post-#2083 follow-up) -- `[completed]`
 - **#1860** -- TS migration Wave 9: full Python removal (#1860 Bucket B delete) -- `[completed]`
+- **#1650** -- Category B corpus namespacing and conformance allow-list removal -- `[completed]`
 - **#1667** -- reconcile:issues lifecycle fix rewrites child planRefs when parent moves -- `[completed]`
 - **#1705** -- Triage summary counts exclude closed upstream issues -- `[completed]`
 - **#1888** -- Wire task triage:* colon verbs to triage-actions subcommands -- `[completed]`
+- **#2107** -- Adopt xBRIEF v0.8 schema; pin types and validator -- `[completed]`
+- **#2108** -- TS-native semantic transforms and legacy-layout detector -- `[completed]`
+- **#2109** -- Maintainer-repo mechanical vbrief->xbrief rename plus drift gate -- `[completed]`
+- **#2110** -- Consumer migration surface: migrate:xbrief verb, update trigger, doctor signpost -- `[completed]`
+- **#715** -- Extension round-trip conformance fixtures and validator preservation -- `[completed]`
+- **#2126** -- Vendored task dispatch: route straggler _ts-build + direct node calls through :engine:* (fix #2126) -- `[completed]`
+- **#2134** -- Fix Go installer test and next-steps for xbrief layout (fixes master CI red) -- `[completed]`
+- **#2135** -- Restore branch coverage above 85% threshold -- `[completed]`
 

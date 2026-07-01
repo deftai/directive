@@ -1,10 +1,11 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { validateProjectDefinition } from "../vbrief-validate/project-definition.js";
 import {
   acknowledgeProjectDefinitionStaleness,
+  main as projectRenderMain,
   renderProjectDefinition,
 } from "./project-render.js";
 
@@ -231,5 +232,57 @@ describe("project-render staleness acknowledgement (#640)", () => {
     expect(flags.some((f) => f.includes("Architecture migration story"))).toBe(false);
 
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("project-render main() --project-root layout resolver (#2139)", () => {
+  const tmpDirs: string[] = [];
+  afterEach(() => {
+    for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  function makeLifecycleDirs(root: string, layoutDir: string): string {
+    const dir = join(root, layoutDir);
+    for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(dir, f), { recursive: true });
+    }
+    const suffix = layoutDir === "xbrief" ? ".xbrief.json" : ".vbrief.json";
+    writeFileSync(
+      join(dir, `PROJECT-DEFINITION${suffix}`),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6", created: "2026-07-01T00:00:00Z" },
+        plan: { title: "Test", status: "running", narratives: {}, items: [], metadata: {} },
+      }),
+      "utf8",
+    );
+    return dir;
+  }
+
+  it("resolves xbrief/ layout via --project-root on migrated tree (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-xbrief-"));
+    tmpDirs.push(root);
+    makeLifecycleDirs(root, "xbrief");
+    const exit = projectRenderMain(["--project-root", root]);
+    expect(exit).toBe(0);
+  });
+
+  it("falls back to vbrief/ via --project-root on legacy tree (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-vbrief-"));
+    tmpDirs.push(root);
+    makeLifecycleDirs(root, "vbrief");
+    const exit = projectRenderMain(["--project-root", root]);
+    expect(exit).toBe(0);
+    expect(readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8")).toContain(
+      "vBRIEFInfo",
+    );
+  });
+
+  it("--acknowledge-staleness resolves xbrief/ layout via --project-root (#2139)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-ack-xbrief-"));
+    tmpDirs.push(root);
+    makeLifecycleDirs(root, "xbrief");
+    projectRenderMain(["--project-root", root]);
+    const exit = projectRenderMain(["--acknowledge-staleness", "--project-root", root]);
+    expect(exit).toBe(0);
   });
 });

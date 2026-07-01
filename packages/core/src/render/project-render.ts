@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { hasArtifactSuffix } from "../layout/resolve.js";
+import { join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import {
   deriveRegistryItemStatus,
@@ -330,11 +330,33 @@ export function acknowledgeProjectDefinitionStaleness(
 export function main(argv: readonly string[]): number {
   const acknowledge = argv[0] === "--acknowledge-staleness";
   const rest = acknowledge ? argv.slice(1) : argv;
-  if (rest.length > 1) {
-    process.stderr.write("Usage: project_render.py [--acknowledge-staleness] [vbrief_dir]\n");
+
+  let projectRoot: string | undefined;
+  const positional: string[] = [];
+  for (let i = 0; i < rest.length; i += 1) {
+    const arg = rest[i] as string;
+    if (arg === "--project-root") {
+      projectRoot = rest[i + 1] as string | undefined;
+      i += 1;
+    } else if (arg.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
+    } else {
+      positional.push(arg);
+    }
+  }
+
+  if (positional.length > 1) {
+    process.stderr.write(
+      "Usage: project-render [--acknowledge-staleness] [--project-root <dir>] [vbrief_dir]\n",
+    );
     return 2;
   }
-  const vbriefDir = rest[0] ?? "vbrief";
+
+  const vbriefDir =
+    projectRoot !== undefined
+      ? resolveLifecycleRoot(resolve(projectRoot))
+      : (positional[0] ?? "vbrief");
+
   const [ok, message] = acknowledge
     ? acknowledgeProjectDefinitionStaleness(vbriefDir)
     : renderProjectDefinition(vbriefDir);

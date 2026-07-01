@@ -25,4 +25,4 @@ tasks:
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'reconcile-issues --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+          ENGINE_CMD: 'reconcile-issues --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

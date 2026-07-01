@@ -26,7 +26,7 @@ tasks:
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'project-render "{{.USER_WORKING_DIR}}/vbrief"'
+          ENGINE_CMD: 'project-render --project-root "{{.USER_WORKING_DIR}}"'
 
   ack-staleness:
     desc: >-
@@ -38,7 +38,7 @@ tasks:
     cmds:
       - task: :engine:invoke
         vars:
-          ENGINE_CMD: 'project-render --acknowledge-staleness "{{.USER_WORKING_DIR}}/vbrief"'
+          ENGINE_CMD: 'project-render --acknowledge-staleness --project-root "{{.USER_WORKING_DIR}}"'
 
   export-spec:
     desc: >-

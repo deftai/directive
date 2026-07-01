@@ -1,0 +1,47 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope xBRIEF for GitHub issue #2139"
+  },
+  "plan": {
+    "title": "Route remaining task fragments through xbrief layout resolver",
+    "status": "completed",
+    "narratives": {
+      "Description": "After the vbrief/->xbrief/ rename (#2109), task fragments for reconcile-issues, issue-ingest, project-render, and roadmap-render still hardcoded the vanished vbrief/ directory path, causing all four verbs to fail on migrated trees. This fix routes each verb through the layout resolver (prefer xbrief/, fall back to vbrief/ for unmigrated trees), consistent with the #2132 spec/prd fix.",
+      "Acceptance": "task reconcile:issues, task issue:ingest, task project:render, and task roadmap:render all resolve xbrief/ on migrated trees and no longer error with 'vbrief directory not found'. Release dry-run passes cleanly."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Update reconcile-issues and issue-ingest to derive vbriefDir from projectRoot via layout resolver",
+        "status": "proposed"
+      },
+      {
+        "id": "2",
+        "title": "Add --project-root support to roadmap-render and project-render CLI entries",
+        "status": "proposed"
+      },
+      {
+        "id": "3",
+        "title": "Update task fragments to pass --project-root instead of hardcoded vbrief/ paths",
+        "status": "proposed"
+      },
+      {
+        "id": "4",
+        "title": "Add tests for --project-root on migrated xbrief and legacy vbrief trees",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2139",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2139: Route remaining task fragments through xbrief layout resolver"
+      }
+    ],
+    "metadata": {
+      "completedAt": "2026-07-01T19:04:02Z"
+    },
+    "updated": "2026-07-01T19:04:02Z"
+  }
+}
