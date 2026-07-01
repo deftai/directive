@@ -42,13 +42,13 @@ Use this summary to evaluate whether article ideas are genuinely novel or alread
 
 **Directive** is a development framework that combines indexed documentation, task automation, and AI-assisted workflows.
 
-**main.md (front door)** — Central entry/index for a Karpathy-wiki-style set of lazy-loaded markdown rules organized into sections: `coding/`, `languages/`, `interfaces/`, `tools/`, `scm/`, `contracts/`, `swarm/`, `strategies/`, `vbrief/`, and `templates/`. Agents load only what's relevant.
+**main.md (front door)** — Central entry/index for a Karpathy-wiki-style set of lazy-loaded markdown rules organized into sections: `coding/`, `languages/`, `interfaces/`, `tools/`, `scm/`, `contracts/`, `swarm/`, `strategies/`, `xbrief/`, and `templates/`. Agents load only what's relevant.
 
 **Taskfiles (go-task)** — Single entrypoint for all repeatable operations. Core flows: `task dev`, `task test`, `task build`, `task release`. Composed via `deps`; logic lives in scripts/binaries. Caching via `sources/generates + method: checksum`. Namespaced tasks (`docker:build`, `db:migrate`). Every user-facing task has a `desc`; internal wiring marked `internal: true`.
 
-**vbrief** — Structured JSON artifacts in `./vbrief/` covering current state and forward planning: `plan.vbrief.json` (todos/progress), `specification.vbrief.json` (project specs), `playbook-{name}.vbrief.json` (reusable playbooks), `continue.vbrief.json` (interruption recovery). Drives the full lifecycle: planning → specification → execution → checkpointing → resumption. Refreshed via `deft-sync` at session start.
+**xbrief** — Structured JSON artifacts in `./xbrief/` covering current state and forward planning: `plan.xbrief.json` (todos/progress), `specification.xbrief.json` (project specs), `playbook-{name}.xbrief.json` (reusable playbooks), `continue.xbrief.json` (interruption recovery). Drives the full lifecycle: planning → specification → execution → checkpointing → resumption. Refreshed via `deft-sync` at session start.
 
-**Skills** — Versioned, reusable workflows triggered by keywords: `deft-setup` (bootstrap), `deft-build` (implement from spec), `deft-sync` (refresh framework + vbrief), `deft-pre-pr` (quality loop), `deft-review-cycle` (PR bot feedback), `deft-swarm` (parallel agent orchestration), `deft-roadmap-refresh` (issue triage), `deft-interview` (structured Q&A). Skills chain together and encode lessons from prior runs.
+**Skills** — Versioned, reusable workflows triggered by keywords: `deft-setup` (bootstrap), `deft-build` (implement from spec), `deft-sync` (refresh framework + xbrief), `deft-pre-pr` (quality loop), `deft-review-cycle` (PR bot feedback), `deft-swarm` (parallel agent orchestration), `deft-roadmap-refresh` (issue triage), `deft-interview` (structured Q&A). Skills chain together and encode lessons from prior runs.
 
 ## When to Use
 
@@ -77,7 +77,7 @@ Use this summary to evaluate whether article ideas are genuinely novel or alread
 Look for lessons applicable to how directive itself is built, structured, and maintained:
 
 - ! Skills and strategies: are there new skills, strategies, or workflow patterns directive should adopt?
-- ! Framework architecture: does this suggest changes to lazy loading, vBRIEF, AGENTS.md structure, or the patterns/ directory?
+- ! Framework architecture: does this suggest changes to lazy loading, xBRIEF, AGENTS.md structure, or the patterns/ directory?
 - ! Agent safety and reliability: does this reveal new failure modes or defenses directive should encode?
 - ! Tooling: does this suggest new tasks, task patterns, or SCM conventions directive should add?
 - ~ Naming, directory structure, or documentation conventions worth adopting

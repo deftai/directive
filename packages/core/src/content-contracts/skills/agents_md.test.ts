@@ -25,7 +25,7 @@ describe("test_agents_md", () => {
 
   it("agents_md_before_code_changes_must_markers", () => {
     const text = readAgentsMd();
-    expect(text).toContain("! Check `./vbrief/` lifecycle folders");
+    expect(text).toContain("! Check `./xbrief/` lifecycle folders");
   });
 
   it("agents_md_pre_implementation_anti_pattern", () => {

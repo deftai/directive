@@ -64,16 +64,16 @@ describe("test_probe_skill", () => {
       true,
     );
   });
-  it("probe_skill_forbids_premature_vbrief_writes", () => {
+  it("probe_skill_forbids_premature_xbrief_writes", () => {
     const text = readRepoFile(_PROBE_PATH);
     const guard_region = text.split("## Output")[0];
-    expect(guard_region.toLowerCase()).toContain("vbrief");
+    expect(guard_region.toLowerCase()).toContain("xbrief");
     expect(guard_region.includes("⊗") || guard_region.includes("MUST NOT")).toBe(true);
   });
   it("probe_skill_forbids_premature_plan_updates", () => {
     const text = readRepoFile(_PROBE_PATH);
     const guard_region = text.split("## Output")[0];
-    expect(guard_region).toContain("plan.vbrief.json");
+    expect(guard_region).toContain("plan.xbrief.json");
   });
   it("probe_skill_forbids_premature_github_comments", () => {
     const text = readRepoFile(_PROBE_PATH);

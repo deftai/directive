@@ -21,7 +21,7 @@ pipeline; it is two connected phases that loop.
 A project starts with a **Concept**. That concept passes through **Strategy Analysis** — an
 iterative loop of *looking* at the terrain and *deep thinking* about the approach — until it
 produces a **Specification + Artifacts** (the project definition and the first proposed scope
-vBRIEFs).
+xBRIEFs).
 
 Strategy analysis is deliberately a loop, not a step: you can map, then probe, then discuss,
 then map again before the spec stabilizes. It is also re-entered later "as needed" when a piece
@@ -56,7 +56,7 @@ framework:
 | **Look** | Mapping and exploring the terrain — [`strategies/map.md`](../strategies/map.md) (`/deft:run:map`), codebase structure. |
 | **Deep Think** | Adversarial / alignment analysis — [`strategies/probe.md`](../strategies/probe.md), [`strategies/discuss.md`](../strategies/discuss.md), [`strategies/research.md`](../strategies/research.md), and `deft-directive-gh-arch`. |
 | **Strategy Analysis** | The preparatory strategies cycling through the [strategy chaining gate](../strategies/README.md) before spec generation. |
-| **Spec / Specification + Artifacts** | Output of the spec-generating strategies (interview, speckit, …): `vbrief/PROJECT-DEFINITION.vbrief.json` plus dated `vbrief/proposed/` scope vBRIEFs. |
+| **Spec / Specification + Artifacts** | Output of the spec-generating strategies (interview, speckit, …): `xbrief/PROJECT-DEFINITION.xbrief.json` plus dated `xbrief/proposed/` scope xBRIEFs. |
 | **Resume / Session Start** | The session-start ritual — `task session:start` and the `task triage:welcome` "what's next" one-liner. |
 | **Triage + Refine/Rethink** | The triage cache and refinement loop — `task triage:*`, [`deft-directive-triage`](../skills/deft-directive-triage/SKILL.md), [`deft-directive-refinement`](../skills/deft-directive-refinement/SKILL.md). "Rethink" = escalate back to Strategy Analysis. |
 | **Slice** | Vertical-slice decomposition — [`deft-directive-gh-slice`](../skills/deft-directive-gh-slice/SKILL.md) and [`deft-directive-decompose`](../skills/deft-directive-decompose/SKILL.md). |

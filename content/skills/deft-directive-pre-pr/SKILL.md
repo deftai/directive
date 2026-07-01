@@ -51,8 +51,8 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 ! Re-read each changed file end-to-end (`git diff master --name-only` to get the list).
 
 - ! Read every changed file in full -- do not skim or skip sections
-- ! Compare each file against its scope vBRIEF acceptance criteria in `vbrief/active/`
-- ~ If changed files include `vbrief/PROJECT-DEFINITION.vbrief.json`, a configured `codebase-map` provider artifact, or `.planning/codebase/MAP.md`, read the MAP and canonical metadata together. The MAP is orientation; `plan.architecture.codeStructure` and provider artifacts remain authoritative.
+- ! Compare each file against its scope xBRIEF acceptance criteria in `xbrief/active/`
+- ~ If changed files include `xbrief/PROJECT-DEFINITION.xbrief.json`, a configured `codebase-map` provider artifact, or `.planning/codebase/MAP.md`, read the MAP and canonical metadata together. The MAP is orientation; `plan.architecture.codeStructure` and provider artifacts remain authoritative.
 - ! When adding a `!` or `⊗` rule that prohibits a specific command, pattern, or behavior, search the same file for any `~`, `≉`, or prose that recommends or permits the same command/pattern -- resolve all contradictions in the same commit before pushing
 - ! When strengthening a rule (e.g. upgrading `~` to `!`), grep for the term in the full file and verify no weaker-strength duplicate remains
 - ~ Note any inconsistencies, missing RFC2119 markers, stale cross-references, or incomplete sections
@@ -80,7 +80,7 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 
 ### Phase 3b -- Auto-Render Exports
 
-! If `vbrief/specification.vbrief.json` exists, refresh rendered exports before the diff check:
+! If `xbrief/specification.xbrief.json` exists, refresh rendered exports before the diff check:
 
 - ! Run `task prd:render` if `PRD.md` already exists in the project root
 - ! Run `task spec:render` if `SPECIFICATION.md` already exists and does not contain `<!-- deft:deprecated-redirect -->`

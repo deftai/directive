@@ -75,7 +75,7 @@ describe("test_allocation_context_schema.py", () => {
   it("test_worked_example_lists_full_cohort", () => {
     const m = templateText.match(/- cohort_vbriefs: \[(.+?)\]/s);
     expect(m).not.toBeNull();
-    const entries = (m?.[1] ?? "").split(",").filter((e) => e.includes(".vbrief.json"));
+    const entries = (m?.[1] ?? "").split(",").filter((e) => e.includes(".xbrief.json"));
     expect(entries.length).toBeGreaterThanOrEqual(2);
   });
 });

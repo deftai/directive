@@ -51,7 +51,7 @@ describe("test_emit_hints", () => {
     "strategies/speckit.md",
   ])("reference_is_near_emission_step %s", (strategy_rel) => {
     const text = readRepoFile(strategy_rel);
-    const emission_markers = ["vbrief/proposed/", "vbrief/pending/", "proposed/", "pending/"];
+    const emission_markers = ["xbrief/proposed/", "xbrief/pending/", "proposed/", "pending/"];
     const first_emission = Math.min(emission_markers.every((m) => text.indexOf(m)));
     expect(first_emission).not.toBe(-1);
     const link_idx = text.indexOf(_HELPER_LINK);

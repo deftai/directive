@@ -78,7 +78,7 @@ Priority ordering: Case G (byte-different content) always wins over Case K (inst
 Check both of these files at `../` (the user's project root), using the same
 rule implemented by `scripts/_precutover.py`:
 
-- `../SPECIFICATION.md` — exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: vbrief/specification.vbrief.json -->`, and `../vbrief/specification.vbrief.json` plus all five lifecycle folders exist.
+- `../SPECIFICATION.md` — exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `../xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 - `../PROJECT.md` — exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
 
 - If **either** holds (real pre-v0.20 content present), treat as **pre-cutover** — jump to Case H ("Pre-cutover migration") in Step 3.
@@ -86,7 +86,7 @@ rule implemented by `scripts/_precutover.py`:
 
 ### 2d. Partial migration?
 
-Check whether `../vbrief/` exists. If it does, inspect for the 5 lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`). If `vbrief/` exists but any lifecycle subfolder is missing, treat as **partial migration** — jump to Case I ("Partial migration repair") in Step 3.
+Check whether `../xbrief/` exists. If it does, inspect for the 5 lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`). If `xbrief/` exists but any lifecycle subfolder is missing, treat as **partial migration** — jump to Case I ("Partial migration repair") in Step 3.
 
 ### 2e. Everything clean
 
@@ -133,7 +133,7 @@ For the version-by-version context of a big jump, see the [big-jump triage entry
 
 ### Case I — Partial migration repair
 
-1. Tell the user: "Your project has a partial vBRIEF layout. Missing lifecycle folders: <list the absent ones>. Complete the layout via the frozen v0.59.0 migrator (see UPGRADING.md § Frozen pre-v0.20 document-model migration) or create the missing folders manually after migrating narratives."
+1. Tell the user: "Your project has a partial xBRIEF layout. Missing lifecycle folders: <list the absent ones>. Complete the layout via the frozen v0.59.0 migrator (see UPGRADING.md § Frozen pre-v0.20 document-model migration) or create the missing folders manually after migrating narratives."
 2. Run `task migrate:preflight` to confirm state. If the operator has v0.59.0 deposited, they may run `task migrate:vbrief` there; otherwise point at the frozen path. Re-run Step 2 afterwards.
 3. If the user declines, point them at [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) §Troubleshooting and stop.
 
@@ -167,8 +167,12 @@ After a Deft project is set up, the CLI runs a periodic, read-only remote-versio
 ⚠ Upstream directive v0.24.0 is available (you are on v0.23.0). Run `task framework:check-updates` for details; follow `skills/deft-directive-sync/SKILL.md` Phase 2 to update.
 ```
 
-The banner is informational only: it never blocks CI, never prompts in non-interactive sessions, and never triggers a second `Continue anyway?` prompt on top of the existing #410 marker-drift gate. Re-notification cadence is per-tag -- once you dismiss `v0.24.0` the banner stays silent for 24 hours, but a fresh `v0.24.1` re-notifies immediately. State is persisted to `vbrief/.deft-remote-probe.json`; per-`run`-invocation dedup prevents the same banner from stacking when chained commands (e.g. `cmd_install -> cmd_project -> cmd_spec`) all hit the gate.
+The banner is informational only: it never blocks CI, never prompts in non-interactive sessions, and never triggers a second `Continue anyway?` prompt on top of the existing #410 marker-drift gate. Re-notification cadence is per-tag -- once you dismiss `v0.24.0` the banner stays silent for 24 hours, but a fresh `v0.24.1` re-notifies immediately. State is persisted to `xbrief/.deft-remote-probe.json`; per-`run`-invocation dedup prevents the same banner from stacking when chained commands (e.g. `cmd_install -> cmd_project -> cmd_spec`) all hit the gate.
 
 For a synchronous interactive probe -- handy when you want to verify your update path before pushing -- run `task framework:check-updates`. Pass `-- --force` to bypass the 24-hour throttle and `-- --json` to get a machine-parseable payload (useful in CI dashboards). Exit code is `1` only when the probe positively reports BEHIND; every other status (`OK` / `NO-UPSTREAM` / `NO-TAGS` / `ERROR` / `SKIPPED`) returns `0`.
 
 Air-gapped or strict-egress environments can opt out of the probe entirely by setting `DEFT_NO_NETWORK=1` in the calling shell -- the probe short-circuits before any subprocess call, the gate emits no banner, and no `framework:remote-drift` event is recorded. The subprocess timeout (default 5 seconds) is overridable via `DEFT_REMOTE_PROBE_TIMEOUT` for slow upstream remotes.
+
+<!-- xbrief-backcompat-2111 -->
+
+> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.

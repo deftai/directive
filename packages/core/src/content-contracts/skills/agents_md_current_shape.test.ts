@@ -10,7 +10,7 @@ const refinementText = readRepoFile("skills/deft-directive-refinement/SKILL.md")
 const REQUIRED_RULE_LINES = [
   "! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.",
   "! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.",
-  "! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there \u2014 following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).",
+  "! Before stating an umbrella or epic's current status (what is done, what blocks, wave order), an agent MUST fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there \u2014 following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066).",
   "~ Pass-N skills SHOULD update the current-shape comment as their Phase 4 step.",
   "\u2297 Do NOT delete prior amendment comments when updating the current-shape comment \u2014 they remain the audit trail.",
   "\u2297 Do NOT replace the current-shape comment with a fresh comment \u2014 it must be edited in place so its permalink is stable.",

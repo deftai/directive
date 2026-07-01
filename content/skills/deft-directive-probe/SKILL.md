@@ -36,10 +36,10 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 While probe completion criteria (below) are NOT met:
 
-- ⊗ Write or update any vBRIEF file (`vbrief/proposed/`, `vbrief/active/`, plan items, narratives)
-- ⊗ Update `vbrief/plan.vbrief.json` or register probe artifacts
+- ⊗ Write or update any xBRIEF file (`xbrief/proposed/`, `xbrief/active/`, plan items, narratives)
+- ⊗ Update `xbrief/plan.xbrief.json` or register probe artifacts
 - ⊗ Post GitHub completion comments, close issues, or open PRs on behalf of the probe session
-- ⊗ Produce probe output markdown files instead of the canonical vBRIEF contract
+- ⊗ Produce probe output markdown files instead of the canonical xBRIEF contract
 
 ! Read existing context and interrogate only — artifacts land in the Output phase after completion.
 
@@ -93,21 +93,21 @@ Walk the decision tree depth-first. For each unresolved branch:
 
 ! Before writing output artifacts, follow the [Preparatory Guard](../../strategies/artifact-guards.md#preparatory-guard-light).
 
-`{scope}` is the project name from `PROJECT-DEFINITION.vbrief.json`, or the feature/component name if probing a sub-scope. Use the same value consistently throughout the session.
+`{scope}` is the project name from `PROJECT-DEFINITION.xbrief.json`, or the feature/component name if probing a sub-scope. Use the same value consistently throughout the session.
 
-- ! Produce a `vbrief/proposed/{scope}-probe.vbrief.json` scope vBRIEF with three mandatory narratives:
+- ! Produce a `xbrief/proposed/{scope}-probe.xbrief.json` scope xBRIEF with three mandatory narratives:
   - `LockedDecisions` — what was resolved and why
   - `SurfacedRisks` — concerns raised, even if not fully resolved
   - `DeferredDecisions` — explicitly acknowledged items with justification
 - ! Each entry includes: **question asked**, **answer given**, **status** (locked / deferred / risk-accepted)
-- ! Persist significant decisions as vBRIEF narratives on the relevant plan items
-- ⊗ Write probe output to a hand-authored markdown file — use vBRIEF narratives for machine-consumable downstream work
+- ! Persist significant decisions as xBRIEF narratives on the relevant plan items
+- ⊗ Write probe output to a hand-authored markdown file — use xBRIEF narratives for machine-consumable downstream work
 
 ## Chaining Gate
 
-After the probe is complete and `vbrief/proposed/{scope}-probe.vbrief.json` is written:
+After the probe is complete and `xbrief/proposed/{scope}-probe.xbrief.json` is written:
 
-- ! Register artifacts in `./vbrief/plan.vbrief.json` (`completedStrategies`, `artifacts`)
+- ! Register artifacts in `./xbrief/plan.xbrief.json` (`completedStrategies`, `artifacts`)
 - ! Return to [interview.md Chaining Gate](../../strategies/interview.md#chaining-gate) when invoked from the interview flow
 - ! Locked decisions, surfaced risks, and deferred decisions MUST flow into subsequent strategies and spec generation
 - ⊗ End the session after probe without returning to the chaining gate or the invoking strategy's next-step menu

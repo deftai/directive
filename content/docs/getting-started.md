@@ -1,6 +1,6 @@
 # Getting Started with Deft Directive
 
-Deft Directive is a Taskfile-first framework for AI-assisted software work. It combines agent guidance, deterministic gates, vBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide walks through installation, preferences, project setup, and the first scope workflow.
+Deft Directive is a Taskfile-first framework for AI-assisted software work. It combines agent guidance, deterministic gates, xBRIEF lifecycle metadata, installer/doctor handoff, and cache-backed backlog workflows. This guide walks through installation, preferences, project setup, and the first scope workflow.
 
 > **Note**: This guide is an orientation layer. For a single-picture mental model of how Directive turns an idea into shipped work, see [the Directive lifecycle](./directive-lifecycle.md); for command behavior, see [commands.md](../commands.md); for current architecture details, see [ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
 
@@ -62,7 +62,7 @@ deft-install --yes --upgrade --repo-root . --json
 ```
 
 Those consumer flows intentionally project Deft-managed files into your project
-root (`AGENTS.md`, skills pointers, gitignore entries, vbrief scaffolding, and
+root (`AGENTS.md`, skills pointers, gitignore entries, xbrief scaffolding, and
 related guard configuration). Framework maintainers working inside a
 `deftai/directive` checkout should instead follow
 [`CONTRIBUTING.md`](../../CONTRIBUTING.md) and use `--maintainer`; maintainer setup
@@ -78,7 +78,7 @@ checks tools without rewriting consumer-managed files.
 
 ## Working an existing backlog
 
-If you are adopting Deft on a project that already has an issue tracker (existing repo, brownfield migration, an upstream bug list that has been accumulating), you do not have to start from an empty `vbrief/proposed/`. The refinement skill's **Phase 0 triage workflow** lets you walk an existing backlog locally, decide what to keep, and let only the **accepted** items land in `vbrief/proposed/`. Trigger words: **"triage"**, **"work the cache"**, **"pre-ingest"**, **"action menu"**.
+If you are adopting Deft on a project that already has an issue tracker (existing repo, brownfield migration, an upstream bug list that has been accumulating), you do not have to start from an empty `xbrief/proposed/`. The refinement skill's **Phase 0 triage workflow** lets you walk an existing backlog locally, decide what to keep, and let only the **accepted** items land in `xbrief/proposed/`. Trigger words: **"triage"**, **"work the cache"**, **"pre-ingest"**, **"action menu"**.
 
 ### Step 1 — Scoped first populate
 
@@ -103,7 +103,7 @@ The unbounded no-flag form remains the default for small backlogs. For real-size
 After the cache is populated, ask your agent to triage. For each cached candidate the agent presents a numbered action menu and waits for your decision:
 
 ```
-1. Accept         -- task triage:accept <issue>          (writes proposed/ vBRIEF + audit-log entry)
+1. Accept         -- task triage:accept <issue>          (writes proposed/ xBRIEF + audit-log entry)
 2. Reject         -- task triage:reject <issue>          (audit-log entry only; closes the upstream issue)
 3. Defer          -- task triage:defer <issue>           (non-terminal; resurfaces on the next pass)
 4. Needs-AC       -- task triage:needs-ac <issue>        (non-terminal; flags missing acceptance criteria)
@@ -112,19 +112,19 @@ After the cache is populated, ask your agent to triage. For each cached candidat
 7. Back
 ```
 
-Only **accepted** items become scope vBRIEFs in `vbrief/proposed/`. Rejected, deferred, and duplicate decisions are recorded in the audit log so the backlog stays focused. Bulk verbs (`task triage:bulk-accept` / `bulk-reject` / `bulk-defer` / `bulk-needs-ac`) handle predictable patterns (e.g. "reject every `wontfix`-labelled candidate") without walking the menu N times.
+Only **accepted** items become scope xBRIEFs in `xbrief/proposed/`. Rejected, deferred, and duplicate decisions are recorded in the audit log so the backlog stays focused. Bulk verbs (`task triage:bulk-accept` / `bulk-reject` / `bulk-defer` / `bulk-needs-ac`) handle predictable patterns (e.g. "reject every `wontfix`-labelled candidate") without walking the menu N times.
 
 ### Step 3 — Understand the three-tier model
 
 Phase 0 reads and writes three distinct stores; they never collapse into one:
 
 - **Cache** — `.deft-cache/github-issue/<owner>/<repo>/<N>/` is the local mirror of fetched issue bodies, labels, and state. Populated by `task cache:fetch-all`; read via `task cache:get -- github-issue OWNER/NAME/<N>`. The directory is gitignored — your local mirror is private to your machine. The cache is the **read** surface for triage so decisions are reproducible across re-runs (no live `gh issue view` per decision).
-- **Audit log** — `vbrief/.eval/candidates.jsonl` is an append-only JSONL recording every candidate you have ever seen plus the action taken (`accept | reject | defer | needs-ac | mark-duplicate`) and a timestamp. Re-running triage against the same cache short-circuits items that already have a terminal entry, so deferred / Needs-AC items resurface and rejected ones do not.
-- **Accepted backlog** — `vbrief/proposed/` is the standard scope-vBRIEF lifecycle folder. **Writes flow only through `task triage:accept`**, which delegates the actual vBRIEF authoring to `task issue:ingest` so slug, reference, and schema rules stay in one place. Hand-authored proposed/ vBRIEFs are still allowed; what changed is that triage no longer writes there silently.
+- **Audit log** — `xbrief/.eval/candidates.jsonl` is an append-only JSONL recording every candidate you have ever seen plus the action taken (`accept | reject | defer | needs-ac | mark-duplicate`) and a timestamp. Re-running triage against the same cache short-circuits items that already have a terminal entry, so deferred / Needs-AC items resurface and rejected ones do not.
+- **Accepted backlog** — `xbrief/proposed/` is the standard scope-xBRIEF lifecycle folder. **Writes flow only through `task triage:accept`**, which delegates the actual xBRIEF authoring to `task issue:ingest` so slug, reference, and schema rules stay in one place. Hand-authored proposed/ xBRIEFs are still allowed; what changed is that triage no longer writes there silently.
 
 ### Step 4 — Why this avoids the GraphQL drain
 
-The shared GitHub GraphQL bucket (5000 points/hour per identity) is the operational bottleneck under multi-agent / shared-identity workflows, not the REST `core` bucket. The triage cache is **REST-backed** (`gh api` reads, not `gh issue view --json`), and the populate uses **batched delays** plus automatic 429 retries with the upstream `Retry-After` header. There is no live `gh issue view` per accept / reject / defer decision — every decision reads from the local cache. This is why the scoped flags exist: they let you keep the populate inside the REST budget and well clear of the GraphQL bottleneck (see [#976](https://github.com/deftai/directive/issues/976) for the recurrence pattern). Refresh the cache on demand with `task cache:fetch-all` (idempotent — fresh entries are skipped) or audit drift against `vbrief/active/*.vbrief.json` with `task triage:refresh-active`.
+The shared GitHub GraphQL bucket (5000 points/hour per identity) is the operational bottleneck under multi-agent / shared-identity workflows, not the REST `core` bucket. The triage cache is **REST-backed** (`gh api` reads, not `gh issue view --json`), and the populate uses **batched delays** plus automatic 429 retries with the upstream `Retry-After` header. There is no live `gh issue view` per accept / reject / defer decision — every decision reads from the local cache. This is why the scoped flags exist: they let you keep the populate inside the REST budget and well clear of the GraphQL bottleneck (see [#976](https://github.com/deftai/directive/issues/976) for the recurrence pattern). Refresh the cache on demand with `task cache:fetch-all` (idempotent — fresh entries are skipped) or audit drift against `xbrief/active/*.xbrief.json` with `task triage:refresh-active`.
 
 Full command reference for every triage and cache verb lives in [`commands.md` § Backlog triage & cache tasks](../commands.md#backlog-triage--cache-tasks); the canonical agent-facing description of the workflow lives in `skills/deft-directive-refinement/SKILL.md` Phase 0.
 

@@ -67,7 +67,7 @@ const _SWEEP_STEP_TOKENS = [
   "Stage 2",
   "Interactive path",
   "Headless / multi-worker path",
-  "task vbrief:validate",
+  "task xbrief:validate",
   "#1485",
   "#1487",
 ];
@@ -191,9 +191,9 @@ const _PHASE6_HEADER = "## Phase 6 — Close";
 const _PHASE6_END = "## Crash Recovery";
 const _PHASE6_LIFECYCLE_COMMIT_TOKENS = [
   "task scope:complete",
-  "chore(vbrief): complete <slugs> post-merge",
+  "chore(xbrief): complete <slugs> post-merge",
   "git push origin <configured-base-branch>",
-  "git add -A vbrief/",
+  "git add -A xbrief/",
   "git merge --ff-only origin/<configured-base-branch>",
   "non-fast-forward",
   "check_vbrief_lifecycle_sync",
@@ -441,7 +441,7 @@ describe("test_swarm_skill", () => {
     "Stage 2",
     "Interactive path",
     "Headless / multi-worker path",
-    "task vbrief:validate",
+    "task xbrief:validate",
     "#1485",
     "#1487",
   ])("swarm_phase6_cohort_sweep_token_present %s", (token) => {
@@ -647,9 +647,9 @@ describe("test_swarm_skill", () => {
   });
   it.each([
     "task scope:complete",
-    "chore(vbrief): complete <slugs> post-merge",
+    "chore(xbrief): complete <slugs> post-merge",
     "git push origin <configured-base-branch>",
-    "git add -A vbrief/",
+    "git add -A xbrief/",
     "git merge --ff-only origin/<configured-base-branch>",
     "non-fast-forward",
     "check_vbrief_lifecycle_sync",
@@ -677,7 +677,7 @@ describe("test_swarm_skill", () => {
     const anti_block = text.slice(anti_start, undefined);
     let found = false;
     for (const line of anti_block.split("\n")) {
-      if (line.includes("#1358") && line.includes("chore(vbrief)")) {
+      if (line.includes("#1358") && line.includes("chore(xbrief)")) {
         expect(line).toContain("⊗");
         found = true;
         break;

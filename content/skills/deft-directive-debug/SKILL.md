@@ -58,8 +58,8 @@ NO CONCLUSIONS WITHOUT EVIDENCE THAT CLOSES
 The investigation is a sustained posture across turns, not a one-shot answer.
 
 - ! On entry, create an investigation directory `.tmp/investigations/<id>/`
-  (gitignored, ephemeral) and write the ledger `investigation.vbrief.json` from
-  `docs/reference/forensic-research/templates/investigation.vbrief.json`. Stamp
+  (gitignored, ephemeral) and write the ledger `investigation.xbrief.json` from
+  `docs/reference/forensic-research/templates/investigation.xbrief.json`. Stamp
   `plan.status = "running"`.
 - ! While MODE is active, every turn appends evidence to the ledger before any
   narrative. The ledger is the source of truth; chat is a view of it.
@@ -71,7 +71,7 @@ The investigation is a sustained posture across turns, not a one-shot answer.
 
 ## The Claim Ledger
 
-The ledger is a thin vBRIEF 0.6 profile (`forensic-research-v1`):
+The ledger is a thin xBRIEF 0.6 profile (`forensic-research-v1`):
 
 - ! Top-level `plan.items[]` are **branches** (competing theories). Each branch's
   child `items[]` are **claims** (testable assertions).
@@ -124,7 +124,7 @@ When the close gate passes, write the Outcome from
 
 ! When the Outcome is delivered and the ledger has passed the close gate, confirm
 exit unambiguously: "deft-directive-debug complete -- exiting skill." Then state
-the next step (e.g. open a fix vBRIEF for the proven cause, or chain into
+the next step (e.g. open a fix xBRIEF for the proven cause, or chain into
 `skills/deft-directive-build/SKILL.md` to implement the fix).
 
 ⊗ Exit silently without confirming completion.

@@ -6,8 +6,8 @@ import { readRepoFile, repoFileExists } from "./helpers.js";
 const BUILD_SKILL = "skills/deft-directive-build/SKILL.md";
 const SWARM_SKILL = "skills/deft-directive-swarm/SKILL.md";
 
-const PREFLIGHT_HELPER_RE = /!.*task\s+vbrief:preflight/;
-const ACTIVATE_TASK_RE = /task\s+vbrief:activate/;
+const PREFLIGHT_HELPER_RE = /!.*task\s+xbrief:preflight/;
+const ACTIVATE_TASK_RE = /task\s+xbrief:activate/;
 
 describe("test_skills_preflight_call", () => {
   it.each([

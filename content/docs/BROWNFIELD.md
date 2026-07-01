@@ -53,7 +53,7 @@ git clone https://github.com/deftai/directive.git deft
 
 ## 2. Migrate Existing Docs (frozen-release path, #2068)
 
-If your project already contains authoritative root `SPECIFICATION.md`, `PROJECT.md`, or incomplete vBRIEF lifecycle folders, **current npm releases no longer ship the in-product migrator**. Pin framework **v0.59.0**, install Python 3.11+ and `uv`, then run the one-shot migration from that payload:
+If your project already contains authoritative root `SPECIFICATION.md`, `PROJECT.md`, or incomplete xBRIEF lifecycle folders, **current npm releases no longer ship the in-product migrator**. Pin framework **v0.59.0**, install Python 3.11+ and `uv`, then run the one-shot migration from that payload:
 
 ```bash
 task migrate:preflight
@@ -67,42 +67,42 @@ The migration is **idempotent** on the pinned release — safe to re-run on a pa
 
 ### What migration does
 
-1. **Parses** existing `specification.vbrief.json` (if present) + `PROJECT.md` and generates `vbrief/PROJECT-DEFINITION.vbrief.json` with a `narratives` map (project identity) and an `items` registry (scope).
-2. **Creates** the five lifecycle folders: `vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, `vbrief/cancelled/`.
-3. **Converts** `ROADMAP.md` items into individual `pending/` scope vBRIEFs with origin provenance (`references` array pointing back to GitHub issue numbers, if available).
-4. **Replaces** `SPECIFICATION.md` and `PROJECT.md` with deprecation redirect stubs containing `<!-- deft:deprecated-redirect -->` -- the sentinel that tells future `task vbrief:validate` runs these files are no longer authoritative.
-5. **Preserves** user-customized content it cannot parse: anything non-standard in `PROJECT.md` is stored in a `ProjectConfig` narrative on `PROJECT-DEFINITION.vbrief.json` instead of being discarded.
+1. **Parses** existing `specification.xbrief.json` (if present) + `PROJECT.md` and generates `xbrief/PROJECT-DEFINITION.xbrief.json` with a `narratives` map (project identity) and an `items` registry (scope).
+2. **Creates** the five lifecycle folders: `xbrief/proposed/`, `xbrief/pending/`, `xbrief/active/`, `xbrief/completed/`, `xbrief/cancelled/`.
+3. **Converts** `ROADMAP.md` items into individual `pending/` scope xBRIEFs with origin provenance (`references` array pointing back to GitHub issue numbers, if available).
+4. **Replaces** `SPECIFICATION.md` and `PROJECT.md` with deprecation redirect stubs containing `<!-- deft:deprecated-redirect -->` -- the sentinel that tells future `deft xbrief:validate` runs these files are no longer authoritative.
+5. **Preserves** user-customized content it cannot parse: anything non-standard in `PROJECT.md` is stored in a `ProjectConfig` narrative on `PROJECT-DEFINITION.xbrief.json` instead of being discarded.
 
 ### Preserving existing spec content (#397 ingestion)
 
 `task migrate:vbrief` also reads structured `## ` sections from `PRD.md` and `SPECIFICATION.md` (Problem Statement, Goals, User Stories, Requirements, Success Metrics, Non-Functional Requirements, Open Questions) and maps them to canonical narrative keys on `vbrief/specification.vbrief.json`. Existing keys are never overwritten.
 
-- ~ Review the generated `vbrief/specification.vbrief.json` after migration; fill in any narrative the parser could not map.
+- ~ Review the generated `xbrief/specification.xbrief.json` after migration; fill in any narrative the parser could not map.
 - ~ If the parser missed content you care about, copy it into the appropriate narrative before deleting the old file backup.
 
 ---
 
 ## 3. What Changes After Migration
 
-### Source of truth: `.vbrief.json` files
+### Source of truth: `.xbrief.json` files
 
-- `vbrief/PROJECT-DEFINITION.vbrief.json` replaces `PROJECT.md` as the project identity gestalt (tech stack, strategy, coverage, architecture, branching convention).
-- `vbrief/specification.vbrief.json` replaces `SPECIFICATION.md` as the project spec source of truth.
-- Individual units of work live in `vbrief/{proposed,pending,active,completed,cancelled}/` as `YYYY-MM-DD-<slug>.vbrief.json`.
+- `xbrief/PROJECT-DEFINITION.xbrief.json` replaces `PROJECT.md` as the project identity gestalt (tech stack, strategy, coverage, architecture, branching convention).
+- `xbrief/specification.xbrief.json` replaces `SPECIFICATION.md` as the project spec source of truth.
+- Individual units of work live in `xbrief/{proposed,pending,active,completed,cancelled}/` as `YYYY-MM-DD-<slug>.xbrief.json`.
 
 ### Rendered views: `.md` artifacts
 
 `.md` files like `PRD.md`, `SPECIFICATION.md`, and `ROADMAP.md` become **rendered views**, generated on demand:
 
 ```bash
-task spec:render         # vbrief/specification.vbrief.json -> SPECIFICATION.md
-task prd:render          # vbrief/specification.vbrief.json narratives -> PRD.md
-task roadmap:render      # vbrief/pending/ scope vBRIEFs -> ROADMAP.md
-task project:render      # lifecycle folders -> PROJECT-DEFINITION.vbrief.json items registry
+task spec:render         # xbrief/specification.xbrief.json -> SPECIFICATION.md
+task prd:render          # xbrief/specification.xbrief.json narratives -> PRD.md
+task roadmap:render      # xbrief/pending/ scope xBRIEFs -> ROADMAP.md
+task project:render      # lifecycle folders -> PROJECT-DEFINITION.xbrief.json items registry
 ```
 
 - ⊗ Edit the rendered `.md` files directly -- your changes are overwritten on the next `task *:render` run.
-- ! Edit the underlying `.vbrief.json` instead, then run `task *:render` to refresh the export.
+- ! Edit the underlying `.xbrief.json` instead, then run `task *:render` to refresh the export.
 - ~ `task spec:render` and `task prd:render` are also invoked automatically by `skills/deft-directive-pre-pr/SKILL.md` Phase 3b if the export files already exist.
 
 ### Deprecation sentinels
@@ -113,11 +113,11 @@ After migration, the root `SPECIFICATION.md` and `PROJECT.md` contain a redirect
 <!-- deft:deprecated-redirect -->
 # PROJECT.md -- DEPRECATED
 
-This file has been migrated to `vbrief/PROJECT-DEFINITION.vbrief.json`.
+This file has been migrated to `xbrief/PROJECT-DEFINITION.xbrief.json`.
 
 **See instead:**
-- `vbrief/PROJECT-DEFINITION.vbrief.json` (project identity)
-- scope vBRIEFs in `vbrief/{proposed,pending,active,completed,cancelled}/`
+- `xbrief/PROJECT-DEFINITION.xbrief.json` (project identity)
+- scope xBRIEFs in `xbrief/{proposed,pending,active,completed,cancelled}/`
 ```
 
 (The actual generated body may include additional context; the sentinel comment on line 1 is what the validator enforces.)
@@ -134,41 +134,41 @@ On first interactive session after adding Deft, the agent-driven path runs a **p
 
 1. `SPECIFICATION.md` exists and does **not** contain `<!-- deft:deprecated-redirect -->`.
 2. `PROJECT.md` exists and does **not** contain `<!-- deft:deprecated-redirect -->`.
-3. `vbrief/specification.vbrief.json` exists but the lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) do **not**.
+3. `xbrief/specification.xbrief.json` exists but the lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) do **not**.
 
-**Action on detection:** the agent stops with an actionable message such as "Run `task migrate:vbrief` to upgrade to the vBRIEF-centric model."
+**Action on detection:** the agent stops with an actionable message such as "Run `task migrate:vbrief` on pinned v0.59.0 to upgrade to the xBRIEF-centric model (see UPGRADING.md § Frozen pre-v0.20 document-model migration)."
 
 ### CLI path (`.deft/core/run`)
 
-The CLI has a companion non-fatal upgrade gate (issue #410): `.deft/core/run` warns on every invocation when `vbrief/.deft-version` does not match the framework `VERSION`, or when legacy artifacts are found without the sentinel. Interactive sessions get a `Continue anyway? [y/N]` prompt; non-interactive sessions (CI, cloud agents) warn once and continue so CI is never blocked.
+The CLI has a companion non-fatal upgrade gate (issue #410): `.deft/core/run` warns on every invocation when `xbrief/.deft-version` does not match the framework `VERSION`, or when legacy artifacts are found without the sentinel. Interactive sessions get a `Continue anyway? [y/N]` prompt; non-interactive sessions (CI, cloud agents) warn once and continue so CI is never blocked.
 
 After completing migration, record the framework version so the CLI gate stays silent:
 
 ```bash
-.deft/core/run upgrade         # writes vbrief/.deft-version = <current VERSION>
+.deft/core/run upgrade         # writes xbrief/.deft-version = <current VERSION>
 ```
 
 ---
 
 ## 5. Post-Migration Checklist
 
-Run these in order once `task migrate:vbrief` completes:
+Run these in order once pre-v0.20 migration completes on v0.59.0 (`task migrate:vbrief`), you have upgraded to current npm, and — if `deft doctor` still reports a legacy `vbrief/` layout — `deft migrate:xbrief` has converted the tree to `xbrief/`:
 
-1. ! `task vbrief:validate` -- should report zero errors and zero warnings about `SPECIFICATION.md` / `PROJECT.md`. Deprecation-sentinel warnings from `scripts/vbrief_validate.py` fire when the sentinel is **missing** from those files -- if you see them, the redirect stubs were not written correctly and the migration is incomplete; re-run `task migrate:vbrief` or patch the stubs to include the `<!-- deft:deprecated-redirect -->` line.
-2. ! `task check` -- the full pre-commit pipeline (fmt + lint + typecheck + tests + coverage + vbrief validation + link check). Must be green before your first Deft-aware commit.
-3. ~ `task project:render` -- regenerate `vbrief/PROJECT-DEFINITION.vbrief.json` items registry to reflect the newly-migrated scopes.
+1. ! `deft xbrief:validate` -- should report zero errors and zero warnings about `SPECIFICATION.md` / `PROJECT.md`. Deprecation-sentinel warnings from `scripts/vbrief_validate.py` fire when the sentinel is **missing** from those files -- if you see them, the redirect stubs were not written correctly and the migration is incomplete; re-run `task migrate:vbrief` on v0.59.0 or patch the stubs to include the `<!-- deft:deprecated-redirect -->` line.
+2. ! `task check` -- the full pre-commit pipeline (fmt + lint + typecheck + tests + coverage + xbrief validation + link check). Must be green before your first Deft-aware commit.
+3. ~ `task project:render` -- regenerate `xbrief/PROJECT-DEFINITION.xbrief.json` items registry to reflect the newly-migrated scopes.
 4. ~ `task roadmap:render` and `task spec:render` -- refresh the rendered views so teammates browsing the repo see current content.
-5. ~ Review the generated `vbrief/proposed/` and `vbrief/pending/` scope vBRIEFs; promote / activate / cancel them as appropriate via `task scope:promote|activate|complete|cancel|restore|block|unblock`.
-6. ~ Commit the migration in a focused PR with a conventional-commit subject such as `chore(deft): migrate to vBRIEF-centric document model (v0.20)`.
+5. ~ Review the generated `xbrief/proposed/` and `xbrief/pending/` scope xBRIEFs; promote / activate / cancel them as appropriate via `task scope:promote|activate|complete|cancel|restore|block|unblock`.
+6. ~ Commit the migration in a focused PR with a conventional-commit subject such as `chore(deft): migrate to xBRIEF-centric document model (v0.20)`.
 
 ---
 
 ## 6. Troubleshooting
 
-- **`task vbrief:validate` fails on my scope vBRIEFs:** filename must follow `YYYY-MM-DD-<lowercase-slug>.vbrief.json` (D7); folder must match `plan.status` (D2); PROJECT-DEFINITION must have `overview` and `tech stack` narrative keys after `.lower()` (D3).
-- **`task migrate:vbrief` did not migrate my roadmap:** the migration parser recognises task-based (`- \`X.Y.Z\` Title`) and plain (`- Title`) list item formats under `## ` headings. Custom formats fall through to synthetic IDs -- review the generated vBRIEFs and rename / reshape as needed.
+- **`deft xbrief:validate` fails on my scope xBRIEFs:** filename must follow `YYYY-MM-DD-<lowercase-slug>.xbrief.json` (D7); folder must match `plan.status` (D2); PROJECT-DEFINITION must have `overview` and `tech stack` narrative keys after `.lower()` (D3).
+- **`task migrate:vbrief` did not migrate my roadmap:** the migration parser recognises task-based (`- \`X.Y.Z\` Title`) and plain (`- Title`) list item formats under `## ` headings. Custom formats fall through to synthetic IDs -- review the generated xBRIEFs and rename / reshape as needed.
 - **My agent hits a missing `deft/skills/deft-*/` path:** that is a stale v0.19 `AGENTS.md` from before the `deft-directive-*` rename. Tell your agent "Read `deft/QUICK-START.md` and follow it" -- QUICK-START refreshes the Deft-managed section of `AGENTS.md` idempotently. See `UPGRADING.md` (present in repositories on v0.20 or later) for the detailed upgrade flow.
-- **I edited `SPECIFICATION.md` by accident:** revert the file to the redirect stub (`<!-- deft:deprecated-redirect -->` + the three-line note), then edit `vbrief/specification.vbrief.json` and run `task spec:render`.
+- **I edited `SPECIFICATION.md` by accident:** revert the file to the redirect stub (`<!-- deft:deprecated-redirect -->` + the three-line note), then edit `xbrief/specification.xbrief.json` and run `task spec:render`.
 
 ---
 
@@ -176,8 +176,12 @@ Run these in order once `task migrate:vbrief` completes:
 
 - [README.md](../../README.md) -- product overview and greenfield flow.
 - [QUICK-START.md](../QUICK-START.md) -- agent bootstrap (also handles the brownfield AGENTS.md append case).
-- [vbrief/vbrief.md](../vbrief/vbrief.md) -- canonical vBRIEF file taxonomy, lifecycle folders, and status mapping.
+- [vbrief/vbrief.md](../vbrief/vbrief.md) -- canonical xBRIEF file taxonomy, lifecycle folders, and status mapping.
 - [commands.md](../commands.md) -- full `run` vs `task` command lifecycle.
 - `skills/deft-directive-build/SKILL.md` -- Pre-Cutover Detection Guard implementation.
 - `skills/deft-directive-setup/SKILL.md` -- greenfield path for comparison.
 - `UPGRADING.md` (repo root, v0.20+) -- version-by-version upgrade guide.
+
+<!-- xbrief-backcompat-2111 -->
+
+> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.

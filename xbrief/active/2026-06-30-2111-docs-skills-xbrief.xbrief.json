@@ -8,7 +8,7 @@
   "plan": {
     "id": "2111-docs-skills-xbrief",
     "title": "Align docs, skills, and templates to xbrief naming and commands",
-    "status": "proposed",
+    "status": "running",
     "planRef": "https://github.com/deftai/directive/issues/2034",
     "narratives": {
       "Description": "Update the agent-facing surface (skills, templates, AGENTS entry, and docs) to the xBRIEF prose term and lowercase xbrief paths, verbs, and the migrate:xbrief command. This spans many content files that must stay internally consistent, so it is marked sequential and run solo after the rename lands.",
@@ -84,6 +84,7 @@
         "type": "x-xbrief/github-issue",
         "title": "Issue #2034: Adopt latest xBRIEF spec (umbrella)"
       }
-    ]
+    ],
+    "updated": "2026-07-01T13:55:57Z"
   }
 }

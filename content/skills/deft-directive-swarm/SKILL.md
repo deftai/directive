@@ -2,7 +2,7 @@
 name: deft-directive-swarm
 description: >-
   Parallel local agent orchestration. Use when running multiple agents on
-  story-level vBRIEFs simultaneously — to scan active/ for allocatable work,
+  story-level xBRIEFs simultaneously — to scan active/ for allocatable work,
   set up isolated worktrees, launch agents with proven prompts, monitor
   progress, handle stalled review cycles, and close out PRs cleanly.
 ---
@@ -14,7 +14,7 @@ description: >-
 
 # Deft Directive Swarm
 
-Structured workflow for a monitor agent to orchestrate N parallel local agents working on story-level vBRIEFs from `vbrief/active/`.
+Structured workflow for a monitor agent to orchestrate N parallel local agents working on story-level xBRIEFs from `xbrief/active/`.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -41,7 +41,7 @@ or invoke `task verify:branch`. The swarm skill creates branches per agent so th
 ## When to Use
 
 - User says "run agents", "parallel agents", "swarm", or "launch N agents on stories"
-- Multiple independent story-level vBRIEFs in `vbrief/active/` need to be worked on simultaneously
+- Multiple independent story-level xBRIEFs in `xbrief/active/` need to be worked on simultaneously
 - A batch of stories are ready and have no mutual dependencies
 
 ## Running Swarms in Grok Build / Non-Warp Environments
@@ -59,7 +59,7 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 ## Prerequisites
 
-- ! `vbrief/active/` contains one or more story-level vBRIEFs with status `running`
+- ! `xbrief/active/` contains one or more story-level xBRIEFs with status `running`
 - ! GitHub CLI (`gh`) is authenticated
 - ! `git` supports worktrees (`git worktree` available)
 - ~ `oz` CLI available (for `oz agent run-cloud` cloud launch — see Phase 3 Step 2c)
@@ -71,14 +71,14 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 ### Headless cohort fast-path: low-ceremony launch (C1 / #1387)
 
 ! When the operator supplies a **pre-approved cohort** via the **C1** `task swarm:launch` CLI, Phase 0 runs in headless / low-ceremony mode: the per-phase interactive approval gates (the Step 0c promote-fill prompts, the Step 0.5 lifecycle-bridge approval, and the Step 4/5 allocation approval) collapse into a SINGLE consent -- the `## Allocation context` token (#1378) carried in the dispatch envelope. The interactive promote-fill loop (Step 0a -- 0d below) is SKIPPED.
-! The **C1** signature is `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`. `--stories` names the pre-approved story ids or vBRIEF paths; `--group` is an optional cohort label; `--worktree-map` points at the pre-created **C3** worktree-map JSON consumed in Phase 2; `--base-branch` overrides the default `master`; `--autonomous` runs without the interactive launch confirmation.
+! The **C1** signature is `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`. `--stories` names the pre-approved story ids or xBRIEF paths; `--group` is an optional cohort label; `--worktree-map` points at the pre-created **C3** worktree-map JSON consumed in Phase 2; `--base-branch` overrides the default `master`; `--autonomous` runs without the interactive launch confirmation.
 ! The SINGLE consent is the #1378 `## Allocation context` token with `dispatch_kind: swarm-cohort` and a NON-NULL `allocation_plan_id` AND `batching_rationale` (the recognition contract in `templates/agent-prompt-preamble.md` § 2.5). That token IS the batched approval for the whole cohort -- the deterministic-question gates the interactive path runs (per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)) are bypassed wholesale on the headless path, not asked once per phase.
 ⊗ Re-prompt the operator for per-phase batching approval, or run the interactive promote-fill loop (Step 0a -- 0d), when a pre-approved cohort is supplied via `task swarm:launch` -- the headless path's single #1378 consent already authorizes the batch, and re-prompting mid-cohort violates the all-or-nothing dispatch-envelope rule (#954).
 ? The interactive queue-driven path (Step 0 below) remains the DEFAULT when no pre-approved cohort is supplied; the headless fast-path is the opt-in low-ceremony route for a cohort the operator has already curated and approved upstream.
 
 ### Step 0: Queue-driven cohort selection (#1142 / N2)
 
-! Phase 0 is queue-driven: consult the triage cache (D2 / #1122 + D11 / #1128) for the ranked promotion candidates, then fill the WIP cap. Do NOT pick the cohort by hand from `vbrief/pending/` or `vbrief/active/` -- the queue is the canonical record of "what's next?" per AGENTS.md `## Cache-as-authoritative work selection (#1149)`. The four sub-phases below run in canonical order; existing Step 0.5 (lifecycle bridge) and Steps 1-5 (readiness / blockers / allocation / present / approval) proceed unchanged after Phase 0d.
+! Phase 0 is queue-driven: consult the triage cache (D2 / #1122 + D11 / #1128) for the ranked promotion candidates, then fill the WIP cap. Do NOT pick the cohort by hand from `xbrief/pending/` or `xbrief/active/` -- the queue is the canonical record of "what's next?" per AGENTS.md `## Cache-as-authoritative work selection (#1149)`. The four sub-phases below run in canonical order; existing Step 0.5 (lifecycle bridge) and Steps 1-5 (readiness / blockers / allocation / present / approval) proceed unchanged after Phase 0d.
 
 #### Phase 0a -- State overview via `task triage:summary` (D2 / #1122)
 
@@ -104,22 +104,22 @@ task triage:queue --state=accept --limit=20
 
 #### Phase 0c -- Promote-fill-cap loop
 
-! While `pending/ + active/` count < `wipCap` AND the queue is non-empty, prompt the operator to promote the next ranked candidate to `vbrief/pending/`.
+! While `pending/ + active/` count < `wipCap` AND the queue is non-empty, prompt the operator to promote the next ranked candidate to `xbrief/pending/`.
 
 Loop body, per candidate (top-of-queue first):
 
 1. ! Render the next queue candidate with brief context (issue title, labels, top-1 ranking rationale).
-2. ! Prompt the operator: `Promote #<N> to vbrief/pending/? [yes/skip/stop]`. The final two numbered options remain `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md).
+2. ! Prompt the operator: `Promote #<N> to xbrief/pending/? [yes/skip/stop]`. The final two numbered options remain `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md).
 3. On `yes` -- promote via the canonical lifecycle verb:
 
    ```pwsh path=null start=null
    # D18 #1136 fallback: the eventual --from-issue=<N> shape is OPEN but not
    # yet implemented. Until #1136 lands, the monitor resolves the candidate's
-   # vBRIEF file from the issue number (file lives in vbrief/proposed/ from a
+   # xBRIEF file from the issue number (file lives in xbrief/proposed/ from a
    # prior triage:accept step, D10 / #1129) and passes the path to
    # `task scope:promote`. Same lifecycle command, just routed through the
    # file path rather than the issue-number shortcut.
-   task scope:promote vbrief/proposed/<file>.vbrief.json
+   task scope:promote xbrief/proposed/<file>.xbrief.json
    # TODO(#1136): when D18 ships, replace the two-step (resolve file from #N,
    # then pass to `task scope:promote`) with the deterministic one-step
    # `task scope:promote --from-issue=<N>` invocation. The integration point
@@ -132,15 +132,15 @@ Loop body, per candidate (top-of-queue first):
 4. On `skip` -- drop this candidate from the current session's cohort; it stays in the queue for the next session. Advance to the next ranked candidate.
 5. On `stop` -- exit the loop early; the partial cohort proceeds to Phase 0d.
 
-! **D18 #1136 integration point**: the eventual `task scope:promote --from-issue=<N>` shape (D18 / #1136) is OPEN but not yet implemented. When it lands, the prompt above will be replaced with a deterministic `task scope:promote --from-issue=<N>` invocation; the operator no longer needs to resolve the vBRIEF file path manually. Until then, the file-path fallback above is the canonical Phase 0c verb -- it is the same `task scope:promote` lifecycle command, just routed through the file path rather than the issue-number shortcut. Track via #1136.
+! **D18 #1136 integration point**: the eventual `task scope:promote --from-issue=<N>` shape (D18 / #1136) is OPEN but not yet implemented. When it lands, the prompt above will be replaced with a deterministic `task scope:promote --from-issue=<N>` invocation; the operator no longer needs to resolve the xBRIEF file path manually. Until then, the file-path fallback above is the canonical Phase 0c verb -- it is the same `task scope:promote` lifecycle command, just routed through the file path rather than the issue-number shortcut. Track via #1136.
 
-! **WIP-cap exit-clean prose**: When WIP cap is reached, swarm Phase 0 stops adding to the cohort and exits cleanly with a count of what was filled. Operator can demote (D1 / #1121, `task scope:demote <existing>` or `task scope:demote --batch --older-than-days 30`) to free slots or `--force` to override (the override is audit-logged as `wip_cap_override` in `vbrief/.eval/scope-lifecycle.jsonl` per D4 / #1124).
+! **WIP-cap exit-clean prose**: When WIP cap is reached, swarm Phase 0 stops adding to the cohort and exits cleanly with a count of what was filled. Operator can demote (D1 / #1121, `task scope:demote <existing>` or `task scope:demote --batch --older-than-days 30`) to free slots or `--force` to override (the override is audit-logged as `wip_cap_override` in `xbrief/.eval/scope-lifecycle.jsonl` per D4 / #1124).
 
 ! **Cohort recovery on cap-fill exit**: If the queue surfaces 10 candidates but the cap allows only 4 more slots, the unpicked 6 stay queued for the next session. No state is lost; the queue is the canonical record. The operator can free a slot via `task scope:demote <existing>` (D1 / #1121) before re-running Phase 0, or accept the smaller cohort for this session.
 
 #### Phase 0d -- Cohort dispatch
 
-- ! After the promote-fill loop exits (cap reached, queue empty, or operator `stop`), `vbrief/pending/` now holds the cohort. Phase 0e below is now deprecated (#1891) -- per-role operator model routing (`task swarm:routing-set`, #1739) supersedes the sub-agent backend enum; `task verify:routing -- --advise` is the session-start disclosure surface. The existing Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs, #1025) moves the cohort `pending/ -> active/`, and Steps 1-5 (readiness report, blockers, allocation, present, approval) proceed against the activated set. Existing swarm Phase 1+ (Select, Setup, Launch, Monitor, Review, Close) proceeds unchanged.
+- ! After the promote-fill loop exits (cap reached, queue empty, or operator `stop`), `xbrief/pending/` now holds the cohort. Phase 0e below is now deprecated (#1891) -- per-role operator model routing (`task swarm:routing-set`, #1739) supersedes the sub-agent backend enum; `task verify:routing -- --advise` is the session-start disclosure surface. The existing Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope xBRIEFs, #1025) moves the cohort `pending/ -> active/`, and Steps 1-5 (readiness report, blockers, allocation, present, approval) proceed against the activated set. Existing swarm Phase 1+ (Select, Setup, Launch, Monitor, Review, Close) proceeds unchanged.
 
 #### Phase 0e -- Interactive sub-agent backend selection (DEPRECATED -- #1568 / superseded by #1739)
 
@@ -160,7 +160,7 @@ Loop body, per candidate (top-of-queue first):
 
 ! When all in-scope candidates are freshly setup-created candidates from the same setup session, present one explicit batch confirmation before promoting and activating the full set through Step 0.5. The confirmation must name the candidate list and the lifecycle transition (`proposed/` or `pending/` -> `active/`) so the setup handoff is swarm-ready without asking once per file.
 
-~ Setup-side handoff language SHOULD point here: after setup creates initial scope vBRIEFs, tell the operator that the swarm skill will verify or offer to create the remaining project infrastructure before allocation. #1187 remains the dependency for missing executable tools; #1053 owns the greenfield project-infrastructure bridge.
+~ Setup-side handoff language SHOULD point here: after setup creates initial scope xBRIEFs, tell the operator that the swarm skill will verify or offer to create the remaining project infrastructure before allocation. #1187 remains the dependency for missing executable tools; #1053 owns the greenfield project-infrastructure bridge.
 
 ⊗ Treat #1187 machine-tool success as proof that a greenfield project is swarm-ready -- repo, remote, Taskfile wiring, install layout, gitignore, and scratch/worktree readiness are separate checks (#1053).
 
@@ -169,85 +169,85 @@ Loop body, per candidate (top-of-queue first):
 ? When the operator explicitly opts out of the queue (e.g. a one-off ad-hoc cohort that has not been ingested into the triage cache yet, or a swarm batch driven from a hand-supplied list of issue numbers), the monitor MAY fall back to the legacy GitHub-issue path:
 
 1. ! Fetch issue data: `gh api repos/<owner>/<repo>/issues/<N>` (REST per `templates/agent-prompt-preamble.md` § 5; never the GraphQL `gh issue view --json` surface).
-2. ! Generate a minimal vBRIEF in `vbrief/proposed/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)) and conforming to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`; see [`../../conventions/references.md`](../../conventions/references.md)).
+2. ! Generate a minimal xBRIEF in `xbrief/proposed/` following the `YYYY-MM-DD-descriptive-slug.xbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)) and conforming to the canonical v0.6 schema (`xbrief/schemas/xbrief-core.schema.json`, strict `const: "0.6"`; see [`../../conventions/references.md`](../../conventions/references.md)).
 3. ! Promote through the canonical lifecycle (`task scope:promote -- <path>` then `task scope:activate -- <path>`), respecting the WIP cap and the same `--force` audit-logged override semantics as the queue-driven loop.
 4. ! Surface the opt-out reason in the Step 4 (Present Analysis) summary so a reviewer can see WHY the queue was bypassed.
 
 ⊗ Default to the manual escape hatch when the queue is non-empty -- the cache-as-authoritative directive (AGENTS.md `## Cache-as-authoritative work selection (#1149)`) requires consulting the queue first.
 
-### Step 0.5: Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs (#1025)
+### Step 0.5: Lifecycle Bridge -- Promote and Activate Proposed Scope xBRIEFs (#1025)
 
-! Before running the Step 1 preflight gate, scan `vbrief/proposed/` and `vbrief/pending/` for candidate scope vBRIEFs and bridge them to `vbrief/active/`. The deft-directive-setup skill Phase 3 (Output -- Light Path / Output -- Full Path) deposits new scope vBRIEFs in `vbrief/proposed/`; the deft-directive-refinement skill Phase 4 (Promote/Demote) deposits them in `vbrief/pending/`. The swarm Phase 0 Step 1 preflight gate (`task vbrief:preflight`) only accepts vBRIEFs in `vbrief/active/` with `plan.status == "running"`, so candidates in `proposed/` or `pending/` MUST be bridged through the canonical lifecycle (`proposed -> pending -> active`) before allocation. Without this bridge, the monitor discovers the gap at runtime as a wholesale preflight rejection (`Invalid transition: 'activate' requires file in pending/`), as in the originating 2026-05-10 first-session consumer swarm.
+! Before running the Step 1 preflight gate, scan `xbrief/proposed/` and `xbrief/pending/` for candidate scope xBRIEFs and bridge them to `xbrief/active/`. The deft-directive-setup skill Phase 3 (Output -- Light Path / Output -- Full Path) deposits new scope xBRIEFs in `xbrief/proposed/`; the deft-directive-refinement skill Phase 4 (Promote/Demote) deposits them in `xbrief/pending/`. The swarm Phase 0 Step 1 preflight gate (`task xbrief:preflight`) only accepts xBRIEFs in `xbrief/active/` with `plan.status == "running"`, so candidates in `proposed/` or `pending/` MUST be bridged through the canonical lifecycle (`proposed -> pending -> active`) before allocation. Without this bridge, the monitor discovers the gap at runtime as a wholesale preflight rejection (`Invalid transition: 'activate' requires file in pending/`), as in the originating 2026-05-10 first-session consumer swarm.
 
-! **Scan**: list every `*.vbrief.json` under `vbrief/proposed/` and `vbrief/pending/`. Cross-reference each candidate against the user's stated swarm scope (the issue numbers / vBRIEF filenames the user asked the monitor to swarm on). Candidates outside the stated scope MUST NOT be promoted or activated by this bridge -- they may be in a deliberate refinement queue owned by `skills/deft-directive-refinement/SKILL.md` Phase 4.
+! **Scan**: list every `*.xbrief.json` under `xbrief/proposed/` and `xbrief/pending/`. Cross-reference each candidate against the user's stated swarm scope (the issue numbers / xBRIEF filenames the user asked the monitor to swarm on). Candidates outside the stated scope MUST NOT be promoted or activated by this bridge -- they may be in a deliberate refinement queue owned by `skills/deft-directive-refinement/SKILL.md` Phase 4.
 
 ! **Present**: render a numbered list of in-scope candidates to the user with their current lifecycle folder (`proposed/` vs `pending/`) and `plan.status`. Render the canonical numbered menu in chat unless the host UI visibly preserves the same numeric option labels and returns numeric selections or exact displayed option text. The final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md).
 
-! **Approve**: wait for explicit user approval (`yes`, `confirmed`, `approve`) before any lifecycle mutation. Broad affirmative continuation phrases (`proceed`, `do it`, `go ahead`) are NOT authorisation -- the bridge MUST be explicitly confirmed because promoting + activating a scope vBRIEF is a lifecycle commitment that flips `plan.status` to `running` and clears the #810 implementation-intent gate for downstream agent dispatch.
+! **Approve**: wait for explicit user approval (`yes`, `confirmed`, `approve`) before any lifecycle mutation. Broad affirmative continuation phrases (`proceed`, `do it`, `go ahead`) are NOT authorisation -- the bridge MUST be explicitly confirmed because promoting + activating a scope xBRIEF is a lifecycle commitment that flips `plan.status` to `running` and clears the #810 implementation-intent gate for downstream agent dispatch.
 
 ! **Bridge**: for each approved candidate, run the canonical lifecycle commands in order:
 
-  - For candidates in `vbrief/proposed/`: `task scope:promote -- <path>` (moves to `pending/`, status `pending`), THEN `task scope:activate -- <path-in-pending>` (moves to `active/`, status `running`).
-  - For candidates already in `vbrief/pending/`: `task scope:activate -- <path>` alone (moves to `active/`, status `running`).
+  - For candidates in `xbrief/proposed/`: `task scope:promote -- <path>` (moves to `pending/`, status `pending`), THEN `task scope:activate -- <path-in-pending>` (moves to `active/`, status `running`).
+  - For candidates already in `xbrief/pending/`: `task scope:activate -- <path>` alone (moves to `active/`, status `running`).
 
   Both commands are idempotent: a same-folder move with matching status is a no-op (see `scripts/scope_lifecycle.py`). If either command exits non-zero, surface the exit message verbatim, do NOT attempt to allocate against the failed candidate, and ask the user how to route.
 
-! **Verify**: re-run the scan and confirm each approved candidate now lives in `vbrief/active/` with `plan.status == "running"`. Only candidates that pass this verification advance to Step 1 (Read Project State); the rest stay surfaced as preflight rejections.
+! **Verify**: re-run the scan and confirm each approved candidate now lives in `xbrief/active/` with `plan.status == "running"`. Only candidates that pass this verification advance to Step 1 (Read Project State); the rest stay surfaced as preflight rejections.
 
-⊗ Auto-promote + activate every candidate in `vbrief/proposed/` or `vbrief/pending/` without explicit user approval -- proposed-stage vBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4) and silent promotion bypasses the user's lifecycle intent.
+⊗ Auto-promote + activate every candidate in `xbrief/proposed/` or `xbrief/pending/` without explicit user approval -- proposed-stage xBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4) and silent promotion bypasses the user's lifecycle intent.
 
-⊗ Skip the lifecycle bridge and let the Step 1 preflight gate (`task vbrief:preflight`) reject the candidates wholesale -- the gate's exit message tells the user WHAT failed but not WHY the source folder was wrong; the bridge is the contract that prevents that confusion before it surfaces.
+⊗ Skip the lifecycle bridge and let the Step 1 preflight gate (`task xbrief:preflight`) reject the candidates wholesale -- the gate's exit message tells the user WHAT failed but not WHY the source folder was wrong; the bridge is the contract that prevents that confusion before it surfaces.
 
 ⊗ Promote candidates outside the user's stated swarm scope. The bridge is scope-bounded by what the user asked the monitor to swarm on; out-of-scope candidates remain in `proposed/` / `pending/` for the refinement skill to own.
 
 Cross-references:
-- Setup-side deposit point: `skills/deft-directive-setup/SKILL.md` Phase 3 Output -- Light Path / Output -- Full Path (scope vBRIEFs land in `vbrief/proposed/`).
+- Setup-side deposit point: `skills/deft-directive-setup/SKILL.md` Phase 3 Output -- Light Path / Output -- Full Path (scope xBRIEFs land in `xbrief/proposed/`).
 - Refinement-side deposit point: `skills/deft-directive-refinement/SKILL.md` Phase 4 -- Promote/Demote (lifecycle transitions via the same `task scope:promote` / `task scope:activate` surface).
 - Underlying CLI: `scripts/scope_lifecycle.py` (the deterministic state machine; idempotent on same-folder moves; three-state exit 0 / 1 / 2).
-- Recurrence record: issue #1025 (2026-05-10 first-session consumer tic-tac-toe swarm; monitor hit `Invalid transition: 'activate' requires file in pending/` on all four candidate vBRIEFs because they were still in `proposed/`).
+- Recurrence record: issue #1025 (2026-05-10 first-session consumer tic-tac-toe swarm; monitor hit `Invalid transition: 'activate' requires file in pending/` on all four candidate xBRIEFs because they were still in `proposed/`).
 
 ### Step 1: Read Project State and Readiness Report
 
-- ! Scan `vbrief/active/` for candidate vBRIEFs (files matching `*.vbrief.json`)
-- ! For each candidate vBRIEF, MUST run `task vbrief:preflight -- <path>` (the structural intent gate, #810; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory) to validate lifecycle eligibility before allocation work. Skip any vBRIEF that exits non-zero -- the helper's stderr message is the actionable redirect (`task vbrief:activate <path>`). Surface the exit message in the Phase 0 Step 4 analysis so the user can route the lifecycle move; do NOT attempt to allocate, dispatch, or implement against a vBRIEF that fails the preflight.
-- ! Run `task swarm:readiness -- vbrief/active/*.vbrief.json` before any agent allocation. This deterministic report is the allocator's source of truth for ready stories, blocked stories, decomposition-needed epics/phases, dependency waves, conflict groups, file overlap matrix, and missing fields.
+- ! Scan `xbrief/active/` for candidate xBRIEFs (files matching `*.xbrief.json`)
+- ! For each candidate xBRIEF, MUST run `task xbrief:preflight -- <path>` (the structural intent gate, #810; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory) to validate lifecycle eligibility before allocation work. Skip any xBRIEF that exits non-zero -- the helper's stderr message is the actionable redirect (`task xbrief:activate <path>`). Surface the exit message in the Phase 0 Step 4 analysis so the user can route the lifecycle move; do NOT attempt to allocate, dispatch, or implement against a xBRIEF that fails the preflight.
+- ! Run `task swarm:readiness -- xbrief/active/*.xbrief.json` before any agent allocation. This deterministic report is the allocator's source of truth for ready stories, blocked stories, decomposition-needed epics/phases, dependency waves, conflict groups, file overlap matrix, and missing fields.
 - ! Treat `plan.metadata.kind = "epic"` and `plan.metadata.kind = "phase"` as **needs decomposition**, not merely incomplete. Route broad scopes to `skills/deft-directive-decompose/SKILL.md` instead of assigning them to workers.
 - ! Read only readiness-approved story fields for allocation: `plan.title`, `plan.status`, non-empty `plan.items`, `planRef`, `references`, `plan.metadata.kind`, and `plan.metadata.swarm`.
-- ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
+- ! Read `xbrief/PROJECT-DEFINITION.xbrief.json` for project-wide context (narratives, scope registry)
 - ! Determine the base branch: ask the user which branch to target for worktree creation, PR targets, and rebase cascade (default: `master`). Record this as the **configured base branch** for all subsequent phases.
-- ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
-- ⊗ Allocate concurrent workers unless candidates are swarm-ready `kind=story` vBRIEFs with non-empty executable `plan.items` and `task swarm:readiness` exits 0.
+- ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a xBRIEF that has not passed `task xbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
+- ⊗ Allocate concurrent workers unless candidates are swarm-ready `kind=story` xBRIEFs with non-empty executable `plan.items` and `task swarm:readiness` exits 0.
 - ⊗ Use manual file-overlap reasoning as the only safety check; use the readiness report first, then explain any additional human judgment.
 
 ### Step 2: Surface Blockers
 
-- ! Identify blocked vBRIEFs (status `blocked`) and their blocking reasons (check `narrative` fields)
-- ! Identify vBRIEFs with incomplete acceptance criteria (no `plan.items` or empty items array)
-- ! Identify epic/phase scope vBRIEFs from the readiness report and route them to decomposition
-- ! Identify dependency conflicts between candidate vBRIEFs (e.g. story A depends on story B via `planRef` or `edges`, but B is assigned to a different agent or is incomplete)
-- ! Flag any candidate vBRIEFs whose prerequisites are unmet
+- ! Identify blocked xBRIEFs (status `blocked`) and their blocking reasons (check `narrative` fields)
+- ! Identify xBRIEFs with incomplete acceptance criteria (no `plan.items` or empty items array)
+- ! Identify epic/phase scope xBRIEFs from the readiness report and route them to decomposition
+- ! Identify dependency conflicts between candidate xBRIEFs (e.g. story A depends on story B via `planRef` or `edges`, but B is assigned to a different agent or is incomplete)
+- ! Flag any candidate xBRIEFs whose prerequisites are unmet
 
 ### Step 3: Plan Allocation
 
-! The monitor allocates one or more vBRIEFs to each agent based on scope, complexity, and dependencies. There is no fixed per-agent limit.
+! The monitor allocates one or more xBRIEFs to each agent based on scope, complexity, and dependencies. There is no fixed per-agent limit.
 
-- ! **Small/independent stories** can be batched to a single agent only after explicit operator approval or an approved allocation plan -- group related or low-complexity vBRIEFs together and record the batching rationale
+- ! **Small/independent stories** can be batched to a single agent only after explicit operator approval or an approved allocation plan -- group related or low-complexity xBRIEFs together and record the batching rationale
 - ! **Large/complex stories** get dedicated agents — a story with broad file scope or high acceptance criteria count should not share an agent
-- ! **Dependency-aware grouping** — vBRIEFs that share `planRef` to the same epic or have `edges` between them should be assigned to the same agent when possible, OR sequenced with clear ordering
+- ! **Dependency-aware grouping** — xBRIEFs that share `planRef` to the same epic or have `edges` between them should be assigned to the same agent when possible, OR sequenced with clear ordering
 - ! The monitor decides allocation dynamically — no hardcoded 1:1 rule
-- ! **WIP cap awareness (#1124 / D4 of #1119)** — the cohort + any bridge-promoted candidates (Step 0.5) MUST fit within `plan.policy.wipCap` (default 10 per umbrella #1119 Current Shape v3). When `pending/ + active/` count is at-or-above the cap, `task scope:promote` refuses with an error message naming `task scope:demote <existing>` and `task scope:demote --batch --older-than-days 30` as the relief valves. The monitor MUST drain the WIP set via `task scope:demote` (D1 / #1121) before promoting more candidates, OR open a per-promote `task scope:promote <file> --force` (audit-logged as `wip_cap_override` in `vbrief/.eval/scope-lifecycle.jsonl`) for the genuinely time-critical case. `task triage:summary` (D2 / #1122) surfaces the cap as `WIP X/Y` with a warning glyph when at-or-above cap.
+- ! **WIP cap awareness (#1124 / D4 of #1119)** — the cohort + any bridge-promoted candidates (Step 0.5) MUST fit within `plan.policy.wipCap` (default 10 per umbrella #1119 Current Shape v3). When `pending/ + active/` count is at-or-above the cap, `task scope:promote` refuses with an error message naming `task scope:demote <existing>` and `task scope:demote --batch --older-than-days 30` as the relief valves. The monitor MUST drain the WIP set via `task scope:demote` (D1 / #1121) before promoting more candidates, OR open a per-promote `task scope:promote <file> --force` (audit-logged as `wip_cap_override` in `xbrief/.eval/scope-lifecycle.jsonl`) for the genuinely time-critical case. `task triage:summary` (D2 / #1122) surfaces the cap as `WIP X/Y` with a warning glyph when at-or-above cap.
 
 ### Step 4: Present Analysis
 
 ! Present a summary to the user containing:
 
-- **Candidate vBRIEFs**: story-level vBRIEFs eligible for assignment (with titles, statuses, and origin references)
+- **Candidate xBRIEFs**: story-level xBRIEFs eligible for assignment (with titles, statuses, and origin references)
 - **Readiness report**: ready stories, blocked stories, decomposition-needed epics/phases, dependency waves, conflict groups, file overlap matrix, and missing fields from `task swarm:readiness`.
-- **Preflight rejections (#810)**: any vBRIEFs that failed `task vbrief:preflight` (wraps `scripts/preflight_implementation.py`) in Step 1 -- include the file path AND the helper's exit message verbatim so the user can route the appropriate `task vbrief:activate <path>` move. These vBRIEFs MUST NOT be allocated until they pass the preflight on a re-run.
-- **Blockers found**: blocked vBRIEFs, unresolved dependencies, items requiring design decisions
+- **Preflight rejections (#810)**: any xBRIEFs that failed `task xbrief:preflight` (wraps `scripts/preflight_implementation.py`) in Step 1 -- include the file path AND the helper's exit message verbatim so the user can route the appropriate `task xbrief:activate <path>` move. These xBRIEFs MUST NOT be allocated until they pass the preflight on a re-run.
+- **Blockers found**: blocked xBRIEFs, unresolved dependencies, items requiring design decisions
 - **Decomposition needed**: epic/phase scopes that must go through `skills/deft-directive-decompose/SKILL.md` before swarm allocation
-- **Incomplete vBRIEFs**: stories with missing or empty acceptance criteria
-- **Allocation plan**: which agent gets which vBRIEF(s), with reasoning for batching decisions; multi-story batching is allowed only after explicit operator approval or approval of this allocation plan
+- **Incomplete xBRIEFs**: stories with missing or empty acceptance criteria
+- **Allocation plan**: which agent gets which xBRIEF(s), with reasoning for batching decisions; multi-story batching is allowed only after explicit operator approval or approval of this allocation plan
 - **Tentative version bump**: current version (from CHANGELOG.md or latest git tag) and proposed next version (patch/minor/major) based on the scope and nature of candidate items — this is advisory and will be confirmed before merge cascade
 
 ### Step 5: Get User Approval
@@ -262,17 +262,17 @@ Cross-references:
 
 ### Step 1: Confirm Candidates
 
-- ! Use the allocation plan and vBRIEF analysis from Phase 0 as the starting point
-- ! Re-read `vbrief/active/` only if Phase 0 was skipped (user override) or context was lost
-- ! For each candidate vBRIEF, verify its `plan.status` is `running` (not `blocked` or `completed`)
-- ! Exclude vBRIEFs that are blocked, have unresolved dependencies, or require design decisions
+- ! Use the allocation plan and xBRIEF analysis from Phase 0 as the starting point
+- ! Re-read `xbrief/active/` only if Phase 0 was skipped (user override) or context was lost
+- ! For each candidate xBRIEF, verify its `plan.status` is `running` (not `blocked` or `completed`)
+- ! Exclude xBRIEFs that are blocked, have unresolved dependencies, or require design decisions
 
 ### Step 2: File-Overlap Audit
 
-! Before assigning tasks to agents, start from the `task swarm:readiness` file-overlap matrix and conflict groups, then list every file each vBRIEF's acceptance criteria are expected to touch.
+! Before assigning tasks to agents, start from the `task swarm:readiness` file-overlap matrix and conflict groups, then list every file each xBRIEF's acceptance criteria are expected to touch.
 
 - ! Verify ZERO file overlap between agents — no two agents may modify the same file
-- ! Check **transitive** file touches, not just primary scope — trace each vBRIEF's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).
+- ! Check **transitive** file touches, not just primary scope — trace each xBRIEF's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).
 - ! Shared files (CHANGELOG.md) are exceptions — each agent adds entries but does not edit existing content
 - ! If overlap exists, reassign tasks until overlap is eliminated
 
@@ -281,7 +281,7 @@ Cross-references:
 
 ### Step 3: Present Assignment
 
-- ! Show the user: agent number, branch name, assigned vBRIEF(s) (with origin issue numbers), and files each agent will touch
+- ! Show the user: agent number, branch name, assigned xBRIEF(s) (with origin issue numbers), and files each agent will touch
 - ~ Wait for user approval unless the user explicitly said to proceed autonomously
 
 ## Phase 2 — Setup
@@ -323,7 +323,7 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 ! Before dispatching ANY worker prompt -- swarm cohort OR solo -- the dispatcher MUST populate a `## Allocation context` section (the frozen schema defined in `templates/agent-prompt-preamble.md`, Story A of #1378) in every launched agent's dispatch envelope. Populate all five fields in order: `dispatch_kind` (`solo` | `swarm-cohort`), `allocation_plan_id`, `batching_rationale`, `cohort_vbriefs`, and `operator_approval_evidence`.
 
 - ! For a **swarm cohort**, set `dispatch_kind: swarm-cohort` with a non-null `allocation_plan_id` (the Phase 0 allocation-plan snapshot path or the monitor session id) AND a non-null `batching_rationale` (the one-line rationale from the Phase 0 Step 4 allocation plan), and list the full cohort in `cohort_vbriefs`. This is the structured consent token the worker's build-skill Step 0 recognizes mechanically (#1378 Story B), so the worker processes its cohort without re-prompting the parent for batching approval mid-cohort.
-- ! For a **solo dispatch**, set `dispatch_kind: solo` and list the single assigned vBRIEF in `cohort_vbriefs`; `allocation_plan_id` and `batching_rationale` MAY be null. Populating the section even for solo dispatches keeps the recognition surface uniform across every launch path.
+- ! For a **solo dispatch**, set `dispatch_kind: solo` and list the single assigned xBRIEF in `cohort_vbriefs`; `allocation_plan_id` and `batching_rationale` MAY be null. Populating the section even for solo dispatches keeps the recognition surface uniform across every launch path.
 
 ⊗ Dispatch a worker prompt (cohort or solo) without a populated `## Allocation context` section -- an absent section forces the worker back onto the #1371 prose carve-out fallback and forfeits the deterministic consent-token recognition the structured section enables (#1378).
 
@@ -408,7 +408,7 @@ Cross-references: `scripts/platform_capabilities.py` (#1557a), `scripts/github_a
 
 1. **Dispatch provider** — the runtime primitive or adapter that launches the child worker (e.g. `spawn_subagent`, `start_agent`, Cursor Composer/task agents, cloud agents, or a future adapter).
 2. **Worker role** — what the child is permitted to do: leaf implementation, orchestrator/strategist, review-cycle monitor, conflict-resolution rebase, merge, or release gate. Role boundaries are load-bearing regardless of which dispatch provider is active.
-3. **Model or agent selection** — the operator or harness policy that maps role plus vBRIEF attributes to a concrete agent/model. deft stays model-agnostic at dispatch time; the harness or provider backend resolves the concrete model.
+3. **Model or agent selection** — the operator or harness policy that maps role plus xBRIEF attributes to a concrete agent/model. deft stays model-agnostic at dispatch time; the harness or provider backend resolves the concrete model.
 
 ! **Supported backend examples (none mandatory):** Composer-class coding agents, Grok Build `spawn_subagent` workers, Cursor/cloud agents, and future adapters are all first-class examples. No single backend is required — Grok Build is one implementation of provider-neutral routing, not the only target.
 
@@ -416,7 +416,7 @@ Cross-references: `scripts/platform_capabilities.py` (#1557a), `scripts/github_a
 
 ~ **DEPRECATED — Policy surface (#1531a / #1891):** `plan.policy.swarmSubagentBackend` (set via `task policy:subagent-backend`) was the previous mechanism for recording the operator's preferred coding sub-agent provider. It is superseded by per-role operator model routing above (#1739). The enum and associated `task policy:subagent-backend(s)` tasks remain functional but deprecated; hard deletion is tracked by #1860. Use `task swarm:routing-set` instead.
 
-! **Role boundaries for cheaper leaf agents:** Cheaper, high-context leaf agents are appropriate for **leaf implementation** work in isolated worktrees when vBRIEF scope is tight and gates (`task check`, Greptile review cycle) hold. The following roles MUST remain on strong, review-capable agents regardless of backend availability:
+! **Role boundaries for cheaper leaf agents:** Cheaper, high-context leaf agents are appropriate for **leaf implementation** work in isolated worktrees when xBRIEF scope is tight and gates (`task check`, Greptile review cycle) hold. The following roles MUST remain on strong, review-capable agents regardless of backend availability:
 
 - orchestration and cohort monitoring (the monitor / strategist conversation)
 - review-cycle decisions (fix-or-defer judgment, P0/P1 triage)
@@ -434,7 +434,7 @@ Cross-references: `scripts/policy.py` (`KNOWN_SUBAGENT_BACKEND_IDS`, `SWARM_WORK
 
 ! **Deliberate model routing before ANY dispatch:** Before launching ANY worker in this phase (cohort OR solo), run `task verify:routing` and resolve each `(dispatch_provider, worker_role)` via `task swarm:routing-set` / `.deft/routing.local.json`. Populate `## Worker metadata` per `templates/agent-prompt-preamble.md` §2.6 and pass `resolved_model` into the actual dispatch primitive when non-null. Never silently inherit the monitor's model. Deterministic gate enforcement is #1877; this rule is behavioral doctrine (#1880).
 
-! **Worker-owns-lifecycle (Gap C):** Every implementation-worker dispatch prompt MUST declare the unit-of-work boundary: `stop-at: pr-open` OR `drive-to: merge-ready` (default for story vBRIEF work). Workers scoped `drive-to: merge-ready` own pre-PR, push, PR open, Greptile review-cycle poll/fix, and the #1259 Step 6 fail-closed exit as ONE dispatch — they spawn their own review poller per `skills/deft-directive-review-cycle/SKILL.md` monitoring tiers. The monitor MUST NOT plan a separate post-PR review leaf for a worker already scoped merge-ready.
+! **Worker-owns-lifecycle (Gap C):** Every implementation-worker dispatch prompt MUST declare the unit-of-work boundary: `stop-at: pr-open` OR `drive-to: merge-ready` (default for story xBRIEF work). Workers scoped `drive-to: merge-ready` own pre-PR, push, PR open, Greptile review-cycle poll/fix, and the #1259 Step 6 fail-closed exit as ONE dispatch — they spawn their own review poller per `skills/deft-directive-review-cycle/SKILL.md` monitoring tiers. The monitor MUST NOT plan a separate post-PR review leaf for a worker already scoped merge-ready.
 
 ! **Background / independent dispatch (Gap D):** Dispatch implementation, fix, and review-cycle workers independently / in the background when the platform supports it. On Cursor, use the Task tool background path (`run_in_background: true`) so the monitor conversation stays interactive. Foreground dispatch is for short tasks (<~3 min) only.
 
@@ -499,7 +499,7 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 ### Step 2e: Cursor Launch (Task tool available) — #1877
 
 ! When the platform descriptor is `cursor-composer` or `cursor-cloud-agent` (Cursor `Task` tool detected, no `start_agent`, no `WARP_*`, no `spawn_subagent`), dispatch each worker via the Cursor `Task` tool with:
-1. The canonical `templates/agent-prompt-preamble.md` content as the preamble (AGENTS.md read mandate, #810 vBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates).
+1. The canonical `templates/agent-prompt-preamble.md` content as the preamble (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates).
 2. The standard worktree prompt (STEP 1-6 from the Prompt Template below).
 3. The worktree path set to the agent's isolated git worktree.
 4. ! **`run_in_background: true`** for any worker or poller whose loop runs longer than a short task (~3 min) — implementation, fix, and review-cycle workers — so the monitor conversation pane stays interactive (#1880 Gap D). The parent is notified on completion.
@@ -539,7 +539,7 @@ uv --project . run python scripts/subagent_monitor.py \
 
 Track each agent through these stages:
 
-1. **Reading** — agent is loading AGENTS.md, vBRIEF files, project files (no file changes yet)
+1. **Reading** — agent is loading AGENTS.md, xBRIEF files, project files (no file changes yet)
 2. **Implementing** — working tree shows modified files
 3. **Validating** — agent running `task check`
 4. **Committed** — new commit(s) in `git log`
@@ -588,14 +588,14 @@ For each agent's PR:
 3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
 4. ! **Worker-owns-lifecycle fallback (#1880):** Prefer workers scoped `drive-to: merge-ready` so this step is rare. When a worker exits at PR-open without reaching merge-ready, the monitor MAY run `skills/deft-directive-review-cycle/SKILL.md` itself or dispatch ONE review-cycle owner — but MUST NOT split review polling and fix batches across separate leaf agents for the same PR (#727 + #1880 Gap C).
 
-### Complete vBRIEFs
+### Complete xBRIEFs
 
-! The cohort's story vBRIEFs are completed by the deterministic **cohort completion sweep** in Phase 6 (`task swarm:complete-cohort`, Phase 6 Step 1.5 below), which runs AFTER the merge cascade. Do NOT move story vBRIEFs out of `vbrief/active/` before their PRs merge — a pre-merge move creates premature state if the merge cascade fails. This section is where the monitor records, per story, what the post-merge sweep will finalize:
+! The cohort's story xBRIEFs are completed by the deterministic **cohort completion sweep** in Phase 6 (`task swarm:complete-cohort`, Phase 6 Step 1.5 below), which runs AFTER the merge cascade. Do NOT move story xBRIEFs out of `xbrief/active/` before their PRs merge — a pre-merge move creates premature state if the merge cascade fails. This section is where the monitor records, per story, what the post-merge sweep will finalize:
 
-1. ! For each story vBRIEF an agent's PR fully resolves, note that it is ready to complete (`vbrief/active/` -> `vbrief/completed/`, status `completed`). The underlying primitive is `task scope:complete <file>`; the Phase 6 sweep wraps it across the whole cohort so nothing is missed on the headless / multi-worker path.
-2. ! If a story carries a `planRef` to a parent epic, the sweep also completes that epic once ALL its children are settled — you do NOT reconcile epic parents by hand, and you do NOT manually repair parent/child references (the lifecycle helper keeps `task vbrief:validate` green via the #1485 / #1487 reference maintenance).
+1. ! For each story xBRIEF an agent's PR fully resolves, note that it is ready to complete (`xbrief/active/` -> `xbrief/completed/`, status `completed`). The underlying primitive is `task scope:complete <file>`; the Phase 6 sweep wraps it across the whole cohort so nothing is missed on the headless / multi-worker path.
+2. ! If a story carries a `planRef` to a parent epic, the sweep also completes that epic once ALL its children are settled — you do NOT reconcile epic parents by hand, and you do NOT manually repair parent/child references (the lifecycle helper keeps `task xbrief:validate` green via the #1485 / #1487 reference maintenance).
 
-⚠️ Both the vBRIEF lifecycle moves AND origin/issue closure happen in Phase 6 (after merge), not here — completing vBRIEFs or closing issues before merge creates premature state if the merge cascade fails.
+⚠️ Both the xBRIEF lifecycle moves AND origin/issue closure happen in Phase 6 (after merge), not here — completing xBRIEFs or closing issues before merge creates premature state if the merge cascade fails.
 
 ### Exit Condition
 
@@ -605,7 +605,7 @@ All PRs meet ALL of:
 - `task check` passed (or equivalent validation completed)
 - CHANGELOG entries present under `[Unreleased]`
 
-! **Mandatory cohort verifier (#1364):** After every poller (Phase 6 review-cycle sub-agent) reports back, the monitor MUST run `task swarm:verify-review-clean -- <pr-numbers...>` (script: `scripts/swarm_verify_review_clean.py`) and confirm exit 0 BEFORE evaluating the rest of the Exit Condition or surfacing the Phase 5 -> 6 gate. The verifier re-uses the Greptile rolling-summary parser from `scripts/pr_merge_readiness.py` so the per-PR merge gate and the cohort gate stay in lockstep (a parser fix lands in both surfaces at once). Exit codes: 0 (cohort CLEAN -- all PRs simultaneously have SHA match + confidence > 3 + zero P0/P1 + not errored on current HEAD); 1 (one or more PRs unclean with per-PR diagnostics -- re-dispatch the poller for the unclean PR or address findings, then re-run the verifier); 2 (config error -- empty cohort, malformed vBRIEF glob, gh missing). The verifier is the structural answer to the #1166 swarm execution recurrence where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate because the trigger keyed on "all pollers have reported back" rather than "every PR in the cohort is objectively CLEAN".
+! **Mandatory cohort verifier (#1364):** After every poller (Phase 6 review-cycle sub-agent) reports back, the monitor MUST run `task swarm:verify-review-clean -- <pr-numbers...>` (script: `scripts/swarm_verify_review_clean.py`) and confirm exit 0 BEFORE evaluating the rest of the Exit Condition or surfacing the Phase 5 -> 6 gate. The verifier re-uses the Greptile rolling-summary parser from `scripts/pr_merge_readiness.py` so the per-PR merge gate and the cohort gate stay in lockstep (a parser fix lands in both surfaces at once). Exit codes: 0 (cohort CLEAN -- all PRs simultaneously have SHA match + confidence > 3 + zero P0/P1 + not errored on current HEAD); 1 (one or more PRs unclean with per-PR diagnostics -- re-dispatch the poller for the unclean PR or address findings, then re-run the verifier); 2 (config error -- empty cohort, malformed xBRIEF glob, gh missing). The verifier is the structural answer to the #1166 swarm execution recurrence where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate because the trigger keyed on "all pollers have reported back" rather than "every PR in the cohort is objectively CLEAN".
 
 ! **Resilient long-running monitor (#1368):** When a Phase 5 monitor needs to wait on an in-flight PR for an extended window (cascade rebase + re-review, late Greptile pass, CI sweep), use `scripts/monitor_pr.py <N> --repo <owner>/<repo>` as the canonical wait-until-ready helper. The script loops `scripts/pr_merge_readiness.py` with adaptive cadence (~1m for the first 3 polls, ~3m next, ~5m thereafter), routes subprocess capture through `_safe_subprocess.run_text` (#1366), and tolerates layered fallback responses without going blind on a transient gh failure. Exit codes: 0 (PR reached primary/fallback1 CLEAN), 1 (poll cap reached -- escalate to operator), 2 (config error -- gh missing / invalid args), 3 (PR merged or closed out from under the monitor before reaching CLEAN). The helper writes one terse status line per poll to stderr so the orchestrator transcript shows progress; the final verdict (JSON when `--json` is passed) lands on stdout.
 
@@ -756,50 +756,50 @@ This is defense in depth -- run it even when the pre-merge inspection above pass
 
 ### Step 1.5: Cohort Completion Sweep (#1487)
 
-! **REQUIRED.** Once the cohort's PRs are merged (Step 1 complete), the monitor MUST run the deterministic cohort completion sweep so the finished swarm leaves NO stranded vBRIEFs. This step closes the gap where a completed cohort left its story vBRIEFs in `vbrief/active/` and their decompose-created epic parents in `vbrief/pending/` -- nothing in the swarm flow swept them to `completed/` (observed in the 2026-06-03 swarm: after the cohort's PRs merged, the child story vBRIEFs stayed in `active/` and their epic parents stayed in `pending/`).
+! **REQUIRED.** Once the cohort's PRs are merged (Step 1 complete), the monitor MUST run the deterministic cohort completion sweep so the finished swarm leaves NO stranded xBRIEFs. This step closes the gap where a completed cohort left its story xBRIEFs in `xbrief/active/` and their decompose-created epic parents in `xbrief/pending/` -- nothing in the swarm flow swept them to `completed/` (observed in the 2026-06-03 swarm: after the cohort's PRs merged, the child story xBRIEFs stayed in `active/` and their epic parents stayed in `pending/`).
 
 ```pwsh path=null start=null
 # Sweep the whole cohort by glob (typical close-out)...
-task swarm:complete-cohort -- --cohort 'vbrief/active/*.vbrief.json'
-# ...or name the cohort's story vBRIEFs explicitly:
-task swarm:complete-cohort -- vbrief/active/<story-a>.vbrief.json vbrief/active/<story-b>.vbrief.json
+task swarm:complete-cohort -- --cohort 'xbrief/active/*.xbrief.json'
+# ...or name the cohort's story xBRIEFs explicitly:
+task swarm:complete-cohort -- xbrief/active/<story-a>.xbrief.json xbrief/active/<story-b>.xbrief.json
 ```
 
 What the sweep does (script: `scripts/swarm_complete_cohort.py`):
 
-1. ! **Stage 1 -- stories:** every cohort story vBRIEF still in `vbrief/active/` is completed (`active/` -> `completed/`, status `completed`). A story already terminal (`completed/` / `cancelled/`) is an idempotent no-op, so the sweep is safe to re-run.
-2. ! **Stage 2 -- epic parents:** each decompose-created epic parent is completed once ALL of its `x-vbrief/plan` children are settled (in `completed/` or `cancelled/`). A parent in `pending/` is bridged `activate` -> `complete`; a parent in `active/` is completed directly. The sweep iterates to a fixpoint, so nested decomposition (phase -> epic -> story) collapses bottom-up. A parent with even one still-active sibling outside the cohort is left untouched.
-3. ! **D4 stays green automatically:** every move routes through `scripts/scope_lifecycle.py`, which keeps the decomposed parent<->child references in sync on BOTH directions -- child moves update the parent's forward `x-vbrief/plan` reference (#1485) and parent moves update each child's `planRef` back-pointer (#1487). Do NOT hand-edit references to "fix" linkage; the helper already does it.
-4. ! After the sweep, the monitor MUST run `task vbrief:validate` and confirm it exits 0 (no D4 regressions). Exit codes for the sweep itself: 0 (sweep clean), 1 (one or more transitions failed -- per-item diagnostics printed), 2 (config error -- empty cohort or missing `vbrief/`).
+1. ! **Stage 1 -- stories:** every cohort story xBRIEF still in `xbrief/active/` is completed (`active/` -> `completed/`, status `completed`). A story already terminal (`completed/` / `cancelled/`) is an idempotent no-op, so the sweep is safe to re-run.
+2. ! **Stage 2 -- epic parents:** each decompose-created epic parent is completed once ALL of its `x-xbrief/plan` children are settled (in `completed/` or `cancelled/`). A parent in `pending/` is bridged `activate` -> `complete`; a parent in `active/` is completed directly. The sweep iterates to a fixpoint, so nested decomposition (phase -> epic -> story) collapses bottom-up. A parent with even one still-active sibling outside the cohort is left untouched.
+3. ! **D4 stays green automatically:** every move routes through `scripts/scope_lifecycle.py`, which keeps the decomposed parent<->child references in sync on BOTH directions -- child moves update the parent's forward `x-xbrief/plan` reference (#1485) and parent moves update each child's `planRef` back-pointer (#1487). Do NOT hand-edit references to "fix" linkage; the helper already does it.
+4. ! After the sweep, the monitor MUST run `task xbrief:validate` and confirm it exits 0 (no D4 regressions). Exit codes for the sweep itself: 0 (sweep clean), 1 (one or more transitions failed -- per-item diagnostics printed), 2 (config error -- empty cohort or missing `xbrief/`).
 
-! **Interactive path:** the monitor runs `task swarm:complete-cohort` by hand (or `--dry-run` first to preview the planned transitions) once the merge cascade finishes, then runs `task vbrief:validate`.
+! **Interactive path:** the monitor runs `task swarm:complete-cohort` by hand (or `--dry-run` first to preview the planned transitions) once the merge cascade finishes, then runs `task xbrief:validate`.
 
-! **Headless / multi-worker path:** the cohort sweep is NOT optional here -- it is the structural fix for the #1487 recurrence where the multi-worker close-out never executed the per-cohort completion. The launching monitor (or the close-out automation that follows `task pr:wait-mergeable-and-merge`, #1369) MUST invoke `task swarm:complete-cohort -- --cohort '<cohort-glob>'` after the last cohort PR merges and MUST gate on its exit 0 plus a green `task vbrief:validate` before declaring the swarm closed. The `--json` flag emits a structured verdict for a parent monitor agent to consume.
+! **Headless / multi-worker path:** the cohort sweep is NOT optional here -- it is the structural fix for the #1487 recurrence where the multi-worker close-out never executed the per-cohort completion. The launching monitor (or the close-out automation that follows `task pr:wait-mergeable-and-merge`, #1369) MUST invoke `task swarm:complete-cohort -- --cohort '<cohort-glob>'` after the last cohort PR merges and MUST gate on its exit 0 plus a green `task xbrief:validate` before declaring the swarm closed. The `--json` flag emits a structured verdict for a parent monitor agent to consume.
 
-⊗ Declare a swarm closed while any cohort story vBRIEF remains in `vbrief/active/` or any fully-childless decompose-created epic parent remains in `vbrief/pending/` -- run `task swarm:complete-cohort` and confirm `task vbrief:validate` is green first (#1487).
+⊗ Declare a swarm closed while any cohort story xBRIEF remains in `xbrief/active/` or any fully-childless decompose-created epic parent remains in `xbrief/pending/` -- run `task swarm:complete-cohort` and confirm `task xbrief:validate` is green first (#1487).
 
 ### Step 2: Close Issues and Update Origins
 
 - ! Close resolved issues with a comment referencing the PR
 - ~ Issues with "Closes #N" in PR body auto-close on squash merge
 - ! After each squash merge, verify issues actually closed: `gh issue view <N> --json state --jq .state`. If not closed, close manually with a comment referencing the merged PR. Squash merge + closing keywords can silently fail to close issues (#167).
-- ! For each completed vBRIEF: read its `references` array and update each origin:
+- ! For each completed xBRIEF: read its `references` array and update each origin:
   - For `github-issue` references: verify the issue is closed (auto-close from PR body or Phase 6 Step 2 above); if not, close with `gh issue close <N> --comment "Completed in #<PR>"`
   - For other reference types: document the completion as appropriate
 
 ### Step 2b: Commit and Push the Post-Merge Lifecycle Record (#1358)
 
-! **REQUIRED.** After all cohort PRs have merged (Step 1) and the Cohort Completion Sweep (Step 1.5) has moved every finished story vBRIEF `vbrief/active/` -> `vbrief/completed/` (and bridged its epic parents), the monitor MUST commit and push those lifecycle moves so they become the **authoritative post-swarm lifecycle record** on the base branch. Without this step the moves sit uncommitted in the merger's worktree until an operator hand-runs `task scope:complete` and a `chore(vbrief)` commit by hand -- the exact manual closeout performed after the 2026-06-16 swarm (the #1358 recurrence this step closes).
+! **REQUIRED.** After all cohort PRs have merged (Step 1) and the Cohort Completion Sweep (Step 1.5) has moved every finished story xBRIEF `xbrief/active/` -> `xbrief/completed/` (and bridged its epic parents), the monitor MUST commit and push those lifecycle moves so they become the **authoritative post-swarm lifecycle record** on the base branch. Without this step the moves sit uncommitted in the merger's worktree until an operator hand-runs `task scope:complete` and a `chore(xbrief)` commit by hand -- the exact manual closeout performed after the 2026-06-16 swarm (the #1358 recurrence this step closes).
 
 The monitor MUST, from its OWN worktree and on the configured base branch:
 
 0. ! **Fast-forward the local base branch FIRST:** `git fetch origin && git merge --ff-only origin/<configured-base-branch>` (equivalently `git pull --ff-only origin <configured-base-branch>`). The merge cascade (Step 1) advanced the REMOTE base branch by N squash-merge commits, but the local base branch in this worktree has not yet been pulled (Step 3's canonical pull runs AFTER this step). Without this fast-forward the commit below is built on a stale base and the push in step 4 is rejected as non-fast-forward, stranding the agent. Doing the `--ff-only` sync first makes the subsequent commit + push fast-forward by construction; a non-fast-forward `--ff-only` failure here means an unexpected divergence -- stop and reconcile rather than force-push.
-1. ! Confirm the lifecycle moves are present (the Step 1.5 sweep already ran `task scope:complete <file>` per story, `active/` -> `completed/`). If the sweep was skipped, run `task swarm:complete-cohort` now -- do NOT hand-move vBRIEF files.
-2. ! Stage ALL lifecycle moves: `git add -A vbrief/` -- this captures both the `active/` deletions and the `completed/` additions, plus any parent/child `planRef` / `x-vbrief/plan` reference edits `scripts/scope_lifecycle.py` wrote during the sweep.
-3. ! Commit them in a SINGLE commit on the base branch: `git commit -m "chore(vbrief): complete <slugs> post-merge"`, where `<slugs>` enumerates the completed story vBRIEF slugs (or the cohort label) so the commit is self-describing.
+1. ! Confirm the lifecycle moves are present (the Step 1.5 sweep already ran `task scope:complete <file>` per story, `active/` -> `completed/`). If the sweep was skipped, run `task swarm:complete-cohort` now -- do NOT hand-move xBRIEF files.
+2. ! Stage ALL lifecycle moves: `git add -A xbrief/` -- this captures both the `active/` deletions and the `completed/` additions, plus any parent/child `planRef` / `x-xbrief/plan` reference edits `scripts/scope_lifecycle.py` wrote during the sweep.
+3. ! Commit them in a SINGLE commit on the base branch: `git commit -m "chore(xbrief): complete <slugs> post-merge"`, where `<slugs>` enumerates the completed story xBRIEF slugs (or the cohort label) so the commit is self-describing.
 4. ! Push to origin: `git push origin <configured-base-branch>`. Because step 0 fast-forwarded the local base ahead of the commit, this push is a fast-forward and will not be rejected.
 
-! **Authoritative lifecycle record (#1358):** this commit is what keeps the release ceremony's vBRIEF-lifecycle-sync gate green. The release pipeline's deterministic gate (`scripts/release.py::check_vbrief_lifecycle_sync`) and the release skill's Phase 1 sync gate (`skills/deft-directive-release/SKILL.md` Phase 1 -- `task reconcile:issues -- --apply-lifecycle-fixes`) both refuse to cut a release while a closed-issue vBRIEF still sits outside `vbrief/completed/`. Committing the moves here, at swarm close-out, is the **prevention** so the next release does not have to reconcile drift the swarm itself created. If drift is nevertheless detected later, `task reconcile:issues -- --apply-lifecycle-fixes` (script: `scripts/reconcile_issues.py`) is the recovery path -- but the post-merge commit in this step is what stops the drift from being authored in the first place.
+! **Authoritative lifecycle record (#1358):** this commit is what keeps the release ceremony's xBRIEF-lifecycle-sync gate green. The release pipeline's deterministic gate (`scripts/release.py::check_vbrief_lifecycle_sync`) and the release skill's Phase 1 sync gate (`skills/deft-directive-release/SKILL.md` Phase 1 -- `task reconcile:issues -- --apply-lifecycle-fixes`) both refuse to cut a release while a closed-issue xBRIEF still sits outside `xbrief/completed/`. Committing the moves here, at swarm close-out, is the **prevention** so the next release does not have to reconcile drift the swarm itself created. If drift is nevertheless detected later, `task reconcile:issues -- --apply-lifecycle-fixes` (script: `scripts/reconcile_issues.py`) is the recovery path -- but the post-merge commit in this step is what stops the drift from being authored in the first place.
 
 ⊗ Declare a swarm closed while the cohort's `active/` -> `completed/` lifecycle moves remain uncommitted in the merger's worktree -- an uncommitted lifecycle record is invisible to every other clone and re-surfaces as `check_vbrief_lifecycle_sync` drift at the next release (#1358). The Step 1.5 sweep moves the files; this step makes the move durable.
 
@@ -893,14 +893,14 @@ This is a git worktree. Do NOT just read files and stop — you must implement a
 run task check, commit, push, create a PR, and run the review cycle.
 DO NOT STOP until all steps are complete.
 
-STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned vBRIEF(s) from vbrief/active/.
+STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned xBRIEF(s) from xbrief/active/.
 Read skills/deft-directive-review-cycle/SKILL.md.
 
-STEP 2 — Implement these N tasks (see assigned vBRIEF(s) for full acceptance criteria):
+STEP 2 — Implement these N tasks (see assigned xBRIEF(s) for full acceptance criteria):
 
-Task A (vBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
+Task A (xBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
 
-Task B (vBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
+Task B (xBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
 
 [...repeat for each task...]
 
@@ -928,7 +928,7 @@ CONSTRAINTS:
 
 - ! First line MUST start with `TASK:` followed by an imperative statement
 - ! Include `DO NOT STOP until all steps are complete` in the preamble
-- ! Each task MUST include its vBRIEF filename and origin issue number
+- ! Each task MUST include its xBRIEF filename and origin issue number
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
@@ -944,7 +944,7 @@ CONSTRAINTS:
 - ⊗ Assign overlapping files to multiple agents
 - ⊗ Merge PRs before Greptile exit condition is met (score > 3, no P0/P1)
 - ⊗ Assume agents will complete the full workflow — always verify review cycle completion
-- ⊗ Launch agents without checking vBRIEF acceptance criteria first
+- ⊗ Launch agents without checking xBRIEF acceptance criteria first
 - ⊗ Skip the file-overlap audit in Phase 1
 - ⊗ Use `git reset --hard` or force-push in any worktree (swarm agents only -- monitor may `--force-with-lease` after rebase cascade per Phase 6 Step 1)
 - ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always probe for `start_agent` and Warp environment variables before choosing a launch path
@@ -961,10 +961,10 @@ CONSTRAINTS:
 - ⊗ Run `git add` on a conflict-resolved file without re-reading and verifying structural integrity (no conflict markers, no collapsed lines, no encoding artifacts) -- see Phase 6 Step 1 read-back verification rule (#288)
 - ⊗ Use shell regex (`sed`, `Select-String -replace`) to resolve `CHANGELOG.md` rebase conflicts -- prefer `task changelog:resolve-unreleased` (#911) for `[Unreleased]` conflicts; fall back to `edit_files` for encoding safety and exact match verification when the helper exits 1 (#288, #911)
 - ⊗ Resolve a `CHANGELOG.md` `[Unreleased]` conflict by HEAD-take-and-discard -- the rebasing branch's new entry MUST land in the resolved file. Use `task changelog:resolve-unreleased` (#911) for the canonical union-merge or apply the union-merge pattern manually when the helper cannot mechanize the conflict
-- ⊗ Hardcode a 1:1 vBRIEF-per-agent allocation rule — the monitor decides allocation dynamically based on scope, complexity, and dependencies
-- ⊗ Complete a story without moving its vBRIEF from `active/` to `completed/` and updating its origin references
-- ⊗ Declare a swarm closed without running the Phase 6 Step 1.5 cohort completion sweep (`task swarm:complete-cohort`) and confirming `task vbrief:validate` is green -- skipping it leaves the cohort's story vBRIEFs stranded in `active/` and their decompose-created epic parents stranded in `pending/`, the exact #1487 recurrence (the headless / multi-worker close-out is where the sweep was historically missed)
-- ⊗ Declare a swarm closed while the cohort's `active/` -> `completed/` lifecycle moves remain uncommitted -- after the Step 1.5 sweep the monitor MUST commit them in a single `chore(vbrief): complete <slugs> post-merge` commit on the base branch and `git push origin <configured-base-branch>` (Phase 6 Step 2b). An uncommitted lifecycle record is invisible to every other clone and re-surfaces as `scripts/release.py::check_vbrief_lifecycle_sync` drift at the next release; the post-merge commit is the prevention, `task reconcile:issues -- --apply-lifecycle-fixes` is only the recovery (#1358)
+- ⊗ Hardcode a 1:1 xBRIEF-per-agent allocation rule — the monitor decides allocation dynamically based on scope, complexity, and dependencies
+- ⊗ Complete a story without moving its xBRIEF from `active/` to `completed/` and updating its origin references
+- ⊗ Declare a swarm closed without running the Phase 6 Step 1.5 cohort completion sweep (`task swarm:complete-cohort`) and confirming `task xbrief:validate` is green -- skipping it leaves the cohort's story xBRIEFs stranded in `active/` and their decompose-created epic parents stranded in `pending/`, the exact #1487 recurrence (the headless / multi-worker close-out is where the sweep was historically missed)
+- ⊗ Declare a swarm closed while the cohort's `active/` -> `completed/` lifecycle moves remain uncommitted -- after the Step 1.5 sweep the monitor MUST commit them in a single `chore(xbrief): complete <slugs> post-merge` commit on the base branch and `git push origin <configured-base-branch>` (Phase 6 Step 2b). An uncommitted lifecycle record is invisible to every other clone and re-surfaces as `scripts/release.py::check_vbrief_lifecycle_sync` drift at the next release; the post-merge commit is the prevention, `task reconcile:issues -- --apply-lifecycle-fixes` is only the recovery (#1358)
 - ⊗ Hardcode `master` as the base branch -- always use the configured base branch from Phase 0
 - ⊗ Treat a Greptile GitHub CheckRun of COMPLETED/NEUTRAL as equivalent to a passing review without inspecting the comment body. NEUTRAL is the result both when Greptile intentionally has nothing to say AND when it errored out mid-review; the two cases require opposite responses (#526)
 - ⊗ Loop the monitor indefinitely on the Greptile-service-errored state or time out silently at the poll cap -- detect the "Greptile encountered an error" comment body, retry once via `@greptileai review` with a 10-minute cap, and on second error escalate to the user with the three-way choice (wait / empty retrigger commit / documented override) per Phase 6 Step 1 (#526)
@@ -974,8 +974,8 @@ CONSTRAINTS:
 - ⊗ Skip the post-merge protected-issue reopen sweep for any squash merge that referenced an umbrella / staying-OPEN issue -- defense in depth catches Layer 3 false-positives the pre-merge inspection missed (#701)
 - ⊗ Merge on the basis of a SUCCESS Greptile CheckRun alone -- the CheckRun signals review **completion**, not review **approval** (PR #652 incident; symmetric blind spot to the NEUTRAL CheckRun #526 case). Always run `task pr:merge-ready -- <N>` before `gh pr merge` to parse the comment body for confidence + P0 / P1 findings
 - ⊗ Run `git checkout` (any branch) -- including the brief `cd <other-worktree>; git checkout master --quiet` shape -- in a worktree the merging agent does not own during Phase 6 Step 3 (Update Master) or Step 4 (Clean Up). Post-merge state-update semantics MUST be performed via `git fetch origin <base-branch>` from the merger's OWN worktree, never by switching HEAD on a sibling worktree another agent is actively using. Recurrence record: PR #797 merge session (2026-05-01); companion to the Sub-Agent Role Separation rules (#727) -- this anti-pattern extends the same boundary discipline from sub-agent spawn shape to worktree HEAD operations (#800)
-- ⊗ Skip the Phase 0 Step 0.5 lifecycle bridge (#1025) and let the Step 1 preflight gate reject candidate scope vBRIEFs wholesale. The setup skill deposits scope vBRIEFs in `vbrief/proposed/` and the refinement skill leaves them in `vbrief/pending/`; the swarm Phase 0 Step 1 preflight only accepts `vbrief/active/` with `plan.status == "running"`. The bridge step (`task scope:promote -- <path>` then `task scope:activate -- <path>`) is the contract that converts proposed/pending candidates to active before allocation -- bypassing it re-surfaces the originating 2026-05-10 first-session consumer-swarm failure mode (`Invalid transition: 'activate' requires file in pending/`)
-- ⊗ Auto-promote + activate every candidate in `vbrief/proposed/` or `vbrief/pending/` during the Phase 0 Step 0.5 bridge without explicit user approval (#1025). Proposed-stage vBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4); silent promotion bypasses the user's lifecycle intent and may flip `plan.status` to `running` on scopes the user has not yet refined. Broad affirmatives (`proceed`, `do it`, `go ahead`) do NOT satisfy the bridge approval gate -- require an explicit `yes` / `confirmed` / `approve`
+- ⊗ Skip the Phase 0 Step 0.5 lifecycle bridge (#1025) and let the Step 1 preflight gate reject candidate scope xBRIEFs wholesale. The setup skill deposits scope xBRIEFs in `xbrief/proposed/` and the refinement skill leaves them in `xbrief/pending/`; the swarm Phase 0 Step 1 preflight only accepts `xbrief/active/` with `plan.status == "running"`. The bridge step (`task scope:promote -- <path>` then `task scope:activate -- <path>`) is the contract that converts proposed/pending candidates to active before allocation -- bypassing it re-surfaces the originating 2026-05-10 first-session consumer-swarm failure mode (`Invalid transition: 'activate' requires file in pending/`)
+- ⊗ Auto-promote + activate every candidate in `xbrief/proposed/` or `xbrief/pending/` during the Phase 0 Step 0.5 bridge without explicit user approval (#1025). Proposed-stage xBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4); silent promotion bypasses the user's lifecycle intent and may flip `plan.status` to `running` on scopes the user has not yet refined. Broad affirmatives (`proceed`, `do it`, `go ahead`) do NOT satisfy the bridge approval gate -- require an explicit `yes` / `confirmed` / `approve`
 - ⊗ Describe heterogeneous sub-agent routing as Grok Build-only — provider-neutral dispatch separates dispatch provider, worker role, and model or agent selection; Composer-class coding agents, Cursor/cloud agents, and future adapters are first-class backends alongside Grok Build `spawn_subagent` (#1531)
 - ⊗ Assume parent-shell `gh auth status` proves a worker sandbox can authenticate or reach GitHub — always run `scripts/github_auth_modes.py` from the worker envelope and surface full-access execution, trusted `gh` allowlisting, or injected-token handoff when sandbox auth fails (#1557)
 - ⊗ Present Cursor sandbox UID 0 or sandbox-root cwd ownership as host-root access — `sandbox_uid_remap` means the sandbox identity is remapped to the host user, not real root (#1557)

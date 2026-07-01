@@ -6,6 +6,10 @@ Version-by-version upgrade guide. Newest versions are at the top.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+<!-- xbrief-backcompat-2111 -->
+
+> **xBRIEF rename (#2034 / #2110):** Projects still on the legacy `vbrief/` layout and `x-vbrief/` reference tokens remain read-accepted until you run `deft migrate:xbrief` (or `task migrate:xbrief`). `deft doctor` and `deft update` signpost unmigrated layouts.
+
 ---
 
 ## Canonical upgrade — npm (v0.55.1+)
@@ -42,31 +46,41 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
 
 Start a **new agent session** after steps 2–3 so the refreshed AGENTS.md and skills load from a clean context.
 
+## xBRIEF layout migration (#2034 / #2110)
+
+After upgrading to a release that ships the xbrief rename, convert legacy on-disk layout if `deft doctor` reports a `vbrief/` tree or `x-vbrief/` reference tokens:
+
+```bash
+deft migrate:xbrief
+```
+
+(or `task migrate:xbrief` from a maintainer checkout). The command requires a clean working tree unless you pass `--force`. Legacy `vbrief/` paths and `x-vbrief/` tokens remain **read-accepted** until this migration runs; `deft update` may signpost the same guidance on non-patch upgrades.
+
 ## Public contract layer — `@deftai/directive-types` (#1799)
 
-Downstream TypeScript projects can import the canonical vBRIEF/policy contract instead of hand-mirroring JSON shapes:
+Downstream TypeScript projects can import the canonical xBRIEF/policy contract instead of hand-mirroring JSON shapes:
 
 ```typescript
-import type { VBriefDocument, PlanPolicy, Status } from "@deftai/directive-types";
+import type { XBriefDocument, PlanPolicy, Status } from "@deftai/directive-types";
 ```
 
 JSON Schema for non-TS consumers ships from the same package:
 
 ```json
 {
-  "$schema": "https://vbrief.dev/schemas/vbrief-core-0.6.schema.json"
+  "$schema": "https://xbrief.dev/schemas/xbrief-core-0.8.schema.json"
 }
 ```
 
 Or import the artifact directly:
 
 ```javascript
-import schema from "@deftai/directive-types/schemas/vbrief-core-0.6.schema.json" assert { type: "json" };
+import schema from "@deftai/directive-types/schemas/xbrief-core-0.8.schema.json" assert { type: "json" };
 ```
 
 **Supported public API:** `@deftai/directive-types` and its published schema subpaths only. **`@deftai/directive-core` is published for npm dependency resolution but is not a supported library surface** — use the `deft` / `directive` CLI for behavior.
 
-**Schema source of truth:** `content/vbrief/schemas/vbrief-core.schema.json` in the directive repo. The types package mirrors it to `packages/types/schemas/` at build time; `deft` install also deposits schemas under project-root `vbrief/schemas/`. When in doubt, treat the directive repo canonical file as authoritative and refresh mirrors with `deft update` (install) or `@deftai/directive-types` (npm).
+**Schema source of truth:** `content/vbrief/schemas/vbrief-core.schema.json` in the directive repo. The types package mirrors it to `packages/types/schemas/` at build time; `deft` install also deposits schemas under project-root `xbrief/schemas/`. When in doubt, treat the directive repo canonical file as authoritative and refresh mirrors with `deft update` (install) or `@deftai/directive-types` (npm).
 
 ### `deft migrate` vs pre-v0.20 document-model migration
 

@@ -76,7 +76,7 @@ describe("test_agents_md_session_start", () => {
 
   it("cache_as_authoritative_anti_pattern_present", () => {
     expect(agentsMdText).toContain(
-      "Recommend a specific issue or vBRIEF without consulting `task triage:queue`",
+      "Recommend a specific issue or xBRIEF without consulting `task triage:queue`",
     );
   });
 
@@ -135,7 +135,7 @@ describe("test_agents_md_session_start", () => {
     expect(stack).toBeTruthy();
     const pSession = stack.indexOf("session ritual gate");
     const pStory = stack.indexOf("story-start Gate 0");
-    const pVbrief = stack.indexOf("vBRIEF implementation-intent gate");
+    const pVbrief = stack.indexOf("xBRIEF implementation-intent gate");
     const pCache = stack.indexOf("task verify:cache-fresh");
     const pBranch = stack.indexOf("branch-policy gate");
     const pStart = stack.lastIndexOf("start_agent");

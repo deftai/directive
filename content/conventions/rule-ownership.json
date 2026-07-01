@@ -236,7 +236,7 @@
     },
     {
       "id": "change-lifecycle-overview",
-      "text": "The active implementation is vBRIEF lifecycle first and Taskfile first",
+      "text": "The active implementation is xBRIEF lifecycle first and Taskfile first",
       "owner_file": "content/commands.md",
       "owner_section": "## Overview",
       "authority": "MUST",

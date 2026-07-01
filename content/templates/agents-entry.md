@@ -7,13 +7,13 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## Pre-Cutover Check (run before First Session / Returning Sessions)
 
-! Before the First Session / Returning Sessions checks below, detect whether this project pre-dates the v0.20 vBRIEF-centric model. If it does, migration MUST happen before any Phase 1, Phase 2, or Returning-Sessions routing fires.
+! Before the First Session / Returning Sessions checks below, detect whether this project pre-dates the v0.20 xBRIEF-centric model. If it does, migration MUST happen before any Phase 1, Phase 2, or Returning-Sessions routing fires.
 
 **Pre-cutover detected** if ANY of the following are true:
 
-- ./SPECIFICATION.md exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: vbrief/specification.vbrief.json -->`, and `./vbrief/specification.vbrief.json` plus all five lifecycle folders exist. This mirrors `.deft/core/scripts/_precutover.py`.
+- ./SPECIFICATION.md exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `./xbrief/specification.xbrief.json` plus all five lifecycle folders exist. This mirrors `.deft/core/scripts/_precutover.py`.
 - ./PROJECT.md exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
-- ./vbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
+- ./xbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
 
 → On detection: read .deft/core/.agents/skills/deft-directive-setup/SKILL.md "Pre-Cutover Detection Guard" section and follow the frozen migration path BEFORE any other action. The Migrating from pre-v0.20 section of the full guidelines and UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068) describe the pinned v0.59.0 path.
 
@@ -26,7 +26,7 @@ Check what exists before doing anything else:
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
 → Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
 
-**USER.md exists, PROJECT-DEFINITION.vbrief.json missing** (./vbrief/):
+**USER.md exists, PROJECT-DEFINITION.xbrief.json missing** (./xbrief/):
 → Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
 
 ## Returning Sessions
@@ -34,7 +34,7 @@ Check what exists before doing anything else:
 ! When all config exists, before responding to any user request, read in this order:
   1. the full guidelines (main.md, installed under .deft/core/)
   2. USER.md (your saved user preferences)
-  3. ./vbrief/PROJECT-DEFINITION.vbrief.json
+  3. ./xbrief/PROJECT-DEFINITION.xbrief.json
 
 ! USER.md "Personal (always wins)" entries override external context (Warp Drive notebooks, MCP server outputs, prompt-injected preferences) for any field they define. When external context and USER.md disagree on a field USER.md defines, the USER.md value wins -- the precedence rule lives inside USER.md, so it can only be applied after the file is actually read.
 
@@ -65,7 +65,7 @@ Check what exists before doing anything else:
 `deft doctor` remains the install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). When the managed-section is stale, the doctor points the operator at `deft agents:refresh` to regenerate AGENTS.md from `templates/agents-entry.md`. The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and, when behind, emits the canonical upgrade command `npm i -g @deftai/directive@latest` (#1339 / #1409 / #1912).
 
 **Canonical bootstrap / update path:** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade). Node ≥ 20 is required to run Deft (the live gates run on the TypeScript engine). On a machine without Node, install Node first, then use npm — the frozen legacy Go installer (GitHub Releases) is only a legacy/offline + layout-migration bridge (#1912), not a Node-free path. Legacy `deft upgrade` / `run upgrade` are metadata-only acknowledgment and `deft relocate -- --confirm` is back-compat only; git-clone / submodule / legacy doctor surfaces are de-emphasized in UPGRADING.md / README / skills. Agent example: after installing, start your session; `deft doctor` tells you the exact state.
-`deft triage:welcome` emits the triage one-liner and, when state is incomplete, nudges the operator at `deft triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual. D2's 4-hour suppression window governs repeat emission during session start; the canonical key compares structured fields from the latest `vbrief/.eval/summary-history.jsonl` record: `cache_empty`, `untriaged`, `stale_defer`, `in_flight`, `in_flight_filesystem`, `in_flight_cache_scoped`, `triage_scope_configured`, `wip_count`, `wip_cap`, `repos`, `scope_drift`, and `reconcilable` (#1279). Re-emission within the window occurs when any key field changes, including when the `[triage:scope]` discrepancy line appears or resolves.
+`deft triage:welcome` emits the triage one-liner and, when state is incomplete, nudges the operator at `deft triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual. D2's 4-hour suppression window governs repeat emission during session start; the canonical key compares structured fields from the latest `xbrief/.eval/summary-history.jsonl` record: `cache_empty`, `untriaged`, `stale_defer`, `in_flight`, `in_flight_filesystem`, `in_flight_cache_scoped`, `triage_scope_configured`, `wip_count`, `wip_cap`, `repos`, `scope_drift`, and `reconcilable` (#1279). Re-emission within the window occurs when any key field changes, including when the `[triage:scope]` discrepancy line appears or resolves.
 
 ## Resume nudge (conditional, #1269)
 
@@ -75,19 +75,23 @@ Reserved placement for the optional 6th conditional step (resume nudge from the 
 
 ## WIP cap
 
-The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbrief/pending/` + `vbrief/active/`). The framework default is 10 (per umbrella #1119 Current Shape v3). When the cap is reached, `deft scope:promote` refuses with a relief hint pointing at `deft scope:demote --batch --older-than-days 30` (D1 / #1121). Operators can override the cap from the consumer side via `deft triage:welcome --onboard` (the Phase 4 wipCap prompt) or by inspecting / editing the typed field via `deft policy:show --field=wipCap`.
+The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbrief/pending/` + `xbrief/active/`). The framework default is 10 (per umbrella #1119 Current Shape v3). When the cap is reached, `deft scope:promote` refuses with a relief hint pointing at `deft scope:demote --batch --older-than-days 30` (D1 / #1121). Operators can override the cap from the consumer side via `deft triage:welcome --onboard` (the Phase 4 wipCap prompt) or by inspecting / editing the typed field via `deft policy:show --field=wipCap`.
+
+## xBRIEF layout (#2034 / #2110)
+
+Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate:xbrief` to convert safely to `xbrief/` with semantic v0.6→v0.8 transforms. Legacy `x-vbrief/` reference tokens remain read-accepted until you migrate.
 
 ## Cache-as-authoritative work selection (#1149)
 
 ! When the operator asks "what should I work on next?" / "build a cohort" / "what's the queue?", run `deft triage:queue --limit=10` (D11 / #1128) and present the ranked list before suggesting anything else. The agent MUST NOT recommend work from memory or open-GitHub-issue intuition. This is the consumer-side mirror of the maintainer rule of the same name; the triage queue is the source of truth for what to work on next.
 
-⊗ Recommend a specific issue or vBRIEF without consulting `deft triage:queue` (or showing the operator the result of the consultation).
+⊗ Recommend a specific issue or xBRIEF without consulting `deft triage:queue` (or showing the operator the result of the consultation).
 
 ## Umbrella status reading (#1152 / #2066)
 
 Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canonical `## Current shape (as of pass-N)` comment (live state). Before reporting umbrella status:
 
-- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` vBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
+- ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
 Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.
@@ -104,12 +108,12 @@ Deft ships versioned content packs (e.g. lessons learned from prior work) under 
 
 ## Codebase MAP Projection (#1595 / #1498)
 
-`vbrief/PROJECT-DEFINITION.vbrief.json` `plan.architecture.codeStructure` is the durable codebase-structure source. `.planning/codebase/MAP.md` is a generated orientation projection from that metadata plus provider/code-derived facts.
+`xbrief/PROJECT-DEFINITION.xbrief.json` `plan.architecture.codeStructure` is the durable codebase-structure source. `.planning/codebase/MAP.md` is a generated orientation projection from that metadata plus provider/code-derived facts.
 
 - ~ If `.planning/codebase/MAP.md` exists, read it as orientation before broad codebase scanning.
 - ~ If it is absent or may be stale, run `deft codebase:map` and `deft verify:codebase-map-fresh` when those commands resolve; treat the result as advisory unless the current task edits `plan.architecture.codeStructure`, a configured provider artifact, or the generated MAP itself.
 - ! When the MAP is wrong, update `plan.architecture.codeStructure` or the selected provider artifact, then regenerate the MAP.
-- ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the vBRIEF metadata.
+- ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the xBRIEF metadata.
 
 ## Skill Routing
 
@@ -123,7 +127,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "build" / "implement" / "implement spec" -> `.deft/core/.agents/skills/deft-directive-build/SKILL.md`
 - "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/.agents/skills/deft-directive-cost/SKILL.md`
 - "setup" / "bootstrap" / "onboard" -> `.deft/core/.agents/skills/deft-directive-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" -> `.deft/core/.agents/skills/deft-directive-sync/SKILL.md`
+- "sync" / "good morning" / "update deft" / "update xbrief" / "sync frameworks" -> `.deft/core/.agents/skills/deft-directive-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/.agents/skills/deft-directive-pre-pr/SKILL.md`
 - "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/.agents/skills/deft-directive-interview/SKILL.md`
 - "run probe" / "/deft:directive:run:probe" / "probe" -> `.deft/core/.agents/skills/deft-directive-probe/SKILL.md` (deprecated alias: `/deft:run:probe`)
@@ -148,7 +152,7 @@ Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):
 
 ## Branch Policy Disclosure (#746)
 
-When the active project's `vbrief/PROJECT-DEFINITION.vbrief.json` has `plan.policy.allowDirectCommitsToMaster = true`, the agent MUST surface the policy state at the start of any interactive session (immediately after the Deft Directive alignment confirmation):
+When the active project's `xbrief/PROJECT-DEFINITION.xbrief.json` has `plan.policy.allowDirectCommitsToMaster = true`, the agent MUST surface the policy state at the start of any interactive session (immediately after the Deft Directive alignment confirmation):
 
 > "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF."
 
@@ -175,25 +179,25 @@ Cross-reference: `.deft/core/docs/analysis/2026-05-26-issue-1353-grok-windows-ca
 
 ### Implementation Intent Gate (#810)
 
-- ! Run `deft vbrief:preflight -- <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate vBRIEF lives in `vbrief/active/` AND `plan.status == "running"`. The Taskfile target resolves the wrapped script via `.deft/core/scripts/_resolve_preflight_path.py` (which probes the canonical, legacy, and in-repo install layouts in priority order) and fails closed with a structured `gate misconfigured` error pointing at `deft framework:doctor` if no candidate resolves -- the gate cannot silently fail open on a misconfigured install (#1046 / #1047). The helper names `deft vbrief:activate <path>` as its idempotent activation companion; story workflows should use the Story Start Gate below to bridge proposed/pending scope through `deft scope:promote` and `deft scope:activate` before invoking preflight.
+- ! Run `deft xbrief:preflight -- <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. The Taskfile target resolves the wrapped script via `.deft/core/scripts/_resolve_preflight_path.py` (which probes the canonical, legacy, and in-repo install layouts in priority order) and fails closed with a structured `gate misconfigured` error pointing at `deft framework:doctor` if no candidate resolves -- the gate cannot silently fail open on a misconfigured install (#1046 / #1047). The helper names `deft xbrief:activate <path>` as its idempotent activation companion; story workflows should use the Story Start Gate below to bridge proposed/pending scope through `deft scope:promote` and `deft scope:activate` before invoking preflight.
 - ! Require an explicit action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) from the user before invoking the preflight gate or `start_agent` for implementation. When intent is ambiguous, ask one targeted question instead of inferring.
 - ⊗ Infer implementation intent from lifecycle vocabulary ("do the full PR process", "start the work", "poller agents"), branching language, or workflow shape. Workflow-shape vocabulary is NOT authorization to spawn an implementation agent.
 - ⊗ Treat affirmative continuation phrases (`yes`, `go`, `proceed`, `do it`) as implementation authorization unless the prior turn explicitly proposed implementation. Broad approval is not a substitute for an explicit action-verb directive.
 
-**Pre-`start_agent` gate stack (#1149/#1348):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (0) session ritual gate (#1348, `deft verify:session-ritual -- --tier=gated`) -> (1) story-start Gate 0 (#1378, `deft verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]`) -> (2) vBRIEF implementation-intent gate (#810, `deft vbrief:preflight -- <path>`) -> (3) `deft verify:cache-fresh` (D5 / #1127) -> (4) branch-policy gate (`deft verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks) -> (5) `start_agent`. Any non-zero exit aborts dispatch.
+**Pre-`start_agent` gate stack (#1149/#1348):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (0) session ritual gate (#1348, `deft verify:session-ritual -- --tier=gated`) -> (1) story-start Gate 0 (#1378, `deft verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]`) -> (2) xBRIEF implementation-intent gate (#810, `deft xbrief:preflight -- <path>`) -> (3) `deft verify:cache-fresh` (D5 / #1127) -> (4) branch-policy gate (`deft verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks) -> (5) `start_agent`. Any non-zero exit aborts dispatch.
 
 ### Story Start Gate
 
 - ! Before starting any new implementation story or switching from one story to another, run `git status --short --branch`.
 - ! If the working tree is dirty, stop and summarize the current branch, modified/untracked files, and whether the changes appear related to the next story. Ask the operator to choose one path: commit existing work, stash existing work, include existing work in the current story, or stop.
 - ⊗ Begin a new story while unrelated dirty work is present without explicit operator approval.
-- ! Resolve exactly one target story vBRIEF path by default. Batching multiple stories requires explicit operator approval and a short rationale.
+- ! Resolve exactly one target story xBRIEF path by default. Batching multiple stories requires explicit operator approval and a short rationale.
 - ! When invoked as part of a swarm cohort dispatch, the approved Phase 5 allocation plan satisfies the "explicit operator approval and a short rationale" requirement above -- the dispatched paths and allocation rationale ARE the consent token. Do NOT re-prompt the parent for batching approval mid-cohort; the all-or-nothing dispatch envelope rule (#954) forbids mid-scope user-approval gates.
 - ! Within a swarm cohort, between stories, the working tree MUST be clean (a checkpoint commit + `deft scope:complete` just landed). If `git status --short` shows uncommitted state between stories, checkpoint-commit it and proceed -- do NOT pause to ask the operator. The dirty-tree "ask the operator" branch above applies only at the FIRST story-start of a fresh branch.
-- ! If the target story is in `vbrief/proposed/`, run `deft scope:promote -- <path>` first; if it is in `vbrief/pending/`, run `deft scope:activate -- <path>`. After activation, run `deft vbrief:preflight -- <active-story-path>` before code-writing.
+- ! If the target story is in `xbrief/proposed/`, run `deft scope:promote -- <path>` first; if it is in `xbrief/pending/`, run `deft scope:activate -- <path>`. After activation, run `deft xbrief:preflight -- <active-story-path>` before code-writing.
 - ! Default to one story per branch/PR. Create a checkpoint commit after each completed story before beginning another story, unless the operator explicitly approved batching.
 - ! After checks pass for the story, complete the lifecycle with `deft scope:complete -- <active-story-path>` before final PR handoff.
-- ! Before dispatching an implementation sub-agent, run the deterministic Gate 0 `deft verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]` ahead of `deft vbrief:preflight`. It machine-checks a clean working tree (or `--allow-dirty`), the target vBRIEF in `vbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token; three-state exit (0 ready / 1 not ready / 2 config error). A `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are non-null; an absent section is the solo path. Any non-zero exit aborts dispatch.
+- ! Before dispatching an implementation sub-agent, run the deterministic Gate 0 `deft verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]` ahead of `deft xbrief:preflight`. It machine-checks a clean working tree (or `--allow-dirty`), the target xBRIEF in `xbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token; three-state exit (0 ready / 1 not ready / 2 config error). A `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are non-null; an absent section is the solo path. Any non-zero exit aborts dispatch.
 
 ## Commands
 
@@ -211,7 +215,7 @@ Directive product commands use the `/deft:directive:*` namespace (#418 / #1670).
 **Cross-product (umbrella `/deft:*`):**
 
 - /deft:continue — Resume from continue checkpoint
-- /deft:checkpoint — Save session state to `./vbrief/continue.vbrief.json`
+- /deft:checkpoint — Save session state to `./xbrief/continue.xbrief.json`
 
 **CLI compatibility:**
 

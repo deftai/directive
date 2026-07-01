@@ -94,7 +94,7 @@ Spawn 3+ sub-agents with **radically different** design constraints. Each produc
 - Agent 3: "Optimize for the most common caller — make the default case trivial"
 - Agent 4 (if applicable): "Design around ports & adapters for cross-boundary dependencies"
 
-- ! The sub-agent dispatch envelope MUST include `templates/agent-prompt-preamble.md` verbatim (or by reference) per AGENTS.md `## Multi-agent orchestration discipline (#954)`. The preamble carries the AGENTS.md read mandate, the #810 vBRIEF gate walkthrough, the PowerShell 5.1 non-ASCII rule, REST-over-GraphQL rules, and the mandatory DONE message protocol -- without it, the recurrence patterns documented in #954 re-fire on every fresh dispatch.
+- ! The sub-agent dispatch envelope MUST include `templates/agent-prompt-preamble.md` verbatim (or by reference) per AGENTS.md `## Multi-agent orchestration discipline (#954)`. The preamble carries the AGENTS.md read mandate, the #810 xBRIEF gate walkthrough, the PowerShell 5.1 non-ASCII rule, REST-over-GraphQL rules, and the mandatory DONE message protocol -- without it, the recurrence patterns documented in #954 re-fire on every fresh dispatch.
 
 Present designs sequentially, then compare in prose. Give your own recommendation — which is strongest and why. If elements combine well, propose a hybrid. Be opinionated.
 
@@ -107,9 +107,9 @@ Present designs sequentially, then compare in prose. Give your own recommendatio
 - ! Create a refactor RFC immediately using `gh issue create` with the template below
 - ~ Issue-label hygiene: before filing, inspect the target repo's existing labels with `gh label list` or the labels API; choose one or more suitable existing labels when practical, or explicitly note that no label was applied. This is a recommendation, not a gate -- do not block issue creation solely because no label fits, and do not invent ad hoc labels outside the repo's existing label set.
 - ! After creating, print the issue URL
-- ! When the RFC is filed as an umbrella with companion child issues (e.g. an interface-extraction RFC plus one child per migrating caller), record the cohort in `vbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:gh-arch"` -- this is the durable production-side record consumed by `task triage:audit --orphans` (#1132 / D13). Same usage pattern as `skills/deft-directive-gh-slice/SKILL.md` Step 6; idempotent on retry. Skip when the RFC is a single-issue "file and forget" with no child cohort.
+- ! When the RFC is filed as an umbrella with companion child issues (e.g. an interface-extraction RFC plus one child per migrating caller), record the cohort in `xbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:gh-arch"` -- this is the durable production-side record consumed by `task triage:audit --orphans` (#1132 / D13). Same usage pattern as `skills/deft-directive-gh-slice/SKILL.md` Step 6; idempotent on retry. Skip when the RFC is a single-issue "file and forget" with no child cohort.
 - ! Confirm skill exit: "deft-directive-gh-arch complete — RFC filed at <url>."
-- ~ Suggest next steps: run `deft-directive-refinement` to slot the RFC into the vBRIEF lifecycle, or assign the issue for swarm pickup.
+- ~ Suggest next steps: run `deft-directive-refinement` to slot the RFC into the xBRIEF lifecycle, or assign the issue for swarm pickup.
 
 **Issue template:**
 

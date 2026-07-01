@@ -2,7 +2,7 @@
 
 This is the canonical preamble that orchestrators (this conversation, swarm-skill dispatchers, monitor agents, scheduled / cloud agents) MUST include verbatim or by reference in any implementation sub-agent's dispatch envelope. It encodes the rules learned from prior recurrence patterns so each fresh dispatch starts with the institutional memory already loaded.
 
-The orchestrator copies the section bodies into the worker prompt; the worker reads them as binding rules. Orchestrators MAY trim sections that are demonstrably out of scope (e.g. a docs-only worker may skip the rate-limit-throttle section), but MUST NOT silently drop the AGENTS.md read mandate, the #810 vBRIEF gate, the #1378 allocation-context token, the #1531 worker-metadata section when backend routing applies, or the PowerShell 5.1 non-ASCII rule.
+The orchestrator copies the section bodies into the worker prompt; the worker reads them as binding rules. Orchestrators MAY trim sections that are demonstrably out of scope (e.g. a docs-only worker may skip the rate-limit-throttle section), but MUST NOT silently drop the AGENTS.md read mandate, the #810 xBRIEF gate, the #1378 allocation-context token, the #1531 worker-metadata section when backend routing applies, or the PowerShell 5.1 non-ASCII rule.
 
 ## 1. Read AGENTS.md before any other tool call
 
@@ -10,27 +10,27 @@ The first action in your tool loop MUST be reading `AGENTS.md` at the project ro
 
 Anti-pattern: skimming AGENTS.md via `head` or `wc -l` and proceeding. Read the full file.
 
-## 2. #810 vBRIEF Implementation Intent Gate
+## 2. #810 xBRIEF Implementation Intent Gate
 
 Before any code-writing tool call (or before dispatching a sub-agent that will write code), satisfy the gate:
 
-1. Locate (or create) a scope vBRIEF for the work. If none exists in `vbrief/proposed/`, `vbrief/pending/`, or `vbrief/active/`, create one in `vbrief/proposed/` first.
-2. Promote the vBRIEF to `vbrief/pending/` via `task scope:promote -- <path>` (idempotent; lifecycle requires proposed -> pending -> active).
-3. Activate it: `task vbrief:activate -- <path>`. This moves the file to `vbrief/active/` and flips `plan.status` to `running`.
-4. Run the gate: `task vbrief:preflight -- vbrief/active/<file>.vbrief.json`. Exit 0 means you are clear to write code.
+1. Locate (or create) a scope xBRIEF for the work. If none exists in `xbrief/proposed/`, `xbrief/pending/`, or `xbrief/active/`, create one in `xbrief/proposed/` first.
+2. Promote the xBRIEF to `xbrief/pending/` via `task scope:promote -- <path>` (idempotent; lifecycle requires proposed -> pending -> active).
+3. Activate it: `task xbrief:activate -- <path>`. This moves the file to `xbrief/active/` and flips `plan.status` to `running`.
+4. Run the gate: `task xbrief:preflight -- xbrief/active/<file>.xbrief.json`. Exit 0 means you are clear to write code.
 
-Anti-pattern: editing files before activating the vBRIEF, then activating "to make the gate pass" retroactively. The gate is the contract; satisfy it first.
+Anti-pattern: editing files before activating the xBRIEF, then activating "to make the gate pass" retroactively. The gate is the contract; satisfy it first.
 
 The gate also requires an explicit action-verb directive from the user (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`). Affirmative continuation phrases ("yes", "go", "proceed") are NOT authorisation unless the prior turn explicitly proposed implementation.
 
 ## 2.5 Allocation context -- swarm-cohort consent token (#1378)
 
-Every dispatch envelope MUST carry a `## Allocation context` section so any downstream skill (the build SKILL Story Start Gate, the `task vbrief:preflight` gate) or deterministic gate can decide whether batched work was operator-approved by reading structured fields instead of pattern-matching free-form prose. The section has exactly five fields, in this order:
+Every dispatch envelope MUST carry a `## Allocation context` section so any downstream skill (the build SKILL Story Start Gate, the `task xbrief:preflight` gate) or deterministic gate can decide whether batched work was operator-approved by reading structured fields instead of pattern-matching free-form prose. The section has exactly five fields, in this order:
 
 - `dispatch_kind`: `solo` | `swarm-cohort` -- whether this worker is a lone dispatch or one member of an operator-approved swarm cohort.
 - `allocation_plan_id`: <swarm-monitor session id, or path to the Phase 5 allocation-plan snapshot> | null -- the stable handle for the allocation plan that authorized this dispatch.
 - `batching_rationale`: <one-line rationale from the Phase 5 allocation plan> | null -- the one-line reason the cohort was batched together.
-- `cohort_vbriefs`: [<vbrief-path>, ...] -- the full cohort vBRIEF list; a `solo` dispatch lists just its one vBRIEF.
+- `cohort_vbriefs`: [<xbrief-path>, ...] -- the full cohort xBRIEF list; a `solo` dispatch lists just its one xBRIEF.
 - `operator_approval_evidence`: <Phase 5 approval timestamp or session reference> -- the audit handle proving the operator approved the allocation plan (advisory / audit-only -- it is NOT part of the recognition-contract gate below).
 
 **Recognition contract:** a section reporting `dispatch_kind: swarm-cohort` with a NON-NULL `allocation_plan_id` AND a NON-NULL `batching_rationale` satisfies the Story Start Gate consent-token requirement (the #1371 carve-out) -- the worker does NOT re-prompt the operator for batching approval mid-cohort. When the `## Allocation context` section is ABSENT (pre-#1378 dispatches, solo-interactive sessions), fall back to the #1371 prose carve-out in the Story Start Gate.
@@ -43,11 +43,11 @@ Worked example (a swarm-cohort member):
 - dispatch_kind: swarm-cohort
 - allocation_plan_id: orchestrator-run-019e80bd-7328-7636-b283-a2f818243dd9
 - batching_rationale: Three disjoint-file-scope stories from #1378; Story A freezes the schema, Stories B and C build against it in parallel.
-- cohort_vbriefs: [vbrief/active/2026-06-01-1378a-allocation-context-schema.vbrief.json, vbrief/active/2026-06-01-1378b-skill-allocation-context-recognition.vbrief.json, vbrief/active/2026-06-01-1378c-preflight-story-start-gate.vbrief.json]
+- cohort_vbriefs: [xbrief/active/2026-06-01-1378a-allocation-context-schema.xbrief.json, xbrief/active/2026-06-01-1378b-skill-allocation-context-recognition.xbrief.json, xbrief/active/2026-06-01-1378c-preflight-story-start-gate.xbrief.json]
 - operator_approval_evidence: user directive "swarm 1378 per option a" 2026-06-01T02:26Z
 ```
 
-A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `batching_rationale` null, and lists only its own vBRIEF in `cohort_vbriefs`; such a section does NOT by itself satisfy the consent token, so the Story Start Gate falls through to the #1371 prose carve-out for a lone interactive dispatch.
+A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `batching_rationale` null, and lists only its own xBRIEF in `cohort_vbriefs`; such a section does NOT by itself satisfy the consent token, so the Story Start Gate falls through to the #1371 prose carve-out for a lone interactive dispatch.
 
 ## 2.6 Provider-neutral worker metadata (#1531)
 
@@ -74,7 +74,7 @@ Populate `selected_backend` OR `routing_policy` (or both when the operator sets 
 
 **Role-boundary expectations (all providers):** the same boundaries apply whether the worker runs on Composer, Grok Build, Cursor/cloud, or a future adapter:
 
-- ! `leaf-implementation` workers implement scoped vBRIEF work in their assigned worktree only -- gates (`task check`, file-scope audit, Greptile review cycle) are model-agnostic and MUST still pass.
+- ! `leaf-implementation` workers implement scoped xBRIEF work in their assigned worktree only -- gates (`task check`, file-scope audit, Greptile review cycle) are model-agnostic and MUST still pass.
 - ! `orchestrator`, `review-monitor`, and `merge-release` roles MUST run on strong or review-capable agents; dispatchers MUST NOT route these roles to cheap leaf backends.
 - ⊗ Route a cheap leaf backend onto the merge cascade, Phase 5->6 release gate, conflict-resolution rebase, or review-cycle merge-ready decision -- these are irreversible-damage surfaces that stay on the strong tier regardless of provider.
 
@@ -238,7 +238,7 @@ The wrapper reads UTF-8 body text from a file or stdin, sends JSON to `gh api --
 Before stating an umbrella or epic's current status (what is done, what blocks, wave order), satisfy the claim-cites-state-surface rule:
 
 1. ! Fetch issue comments via REST: `gh api repos/<owner>/<repo>/issues/<N>/comments` (or `ghx api ...` for cached read-only GET).
-2. ! Read the `## Current shape (as of pass-N)` comment and any linked context or `LockedDecisions` vBRIEF referenced there. Follow the AGENTS.md #1152 reading order: body -> current-shape comment -> amendment comments.
+2. ! Read the `## Current shape (as of pass-N)` comment and any linked context or `LockedDecisions` xBRIEF referenced there. Follow the AGENTS.md #1152 reading order: body -> current-shape comment -> amendment comments.
 3. ! Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact in the same message.
 
 Anti-pattern: reading only the issue body (pass-1 plan, stale by design) and concluding umbrella status from it — e.g. `gh issue view <N> --json body` or REST `repos/.../issues/<N>` body field alone. The live recurrence on 2026-06-28 misread #2013 Wave 0 status this way despite #1152 being loaded.
@@ -305,7 +305,7 @@ This rule is complementary to §5 (REST-by-default) and §7 (rate-limit-aware th
 
 If you (the worker) need to spawn a sub-agent yourself:
 
-- Sub-agents MUST have non-overlapping file scopes. Use the parent vBRIEF's `files_owned` / `files_must_not_touch` to partition.
+- Sub-agents MUST have non-overlapping file scopes. Use the parent xBRIEF's `files_owned` / `files_must_not_touch` to partition.
 - Destructive operations (worktree removal, branch deletion, force-push) run alone, never in parallel.
 - Each sub-agent receives its own dispatch envelope including this preamble (or a reference to it).
 - Each child dispatch MUST carry its own `## Worker metadata` section per §2.6 when backend routing applies: set `dispatch_provider` and `worker_role` for the child's actual harness and role; propagate or override `selected_backend` / `routing_policy` so audit trails remain reconstructable at every tree depth (#1531).
@@ -391,7 +391,7 @@ The gate is detection-bound and has three exit states (mirrors the #747 branch g
 
 - `0` -- cache fresh, target issue's latest decision is `accept`, and the issue is inside the active `plan.policy.triageScope[]` subscription (D12 / #1131). Proceed to `start_agent`.
 - `1` -- cache is stale OR a blocking condition was found (issue's latest decision is `defer` / `reject` / `needs-ac` / `mark-duplicate` / absent, OR the issue is outside the active subscription, OR no cached entry exists for the issue under the resolved subscription). The dispatcher MUST refuse `start_agent` and surface the printed remediation (cite `task triage:bootstrap` / `task cache:fetch-all` for staleness, `task triage:accept` / `task triage:scope --list` for the gating decision).
-- `2` -- config error: `.deft-cache/` is absent or `vbrief/.eval/candidates.jsonl` is missing. The dispatcher MUST refuse `start_agent` and surface the bootstrap recovery line (`task triage:bootstrap`). This is the never-bootstrapped case and is distinct from the stale-cache case so the operator sees the right action.
+- `2` -- config error: `.deft-cache/` is absent or `xbrief/.eval/candidates.jsonl` is missing. The dispatcher MUST refuse `start_agent` and surface the bootstrap recovery line (`task triage:bootstrap`). This is the never-bootstrapped case and is distinct from the stale-cache case so the operator sees the right action.
 
 The `--allow-stale` override is per-shell and audited: the dispatcher MAY pass it after operator approval when the upstream issue body is known to be stable across the freshness window, but the override is logged to stderr and SHOULD be cited in the dispatch envelope so a downstream reviewer can audit the decision. Never silently strip the `--for-issue` arg to clear a failing gate; that defeats the contract.
 
@@ -420,4 +420,4 @@ Forbidden phrasing without direct user-side evidence: `you cancelled`, `you stop
 
 If any rule above conflicts with the user's explicit in-conversation directive, ASK rather than improvise. Rules represent the project's institutional memory; the user can override on a case-by-case basis but the dispatcher should surface the conflict, not silently bypass.
 
-This template is owned by `vbrief/active/2026-05-07-954-orchestrator-agents-md-preamble-template.vbrief.json` (lifecycle-moves to `vbrief/completed/` on PR merge) and may be revised via a #954-tagged PR.
+This template is owned by `xbrief/active/2026-05-07-954-orchestrator-agents-md-preamble-template.xbrief.json` (lifecycle-moves to `xbrief/completed/` on PR merge) and may be revised via a #954-tagged PR.

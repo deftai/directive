@@ -20,7 +20,7 @@ describe("test_story_start_gate", () => {
     expect(text).toContain("include existing work in the current story");
     expect(text).toContain("unrelated dirty work");
     expect(text).toContain("deft scope:activate -- <path>");
-    expect(text).toContain("deft vbrief:preflight -- <active-story-path>");
+    expect(text).toContain("deft xbrief:preflight -- <active-story-path>");
     expect(text).toContain("deft scope:complete -- <active-story-path>");
   });
   it("agents_md_contains_story_start_lifecycle_guard", () => {
@@ -35,7 +35,7 @@ describe("test_story_start_gate", () => {
     expect(text).toContain("unrelated dirty work");
     expect(text).toContain("task scope:promote -- <path>");
     expect(text).toContain("task scope:activate -- <path>");
-    expect(text).toContain("task vbrief:preflight -- <active-story-path>");
+    expect(text).toContain("task xbrief:preflight -- <active-story-path>");
     expect(text).toContain("task scope:complete -- <active-story-path>");
   });
   it("build_skill_requires_dirty_work_prompt_before_implementation", () => {
@@ -52,7 +52,7 @@ describe("test_story_start_gate", () => {
     const text = readRepoFile("skills/deft-directive-build/SKILL.md");
     expect(text).toContain("task scope:promote -- <path>");
     expect(text).toContain("task scope:activate -- <path>");
-    expect(text).toContain("task vbrief:preflight -- <active-story-path>");
+    expect(text).toContain("task xbrief:preflight -- <active-story-path>");
   });
   it("build_skill_defaults_to_one_story_and_checkpoint_commits", () => {
     const text = readRepoFile("skills/deft-directive-build/SKILL.md");

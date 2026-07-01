@@ -1,7 +1,7 @@
 ---
 name: deft-directive-refinement
 description: >-
-  Conversational refinement session. Ingests external work items into vBRIEF
+  Conversational refinement session. Ingests external work items into xBRIEF
   proposed/ scope, deduplicates via origin references, evaluates proposals
   with the user, reconciles stale origins, and promotes/demotes scopes through
   the lifecycle using deterministic task commands.
@@ -24,7 +24,7 @@ triggers:
 
 # Deft Directive Refinement
 
-Conversational refinement session -- ingest, evaluate, reconcile, and prioritize scope vBRIEFs with the user.
+Conversational refinement session -- ingest, evaluate, reconcile, and prioritize scope xBRIEFs with the user.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -52,9 +52,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Prerequisites
 
-- ! `vbrief/` directory exists with lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`)
+- ! `xbrief/` directory exists with lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`)
 - ! GitHub CLI (`gh`) is authenticated and can access the repo
-- ~ `PROJECT-DEFINITION.vbrief.json` exists (run `task project:render` if missing)
+- ~ `PROJECT-DEFINITION.xbrief.json` exists (run `task project:render` if missing)
 
 ## Session Model
 
@@ -81,7 +81,7 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ## Phase 0 -- Triage-first consultation (cache-first, #1141)
 
-! Phase 0 is a thin consumer of the canonical triage cache: refinement consults `task triage:summary` (D2 / #1122) and `task triage:queue` (D11 / #1128) BEFORE walking any `vbrief/` lifecycle folder. The dedicated triage playbook lives at [`../deft-directive-triage/SKILL.md`](../deft-directive-triage/SKILL.md) (D6 / #1130) -- refinement does NOT itself triage cached candidates; it consumes the queue's `accept` and `[RESUME]` slices and turns them into scope vBRIEFs.
+! Phase 0 is a thin consumer of the canonical triage cache: refinement consults `task triage:summary` (D2 / #1122) and `task triage:queue` (D11 / #1128) BEFORE walking any `xbrief/` lifecycle folder. The dedicated triage playbook lives at [`../deft-directive-triage/SKILL.md`](../deft-directive-triage/SKILL.md) (D6 / #1130) -- refinement does NOT itself triage cached candidates; it consumes the queue's `accept` and `[RESUME]` slices and turns them into scope xBRIEFs.
 
 ! Phase 0 runs three sub-phases in canonical order: **Phase 0a -- Triage gate** -> **Phase 0b -- Cache-first ingestion** -> **Phase 0c -- Resume conditions**. Each sub-phase MUST run before the next, and Phase 0 MUST chain into Phase 1 -- Ingest on completion. Numbered prompts in Phase 0 ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) (`Discuss` / `Back` as the final two numbered options; Discuss-pause semantic applies verbatim).
 
@@ -93,10 +93,10 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 2. ! **Empty-cache backward-compat fallback.** If the one-liner is the documented empty-cache prompt (`[triage] cache empty -- run task triage:bootstrap`), the agent ! MUST emit the verbatim recovery message to stderr BEFORE any folder scan:
 
    ```
-   triage cache empty -- run `task triage:welcome` (N3 / #1143) to onboard, or `task triage:bootstrap` to seed the cache directly; refinement Phase 0 cannot consult the queue against an empty cache. Falling back to a legacy `vbrief/proposed/` folder scan only if you opt in.
+   triage cache empty -- run `task triage:welcome` (N3 / #1143) to onboard, or `task triage:bootstrap` to seed the cache directly; refinement Phase 0 cannot consult the queue against an empty cache. Falling back to a legacy `xbrief/proposed/` folder scan only if you opt in.
    ```
 
-   Then prompt the user `Fall back to legacy folder-scan against vbrief/proposed/ for this session? [y/N]` (default `N`). On `N`, exit refinement with the canonical `deft-directive-refinement complete -- exiting skill.` confirmation and the chaining instruction `Run task triage:welcome (N3 / #1143) to onboard, then re-enter refinement.`. On `y`, chain into Phase 1 against `vbrief/proposed/` as the legacy fallback. ! MUST NOT silently proceed without surfacing the breadcrumb to `task triage:welcome` -- a fresh post-upgrade install needs that pointer to find the canonical onboarding ritual.
+   Then prompt the user `Fall back to legacy folder-scan against xbrief/proposed/ for this session? [y/N]` (default `N`). On `N`, exit refinement with the canonical `deft-directive-refinement complete -- exiting skill.` confirmation and the chaining instruction `Run task triage:welcome (N3 / #1143) to onboard, then re-enter refinement.`. On `y`, chain into Phase 1 against `xbrief/proposed/` as the legacy fallback. ! MUST NOT silently proceed without surfacing the breadcrumb to `task triage:welcome` -- a fresh post-upgrade install needs that pointer to find the canonical onboarding ritual.
 
 3. ! **Outstanding-work gate.** If the cache is populated AND any of `untriaged`, `stale-defer (resume condition met)`, or `in-flight` is non-zero, surface the one-liner verbatim to the user with the canonical recommendation:
 
@@ -113,15 +113,15 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ### Phase 0b -- Cache-first ingestion (`task triage:queue --state=accept`)
 
-1. ! Pull the ingestion candidate list via `task triage:queue --state=accept` (D11 / #1128). Each row is a cached issue whose latest audit-log decision is `accept` -- the canonical "ready to become a scope vBRIEF" cohort. ! MUST NOT enumerate `vbrief/proposed/` independently of the queue; the folder participates only via the join described in step 2.
-2. ! Join the queue against `vbrief/proposed/` (and the rest of the lifecycle folders) by `references[].uri`: queue rows whose issue is already represented by an existing vBRIEF surface as "already tracked"; queue rows with no matching vBRIEF are "new accept candidates". Items already in `vbrief/proposed/` continue to participate -- they are joined against the cache rather than enumerated separately.
-3. ~ When the join surfaces zero new candidates (every `accept` row already has a vBRIEF), Phase 0b is a clean no-op; chain straight into Phase 0c.
-4. ! For each new candidate, fall through to Phase 1 -- Ingest, which delegates the actual scope-vBRIEF write to `task issue:ingest`. The intended single-verb form is `task scope:promote --from-issue=<N>` (#1136 / D18); until D18 lands, refinement chains the existing `task issue:ingest` + `task scope:promote` pair.
+1. ! Pull the ingestion candidate list via `task triage:queue --state=accept` (D11 / #1128). Each row is a cached issue whose latest audit-log decision is `accept` -- the canonical "ready to become a scope xBRIEF" cohort. ! MUST NOT enumerate `xbrief/proposed/` independently of the queue; the folder participates only via the join described in step 2.
+2. ! Join the queue against `xbrief/proposed/` (and the rest of the lifecycle folders) by `references[].uri`: queue rows whose issue is already represented by an existing xBRIEF surface as "already tracked"; queue rows with no matching xBRIEF are "new accept candidates". Items already in `xbrief/proposed/` continue to participate -- they are joined against the cache rather than enumerated separately.
+3. ~ When the join surfaces zero new candidates (every `accept` row already has a xBRIEF), Phase 0b is a clean no-op; chain straight into Phase 0c.
+4. ! For each new candidate, fall through to Phase 1 -- Ingest, which delegates the actual scope-xBRIEF write to `task issue:ingest`. The intended single-verb form is `task scope:promote --from-issue=<N>` (#1136 / D18); until D18 lands, refinement chains the existing `task issue:ingest` + `task scope:promote` pair.
 
    <!-- TODO(#1136 / D18): when `task scope:promote --from-issue=<N>` ships, refinement Phase 0b consumes it directly instead of chaining `task issue:ingest` + `task scope:promote`. -->
 
-⊗ Walk `vbrief/proposed/` directly as the primary ingestion surface -- the cache is the authoritative "what is ready to refine?" surface; the folder is the destination, not the source of truth.
-⊗ Drop items that exist in `vbrief/proposed/` but lack a matching cache row -- those are reconciled later (Phase 3 / origin reconciliation), not silently discarded.
+⊗ Walk `xbrief/proposed/` directly as the primary ingestion surface -- the cache is the authoritative "what is ready to refine?" surface; the folder is the destination, not the source of truth.
+⊗ Drop items that exist in `xbrief/proposed/` but lack a matching cache row -- those are reconciled later (Phase 3 / origin reconciliation), not silently discarded.
 
 ### Phase 0c -- Resume conditions (`[RESUME]`-tagged items first)
 
@@ -133,7 +133,7 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ### Pre-Phase-1 handoff
 
-1. ! Surface a one-line session summary: `{resume_eligible} resume-eligible, {new_accept} new accept candidate(s), {already_tracked} already tracked in vbrief/`.
+1. ! Surface a one-line session summary: `{resume_eligible} resume-eligible, {new_accept} new accept candidate(s), {already_tracked} already tracked in xbrief/`.
 2. ! Chain into Phase 1 -- Ingest, which now operates on the cohort produced by Phase 0b's join (`[RESUME]` rows first, then new accept candidates).
 3. ? If the user opts out of Phase 1 (e.g. "that's it for today"), exit via the Phase 0 mid-session exit surface below -- ! MUST NOT route to the `### EXIT` block under `## PR & Review Cycle` because that block is the post-PR-creation exit path and references a `PR #{N}` that does not yet exist at this point in the flow.
 
@@ -142,17 +142,17 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 ! When the user opts out of Phase 1 after completing (or partially completing) Phase 0, perform exactly these steps -- ! MUST NOT mention any PR number, since none has been created yet:
 
 1. ! Surface the outstanding-work tally: `{resume_eligible} resume-eligible candidate(s) still pending, {new_accept} accept candidate(s) not yet ingested -- these will resurface on the next Phase 0 entry.`
-2. ! Note the audit-log location verbatim using double-backtick fencing so the inner path renders correctly: ``Audit log preserved at `vbrief/.eval/candidates.jsonl`; queue state is reproducible via `task triage:queue --state=accept`.``
+2. ! Note the audit-log location verbatim using double-backtick fencing so the inner path renders correctly: ``Audit log preserved at `xbrief/.eval/candidates.jsonl`; queue state is reproducible via `task triage:queue --state=accept`.``
 3. ! Confirm skill exit with the canonical phrasing: `deft-directive-refinement complete -- exiting skill.`
 4. ! Provide the Phase-0-appropriate chaining instruction: ``Resume with `task triage:queue --state=accept` to inspect the queue, or re-enter the refinement skill when ready to continue.`` Do NOT reference a PR, a review cycle, or a monitor agent.
 
 ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted.
-⊗ Mutate `vbrief/proposed/` directly during Phase 0 -- only `task issue:ingest` (called from Phase 1) is allowed to write there; Phase 0 is read-only against the cache.
+⊗ Mutate `xbrief/proposed/` directly during Phase 0 -- only `task issue:ingest` (called from Phase 1) is allowed to write there; Phase 0 is read-only against the cache.
 ⊗ Route Phase 0 mid-session opt-out to the post-PR `### EXIT` block under `## PR & Review Cycle` -- that block surfaces a non-existent `PR #{N}` and confuses the user.
 
 ## Phase 1 -- Ingest
 
-! Scan external sources for new work items and create proposed scope vBRIEFs.
+! Scan external sources for new work items and create proposed scope xBRIEFs.
 
 ### Step 1: Gather Sources
 
@@ -161,38 +161,38 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ### Step 2: Deduplicate via References (Dry-Run Preview)
 
-1. ? Run `task issue:ingest -- --all --dry-run` to preview which issues the ingest task would create scope vBRIEFs for. The task deduplicates candidates against `references` entries in existing vBRIEFs (across all lifecycle folders) so already-tracked issues are skipped automatically.
+1. ? Run `task issue:ingest -- --all --dry-run` to preview which issues the ingest task would create scope xBRIEFs for. The task deduplicates candidates against `references` entries in existing xBRIEFs (across all lifecycle folders) so already-tracked issues are skipped automatically.
 2. ! Present the user with the list of new-vs-already-tracked items the dry-run reports: "{N} new items found, {M} already tracked"
 3. ! Wait for user approval before proceeding to ingest
 
 ### Step 3: Ingest Approved Items
 
-! Delegate ingest to `task issue:ingest` — the task is the canonical implementation of scope-vBRIEF creation. Skills MUST NOT reinvent the slug rules, reference shape, or deduplication logic inline (see #537 for background).
+! Delegate ingest to `task issue:ingest` — the task is the canonical implementation of scope-xBRIEF creation. Skills MUST NOT reinvent the slug rules, reference shape, or deduplication logic inline (see #537 for background).
 
-- **Single issue**: `task issue:ingest -- <N>` — creates `vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` with origin `references`, canonical slug from `scripts/slug_normalize.py` (see [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)), and schema-conformant shape.
+- **Single issue**: `task issue:ingest -- <N>` — creates `xbrief/proposed/YYYY-MM-DD-<slug>.xbrief.json` with origin `references`, canonical slug from `scripts/slug_normalize.py` (see [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)), and schema-conformant shape.
 - **Batch**: `task issue:ingest -- --all [--label <L>] [--status <S>]` — ingests every open issue matching the filters, skipping duplicates by `references.uri` match.
 - **Preview**: add `--dry-run` to either form to preview without writing files.
 
-The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`) with origin references in the form documented in [`../../conventions/references.md`](../../conventions/references.md):
+The task emits xBRIEFs conforming to the canonical v0.6 schema (`xbrief/schemas/xbrief-core.schema.json`) with origin references in the form documented in [`../../conventions/references.md`](../../conventions/references.md):
 
 ```json
 "references": [
   {
     "uri": "https://github.com/{owner}/{repo}/issues/{N}",
-    "type": "x-vbrief/github-issue",
+    "type": "x-xbrief/github-issue",
     "title": "Issue #{N}: {issue title}"
   }
 ]
 ```
 
-- ! New scope vBRIEFs MUST target `"vBRIEFInfo": { "version": "0.6" }` (the task handles this automatically)
+- ! New scope xBRIEFs MUST target `"xBRIEFInfo": { "version": "0.6" }` (the task handles this automatically)
 - ! `plan.status` starts at `"proposed"`; the task sets this
-- ! Conform to `vbrief/schemas/vbrief-core.schema.json` (v0.6) -- the task validates before writing
-- ~ After ingest, review the generated vBRIEFs with the user before promoting any of them to `pending/`
+- ! Conform to `xbrief/schemas/xbrief-core.schema.json` (v0.6) -- the task validates before writing
+- ~ After ingest, review the generated xBRIEFs with the user before promoting any of them to `pending/`
 
-⊗ Hand-author scope vBRIEFs inside the skill when the ingest task exists — duplicating the narrative logic is how #534 (non-conformant references) and #537 (drift between skill and task) arise
+⊗ Hand-author scope xBRIEFs inside the skill when the ingest task exists — duplicating the narrative logic is how #534 (non-conformant references) and #537 (drift between skill and task) arise
 ⊗ Write references with `url`/`id`/bare `github-issue` types — use the schema-conformant `{uri, type, title}` shape above
-⊗ Ingest an item that already has a matching vBRIEF reference -- `task issue:ingest` handles deduplication; skills MUST NOT duplicate that logic inline
+⊗ Ingest an item that already has a matching xBRIEF reference -- `task issue:ingest` handles deduplication; skills MUST NOT duplicate that logic inline
 
 ## Phase 2 -- Evaluate
 
@@ -200,7 +200,7 @@ The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/
 
 ### Step 1: List Proposed Items
 
-1. ! Read all vBRIEFs in `vbrief/proposed/`
+1. ! Read all xBRIEFs in `xbrief/proposed/`
 2. ! Present each item with:
    - Title and filename
    - Origin link(s) from `references`
@@ -221,7 +221,7 @@ The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/
 
 ## Phase 3 -- Reconcile (RFC D12)
 
-! Check if linked origins have changed since the vBRIEF was last touched. Delegate the scan to `task reconcile:issues` and walk the user through flagged items for approval (see #537 for why the skill is a thin wrapper over the task).
+! Check if linked origins have changed since the xBRIEF was last touched. Delegate the scan to `task reconcile:issues` and walk the user through flagged items for approval (see #537 for why the skill is a thin wrapper over the task).
 
 ### Step 1: Run the Reconciler
 
@@ -229,32 +229,32 @@ The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/
 task reconcile:issues
 ```
 
-The task scans every vBRIEF with a GitHub-backed reference (whether the reference uses the legacy `github-issue` bare type or the canonical `x-vbrief/github-issue` shape), fetches each linked issue, compares timestamps and state, and reports items in four buckets:
+The task scans every xBRIEF with a GitHub-backed reference (whether the reference uses the legacy `github-issue` bare type or the canonical `x-xbrief/github-issue` shape), fetches each linked issue, compares timestamps and state, and reports items in four buckets:
 
-- **Linked & current** — origin has not changed since the vBRIEF was last updated (no action)
-- **Stale** — origin `updatedAt` is newer than the vBRIEF (propose an update)
+- **Linked & current** — origin has not changed since the xBRIEF was last updated (no action)
+- **Stale** — origin `updatedAt` is newer than the xBRIEF (propose an update)
 - **Externally closed** — origin issue is `CLOSED` (propose cancellation or reconcile if intentional divergence)
-- **Unlinked** — vBRIEF has no GitHub reference (flag for review)
+- **Unlinked** — xBRIEF has no GitHub reference (flag for review)
 
 ### Step 2: Walk Flagged Items with the User
 
-1. ! For each **stale** item the task surfaces, show the user the diff between the current vBRIEF and the refreshed origin. Propose edits; ! wait for explicit user approval before writing anything.
+1. ! For each **stale** item the task surfaces, show the user the diff between the current xBRIEF and the refreshed origin. Propose edits; ! wait for explicit user approval before writing anything.
 2. ! For each **externally closed** item, ask the user whether to `task scope:cancel <file>` it or preserve intentional divergence.
-3. ! For each **unlinked** item, ask whether to attach an origin reference or leave the vBRIEF as-is.
+3. ! For each **unlinked** item, ask whether to attach an origin reference or leave the xBRIEF as-is.
 
 ### Step 3: Apply User-Approved Updates
 
 - ! Agent proposes edits; ! user approves each change
-- ! Never auto-update vBRIEFs — intentional divergence (vBRIEF refined beyond original issue scope) must be preserved
-- ! For approved updates, update the vBRIEF content and `vBRIEFInfo.updated` timestamp; prefer the task commands (`task scope:cancel`, `task scope:block`, etc.) over hand-editing where they apply
+- ! Never auto-update xBRIEFs — intentional divergence (xBRIEF refined beyond original issue scope) must be preserved
+- ! For approved updates, update the xBRIEF content and `xBRIEFInfo.updated` timestamp; prefer the task commands (`task scope:cancel`, `task scope:block`, etc.) over hand-editing where they apply
 
 ⊗ Replace the task invocation with a hand-written `gh issue view` loop — the task is the canonical implementation; skills MUST NOT duplicate it (#537)
-⊗ Auto-update vBRIEFs based on origin changes without user approval
-⊗ Overwrite intentional divergence -- if a vBRIEF has been refined beyond the original issue, preserve the refinement
+⊗ Auto-update xBRIEFs based on origin changes without user approval
+⊗ Overwrite intentional divergence -- if a xBRIEF has been refined beyond the original issue, preserve the refinement
 
 ## Phase 4 -- Promote/Demote
 
-! Move vBRIEFs between lifecycle folders using deterministic task commands. The status values below align with the canonical v0.6 Status enum (`draft | proposed | approved | pending | running | completed | blocked | failed | cancelled`) — note that `failed` is also a valid terminal transition for active work that could not complete.
+! Move xBRIEFs between lifecycle folders using deterministic task commands. The status values below align with the canonical v0.6 Status enum (`draft | proposed | approved | pending | running | completed | blocked | failed | cancelled`) — note that `failed` is also a valid terminal transition for active work that could not complete.
 
 ### Available Commands
 
@@ -273,26 +273,26 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 ### Workflow
 
 1. ! Execute transitions using the task commands above -- they handle `plan.status` updates, `plan.updated` timestamps, and file moves atomically
-2. ! Derived-artifact renders (`task roadmap:render`, `task project:render`) happen after a **batch** of promotions/demotions, not after each individual item. During high-volume triage (e.g. dozens of accept/reject decisions in one session), defer both renders until the end of the batch -- the source of truth is the lifecycle folder contents under `vbrief/`, so ROADMAP.md and PROJECT-DEFINITION.vbrief.json can be refreshed once per batch without losing correctness.
+2. ! Derived-artifact renders (`task roadmap:render`, `task project:render`) happen after a **batch** of promotions/demotions, not after each individual item. During high-volume triage (e.g. dozens of accept/reject decisions in one session), defer both renders until the end of the batch -- the source of truth is the lifecycle folder contents under `xbrief/`, so ROADMAP.md and PROJECT-DEFINITION.xbrief.json can be refreshed once per batch without losing correctness.
 3. ! `task roadmap:render` regenerates ROADMAP.md from the updated lifecycle folder contents. Call it once per batch (typically at the end of Phase 4, before handing back to the user or transitioning to Phase 5), not after every single promote/demote.
 4. ! `task project:render` refreshes the PROJECT-DEFINITION items registry. Call it **once per refinement pass** -- usually at the end of the session alongside the final roadmap render -- unless the user explicitly needs an intermediate registry refresh. It is not a per-edit tax.
-5. ! Before the user is shown the final backlog state (end of Phase 4, end of Phase 5, or session exit), both `task roadmap:render` AND `task project:render` MUST have been run at least once so ROADMAP.md and PROJECT-DEFINITION.vbrief.json reflect the current lifecycle folder truth. This preserves correctness while allowing N promotions/demotions to share one render checkpoint.
-6. ! Mark rejected items as `cancelled` via `task scope:cancel` (never delete vBRIEFs)
+5. ! Before the user is shown the final backlog state (end of Phase 4, end of Phase 5, or session exit), both `task roadmap:render` AND `task project:render` MUST have been run at least once so ROADMAP.md and PROJECT-DEFINITION.xbrief.json reflect the current lifecycle folder truth. This preserves correctness while allowing N promotions/demotions to share one render checkpoint.
+6. ! Mark rejected items as `cancelled` via `task scope:cancel` (never delete xBRIEFs)
 
 ~ Operationally: a large refinement session can ingest/evaluate/promote multiple issues and close out with **one** final render checkpoint, rather than N repetitive renders after every individual item.
 
 ⊗ Rerender derived artifacts (`task roadmap:render`, `task project:render`) after every single accept/reject/promote/demote during high-volume triage -- batch the lifecycle edits and render once at the end of the batch
-⊗ Move vBRIEFs between folders manually (cp/mv) -- always use `task scope:*` commands
-⊗ Delete vBRIEFs -- use `task scope:cancel` to preserve history
+⊗ Move xBRIEFs between folders manually (cp/mv) -- always use `task scope:*` commands
+⊗ Delete xBRIEFs -- use `task scope:cancel` to preserve history
 
 ## Phase 5 -- Prioritize
 
 ! Reorder and organize the pending backlog.
 
-1. ! List all vBRIEFs in `vbrief/pending/` with titles, origins, and any phase/dependency metadata
+1. ! List all xBRIEFs in `xbrief/pending/` with titles, origins, and any phase/dependency metadata
 2. ~ Help the user set phases and dependencies:
-   - Group related items into phases (via vBRIEF `items` hierarchy or `tags`)
-   - Identify dependencies between items (via `edges` in vBRIEF schema)
+   - Group related items into phases (via xBRIEF `items` hierarchy or `tags`)
+   - Identify dependencies between items (via `edges` in xBRIEF schema)
 3. ! `task roadmap:render` is the **checkpoint** before showing the reordered backlog to the user -- not a per-edit tax. Run it ONCE at the end of the reorder pass to regenerate ROADMAP.md from the updated pending/ contents. Do not invoke it after each individual reorder action.
 4. ~ Present the regenerated roadmap summary to the user for confirmation
 
@@ -302,14 +302,14 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 
 ### When a Scope Completes
 
-1. ! Read the completed vBRIEF's `references` array
-2. ! For each GitHub-issue reference (either the legacy bare `github-issue` type or the canonical `x-vbrief/github-issue` shape):
+1. ! Read the completed xBRIEF's `references` array
+2. ! For each GitHub-issue reference (either the legacy bare `github-issue` type or the canonical `x-xbrief/github-issue` shape):
    - Close the issue with a comment linking to the implementing PR:
      ```
-     gh issue close {N} --comment "Completed via PR #{PR} -- scope vBRIEF: {filename}"
+     gh issue close {N} --comment "Completed via PR #{PR} -- scope xBRIEF: {filename}"
      ```
    - The issue number is extracted from the reference `uri` (e.g. `https://github.com/o/r/issues/{N}`)
-3. ? For other reference types (`x-vbrief/jira-ticket`, `x-vbrief/user-request`, `x-vbrief/github-pr`, etc.), follow the appropriate update mechanism
+3. ? For other reference types (`x-xbrief/jira-ticket`, `x-xbrief/user-request`, `x-xbrief/github-pr`, etc.), follow the appropriate update mechanism
 4. ! Update PROJECT-DEFINITION via `task project:render`
 
 ⊗ Complete a scope without updating its origins
@@ -317,18 +317,18 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 
 ! When the refinement session files a new umbrella issue (or surfaces one whose current-shape comment is missing), file the umbrella then file its `## Current shape (as of pass-N)` comment per `## Umbrella current-shape convention` in `AGENTS.md` (#1152) -- the edit-in-place comment is the canonical surface every subsequent design pass updates.
 
-! Before reporting an umbrella or epic's current status to the operator (what is done, what blocks, wave order), fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment and any linked context/`LockedDecisions` vBRIEF — never conclude status from the issue body alone (claim-cites-state-surface, #2066).
+! Before reporting an umbrella or epic's current status to the operator (what is done, what blocks, wave order), fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment and any linked context/`LockedDecisions` xBRIEF — never conclude status from the issue body alone (claim-cites-state-surface, #2066).
 
 ~ Issue-label hygiene for any umbrella or child issue this skill files: before creating issues, inspect the target repo's existing labels with `gh label list` or the labels API; choose one or more suitable existing labels when practical, or explicitly note that no label was applied. This is a recommendation, not a gate -- do not block issue creation solely because no label fits, and do not invent ad hoc labels outside the repo's existing label set.
 
-! When a refinement pass produces a slicing event (rare but possible -- e.g. a design pass on an existing umbrella files N additional Wave-N child issues), record the cohort in `vbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:refinement"` immediately after the children are filed (#1132 / D13). Same call shape as `skills/deft-directive-gh-slice/SKILL.md` Step 6. The cohort record is what makes `task triage:audit --orphans` able to detect Wave-2+ children whose umbrella closes prematurely; without it the production-side drift this surface guards against re-fires. Skip when the pass produced no new child cohort (e.g. a pure re-prioritization).
+! When a refinement pass produces a slicing event (rare but possible -- e.g. a design pass on an existing umbrella files N additional Wave-N child issues), record the cohort in `xbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:refinement"` immediately after the children are filed (#1132 / D13). Same call shape as `skills/deft-directive-gh-slice/SKILL.md` Step 6. The cohort record is what makes `task triage:audit --orphans` able to detect Wave-2+ children whose umbrella closes prematurely; without it the production-side drift this surface guards against re-fires. Skip when the pass produced no new child cohort (e.g. a pure re-prioritization).
 
 
 ! When the umbrella + children were filed by hand (legacy `gh issue create` / `issue_write` MCP / prior pass-N runs that pre-date this skill's slicing phase), use the canonical retro verb `task slice:record-existing` (#1147 / N7) -- it wraps the same `slice_record.write_slice` helper with `actor="manual:operator"`, takes `--umbrella=N --children=A,B,C [--wave-N=...]` flags, validates each issue via the N5 / #1145 `scm.call` shim, and is idempotent on a matching umbrella + child set (re-run is a no-op; `--force` writes a second record for legitimate multi-session slicing). Companion `task slice:list` enumerates persisted slices for verification. The backfill verb is the canonical retro path for cohorts D13's writer never saw.
 
 ## CHANGELOG Convention
 
-- ! Write ONE batch `CHANGELOG.md` entry at the END of the full refinement session -- not one entry per vBRIEF created or promoted. The batch entry summarizes all changes made during the session.
+- ! Write ONE batch `CHANGELOG.md` entry at the END of the full refinement session -- not one entry per xBRIEF created or promoted. The batch entry summarizes all changes made during the session.
 - ⊗ Add a CHANGELOG entry after each individual action during refinement -- wait until the full session is complete and write a single summary entry.
 
 ## PR & Review Cycle
@@ -347,13 +347,13 @@ After all refinement work is complete:
 3. ! Verify `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfiable for this PR. If the file is **missing**, do NOT block — copy the canonical template from `templates/PULL_REQUEST_TEMPLATE.md` (ship-with-deft) to `.github/PULL_REQUEST_TEMPLATE.md` in the consumer project, then proceed with pre-flight (#531). If the file exists but contains unsatisfiable checklist items for this PR, call them out to the user before pushing.
 4. ! **Mandatory file review**: Re-read ALL modified files before committing. Explicitly check for:
    - Encoding errors (em-dashes corrupted to replacement characters, BOM artifacts)
-   - Unintended duplication (accidental double vBRIEFs or duplicate entries)
-   - Structural issues (malformed vBRIEF JSON, broken references)
+   - Unintended duplication (accidental double xBRIEFs or duplicate entries)
+   - Structural issues (malformed xBRIEF JSON, broken references)
    - Semantic accuracy (verify that counts and claims in CHANGELOG entries match the actual data)
 
 ### Commit, Push, and Create PR
 
-1. ! Commit with a descriptive message: `docs(vbrief): refinement session -- {summary}`
+1. ! Commit with a descriptive message: `docs(xbrief): refinement session -- {summary}`
 2. ! Push the branch to origin
 3. ! Create a PR targeting the appropriate base branch
 
@@ -377,24 +377,24 @@ After all refinement work is complete:
 
 ## Anti-Patterns
 
-- ⊗ Bypass Phase 0 by walking `vbrief/proposed/` or `gh issue list` directly -- `task triage:queue --state=accept` (D11 / #1128) is the canonical ingestion-candidate surface (#1141)
+- ⊗ Bypass Phase 0 by walking `xbrief/proposed/` or `gh issue list` directly -- `task triage:queue --state=accept` (D11 / #1128) is the canonical ingestion-candidate surface (#1141)
 - ⊗ Skip Phase 0a's `task triage:summary` invocation -- the triage-gate decision (run the triage skill first vs proceed) depends on its output (#1141 / D2 / #1122)
 - ⊗ Silently proceed against an empty cache -- emit the canonical `task triage:welcome` (N3 / #1143) breadcrumb to stderr first (#1141)
 - ⊗ Treat `[RESUME]`-tagged items as leftover -- they are the highest-priority class refinement processes (#1141 / D3 / #1123)
 - ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted (#1141, supersedes #845)
 - ⊗ Auto-accept or auto-reject proposed items without user review
-- ⊗ Create vBRIEFs without origin provenance (`references` linking to the source)
-- ⊗ Ingest items without deduplicating against existing vBRIEF references first
-- ⊗ Auto-update vBRIEFs based on origin changes -- user approves all updates
+- ⊗ Create xBRIEFs without origin provenance (`references` linking to the source)
+- ⊗ Ingest items without deduplicating against existing xBRIEF references first
+- ⊗ Auto-update xBRIEFs based on origin changes -- user approves all updates
 - ⊗ Overwrite intentional divergence when reconciling stale origins
-- ⊗ Move vBRIEFs between folders manually -- always use `task scope:*` commands
-- ⊗ Delete vBRIEFs -- use `task scope:cancel` to preserve history
+- ⊗ Move xBRIEFs between folders manually -- always use `task scope:*` commands
+- ⊗ Delete xBRIEFs -- use `task scope:cancel` to preserve history
 - ⊗ Complete a scope without updating its origins (closing issues, posting comments)
 - ⊗ Skip deduplication during ingest -- always diff against existing references
 - ⊗ Add a CHANGELOG entry per individual action during refinement -- write one batch entry at the end of the full session
 - ⊗ Proceed to the next proposed item without waiting for user decision during evaluate
 - ⊗ Auto-push without explicit user instruction
-- ⊗ Rerender ROADMAP.md or PROJECT-DEFINITION.vbrief.json after every single accept/reject/promote/demote during high-volume triage -- `task roadmap:render` and `task project:render` are batch checkpoints, not per-edit taxes, and calling them N times for N lifecycle edits turns O(1) render work into O(N) without changing correctness (see #638)
+- ⊗ Rerender ROADMAP.md or PROJECT-DEFINITION.xbrief.json after every single accept/reject/promote/demote during high-volume triage -- `task roadmap:render` and `task project:render` are batch checkpoints, not per-edit taxes, and calling them N times for N lifecycle edits turns O(1) render work into O(N) without changing correctness (see #638)
 - ⊗ Return a final backlog view to the user without having run `task roadmap:render` and `task project:render` at least once since the last lifecycle edit -- batch the renders, but do not skip them
 
 ## See also

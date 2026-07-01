@@ -5,7 +5,7 @@ import { readRepoFile } from "./helpers.js";
 
 describe("test_change_and_skills", () => {
   it("commands_md_references_proposal_vbrief_json", () => {
-    expect(readRepoFile("commands.md")).toContain("proposal.vbrief.json");
+    expect(readRepoFile("commands.md")).toContain("proposal.xbrief.json");
   });
 
   it("commands_md_no_proposal_md_as_output_artifact", () => {
@@ -17,7 +17,7 @@ describe("test_change_and_skills", () => {
       } else if (line.startsWith("### ") && inArtifacts) {
         break;
       }
-      if (inArtifacts && line.includes("proposal.md") && !line.includes("proposal.vbrief.json")) {
+      if (inArtifacts && line.includes("proposal.md") && !line.includes("proposal.xbrief.json")) {
         throw new Error("commands.md: Artifacts section still references proposal.md as output");
       }
     }
@@ -39,7 +39,7 @@ describe("test_change_and_skills", () => {
   });
 
   it("commands_md_references_delta_vbrief_json", () => {
-    expect(readRepoFile("commands.md")).toContain("delta.vbrief.json");
+    expect(readRepoFile("commands.md")).toContain("delta.xbrief.json");
   });
 
   it("commands_md_no_spec_md_in_specs_section", () => {
@@ -51,7 +51,7 @@ describe("test_change_and_skills", () => {
       } else if (line.startsWith("### ") && inSpecs) {
         break;
       }
-      if (inSpecs && line.includes("spec.md") && !line.includes("delta.vbrief.json")) {
+      if (inSpecs && line.includes("spec.md") && !line.includes("delta.xbrief.json")) {
         if (line.includes("\u2297")) {
           continue;
         }
@@ -61,7 +61,7 @@ describe("test_change_and_skills", () => {
   });
 
   it("build_skill_references_proposal_vbrief_json", () => {
-    expect(readRepoFile("skills/deft-directive-build/SKILL.md")).toContain("proposal.vbrief.json");
+    expect(readRepoFile("skills/deft-directive-build/SKILL.md")).toContain("proposal.xbrief.json");
   });
 
   it("interview_skill_no_authoritative_prd", () => {
@@ -78,9 +78,9 @@ describe("test_change_and_skills", () => {
     }
   });
 
-  it("interview_skill_output_targets_vbrief", () => {
+  it("interview_skill_output_targets_xbrief", () => {
     expect(readRepoFile("skills/deft-directive-interview/SKILL.md")).toContain(
-      "specification.vbrief.json",
+      "specification.xbrief.json",
     );
   });
 
@@ -105,9 +105,9 @@ describe("test_change_and_skills", () => {
     ).toBe(true);
   });
 
-  it("setup_skill_phase3_vbrief_draft_approval", () => {
+  it("setup_skill_phase3_xbrief_draft_approval", () => {
     const text = readRepoFile("skills/deft-directive-setup/SKILL.md");
-    expect(text).toContain("specification.vbrief.json");
+    expect(text).toContain("specification.xbrief.json");
     expect(text.toLowerCase()).toContain("approval");
     expect(text.toLowerCase()).toContain("vbrief");
   });

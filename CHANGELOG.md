@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Docs and skills now describe the xBRIEF layout and migration path (#2111).** Agent-facing guidance (skills, templates, commands, and key docs) uses xBRIEF prose, `xbrief/` lifecycle paths, `*.xbrief.json` artifacts, and `deft migrate:xbrief` for legacy trees still read-accepted under `vbrief/` / `x-vbrief/`. The consumer AGENTS.md managed section and propagation contract tests were refreshed to match. Closes #2111.
+
 ### Added
 
 - **Canonical `xbrief/` layout is now the real tree (#2109, part 2b of 2).** The lifecycle tree moved from `vbrief/` to `xbrief/` (history preserved), every `*.vbrief.json` artifact was renamed to `*.xbrief.json`, and corpus reference tokens were rewritten from `x-vbrief/` to `x-xbrief/`. The layout-aware engine (parts 1 and 2a) picks up the migrated tree automatically, so `vbrief:validate`, `triage:queue`, `scope:*`, and `verify:cache-fresh` all operate on `xbrief/` with no behavior change. `x-vbrief/` reference types remain read-accepted for consumer back-compat, and a new `verify:xbrief-drift` gate (wired into `task check` and the pre-commit hook) fails if a legacy `vbrief/` path, `.vbrief.json` suffix, or `x-vbrief/` corpus token is reintroduced. Closes #2109.

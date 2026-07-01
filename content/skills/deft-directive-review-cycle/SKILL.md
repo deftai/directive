@@ -64,14 +64,14 @@ gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[] | selec
 ! Before touching code, verify ALL prerequisites are satisfied. Fix any gaps first:
 
 1. ! Verify `skills/deft-directive-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full RWLDL cycle. If not, run it now before proceeding.
-2. ! `PROJECT-DEFINITION.vbrief.json` and `vbrief/` lifecycle folders have scope vBRIEF coverage for all changes in the PR
+2. ! `PROJECT-DEFINITION.xbrief.json` and `xbrief/` lifecycle folders have scope xBRIEF coverage for all changes in the PR
 3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
 4. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 5. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
-6. ! If the PR touches 3+ files: verify a `/deft:change` `proposal.vbrief.json` exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
+6. ! If the PR touches 3+ files: verify a `/deft:change` `proposal.xbrief.json` exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
 7. ! Verify the PR is on a feature branch -- work MUST NOT have been committed directly to the default branch (master/main)
 
-~ **PR scope gate:** If the PR spans 3+ unrelated surfaces (e.g. a skill, a tool doc, and a strategy -- with no shared issue or scope vBRIEF linking them), warn the user that broad PRs increase review churn and Greptile noise. Recommend splitting into focused PRs unless all changes trace to the same scope vBRIEF or issue bundle.
+~ **PR scope gate:** If the PR spans 3+ unrelated surfaces (e.g. a skill, a tool doc, and a strategy -- with no shared issue or scope xBRIEF linking them), warn the user that broad PRs increase review churn and Greptile noise. Recommend splitting into focused PRs unless all changes trace to the same scope xBRIEF or issue bundle.
 
 ! Phase 1 audit gaps must be resolved before merging — but hold the fixes (do NOT commit or push them independently). Proceed to Phase 2 analysis to gather bot findings, then batch all Phase 1 + Phase 2 fixes into a single commit.
 ⊗ Commit or push Phase 1 audit fixes independently before gathering Phase 2 findings.
@@ -201,7 +201,7 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ! Detection: use the full runtime capability matrix (swarm Phase 3 + launch adapter from #1342 slice 2). The old single-probe for `start_agent` is superseded; the returned platform descriptor determines both the orchestration path and the MCP surface (see MCP probe below). If the descriptor is `grok-build` (spawn_subagent present, start_agent + WARP_* absent), treat as Tier 1 with the spawn_subagent poller path. If the descriptor is `cursor-composer` / `cursor-cloud-agent` (Cursor `Task` tool present, start_agent + WARP_* + spawn_subagent absent), treat as **Tier 1 with the backgrounded Cursor `Task` poller path** (#1877) — NOT Tier 3. Cursor's `Task` tool is a first-class sub-agent primitive; degrading a Cursor session to the Approach-3 blocking poll is the misclassification #1877 closes.
 
-! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 vBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
+! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
 **Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
 

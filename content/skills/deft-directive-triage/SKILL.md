@@ -26,7 +26,7 @@ triggers:
 
 # Deft Directive Triage
 
-Triage-cache hygiene + "what's next?" queue selection. Operates against the unified `.deft-cache/github-issue/` mirror (#883 Story 2) and the append-only `vbrief/.eval/candidates.jsonl` audit log (#845 Story 2); writes only via the canonical `task triage:*` verbs.
+Triage-cache hygiene + "what's next?" queue selection. Operates against the unified `.deft-cache/github-issue/` mirror (#883 Story 2) and the append-only `xbrief/.eval/candidates.jsonl` audit log (#845 Story 2); writes only via the canonical `task triage:*` verbs.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -44,7 +44,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 1. ! Run `task verify:cache-fresh` (D5 / #1127). Exit 0 -> proceed to Phase 1. Exit 1 (stale or blocked) -> refresh per the printed remediation. Exit 2 (no bootstrap) -> run `task triage:bootstrap` first.
 2. ~ Refresh path: `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` for an already-bootstrapped project (idempotent, TTL-aware, re-applies the #883 scanner v2 quarantine rules); `task triage:bootstrap` for a first-time seed.
-3. ~ If `vbrief/active/*.vbrief.json` references are in play, run `task triage:refresh-active` to compare cached `meta.json.fetched_at` against live upstream `updatedAt` and surface drift before the queue is rendered.
+3. ~ If `xbrief/active/*.xbrief.json` references are in play, run `task triage:refresh-active` to compare cached `meta.json.fetched_at` against live upstream `updatedAt` and surface drift before the queue is rendered.
 4. ~ When the one-liner emitted by the session-start ritual carries a `[scope-drift] N` segment (D14 / #1133), run `task triage:scope-drift` to see the per-label / per-milestone breakdown of upstream signals on cached open issues that fall outside the active `plan.policy.triageScope[]` subscription. The output documents both opt-in (`task triage:subscribe -- --label=<L>`) and opt-out (`task triage:scope-drift -- --ignore-label=<L>`) paths -- pick one before walking the queue so the cohort reflects the operator's current intent rather than a stale subscription.
 5. ⊗ Walk the queue against a stale cache -- the audit log will record decisions against bodies the operator never actually saw.
 
@@ -53,8 +53,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ! Inspect the auto-classification audit log so manually-decided items are not re-walked, and surface anomalies before the queue render.
 
 1. ! Run `task triage:classify --list` (D10 / #1129) to render the effective universal + consumer auto-classification rules and the active hold-marker list.
-2. ! Walk recent entries in `vbrief/.eval/candidates.jsonl` for anomalies: classifier disagreements against the operator's prior decisions, repeated `defer` cycles on the same issue, or `needs-ac` records older than the freshness window. Surface anomalies to the operator before Phase 2; do NOT auto-fix.
-3. ~ When the operator wants to widen / narrow the corpus, consult `task triage:scope --list` (D12 / #1131) to see the active `plan.policy.triageScope[]` subscription. Subscription edits belong in PROJECT-DEFINITION.vbrief.json, not in this skill.
+2. ! Walk recent entries in `xbrief/.eval/candidates.jsonl` for anomalies: classifier disagreements against the operator's prior decisions, repeated `defer` cycles on the same issue, or `needs-ac` records older than the freshness window. Surface anomalies to the operator before Phase 2; do NOT auto-fix.
+3. ~ When the operator wants to widen / narrow the corpus, consult `task triage:scope --list` (D12 / #1131) to see the active `plan.policy.triageScope[]` subscription. Subscription edits belong in PROJECT-DEFINITION.xbrief.json, not in this skill.
 4. ~ Issue-label hygiene: labels feed triage queue ranking, issue gauges, hygiene sweeps, and lifecycle reconciliation. When this skill exposes an unlabeled issue or a downstream issue-creation step, recommend choosing one or more suitable labels from the repository's existing label set via `gh label list` or the labels API, or explicitly note that no label was applied. This is a recommendation, not a gate.
 5. ⊗ Re-classify items already terminally decided (accept / reject / mark-duplicate) without explicit operator approval -- the audit log is append-only and supersession runs through Layer 5 (`task triage:reset <N>`), not through silent re-walks.
 6. ⊗ Block issue creation solely because no label was selected, or invent ad hoc labels outside the repository's existing label set.
@@ -64,19 +64,19 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ! Render the ranked queue before suggesting any specific issue. The cache-as-authoritative rule in AGENTS.md (`## Cache-as-authoritative work selection (#1149)`) is binding: the agent ! MUST consult `task triage:queue` and surface the result before proposing work from memory.
 
 1. ! Run `task triage:queue --limit=N` (D11 / #1128) -- default `N=10` per the umbrella Current Shape v3 WIP cap. Output is grouped `[RESUME]` -> `[URGENT]` -> untriaged -> other; within-group ordering follows the consumer-supplied `plan.policy.triageRankingLabels[]` (framework default empty per §12 boundary), tiebroken by `updated_at` descending.
-2. ! For per-item detail, run `task triage:show <N>` -- prints the cached upstream payload, the latest triage decision, the audit timeline, and the active-vBRIEF reference flag. Exit 0 on hit, 1 on cache miss (re-sync per Phase 0).
+2. ! For per-item detail, run `task triage:show <N>` -- prints the cached upstream payload, the latest triage decision, the audit timeline, and the active-xBRIEF reference flag. Exit 0 on hit, 1 on cache miss (re-sync per Phase 0).
 3. ~ Present the ranked queue verbatim; do NOT silently re-rank, drop, or annotate beyond what the canonical renderer emits. If the operator wants a different ordering they edit `plan.policy.triageRankingLabels[]` and re-run.
 4. ⊗ Recommend a specific issue without consulting `task triage:queue` first, or recommend an issue absent from the queue without first running `task triage:show` to surface why (cache miss / outside subscription / terminal decision).
 
 ## Phase 3 -- Decide
 
-! Walk per-item decisions through the canonical `task triage:*` verbs. The skill does NOT reimplement the audit-log append, schema validation, or `vbrief/proposed/` write inline -- the tasks are the canonical implementation (mirrors the #537 ingest-task discipline).
+! Walk per-item decisions through the canonical `task triage:*` verbs. The skill does NOT reimplement the audit-log append, schema validation, or `xbrief/proposed/` write inline -- the tasks are the canonical implementation (mirrors the #537 ingest-task discipline).
 
 For each candidate the operator selects from the Phase 2 queue, render the canonical numbered action menu and dispatch the matching verb:
 
 ```
 What would you like to do with this candidate?
-  1. Accept         -- `task triage:accept <N>`         (writes proposed/ vBRIEF + audit-log entry)
+  1. Accept         -- `task triage:accept <N>`         (writes proposed/ xBRIEF + audit-log entry)
   2. Reject         -- `task triage:reject <N>`         (audit-log entry only; terminal)
   3. Defer          -- `task triage:defer <N> [--resume-on <event>]`  (non-terminal; resurfaces)
   4. Needs-AC       -- `task triage:needs-ac <N>`       (non-terminal; flags missing acceptance criteria)
@@ -90,7 +90,7 @@ What would you like to do with this candidate?
 - ! On `Discuss`, halt the action sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. ⊗ Implicit resumption.
 - ! On `Back`, un-buffer the prior candidate's selection and re-render its action menu -- permitted only before the action has dispatched to a `task triage:*` command. Once dispatched, the audit entry is committed; revisions go through Layer 5 (`task triage:reset`).
 - ~ Bulk patterns: `task triage:bulk-{accept,reject,defer,needs-ac}` (#845 Story 4) for clear label-driven sweeps; bulk results still flow through the audit log so history stays coherent.
-- ⊗ Write to `vbrief/proposed/` directly -- only `task triage:accept` (which delegates to `task issue:ingest`) is authorised for that surface.
+- ⊗ Write to `xbrief/proposed/` directly -- only `task triage:accept` (which delegates to `task issue:ingest`) is authorised for that surface.
 
 ## Phase 4 -- Audit
 
@@ -98,17 +98,17 @@ What would you like to do with this candidate?
 
 1. ! Run `task triage:audit --format=json` (D11 / #1128) -- emits the stable `{generated_at, repo, vbrief_staleness, entry_count, entries: [...]}` schema; pipe through `jq` to surface this session's appended entries. For historical look-back, add the #1180 filters: `task triage:audit --since=30d --action=demote --format=json | jq` answers "how many demotes in the last 30 days?" in one call. `--since=<window>` accepts the framework duration grammar (`Nd` / `Nh` / `Nm` / `Nw` / `Ns` or ISO-8601 `PnDTnHnMnS`); `--action=<verb>` filters to a single decision verb (`accept` / `reject` / `defer` / `needs-ac` / `mark-duplicate` / `reset` / `resume-eligible`). Both filters compose with `--format=text` and `--format=json`. The framework deliberately does NOT compute trend lines or apply falsification gates -- the contract is read raw, transform with `jq`.
 2. ! Run `task triage:summary` (D2 / #1122) -- prints the canonical one-liner `[triage] N untriaged · S stale-defer · M in-flight · WIP X/Y [⚠] [· [scope-drift] N]`. The WIP cap default is 10 per the umbrella Current Shape v3 (overridable via typed `plan.policy.wipCap`). The `⚠` glyph fires only at-or-above cap. The `[scope-drift] N` segment (D14 / #1133) appears only when at least one unsubscribed label/milestone meets the framework `_DRIFT_MIN_ISSUES = 3` threshold; suppressed at zero.
-3. ~ When the summary surfaces a non-zero `[scope-drift] N` (D14 / #1133), surface it to the operator alongside `task triage:scope-drift` output and the matching `task triage:subscribe` / `task triage:unsubscribe` / `task triage:scope-drift -- --ignore-label=<L>` remediation. Subscription mutations record a `subscription-change` audit entry under `vbrief/.eval/subscription-history.jsonl` (sidecar of the existing `candidates.jsonl` audit surface) so future operators can replay how the subscription evolved. After every mutation, run `task triage:bootstrap -- --resume` to backfill newly-subscribed entries / mark newly-out-of-scope entries.
-4. ~ When the audit surfaces a stale acceptance (`accept` decision whose issue is no longer referenced by any `vbrief/active/`), surface it to the operator -- the typical fix is a fresh ingest via `task issue:ingest -- <N>` or a `task triage:reset <N>` if the acceptance was in error.
-5. ⊗ Skip the Phase 4 audit -- silent exit leaves the operator without a record of what landed in `vbrief/proposed/` this session, which is the typical recurrence vector for "what did I just accept?" confusion.
+3. ~ When the summary surfaces a non-zero `[scope-drift] N` (D14 / #1133), surface it to the operator alongside `task triage:scope-drift` output and the matching `task triage:subscribe` / `task triage:unsubscribe` / `task triage:scope-drift -- --ignore-label=<L>` remediation. Subscription mutations record a `subscription-change` audit entry under `xbrief/.eval/subscription-history.jsonl` (sidecar of the existing `candidates.jsonl` audit surface) so future operators can replay how the subscription evolved. After every mutation, run `task triage:bootstrap -- --resume` to backfill newly-subscribed entries / mark newly-out-of-scope entries.
+4. ~ When the audit surfaces a stale acceptance (`accept` decision whose issue is no longer referenced by any `xbrief/active/`), surface it to the operator -- the typical fix is a fresh ingest via `task issue:ingest -- <N>` or a `task triage:reset <N>` if the acceptance was in error.
+5. ⊗ Skip the Phase 4 audit -- silent exit leaves the operator without a record of what landed in `xbrief/proposed/` this session, which is the typical recurrence vector for "what did I just accept?" confusion.
 
-! Before reporting an umbrella or epic's current status during triage (what is done, what blocks, wave order), fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment and any linked context/`LockedDecisions` vBRIEF — never conclude status from the issue body alone (claim-cites-state-surface, #2066 / AGENTS.md #1152).
+! Before reporting an umbrella or epic's current status during triage (what is done, what blocks, wave order), fetch `repos/<owner>/<repo>/issues/<N>/comments` via REST, read the `## Current shape (as of pass-N)` comment and any linked context/`LockedDecisions` xBRIEF — never conclude status from the issue body alone (claim-cites-state-surface, #2066 / AGENTS.md #1152).
 
 ## Reversibility
 
 ! To undo a decision, run `task triage:reset <N>`. This writes a `reset` audit entry referencing the prior decision id; history is **never** deleted. `task triage:reset` is the canonical Layer 5 reversibility verb (resolves the V3 audit from 2026-05-13). After a reset, the candidate re-enters the untriaged group on the next `task triage:queue` render so it can be re-walked through Phase 3.
 
-⊗ Edit or delete prior entries in `vbrief/.eval/candidates.jsonl` to "undo" a decision -- the log is append-only by design and any external mutation breaks the `merge=union` rebase ergonomic (#1144 / N4).
+⊗ Edit or delete prior entries in `xbrief/.eval/candidates.jsonl` to "undo" a decision -- the log is append-only by design and any external mutation breaks the `merge=union` rebase ergonomic (#1144 / N4).
 
 ## Anti-Patterns
 
@@ -116,7 +116,7 @@ What would you like to do with this candidate?
 - ⊗ Walk the queue against a stale cache (Phase 0 gate skipped).
 - ⊗ Reimplement audit-log append / `proposed/` write inline -- the `task triage:*` verbs own those surfaces (#845, #883).
 - ⊗ Treat `defer` / `needs-ac` as terminal -- they intentionally resurface on the next pass.
-- ⊗ Edit `vbrief/.eval/candidates.jsonl` directly to revoke a decision -- use `task triage:reset <N>`.
+- ⊗ Edit `xbrief/.eval/candidates.jsonl` directly to revoke a decision -- use `task triage:reset <N>`.
 
 ## EXIT
 
@@ -124,7 +124,7 @@ What would you like to do with this candidate?
 
 ! Provide chaining instructions:
 
-- **Ingestion / evaluation of accepted items**: chain into `skills/deft-directive-refinement/SKILL.md` -- refinement's Phase 1 ingests the `vbrief/proposed/` items this skill just wrote into the rest of the lifecycle.
+- **Ingestion / evaluation of accepted items**: chain into `skills/deft-directive-refinement/SKILL.md` -- refinement's Phase 1 ingests the `xbrief/proposed/` items this skill just wrote into the rest of the lifecycle.
 - **Cohort dispatch**: chain into `skills/deft-directive-swarm/SKILL.md` -- swarm Phase 0 is queue-driven (N2 / #1142) and consumes the same `task triage:queue` ordering you just walked.
 - **Fresh-state refresh before re-entry**: run `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` then re-enter this skill when ready to continue.
 

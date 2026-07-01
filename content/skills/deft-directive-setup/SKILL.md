@@ -21,7 +21,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## When to Use
 
 - User says "set up deft", "configure deft", or "bootstrap my project"
-- User asks to create USER.md, PROJECT-DEFINITION.vbrief.json, or a specification
+- User asks to create USER.md, PROJECT-DEFINITION.xbrief.json, or a specification
 - User clones a deft-enabled repo for the first time with no config
 
 ## Pre-Cutover Detection Guard
@@ -32,9 +32,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 A project is **pre-cutover** if ANY of the following are true. This prose mirrors the executable helper in `scripts/_precutover.py`; when in doubt, the helper is canonical.
 
-1. `SPECIFICATION.md` exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: vbrief/specification.vbrief.json -->`, and `vbrief/specification.vbrief.json` plus all five lifecycle folders exist.
+1. `SPECIFICATION.md` exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 2. `PROJECT.md` exists and contains neither the legacy `<!-- deft:deprecated-redirect -->` sentinel NOR the current `Purpose: deprecation redirect` canonical-banner marker (same one-release-cycle grace window).
-3. `vbrief/specification.vbrief.json` exists but the lifecycle folders (`vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, `vbrief/cancelled/`) do NOT exist
+3. `xbrief/specification.xbrief.json` exists but the lifecycle folders (`xbrief/proposed/`, `xbrief/pending/`, `xbrief/active/`, `xbrief/completed/`, `xbrief/cancelled/`) do NOT exist
 
 ### Action on Detection
 
@@ -44,10 +44,10 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ! Include specific details about what was detected:
 
-- Missing lifecycle folders: "Create lifecycle folders via the frozen-release migrator on v0.59.0, or manually add `vbrief/{proposed,pending,active,completed,cancelled}/` after migrating narratives"
+- Missing lifecycle folders: "Create lifecycle folders via the frozen-release migrator on v0.59.0, or manually add `xbrief/{proposed,pending,active,completed,cancelled}/` after migrating narratives"
 - `SPECIFICATION.md` with real content: "SPECIFICATION.md contains non-redirect content — migrate on pinned v0.59.0 before upgrading to current npm"
 - `PROJECT.md` with real content: "PROJECT.md contains non-redirect content — migrate on pinned v0.59.0 before upgrading to current npm"
-- Missing `PROJECT-DEFINITION.vbrief.json`: "Run `task project:render` after document-model migration completes"
+- Missing `PROJECT-DEFINITION.xbrief.json`: "Run `task project:render` after document-model migration completes"
 
 ### Preflight (optional diagnostic)
 
@@ -59,15 +59,15 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ### Greenfield Projects (No Migration Needed)
 
-! For new projects (no existing `SPECIFICATION.md`, `PROJECT.md`, or `vbrief/specification.vbrief.json`), the guard passes silently and setup proceeds normally.
+! For new projects (no existing `SPECIFICATION.md`, `PROJECT.md`, or `xbrief/specification.xbrief.json`), the guard passes silently and setup proceeds normally.
 
-! Greenfield setup creates the full vBRIEF-centric structure from scratch:
+! Greenfield setup creates the full xBRIEF-centric structure from scratch:
 
-1. `./vbrief/` directory with all 5 lifecycle subdirectories: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`
-2. `./vbrief/PROJECT-DEFINITION.vbrief.json` generated from Phase 2 interview results
-3. First scope vBRIEF created in `proposed/` or `pending/` depending on Phase 3 interview outcome
+1. `./xbrief/` directory with all 5 lifecycle subdirectories: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`
+2. `./xbrief/PROJECT-DEFINITION.xbrief.json` generated from Phase 2 interview results
+3. First scope xBRIEF created in `proposed/` or `pending/` depending on Phase 3 interview outcome
 
-~ This is already handled by Phase 2 Output Path (creates `./vbrief/` and lifecycle subfolders) and Phase 3 Output (creates scope vBRIEFs in lifecycle folders). The guard ensures migrating projects are redirected before reaching these phases.
+~ This is already handled by Phase 2 Output Path (creates `./xbrief/` and lifecycle subfolders) and Phase 3 Output (creates scope xBRIEFs in lifecycle folders). The guard ensures migrating projects are redirected before reaching these phases.
 
 ### Migration safety flags (frozen v0.59.0 release only)
 
@@ -94,7 +94,7 @@ When guiding an operator through migration on the pinned release, mention the mi
 
 - ! If `$DEFT_USER_PATH` is set, it takes precedence on any platform
 - ! Create parent directories as needed when writing USER.md
-- ~ `$DEFT_PROJECT_PATH` overrides the default project config path (`./vbrief/PROJECT-DEFINITION.vbrief.json`) if set
+- ~ `$DEFT_PROJECT_PATH` overrides the default project config path (`./xbrief/PROJECT-DEFINITION.xbrief.json`) if set
 
 ## Agent Behavior
 
@@ -150,7 +150,7 @@ VBA (Excel macros), VHDL, Visual Basic (.NET), Zig, 6502-DASM
 
 **Goal:** Personal preferences file with two sections:
 - **Personal** — always wins over everything (name, custom rules)
-- **Defaults** — fallback values that PROJECT-DEFINITION.vbrief.json can override (strategy, coverage)
+- **Defaults** — fallback values that PROJECT-DEFINITION.xbrief.json can override (strategy, coverage)
 
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
 - ⊗ Scan filesystem beyond checking that one path
@@ -219,7 +219,7 @@ Wait for answer. Then follow the track below.
 
 **Track 3 (non-technical) — 2 steps:**
 - Step 1: Ask their name
-- Step 2: Ask what they're building (brief description — used for PROJECT-DEFINITION.vbrief.json later)
+- Step 2: Ask what they're building (brief description — used for PROJECT-DEFINITION.xbrief.json later)
 - Set defaults: strategy = "interview", coverage = 85%, all meta-guidelines included
 
 ### Output Path
@@ -239,7 +239,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## Personal (always wins)
 
 Settings in this section have HIGHEST precedence — override all other deft rules,
-including PROJECT-DEFINITION.vbrief.json.
+including PROJECT-DEFINITION.xbrief.json.
 
 **Name**: Address the user as: **{name}**
 
@@ -248,7 +248,7 @@ including PROJECT-DEFINITION.vbrief.json.
 
 ## Defaults (fallback)
 
-Settings in this section are fallback defaults. PROJECT-DEFINITION.vbrief.json overrides these
+Settings in this section are fallback defaults. PROJECT-DEFINITION.xbrief.json overrides these
 for project-scoped settings (strategy, coverage).
 
 **Default Strategy**: [{strategy name}](../strategies/{strategy-file}.md)
@@ -276,14 +276,14 @@ for project-scoped settings (strategy, coverage).
 
 ---
 
-## Phase 2 — Project Configuration (PROJECT-DEFINITION.vbrief.json)
+## Phase 2 — Project Configuration (PROJECT-DEFINITION.xbrief.json)
 
-**Goal:** Project-specific configuration — tech stack, type, quality standards — written as a vBRIEF file at `./vbrief/PROJECT-DEFINITION.vbrief.json`.
+**Goal:** Project-specific configuration — tech stack, type, quality standards — written as a xBRIEF file at `./xbrief/PROJECT-DEFINITION.xbrief.json`.
 
-! **Path Resolution Anchor**: Resolve ALL paths relative to the user's working directory (pwd) at skill entry -- never relative to the skill file location, AGENTS.md location, or any framework directory (e.g. `./deft/`). When deft is cloned as a subdirectory, the skill file lives inside the clone but all project artifacts (`./vbrief/PROJECT-DEFINITION.vbrief.json`, build files, etc.) must be resolved from the user's pwd.
+! **Path Resolution Anchor**: Resolve ALL paths relative to the user's working directory (pwd) at skill entry -- never relative to the skill file location, AGENTS.md location, or any framework directory (e.g. `./deft/`). When deft is cloned as a subdirectory, the skill file lives inside the clone but all project artifacts (`./xbrief/PROJECT-DEFINITION.xbrief.json`, build files, etc.) must be resolved from the user's pwd.
 
-- ~ Skip if `./vbrief/PROJECT-DEFINITION.vbrief.json` exists (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
-- ⊗ Count `./deft/PROJECT-DEFINITION.vbrief.json` or `./deft/core/project.md` as the user's project config — those are framework-internal
+- ~ Skip if `./xbrief/PROJECT-DEFINITION.xbrief.json` exists (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
+- ⊗ Count `./deft/PROJECT-DEFINITION.xbrief.json` or `./deft/core/project.md` as the user's project config — those are framework-internal
 
 ### Inference
 
@@ -365,9 +365,9 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
   ! Default to option 2 (enforce). Explicit affirmative on option 1 is required to opt out -- a broad `proceed` does NOT satisfy this gate. The same affirmative-only rule applies as in `/deft:change` (`yes`, `confirmed`, `approve`).
 
-  ! Write the answer to `plan.policy.allowDirectCommitsToMaster` (typed boolean) on the PROJECT-DEFINITION vBRIEF. Default `false` (enforce branches) when the user picks option 2 OR omits the question entirely. Writing this typed surface is what the framework reads going forward; agents MUST NOT write the legacy free-form `Allow direct commits to master:` narrative key (#746 part A migrates the legacy narrative away).
+  ! Write the answer to `plan.policy.allowDirectCommitsToMaster` (typed boolean) on the PROJECT-DEFINITION xBRIEF. Default `false` (enforce branches) when the user picks option 2 OR omits the question entirely. Writing this typed surface is what the framework reads going forward; agents MUST NOT write the legacy free-form `Allow direct commits to master:` narrative key (#746 part A migrates the legacy narrative away).
 
-  ! **Re-running the interview detects the existing flag (#746 part G2):** If `vbrief/PROJECT-DEFINITION.vbrief.json` already exists and has `plan.policy.allowDirectCommitsToMaster` set, the interview MUST surface the current value (e.g. "Current setting: `allowDirectCommitsToMaster=false` (branch-protection ON)") and ask whether to keep it or change it before re-prompting. Do not silently overwrite an existing typed value.
+  ! **Re-running the interview detects the existing flag (#746 part G2):** If `xbrief/PROJECT-DEFINITION.xbrief.json` already exists and has `plan.policy.allowDirectCommitsToMaster` set, the interview MUST surface the current value (e.g. "Current setting: `allowDirectCommitsToMaster=false` (branch-protection ON)") and ask whether to keep it or change it before re-prompting. Do not silently overwrite an existing typed value.
 
   ! **Slash-command alternatives (#746 part G2):** Once the project is set up, the typed flag can also be flipped via slash commands wrapping `task policy:*`:
   - `/deft:policy:show` -- display the current resolved policy and source
@@ -389,11 +389,11 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ### Output Path
 
-`./vbrief/PROJECT-DEFINITION.vbrief.json` (or `$DEFT_PROJECT_PATH` if set). Create `./vbrief/` directory and lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) if they don't exist.
+`./xbrief/PROJECT-DEFINITION.xbrief.json` (or `$DEFT_PROJECT_PATH` if set). Create `./xbrief/` directory and lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) if they don't exist.
 
 ### GitHub PR Template Scaffolding (#531)
 
-! Before writing `PROJECT-DEFINITION.vbrief.json`, offer to scaffold a default GitHub PR template so downstream skills (`deft-directive-refinement` Pre-Flight, `deft-directive-pre-pr`) can satisfy their `.github/PULL_REQUEST_TEMPLATE.md` checks without blocking.
+! Before writing `PROJECT-DEFINITION.xbrief.json`, offer to scaffold a default GitHub PR template so downstream skills (`deft-directive-refinement` Pre-Flight, `deft-directive-pre-pr`) can satisfy their `.github/PULL_REQUEST_TEMPLATE.md` checks without blocking.
 
 1. ! Ask the user with a deterministic numbered menu: "Create a default GitHub PR template at `.github/PULL_REQUEST_TEMPLATE.md`?" Options: `1. Yes`, `2. No`, `3. Discuss`, `4. Back`. Use a structured question tool only if those numeric labels remain visible and are returned as numeric selections or exact displayed option text.
 2. ! If the user accepts AND `.github/PULL_REQUEST_TEMPLATE.md` does NOT already exist: copy `templates/PULL_REQUEST_TEMPLATE.md` (shipped with deft) to `./.github/PULL_REQUEST_TEMPLATE.md` in the consumer project. Create `.github/` if it does not exist.
@@ -404,7 +404,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ### Headless Coverage Warning — display-bound GUI entry points (#1027)
 
-! The trigger is a **display-bound GUI event loop** (pygame, tkinter, PyQt/PySide, Kivy, Electron) that cannot run without a real display — typically a **Desktop App** project type, or a TUI that embeds such a GUI. Terminal-UI frameworks (textual, urwid, blessed, ncurses) run in the terminal and DO support headless testing (e.g. textual's `App.run_async()` + `Pilot`), so a standard TUI is NOT in scope — do not omit its coverage. The concrete commands below assume a **Python** GUI stack (pygame/tkinter); the same "omit the un-runnable loop, test the logic" principle applies to non-Python desktop stacks (Electron/JS, .NET/WPF, Qt/C++) using that language's own headless-test and coverage-exclusion tooling. When the Phase 2 project type resolves to a display-bound GUI project, warn the user BEFORE writing `PROJECT-DEFINITION.vbrief.json` (adapt the wording to the project's language):
+! The trigger is a **display-bound GUI event loop** (pygame, tkinter, PyQt/PySide, Kivy, Electron) that cannot run without a real display — typically a **Desktop App** project type, or a TUI that embeds such a GUI. Terminal-UI frameworks (textual, urwid, blessed, ncurses) run in the terminal and DO support headless testing (e.g. textual's `App.run_async()` + `Pilot`), so a standard TUI is NOT in scope — do not omit its coverage. The concrete commands below assume a **Python** GUI stack (pygame/tkinter); the same "omit the un-runnable loop, test the logic" principle applies to non-Python desktop stacks (Electron/JS, .NET/WPF, Qt/C++) using that language's own headless-test and coverage-exclusion tooling. When the Phase 2 project type resolves to a display-bound GUI project, warn the user BEFORE writing `PROJECT-DEFINITION.xbrief.json` (adapt the wording to the project's language):
 
 > "Heads up: pygame/tkinter event loops can't be tested headlessly, so the display-bound entry point (e.g. `src/ui.py`) reports near-zero coverage and drags the overall percentage below the 85% threshold. I recommend excluding the UI entry point from coverage measurement and keeping it thin — push testable logic (state, scoring, input handling) into separate modules."
 
@@ -427,11 +427,11 @@ omit = [
 
 ### Template
 
-! The output MUST conform to the canonical vBRIEF v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`). See [`../../conventions/references.md`](../../conventions/references.md).
+! The output MUST conform to the canonical xBRIEF v0.6 schema (`xbrief/schemas/xbrief-core.schema.json`, strict `const: "0.6"`). See [`../../conventions/references.md`](../../conventions/references.md).
 
 ```json
 {
-  "vBRIEFInfo": {
+  "xBRIEFInfo": {
     "version": "0.6",
     "author": "agent:deft-directive-setup",
     "description": "Project identity gestalt",
@@ -455,7 +455,7 @@ omit = [
 ```
 
 - ! All `narratives` values MUST be plain strings — never objects or arrays
-- ! `items` starts empty — populated as scope vBRIEFs are created in lifecycle folders
+- ! `items` starts empty — populated as scope xBRIEFs are created in lifecycle folders
 
 ### Then
 
@@ -464,7 +464,7 @@ omit = [
 
 ### Follow-up: triage onboarding (#1143)
 
-- ~ After Phase 2 writes `PROJECT-DEFINITION.vbrief.json`, recommend `task triage:welcome` to the user as the single chained command for picking up the v0.27 triage surface. The N3 ritual (#1143) is the consolidating onboarding step for the #1119 governance swarm verbs (`task triage:bootstrap` / `task triage:scope` / `plan.policy.wipCap` writes / `task scope:demote --batch` relief / `task triage:summary`); without it consumers must learn each verb individually from the v0.27 release notes.
+- ~ After Phase 2 writes `PROJECT-DEFINITION.xbrief.json`, recommend `task triage:welcome` to the user as the single chained command for picking up the v0.27 triage surface. The N3 ritual (#1143) is the consolidating onboarding step for the #1119 governance swarm verbs (`task triage:bootstrap` / `task triage:scope` / `plan.policy.wipCap` writes / `task scope:demote --batch` relief / `task triage:summary`); without it consumers must learn each verb individually from the v0.27 release notes.
 - ~ `task triage:welcome` is idempotent and detection-bound -- each phase emits an informational stderr line and skips when its precondition is already satisfied, so a re-run after a partial completion resumes cleanly. The destructive phases (subscription / `wipCap` writes, optional WIP-relief invocation) are gated by numbered-menu prompts per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md). See [`../../UPGRADING.md`](../../UPGRADING.md) `## From v0.26.x -> v0.27` for the full walkthrough.
 - ? The recommendation is informational, not a hard gate -- consumers who plan to wire triage manually MAY skip the ritual and call the individual verbs in any order; the framework defaults stay fail-open per the umbrella `#1119 §12 framework-vs-consumer-config boundary`.
 
@@ -472,12 +472,12 @@ omit = [
 
 ## Phase 3 — Specification
 
-**Goal:** Generate an implementable spec using the strategy chosen in Phase 2, producing scope vBRIEFs in `vbrief/proposed/` and PROJECT-DEFINITION narratives for human approval — greenfield v0.20 does not create `specification.vbrief.json`.
+**Goal:** Generate an implementable spec using the strategy chosen in Phase 2, producing scope xBRIEFs in `xbrief/proposed/` and PROJECT-DEFINITION narratives for human approval — greenfield v0.20 does not create `specification.xbrief.json`.
 
 ! **Path Resolution Anchor**: Same rule as Phase 2 -- resolve ALL paths relative to the user's pwd at skill entry, never relative to the skill file, AGENTS.md, or any framework directory.
 
-- ~ Skip if user already has scope vBRIEFs in `./vbrief/` they're happy with
-- ! Check `./vbrief/specification.vbrief.json` or `./vbrief/proposed/` for existing scope vBRIEFs
+- ~ Skip if user already has scope xBRIEFs in `./xbrief/` they're happy with
+- ! Check `./xbrief/specification.xbrief.json` or `./xbrief/proposed/` for existing scope xBRIEFs
 - ⊗ Count ANY file inside `./deft/` as the project's spec — those are framework-internal
   (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`, `deft/core/project.md`
   are all part of the framework, NOT the user's project)
@@ -487,18 +487,18 @@ omit = [
 ! Before proceeding with the strategy gate, ask the onboarding question:
 
 > "Are you adding a scope to this project or starting a new specification?"
-> 1. Adding scope to existing project [default if `./vbrief/specification.vbrief.json` exists or scope vBRIEFs found in lifecycle folders]
-> 2. Starting a new project specification [default if no specification or scope vBRIEFs exist]
+> 1. Adding scope to existing project [default if `./xbrief/specification.xbrief.json` exists or scope xBRIEFs found in lifecycle folders]
+> 2. Starting a new project specification [default if no specification or scope xBRIEFs exist]
 
-- ! Default based on repo state: if specification.vbrief.json exists or any lifecycle folder has scope vBRIEFs, default to "Adding scope"; otherwise default to "Starting new"
-- ! If adding scope: skip the full interview, create a new scope vBRIEF in `./vbrief/proposed/` with the user's description, then exit
+- ! Default based on repo state: if specification.xbrief.json exists or any lifecycle folder has scope xBRIEFs, default to "Adding scope"; otherwise default to "Starting new"
+- ! If adding scope: skip the full interview, create a new scope xBRIEF in `./xbrief/proposed/` with the user's description, then exit
 - ! If starting new: proceed to the Strategy Gate below
 
 ### ⚠️ MANDATORY: Strategy Gate — Do This First
 
 ! **STOP.** You MUST determine the correct strategy before doing anything else.
 
-1. ! Open `./vbrief/PROJECT-DEFINITION.vbrief.json` (the file written in Phase 2)
+1. ! Open `./xbrief/PROJECT-DEFINITION.xbrief.json` (the file written in Phase 2)
 2. ! Find the `narratives.Strategy` value
 3. ! Extract the strategy name from the narrative
 
@@ -510,8 +510,8 @@ omit = [
   2. ! Begin the strategy's workflow immediately — ask its first question
   3. ! **STOP reading this section** — do NOT use the interview process below
 
-- ⊗ Default to interview without reading PROJECT-DEFINITION.vbrief.json
-- ⊗ Continue reading below when PROJECT-DEFINITION.vbrief.json specifies a non-interview strategy
+- ⊗ Default to interview without reading PROJECT-DEFINITION.xbrief.json
+- ⊗ Continue reading below when PROJECT-DEFINITION.xbrief.json specifies a non-interview strategy
 - ⊗ Assume interview because the sections below describe the interview process
 - ⊗ Fabricate justification for using interview when the user chose a different strategy
 - ⊗ Announce the strategy choice and then stop — you must immediately read the file and start
@@ -525,14 +525,14 @@ omit = [
 ! After hearing what the user wants to build and their feature list, determine
 project complexity per [strategies/interview.md](../../strategies/interview.md#sizing-gate).
 
-- ! Check `PROJECT-DEFINITION.vbrief.json` narratives for `Light` or `Full` — if declared, use that path
+- ! Check `PROJECT-DEFINITION.xbrief.json` narratives for `Light` or `Full` — if declared, use that path
 - ! If not declared, propose a size and **ask the user to confirm in a dedicated message**
 - ! **Wait for the user's response** before asking any interview questions
 - ⊗ Combine the sizing proposal with the first interview question
 - ⊗ Proceed to interview questions before the user has confirmed the path
 
-**Light** (small/medium): Interview → `specification.vbrief.json` with slim narratives (Overview + Architecture) → scope vBRIEFs in `vbrief/proposed/`.
-**Full** (large/complex): Interview → rich narratives in `specification.vbrief.json` (user approval) → scope vBRIEFs with traceability.
+**Light** (small/medium): Interview → `specification.xbrief.json` with slim narratives (Overview + Architecture) → scope xBRIEFs in `xbrief/proposed/`.
+**Full** (large/complex): Interview → rich narratives in `specification.xbrief.json` (user approval) → scope xBRIEFs with traceability.
 
 ### Interview Process (interview strategy)
 
@@ -564,12 +564,12 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Output — Light Path
 
-1. ! Write `./vbrief/specification.vbrief.json` with `"vBRIEFInfo": { "version": "0.6" }`, `status: draft`, and slim narratives:
+1. ! Write `./xbrief/specification.xbrief.json` with `"xBRIEFInfo": { "version": "0.6" }`, `status: draft`, and slim narratives:
    - `Overview`: Brief project summary
    - `Architecture`: System design description
-2. ! Create scope vBRIEFs in `./vbrief/proposed/` for each identified work item
-   - Each scope vBRIEF follows the `YYYY-MM-DD-descriptive-slug.vbrief.json` filename convention (slug rules in [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
-   - Each MUST use `"vBRIEFInfo": { "version": "0.6" }`
+2. ! Create scope xBRIEFs in `./xbrief/proposed/` for each identified work item
+   - Each scope xBRIEF follows the `YYYY-MM-DD-descriptive-slug.xbrief.json` filename convention (slug rules in [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
+   - Each MUST use `"xBRIEFInfo": { "version": "0.6" }`
    - Each MUST include embedded Requirements (FR-N, NFR-N) in its `narrative`
    - Each task SHOULD reference which FR/NFR it implements via `narrative.Traces`
    - When the scope originates from a GitHub issue, include a `references` entry in the canonical form (see [`../../conventions/references.md`](../../conventions/references.md)):
@@ -577,17 +577,17 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
      "references": [
        {
          "uri": "https://github.com/{owner}/{repo}/issues/{N}",
-         "type": "x-vbrief/github-issue",
+         "type": "x-xbrief/github-issue",
          "title": "Issue #{N}: {issue title}"
        }
      ]
      ```
-3. ! Summarize decisions, ask user to review the vBRIEF narratives
-4. ! On approval, update `specification.vbrief.json` status to `approved`
+3. ! Summarize decisions, ask user to review the xBRIEF narratives
+4. ! On approval, update `specification.xbrief.json` status to `approved`
 - ⊗ Create a separate PRD.md on the Light path
 - ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 
-! The vBRIEF files MUST conform to `vbrief/schemas/vbrief-core.schema.json` (v0.6):
+! The xBRIEF files MUST conform to `xbrief/schemas/xbrief-core.schema.json` (v0.6):
 
 - ! All `narratives` and `narrative` values MUST be plain strings — never objects or arrays
 - ! Nested children within a PlanItem use `items` (v0.6 preferred field); `subItems` is the deprecated legacy alias kept for backward compatibility only
@@ -595,7 +595,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Output — Full Path
 
-1. ! Write rich narratives to `./vbrief/specification.vbrief.json` with `"vBRIEFInfo": { "version": "0.6" }`, `plan.status: draft`, and these narrative keys:
+1. ! Write rich narratives to `./xbrief/specification.xbrief.json` with `"xBRIEFInfo": { "version": "0.6" }`, `plan.status: draft`, and these narrative keys:
    - `ProblemStatement`: What problem this project solves
    - `Goals`: High-level project goals
    - `UserStories`: User stories in standard format
@@ -603,39 +603,39 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
    - `SuccessMetrics`: Measurable success criteria
    - `Architecture`: System design and technical architecture
    - `Overview`: Brief project summary
-2. ! **Human approval gate**: Present the vBRIEF draft narratives to the user for review — reviewing the `specification.vbrief.json` narratives IS the approval step (replaces the former PRD.md review). The user may request changes before approving.
+2. ! **Human approval gate**: Present the xBRIEF draft narratives to the user for review — reviewing the `specification.xbrief.json` narratives IS the approval step (replaces the former PRD.md review). The user may request changes before approving.
 3. ! On approval, update `status` to `approved` and proceed to downstream generation
-4. ! Create scope vBRIEFs in `./vbrief/proposed/` with traceability to requirement IDs from the narratives
-- ! Scope vBRIEFs MUST trace tasks back to requirement IDs (FR-1, NFR-1) from the `Requirements` narrative
+4. ! Create scope xBRIEFs in `./xbrief/proposed/` with traceability to requirement IDs from the narratives
+- ! Scope xBRIEFs MUST trace tasks back to requirement IDs (FR-1, NFR-1) from the `Requirements` narrative
 - ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 
 **Spec Structure (both paths):**
 - ! Overview, Architecture
-- ! Implementation Plan: scope vBRIEFs in `vbrief/proposed/` with phases and dependencies
-- ! Explicit dependency mapping between scopes (via vBRIEF `edges` or `references`)
+- ! Implementation Plan: scope xBRIEFs in `xbrief/proposed/` with phases and dependencies
+- ! Explicit dependency mapping between scopes (via xBRIEF `edges` or `references`)
 - ~ Scopes designed for parallel work by multiple agents
 - ! Testing Strategy and Deployment captured in narratives
 - ⊗ Write code — specification only
 
 ### Lifecycle Bridge to Downstream Skills (#1025)
 
-! Scope vBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Adding scope to existing project" branch land in `vbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task vbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate vBRIEFs to live in `vbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.
+! Scope xBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Adding scope to existing project" branch land in `xbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task xbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate xBRIEFs to live in `xbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.
 
 ! Surface this bridge to the user in the Phase 3 → next-skill handoff so they are not surprised by a wholesale preflight rejection downstream:
 
-  - **If the next step is `skills/deft-directive-swarm/SKILL.md`**: the swarm skill's Phase 0 Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs) is the canonical bridge. The monitor will scan `vbrief/proposed/` and `vbrief/pending/`, present in-scope candidates, and run `task scope:promote -- <path>` then `task scope:activate -- <path>` on explicit user approval. No manual operator action is required ahead of the swarm invocation.
-  - **If the next step is `skills/deft-directive-refinement/SKILL.md`**: the refinement skill's Phase 4 (Promote/Demote) owns the same `task scope:promote` / `task scope:activate` surface and runs the bridge as part of the refinement loop. The refinement skill MAY leave vBRIEFs in `pending/` deliberately when they are queued for prioritisation rather than immediate dispatch.
-  - **If the user wants to invoke an implementation agent directly via `skills/deft-directive-build/SKILL.md` or `start_agent`**: the bridge MUST be run manually before dispatch -- `task scope:promote -- vbrief/proposed/<file>` then `task scope:activate -- vbrief/pending/<file>`. Both commands are idempotent and exit 0 on no-op (see `scripts/scope_lifecycle.py`). The #810 preflight gate (`task vbrief:preflight -- <active-path>`) will exit 0 only after the activate step.
+  - **If the next step is `skills/deft-directive-swarm/SKILL.md`**: the swarm skill's Phase 0 Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope xBRIEFs) is the canonical bridge. The monitor will scan `xbrief/proposed/` and `xbrief/pending/`, present in-scope candidates, and run `task scope:promote -- <path>` then `task scope:activate -- <path>` on explicit user approval. No manual operator action is required ahead of the swarm invocation.
+  - **If the next step is `skills/deft-directive-refinement/SKILL.md`**: the refinement skill's Phase 4 (Promote/Demote) owns the same `task scope:promote` / `task scope:activate` surface and runs the bridge as part of the refinement loop. The refinement skill MAY leave xBRIEFs in `pending/` deliberately when they are queued for prioritisation rather than immediate dispatch.
+  - **If the user wants to invoke an implementation agent directly via `skills/deft-directive-build/SKILL.md` or `start_agent`**: the bridge MUST be run manually before dispatch -- `task scope:promote -- xbrief/proposed/<file>` then `task scope:activate -- xbrief/pending/<file>`. Both commands are idempotent and exit 0 on no-op (see `scripts/scope_lifecycle.py`). The #810 preflight gate (`task xbrief:preflight -- <active-path>`) will exit 0 only after the activate step.
 
 ⊗ Auto-run `task scope:promote` or `task scope:activate` from the setup skill on the Phase 3 outputs. The lifecycle commitment belongs to the user ("I am ready to swarm/build on this scope"), not the setup interview; silent promotion would clear the #810 implementation-intent gate without explicit user authorisation and bypass the deterministic-questions contract that protects every other Phase 3 transition.
 
-⊗ Drop the user at the end of Phase 3 with scope vBRIEFs in `vbrief/proposed/` and no forward pointer to the bridge. Without this section the user discovers the gap at runtime when the swarm Phase 0 Step 1 preflight rejects every candidate (`Invalid transition: 'activate' requires file in pending/`), as in the originating 2026-05-10 first-session consumer tic-tac-toe swarm (issue #1025).
+⊗ Drop the user at the end of Phase 3 with scope xBRIEFs in `xbrief/proposed/` and no forward pointer to the bridge. Without this section the user discovers the gap at runtime when the swarm Phase 0 Step 1 preflight rejects every candidate (`Invalid transition: 'activate' requires file in pending/`), as in the originating 2026-05-10 first-session consumer tic-tac-toe swarm (issue #1025).
 
 ### End-of-Phase-3 Export Prompt (project:export-spec)
 
-! After scope vBRIEFs are written to `vbrief/proposed/` and PROJECT-DEFINITION is populated, but BEFORE handing off to `deft-directive-build` (or advancing speckit Phase 3 → Phase 4), ask the user whether to generate human-readable exports. Greenfield v0.20 projects export via `task project:export-spec` (not legacy `task spec:render`). This replaces the invisible skip-if-absent behavior of `task check` (#398), closes the greenfield gap (#433), and is the Phase 3 → Phase 4 transition gate required by [strategies/speckit.md Post-Phase 3 Transition Gate](../../strategies/speckit.md#post-phase-3-transition-gate-export-for-review) (#432 / #2013).
+! After scope xBRIEFs are written to `xbrief/proposed/` and PROJECT-DEFINITION is populated, but BEFORE handing off to `deft-directive-build` (or advancing speckit Phase 3 → Phase 4), ask the user whether to generate human-readable exports. Greenfield v0.20 projects export via `task project:export-spec` (not legacy `task spec:render`). This replaces the invisible skip-if-absent behavior of `task check` (#398), closes the greenfield gap (#433), and is the Phase 3 → Phase 4 transition gate required by [strategies/speckit.md Post-Phase 3 Transition Gate](../../strategies/speckit.md#post-phase-3-transition-gate-export-for-review) (#432 / #2013).
 
-1. ! Prompt: "Your scope vBRIEFs are ready. Generate a stakeholder-facing spec export and/or `PRD.md` now? (recommended for stakeholder review)"
+1. ! Prompt: "Your scope xBRIEFs are ready. Generate a stakeholder-facing spec export and/or `PRD.md` now? (recommended for stakeholder review)"
    1. Yes — export spec (+ PRD if selected)
    2. Spec export only (`SPECIFICATION.md`)
    3. `PRD.md` only
@@ -644,9 +644,9 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
    - `task project:export-spec` → writes `SPECIFICATION.md` from PROJECT-DEFINITION + lifecycle scopes (greenfield default; stakeholder audience)
    - `task project:export-spec -- --audience=internal` → same export but includes proposed scopes under `## Scope outlook` (use for setup/speckit internal handoff when proposed scopes need visibility)
    - `task prd:render` → writes `PRD.md` (optional stakeholder review)
-   - Legacy `task spec:render` — migrated trees only (when `vbrief/specification.vbrief.json` exists); do NOT use on greenfield v0.20 projects
-3. ! If the user picked a speckit-strategy project: export is **mandatory** at this boundary — invoke `task project:export-spec` (with `--audience=internal` when proposed scopes exist) even if the user declined the prompt, because speckit Phase 3 → Phase 4 is gated on **export succeeded** (exit 0), not on `specification.vbrief.json` approval.
-4. ! Confirm to the user which files were written and remind them that direct edits to `SPECIFICATION.md` / `PRD.md` are overwritten on the next export — edit vBRIEF narratives in `vbrief/proposed/` and PROJECT-DEFINITION instead.
+   - Legacy `task spec:render` — migrated trees only (when `xbrief/specification.xbrief.json` exists); do NOT use on greenfield v0.20 projects
+3. ! If the user picked a speckit-strategy project: export is **mandatory** at this boundary — invoke `task project:export-spec` (with `--audience=internal` when proposed scopes exist) even if the user declined the prompt, because speckit Phase 3 → Phase 4 is gated on **export succeeded** (exit 0), not on `specification.xbrief.json` approval.
+4. ! Confirm to the user which files were written and remind them that direct edits to `SPECIFICATION.md` / `PRD.md` are overwritten on the next export — edit xBRIEF narratives in `xbrief/proposed/` and PROJECT-DEFINITION instead.
 5. ~ If the user skipped export and is NOT on a speckit strategy, no-op and continue.
 
 ⊗ Advance a speckit project to Phase 4 without a successful `task project:export-spec` at this gate — export must succeed (exit 0) for the Phase 3 transition criterion.
@@ -662,7 +662,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ## Warp Auto-Approve Warning
 
-! **Recommended Warp setting**: Before running deft-directive-setup, ensure Warp's AI autonomy is set to **"Always ask"** in **AI -> Profile Settings**. When set to a higher autonomy level (e.g. "Auto-run"), Warp may silently self-answer interview questions without user input, producing garbage USER.md/PROJECT-DEFINITION.vbrief.json with no error or warning. The post-interview confirmation gate (below) is the last line of defense, but prevention is better than detection.
+! **Recommended Warp setting**: Before running deft-directive-setup, ensure Warp's AI autonomy is set to **"Always ask"** in **AI -> Profile Settings**. When set to a higher autonomy level (e.g. "Auto-run"), Warp may silently self-answer interview questions without user input, producing garbage USER.md/PROJECT-DEFINITION.xbrief.json with no error or warning. The post-interview confirmation gate (below) is the last line of defense, but prevention is better than detection.
 
 ## Post-Interview Confirmation Gate
 
@@ -674,15 +674,15 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 4. ! If the user says `no`: re-display the values and ask which ones to correct, then re-confirm before writing
 5. ! If any value appears to be auto-generated filler (e.g. repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly: "Some values look like they may have been auto-filled rather than provided by you. Please review carefully."
 
-⊗ Write USER.md, PROJECT-DEFINITION.vbrief.json, specification.vbrief.json, or any other deft-directive-setup artifact without first displaying captured values and receiving explicit user confirmation.
+⊗ Write USER.md, PROJECT-DEFINITION.xbrief.json, specification.xbrief.json, or any other deft-directive-setup artifact without first displaying captured values and receiving explicit user confirmation.
 ⊗ Treat a broad "proceed" or "continue" as confirmation to write files -- the user must explicitly confirm the displayed values.
 
 ? **Yolo strategy carve-out**: When the user's chosen strategy is `yolo` (auto-pilot), the confirmation gate still applies but the agent (Johnbot) may self-confirm on the user's behalf by displaying the summary and immediately proceeding -- the user has already opted into auto-pilot by selecting yolo. The summary must still be displayed so the user can interrupt if values look wrong.
 
 ## Anti-Patterns
 
-- ! When deft-directive-setup generates or updates USER.md or PROJECT-DEFINITION.vbrief.json, the `deft_version` field MUST be set to the current framework version
-- ⊗ Generate a USER.md or PROJECT-DEFINITION.vbrief.json without including the `deft_version` field
+- ! When deft-directive-setup generates or updates USER.md or PROJECT-DEFINITION.xbrief.json, the `deft_version` field MUST be set to the current framework version
+- ⊗ Generate a USER.md or PROJECT-DEFINITION.xbrief.json without including the `deft_version` field
 - ⊗ Explore codebase before Phase 1 questions
 - ⊗ Read framework files before first question
 - ⊗ Batch multiple questions into one message — ask one at a time, interview style

@@ -25,7 +25,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## When to Use
 
 - After `skills/deft-directive-setup/SKILL.md` Phase 3 has produced an
-  approved `vbrief/specification.vbrief.json` (status `approved`)
+  approved `xbrief/specification.xbrief.json` (status `approved`)
 - Before `skills/deft-directive-build/SKILL.md` kicks off
 - When the user says "cost", "budget", "pre-build cost", "how much will
   this cost", or asks to estimate cost before building
@@ -60,11 +60,11 @@ two skills agree on the user's preferences file.
 
 ## Inputs
 
-- ! `vbrief/specification.vbrief.json` MUST exist with `plan.status =
+- ! `xbrief/specification.xbrief.json` MUST exist with `plan.status =
   "approved"`. If the spec is not yet approved, stop and redirect to
   `skills/deft-directive-setup/SKILL.md` Phase 3 / the spec approval
   gate.
-- ~ `vbrief/PROJECT-DEFINITION.vbrief.json` (for tech-stack and
+- ~ `xbrief/PROJECT-DEFINITION.xbrief.json` (for tech-stack and
   architecture narratives). Optional but improves the estimate.
 - ~ `templates/COST-ESTIMATE.md` (canonical artifact body).
 - ~ `references/cost-models.md` (methodology).
@@ -139,7 +139,7 @@ This is your project's cost estimate. Pick one.
   `skills/deft-directive-refinement/SKILL.md` to pull spec scope back,
   or the interview), then re-run this skill from Phase 1.
 - ! On `No-build`, write the decision to `COST-ESTIMATE.md`, mark the
-  spec scope vBRIEF accordingly, exit, and do NOT chain into the build
+  spec scope xBRIEF accordingly, exit, and do NOT chain into the build
   skill.
 - ! On `Skip`, write the decision and skip reason to `COST-ESTIMATE.md`
   and proceed to the build kickoff.
@@ -156,8 +156,8 @@ This is your project's cost estimate. Pick one.
 
 - ! `COST-ESTIMATE.md` (in the project root). Created by Phase 2 and
   finalised in Phase 4 with the recorded decision.
-- ~ Reference the artifact from `vbrief/PROJECT-DEFINITION.vbrief.json`
-  via a `references` entry of type `x-vbrief/spec-section` so future
+- ~ Reference the artifact from `xbrief/PROJECT-DEFINITION.xbrief.json`
+  via a `references` entry of type `x-xbrief/spec-section` so future
   agents discover the cost decision when re-reading the project
   definition.
 

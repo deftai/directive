@@ -1,9 +1,9 @@
 ---
 name: deft-directive-build
 description: >-
-  Build a project from scope vBRIEFs following Deft Directive framework
+  Build a project from scope xBRIEFs following Deft Directive framework
   standards. Use after deft-directive-setup has generated the project
-  definition, or when the user has story vBRIEFs in vbrief/active/ ready to
+  definition, or when the user has story xBRIEFs in xbrief/active/ ready to
   implement. Handles scaffolding, implementation, testing, and quality checks
   phase by phase.
 ---
@@ -15,33 +15,33 @@ description: >-
 
 # Deft Directive Build
 
-Implements a project from its scope vBRIEFs following Deft Directive standards.
+Implements a project from its scope xBRIEFs following Deft Directive standards.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
-- After `deft-directive-setup` completes and generates `PROJECT-DEFINITION.vbrief.json`
+- After `deft-directive-setup` completes and generates `PROJECT-DEFINITION.xbrief.json`
 - User says "build this", "implement the spec", or "start building"
-- Resuming a partially-built project that has story vBRIEFs in `vbrief/active/`
+- Resuming a partially-built project that has story xBRIEFs in `xbrief/active/`
 
 ## Step 0 -- Implementation Preflight (#810)
 
 - ! Before starting any new implementation story or switching from one story to another, MUST run `git status --short --branch`.
 - ! If the working tree is dirty, MUST stop and summarize the current branch, modified/untracked files, and whether the changes appear related to the target story. Ask the operator to choose one path: commit existing work, stash existing work, include existing work in the current story, or stop.
 - ⊗ Begin a new story while unrelated dirty work is present without explicit operator approval.
-- ! Resolve exactly one target story vBRIEF path by default. One story is the default implementation unit for this skill; if the user asks for a phase/epic, decompose or ask which story to start.
+- ! Resolve exactly one target story xBRIEF path by default. One story is the default implementation unit for this skill; if the user asks for a phase/epic, decompose or ask which story to start.
 - ! Batching multiple stories in one branch/PR requires explicit operator approval and a short rationale recorded in the handoff.
-- ! **Swarm-cohort dispatch carve-out**: when this skill is invoked as part of a swarm cohort allocated by `skills/deft-directive-swarm/SKILL.md`, the approved Phase 5 allocation plan satisfies the "explicit operator approval and short rationale recorded in the handoff" requirement above -- the dispatched vBRIEF paths and allocation rationale ARE the consent token. Process each assigned story sequentially under the checkpoint-commit + `task scope:complete` discipline below. Do NOT re-prompt the parent for batching approval mid-cohort -- the all-or-nothing dispatch envelope rule (`AGENTS.md` `## Multi-agent orchestration discipline (#954)`) forbids mid-scope user-approval gates.
+- ! **Swarm-cohort dispatch carve-out**: when this skill is invoked as part of a swarm cohort allocated by `skills/deft-directive-swarm/SKILL.md`, the approved Phase 5 allocation plan satisfies the "explicit operator approval and short rationale recorded in the handoff" requirement above -- the dispatched xBRIEF paths and allocation rationale ARE the consent token. Process each assigned story sequentially under the checkpoint-commit + `task scope:complete` discipline below. Do NOT re-prompt the parent for batching approval mid-cohort -- the all-or-nothing dispatch envelope rule (`AGENTS.md` `## Multi-agent orchestration discipline (#954)`) forbids mid-scope user-approval gates.
 - ! **Structured consent-token recognition (#1378)**: the canonical recognition path for the carve-out above is the structured `## Allocation context` section of the dispatch envelope (the frozen schema in `templates/agent-prompt-preamble.md`, Story A of #1378). When that section reports `dispatch_kind: swarm-cohort` with a non-null `allocation_plan_id` AND a non-null `batching_rationale`, the consent token is satisfied mechanically -- read `cohort_vbriefs` as the authoritative file boundary and process each entry sequentially under the checkpoint-commit + `task scope:complete` discipline below, without re-prompting the parent for batching approval mid-cohort. When the `## Allocation context` section is ABSENT (pre-#1378 dispatches, solo-interactive sessions), fall back to the #1371 prose carve-out immediately above -- the prose carve-out remains the recognition path of record for un-elevated envelopes.
 - ! **Within a cohort, between stories**: the working tree MUST be clean after each story's checkpoint commit + `task scope:complete`. If `git status --short` shows uncommitted state between stories (e.g. a missed `task scope:complete` move, an unstaged file from the prior story), checkpoint-commit it and proceed -- do NOT pause to ask the operator. The dirty-tree "ask the operator" branch above applies only at the FIRST story-start of a fresh branch, where uncommitted operator work might legitimately exist.
-- ! If the target story is in `vbrief/proposed/`, run `task scope:promote -- <path>` first; if it is in `vbrief/pending/`, run `task scope:activate -- <path>`. After activation, update the path to the active-file location before preflight.
-- ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `task vbrief:preflight -- <active-story-path>` (the structural intent gate; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory).
+- ! If the target story is in `xbrief/proposed/`, run `task scope:promote -- <path>` first; if it is in `xbrief/pending/`, run `task scope:activate -- <path>`. After activation, update the path to the active-file location before preflight.
+- ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `task xbrief:preflight -- <active-story-path>` (the structural intent gate; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory).
 
-The gate exits 0 only when the candidate vBRIEF lives in `vbrief/active/` AND `plan.status == "running"`. Any other state (pending/, proposed/, completed/, active/-with-non-running-status, malformed JSON, missing keys) exits 1 with an actionable redirect to `task vbrief:activate <path>`.
+The gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. Any other state (pending/, proposed/, completed/, active/-with-non-running-status, malformed JSON, missing keys) exits 1 with an actionable redirect to `task xbrief:activate <path>`.
 
 - ! A non-zero exit MUST halt the skill. Surface the helper's stderr message verbatim to the user; do NOT proceed to USER.md Gate, File Reading, or any later phase.
-- ! Use canonical lifecycle tasks to satisfy this gate: `task scope:promote -- <path>` for proposed stories, `task scope:activate -- <path>` for pending stories, and the helper's idempotent companion `task vbrief:activate <path>` only when following the preflight redirect directly. Manual lifecycle moves bypass the activation contract -- use the task.
+- ! Use canonical lifecycle tasks to satisfy this gate: `task scope:promote -- <path>` for proposed stories, `task scope:activate -- <path>` for pending stories, and the helper's idempotent companion `task xbrief:activate <path>` only when following the preflight redirect directly. Manual lifecycle moves bypass the activation contract -- use the task.
 - ⊗ Infer implementation intent from lifecycle vocabulary ("do the full PR process", "start the work", "poller agents"), branching language, or workflow shape. Workflow-shape vocabulary is NOT authorization to spawn an implementation agent (#810 surfacing event).
 - ⊗ Skip this preflight because the user said "yes", "go", or "proceed" -- affirmative continuation phrases are NOT implementation authorization unless the prior turn explicitly proposed implementation. When intent is ambiguous, ask one targeted question before invoking the gate.
 
@@ -64,13 +64,13 @@ The gate exits 0 only when the candidate vBRIEF lives in `vbrief/active/` AND `p
 
 A project is **pre-cutover** if ANY of the following are true. This prose mirrors the executable helper in `scripts/_precutover.py`; when in doubt, the helper is canonical.
 
-1. `SPECIFICATION.md` exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: vbrief/specification.vbrief.json -->`, and `vbrief/specification.vbrief.json` plus all five lifecycle folders exist.
+1. `SPECIFICATION.md` exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 2. `PROJECT.md` exists and contains neither the legacy `<!-- deft:deprecated-redirect -->` sentinel NOR the current `Purpose: deprecation redirect` canonical-banner marker (real content, not a deprecation redirect)
-3. `vbrief/specification.vbrief.json` exists but the lifecycle folders (`vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, `vbrief/cancelled/`) do NOT exist
+3. `xbrief/specification.xbrief.json` exists but the lifecycle folders (`xbrief/proposed/`, `xbrief/pending/`, `xbrief/active/`, `xbrief/completed/`, `xbrief/cancelled/`) do NOT exist
 4. Strategy output shape violations (run `task verify-strategy-output` -- the canonical gate -- or the direct form `python .deft/core/scripts/validate_strategy_output.py --project-root <path>` after `deft` install):
-   - Any scope vBRIEF under `vbrief/proposed/` (or other lifecycle dirs) lacks the required `YYYY-MM-DD-` date prefix in its filename (e.g. bare `scaffold.vbrief.json`).
-   - `vbrief/PROJECT-DEFINITION.vbrief.json` is missing.
-   - `vbrief/specification.vbrief.json` exists as a legacy dual-write in a user-generated project. This is tolerated only for the framework source tree or a complete post-cutover full-spec consumer where all lifecycle folders exist and `SPECIFICATION.md` is rendered from `vbrief/specification.vbrief.json`.
+   - Any scope xBRIEF under `xbrief/proposed/` (or other lifecycle dirs) lacks the required `YYYY-MM-DD-` date prefix in its filename (e.g. bare `scaffold.xbrief.json`).
+   - `xbrief/PROJECT-DEFINITION.xbrief.json` is missing.
+   - `xbrief/specification.xbrief.json` exists as a legacy dual-write in a user-generated project. This is tolerated only for the framework source tree or a complete post-cutover full-spec consumer where all lifecycle folders exist and `SPECIFICATION.md` is rendered from `xbrief/specification.xbrief.json`.
 
 ### Action on Detection
 
@@ -80,11 +80,11 @@ A project is **pre-cutover** if ANY of the following are true. This prose mirror
 
 ! Include specific details about what was detected (the validator output is authoritative):
 
-- Legacy specification.vbrief.json or missing lifecycle folders: "Follow the frozen v0.59.0 migrator path (#2068) or run `task migrate:preflight` for current-release guidance"
-- Non-date-prefixed vBRIEFs: "Re-run the emitting strategy after the v0.20 migrations (#1166 s1+s2+...) or manually rename files to `YYYY-MM-DD-<slug>.vbrief.json` and `task scope:promote`"
-- Missing `PROJECT-DEFINITION.vbrief.json`: "Run `task project:render` to generate the project definition"
+- Legacy specification.xbrief.json or missing lifecycle folders: "Follow the frozen v0.59.0 migrator path (#2068) or run `task migrate:preflight` for current-release guidance"
+- Non-date-prefixed xBRIEFs: "Re-run the emitting strategy after the v0.20 migrations (#1166 s1+s2+...) or manually rename files to `YYYY-MM-DD-<slug>.xbrief.json` and `task scope:promote`"
+- Missing `PROJECT-DEFINITION.xbrief.json`: "Run `task project:render` to generate the project definition"
 - `SPECIFICATION.md` / `PROJECT.md` without sentinel: the classic pre-cutover messages
-- Scope vBRIEF in wrong folder: "Status is '{status}' but file is in {folder}/ -- run `task scope:activate <file>` to fix"
+- Scope xBRIEF in wrong folder: "Status is '{status}' but file is in {folder}/ -- run `task scope:activate <file>` to fix"
 
 ! After the validator reports clean, re-run this guard before continuing.
 
@@ -144,8 +144,8 @@ signal.
 ## File Reading
 
 - ! Read in order, lazy load:
-  1. `./vbrief/active/` -- scope vBRIEFs for work items to build (required)
-  2. `./vbrief/PROJECT-DEFINITION.vbrief.json` -- project identity, tech stack, architecture
+  1. `./xbrief/active/` -- scope xBRIEFs for work items to build (required)
+  2. `./xbrief/PROJECT-DEFINITION.xbrief.json` -- project identity, tech stack, architecture
   3. `./.planning/codebase/MAP.md` -- generated codebase orientation projection, if present (advisory)
   4. USER.md at the platform-appropriate path (see Platform Detection) -- Personal section is highest precedence; Defaults are fallback
   5. `deft/main.md` -- framework guidelines
@@ -162,22 +162,22 @@ signal.
 
 ```
 USER.md Personal                  <- HIGHEST (name, custom rules -- always wins)
-PROJECT-DEFINITION.vbrief.json   <- Project-specific (tech stack, architecture, config)
+PROJECT-DEFINITION.xbrief.json   <- Project-specific (tech stack, architecture, config)
 USER.md Defaults                  <- Fallback defaults (used when PROJECT-DEFINITION doesn't specify)
 {language}.md                     <- Language standards
 coding.md                         <- General coding
 main.md                           <- Framework defaults
-Scope vBRIEFs                     <- LOWEST
+Scope xBRIEFs                     <- LOWEST
 ```
 
 - ! USER.md Personal section always wins over any other file
-- ! For project-scoped settings, PROJECT-DEFINITION.vbrief.json overrides USER.md Defaults
+- ! For project-scoped settings, PROJECT-DEFINITION.xbrief.json overrides USER.md Defaults
 
 ## Change Lifecycle Gate
 
 ! Before any implementation that touches 3+ files, verify that a `/deft:change <name>` proposal exists and has been confirmed by the user:
 
-- ! Check `history/changes/` for an active `proposal.vbrief.json` matching this work
+- ! Check `history/changes/` for an active `proposal.xbrief.json` matching this work
 - ! If no proposal exists: propose `/deft:change <name>` and present the change name for explicit confirmation (e.g. "Confirm? yes/no")
 - ! The user must reply with an affirmative (`yes`, `confirmed`, `approve`) — a general 'proceed', 'do it', or 'go ahead' does NOT satisfy this gate
 - ? For solo projects: this gate is RECOMMENDED but not mandatory for changes fully covered by `task check`; it remains mandatory for cross-cutting, architectural, or high-risk changes
@@ -185,18 +185,18 @@ Scope vBRIEFs                     <- LOWEST
 
 ## Build Process
 
-All vBRIEFs (including those read from `vbrief/active/` and any new vBRIEFs this skill emits) MUST use `"vBRIEFInfo": { "version": "0.6" }`. The validator rejects any other version (see [`../../conventions/references.md`](../../conventions/references.md)).
+All xBRIEFs (including those read from `xbrief/active/` and any new xBRIEFs this skill emits) MUST use `"xBRIEFInfo": { "version": "0.6" }`. The validator rejects any other version (see [`../../conventions/references.md`](../../conventions/references.md)).
 
 ### Step 1: Understand the Scope
 
-- ! Read story vBRIEFs from `vbrief/active/` and `PROJECT-DEFINITION.vbrief.json`
-- ! Identify phases, dependencies, starting point from scope vBRIEF acceptance criteria
+- ! Read story xBRIEFs from `xbrief/active/` and `PROJECT-DEFINITION.xbrief.json`
+- ! Identify phases, dependencies, starting point from scope xBRIEF acceptance criteria
 - ~ Use `.planning/codebase/MAP.md`, when present, to orient broad codebase scanning. If the MAP conflicts with current code or canonical metadata, surface the drift and trust `plan.architecture.codeStructure` / provider artifacts plus the working tree over generated prose.
 - ! When scanning the existing codebase during scope understanding, MUST surface any contradicting patterns (two error-handling shapes, two state-management approaches, two naming conventions, etc.) before implementation begins -- apply `coding/hygiene.md` `## Surface Conflicts: Pick One, Explain, Flag the Other (#1005)` and choose ONE pattern (more recent OR more tested), explain the choice in the scope summary, and flag the other for cleanup
 - ⊗ Begin implementation against an averaged blend of two contradicting patterns -- "average code that satisfies both rules is the worst code" (#1005)
 - ! Present brief summary to user:
 
-> "Here's what I see: {N} story vBRIEFs in active/. I'll start with {name}. Ready?"
+> "Here's what I see: {N} story xBRIEFs in active/. I'll start with {name}. Ready?"
 
 ### Step 2: Verify Toolchain
 
@@ -223,7 +223,7 @@ After EVERY phase:
 
 ```bash
 task check          # Format, lint, type check, test, coverage
-task test:coverage  # >=85% or PROJECT-DEFINITION.vbrief.json override
+task test:coverage  # >=85% or PROJECT-DEFINITION.xbrief.json override
 ```
 
 - ! Phase is NOT done until `task check` passes
@@ -248,7 +248,7 @@ See `deft/coding/coding.md` and `deft/coding/testing.md` for full rules.
 ! Before every commit, re-read ALL modified files and explicitly check for:
 
 1. ! **Encoding errors** -- em-dashes corrupted to replacement characters, BOM artifacts, mojibake from round-trip read/write
-2. ! **Unintended duplication** -- accidental double entries in CHANGELOG.md, scope vBRIEF files, or structured data files
+2. ! **Unintended duplication** -- accidental double entries in CHANGELOG.md, scope xBRIEF files, or structured data files
 3. ! **Structural issues** -- malformed CHANGELOG entries, broken table rows, mismatched index entries, invalid JSON/YAML
 4. ! **Semantic accuracy** -- verify that counts, claims, and summaries in CHANGELOG entries and ROADMAP changelog lines match the actual data in the commit (e.g. "triaged 4 issues" must match the number actually triaged, issue numbers cited must match the issues actually added)
 5. ! **Semantic contradictions** -- when adding a `!` or `⊗` rule that prohibits a specific command, pattern, or behavior, search the same file for any `~`, `≉`, or prose that recommends or permits the same command/pattern -- resolve all contradictions in the same commit before pushing
@@ -275,8 +275,8 @@ feat(phase-2): add REST API endpoints with integration tests
 - ! Tests fail → fix them; ⊗ skip or weaken assertions
 - ! Coverage drops → write more tests; ⊗ exclude files
 - ! Lint/type errors → fix them; ≉ add ignore comments without documented reason
-- ! Scope vBRIEF ambiguous -> ask user; ⊗ guess
-- ! Scope needs changes -> propose, get approval, update the scope vBRIEF first
+- ! Scope xBRIEF ambiguous -> ask user; ⊗ guess
+- ! Scope needs changes -> propose, get approval, update the scope xBRIEF first
 
 ## Completion
 
@@ -288,15 +288,15 @@ feat(phase-2): add REST API endpoints with integration tests
 
 - ⊗ Skip tests or write them after implementation
 - ⊗ Ignore `task check` failures
-- ⊗ Implement things not in scope vBRIEF without asking
+- ⊗ Implement things not in scope xBRIEF without asking
 - ⊗ Read every deft file upfront
 - ⊗ Move to next phase before current passes checks
 - ⊗ Make commits without running `task check`
 - ⊗ Proceed without USER.md -- always run the USER.md Gate first
-- ⊗ Spawn an implementation agent or invoke a code-writing tool against a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task vbrief:activate <path>`
+- ⊗ Spawn an implementation agent or invoke a code-writing tool against a xBRIEF that has not passed `task xbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task xbrief:activate <path>`
 - ⊗ Proceed without `COST-ESTIMATE.md` and a recorded build / rescope / no-build / skip(+reason) decision -- always run the Cost Phase Gate (#739) first
 - ⊗ Proceed with implementation when the build or test toolchain is unavailable -- always run the Toolchain Gate (Step 2) first
 - ⊗ Proceed to next task or phase without tests passing -- testing is a hard gate, not a cleanup step
 - ⊗ Skip the Change Lifecycle Gate because the user said "proceed" -- broad approval does not satisfy the confirmation gate
-- ⊗ Commit or push directly to the default branch -- always create a feature branch first. Exception: user explicitly instructs a direct commit, or `PROJECT-DEFINITION.vbrief.json` narratives contain `Allow direct commits to master: true`
+- ⊗ Commit or push directly to the default branch -- always create a feature branch first. Exception: user explicitly instructs a direct commit, or `PROJECT-DEFINITION.xbrief.json` narratives contain `Allow direct commits to master: true`
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term

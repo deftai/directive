@@ -51,7 +51,7 @@ describe("test_decomposition_readiness", () => {
   });
   it("swarm_skill_requires_readiness_before_allocation", () => {
     const text = readRepoFile("skills/deft-directive-swarm/SKILL.md");
-    expect(text).toContain("task swarm:readiness -- vbrief/active/*.vbrief.json");
+    expect(text).toContain("task swarm:readiness -- xbrief/active/*.xbrief.json");
     expect(text).toContain("needs decomposition");
     expect(text).toContain("Allocate concurrent workers unless candidates are swarm-ready");
     expect(text).toContain("skills/deft-directive-decompose/SKILL.md");
@@ -60,8 +60,8 @@ describe("test_decomposition_readiness", () => {
     const text = readRepoFile("skills/deft-directive-decompose/SKILL.md");
     expect(text).toContain("task scope:decompose");
     expect(text).toContain("task swarm:readiness");
-    expect(text).toContain("task swarm:readiness -- vbrief/pending/<child-story-1>.vbrief.json");
-    expect(text).not.toContain("task swarm:readiness -- vbrief/active/*.vbrief.json");
+    expect(text).toContain("task swarm:readiness -- xbrief/pending/<child-story-1>.xbrief.json");
+    expect(text).not.toContain("task swarm:readiness -- xbrief/active/*.xbrief.json");
     expect(text).toContain("explicit approval");
     expect(text).toContain("Leave lifecycle promotion/activation to the existing approved flow");
     expect(text).toContain("parent `plan.items` as input signals only");
@@ -69,13 +69,13 @@ describe("test_decomposition_readiness", () => {
     expect(text).toContain("ImplementationPlan");
     expect(text).toContain("2-5 concrete acceptance criteria");
     expect(text).toContain("to refine from parent scope");
-    expect(text).toContain("temporary proposal artifact, not a vBRIEF");
-    expect(text).toContain("vbrief/.eval/decompositions/ip001-auth.json");
-    expect(text).toContain("Derive `<parent-slug>` from the parent vBRIEF filename");
+    expect(text).toContain("temporary proposal artifact, not a xBRIEF");
+    expect(text).toContain("xbrief/.eval/decompositions/ip001-auth.json");
+    expect(text).toContain("Derive `<parent-slug>` from the parent xBRIEF filename");
     expect(text).toContain(
       "Agents MUST NOT leave decomposition draft JSON files at the workspace root",
     );
-    expect(text).toContain("defaulting to `vbrief/pending/`");
+    expect(text).toContain("defaulting to `xbrief/pending/`");
   });
   it("decomposition_docs_do_not_teach_root_draft_paths", () => {
     for (const path of [

@@ -197,8 +197,8 @@ describe("test_skills", () => {
   });
   it("deft_directive_swarm_phase0_scans_vbrief_active", () => {
     const text = readSkill(_SWARM_PATH);
-    expect(text).toContain("vbrief/active/");
-    expect(text).toContain("vbrief.json");
+    expect(text).toContain("xbrief/active/");
+    expect(text).toContain("xbrief.json");
   });
   it("deft_directive_swarm_phase0_surfaces_blockers", () => {
     const text = readSkill(_SWARM_PATH);
@@ -341,8 +341,8 @@ describe("test_skills", () => {
   });
   it("deft_directive_sync_project_definition_validation", () => {
     const text = readSkill(_SYNC_PATH);
-    expect(text).toContain("PROJECT-DEFINITION.vbrief.json");
-    expect(text).toContain("vBRIEFInfo");
+    expect(text).toContain("PROJECT-DEFINITION.xbrief.json");
+    expect(text).toContain("xBRIEFInfo");
     expect(text).toContain('"0.6"');
   });
   it("deft_directive_sync_project_definition_freshness", () => {
@@ -723,7 +723,7 @@ describe("test_skills", () => {
   it("deft_directive_swarm_phase5_vbrief_completion", () => {
     const text = readSkill(_SWARM_PATH);
     expect(text).toContain("scope:complete");
-    expect(text).toContain("vbrief/completed/");
+    expect(text).toContain("xbrief/completed/");
   });
   it("deft_directive_swarm_phase6_origin_update", () => {
     const text = readSkill(_SWARM_PATH);
@@ -747,7 +747,7 @@ describe("test_skills", () => {
   });
   it("deft_directive_setup_phase2_outputs_project_definition_vbrief", () => {
     const text = readSkill(_SETUP_PATH);
-    expect(text).toContain("PROJECT-DEFINITION.vbrief.json");
+    expect(text).toContain("PROJECT-DEFINITION.xbrief.json");
   });
   it("deft_directive_setup_phase3_onboarding_question", () => {
     const text = readSkill(_SETUP_PATH);
@@ -764,7 +764,7 @@ describe("test_skills", () => {
   });
   it("deft_directive_setup_light_path_scope_vbriefs", () => {
     const text = readSkill(_SETUP_PATH);
-    expect(text).toContain("vbrief/proposed/");
+    expect(text).toContain("xbrief/proposed/");
   });
   it("deft_directive_setup_no_authoritative_prd", () => {
     const text = readSkill(_SETUP_PATH);

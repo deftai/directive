@@ -6,7 +6,7 @@ import { readRepoFile, repoFileExists } from "./helpers.js";
 const _TEMPLATE = "templates/agent-prompt-preamble.md";
 const _REQUIRED_SECTION_HEADINGS = [
   "Read AGENTS.md before any other tool call",
-  "#810 vBRIEF Implementation Intent Gate",
+  "#810 xBRIEF Implementation Intent Gate",
   "PowerShell 5.1 non-ASCII rule",
   "pre-pr and review-cycle skills",
   "REST-by-default for read-only gh calls",
@@ -29,7 +29,7 @@ describe("test_agent_prompt_preamble_template", () => {
   });
   it.each([
     "Read AGENTS.md before any other tool call",
-    "#810 vBRIEF Implementation Intent Gate",
+    "#810 xBRIEF Implementation Intent Gate",
     "PowerShell 5.1 non-ASCII rule",
     "pre-pr and review-cycle skills",
     "REST-by-default for read-only gh calls",
@@ -45,8 +45,8 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("#954");
   });
   it("template_cross_references_810_gate", () => {
-    expect(templateText).toContain("task vbrief:preflight");
-    expect(templateText).toContain("task vbrief:activate");
+    expect(templateText).toContain("task xbrief:preflight");
+    expect(templateText).toContain("task xbrief:activate");
     expect(templateText).toContain("task scope:promote");
   });
   it("template_documents_session_ritual_headless_bypass", () => {
@@ -98,9 +98,9 @@ describe("test_agent_prompt_preamble_template", () => {
   });
   it("template_footer_concrete_vbrief_path", () => {
     expect(templateText).toContain(
-      "vbrief/active/2026-05-07-954-orchestrator-agents-md-preamble-template.vbrief.json",
+      "xbrief/active/2026-05-07-954-orchestrator-agents-md-preamble-template.xbrief.json",
     );
-    expect(templateText).toContain("vbrief/completed/");
+    expect(templateText).toContain("xbrief/completed/");
     expect(templateText).not.toContain("vbrief/.../954-orchestrator-agents-md-preamble-template");
   });
   it("template_documents_runtime_and_github_auth_mode_fields", () => {
