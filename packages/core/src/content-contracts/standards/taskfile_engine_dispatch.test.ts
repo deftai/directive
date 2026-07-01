@@ -19,8 +19,11 @@ import { repoRoot } from "./_helpers.js";
  * would miss: a local `_ts-build`, a local `_ensure-ts` (`pnpm --dir DEFT_ROOT
  * run build`), and a `deps: [:ts:build]` on the unconditional maintainer build
  * primitive. The canonical guarded pattern lives in tasks/engine.yml:
- *   - `:engine:_ts-build` guards the build behind `[ -f packages/cli/dist/bin.js ]`
- *     (a no-op on a consumer deposit), and
+ *   - `:engine:_ts-build` guards the build behind `[ -f {{.DEFT_ROOT}}/packages/
+ *     cli/package.json ]` -- SOURCE presence, so it builds on a cold framework
+ *     checkout (dist/ is gitignored) yet no-ops on a consumer deposit -- and
+ *     runs from `{{.USER_WORKING_DIR}}` so an absolute `dir:` cannot double on a
+ *     Windows `task -t <abs>` invocation (#2126), and
  *   - `:engine:invoke` runs the vendored bin.js when present, else falls back to
  *     the globally-installed `deft` command.
  *
@@ -94,8 +97,12 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
   it("engine.yml still owns the guarded build + global-deft fallback", () => {
     const engine = readTask(ENGINE_FILE);
     expect(engine).toMatch(/_ts-build:/);
-    expect(engine).toMatch(/\[ -f packages\/cli\/dist\/bin\.js \]/);
-    expect(engine).toMatch(/pnpm run build/);
+    // Guard is SOURCE presence (packages/cli/package.json), referenced by
+    // absolute path so the check stays cwd-independent on Windows
+    // `task -t <abs>` invocations AND still builds on a cold framework checkout
+    // where dist/ is gitignored/absent (#2126).
+    expect(engine).toMatch(/\[ -f "\{\{\.DEFT_ROOT\}\}\/packages\/cli\/package\.json" \]/);
+    expect(engine).toMatch(RAW_PNPM_BUILD);
     expect(engine).toMatch(/invoke:/);
     expect(engine).toMatch(/command -v deft/);
     expect(engine).toMatch(/deft \{\{\.ENGINE_CMD\}\}/);

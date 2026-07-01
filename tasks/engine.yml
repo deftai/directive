@@ -12,13 +12,25 @@ vars:
 tasks:
   _ts-build:
     internal: true
-    desc: "Build CLI dist when running from the framework source checkout; no-op on npm consumer deposits (#2022 Phase 3)."
-    dir: '{{.DEFT_ROOT}}'
+    desc: "Build CLI dist from the framework source checkout; no-op on npm consumer deposits that ship no packages/ source (#2022 Phase 3 / #2126)."
+    # Run from the operator project root (USER_WORKING_DIR), NOT an absolute
+    # DEFT_ROOT: an absolute `dir:` doubles onto the invocation cwd on Windows
+    # when the Taskfile is invoked via `task -t <absolute-path>` (observed as
+    # `D:\a\directive\directive\D:\a\directive\directive`, #2126). Reference the
+    # build root by absolute path so the guard stays cwd-independent.
+    #
+    # Guard on SOURCE presence (packages/cli/package.json), NOT the dist/
+    # artifact: dist/ is gitignored, so a cold framework checkout (e.g. CI after
+    # a bare `pnpm install`) has source but no dist and MUST still build. A
+    # consumer deposit (`.deft/core` = @deftai/directive-content) ships no
+    # packages/ tree, so the guard is false and the build is a clean no-op --
+    # this is the #2126 fix (avoids `pnpm run build` -> Missing script: build).
+    dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - |
         set -eu
-        if [ -f packages/cli/dist/bin.js ]; then
-          pnpm run build
+        if [ -f "{{.DEFT_ROOT}}/packages/cli/package.json" ]; then
+          pnpm --dir "{{.DEFT_ROOT}}" run build
         fi
 
   invoke:
