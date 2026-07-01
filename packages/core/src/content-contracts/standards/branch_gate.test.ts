@@ -49,7 +49,9 @@ describe("test_branch_gate.py", () => {
     expect(text).toContain("show:");
     expect(text).toContain("enforce-branches:");
     expect(text).toContain("allow-direct-commits:");
-    expect(text).toContain("packages/cli/dist/bin.js");
+    // #2126: policy.yml dispatches through the guarded :engine:invoke pattern
+    // (global-deft fallback on consumer deposits), not a direct dist/bin.js call.
+    expect(text).toContain(":engine:invoke");
     expect(text).toContain("policy show");
     expect(text).toContain("policy-set");
   });

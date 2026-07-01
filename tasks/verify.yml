@@ -4,85 +4,95 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
-  _ts-build:
-    internal: true
-    desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
-    dir: '{{.DEFT_ROOT}}'
-    cmds:
-      - pnpm run build
 
   stubs:
     desc: Scan source files for stub patterns (TODO, FIXME, HACK, return null, bare pass)
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/verify-stubs.py (#1828 Wave 8 / #1854 s3).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-stubs
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-stubs'
 
   links:
     desc: Validate internal links in markdown files
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/validate-links.py (#1828 Wave 8 / #1854 s3).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" validate-links
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'validate-links'
 
   rule-ownership:
     desc: "Verify the Rule Ownership Map (conventions/rule-ownership.json) is in sync with its owner files (#635)"
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/rule_ownership_lint.py (#1828 Wave 8 / #1854 s3).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" rule-ownership-lint --root "{{.DEFT_ROOT}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'rule-ownership-lint --root "{{.DEFT_ROOT}}"'
 
   content-manifest:
     desc: "Verify the Content Manifest (conventions/content-manifest.json) classifies every git-tracked top-level entry (#1821). Fails on an unclassified entry, a stale classified path, an invalid bucket, or a duplicate path. Wave-1 shippability audit for the engine/content split (#1669)."
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Framework-source-only gate: it classifies THIS repo's top-level tree, so it
     # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer install has no
     # content/ + engine/ top-level split to audit. Mirrors verify:rule-ownership.
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-content-manifest --project-root "{{.DEFT_ROOT}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-content-manifest --project-root "{{.DEFT_ROOT}}"'
 
   contract-drift:
     desc: "Drift gate for the public contract layer (#1799). Asserts packages/types/schemas/vbrief-core-0.6.schema.json matches content/vbrief/schemas/vbrief-core.schema.json and that @deftai/directive-types Status/version constants align with the schema. Three-state exit (0 clean / 1 drift / 2 config error)."
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-contract-drift --project-root "{{.DEFT_ROOT}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-contract-drift --project-root "{{.DEFT_ROOT}}"'
 
   cursor-tier1:
     desc: "Framework-source content gate (#1877): assert Cursor (cursor-composer / cursor-cloud-agent, Task-tool primitive) is enumerated as a Tier-1 descriptor in the swarm Phase 3 capability matrix AND the review-cycle monitoring tier table. Fails when a doc edit drops the Cursor descriptor and silently re-opens the Tier-3 blocking-poll misclassification. Three-state exit (0 clean / 1 missing marker / 2 config error)."
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Framework-source-only gate: it scans THIS repo's two skill docs, so it
     # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer install renders
     # these skills under .deft/core and does not author them. Mirrors
     # verify:content-manifest / verify:rule-ownership.
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-cursor-tier1 --project-root "{{.DEFT_ROOT}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-cursor-tier1 --project-root "{{.DEFT_ROOT}}"'
 
   go-freeze:
     desc: "Tier-1 freeze gate for the legacy Go-installer bridge (#1912). Advisory while the Tier-0 SoT (lastGoInstaller) is null; once the operator pins it, fails when cmd/deft-install is bumped above the frozen tag. Three-state exit (0 ok / 1 violation / 2 config error). Emergency bypass: DEFT_ALLOW_GO_INSTALLER_BUMP=1."
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Framework-source-only gate: it inspects THIS repo's cmd/deft-install
     # version constant + the Tier-0 SoT, so it targets DEFT_ROOT (not
     # USER_WORKING_DIR) -- a consumer install has no Go-installer source to
     # freeze. Mirrors verify:content-manifest.
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-go-freeze --project-root "{{.DEFT_ROOT}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-go-freeze --project-root "{{.DEFT_ROOT}}"'
 
   bridge-drift:
     desc: "Tier-1 cross-surface drift gate for the legacy Go-installer bridge (#1912). Asserts no surface marked with the bridge sentinel hardcodes a Go-installer version instead of reading the Tier-0 SoT (lastGoInstaller). Three-state exit (0 clean / 1 drift / 2 config error). Passes whether or not the UPGRADING/doctor surfaces exist yet."
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Framework-source-only gate: it scans THIS repo's bridge-version surfaces
     # against the Tier-0 SoT, so it targets DEFT_ROOT. Mirrors
     # verify:content-manifest / verify:scm-boundary.
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-bridge-drift --project-root "{{.DEFT_ROOT}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-bridge-drift --project-root "{{.DEFT_ROOT}}"'
 
   branch:
     desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
@@ -98,27 +108,31 @@ tasks:
     desc: "Operator coding sub-agent model routing gate (#1739). Pre-dispatch (default): fails when a dispatched worker role has no decision in .deft/routing.local.json. Pass --advise for the non-blocking session-start disclosure; --roles a,b to widen the gated set; --provider to override the runtime."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
       # Bare CLI_ARGS per the verify:encoding convention -- go-task shell-escapes pass-through args.
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" swarm-routing-verify --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'swarm-routing-verify --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   hooks-installed:
     desc: "Assert the deft git hooks are installed AND functional -- core.hooksPath set, hooks dir + pre-commit/pre-push present, and the gate scripts resolve in this layout (own-repo or vendored). Fails loud on the #1463 false-green (wired but non-functional). Run `task setup` / re-run the installer if this fails (#747, #1463)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # No sources:/generates: -- a cached cmds skip would mask a hooks dir /
     # gate-script that was deleted after the last run.
     cmds:
       # Oracle/fallback (parity): scripts/verify_hooks_installed.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:hooks-installed --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:hooks-installed --project-root "{{.USER_WORKING_DIR}}"'
 
   encoding:
     desc: "Detect PS 5.1 non-ASCII round-trip corruption (#798). Scans tracked text files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM. Defaults to --all; pass --staged for the pre-commit invocation."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
     # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
     # silently swallowed by go-task's incremental-build cache. The same
@@ -127,33 +141,39 @@ tasks:
     # layer would otherwise discard.
     cmds:
       # Oracle/fallback (parity): scripts/verify_encoding.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:encoding --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:encoding --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   vbrief-conformance:
     desc: "Detect bare non-conformant vBRIEF keys (#1620). Scans tracked vbrief/**/*.vbrief.json and flags any document/plan/item key that is not 0.6 spec-core, x-directive/-namespaced, or x-vbrief/-namespaced. plan.policy + plan.completedNote carry a TEMPORARY allow-list pending vBRIEF #12. Defaults to --all; pass --staged for the pre-commit invocation."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
     # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
     # silently swallowed by go-task's incremental-build cache (same rationale
     # as verify:encoding above).
     cmds:
       # Oracle/fallback (parity): scripts/verify_vbrief_conformance.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" vbrief-validate conformance --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'vbrief-validate conformance --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   destructive-gh-verbs:
     desc: "Detection-bound gate for destructive gh verbs (#1019). Runs preflight-gh --self-test so the fixture-vs-classifier contract fails CI on drift. Override via DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 (per-shell emergency bypass)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # No sources:/generates: -- the self-test fixture table is the
     # invariant under test; we want the gate to re-run on every
     # `task check` invocation regardless of whether the classifier file
     # mtime moved. Caching here would silently mask a regression.
     cmds:
       # Oracle/fallback (parity): scripts/preflight_gh.py --self-test (#1854 s5).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" preflight-gh --self-test {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'preflight-gh --self-test {{.CLI_ARGS}}'
 
   cache-fresh:
     desc: "Pre-`start_agent` cache-freshness gate (#1127). Refuses implementation dispatch when the triage cache is stale, missing, or the target issue's latest decision is not `accept`. Subscription-aware via plan.policy.triageScope[] (D12 / #1131). Flags: --for-issue N / --max-age-hours N / --allow-stale / --repo OWNER/NAME / --allow-missing-bootstrap (consumed by the framework's own `task check` so a fresh checkout passes -- consumers leave it OFF)."
@@ -177,61 +197,71 @@ tasks:
     desc: "Drift gate for the generated .planning/codebase/MAP.md projection (#1595 PR4)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per conventions/task-caching.md: no sources/generates because this gate
     # forwards output/artifact overrides through CLI_ARGS.
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" codebase-map-fresh --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'codebase-map-fresh --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   session-ritual:
     desc: "Fail-closed session ritual verifier (#1348). Flags: --tier quick|gated / --json. Set DEFT_SESSION_RITUAL_SKIP=1 for headless workers and CI."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # No sources/generates: this gate is time-, HEAD-, and worktree-sensitive.
     cmds:
       # Oracle/fallback (parity): scripts/verify_session_ritual.py (#1828 Wave 8 / #1854 s3).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-session-ritual --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-session-ritual --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   tools:
     desc: "Detect required Deft host tools and print install or manual guidance (#1187). Flags: --install / --yes / --json"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/verify_tools.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:tools {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:tools {{.CLI_ARGS}}'
 
   scm-boundary:
     desc: "Detection-bound gate against raw `gh` / `ghx` subprocess calls outside `scripts/scm.py` (#1145 / N5). Scans verb-layer Python files (`scripts/triage_*.py`, `scripts/scope_*.py`, `scripts/slice_*.py`, `scripts/_triage_*.py`, `scripts/_scope_*.py`, `scripts/resume_conditions.py`, `scripts/issue_ingest.py`) and fails loud when any of them invoke `gh` directly instead of going through `scm.call(source, verb, args)`. Three-state exit (0 clean / 1 violations / 2 config error). Document an exception via `--allow-list <path>` (file with newline-separated glob patterns)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (`--allow-list <path>` / `--quiet`) that go-task's incremental-build
     # cache would silently swallow.
     cmds:
       # Oracle/fallback (parity): scripts/verify_scm_boundary.py (#1828 Wave 8 / #1854 s3).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-scm-boundary --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-scm-boundary --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   xbrief-drift:
     desc: "Data-plane drift gate for the #2109 vbrief->xbrief rename. FAILS when a NEW legacy-layout token is reintroduced: a tracked `*.vbrief.json` artifact, a tracked file under a top-level `vbrief/` lifecycle dir, or a bare `x-vbrief/` reference type inside a canonical `xbrief/**/*.xbrief.json` corpus artifact. Sanctioned back-compat shims (the Part 1 layout-resolver fallback, the EXTENSION_PREFIXES legacy entry, the #2110 migrate path, the #1650 policy fallback) are TS source -- outside the scanned data plane -- and the legacy fixture trees (tests/, content/vbrief/, docs/, history/, xbrief/migration/) are allowlisted. Three-state exit (0 clean / 1 drift / 2 config error). Document an exception via `--allow-list <path>`."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (`--allow-list <path>` / `--staged` / `--quiet`) that go-task's
     # incremental-build cache would silently swallow.
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:xbrief-drift --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:xbrief-drift --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   story-ready:
     desc: "Deterministic story-start Gate 0 (#1378 Story C). Inspects working-tree cleanliness, the target vBRIEF lifecycle (active/ + plan.status==running), and the dispatch envelope's `## Allocation context` consent token (Story A schema). Three-state exit (0 ready / 1 not ready / 2 config error). -- task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>] [--allow-dirty] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--vbrief-path / --allocation-context / --allow-dirty / --json) that
@@ -241,37 +271,43 @@ tasks:
     # `task check` run has no way to supply.
     cmds:
       # Oracle/fallback (parity): scripts/preflight_story_start.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:story-ready --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:story-ready --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   investigation:
     desc: "Validate a forensic investigation ledger (#1621). Promotes the forensic-research validator into a deterministic gate: the close check before Wave 5 / any causal chat. Three-state exit (0 close-ready / 1 hard failures / 2 config error). Intentionally NOT in the `task check` aggregate -- it requires a concrete --ledger path. -- task verify:investigation -- --ledger .tmp/investigations/<id>/investigation.vbrief.json [--json]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--ledger / --json) that go-task's incremental-build cache would
     # silently swallow.
     cmds:
       # Oracle/fallback (parity): scripts/verify_investigation.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:investigation --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:investigation --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   architecture-sor:
     desc: "Diff-time system-of-record architecture gate. Scans stateful persistence signals and requires a matching architecture.systemOfRecord record. Example: task verify:architecture-sor -- --base-ref origin/main [--story-path <path>]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per conventions/task-caching.md: no sources/generates because this gate
     # forwards --base-ref, --story-path, and --json through CLI_ARGS.
     cmds:
       # Oracle/fallback (parity): scripts/preflight_architecture_sor.py (#1854 s5).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" architecture-preflight-sor --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'architecture-preflight-sor --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   capacity:
     desc: "Three-state ADVISORY capacity gate (#1419 Slice 4). Reports trailing-window target-vs-actual bucket mix from plan.policy.capacityAllocation; exits 0 in the default advise posture (and on insufficient sample / unconfigured policy), 1 only under an explicit enforce posture with a sampled deficit, 2 on config error. DELIBERATELY NOT in the `task check` aggregate -- capacity must never fail-closed on the framework tree."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--project-root / --quiet) that go-task's incremental-build cache would
@@ -280,13 +316,15 @@ tasks:
     # framework's own self-check (advise-mode discipline, #1419).
     cmds:
       # Oracle/fallback (parity): scripts/verify_capacity.py (#1828 Wave 8 / #1854 s3).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify-capacity --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-capacity --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   judgment-gates:
     desc: "Three-state ADVISORY judgment-gate engine (#1419 Slice 3). Evaluates a candidate change (diff paths / labels / body) against plan.policy.judgmentGates + four default-on universal safety gates (secrets / infra / AGENTS.md+skills / installer). Advisory by default (always exits 0); opt-in --enforce fails closed (exit 1) when a mechanical block-tier gate fires without a recorded clearance; exit 2 on config error. -- task verify:judgment-gates [-- --base-ref <ref>] [--path P] [--label L] [--enforce] [--json]. DELIBERATELY NOT in the `task check` aggregate -- judgment gates must never fail-closed on the framework tree (advise -> observe -> block rollout, #1419)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--base-ref / --path / --label / --body / --state / --enforce / --json /
@@ -297,7 +335,9 @@ tasks:
     # advisory on the framework's own tree (advise-mode discipline, #1419).
     cmds:
       # Oracle/fallback (parity): scripts/verify_judgment_gates.py (#1828 Wave 8).
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" verify:judgment-gates --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:judgment-gates --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   wip-cap:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."

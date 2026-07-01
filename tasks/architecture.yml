@@ -10,4 +10,6 @@ tasks:
     # Per conventions/task-caching.md: no sources/generates because this target
     # forwards user-supplied story paths and flags via CLI_ARGS.
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" architecture-preflight-sor {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'architecture-preflight-sor {{.CLI_ARGS}}'

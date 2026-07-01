@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`task check` and the `task <verb>` surface work again on vendored installs (#2126).** A half-finished v0.65.0 flatten left dozens of task fragments running a raw `pnpm run build` at the deposit root and calling the bundled CLI directly — both fail on a vendored `.deft/core` deposit, which has no `build` script and ships no `packages/`/`dist/`, so consumers refreshing to v0.65.0 hit `[ERR_PNPM_NO_SCRIPT] Missing script: build`. Every straggler now routes through the guarded `:engine:_ts-build` (a no-op on consumer deposits) and `:engine:invoke` (falls back to the globally-installed `deft`), matching the pattern already used by the branch/cache/wip-cap gates. A new deterministic gate keeps any task from re-introducing the broken pattern. Closes #2126.
+
 - **Go installer test and next-steps output updated for `xbrief` layout (#2134).** After the `vbrief/`→`xbrief/` rename (#2109), the Go installer's generated AGENTS.md referenced `PROJECT-DEFINITION.xbrief.json` but the test still asserted the legacy name, causing the Go CI job to fail on master. The stale test assertion and the post-install next-steps message are now consistent with the `xbrief` layout. Closes #2134.
 
 - **Global branch coverage restored above the 85% CI threshold (#2135).** Added targeted unit tests for uncovered branches in `xbrief-migrate` (detect, drift-gate, migrate-project) and the doctor CLI entry point — covering the quiet mode, non-git-repo error path, `emitXbriefMigration` outcome variants, `runAgentsRefresh` template-missing branch, root-level artifact detection, and legacy version string detection. No production code changes. Closes #2135.

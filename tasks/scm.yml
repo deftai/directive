@@ -57,70 +57,88 @@ tasks:
     desc: "[#883 stub] List issues -- task scm:issue:list -- [--rest] --repo OWNER/NAME --json number,title,state,updatedAt [--state ...] (#976 --rest routes via REST helpers; default forwards to ghx|gh)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue list {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scm issue list {{.CLI_ARGS}}'
 
   issue:view:
     desc: "[#883 stub] View an issue -- task scm:issue:view -- [--rest] <N> --repo OWNER/NAME --json number,title,body,state,author,createdAt,updatedAt,labels,comments (#976 --rest routes via REST helpers and emits REST shape; default forwards to ghx|gh GraphQL shape)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue view {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scm issue view {{.CLI_ARGS}}'
 
   issue:close:
     desc: "[#883 stub] Close an issue -- task scm:issue:close -- <N> --repo OWNER/NAME [--comment ...]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue close {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scm issue close {{.CLI_ARGS}}'
 
   issue:edit:
     desc: "[#883 stub] Edit an issue -- task scm:issue:edit -- <N> --repo OWNER/NAME [--add-label ...] [--body ...]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scm issue edit {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scm issue edit {{.CLI_ARGS}}'
 
   body:issue:create:
     desc: "[#1555] Safely create an issue body from --body-file without shell Markdown interpolation"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body issue-create {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body issue-create {{.CLI_ARGS}}'
 
   body:issue:edit:
     desc: "[#1555] Safely edit an issue body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body issue-edit {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body issue-edit {{.CLI_ARGS}}'
 
   body:comment:create:
     desc: "[#1555] Safely create an issue/PR comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body comment-create {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body comment-create {{.CLI_ARGS}}'
 
   body:comment:edit:
     desc: "[#1555] Safely edit an issue comment body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body comment-edit {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body comment-edit {{.CLI_ARGS}}'
 
   body:pr:edit:
     desc: "[#1555] Safely edit a PR body from --body-file and live gh read-back"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" github-body pr-edit {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'github-body pr-edit {{.CLI_ARGS}}'

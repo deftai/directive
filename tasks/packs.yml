@@ -33,7 +33,9 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" packs-slice {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'packs-slice {{.CLI_ARGS}}'
 
   render:
     desc: "Regenerate every content-pack projection from its canonical source (ADR-001): meta/lessons.md (lessons), the proof SKILL.md (skills), coding/testing.md (rules), strategies/yolo.md (strategies). -- task packs:render [-- --pack rules] [--check]"
@@ -41,7 +43,9 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pack-render {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pack-render {{.CLI_ARGS}}'
 
   render-skills:
     desc: "One-shot migration: rebuild packs/skills/skills-pack-0.1.json from skills/*/SKILL.md + the AGENTS.md Skill Routing table (#1295)."
@@ -49,7 +53,9 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pack-migrate-skills {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pack-migrate-skills {{.CLI_ARGS}}'
 
   render-rules:
     desc: "One-shot migration: rebuild packs/rules/rules-pack-0.1.json from the RFC2119 directives in coding/*.md (#1296)."
@@ -57,7 +63,9 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pack-migrate-rules {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pack-migrate-rules {{.CLI_ARGS}}'
 
   render-strategies:
     desc: "One-shot migration: rebuild packs/strategies/strategies-pack-0.1.json from strategies/*.md (#1296)."
@@ -65,7 +73,9 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pack-migrate-strategies {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pack-migrate-strategies {{.CLI_ARGS}}'
 
   render-patterns:
     desc: "One-shot migration: rebuild packs/patterns/patterns-pack-0.1.json from patterns/*.md (#1637)."
@@ -73,7 +83,9 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pack-migrate-patterns {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pack-migrate-patterns {{.CLI_ARGS}}'
 
   render-swarm-spec:
     desc: "One-shot migration: rebuild packs/swarm-spec/swarm-spec-pack-0.1.json from swarm/*.md (#1637)."
@@ -81,7 +93,9 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pack-migrate-swarm-spec {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pack-migrate-swarm-spec {{.CLI_ARGS}}'
 
   verify-drift:
     desc: "Drift gate: fail (exit 1) when ANY pack projection (meta/lessons.md, the skills proof SKILL.md, coding/testing.md, strategies/yolo.md) diverges from a freshly rendered buffer. Wired into `task check` and surfaced as `task verify:pack-drift`."
@@ -89,4 +103,6 @@ tasks:
     deps:
       - task: ":ts:build"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" pack-render --check {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pack-render --check {{.CLI_ARGS}}'

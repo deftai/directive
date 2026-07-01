@@ -1,0 +1,103 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2126 (v0.65.0 adoption-blocker): route straggler task fragments through the guarded :engine:_ts-build / :engine:invoke pattern so `task check` and every `task <verb>` work on a vendored .deft/core consumer deposit.",
+    "created": "2026-07-01T15:00:00Z",
+    "updated": "2026-07-01T15:00:00Z"
+  },
+  "plan": {
+    "id": "2126-vendored-ts-build-fix",
+    "title": "Vendored task dispatch: route straggler _ts-build + direct node calls through :engine:* (fix #2126)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2126",
+    "narratives": {
+      "Description": "v0.65.0 shipped a half-finished #2022 Phase 3 flatten. Dozens of tasks/*.yml fragments carried their own local, unguarded `_ts-build` (raw `pnpm run build` at DEFT_ROOT) plus direct `node .../packages/cli/dist/bin.js` calls. In a vendored consumer install DEFT_ROOT is `.deft/core` = `@deftai/directive-content`, which has NO `build` script and ships NO `packages/`/`dist/`. So `task check` -> `deft:verify:encoding` -> `_ts-build` failed with `[ERR_PNPM_NO_SCRIPT] Missing script: build`, and even once that step is guarded, the direct `node .../dist/bin.js` verb call fails with MODULE_NOT_FOUND. This broke `task check` (and the operator verb surface) for every consumer refreshing to v0.65.0. The canonical guarded pattern already exists in tasks/engine.yml: `:engine:_ts-build` guards the build behind `[ -f packages/cli/dist/bin.js ]` (no-op on a consumer deposit) and `:engine:invoke` runs the vendored bin.js when present, else falls back to the globally-installed `deft`. Only three gates (branch/cache-fresh/wip-cap, #2046) had been migrated; the rest were stragglers.",
+      "ImplementationPlan": "1. Point every straggler task at the shared guarded pattern: bare `- _ts-build` deps -> `- task: :engine:_ts-build`; direct `- node \"{{.DEFT_ROOT}}/packages/cli/dist/bin.js\" <verb+args>` -> `- task: :engine:invoke` with `vars.ENGINE_CMD: '<verb+args>'`; delete the now-unused local `_ts-build` definitions. Applied across all tasks/*.yml except engine.yml (39 files, 133 verb calls, 41 deps, 9 local defs). 2. Add a content-contract regression test (packages/core/src/content-contracts/standards/taskfile_engine_dispatch.test.ts) asserting no task file (except engine.yml) defines a local `_ts-build`, carries a bare `- _ts-build` dep, or calls dist/bin.js directly, and that engine.yml still owns the guarded build + global-deft fallback. 3. Update the three existing tests that pinned the old direct-node pattern (policy.yml, migrate.yml, codebase.yml) to assert the engine pattern. Verify: `task check:framework-source` + full vitest suite stay green; simulate a .deft/core deposit with no packages/dist and confirm `task verify:encoding` succeeds via global-deft fallback instead of `Missing script: build` / MODULE_NOT_FOUND.",
+      "UserStory": "As a Deft consumer who refreshed to v0.65.0, I want `task check` and the operator `task <verb>` surface to run against my vendored .deft/core deposit, so that I am not blocked by `Missing script: build` / MODULE_NOT_FOUND errors from tasks that assume a framework-source layout.",
+      "Traces": "#2126, #2022, #2046"
+    },
+    "items": [
+      {
+        "id": "2126-a1",
+        "title": "Given a vendored .deft/core deposit, when `task check` runs a TS-backed gate, then it no longer fails with `Missing script: build`",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a consumer deposit whose root package.json is @deftai/directive-content (no `build` script), when a gate's `_ts-build` dependency runs, then it is a guarded no-op (`:engine:_ts-build`) rather than `[ERR_PNPM_NO_SCRIPT] Missing script: build`."
+        }
+      },
+      {
+        "id": "2126-a2",
+        "title": "Given a deposit with no packages/dist, when a task dispatches a deft verb, then it falls back to the global `deft` instead of MODULE_NOT_FOUND",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a consumer deposit that ships no `packages/cli/dist/bin.js`, when a task runs its verb, then `:engine:invoke` dispatches through the globally-installed `deft` command (or exits 2 with an install hint), never MODULE_NOT_FOUND."
+        }
+      },
+      {
+        "id": "2126-a3",
+        "title": "Given a future edit, when a task re-introduces a local _ts-build or direct dist/bin.js call, then a deterministic test fails",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a regression that re-adds a local unguarded `_ts-build` or a direct `node .../dist/bin.js` call to any tasks/*.yml (except engine.yml), when the content-contract suite runs, then taskfile_engine_dispatch.test.ts fails."
+        }
+      },
+      {
+        "id": "2126-a4",
+        "title": "Given the framework-source checkout, when `task check:framework-source` runs, then it stays green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the framework-source layout (deft-engine root with a `build` script and a built dist), when the migrated gates run via `:engine:invoke`, then they execute against the vendored bin.js exactly as before and the full test suite passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2126"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/verify.yml",
+          "tasks/vbrief.yml",
+          "tasks/commit.yml",
+          "tasks/prd.yml",
+          "tasks/project.yml",
+          "tasks/spec.yml",
+          "tasks/scope.yml",
+          "tasks/scm.yml",
+          "tasks/packs.yml",
+          "tasks/policy.yml",
+          "tasks/triage-actions.yml",
+          "packages/core/src/content-contracts/standards/taskfile_engine_dispatch.test.ts"
+        ],
+        "verify_commands": [
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "all tasks/*.yml (except engine.yml) route through :engine:_ts-build / :engine:invoke; consumer deposit runs task check via global-deft fallback; framework-source stays green"
+        ],
+        "depends_on": [],
+        "conflict_group": "vendored-task-dispatch",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-01T15:53:49Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2126",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2126: v0.65.0 vendored `task check` fails -- _ts-build runs `pnpm run build` in a consumer deposit with no build script"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2022",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2022: Python-free npm deposit / Phase 3 flatten (source of the half-finished migration)"
+      }
+    ],
+    "updated": "2026-07-01T15:53:49Z"
+  }
+}

@@ -10,18 +10,12 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
-  _ensure-ts:
-    internal: true
-    desc: "Build the TS engine before umbrella gates (#2066)"
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   current-shape:
     desc: "Fetch umbrella ## Current shape comment (#1152) — task umbrella:current-shape <N> [-- --repo OWNER/REPO | --json | --strict]. Does NOT read the issue body."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
       - task: :engine:invoke
         vars:

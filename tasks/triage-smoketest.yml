@@ -30,4 +30,6 @@ tasks:
     env:
       DEFT_ROOT: '{{.DEFT_ROOT}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-smoketest {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-smoketest {{.CLI_ARGS}}'

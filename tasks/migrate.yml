@@ -7,12 +7,6 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
-  _ts-build:
-    internal: true
-    desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   preflight:
     # Pre-v0.20 document-model probe (#793, #2068 cutoff). Detects legacy
@@ -22,22 +16,28 @@ tasks:
     desc: "Detect pre-v0.20 document model and report the frozen-release migration path (#2068). Three-state exit (#793)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-preflight --project-root "{{.USER_WORKING_DIR}}" --deft-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'migrate-preflight --project-root "{{.USER_WORKING_DIR}}" --deft-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
 
   xbrief:
     desc: "Migrate consumer vbrief/ layout to xbrief/ with semantic v0.6->v0.8 transforms (#2110 / #2034)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-xbrief --project-root "{{.USER_WORKING_DIR}}" --framework-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'migrate-xbrief --project-root "{{.USER_WORKING_DIR}}" --framework-root "{{.DEFT_ROOT}}" {{.CLI_ARGS}}'
 
   category-b:
     desc: "Namespace Category B bare plan keys (policy / completedNote) under x-directive/ across the corpus (#1650 / #2034)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" migrate-category-b --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'migrate-category-b --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

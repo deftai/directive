@@ -18,20 +18,16 @@ vars:
 # `uv --project "{{.DEFT_ROOT}}" run python` (#566).
 
 tasks:
-  _ensure-ts:
-    internal: true
-    desc: "Build the TS engine before issue gates (#1828 s4)"
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   ingest:
     desc: "Ingest GitHub issues as scope vBRIEFs (single <N> or --all [--label L] [--status S] [--dry-run])"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" issue-ingest --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'issue-ingest --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   # issue emit task -- the write-direction counterpart to issue:ingest
   # (#1274 Change 2). Files GitHub issue(s) from scope vBRIEFs and records
@@ -47,4 +43,6 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" issue-emit --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'issue-emit --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

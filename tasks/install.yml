@@ -7,12 +7,6 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
-  _ts-build:
-    internal: true
-    desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   install:
     desc: Install deft (dev convenience -- end users should use the compiled binary from GitHub Releases)
@@ -23,9 +17,11 @@ tasks:
     desc: Remove deft entry from AGENTS.md
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" install-uninstall --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'install-uninstall --project-root "{{.USER_WORKING_DIR}}"'
 
   # User-facing upgrade entrypoint (#1061). Native deft-ts handler (#2022 Phase 2):
   #   1. Writes / refreshes the bare ``.deft-version`` marker.

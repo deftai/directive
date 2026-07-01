@@ -29,4 +29,6 @@ tasks:
     env:
       DEFT_TASK_PREFIX: '{{.DEFT_TASK_PREFIX | default ""}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-welcome --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-welcome --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

@@ -13,12 +13,6 @@ vars:
 # caused sporadic PATH issues on Windows.
 
 tasks:
-  _ts-build:
-    internal: true
-    desc: "Build @deftai/cli dist/ before TS-backed render gates run (#1854 s2)."
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   render:
     # Caching: intentionally absent. `prd:render` runs in <30ms and its
@@ -34,6 +28,8 @@ tasks:
       authoritative -- the vBRIEF is the source of truth.
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" prd-render --spec "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" --output "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'prd-render --spec "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" --output "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}'

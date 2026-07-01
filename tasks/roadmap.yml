@@ -15,14 +15,18 @@ tasks:
     desc: Render ROADMAP.md from vbrief/pending/ (Active) and vbrief/completed/ (Completed) lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" roadmap-render "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'roadmap-render "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"'
 
   check:
     desc: Verify ROADMAP.md matches what roadmap:render would produce
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" roadmap-render "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'roadmap-render "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check'

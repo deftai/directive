@@ -17,20 +17,16 @@ vars:
 # origin freshness on scope vBRIEFs — not PROJECT-DEFINITION narrative heuristics.
 
 tasks:
-  _ts-build:
-    internal: true
-    desc: "Build @deftai/cli dist/ before TS-backed render gates run (#1854 s2)."
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   render:
     desc: Regenerate PROJECT-DEFINITION.vbrief.json items registry from lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" project-render "{{.USER_WORKING_DIR}}/vbrief"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'project-render "{{.USER_WORKING_DIR}}/vbrief"'
 
   ack-staleness:
     desc: >-
@@ -38,9 +34,11 @@ tasks:
       Distinct from task reconcile:issues (scope origin freshness).
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" project-render --acknowledge-staleness "{{.USER_WORKING_DIR}}/vbrief"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'project-render --acknowledge-staleness "{{.USER_WORKING_DIR}}/vbrief"'
 
   export-spec:
     desc: >-
@@ -48,6 +46,8 @@ tasks:
       Use --audience=internal to include proposed scopes (#2013 / #1502).
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" export-spec {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'export-spec {{.CLI_ARGS}}'

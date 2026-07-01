@@ -430,12 +430,12 @@ tasks:
   verify:no-task-runtime:
     desc: "Fail when runtime Python code hard-depends on go-task (#1659)."
     deps:
-      - task: verify:_ts-build
-        vars:
-          DEFT_ROOT: "{{.TASKFILE_DIR}}"
+      - task: engine:_ts-build
     cmds:
       # Oracle/fallback (parity): scripts/verify_no_task_runtime.py (#1854 s3).
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" verify-no-task-runtime
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-no-task-runtime'
 
   # Maintainer-only packaging aliases (#1860). `core:*` is internal;
   # these root aliases remain callable for release Step 8 (`task build`) and
@@ -490,7 +490,7 @@ tasks:
     desc: "Idempotent local-dev setup: configure git hooks (#747); detect-and-prompt ghx (#884). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - verify:_ts-build
+      - task: engine:_ts-build
     env:
       PYTHONUTF8: "1"
     cmds:
@@ -548,18 +548,22 @@ tasks:
       # `task setup` never prompts on a clean re-run; operators wanting to
       # opt in run `task setup:ghx` (defined below) which is the
       # interactive entry point. Native TypeScript handler (#2022 Phase 1).
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" setup:ghx --check
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'setup:ghx --check'
 
   setup:ghx:
     desc: "Consent-gated ghx (brunoborges/ghx) installer (#884) -- task setup:ghx [-- --yes]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - verify:_ts-build
+      - task: engine:_ts-build
     # Per `conventions/task-caching.md` (#574): no `sources:` / `generates:`
     # because the script forwards user-facing flags via {{.CLI_ARGS}}
     # (notably --yes for non-interactive CI / scripted approval).
     cmds:
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" setup:ghx {{.CLI_ARGS}}
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'setup:ghx {{.CLI_ARGS}}'
 
   # Release pipeline tasks (#74 + #716 safety hardening, namespace flatten #718).
   #
@@ -597,28 +601,36 @@ tasks:
     deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release {{.CLI_ARGS}}
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'release {{.CLI_ARGS}}'
 
   release:publish:
     desc: "Flip a draft GitHub release to public (#716) -- task release:publish -- <version> [--dry-run] [--repo OWNER/REPO]"
     deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release-publish {{.CLI_ARGS}}
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'release-publish {{.CLI_ARGS}}'
 
   release:rollback:
     desc: "State-aware release unwind (#716) -- task release:rollback -- <version> [--dry-run] [--allow-low-downloads N] [--allow-data-loss] [--force-strict-0]"
     deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release-rollback {{.CLI_ARGS}}
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'release-rollback {{.CLI_ARGS}}'
 
   release:e2e:
     desc: "End-to-end release rehearsal against an auto-created+destroyed temp repo (#716) -- task release:e2e [-- --dry-run] [--owner OWNER] [--keep-repo]"
     deps: [ts:build]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" release-e2e {{.CLI_ARGS}}
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'release-e2e {{.CLI_ARGS}}'
 
   # ------------------------------------------------------------------
   # Triage v1 user-facing alias tasks (#845, #913).
@@ -676,7 +688,9 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" triage-help triage
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-help triage'
 
   scope:
     desc: "Print the categorized scope verb list (#1150 / N10). Run `task scope:<verb> --help` for usage examples."
@@ -684,7 +698,9 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - node "{{.TASKFILE_DIR}}/packages/cli/dist/bin.js" triage-help scope
+      - task: engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-help scope'
 
   triage:accept:
     desc: "Accept an issue for triage. Records an audit entry. (#845 Story 3)"

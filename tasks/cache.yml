@@ -32,38 +32,48 @@ tasks:
     desc: "Cache an entry -- task cache:put -- <source> <key> --raw-file PATH [--ttl-seconds N]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" cache put {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache put {{.CLI_ARGS}}'
 
   get:
     desc: "Read an entry -- task cache:get -- <source> <key> [--allow-stale | --no-stale]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" cache get {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache get {{.CLI_ARGS}}'
 
   invalidate:
     desc: "Drop an entry -- task cache:invalidate -- <source> <key> [--reason TEXT]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" cache invalidate {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache invalidate {{.CLI_ARGS}}'
 
   fetch-all:
     desc: "Bulk populate -- task cache:fetch-all -- --source github-issue --repo OWNER/NAME [--batch-size N] [--delay-ms N] [--ttl-seconds N] [--no-refresh-closed to skip open→closed reconcile]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" cache fetch-all {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache fetch-all {{.CLI_ARGS}}'
 
   prune:
     desc: "Drop expired or LRU-evict -- task cache:prune -- [--older-than-days 30] [--source github-issue] [--dry-run] [--to-cap]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" cache prune {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'cache prune {{.CLI_ARGS}}'

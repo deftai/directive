@@ -21,4 +21,6 @@ tasks:
     desc: "Union-merge CHANGELOG.md [Unreleased] conflicts (#911) -- task changelog:resolve-unreleased [-- --changelog-path PATH] [--dry-run]"
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" changelog-resolve-unreleased {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'changelog-resolve-unreleased {{.CLI_ARGS}}'

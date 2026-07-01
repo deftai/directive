@@ -26,4 +26,6 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-summary --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-summary --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

@@ -16,4 +16,6 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" session:start --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'session:start --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

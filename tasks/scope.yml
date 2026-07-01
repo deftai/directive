@@ -34,36 +34,36 @@ vars:
 # Taskfile.yml also sets this (#540).
 
 tasks:
-  _ensure-ts:
-    internal: true
-    desc: "Build the TS engine before lifecycle gates (#1828 s4)"
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   promote:
     desc: "Promote a vBRIEF scope: proposed/ -> pending/ (status: pending)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle promote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle promote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   activate:
     desc: "Activate a vBRIEF scope: pending/ -> active/ (status: running)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle activate {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle activate {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   complete:
     desc: "Complete a vBRIEF scope: active/ -> completed/ (status: completed)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle complete {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle complete {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   fail:
     # Terminal ``failed`` transition (#614). Parallels ``scope:complete``
@@ -79,49 +79,61 @@ tasks:
     desc: "Fail a vBRIEF scope: active/ -> completed/ (status: failed)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle fail {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle fail {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   cancel:
     desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle cancel {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle cancel {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   restore:
     desc: "Restore a cancelled vBRIEF scope: cancelled/ -> proposed/ (status: proposed)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle restore {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle restore {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   block:
     desc: "Block a vBRIEF scope: stays in active/ (status: blocked)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle block {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle block {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   unblock:
     desc: "Unblock a vBRIEF scope: stays in active/ (status: running)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-lifecycle unblock {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-lifecycle unblock {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   decompose:
     desc: "Apply/check an approved epic/phase -> story decomposition draft"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-decompose {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-decompose {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   # Operator-driven demote (D1 / #1121). Moves a vBRIEF scope from
   # vbrief/pending/ back to vbrief/proposed/ and appends a structured
@@ -136,6 +148,8 @@ tasks:
     desc: "Demote a vBRIEF scope: pending/ -> proposed/ (#1121). Single-file or --batch --older-than-days N (default 45)."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" scope-demote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'scope-demote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'

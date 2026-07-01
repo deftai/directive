@@ -49,7 +49,9 @@ describe("test_code_structure_profile.py", () => {
     expect(codebaseTasks).toContain("extract-default:");
     expect(codebaseTasks).toContain("provider-map:");
     expect(codebaseTasks).toContain("projection-registry:");
-    expect(codebaseTasks).toContain("packages/cli/dist/bin.js");
+    // #2126: codebase.yml dispatches through the guarded :engine:invoke pattern
+    // (global-deft fallback on consumer deposits), not a direct dist/bin.js call.
+    expect(codebaseTasks).toContain(":engine:invoke");
     expect(codebaseTasks).toContain("code-structure-validate");
   });
   it("test_profile_doc_names_physical_home_and_later_slices", () => {

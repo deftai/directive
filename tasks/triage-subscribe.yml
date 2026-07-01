@@ -25,7 +25,9 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-subscribe subscribe --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-subscribe subscribe --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   unsubscribe:
     desc: "Unsubscribe a label / milestone / issue from plan.policy.triageScope[] (#1133 / D14). -- task triage:unsubscribe -- (--label=L | --milestone=M | --issue=N)"
@@ -33,4 +35,6 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-subscribe unsubscribe --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-subscribe unsubscribe --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

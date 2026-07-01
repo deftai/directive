@@ -16,17 +16,13 @@ vars:
 # `uv --project "{{.DEFT_ROOT}}" run python` (#566).
 
 tasks:
-  _ensure-ts:
-    internal: true
-    desc: "Build the TS engine before reconcile gates (#1828 s4)"
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   issues:
     desc: "Reconcile GitHub issues against vBRIEF references -- report linked, unlinked, and resolved"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ensure-ts
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" reconcile-issues --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'reconcile-issues --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

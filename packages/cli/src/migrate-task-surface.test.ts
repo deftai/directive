@@ -13,8 +13,10 @@ describe("migrate/install task surface (#2022 Phase 2 / #2068 cutoff)", () => {
 
   it("migrate.yml uses deft-ts preflight and xbrief migration handlers", () => {
     const text = readFileSync(join(repoRoot(), "tasks", "migrate.yml"), "utf8");
-    expect(text).toContain('bin.js" migrate-preflight');
-    expect(text).toContain('bin.js" migrate-xbrief');
+    // #2126: migrate.yml dispatches through the guarded :engine:invoke pattern
+    // (global-deft fallback on consumer deposits), not a direct dist/bin.js call.
+    expect(text).toContain("ENGINE_CMD: 'migrate-preflight");
+    expect(text).toContain("ENGINE_CMD: 'migrate-xbrief");
     expect(text).not.toContain("migrate_vbrief.py");
     expect(text).not.toContain("\n  vbrief:");
     expect(text).not.toContain("migrate_preflight.py");

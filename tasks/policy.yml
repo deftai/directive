@@ -26,50 +26,62 @@ tasks:
     desc: "Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [-- --format=json] [--changed-only] [--field=<name>]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy show --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy show --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   enforce-branches:
     desc: "Set plan.policy.allowDirectCommitsToMaster=false (enforce feature branches). Audits to meta/policy-changes.log. (#746)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy enforce-branches --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy enforce-branches --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   allow-direct-commits:
     desc: "Set plan.policy.allowDirectCommitsToMaster=true (capability-cost: branch-protection OFF). Requires --confirm to apply. (#746)"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy allow-direct-commits --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy allow-direct-commits --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   wip-cap:
     desc: "Set plan.policy.wipCap=N (#1124 / D4 of #1119). Requires --set N --confirm. Default cap is 10 per umbrella #1119 Current Shape v3."
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy-set wip-cap {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy-set wip-cap {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   subagent-backend:
     desc: "DEPRECATED (superseded by `task swarm:routing-set`, #1739). Was: Set plan.policy.swarmSubagentBackend (#1531a). -- task policy:subagent-backend -- --set composer|grok-build|cursor-cloud"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
       - cmd: echo "[deft deprecation] task policy:subagent-backend is superseded by 'task swarm:routing-set' (#1739). The swarmSubagentBackend enum is no longer the active routing surface." 1>&2
         silent: true
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy-set subagent-backend {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy-set subagent-backend {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   subagent-backends:
     desc: "DEPRECATED (superseded by `task swarm:routing-set` / `task verify:routing`, #1739). Was: Probe sub-agent backend ids, role capabilities, and availability (#1531a). -- task policy:subagent-backends [-- --format=json]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
       - cmd: echo "[deft deprecation] task policy:subagent-backends is superseded by 'task verify:routing -- --advise' and 'task swarm:routing-set' (#1739). The swarmSubagentBackend enum is no longer the active routing surface." 1>&2
         silent: true
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" policy-set subagent-backends {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy-set subagent-backends {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'

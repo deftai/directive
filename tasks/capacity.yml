@@ -25,14 +25,18 @@ tasks:
     desc: "Capacity allocation target-vs-actual mix (advisory, offline). task capacity:show [-- --project-root <path>]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" capacity-show --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'capacity-show --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   backfill:
     desc: "One-time capacity-bucket backfill for completed vBRIEFs (#1606): infer capacityBucket from origin-issue labels + stamp completedAt from git. Dry-run by default; idempotent; never touches cost. -- task capacity:backfill [-- --apply] [--window-only] [--cache-dir <path>] [--json]"
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - task: :ts:build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" capacity-backfill --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'capacity-backfill --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

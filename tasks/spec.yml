@@ -11,28 +11,26 @@ vars:
 # on Windows under `uv --project "{{.DEFT_ROOT}}" run python` (#566).
 
 tasks:
-  _ts-build:
-    internal: true
-    desc: "Build @deftai/cli dist/ before TS-backed render gates run (#1854 s2)."
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   validate:
     desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" spec-validate "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'spec-validate "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"'
 
   render:
     desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" spec-render "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'spec-render "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"'
 
   pipeline:
     desc: Run full spec pipeline (validate then render)

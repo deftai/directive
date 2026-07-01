@@ -40,7 +40,9 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-bulk accept {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-bulk accept {{.CLI_ARGS}}'
 
   bulk-reject:
     desc: "Bulk reject candidates (#845 Story 4) -- task triage:bulk-reject -- --repo OWNER/NAME --reason 'why' [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
@@ -48,7 +50,9 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-bulk reject {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-bulk reject {{.CLI_ARGS}}'
 
   bulk-defer:
     desc: "Bulk defer candidates (#845 Story 4) -- task triage:bulk-defer -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
@@ -56,7 +60,9 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-bulk defer {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-bulk defer {{.CLI_ARGS}}'
 
   bulk-needs-ac:
     desc: "Bulk needs-ac candidates (#845 Story 4) -- task triage:bulk-needs-ac -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
@@ -64,7 +70,9 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-bulk needs-ac {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-bulk needs-ac {{.CLI_ARGS}}'
 
   refresh-active:
     desc: "Pre-swarm freshness gate (#845 Story 4) -- detects drift between cached and live `gh issue view` for every issue referenced in vbrief/active/*.vbrief.json"
@@ -72,4 +80,6 @@ tasks:
     deps: [":ts:build"]
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" triage-refresh --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'triage-refresh --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

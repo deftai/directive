@@ -7,25 +7,23 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
-  _ts-build:
-    internal: true
-    desc: "Build @deftai/cli dist/ before TS-backed gates run (#1828 s2)."
-    dir: '{{.USER_WORKING_DIR}}'
-    cmds:
-      - pnpm --dir "{{.DEFT_ROOT}}" run build
 
   changelog:check:
     desc: Verify CHANGELOG.md has an [Unreleased] section with at least one entry
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" changelog-check --project-root "{{.USER_WORKING_DIR}}"
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'changelog-check --project-root "{{.USER_WORKING_DIR}}"'
 
   change:init:
     desc: Create a new change proposal directory structure in history/changes/<name>/
     dir: '{{.USER_WORKING_DIR}}'
     deps:
-      - _ts-build
+      - task: :engine:_ts-build
     cmds:
-      - node "{{.DEFT_ROOT}}/packages/cli/dist/bin.js" change-init --project-root "{{.USER_WORKING_DIR}}" --name {{.CLI_ARGS}}
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'change-init --project-root "{{.USER_WORKING_DIR}}" --name {{.CLI_ARGS}}'
