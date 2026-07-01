@@ -38,11 +38,30 @@ export function resolveVersion(frameworkRoot?: string): string {
  * Resolve the framework root for a CLI command running against `projectRoot`.
  *
  * Priority: explicit `--deft-root` / `--framework-root` → `DEFT_ROOT` env →
- * consumer deposit (`.deft/core`, legacy `deft/`) → maintainer checkout walk
+ * maintainer source checkout at `projectRoot` (when `main.md` + framework markers
+ * are present, even if a dogfood `.deft/core` deposit also exists) → consumer
+ * deposit (`.deft/core`, legacy `deft/`) → maintainer checkout walk
  * (`resolveDefaultFrameworkRoot`).
  *
  * Refs #2146 (npm global `deft` must not default to `node_modules/vbrief/schemas`).
  */
+function isFrameworkSourceCheckoutAt(projectRoot: string): boolean {
+  try {
+    if (!statSync(join(projectRoot, "main.md")).isFile()) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  return DEFT_REPO_POSITIVE_MARKERS.every((marker) => {
+    try {
+      return statSync(join(projectRoot, marker)).isFile();
+    } catch {
+      return false;
+    }
+  });
+}
+
 export function resolveFrameworkRootForProject(
   projectRoot: string,
   explicitRoot?: string | null,
@@ -56,6 +75,9 @@ export function resolveFrameworkRootForProject(
     return resolve(envRoot);
   }
   const root = resolve(projectRoot);
+  if (isFrameworkSourceCheckoutAt(root)) {
+    return root;
+  }
   for (const rel of [join(".deft", "core"), "deft"] as const) {
     const candidate = join(root, rel);
     try {

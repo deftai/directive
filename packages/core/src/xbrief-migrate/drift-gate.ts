@@ -51,8 +51,8 @@ export const LEGACY_REFERENCE_PREFIX = "x-vbrief/" as const;
 
 /** Default allowlist: sanctioned data-plane trees that legitimately retain legacy tokens for back-compat. */
 export const BUILTIN_ALLOW_LIST: readonly string[] = [
-  // Vendored npm deposit (#2146): C1 flatten maps content/* -> .deft/core/*.
-  ".deft/core/**",
+  // Vendored npm deposit (#2146): C1 flatten maps content/vbrief/* -> .deft/core/vbrief/*.
+  ".deft/core/vbrief/**",
   // Shipped vBRIEF surface (#1875 C3) + conformance round-trip fixtures (#715).
   "content/vbrief/**",
   // Test fixtures exercising the legacy read path + pre-cutover migration (#2108 / #2110)

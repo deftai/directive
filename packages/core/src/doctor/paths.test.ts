@@ -46,4 +46,19 @@ describe("resolveFrameworkRootForProject (#2146)", () => {
     mkdirSync(deposit, { recursive: true });
     expect(resolveFrameworkRootForProject(project)).toBe(deposit);
   });
+
+  it("prefers a maintainer source checkout over a co-located .deft/core deposit", () => {
+    const project = freshProject();
+    writeFileSync(join(project, "main.md"), "# Deft\n", "utf8");
+    mkdirSync(join(project, "content", "templates"), { recursive: true });
+    mkdirSync(join(project, "content", "skills", "deft-directive-build"), { recursive: true });
+    writeFileSync(join(project, "content", "templates", "agents-entry.md"), "# agents\n", "utf8");
+    writeFileSync(
+      join(project, "content", "skills", "deft-directive-build", "SKILL.md"),
+      "# build\n",
+      "utf8",
+    );
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    expect(resolveFrameworkRootForProject(project)).toBe(project);
+  });
 });
