@@ -17,6 +17,7 @@ export const KNOWN_REFERENCE_TYPES = [
   "x-xbrief/user-request",
   "x-xbrief/spec-section",
   "x-xbrief/commit",
+  "x-xbrief/context",
   "x-xbrief/external",
   "x-xbrief/research",
   "x-xbrief/adr",
