@@ -41,6 +41,26 @@ So the consumer posture is **advise, don't enforce** (the `verify:capacity` / `v
 
 The honest caveat: because it is advisory-and-generous-by-default, the value is the *nudge at the right moment* (a growing header caught during `doctor` / session start / pre-pr), not a blocking number we made up.
 
+## 🔗 The reference-chain contract (#644)
+
+A lean AGENTS.md does **not** protect an agent from overexploring a large surrounding doc corpus. Augment Code's empirical study (`content/docs/good-agents-md.md`) measured how often agents actually discover documentation:
+
+| Location | Discovery rate |
+|---|---|
+| AGENTS.md hierarchy | **100%** |
+| Directly referenced files | **90%+** |
+| Directory-level READMEs (when working in that dir) | **80%+** |
+| Nested READMEs in other subdirs | **~40%** |
+| Orphan docs with no references | **<10%** |
+
+The rules that follow from this:
+
+- **If it must be followed, it must be in the reference chain.** A required rule buried in an orphan doc (<10% discovery) is effectively invisible — put it in AGENTS.md, `main.md`, or a task-gated pointer here, not in a doc nothing links to.
+- **Reachable-but-unreferenced docs are still found — and still cost context.** Large clusters (`content/deployments/` ~12K lines, `content/languages/`, `content/skills/`) must stay behind explicit task/trigger gates in the Task-Based Loading + Skills Index sections below, never ambient always-loaded reachability. Gating is the footprint control, not deletion.
+- **A stale or wrong reference is worse than no reference** — it sits in the 90%+-discovery chain and gets followed to a renamed/deleted path. Keep every pointer in this file resolving to a real, current target; fix drift the moment paths move (this is why the repo migrated `vbrief/` → `xbrief/` references here).
+
+Footprint audit + de-referencing assessment: `docs/analysis/2026-07-02-644-surrounding-docs-footprint-audit.md`. The mechanical doc-sprawl health check that enforces this is #647.
+
 ## 🧭 Skills Index
 
 This is the unified Level-0 index for **both skills and framework docs**. Scan the descriptions here to decide what to load — you should be able to judge relevance without opening any target file.
@@ -91,10 +111,10 @@ The `welcome` / `onboard triage` phrase invokes `task triage:welcome --onboard` 
    - [languages/cpp.md](./content/languages/cpp.md) - When writing C++
    - [languages/vba.md](./content/languages/vba.md) - When writing VBA (Excel macros)
 
-3. **[vbrief/PROJECT-DEFINITION.vbrief.json](./content/vbrief/vbrief.md#project-definitionvbriefjson)** - Project identity gestalt
+3. **`xbrief/PROJECT-DEFINITION.xbrief.json`** (usage guide: [content/vbrief/vbrief.md](./content/vbrief/vbrief.md)) - Project identity gestalt
    - Load: When unsure about project standards (tech stack, architecture, risks)
    - Contains: project identity narratives (overview, tech stack, architecture, risks/unknowns, config) + scope registry across all lifecycle folders
-   - Replaces: the former `PROJECT.md` (deprecated)
+   - Replaces: the former `PROJECT.md` (deprecated). Legacy `vbrief/` trees are read-accepted; `deft migrate:xbrief` converts them (#2034 / #2110).
 
 ### When Building Interfaces
 
@@ -149,7 +169,7 @@ Load as needed:
 ### When Managing Context or Long Tasks
 
 - **[context/context.md](./content/context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
-- **[context/working-memory.md](./content/context/working-memory.md)** - Scratchpad and externalization patterns with vBRIEF; plan.vbrief.json + scope vBRIEF relationship
+- **[context/working-memory.md](./content/context/working-memory.md)** - Scratchpad and externalization patterns with xBRIEF; `xbrief/plan.xbrief.json` + scope xBRIEF relationship
 - **[context/long-horizon.md](./content/context/long-horizon.md)** - Multi-session checkpoint/resume patterns; lifecycle folder conventions
 - **[context/tool-design.md](./content/context/tool-design.md)** - Designing AI-consumable tools
 - **[context/deterministic-split.md](./content/context/deterministic-split.md)** - LLM vs deterministic responsibility boundaries
@@ -167,7 +187,7 @@ Load as needed:
 
 ### When Handling Session Interruptions
 
-- **[resilience/continue-here.md](./content/resilience/continue-here.md)** - Interruption recovery protocol with vBRIEF; continue.vbrief.json + scope vBRIEF relationship
+- **[resilience/continue-here.md](./content/resilience/continue-here.md)** - Interruption recovery protocol with xBRIEF; `xbrief/continue.xbrief.json` + scope xBRIEF relationship
 - **[resilience/context-pruning.md](./content/resilience/context-pruning.md)** - Fresh context per task, eliminating context rot
 - Load: On session end, context exhaustion, or when resuming interrupted work
 
@@ -191,16 +211,16 @@ Load as needed:
 
 **[templates/make-spec.md](./content/templates/make-spec.md)** - Specification generation
 - Load: When user asks to create a project specification
-- Contains: interview process, scope vBRIEF output format
+- Contains: interview process, scope xBRIEF output format
 
-**[vbrief/vbrief.md](./content/vbrief/vbrief.md)** - Canonical vBRIEF usage
-- Load: Whenever creating, reading, or managing vBRIEF files in a project
-- Contains: file taxonomy (root-level files + scope vBRIEFs in lifecycle folders), naming conventions, lifecycle rules, specification flow, tool mappings
-- Key rules: all vBRIEF files live in `./vbrief/` or lifecycle subfolders — never workspace root; scope vBRIEFs use `YYYY-MM-DD-descriptive-slug.vbrief.json` naming; `plan.status` inside each scope vBRIEF is the source of truth — not the folder location
+**[vbrief/vbrief.md](./content/vbrief/vbrief.md)** - Canonical xBRIEF usage guide
+- Load: Whenever creating, reading, or managing xBRIEF files in a project
+- Contains: file taxonomy (root-level files + scope xBRIEFs in lifecycle folders), naming conventions, lifecycle rules, specification flow, tool mappings
+- Key rules: all xBRIEF files live in `./xbrief/` or lifecycle subfolders — never workspace root; scope xBRIEFs use `YYYY-MM-DD-descriptive-slug.xbrief.json` naming; `plan.status` inside each scope xBRIEF is the source of truth — not the folder location. (Legacy `vbrief/` / `.vbrief.json` trees are read-accepted; `deft migrate:xbrief` converts them.)
 
-**[vbrief/schemas/vbrief-core.schema.json](./content/vbrief/schemas/vbrief-core.schema.json)** — vBRIEF JSON Schema
-- Load: When creating, validating, or debugging `.vbrief.json` files
-- Contains: JSON Schema (draft 2020-12) defining `vBRIEFInfo`, `Plan`, `PlanItem`, `Status` enum
+**[vbrief/schemas/xbrief-core-0.8.schema.json](./content/vbrief/schemas/xbrief-core-0.8.schema.json)** — xBRIEF JSON Schema
+- Load: When creating, validating, or debugging `.xbrief.json` files
+- Contains: JSON Schema (draft 2020-12) defining the xBRIEF core structure (`vBRIEFInfo`, `Plan`, `PlanItem`, `Status` enum)
 - Source: [github.com/deftai/vBRIEF](https://github.com/deftai/vBRIEF)
 
 ## 🔄 Reference Chains
@@ -221,7 +241,7 @@ coding.md → git.md (before committing)
 
 ### Project Overrides
 ```
-(any file) → vbrief/PROJECT-DEFINITION.vbrief.json (check for project identity + overrides)
+(any file) → xbrief/PROJECT-DEFINITION.xbrief.json (check for project identity + overrides)
 ~/.config/deft/USER.md (check for personal preferences)
 ```
 
@@ -256,7 +276,7 @@ Load order:
 3. coding/coding.md (writing code)
 4. languages/python.md (Python-specific)
 5. interfaces/rest.md (REST API design)
-6. vbrief/PROJECT-DEFINITION.vbrief.json (check for project overrides)
+6. xbrief/PROJECT-DEFINITION.xbrief.json (check for project overrides)
 
 ### Scenario: "Add tests to existing Go code"
 Load order:
@@ -264,7 +284,7 @@ Load order:
 2. ~/.config/deft/USER.md (always)
 3. coding/testing.md (testing standards)
 4. languages/go.md (Go-specific testing)
-5. vbrief/PROJECT-DEFINITION.vbrief.json (coverage requirements)
+5. xbrief/PROJECT-DEFINITION.xbrief.json (coverage requirements)
 
 ### Scenario: "Fix a bug"
 Load order:
@@ -287,9 +307,9 @@ Load order:
 2. ~/.config/deft/USER.md (always)
 3. context/context.md (context engineering strategies)
 4. context/long-horizon.md (checkpoint/resume patterns; lifecycle folder conventions)
-5. context/working-memory.md (scratchpad patterns; plan.vbrief.json + scope vBRIEF relationship)
-6. `./vbrief/plan.vbrief.json` (if resuming — read checkpoint, don't replay history)
-7. Scope vBRIEFs in `./vbrief/active/` (the durable scope records being implemented)
+5. context/working-memory.md (scratchpad patterns; plan.xbrief.json + scope xBRIEF relationship)
+6. `./xbrief/plan.xbrief.json` (if resuming — read checkpoint, don't replay history)
+7. Scope xBRIEFs in `./xbrief/active/` (the durable scope records being implemented)
 
 ## 💡 Tips for Agents
 
@@ -300,7 +320,7 @@ Load order:
 
 **Check Precedence:**
 - Always check `~/.config/deft/USER.md` first (highest precedence)
-- Check `./vbrief/PROJECT-DEFINITION.vbrief.json` for project identity and overrides
+- Check `./xbrief/PROJECT-DEFINITION.xbrief.json` for project identity and overrides
 - Follow most specific → most general
 
 **Update Meta Files Freely:**
@@ -310,4 +330,4 @@ Load order:
 **When In Doubt:**
 - Start with main.md and coding/coding.md
 - Add language/interface files as task becomes clear
-- Check `vbrief/PROJECT-DEFINITION.vbrief.json` if behavior seems inconsistent
+- Check `xbrief/PROJECT-DEFINITION.xbrief.json` if behavior seems inconsistent
