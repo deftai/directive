@@ -137,6 +137,19 @@ describe("patchAgentsMdHeader", () => {
     expect(outcome.kind).toBe("patched");
     expect(written).toBe("run xbrief:preflight -- xbrief/active/x.xbrief.json\n");
   });
+
+  it("captures a write failure as a non-fatal `failed` outcome instead of throwing", () => {
+    const outcome = patchAgentsMdHeader("/nowhere", {
+      readText: () => "run vbrief:preflight -- vbrief/active/x.vbrief.json\n",
+      writeText: () => {
+        throw new Error("EACCES: read-only AGENTS.md");
+      },
+    });
+    expect(outcome.kind).toBe("failed");
+    expect(outcome.error).toContain("EACCES");
+    expect(renderHeaderPatchSummary(outcome)).toContain("patch failed");
+    expect(renderHeaderPatchSummary(outcome)).toContain("migrate:xbrief");
+  });
 });
 
 describe("renderHeaderPatchSummary", () => {
@@ -217,5 +230,18 @@ describe("renderStaleHeaderLine", () => {
     expect(line).toContain("still");
     expect(line).toContain("migrate:xbrief");
     expect(line).toContain("vbrief/");
+  });
+
+  it("accepts an injected readText seam (no disk I/O for the AGENTS.md read)", () => {
+    const root = mkdtempSync(join(tmpdir(), "header-line-seam-"));
+    temps.push(root);
+    mkdirSync(join(root, MIGRATED_ARTIFACT_DIR), { recursive: true });
+    // No AGENTS.md on disk — the seam supplies a stale header in memory.
+    const line = renderStaleHeaderLine(
+      root,
+      () => "run vbrief:preflight -- vbrief/active/x.vbrief.json\n",
+    );
+    expect(line).toContain("migrate:xbrief");
+    expect(line).toContain("vbrief:preflight");
   });
 });

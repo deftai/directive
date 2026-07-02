@@ -1,7 +1,8 @@
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { iterManagedSections } from "../platform/agents-md.js";
 import { MIGRATED_ARTIFACT_DIR } from "./constants.js";
+import { isDirectory } from "./fs-helpers.js";
 
 /**
  * Bounded, ordered set of legacy crossover tokens rewritten in the UNMANAGED
@@ -94,15 +95,20 @@ export function rewriteUnmanagedHeaderTokens(content: string): HeaderRewriteResu
 }
 
 export interface HeaderPatchOutcome {
-  readonly kind: "patched" | "clean" | "absent";
+  readonly kind: "patched" | "clean" | "absent" | "failed";
   readonly path: string;
   readonly replacements: HeaderTokenReplacement[];
+  readonly error?: string;
 }
 
 /**
  * Read AGENTS.md at `projectRoot`, rewrite legacy tokens in the unmanaged
  * header, and write the result back only when something changed. Returns a
  * structured outcome so the caller can log a LEGACY-REPORT-style summary.
+ *
+ * Non-fatal: a write failure (read-only file, full disk) is captured as a
+ * `failed` outcome rather than thrown, so a post-migration header patch can
+ * never crash a migration that already succeeded.
  */
 export function patchAgentsMdHeader(
   projectRoot: string,
@@ -135,7 +141,16 @@ export function patchAgentsMdHeader(
     return { kind: "clean", path: agentsPath, replacements: [] };
   }
 
-  writeText(agentsPath, result.content);
+  try {
+    writeText(agentsPath, result.content);
+  } catch (err) {
+    return {
+      kind: "failed",
+      path: agentsPath,
+      replacements: [],
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
   return { kind: "patched", path: agentsPath, replacements: result.replacements };
 }
 
@@ -147,17 +162,15 @@ export function renderHeaderPatchSummary(outcome: HeaderPatchOutcome): string {
   if (outcome.kind === "clean") {
     return "AGENTS.md unmanaged header: no legacy vbrief tokens found — nothing to patch.";
   }
+  if (outcome.kind === "failed") {
+    return (
+      `AGENTS.md unmanaged header: patch failed (${outcome.error ?? "unknown error"}) — ` +
+      "re-run `deft migrate:xbrief` (idempotent) or hand-edit the header."
+    );
+  }
   const total = outcome.replacements.reduce((sum, r) => sum + r.count, 0);
   const detail = outcome.replacements.map((r) => `${r.legacy} ×${r.count}`).join(", ");
   return `AGENTS.md unmanaged header: rewrote ${total} legacy vbrief token(s) -> xbrief (${detail}).`;
-}
-
-function isDirectory(path: string): boolean {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
 }
 
 export interface StaleHeaderDetection {
@@ -207,8 +220,11 @@ export function detectStaleUnmanagedHeader(
 }
 
 /** One-line doctor / ritual signpost for the #2154 stale-header regression. */
-export function renderStaleHeaderLine(projectRoot: string): string {
-  const { stale, matches } = detectStaleUnmanagedHeader(projectRoot);
+export function renderStaleHeaderLine(
+  projectRoot: string,
+  readText?: (path: string) => string | null,
+): string {
+  const { stale, matches } = detectStaleUnmanagedHeader(projectRoot, readText);
   if (!stale) {
     return "AGENTS.md header drift: none -- unmanaged header has no legacy vbrief path literals.";
   }

@@ -5,7 +5,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -19,6 +18,7 @@ import {
   MIGRATED_ARTIFACT_SUFFIX,
 } from "./constants.js";
 import { detectLegacyVbriefLayout } from "./detect.js";
+import { isDirectory } from "./fs-helpers.js";
 import { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
 import type { JsonObject } from "./transforms.js";
 import { rewriteEmbeddedTokens, transformArtifactV06ToV08Transactional } from "./transforms.js";
@@ -39,14 +39,6 @@ export type XbriefMigrationOutcome =
   | { readonly kind: "refused"; readonly message: string }
   | { readonly kind: "migrated"; readonly backupDir: string; readonly files: number }
   | { readonly kind: "config"; readonly message: string };
-
-function isDirectory(path: string): boolean {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-}
 
 function collectFiles(root: string, acc: string[] = []): string[] {
   if (!isDirectory(root)) {
@@ -249,11 +241,18 @@ export function emitXbriefMigration(
  * after lifecycle migration + agents:refresh (#2154). The managed section is
  * left byte-for-byte intact; only the freeform header/tail path literals are
  * patched. Idempotent and non-fatal — a header with no legacy tokens is a
- * clean no-op. Always returns 0; the migration itself already succeeded.
+ * clean no-op, and a write failure surfaces as a `failed` outcome on stderr
+ * rather than an exception. Always returns 0; the migration itself already
+ * succeeded, so a header-patch hiccup must not fail the whole command.
  */
 function runHeaderPatch(projectRoot: string, io: XbriefMigrationIo): number {
   const outcome = patchAgentsMdHeader(projectRoot);
-  io.writeOut(`${renderHeaderPatchSummary(outcome)}\n`);
+  const summary = `${renderHeaderPatchSummary(outcome)}\n`;
+  if (outcome.kind === "failed") {
+    io.writeErr(summary);
+  } else {
+    io.writeOut(summary);
+  }
   return 0;
 }
 
