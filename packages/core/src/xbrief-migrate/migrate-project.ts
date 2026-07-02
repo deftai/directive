@@ -5,12 +5,12 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
+import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.js";
 import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
@@ -18,6 +18,7 @@ import {
   MIGRATED_ARTIFACT_SUFFIX,
 } from "./constants.js";
 import { detectLegacyVbriefLayout } from "./detect.js";
+import { isDirectory } from "./fs-helpers.js";
 import { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
 import type { JsonObject } from "./transforms.js";
 import { rewriteEmbeddedTokens, transformArtifactV06ToV08Transactional } from "./transforms.js";
@@ -38,14 +39,6 @@ export type XbriefMigrationOutcome =
   | { readonly kind: "refused"; readonly message: string }
   | { readonly kind: "migrated"; readonly backupDir: string; readonly files: number }
   | { readonly kind: "config"; readonly message: string };
-
-function isDirectory(path: string): boolean {
-  try {
-    return statSync(path).isDirectory();
-  } catch {
-    return false;
-  }
-}
 
 function collectFiles(root: string, acc: string[] = []): string[] {
   if (!isDirectory(root)) {
@@ -243,6 +236,26 @@ export function emitXbriefMigration(
   }
 }
 
+/**
+ * Rewrite legacy `vbrief` crossover tokens in the UNMANAGED AGENTS.md header
+ * after lifecycle migration + agents:refresh (#2154). The managed section is
+ * left byte-for-byte intact; only the freeform header/tail path literals are
+ * patched. Idempotent and non-fatal — a header with no legacy tokens is a
+ * clean no-op, and a write failure surfaces as a `failed` outcome on stderr
+ * rather than an exception. Always returns 0; the migration itself already
+ * succeeded, so a header-patch hiccup must not fail the whole command.
+ */
+function runHeaderPatch(projectRoot: string, io: XbriefMigrationIo): number {
+  const outcome = patchAgentsMdHeader(projectRoot);
+  const summary = `${renderHeaderPatchSummary(outcome)}\n`;
+  if (outcome.kind === "failed") {
+    io.writeErr(summary);
+  } else {
+    io.writeOut(summary);
+  }
+  return 0;
+}
+
 /** End-to-end migrate:xbrief handler including optional agents:refresh (#2110). */
 export function runXbriefMigrationCli(args: XbriefMigrationArgs, io: XbriefMigrationIo): number {
   const outcome = runXbriefMigration(args, io);
@@ -250,5 +263,10 @@ export function runXbriefMigrationCli(args: XbriefMigrationArgs, io: XbriefMigra
   if (code !== 0 || outcome.kind !== "migrated") {
     return code;
   }
-  return runAgentsRefresh(resolve(args.projectRoot), args.frameworkRoot, io);
+  const projectRoot = resolve(args.projectRoot);
+  const refreshCode = runAgentsRefresh(projectRoot, args.frameworkRoot, io);
+  if (refreshCode !== 0) {
+    return refreshCode;
+  }
+  return runHeaderPatch(projectRoot, io);
 }

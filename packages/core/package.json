@@ -34,6 +34,10 @@
       "types": "./dist/agents-md-budget/index.d.ts",
       "default": "./dist/agents-md-budget/index.js"
     },
+    "./agents-md-advisory": {
+      "types": "./dist/agents-md-advisory/index.d.ts",
+      "default": "./dist/agents-md-advisory/index.js"
+    },
     "./xbrief-migrate": {
       "types": "./dist/xbrief-migrate/index.d.ts",
       "default": "./dist/xbrief-migrate/index.js"

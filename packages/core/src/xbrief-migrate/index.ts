@@ -1,4 +1,16 @@
 export {
+  detectStaleUnmanagedHeader,
+  type HeaderPatchOutcome,
+  type HeaderRewriteResult,
+  type HeaderTokenReplacement,
+  LEGACY_HEADER_TOKENS,
+  patchAgentsMdHeader,
+  renderHeaderPatchSummary,
+  renderStaleHeaderLine,
+  rewriteUnmanagedHeaderTokens,
+  type StaleHeaderDetection,
+} from "./agents-header.js";
+export {
   detectLegacyVbriefLayout,
   type LegacyVbriefLayoutDetection,
 } from "./detect.js";

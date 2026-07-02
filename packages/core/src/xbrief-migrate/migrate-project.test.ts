@@ -267,6 +267,43 @@ describe("runXbriefMigrationCli", () => {
     expect(existsSync(join(project, "AGENTS.md"))).toBe(true);
   });
 
+  it("patches stale vbrief tokens in the pre-existing AGENTS.md unmanaged header (#2154)", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-cli-header-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+    // A consumer AGENTS.md whose unmanaged header still points at the legacy
+    // layout, wrapped around a managed section (which must survive untouched).
+    const staleAgents = [
+      "# Consumer",
+      "",
+      "## Lifecycle",
+      "- `task vbrief:preflight -- vbrief/active/foo.vbrief.json`",
+      "- Scoped work lives in `vbrief/`.",
+      "",
+      "<!-- deft:managed-section v3 -->",
+      "body mentions vbrief/active/x.vbrief.json",
+      "<!-- /deft:managed-section -->",
+      "",
+    ].join("\n");
+    writeFileSync(join(project, "AGENTS.md"), staleAgents, "utf8");
+
+    const lines: string[] = [];
+    const code = runXbriefMigrationCli(
+      { projectRoot: project, frameworkRoot: join(project, ".deft", "core"), force: true },
+      { writeOut: (t) => lines.push(t), writeErr: (t) => lines.push(t) },
+    );
+    expect(code).toBe(0);
+    expect(lines.join("")).toContain("rewrote");
+
+    const written = readFileSync(join(project, "AGENTS.md"), "utf8");
+    // Unmanaged header lifecycle examples now reference xbrief.
+    expect(written).toContain("xbrief:preflight -- xbrief/active/foo.xbrief.json");
+    expect(written).toContain("Scoped work lives in `xbrief/`.");
+    expect(written).not.toContain("vbrief/active/foo.vbrief.json");
+    // Managed section markers are still present.
+    expect(written).toContain("<!-- /deft:managed-section -->");
+  });
+
   it("returns exit code 2 when agents:refresh cannot find the framework template (template-missing)", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-cli-tmpl-"));
     temps.push(base);

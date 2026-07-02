@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import { contentRoot } from "../content-root.js";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import { runChecks } from "./checks.js";
@@ -165,6 +166,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
   sink.info("Checking AGENTS.md managed-section freshness...");
   runAgentsMdFreshnessCheck(projectRoot, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking AGENTS.md legibility (advisory)...");
+  runAgentsMdAdvisoryCheck(projectRoot, sink, addFinding, seams);
 
   if (!jsonMode) {
     sink.blank();
@@ -401,6 +408,82 @@ function runAgentsMdFreshnessCheck(
     addFinding({ severity: "warning", message, check: checkName, status: state });
   } catch (exc) {
     const message = `${checkName}: probe failed -- ${exc instanceof Error ? exc.name : "Error"}: ${exc}`;
+    sink.warn(message);
+    addFinding({ severity: "warning", message, check: checkName });
+  }
+}
+
+/**
+ * Advisory (never-failing) consumer AGENTS.md legibility signal (#2155).
+ *
+ * Reports the unmanaged (project-authored) region size against the soft budget
+ * (`plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines`, generous by default).
+ * The managed section is EXCLUDED. This is the consumer companion to the
+ * maintainer-only #645 ratchet and follows the advise -> observe -> enforce
+ * posture (#1419): it emits at most a `warning` finding, NEVER an `error`, so
+ * `deft doctor` (and the `check:consumer` aggregate that depends on it) can
+ * never fail-close on a judgment call about the consumer's own file.
+ */
+function runAgentsMdAdvisoryCheck(
+  projectRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+  seams: DoctorSeams,
+): void {
+  const checkName = "agents-md-advisory";
+  // Only meaningful for consumer installs (managed markers present). In the
+  // maintainer repo the #645 ratchet owns this file, so skip -- mirrors the
+  // freshness check's guard above.
+  if (
+    runningInsideDeftRepo(projectRoot, seams) ||
+    !hasV3ManagedMarker(projectRoot, seams.readText)
+  ) {
+    const skipReason = "no managed-section markers (likely maintainer repo)";
+    sink.info(`${checkName}: skip -- ${skipReason}`);
+    addFinding({ severity: "skip", message: skipReason, check: checkName, status: "skip" });
+    return;
+  }
+  try {
+    const evalFn =
+      seams.agentsMdAdvisoryEvaluate ?? ((root: string) => evaluateAgentsMdAdvisory(root));
+    const result = evalFn(projectRoot);
+    if (result.over && result.counts !== null) {
+      const message =
+        `AGENTS.md unmanaged (project-authored) region is ${result.counts.unmanaged} lines, ` +
+        `over the soft budget of ${result.softMaxLines} (advisory only -- your build is NOT ` +
+        "affected). AGENTS.md is a map, not a manual (#1882): push detail into a reference doc " +
+        "and leave a pointer (see content/docs/good-agents-md.md). Raise " +
+        "plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines to accept the growth and silence this.";
+      sink.warn(message);
+      addFinding({
+        severity: "warning",
+        message,
+        check: checkName,
+        status: "over-soft-budget",
+        suggestion: "content/docs/good-agents-md.md",
+      });
+      return;
+    }
+    if (result.counts !== null) {
+      sink.success(
+        `${checkName}: unmanaged region ${result.counts.unmanaged}/${result.softMaxLines} lines (within soft budget)`,
+      );
+      return;
+    }
+    // No counts (missing / unreadable / malformed AGENTS.md): advisory stays
+    // silent-but-informational; never a doctor error.
+    sink.info(`${checkName}: skip -- AGENTS.md not measurable`);
+    addFinding({
+      severity: "skip",
+      message: "AGENTS.md not measurable",
+      check: checkName,
+      status: "skip",
+    });
+  } catch (exc) {
+    // Sanitize newlines so an error string can't break out of the markdown
+    // bullet when findings are rendered (CWE-116).
+    const detail = `${exc instanceof Error ? exc.name : "Error"}: ${exc}`.replace(/\r?\n/g, " ");
+    const message = `${checkName}: probe failed -- ${detail}`;
     sink.warn(message);
     addFinding({ severity: "warning", message, check: checkName });
   }

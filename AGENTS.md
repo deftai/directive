@@ -40,8 +40,6 @@ Check what exists before doing anything else:
 
 ⊗ Confirm Deft alignment without first reading USER.md content -- a presence / `Test-Path` existence check is insufficient; the confirmation MUST echo the addressing-name read from inside USER.md.
 
-Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is a behavioral rule only.
-
 ## Session-start ritual (#1149)
 
 ! On every interactive session start, run `task session:start` after loading AGENTS.md. This records the quick-tier ritual in `.deft/ritual-state.json`: Deft alignment confirmation, branch-policy disclosure, required-tool guidance from `task verify:tools`, default-branch sync warnings, and `task triage:welcome` one-line state/nudge. The state is worktree- and HEAD-bound, and becomes stale after `plan.policy.sessionRitualStalenessHours` hours (default: 4).
@@ -52,16 +50,12 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 
 ⊗ Self-report the session-start ritual as complete without a fresh `task session:start` state, or bypass `task verify:session-ritual` before implementation dispatch. Headless workers and CI MAY set `DEFT_SESSION_RITUAL_SKIP=1`; the verifier exits 0 but warns when the bypass hides a failure.
 
+⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+
 `task doctor` remains the install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). When the managed-section is stale the doctor points the operator at `task agents:refresh` to regenerate AGENTS.md from `content/templates/agents-entry.md`. The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and, when behind, emits the canonical upgrade command `npm i -g @deftai/directive@latest` (#1339 / #1409 / #1912). The installer itself calls `scripts/doctor.py --session --json` at the end of every run for the unified handoff.
 
 **Canonical bootstrap / update path:** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade). Node ≥ 20 is required to run Deft (the live gates run on the TypeScript engine). On a machine without Node, install Node first, then use npm — the frozen legacy Go installer (GitHub Releases) is only a legacy/offline + layout-migration bridge (#1912), not a Node-free path. Legacy `task upgrade` / `run upgrade` are metadata-only acknowledgment (they do NOT replace the payload) and `task relocate -- --confirm` is back-compat only; git-clone / submodule / legacy doctor surfaces are de-emphasized in UPGRADING.md / README / skills. Agent example: after installing, start your session; the doctor output (or `task doctor`) tells you the exact state.
-`task triage:welcome` default mode remains non-interactive and emits the current triage-cache one-liner via the consolidated welcome surface (N3 / #1143). When state is incomplete (no `xbrief/.eval/candidates.jsonl`, no `triageScope`, no `wipCap` -- or any partial subset), an additional nudge line points the operator at `task triage:welcome --onboard` to set up or resume triage. D2's 4-hour suppression window still governs the headline; the canonical key compares structured fields from the latest `xbrief/.eval/summary-history.jsonl` record: `cache_empty`, `untriaged`, `stale_defer`, `in_flight`, `in_flight_filesystem`, `in_flight_cache_scoped`, `triage_scope_configured`, `wip_count`, `wip_cap`, `repos`, `scope_drift`, and `reconcilable` (#1279). Re-emission within the window occurs when any key field changes, including when the `[triage:scope]` discrepancy line appears or resolves. The headline `in-flight` count is **filesystem-truth** -- a live count of `xbrief/active/*.xbrief.json` files with `plan.status == "running"` (#1270). When that count diverges from the legacy audit-log-derived cache-scoped view, a second `[triage:scope]` line surfaces the gap; the wording distinguishes whether `plan.policy.triageScope[]` is explicitly configured (`outside plan.policy.triageScope[]`) or absent/empty/default (`not configured`). `task triage:summary` stays as a composable primitive for non-session-start callers (`deft-directive-sync`, scripts) -- not deprecated.
-
-## Resume nudge (conditional, #1269)
-
-Reserved placement for the optional 6th conditional step (resume nudge from the ritual sentinel) tracked by #1269. The substance lands with that PR; this anchor exists today so dispatched agents see the canonical placement once #1269 merges and the sentinel becomes available.
-
-⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+`task triage:welcome` default mode remains non-interactive and emits the current triage-cache one-liner via the consolidated welcome surface (N3 / #1143); when triage state is incomplete it adds a nudge to `task triage:welcome --onboard`. D2's 4-hour suppression window governs re-emission: the headline re-emits only when a structured comparison-key field in the latest `xbrief/.eval/summary-history.jsonl` record changes (the canonical field set and the filesystem-truth in-flight count are owned by the `triage:welcome` implementation -- see #1279 / #1270, not enumerated here). `task triage:summary` stays as a composable primitive for non-session-start callers -- not deprecated.
 
 ## Template propagation discipline (#1309)
 
@@ -173,14 +167,7 @@ Canonical write-up + good / bad example: `CONTRIBUTING.md` `## CHANGELOG entry s
 
 ## Commands
 
-- /deft:change <name>        — Propose a scoped change
-- /deft:run:interview        — Structured spec interview
-- /deft:run:speckit          — Five-phase spec workflow (large projects)
-- /deft:run:discuss <topic>  — Feynman-style alignment
-- /deft:run:research <topic> — Research before planning
-- /deft:run:map              — Map an existing codebase
-- run bootstrap              — CLI setup (terminal users)
-- run spec                   — CLI spec generation
+Product commands use the `/deft:directive:*` namespace (#418 / #1670); the prior `/deft:*` product forms are deprecation-warning aliases, and cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. The legacy Python `run` CLI is deprecated (#1933) -- use the agent-driven setup skill for first-time setup and spec generation. See `content/commands.md` for the full command + alias table and the managed `## Commands` section below for the rendered surface.
 
 ## PowerShell
 
@@ -188,7 +175,7 @@ Canonical write-up + good / bad example: `CONTRIBUTING.md` `## CHANGELOG entry s
 
 - ! On PS 5.1, MUST use Python `pathlib` for all file edits touching non-ASCII glyphs (em dashes, arrows, ⊗, ✓, …, smart quotes, etc.) -- never `Get-Content -Raw` / `Set-Content` / inline `-replace` / backtick-n interpolation
 - ! When writing files using PowerShell on PS 7+ where unavoidable, MUST use `New-Object System.Text.UTF8Encoding $false` -- never `[System.Text.Encoding]::UTF8` (writes BOM). See `content/scm/github.md` PS 5.1 section.
-- ! Personal rule `3MieNBQjwlObZM1If060iy` on the user's Warp profile encodes the same prohibition for the swarm cohort -- this AGENTS.md rule is the project-side mirror so consumer-installed copies of deft carry the rule even when the personal rule is not loaded
+- ! This AGENTS.md rule is the project-side mirror of the same prohibition maintained in the maintainer's personal agent profile, so consumer-installed copies of deft carry the rule even when that personal rule is not loaded
 - ⊗ Round-trip a file containing non-ASCII content through PS 5.1 commands (`Get-Content` → `-replace` → `Set-Content`, `Get-Content` → string concat → `WriteAllText`, here-strings interpolating non-ASCII) -- the read-side decode corrupts the bytes regardless of how the write side is encoded
 
 **Recurrence record:** four prior occurrences before the deterministic gate landed -- #236 (t1.11.1, content/scm/github.md), #240 (t1.11.2, multi-line here-string rule), #283 (t1.20.1, AGENTS.md UTF8Encoding rule), and PR #795 (2026-05-01, 132-line CHANGELOG mojibake on a maintainer with all three prose rules loaded; the read-side decode happened before any write).
@@ -325,7 +312,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=4a455360697b refreshed=2026-07-02T02:16:47Z session=f1a7c4485a2e -->
+<!-- deft:managed-section v3 sha=7fa176f4718f refreshed=2026-07-02T13:40:18Z session=1ab0f05c9cbf -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -389,16 +376,12 @@ Check what exists before doing anything else:
 
 ⊗ Self-report the session-start ritual as complete without a fresh `deft session:start` state, or bypass `deft verify:session-ritual` before implementation dispatch. Headless workers and CI MAY set `DEFT_SESSION_RITUAL_SKIP=1`; the verifier exits 0 but warns when the bypass hides a failure.
 
+⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+
 `deft doctor` remains the install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). When the managed-section is stale, the doctor points the operator at `deft agents:refresh` to regenerate AGENTS.md from `templates/agents-entry.md`. The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and, when behind, emits the canonical upgrade command `npm i -g @deftai/directive@latest` (#1339 / #1409 / #1912).
 
 **Canonical bootstrap / update path:** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade). Node ≥ 20 is required to run Deft (the live gates run on the TypeScript engine). On a machine without Node, install Node first, then use npm — the frozen legacy Go installer (GitHub Releases) is only a legacy/offline + layout-migration bridge (#1912), not a Node-free path. Legacy `deft upgrade` / `run upgrade` are metadata-only acknowledgment and `deft relocate -- --confirm` is back-compat only; git-clone / submodule / legacy doctor surfaces are de-emphasized in UPGRADING.md / README / skills. Agent example: after installing, start your session; `deft doctor` tells you the exact state.
-`deft triage:welcome` emits the triage one-liner and, when state is incomplete, nudges the operator at `deft triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual. D2's 4-hour suppression window governs repeat emission during session start; the canonical key compares structured fields from the latest `xbrief/.eval/summary-history.jsonl` record: `cache_empty`, `untriaged`, `stale_defer`, `in_flight`, `in_flight_filesystem`, `in_flight_cache_scoped`, `triage_scope_configured`, `wip_count`, `wip_cap`, `repos`, `scope_drift`, and `reconcilable` (#1279). Re-emission within the window occurs when any key field changes, including when the `[triage:scope]` discrepancy line appears or resolves.
-
-## Resume nudge (conditional, #1269)
-
-Reserved placement for the optional 6th conditional step (resume nudge from the ritual sentinel) tracked by #1269. The substance lands with that PR; this anchor exists today so consumers see the canonical placement once #1269 merges and the sentinel becomes available.
-
-⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+`deft triage:welcome` emits the triage one-liner and, when state is incomplete, nudges the operator at `deft triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual. D2's 4-hour suppression window governs repeat emission during session start: the headline re-emits only when a structured comparison-key field in the latest `xbrief/.eval/summary-history.jsonl` record changes (the canonical field set is owned by the `triage:welcome` implementation -- see #1279, not enumerated here).
 
 ## WIP cap
 

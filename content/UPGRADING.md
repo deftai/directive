@@ -56,6 +56,15 @@ deft migrate:xbrief
 
 (or `task migrate:xbrief` from a maintainer checkout). The command requires a clean working tree unless you pass `--force`. Legacy `vbrief/` paths and `x-vbrief/` tokens remain **read-accepted** until this migration runs; `deft update` may signpost the same guidance on non-patch upgrades.
 
+### AGENTS.md: managed vs unmanaged header (#2154)
+
+`migrate:xbrief` touches your `AGENTS.md` in two distinct regions:
+
+- **Managed section** (between the `<!-- deft:managed-section ... -->` / `<!-- /deft:managed-section -->` markers): regenerated wholesale by `agents:refresh`, so it always reflects the current framework layout. This region is rendered from the framework template — do not hand-edit it.
+- **Unmanaged header/tail** (everything outside those markers — your project-specific `Session orientation`, `Lifecycle` examples, `Local dev` notes): preserved verbatim across upgrades so your consumer notes survive. Because it is preserved, a rename migration would otherwise leave stale `vbrief/` path literals here. `migrate:xbrief` now applies a **bounded, idempotent** rewrite over the unmanaged region only, replacing the known crossover tokens (`vbrief/` → `xbrief/`, `*.vbrief.json` → `*.xbrief.json`, `vbrief:preflight` → `xbrief:preflight`) while leaving freeform prose untouched. It prints a summary of the replacements.
+
+If you upgraded before this fix landed and your header still points at `vbrief/`, `deft doctor` now emits an `AGENTS.md header drift:` signpost. Re-run `deft migrate:xbrief` (idempotent) to patch the header, or hand-edit the offending path literals.
+
 ## Public contract layer — `@deftai/directive-types` (#1799)
 
 Downstream TypeScript projects can import the canonical xBRIEF/policy contract instead of hand-mirroring JSON shapes:

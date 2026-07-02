@@ -1,0 +1,105 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF batching four independent AGENTS.md quick-wins (#2158 Commands drift, #2159 personal-rule-ID leak, #2160 reserved placeholders, #2161 inlined field-list) into one PR; child of the #1882 map-not-manual umbrella. Batched because all four are small edits to the same hot files (AGENTS.md + content/templates/agents-entry.md + the #645 ratchet), so serializing into one PR avoids self-conflict.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T13:42:40Z"
+  },
+  "plan": {
+    "id": "2158-2161-agents-md-quick-wins",
+    "title": "AGENTS.md quick-wins batch: Commands drift + personal-rule leak + reserved placeholders + inlined field-list",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2158",
+    "narratives": {
+      "Description": "Four independent legibility/correctness fixes to the always-loaded AGENTS.md surface, batched into one PR because they all edit the same files and the #645 ratchet. (1) #2158: the maintainer-authored '## Commands' section still advertises deprecated command forms (/deft:change, /deft:run:*, run bootstrap, run spec) as current, drifted from its own managed section which already documents the /deft:directive:* namespace (#418/#1670) and the deprecated run CLI (#1933) -- update the maintainer Commands section to match the current surface (or reduce it to a pointer). (2) #2159: remove the hardcoded personal Warp-profile rule ID (3MieNBQjwlObZM1If060iy) from the shared PowerShell section -- keep the 'project-side mirror' intent without the opaque personal identifier. (3) #2160: drop the reserved placeholder sections (the '## Resume nudge (conditional, #1269)' anticipatory anchor and the 'Note: A true UI indicator ... deferred to Phase 5' line) from BOTH halves and the template -- they consume always-loaded budget for rules that do not exist yet. (4) #2161: compress the inlined triage:welcome summary-history field enumeration (~15 field names, #1279) in the Session-start ritual paragraph to a one-line behavioral rule + a pointer to the owning doc, in BOTH halves and the template. Because #2160 and #2161 reduce lines, this PR MUST lower the #645 ratchet (plan.policy.agentsMdBudget) to the new per-region counts after `task agents:refresh`.",
+      "ImplementationPlan": "1. #2158: rewrite the maintainer '## Commands' section in AGENTS.md so it matches the managed section (/deft:directive:* namespace; run CLI deprecated) or reduce it to a pointer to content/commands.md -- no deprecated form presented as current. 2. #2159: in the maintainer '## PowerShell' section, remove the personal Warp-profile rule ID reference; restate the mirror intent generically. 3. #2160: remove the '## Resume nudge (conditional, #1269)' reserved section and the Phase 5 UI-indicator deferral note from AGENTS.md (both maintainer half and, if mirrored, the managed section) AND from content/templates/agents-entry.md. 4. #2161: replace the verbatim summary-history field enumeration in the Session-start ritual with a one-line rule + pointer, in AGENTS.md and content/templates/agents-entry.md. 5. Run `task agents:refresh` so the rendered managed section inherits the template edits (#1309 propagation). 6. Update tests/content/test_agents_entry_contract.py curated marker list if any removed text was a marker. 7. Recompute managed vs unmanaged AGENTS.md line counts after refresh and LOWER plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} in xbrief/PROJECT-DEFINITION.xbrief.json to the new counts. 8. Add a CHANGELOG [Unreleased] entry (user-visible: leaner, correct session-start guidance). Run `task check` green (includes verify:agents-md-budget, agents-entry contract, verify:encoding).",
+      "UserStory": "As an agent reading AGENTS.md every session, I want the always-loaded policy file to be correct (current command surface) and free of placeholder/reference-detail bloat, so that session-start orientation is accurate and the context budget is spent on real rules.",
+      "Traces": "#2158, #2159, #2160, #2161, #1882, #645, #2157"
+    },
+    "items": [
+      {
+        "id": "qw-a1",
+        "title": "Maintainer Commands section matches current surface (#2158)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given AGENTS.md, when the maintainer '## Commands' section is read, then it no longer presents /deft:change, /deft:run:*, run bootstrap, or run spec as the current surface -- it agrees with the managed section (/deft:directive:* + run deprecated) or points at the single source."
+        }
+      },
+      {
+        "id": "qw-a2",
+        "title": "No personal Warp-profile rule ID in AGENTS.md/template (#2159)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given AGENTS.md and the template, when the PowerShell section is read, then no personal Warp-profile rule ID appears; the PS 5.1 non-ASCII rule itself is unchanged and verify:encoding still passes."
+        }
+      },
+      {
+        "id": "qw-a3",
+        "title": "Reserved placeholders removed from always-loaded surface (#2160)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given AGENTS.md and content/templates/agents-entry.md, when read, then the '## Resume nudge (#1269)' reserved anchor and the Phase 5 UI-indicator note are absent; `task agents:refresh` regenerates the managed section and the agents-entry contract test passes."
+        }
+      },
+      {
+        "id": "qw-a4",
+        "title": "Inlined triage:welcome field enumeration compressed to a pointer (#2161)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the Session-start ritual section in both halves + the template, when read, then the verbatim summary-history.jsonl field enumeration is replaced by a one-line rule + pointer; the actionable 'run task session:start' rule is preserved."
+        }
+      },
+      {
+        "id": "qw-a5",
+        "title": "#645 ratchet lowered; task check green",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Given the smaller AGENTS.md after refresh, when the PR lands, then plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} is lowered to the new counts and `task check` (verify:agents-md-budget, agents-entry contract, verify:encoding, full suite) passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#2158"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "tests/content/test_agents_entry_contract.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "Maintainer Commands section de-drifted; personal rule ID removed; reserved placeholders + inlined field-list removed from always-loaded surface; managed section refreshed; #645 ratchet lowered"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-legibility",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T13:42:40Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2158",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2158: maintainer Commands drift"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
+      }
+    ],
+    "updated": "2026-07-02T13:42:40Z"
+  }
+}

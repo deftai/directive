@@ -22,8 +22,24 @@
 AGENTS.md is the always-loaded front door. Empirical study (`content/docs/good-agents-md.md`) found agent-quality gains from AGENTS.md **reverse** once the file grows past ~100–150 lines: context is scarce, "everything important" becomes non-guidance, and stale rules accumulate.
 
 - **Default when adding content**: push the detail into a reference doc (`main.md` section, a content pack, or `docs/`) and leave a *pointer* from AGENTS.md — do **not** expand AGENTS.md itself.
-- **Enforced by a ratchet**: `task verify:agents-md-budget` (wired into `task check`) fails when the managed section or the unmanaged region grows past `plan.policy.agentsMdBudget` in `PROJECT-DEFINITION`. The budget is seeded at the current per-region size, so *growth* fails while *reductions* are always allowed.
+- **Enforced by a ratchet (maintainer repo only)**: `task verify:agents-md-budget` (wired into `check:framework-source`) fails when the managed section or the unmanaged region grows past `plan.policy.agentsMdBudget` in `PROJECT-DEFINITION`. The budget is seeded at the current per-region size, so *growth* fails while *reductions* are always allowed.
 - **Lowering the budget is free; raising it is a reviewed diff.** Each reduction should tighten the matching `managedMaxLines` / `unmanagedMaxLines` line so the ratchet only ever ratchets down toward the ceiling.
+
+### Consumer projects: an *advisory* signal, never a failing gate (#2155)
+
+Consumer projects (deft installed as `.deft/core`) get a **different** treatment than the maintainer repo, because your AGENTS.md has two regions with very different owners:
+
+- The **managed section** is rendered from the framework template — *we* own its size. It is never a consumer-actionable failure; at most `deft doctor` hints at `deft update`.
+- The **unmanaged region** (your project header + project-specific rules) is **yours**. The framework can't know what your project legitimately needs there — a compliance-heavy repo or a monorepo with real per-package rules may need more — so it has no business failing *your* build over it.
+
+So the consumer posture is **advise, don't enforce** (the `verify:capacity` / `verify:judgment-gates` advise → observe → enforce precedent, #1419):
+
+- `deft doctor` (and the `check:consumer` aggregate that depends on it) reports the unmanaged region size against a **soft budget** and, when over, prints an advisory note — but **always exits 0**. It can never fail-close your build.
+- The soft budget is the typed field `plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines` in `PROJECT-DEFINITION`, **generous by default** when unset. Raising it is the no-friction, self-service way to accept legitimate growth and silence the nudge — that edit *is* your "yes, this is intentional".
+- The framework-owned managed section is **excluded** from the count (it reuses the #645 region counter).
+- Want a hard cap on your own file anyway? Run `task verify:agents-md-advisory -- --enforce` (or `deft verify:agents-md-advisory --enforce`) — the opt-in enforce tier exits non-zero when over. It is deliberately **not** wired into `check:consumer`; you invoke it yourself.
+
+The honest caveat: because it is advisory-and-generous-by-default, the value is the *nudge at the right moment* (a growing header caught during `doctor` / session start / pre-pr), not a blocking number we made up.
 
 ## 🧭 Skills Index
 

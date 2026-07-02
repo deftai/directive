@@ -148,6 +148,7 @@ export const CLI_MODULE_VERBS = [
   "verify-tools",
   "verify-wip-cap",
   "verify-agents-md-budget",
+  "verify-agents-md-advisory",
 ] as const;
 
 /** Core-only CLI entrypoints without a packages/cli wrapper. */
@@ -212,6 +213,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:vbrief-conformance": "vbrief-validate",
   "verify:wip-cap": "verify-wip-cap",
   "verify:agents-md-budget": "verify-agents-md-budget",
+  "verify:agents-md-advisory": "verify-agents-md-advisory",
   "verify:hooks-installed": "verify-hooks-installed",
   "verify:no-task-runtime": "verify-no-task-runtime",
   "vbrief:validate": "vbrief-validate",
