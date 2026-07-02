@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2178: the native `setup:ghx` handler pipes remote install scripts straight into a shell from a mutable git tag with no integrity check, which trips Socket Security's AI-malware heuristic and blocks every consumer PR that bumps @deftai/directive. Fix: download to a temp file, verify against a vendored SHA-256, pin an immutable commit SHA instead of the mutable tag, and drop -ExecutionPolicy Bypass on the verified local file.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2178-ghx-install-integrity",
+    "title": "Download-verify-execute the ghx installer instead of piping remote scripts into a shell",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2178",
+    "narratives": {
+      "Description": "packages/cli/src/dispatch.ts's runSetupGhx (ported from the retired scripts/setup_ghx.py in #2022 Phase 1) installs ghx via `irm <url> | iex` on Windows (with `-ExecutionPolicy Bypass`) and `curl -fsSL <url> | bash` on unix, where `<url>` points at the mutable `v1.5.1` git tag on brunoborges/ghx. Socket Security's AI heuristic flags this exact live-pipe-with-no-integrity-check pattern and scores @deftai/directive as ~65% likely malicious (severity 0.78), which blocks every consumer PR that bumps the dependency under a Socket policy that treats that alert as Block (deftai/evolution#1046, #1047). The CI workflow (.github/workflows/ci.yml) already download-verifies the Windows installer against a vendored SHA-256 as a #1070/#1328 quick-win, but the native TS setup:ghx handler that ships to consumers still does the live pipe. This story ports the same download->verify->execute discipline into the native handler for both platforms, additionally pinning the fetch URL to the immutable commit SHA the v1.5.1 tag currently resolves to (rather than the mutable tag name) so a future tag force-move cannot silently swap the fetched bytes out from under the vendored hash, and drops -ExecutionPolicy Bypass for the verified local temp file on Windows (Unblock-File is not needed since the file is written by Node, not a Windows web-download API, so it never carries a Mark-of-the-Web zone identifier).",
+      "ImplementationPlan": "1. In packages/cli/src/dispatch.ts: keep GHX_VERSION='v1.5.1' as the human-readable/display pin but add GHX_COMMIT_SHA (the commit the v1.5.1 tag currently points at, resolved via `gh api repos/brunoborges/ghx/git/refs/tags/v1.5.1`) and repoint INSTALL_PS1_URL/INSTALL_SH_URL at raw.githubusercontent.com/brunoborges/ghx/<GHX_COMMIT_SHA>/install.{ps1,sh}. Vendor GHX_INSTALL_SH_SHA256 / GHX_INSTALL_PS1_SHA256 (reuse the same hashes already vendored in .github/workflows/ci.yml env, confirmed via fresh `curl | sha256sum` against the pinned SHA). 2. Add a download+verify+execute pipeline: a DownloadFn-injectable fetch of the installer bytes, a sha256 verify step that aborts (no execution) on mismatch, a write to a private temp file (fs.mkdtempSync + writeFileSync, 0700/0600 perms on unix), then execute the local file directly (`bash <tempfile>` on unix, `pwsh -NoProfile -ExecutionPolicy RemoteSigned -File <tempfile>` on Windows -- no `| bash`/`| iex`, no ExecutionPolicy Bypass) with a finally-block temp file cleanup. runSetupGhx becomes async (CommandHandler already supports Promise<number>). 3. Keep the existing mitigations byte-for-byte: [y/N] consent prompt unless --yes, DEFT_SETUP_GHX_SKIP escape hatch, ghx-already-on-PATH short-circuit, --check nudge mode. 4. Document the GHX_VERSION+hash bump procedure inline as a code comment (resolve new tag's commit SHA, refetch install.sh/install.ps1, recompute sha256, update all four constants in lockstep with .github/workflows/ci.yml). 5. Tests in dispatch.test.ts: hash mismatch aborts without executing the installer; happy path downloads, verifies, and executes the verified temp file exactly once; consent gate ([y/N] default-deny and --yes) still honored ahead of any network call; URLs pin to the immutable commit SHA (not the mutable tag name). 6. Keep .github/workflows/ci.yml env.GHX_VERSION / hashes in lockstep (no change needed since the resolved hashes match what's already vendored there). 7. CHANGELOG [Unreleased] entry. 8. task check GREEN.",
+      "UserStory": "As a maintainer landing a routine @deftai/directive version bump PR, I want the package's ghx installer to download, verify, and only then execute the installer script (never pipe unverified remote bytes into a shell), so that Socket Security's AI-malware heuristic stops blocking every bump PR.",
+      "Traces": "#2178, #2022, #1070, #1328, #884"
+    },
+    "items": [
+      {
+        "id": "a1",
+        "title": "Installer URLs pin to an immutable commit SHA with vendored SHA-256 hashes",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given dispatch.ts, when INSTALL_PS1_URL/INSTALL_SH_URL are read, then they reference the resolved commit SHA for the v1.5.1 tag (not the mutable tag name) and GHX_INSTALL_SH_SHA256/GHX_INSTALL_PS1_SHA256 constants exist with correctly vendored 64-hex-char SHA-256 values matching the actual bytes at that commit."
+        }
+      },
+      {
+        "id": "a2",
+        "title": "Installer is downloaded, hash-verified, then executed from a local temp file (no live pipe)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a user consents to install, when runSetupGhx runs, then the installer bytes are fetched to memory, written to a private temp file, and only executed via a direct local-file invocation (`bash <tempfile>` / `pwsh ... -File <tempfile>`) after a SHA-256 match; there is no `curl | bash`, `irm | iex`, or `-ExecutionPolicy Bypass` anywhere in the install path; a hash mismatch aborts before any execution and reports an error without running the file."
+        }
+      },
+      {
+        "id": "a3",
+        "title": "Existing consent + skip mitigations unchanged; new tests cover the integrity gate",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the [y/N] consent prompt, --yes, --check, and DEFT_SETUP_GHX_SKIP behaviors, when runSetupGhx runs, then they behave identically to before this change; new dispatch.test.ts cases cover hash-mismatch-aborts-without-executing, happy-path-executes-verified-temp-file, and consent-gate-still-honored-before-any-download."
+        }
+      },
+      {
+        "id": "a4",
+        "title": "task check green; CI hashes in lockstep; CHANGELOG entry",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given task check, when it runs, then build/lint/test all pass; .github/workflows/ci.yml env.GHX_VERSION and its vendored SHA-256 hashes remain consistent with the native handler's constants; CHANGELOG.md [Unreleased] has a brief user-visible entry referencing #2178."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": null,
+        "child_issue": "#2178"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "setup:ghx downloads, SHA-256-verifies, and executes the ghx installer from a local temp file pinned to an immutable commit SHA; no live curl|bash / irm|iex pipe and no ExecutionPolicy Bypass remain; task check green"
+        ],
+        "depends_on": [],
+        "conflict_group": "cli-dispatch",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-02T18:56:57Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2178",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2178: setup:ghx installer pipes remote scripts from a mutable tag with no integrity verification"
+      }
+    ],
+    "updated": "2026-07-02T18:56:57Z"
+  }
+}
