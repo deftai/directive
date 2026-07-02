@@ -1,0 +1,32 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2209"
+  },
+  "plan": {
+    "title": "flaky(ci): verify-env/branches.test.ts toolchain-check times out at 5s in CI (real subprocess spawn)",
+    "status": "running",
+    "narratives": {
+      "Description": "flaky(ci): verify-env/branches.test.ts toolchain-check times out at 5s in CI (real subprocess spawn)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2209",
+      "UserStory": "As a directive contributor, I want the toolchain-check test to be deterministic so my unrelated PRs don't get false-red CI when a cold runner's real subprocess spawn exceeds vitest's 5s default timeout.",
+      "ImplementationPlan": "1. In packages/core/src/verify-env/branches.test.ts, replace the `defaultCommandRunner` in the 'single tool' branch (line ~262) with an injected fake/stub command runner that returns a canned success without spawning a real process — removing the wall-clock dependency (preferred, per #975).\n2. Keep at most one test that genuinely exercises `defaultCommandRunner` end-to-end (if coverage requires it) and give THAT test an explicit generous `testTimeout` (e.g. 20000ms) so cold-runner spawn latency cannot trip the default.\n3. Run the file locally to confirm sub-second determinism; run `task check`.",
+      "Traces": "#2209, #975",
+      "Overview": "## Summary\n\n`packages/core/src/verify-env/branches.test.ts:262` — *\"exercises runToolchainCheck with defaultCommandRunner and a single tool\"* — intermittently fails in the **TypeScript (build + lint + test)** CI job with:\n\n```\nError: Test timed out in 5000ms.\n ❯ packages/core/src/verify-env/branches.test.ts:262:3\n```\n\nObserved on PR #2208 (run 28624441344). The test passes locally in ~457ms.\n\n## Root cause\n\nThe test exercises `runToolchainCheck` with the real `defaultCommandRunner`, which spawns actual subprocesses (e.g. `node --version`). On a cold / loaded CI runner, subprocess spawn + process startup can exceed vitest's default 5000ms `testTimeout`, producing a non-deterministic failure that has nothing to do with the code under test in a given PR.\n\n## Impact\n\n- False-red CI on unrelated PRs; blocks merge until a re-run happens to land under 5s.\n- Wastes a CI round-trip and operator attention per occurrence.\n\n## Proposed fix (pick one)\n\n1. Inject a fake/stubbed command runner for this branch instead of `defaultCommandRunner`, so no real subprocess is spawned (preferred — removes the wall-clock dependency entirely, per the #975 test-performance discipline).\n2. If a real subprocess is intentional for this branch, raise the per-test `testTimeout` (e.g. 20000ms) so cold-runner spawn latency doesn't trip the default.\n\n## Repro\n\nRe-run the TS CI lane on a cold runner, or run under artificial load:\n\n```\nnpx vitest run packages/core/src/verify-env/branches.test.ts\n```\n\nRefs #975 (test performance discipline). Discovered while landing #2207 (PR #2208)."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2209",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2209: flaky(ci): verify-env/branches.test.ts toolchain-check times out at 5s in CI (real subprocess spawn)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/975",
+        "type": "x-xbrief/refs",
+        "title": "Issue #975"
+      }
+    ],
+    "updated": "2026-07-02T23:03:56Z"
+  }
+}
