@@ -88,6 +88,34 @@ describe("countRegions", () => {
     const result = countRegions(text);
     expect("error" in result).toBe(true);
   });
+
+  it("errors when a second open marker is present (duplicate)", () => {
+    const text = [
+      "x",
+      "<!-- deft:managed-section v3 -->",
+      "managed",
+      "<!-- /deft:managed-section -->",
+      "<!-- deft:managed-section v3 -->",
+      "second block",
+    ].join("\n");
+    const result = countRegions(text);
+    expect("error" in result).toBe(true);
+    if ("error" in result) {
+      expect(result.error).toContain("malformed");
+    }
+  });
+
+  it("errors when a second close marker is present (duplicate)", () => {
+    const text = [
+      "x",
+      "<!-- deft:managed-section v3 -->",
+      "managed",
+      "<!-- /deft:managed-section -->",
+      "<!-- /deft:managed-section -->",
+    ].join("\n");
+    const result = countRegions(text);
+    expect("error" in result).toBe(true);
+  });
 });
 
 describe("evaluate", () => {
@@ -130,6 +158,19 @@ describe("evaluate", () => {
     expect(result.code).toBe(0);
     expect(result.stream).toBe("stderr");
     expect(result.message).toContain("no plan.policy.agentsMdBudget configured");
+  });
+
+  it("suppresses the unset-budget warning when quiet", () => {
+    const root = makeRepo({ plan: { title: "T" }, agents: agentsWith(10, 5) });
+    expect(evaluate(root, { quiet: true })).toEqual({ code: 0, message: "", stream: "none" });
+  });
+
+  it("returns exit 2 when AGENTS.md exists but cannot be read (is a directory)", () => {
+    const root = makeRepo({ plan: budgetPlan });
+    mkdirSync(join(root, "AGENTS.md"), { recursive: true });
+    const result = evaluate(root);
+    expect(result.code).toBe(2);
+    expect(result.message).toContain("cannot be read");
   });
 
   it("returns exit 2 for a malformed budget field", () => {

@@ -20,7 +20,7 @@
       {
         "id": "645-a1",
         "title": "Given an AGENTS.md region that grew past its ratchet baseline, when the gate runs, then it reports over-budget with a remediation hint",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an AGENTS.md whose managed or unmanaged region exceeds its ratchet-seeded line budget, when verify:agents-md-budget runs, then it exits non-zero and names the offending region plus the push-to-reference remediation. Given the file exactly at its seeded baseline, the gate passes (the ratchet ships green with no reduction required)."
         }
@@ -28,7 +28,7 @@
       {
         "id": "645-a2",
         "title": "Given the managed-section markers, when the gate counts lines, then managed and unmanaged regions are budgeted separately",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the deft:managed-section markers, when the gate parses AGENTS.md, then it counts the managed section and the maintainer/unmanaged region independently and applies each region's own budget."
         }
@@ -36,7 +36,7 @@
       {
         "id": "645-a3",
         "title": "Given a project Taskfile, when task check runs, then the budget gate participates at the configured tier",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given task check, when it runs on a PR touching AGENTS.md or the template, then verify:agents-md-budget participates at the configured (advisory by default) tier."
         }
@@ -44,7 +44,7 @@
       {
         "id": "645-a4",
         "title": "Given the docs, when a contributor reads REFERENCES.md/CONTRIBUTING.md, then the ceiling rule and remediation are documented",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given REFERENCES.md / CONTRIBUTING.md, when a contributor reads the AGENTS.md maintenance guidance, then the line-budget ceiling, the push-detail-to-references default, and the empirical basis (content/docs/good-agents-md.md) are stated."
         }

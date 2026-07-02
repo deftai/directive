@@ -42,16 +42,26 @@ export function countRegions(text: string): { counts: RegionCounts } | { error: 
 
   const openLine = lines.findIndex((l) => l.startsWith(OPEN_MARKER_PREFIX));
   const closeLine = lines.findIndex((l) => l.trim().startsWith(AGENTS_MANAGED_CLOSE));
+  const openCount = lines.filter((l) => l.startsWith(OPEN_MARKER_PREFIX)).length;
+  const closeCount = lines.filter((l) => l.trim().startsWith(AGENTS_MANAGED_CLOSE)).length;
 
   if (openLine === -1 && closeLine === -1) {
     return { counts: { total, managed: 0, unmanaged: total } };
   }
-  if (openLine === -1 || closeLine === -1 || closeLine < openLine) {
+  // Malformed if a marker is missing, close precedes open, or either marker is
+  // duplicated -- the contract promises exactly one open/close pair.
+  if (
+    openLine === -1 ||
+    closeLine === -1 ||
+    closeLine < openLine ||
+    openCount > 1 ||
+    closeCount > 1
+  ) {
     return {
       error:
         "AGENTS.md managed-section markers are malformed " +
-        `(open@${openLine === -1 ? "none" : openLine + 1}, ` +
-        `close@${closeLine === -1 ? "none" : closeLine + 1}); ` +
+        `(open@${openLine === -1 ? "none" : openLine + 1}×${openCount}, ` +
+        `close@${closeLine === -1 ? "none" : closeLine + 1}×${closeCount}); ` +
         "expected a single <!-- deft:managed-section ... --> ... " +
         "<!-- /deft:managed-section --> pair.",
     };
@@ -157,7 +167,16 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     };
   }
 
-  const budget = budgetResult.budget as { managedMaxLines: number; unmanagedMaxLines: number };
+  /* v8 ignore start -- defensive: source "typed" always carries a non-null budget. */
+  if (budgetResult.budget === null) {
+    return {
+      code: 2,
+      message: "❌ verify:agents-md-budget: unexpected null budget for typed source",
+      stream: "stderr",
+    };
+  }
+  /* v8 ignore stop */
+  const budget = budgetResult.budget;
   const overManaged = counts.managed > budget.managedMaxLines;
   const overUnmanaged = counts.unmanaged > budget.unmanagedMaxLines;
 
