@@ -274,14 +274,10 @@ describe("toolchain-check branches", () => {
     expect(result.lines.some((line) => line.includes("node:"))).toBe(true);
   });
 
-  it(
-    "covers defaultCommandRunner failure branch",
-    () => {
-      const result = defaultCommandRunner([process.execPath, "-e", "process.exit(1)"], 1000);
-      expect("returncode" in result && result.returncode).toBe(1);
-    },
-    20_000,
-  );
+  it("covers defaultCommandRunner failure branch", () => {
+    const result = defaultCommandRunner([process.execPath, "-e", "process.exit(1)"], 1000);
+    expect("returncode" in result && result.returncode).toBe(1);
+  }, 20_000);
 
   it("covers defaultCommandRunner ENOENT branch", () => {
     const result = defaultCommandRunner(["definitely-missing-binary-xyz"], 1000);
