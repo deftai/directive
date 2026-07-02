@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **AGENTS.md stays leaner while keeping the same story and implementation gates (#2192).** The managed guidance now states the one-story-per-branch default once, keeps the swarm-cohort carve-out beside it, and shortens the preflight install-mechanism prose to pointers for ordering, workflow, and recovery. The line-budget ratchet tightens to the smaller generated surface. Closes #2192. Refs #2153, #645, #810, #1378.
 - **New consumer installs no longer scaffold rot-prone AGENTS.md Status/Known Issues headers (#2065).** Fresh installs now emit a bounded unmanaged header — project one-liner plus a Session orientation pointer at `xbrief/`, triage, and GitHub issues — and the managed section tells agents not to treat the header as the work queue. Option A (retire the pattern); parent #1882. Closes #2065.
 
 - **Leaner always-loaded `AGENTS.md` with rules unchanged (#2156).** Incident-driven narrative blocks (`Why this rule exists`, recurrence records, long cross-reference lists) in the maintainer policy file are collapsed to actionable rules plus one-line pointers into `docs/analysis/`; maintainer/managed overlap (cache, MAP, skills, WIP cap, issue comments) de-dupes to pointers where the managed section already carries the same directives. The #645 line-budget ratchet tightens to match. Refs #2156, #1882, #645.

@@ -234,7 +234,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=d1766a7c790f refreshed=2026-07-02T17:23:40Z session=3d9050234949 -->
+<!-- deft:managed-section v3 sha=d7e2b5d8d65d refreshed=2026-07-02T18:51:20Z session=16fb3b880bce -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -390,7 +390,7 @@ Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they
 
 ### Implementation Intent Gate (#810)
 
-- ! Run `deft xbrief:preflight -- <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. The Taskfile target resolves the wrapped script via `.deft/core/scripts/_resolve_preflight_path.py` (which probes the canonical, legacy, and in-repo install layouts in priority order) and fails closed with a structured `gate misconfigured` error pointing at `deft framework:doctor` if no candidate resolves -- the gate cannot silently fail open on a misconfigured install (#1046 / #1047). The helper names `deft xbrief:activate <path>` as its idempotent activation companion; story workflows should use the Story Start Gate below to bridge proposed/pending scope through `deft scope:promote` and `deft scope:activate` before invoking preflight.
+- ! Run `deft xbrief:preflight -- <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate xBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. Use the pre-`start_agent` gate stack step 2 for ordering and the Story Start Gate below for the `deft scope:promote` / `deft scope:activate` workflow bridge. If the gate is misconfigured, run `deft framework:doctor` and follow UPGRADING.md recovery guidance (#1046 / #1047).
 - ! Require an explicit action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) from the user before invoking the preflight gate or `start_agent` for implementation. When intent is ambiguous, ask one targeted question instead of inferring.
 - ⊗ Infer implementation intent from lifecycle vocabulary ("do the full PR process", "start the work", "poller agents"), branching language, or workflow shape. Workflow-shape vocabulary is NOT authorization to spawn an implementation agent.
 - ⊗ Treat affirmative continuation phrases (`yes`, `go`, `proceed`, `do it`) as implementation authorization unless the prior turn explicitly proposed implementation. Broad approval is not a substitute for an explicit action-verb directive.
@@ -402,11 +402,10 @@ Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they
 - ! Before starting any new implementation story or switching from one story to another, run `git status --short --branch`.
 - ! If the working tree is dirty, stop and summarize the current branch, modified/untracked files, and whether the changes appear related to the next story. Ask the operator to choose one path: commit existing work, stash existing work, include existing work in the current story, or stop.
 - ⊗ Begin a new story while unrelated dirty work is present without explicit operator approval.
-- ! Resolve exactly one target story xBRIEF path by default. Batching multiple stories requires explicit operator approval and a short rationale.
+- ! Default to one story per branch/PR: resolve exactly one target story xBRIEF path by default, require explicit operator approval plus a short rationale for batching multiple stories, and create a checkpoint commit after each completed story before beginning another story.
 - ! When invoked as part of a swarm cohort dispatch, the approved Phase 5 allocation plan satisfies the "explicit operator approval and a short rationale" requirement above -- the dispatched paths and allocation rationale ARE the consent token. Do NOT re-prompt the parent for batching approval mid-cohort; the all-or-nothing dispatch envelope rule (#954) forbids mid-scope user-approval gates.
 - ! Within a swarm cohort, between stories, the working tree MUST be clean (a checkpoint commit + `deft scope:complete` just landed). If `git status --short` shows uncommitted state between stories, checkpoint-commit it and proceed -- do NOT pause to ask the operator. The dirty-tree "ask the operator" branch above applies only at the FIRST story-start of a fresh branch.
 - ! If the target story is in `xbrief/proposed/`, run `deft scope:promote -- <path>` first; if it is in `xbrief/pending/`, run `deft scope:activate -- <path>`. After activation, run `deft xbrief:preflight -- <active-story-path>` before code-writing.
-- ! Default to one story per branch/PR. Create a checkpoint commit after each completed story before beginning another story, unless the operator explicitly approved batching.
 - ! After checks pass for the story, complete the lifecycle with `deft scope:complete -- <active-story-path>` before final PR handoff.
 - ! Before dispatching an implementation sub-agent, run the deterministic Gate 0 `deft verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]` ahead of `deft xbrief:preflight`. It machine-checks a clean working tree (or `--allow-dirty`), the target xBRIEF in `xbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token; three-state exit (0 ready / 1 not ready / 2 config error). A `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are non-null; an absent section is the solo path. Any non-zero exit aborts dispatch.
 

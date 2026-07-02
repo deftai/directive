@@ -1,0 +1,90 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story xBRIEF for #2192: surgically trim the consumer AGENTS.md template by merging duplicate one-story-per-branch bullets and shortening the Implementation Intent Gate preflight mechanism prose without changing gate semantics.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2192-agents-md-trim",
+    "title": "Trim AGENTS.md template duplicate story and preflight mechanism prose",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2192",
+    "narratives": {
+      "Description": "Issue #2192 closes the small residual AGENTS.md template trim after #2153 by removing two true redundancies while preserving layered disclosure. The story merges the duplicate one-story-per-branch guidance into a single Story Start Gate bullet and shortens the Implementation Intent Gate's install-layout mechanism detail into a concise rule plus recovery pointers.",
+      "ImplementationPlan": "1. Edit content/templates/agents-entry.md only for the two scoped text changes: merge the one-story bullets while preserving the adjacent swarm-cohort carve-out, and trim the first Implementation Intent Gate bullet while keeping the action-verb authorization rules and all preflight markers. 2. Regenerate maintainer AGENTS.md with node packages/cli/dist/bin.js agents-refresh. 3. If line counts drop, ratchet plan.policy.agentsMdBudget managedMaxLines/unmanagedMaxLines to the new actual counts. 4. Add a brief CHANGELOG [Unreleased] entry referencing #2192. 5. Run task check and complete the xBRIEF lifecycle.",
+      "UserStory": "As a directive maintainer, I want the generated AGENTS.md policy surface to drop redundant prose without weakening gate semantics, so that agents carry less context while retaining the same safety contracts.",
+      "Traces": "#2192, #2153, #645, #810, #954, #1378"
+    },
+    "items": [
+      {
+        "id": "a1",
+        "title": "Story Start Gate one-story guidance is consolidated",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given content/templates/agents-entry.md, when the Story Start Gate is read, then it contains one bullet with the one story per branch/PR default, explicit approval plus rationale for batching, and checkpoint commit after each completed story language; the swarm-cohort consent-token carve-out remains in its own adjacent bullet."
+        }
+      },
+      {
+        "id": "a2",
+        "title": "Implementation Intent Gate preflight prose is shortened",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given content/templates/agents-entry.md, when the Implementation Intent Gate is read, then the first xbrief:preflight bullet keeps the gate requirement and active/running condition, points to gate-stack step 2 plus Story Start Gate workflow, and points to deft framework:doctor / UPGRADING for misconfigured installs without carrying _resolve_preflight_path.py mechanism prose."
+        }
+      },
+      {
+        "id": "a3",
+        "title": "Generated AGENTS.md and budget ratchet are refreshed",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the template edit, when node packages/cli/dist/bin.js agents-refresh runs, then maintainer AGENTS.md reflects the managed-section changes and plan.policy.agentsMdBudget is lowered to the new actual managed/unmanaged line counts when the trim reduces them."
+        }
+      },
+      {
+        "id": "a4",
+        "title": "Quality gates and changelog are complete",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given task check, when it runs, then agents_entry_contract, agents_md_session_start, story_start_gate, verify:encoding, and verify:agents-md-budget pass; CHANGELOG [Unreleased] includes a brief user-visible #2192 entry."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2192"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "AGENTS.md template trim applied; managed section refreshed; agents-md budget ratcheted if line count drops; task check green"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-template",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-02T18:52:44Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2192",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2192: merge twin one-story bullets + trim Intent Gate preflight mechanism prose"
+      }
+    ],
+    "updated": "2026-07-02T18:52:44Z"
+  }
+}
