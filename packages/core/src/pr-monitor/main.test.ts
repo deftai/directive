@@ -28,6 +28,17 @@ function fakeRunGh(responses?: { headOk?: boolean; commentsOk?: boolean }): RunG
           }
         : { returncode: 1, stdout: "", stderr: "boom" };
     }
+    if (joined.includes("check-runs")) {
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          check_runs: [
+            { name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" },
+          ],
+        }),
+        stderr: "",
+      };
+    }
     return { returncode: 1, stdout: "", stderr: "unexpected" };
   };
 }
