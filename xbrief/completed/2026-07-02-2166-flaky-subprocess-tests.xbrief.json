@@ -1,0 +1,61 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Remove real subprocess/network dependence from mocked unit tests that flake with 5s vitest timeouts (main-branches, framework-commands, intake-coverage-boost) by stubbing/injecting the subprocess seams (#2166).",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2166-flaky-subprocess-tests",
+    "title": "test: remove real subprocess/network calls from mocked unit tests (flaky 5s timeouts)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2166",
+    "narratives": {
+      "Description": "packages/core/src/doctor/main-branches.test.ts (\"payload staleness skip branches\") intermittently fails with a 5s vitest timeout because its default runGitLsRemote seam can perform a real network `git ls-remote`. Sibling tests (framework-commands, intake-coverage-boost, and the cmdCoreValidate / validateGithubAuthForWorker execFileSync tests folded in from #644/#2157 observations) share the same class of bug: a fully-mocked unit test depending on a real subprocess/network call. Fix by stubbing/injecting the seam, not by raising the timeout.",
+      "ImplementationPlan": "1. In main-branches.test.ts (and siblings sharing the seam), stub/inject runGitLsRemote so NO real network call is possible; optionally assert the seam is called with expected args. 2. Apply the same safe-injection pattern to the other flaky sites: framework-commands, intake-coverage-boost, and the execFileSync-backed cmdCoreValidate / validateGithubAuthForWorker tests. 3. Do NOT merely raise timeouts — remove the network/subprocess dependency. Follow the safe-injection pattern already used elsewhere in the doctor tests. 4. Confirm deterministic under a constrained/offline runner, well under the timeout. Test-only; no production behavior change. Run task check GREEN; CHANGELOG [Unreleased] entry (test hardening).",
+      "UserStory": "As a contributor, I want mocked unit tests to never depend on real subprocess/network latency, so CI doesn't spuriously fail with 5s timeouts on unrelated PRs.",
+      "Traces": "#2166, #1366, #975"
+    },
+    "items": [
+      {
+        "id": "fl1",
+        "title": "git-ls-remote seam stubbed in main-branches + siblings",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The \"payload staleness skip branches\" test and siblings using the seam make no real network call; the seam is stubbed/injected."
+        }
+      },
+      {
+        "id": "fl2",
+        "title": "execFileSync-backed flaky sites hardened",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "framework-commands, intake-coverage-boost, cmdCoreValidate, validateGithubAuthForWorker tests inject/stub the subprocess seam; no real subprocess spawned."
+        }
+      },
+      {
+        "id": "fl3",
+        "title": "Deterministic + task check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Tests are deterministic under a constrained/offline runner and well under the timeout; task check passes; CHANGELOG entry added; no production change."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2166"
+      },
+      "completedAt": "2026-07-02T17:14:30Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2166",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2166"
+      }
+    ],
+    "updated": "2026-07-02T17:14:30Z"
+  }
+}
