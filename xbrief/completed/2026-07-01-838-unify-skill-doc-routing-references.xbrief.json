@@ -20,7 +20,7 @@
       {
         "id": "838-a1",
         "title": "Given REFERENCES.md, when an agent needs to pick a skill, then a Skills Index lists every skill with description + triggers",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given REFERENCES.md, when read at Level 0, then a '## Skills Index' section lists every skill under content/skills/ with a name, a one-sentence description, and trigger keywords, plus the Level 0/1/2 loading-semantics note."
         }
@@ -28,7 +28,7 @@
       {
         "id": "838-a2",
         "title": "Given AGENTS.md, when the Skill Routing table is removed, then only a behavioral gate + pointer to REFERENCES.md remain",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the maintainer AGENTS.md and content/templates/agents-entry.md, when the Skill Routing content table is removed, then the behavioral 'check skills/ before improvising' gate remains and a one-line pointer to the REFERENCES.md Skills Index replaces the table; `task agents:refresh` regenerates the managed section and the agents-entry contract test passes."
         }
@@ -36,7 +36,7 @@
       {
         "id": "838-a3",
         "title": "Given the reduction, when it lands, then the #645 ratchet is lowered to the new per-region counts",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the smaller AGENTS.md after refresh, when the PR lands, then plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} is lowered to the new counts and `task verify:agents-md-budget` passes at the tighter budget."
         }
@@ -44,7 +44,7 @@
       {
         "id": "838-a4",
         "title": "Given task check, when it runs on the PR, then all gates pass",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given `task check`, when it runs on a PR touching AGENTS.md, the template, and REFERENCES.md, then the agents-entry contract test, verify:agents-md-budget, verify:encoding, and the full suite pass."
         }
