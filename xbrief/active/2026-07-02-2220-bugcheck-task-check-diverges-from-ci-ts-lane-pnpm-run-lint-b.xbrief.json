@@ -1,0 +1,31 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2220"
+  },
+  "plan": {
+    "title": "bug(check): `task check` diverges from CI TS lane (`pnpm run lint`) — biome format violations pass locally, fail CI",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(check): `task check` diverges from CI TS lane (`pnpm run lint`) — biome format violations pass locally, fail CI",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2220",
+      "UserStory": "As a directive maintainer, I want `task check` in the framework-source repo to run the same biome lint/format lane CI enforces (`pnpm run lint`), so a green local gate means a green CI TypeScript lane and I don't burn a CI round-trip on a format violation.",
+      "ImplementationPlan": "1. Investigate the `check` task wiring in Taskfile.yml: `check` dispatches to `engine:invoke check` (consumer-safe, #1519) while the biome lane (`ts:check-lane`) is only under `check:framework-source`. 2. Minimal fix (preferred): in the framework-source repo, make `task check` include the biome lint lane so it matches CI's `pnpm run lint` and the maintainer AGENTS.md description ('validate + lint + test'). Options: add `ts:check-lane` (or a `pnpm run lint` cmd) to the framework-source path of `check`, WITHOUT regressing the consumer-safe behavior for vendored `.deft/core` installs (#1519 must stay intact -- consumers have no biome). Detect framework-source vs consumer via the existing --framework-root/--project-root equality or the same signal `check`/`check:framework-source` already uses. 3. Add a deterministic test/guard proving `task check` (framework-source) surfaces a biome error. 4. Verify: introduce a temporary biome format violation, confirm `task check` now fails, then remove it. Run `pnpm run lint` + `task check`.",
+      "Traces": "#2220, #2219, #1519",
+      "Overview": "## Summary\n\nThe documented pre-commit gate `task check` does **not** run the same biome lint/format that the CI **TypeScript (build + lint + test)** lane enforces via `pnpm run lint` (`biome check .`). As a result an agent (or human) can get a green `task check` locally and still fail CI on a biome **format** violation.\n\n## Evidence\n\nDuring the #2209–#2213 xbrief-migration swarm cohort, worker for #2209 reported `task check` green and opened PR #2214. CI's TypeScript lane failed in 13s with **\"Found 1 error\"** — a biome *formatter* violation in `packages/core/src/verify-env/branches.test.ts` (an `it(..., 20_000)` call biome wanted collapsed). `npx biome check --write` on the file fixed it and CI went green. The pre-existing `Capture`/non-null items are *warnings* (biome exits 0), so those are not the issue — the gap is that `task check` never surfaced the format **error** that `pnpm run lint` did.\n\n## Root cause (suspected)\n\n`task check` dispatches to `engine:invoke check` (the consumer-safe / lifecycle gate, #1519). The biome lane (`ts:check-lane`) is wired under `check:framework-source`, and CI runs `pnpm run lint` (`biome check .`) as its own step. So the everyday `task check` an agent runs before committing does not include the biome check CI blocks on.\n\n## Impact\n\n- False-green local pre-commit gate; biome format/lint regressions only surface after a full CI round-trip.\n- Especially costly for swarm workers (each false-green PR burns a CI cycle + orchestrator intervention).\n\n## Proposed fix (pick one)\n\n1. Make `task check` (framework-source path) include the biome lane (`pnpm run lint` / `ts:check-lane`) so the local gate matches CI.\n2. If `task check` must stay lifecycle-only, document prominently that `task check:framework-source` (or `pnpm run lint`) is required before pushing, and have the swarm/pre-pr skills invoke it.\n\n## Related\n- Discovered landing the #2209–#2213 swarm cohort (PRs #2214–#2218).\n- Adjacent to #2219 (flaky CLI test) — both are \"local gate ≠ CI\" gaps surfaced by the same cohort.",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2220",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2220: bug(check): `task check` diverges from CI TS lane (`pnpm run lint`) — biome format violations pass locally, fail CI"
+      }
+    ],
+    "updated": "2026-07-02T23:39:41Z"
+  }
+}
