@@ -20,6 +20,19 @@ function completed(stdout: string, stderr: string, returncode: number): Complete
   return { stdout, stderr, returncode };
 }
 
+/**
+ * Read + parse a JSON file, asserting the top-level payload is an object.
+ * `JSON.parse` can return top-level `null` (and non-objects) without throwing,
+ * so guard before property access rather than blindly casting.
+ */
+function readJsonObject(filePath: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8"));
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`expected top-level JSON object at ${filePath}`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
 describe("buildIssueVbrief", () => {
   it("maps checkbox body to plan items", () => {
     const body = "## Acceptance Criteria\n- [ ] Widget renders\n- [x] Spec updated\n";
@@ -67,7 +80,7 @@ describe("issue-ingest layout-aware emission parity", () => {
       );
       expect(result).toBe("created");
       expect(path).toMatch(/\.vbrief\.json$/);
-      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as Record<string, unknown>;
+      const parsed = readJsonObject(path as string);
       expect(parsed.vBRIEFInfo).toEqual(
         expect.objectContaining({
           version: "0.6",
@@ -119,7 +132,7 @@ describe("issue-ingest layout-aware emission parity", () => {
       );
       expect(result).toBe("created");
       expect(path).toMatch(/\.xbrief\.json$/);
-      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as Record<string, unknown>;
+      const parsed = readJsonObject(path as string);
       expect(parsed.xBRIEFInfo).toEqual(
         expect.objectContaining({
           version: "0.8",
@@ -170,7 +183,7 @@ describe("issue-ingest layout-aware emission parity", () => {
       );
       expect(result).toBe("created");
       expect(path).toMatch(/\.xbrief\.json$/);
-      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as Record<string, unknown>;
+      const parsed = readJsonObject(path as string);
       expect(parsed.xBRIEFInfo).toEqual(expect.objectContaining({ version: "0.8" }));
       expect(parsed.vBRIEFInfo).toBeUndefined();
     } finally {

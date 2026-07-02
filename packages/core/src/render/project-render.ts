@@ -1,15 +1,54 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import { basename, join, resolve } from "node:path";
+import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import {
   deriveRegistryItemStatus,
   registryMetadataReferencesFromScope,
 } from "../vbrief-validate/registry-status.js";
+import {
+  LEGACY_ARTIFACT_SUFFIX,
+  LEGACY_INFO_ROOT_KEY,
+  MIGRATED_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_SUFFIX,
+  MIGRATED_INFO_ROOT_KEY,
+  VBRIEF_VERSION,
+} from "../xbrief-migrate/constants.js";
 import { PROJECT_LIFECYCLE_FOLDERS, SKELETON_NARRATIVES } from "./constants.js";
 import { splitCamel, splitWords } from "./text-utils.js";
 
 type JsonObject = Record<string, unknown>;
+
+/** PROJECT-DEFINITION artifact shape (filename + envelope key + emitted version). */
+interface ProjectDefinitionLayout {
+  readonly filename: string;
+  readonly infoRootKey: typeof MIGRATED_INFO_ROOT_KEY | typeof LEGACY_INFO_ROOT_KEY;
+  readonly infoVersion: string;
+}
+
+/**
+ * Resolve the PROJECT-DEFINITION artifact shape for a lifecycle root directory.
+ *
+ * The decision is STRUCTURAL and keyed on the lifecycle root directory name -- the
+ * same signal `resolveLifecycleLayout` / `resolveLifecycleRoot` produce, so ingest and
+ * render never diverge (#2149). A migrated `xbrief/` root gets `PROJECT-DEFINITION.xbrief.json`
+ * + `xBRIEFInfo`; a legacy `vbrief/` root keeps `PROJECT-DEFINITION.vbrief.json` + `vBRIEFInfo`.
+ * This prevents render from writing a legacy-named/enveloped artifact into a migrated tree.
+ */
+function resolveProjectDefinitionLayout(vbriefDir: string): ProjectDefinitionLayout {
+  const migrated = basename(vbriefDir) === MIGRATED_ARTIFACT_DIR;
+  return migrated
+    ? {
+        filename: `PROJECT-DEFINITION${MIGRATED_ARTIFACT_SUFFIX}`,
+        infoRootKey: MIGRATED_INFO_ROOT_KEY,
+        infoVersion: VBRIEF_VERSION,
+      }
+    : {
+        filename: `PROJECT-DEFINITION${LEGACY_ARTIFACT_SUFFIX}`,
+        infoRootKey: LEGACY_INFO_ROOT_KEY,
+        infoVersion: EMITTED_VBRIEF_VERSION,
+      };
+}
 
 /** Durable review state for PROJECT-DEFINITION narrative staleness (#640). */
 export interface StalenessReviewMetadata {
@@ -44,11 +83,11 @@ export function scanLifecycleFolders(vbriefDir: string): LifecycleItem[] {
       try {
         const data = JSON.parse(readFileSync(full, "utf8")) as JsonObject;
         const plan = (data.plan ?? {}) as JsonObject;
-        const title = String(plan.title ?? vbriefFile.replace(/\.vbrief\.json$/, ""));
+        const title = String(plan.title ?? stripArtifactSuffix(vbriefFile));
         const status = deriveRegistryItemStatus(plan.status, folderName);
         const references = registryMetadataReferencesFromScope(plan.references);
         const item: LifecycleItem = {
-          id: vbriefFile.replace(/\.vbrief\.json$/, "").replace(/\.vbrief$/, ""),
+          id: stripArtifactSuffix(vbriefFile),
           title,
           status,
           metadata: {
@@ -62,7 +101,7 @@ export function scanLifecycleFolders(vbriefDir: string): LifecycleItem[] {
         items.push(item);
       } catch {
         items.push({
-          id: vbriefFile.replace(/\.vbrief\.json$/, "").replace(/\.vbrief$/, ""),
+          id: stripArtifactSuffix(vbriefFile),
           title: `[unreadable] ${vbriefFile}`,
           status: "draft",
           metadata: {
@@ -180,12 +219,16 @@ export function computeStalenessFlags(
   return flagStaleNarratives(narratives, pending);
 }
 
-export function createSkeleton(items: LifecycleItem[], now: string): JsonObject {
+export function createSkeleton(
+  items: LifecycleItem[],
+  now: string,
+  layout: ProjectDefinitionLayout,
+): JsonObject {
   const completedItems = items.filter((i) => i.status === "completed");
   const stalenessFlags = computeStalenessFlags({ ...SKELETON_NARRATIVES }, completedItems);
   return {
-    vBRIEFInfo: {
-      version: EMITTED_VBRIEF_VERSION,
+    [layout.infoRootKey]: {
+      version: layout.infoVersion,
       description: "Project definition -- synthesized gestalt of the project",
       created: now,
       updated: now,
@@ -206,14 +249,22 @@ export interface RenderProjectOptions {
 
 export type RenderProjectResult = readonly [boolean, string];
 
-/** Regenerate PROJECT-DEFINITION.vbrief.json (mirrors ``scripts/project_render.render_project_definition``). */
+/**
+ * Regenerate the PROJECT-DEFINITION artifact for `vbriefDir`.
+ *
+ * Layout-aware (#2149): on a migrated `xbrief/` root it targets
+ * `PROJECT-DEFINITION.xbrief.json` with an `xBRIEFInfo` envelope; on a legacy `vbrief/`
+ * root it keeps `PROJECT-DEFINITION.vbrief.json` + `vBRIEFInfo`.
+ * (Mirrors ``scripts/project_render.render_project_definition``.)
+ */
 export function renderProjectDefinition(
   vbriefDir: string,
   options: RenderProjectOptions = {},
 ): RenderProjectResult {
   const nowDate = options.now ?? new Date();
   const now = nowDate.toISOString().replace(/\.\d{3}Z$/, "Z");
-  const projectDefPath = join(vbriefDir, "PROJECT-DEFINITION.vbrief.json");
+  const layout = resolveProjectDefinitionLayout(vbriefDir);
+  const projectDefPath = join(vbriefDir, layout.filename);
   const items = scanLifecycleFolders(vbriefDir);
   const createdNew = !existsSync(projectDefPath);
 
@@ -226,10 +277,13 @@ export function renderProjectDefinition(
     }
     const plan = (projectDef.plan ?? {}) as JsonObject;
     plan.items = items;
-    if (typeof projectDef.vBRIEFInfo !== "object" || projectDef.vBRIEFInfo === null) {
-      projectDef.vBRIEFInfo = {};
+    if (
+      typeof projectDef[layout.infoRootKey] !== "object" ||
+      projectDef[layout.infoRootKey] === null
+    ) {
+      projectDef[layout.infoRootKey] = {};
     }
-    (projectDef.vBRIEFInfo as JsonObject).updated = now;
+    (projectDef[layout.infoRootKey] as JsonObject).updated = now;
     const narratives =
       typeof plan.narratives === "object" &&
       plan.narratives !== null &&
@@ -250,7 +304,7 @@ export function renderProjectDefinition(
     planMetadata.staleness_flags = flags;
     projectDef.plan = plan;
   } else {
-    projectDef = createSkeleton(items, now);
+    projectDef = createSkeleton(items, now, layout);
   }
 
   mkdirSync(vbriefDir, { recursive: true });
@@ -260,7 +314,7 @@ export function renderProjectDefinition(
   const planMeta = ((projectDef.plan as JsonObject)?.metadata ?? {}) as JsonObject;
   const flagCount = Array.isArray(planMeta.staleness_flags) ? planMeta.staleness_flags.length : 0;
   const action = createdNew ? "created" : "updated";
-  const parts = [`✓ PROJECT-DEFINITION.vbrief.json ${action} (${itemCount} scope items)`];
+  const parts = [`✓ ${layout.filename} ${action} (${itemCount} scope items)`];
   if (flagCount > 0) parts.push(`⚠ ${flagCount} staleness flag(s) -- agent review recommended`);
   return [true, parts.join("\n")];
 }
@@ -277,7 +331,8 @@ export function acknowledgeProjectDefinitionStaleness(
 ): RenderProjectResult {
   const nowDate = options.now ?? new Date();
   const now = isoTimestamp(nowDate);
-  const projectDefPath = join(vbriefDir, "PROJECT-DEFINITION.vbrief.json");
+  const layout = resolveProjectDefinitionLayout(vbriefDir);
+  const projectDefPath = join(vbriefDir, layout.filename);
   if (!existsSync(projectDefPath)) {
     return [false, `✗ ${projectDefPath} not found — run project:render first`];
   }
@@ -312,10 +367,13 @@ export function acknowledgeProjectDefinitionStaleness(
     completedItems,
     parseStalenessReview(planMetadata),
   );
-  if (typeof projectDef.vBRIEFInfo !== "object" || projectDef.vBRIEFInfo === null) {
-    projectDef.vBRIEFInfo = {};
+  if (
+    typeof projectDef[layout.infoRootKey] !== "object" ||
+    projectDef[layout.infoRootKey] === null
+  ) {
+    projectDef[layout.infoRootKey] = {};
   }
-  (projectDef.vBRIEFInfo as JsonObject).updated = now;
+  (projectDef[layout.infoRootKey] as JsonObject).updated = now;
   projectDef.plan = plan;
 
   writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");

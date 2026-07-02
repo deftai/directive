@@ -15,6 +15,19 @@ const ISSUE_REF = {
   title: "Issue #1696",
 };
 
+/**
+ * Read + parse a JSON file, asserting the top-level payload is an object.
+ * `JSON.parse` can return top-level `null` (and non-objects) without throwing,
+ * so guard before property access rather than blindly casting.
+ */
+function readJsonObject(filePath: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8"));
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`expected top-level JSON object at ${filePath}`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
 function writeScope(
   vbriefDir: string,
   folder: string,
@@ -322,5 +335,62 @@ describe("project-render main() cwd layout resolver (#2149)", () => {
     }
     expect(existsSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"))).toBe(true);
     expect(existsSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"))).toBe(false);
+  });
+
+  it("creates a fresh xbrief-enveloped skeleton (never .vbrief.json) on a migrated tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-cwd-xbrief-skeleton-"));
+    tmpDirs.push(root);
+    // A migrated tree that already carries at least one .xbrief.json artifact, but NO
+    // PROJECT-DEFINITION yet -- render must synthesize it as .xbrief.json + xBRIEFInfo.
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "completed", "2026-07-02-legacy-content.xbrief.json"),
+      // Historical vBRIEF-serialized content inside the migrated tree must not flip the layout.
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Old", status: "done" } }),
+      "utf8",
+    );
+
+    const prevCwd = process.cwd();
+    try {
+      process.chdir(root);
+      const exit = projectRenderMain([]);
+      expect(exit).toBe(0);
+    } finally {
+      process.chdir(prevCwd);
+    }
+
+    const xbriefDefPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    expect(existsSync(xbriefDefPath)).toBe(true);
+    expect(existsSync(join(root, "xbrief", "PROJECT-DEFINITION.vbrief.json"))).toBe(false);
+    expect(existsSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"))).toBe(false);
+    const parsed = readJsonObject(xbriefDefPath);
+    expect(parsed.xBRIEFInfo).toEqual(expect.objectContaining({ version: "0.8" }));
+    expect(parsed.vBRIEFInfo).toBeUndefined();
+  });
+
+  it("keeps a legacy vbrief-enveloped skeleton on an unmigrated tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-cwd-vbrief-skeleton-"));
+    tmpDirs.push(root);
+    mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "completed", "2026-07-02-story.vbrief.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Story", status: "done" } }),
+      "utf8",
+    );
+
+    const prevCwd = process.cwd();
+    try {
+      process.chdir(root);
+      const exit = projectRenderMain([]);
+      expect(exit).toBe(0);
+    } finally {
+      process.chdir(prevCwd);
+    }
+
+    const vbriefDefPath = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+    expect(existsSync(vbriefDefPath)).toBe(true);
+    const parsed = readJsonObject(vbriefDefPath);
+    expect(parsed.vBRIEFInfo).toEqual(expect.objectContaining({ version: "0.6" }));
+    expect(parsed.xBRIEFInfo).toBeUndefined();
   });
 });
