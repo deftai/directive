@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #646 + #647 (consumer-facing, #1882): encode the empirically-grounded AGENTS.md structure pattern into content/docs/agent-docs.md (#646) and add an advisory doc-sprawl health-check step to the deft-sync skill (plus a pointer in deft-pre-pr) (#647). Both derive from the Augment Code good-agents-md study.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "646-647-consumer-agent-docs-guidance",
+    "title": "Consumer-facing agent-docs guidance: structure pattern (#646) + doc-sprawl health check (#647)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/646",
+    "narratives": {
+      "Description": "The final two #1882 children are consumer-facing and both derive from Augment Code's empirically-measured AGENTS.md study (content/docs/good-agents-md.md). #646: directive teaches the effective structure pattern to projects it creates via a new content/docs/agent-docs.md reference (co-located with its empirical source; discoverability anchored in REFERENCES.md per the reference-chain contract). #647: an ADVISORY (never a hard gate) doc-sprawl awareness step added to the deft-directive-sync skill, plus a concise pointer in deft-directive-pre-pr. Batched per operator approval (same-source consumer-facing guidance; #647's check surfaces violations of #646's pattern). Skill edits go through the skills content pack (packs/skills/skills-pack-0.1.json) + pack-render, since SKILL.md files are pack projections.",
+      "ImplementationPlan": "1. content/docs/agent-docs.md (#646): structure-pattern -> measured-effect table, numbered how-to workflow, overexploration-trap warning, pointer to the REFERENCES.md reference-chain contract (#644). 2. REFERENCES.md: task-based-loading entry for docs/agent-docs.md. 3. skills pack body edits + pack-render (#647): advisory Phase 6e in deft-directive-sync; Phase 4 orphan-doc bullet in deft-directive-pre-pr. 4. CHANGELOG [Unreleased] entry. task check GREEN; pack drift clean (44/44). #647 stays advisory by design.",
+      "UserStory": "As a developer using directive to create/maintain a project, I want directive to teach the empirically-effective AGENTS.md structure and to warn me (advisory, not blocking) when reachable documentation is sprawling into overexploration territory.",
+      "Traces": "#646, #647, #1882, #644"
+    },
+    "items": [
+      {
+        "id": "c646",
+        "title": "content/docs/agent-docs.md encodes the empirical structure pattern",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Doc contains the structure-pattern table, overexploration-trap warning, and a pointer to the reference-chain contract (#644)."
+        }
+      },
+      {
+        "id": "cref",
+        "title": "agent-docs.md discoverable in the reference chain",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "REFERENCES.md carries a task-based-loading entry for docs/agent-docs.md."
+        }
+      },
+      {
+        "id": "c647sync",
+        "title": "deft-sync gains advisory doc-sprawl step",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Skills pack + rendered SKILL.md has an advisory (never-blocking) Phase 6e doc-sprawl awareness step."
+        }
+      },
+      {
+        "id": "c647prpr",
+        "title": "deft-pre-pr notes orphan-doc check",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Phase 4 advises verifying newly added docs are in the reference chain."
+        }
+      },
+      {
+        "id": "ccheck",
+        "title": "task check green; drift clean; CHANGELOG entry",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "task check passes; pack-render --check 44/44 in sync; CHANGELOG [Unreleased] has a user-visible entry; no hard gate added."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#646 + #647"
+      },
+      "completedAt": "2026-07-02T16:43:43Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/646",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #646: empirically-grounded AGENTS.md structure pattern"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/647",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #647: doc-sprawl health check in pre-pr / sync"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
+      }
+    ],
+    "updated": "2026-07-02T16:43:43Z"
+  }
+}

@@ -103,6 +103,10 @@ The `welcome` / `onboard triage` phrase invokes `task triage:welcome --onboard` 
    - Load: For any software development task
    - Contains: modularity, contracts, error handling, change management
 
+**[docs/agent-docs.md](./content/docs/agent-docs.md)** - Authoring a project's AGENTS.md / agent docs
+- Load: When creating, structuring, or reviewing a project's AGENTS.md and its reference docs
+- Contains: the empirically-measured structure pattern (100–150 line main + focused refs, numbered workflows, decision tables, real snippets, paired don't/do, module-level files), the overexploration-trap failure modes, and a pointer to the reference-chain contract (#644)
+
 2. **Language file** - Load based on language:
    - [languages/python.md](./content/languages/python.md) - When writing Python
    - [languages/go.md](./content/languages/go.md) - When writing Go

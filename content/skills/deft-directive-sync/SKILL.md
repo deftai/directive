@@ -266,6 +266,18 @@ After structure validation, sync framework-level assets.
 - ⊗ Drop a legacy section without explicit user confirmation (even if the section looks obviously stale).
 - ⊗ Silently delete sidecar files under `xbrief/legacy/` -- they are referenced from `LegacyArtifacts` and are part of the audit trail.
 
+## Phase 6e -- Doc-sprawl awareness (advisory, #647)
+
+Doc sprawl is a project-health concern, not just a human-experience one: a lean, well-written AGENTS.md sitting on top of a large reachable doc corpus does **not** stop agents from discovering and loading those docs (Augment Code study, `content/docs/good-agents-md.md`). It degrades agent quality silently until measured. This step **surfaces** the risk; it is ADVISORY and MUST NOT block or fail the sync.
+
+1. ~ Scan the project's reachable documentation footprint: the top-level `docs/` / `_docs/` directories, nested `README.md` files, and any `architecture` / `design` docs.
+2. ~ Flag, as a non-blocking nudge, when any of these appear:
+   - A large `docs/` (or `_docs/`) directory that is **not referenced** from the AGENTS.md reference chain (orphan docs are discovered <10% of the time yet still cost context when found -- the reference-chain contract, #644).
+   - Deeply nested READMEs that duplicate guidance the reference chain already carries.
+   - Architecture / design docs that restate what the codebase already shows (a measured overexploration trigger).
+3. ~ Point the operator at `content/docs/agent-docs.md` (the empirically-grounded structure pattern) and the `REFERENCES.md` reference-chain contract for remediation. For directive's own always-loaded file, the `verify:agents-md-budget` ratchet (#645) and the consumer advisory (`agentsMdAdvisory`, #2155) are the size guards.
+4. ⊗ Do NOT convert this into a hard gate or auto-delete any doc -- the value is the nudge at the right moment; thresholds are a judgment call the operator owns.
+
 ## Phase 7 -- Summary
 
 ! Present a consolidated summary to the user covering:

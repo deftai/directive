@@ -102,6 +102,7 @@ git --no-pager diff master
 - ! Confirm no unintended whitespace-only changes or formatting drift
 - ! **Run `task pr:check-closing-keywords -- --pr <N>` (or pass `--body-file` / `--commits-file` for offline checking) before opening the PR; refuse to push if findings (#737)**. The lint scans both the PR body AND every commit message for closing-keyword tokens (`close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved`) followed by `#\d+` in negation / quotation / example / code-block contexts. The recurrence record is the Layer 1 / Layer 2 / Layer 3 stack: #167 (post-merge close-verify), #697 / #698 (negation-context substring match), #401 / #700 (persistent `closingIssuesReferences` link), #735 (squash body containing `DOES NOT CLOSE #734` auto-closed #734). When the lint surfaces a known-safe occurrence (e.g. test fixtures that legitimately exercise the trigger token), pass `--allow-known-false-positives <issue-numbers>` to suppress -- DO NOT silently delete the lint invocation
 - ~ Verify the diff tells a coherent story -- a reviewer reading it top-to-bottom should understand the change
+- ~ If the PR adds or moves any documentation, verify each new doc is reachable from the AGENTS.md reference chain -- an orphan doc is discovered <10% of the time yet still costs context when found (the reference-chain contract, #644 / #647). Add a pointer or fold it in rather than leaving it stranded.
 
 ### Phase 5 -- Loop
 
