@@ -114,6 +114,12 @@ describe("swarmLaunch route-file integration (#1739)", () => {
       preflightGate: () => ({ exitCode: 0, message: "" }),
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["cursor-cloud", "gh-cli"],
+      // Pin the routing-provider environ explicitly (#1877 Greptile follow-up)
+      // rather than relying on ambient process.env -- a headless CI runner has
+      // no CURSOR_AGENT/CURSOR_COMPOSER set, so the un-injected form resolved
+      // to "cloud-headless" there even though it resolved to "cursor" locally
+      // inside an actual Cursor session.
+      environ: { CURSOR_AGENT: "1" },
     });
 
     expect(result.exitCode).toBe(0);
@@ -143,6 +149,7 @@ describe("swarmLaunch route-file integration (#1739)", () => {
       preflightGate: () => ({ exitCode: 0, message: "" }),
       readinessGate: () => ({ exitCode: 0, report: "" }),
       runtimeAuthProbe: () => ["cursor-cloud", "gh-cli"],
+      environ: { CURSOR_AGENT: "1" },
     });
 
     expect(result.exitCode).toBe(2);

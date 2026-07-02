@@ -219,7 +219,9 @@ export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env
   if (
     envTruthy(environ, "GITHUB_ACTIONS") ||
     envTruthy(environ, "BUILDKITE") ||
-    (envTruthy(environ, "CI") && !envTruthy(environ, "CURSOR_COMPOSER"))
+    (envTruthy(environ, "CI") &&
+      !envTruthy(environ, "CURSOR_COMPOSER") &&
+      !envTruthy(environ, "CURSOR_AGENT"))
   ) {
     return "cloud-headless";
   }

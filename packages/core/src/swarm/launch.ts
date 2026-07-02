@@ -526,6 +526,12 @@ export interface LaunchArgs {
   readinessGate?: ReadinessGateFn;
   worktreeResolver?: WorktreeResolverFn;
   runtimeAuthProbe?: RuntimeAuthProbeFn;
+  /**
+   * Injection seam for the routing-provider environment lookup, mirroring
+   * `resolveRoutingPath`'s `environ` parameter (#1877 Greptile follow-up).
+   * Defaults to `process.env` when unset.
+   */
+  environ?: NodeJS.ProcessEnv;
 }
 
 export function swarmLaunch(args: LaunchArgs): {
@@ -679,7 +685,7 @@ export function swarmLaunch(args: LaunchArgs): {
   let modelSource: string | null = null;
   let routingProvider: string | null = null;
   if (routingFile !== null) {
-    routingProvider = resolveDispatchProvider(process.env);
+    routingProvider = resolveDispatchProvider(args.environ ?? process.env);
     const route = resolveModelRoute(routingFile, routingProvider, LEAF_CODING_WORKER_ROLE);
     // A malformed decision object must fail loud here: the legacy backend gate
     // was already bypassed above (routingFile !== null), so silently continuing
