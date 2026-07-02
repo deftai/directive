@@ -85,22 +85,18 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Umbrella status reading (#1152 / #2066)
 
-Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canonical `## Current shape (as of pass-N)` comment (live state). Before reporting umbrella status:
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Umbrella current-shape convention (#1152).
 
 - ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
-Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.
-
 ## Issue body→comments reading (#2143)
 
-When ingesting or dispatching against **any** GitHub issue (not only umbrellas), later maintainer comments may supersede the original body — the #2126 recurrence shipped the wrong fix from a body-only fetch.
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Issue body→comments reading (#2143); preamble § 5.6 in `.deft/core/content/templates/agent-prompt-preamble.md`.
 
 - ! Fetch both the issue body and `repos/<owner>/<repo>/issues/<N>/comments` via REST before concluding what the issue asks for or building a worker dispatch envelope. Read body first, then the comment thread in chronological order.
 - ! `deft issue:ingest` / `task issue:ingest` fetches `/comments` by default and folds the thread into the ingested overview (#2143).
 - ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
-
-Cross-references: `.deft/core/content/templates/agent-prompt-preamble.md` § 5.6. Refs #2143, #1152, #2066, #2126.
 
 ## Content packs
 

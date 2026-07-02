@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Leaner always-loaded `AGENTS.md` with rules unchanged (#2156).** Incident-driven narrative blocks (`Why this rule exists`, recurrence records, long cross-reference lists) in the maintainer policy file are collapsed to actionable rules plus one-line pointers into `docs/analysis/`; maintainer/managed overlap (cache, MAP, skills, WIP cap, issue comments) de-dupes to pointers where the managed section already carries the same directives. The #645 line-budget ratchet tightens to match. Refs #2156, #1882, #645.
+
 - **One place to find the right skill.** Skill routing is now a unified Skills Index in `REFERENCES.md` that lists every skill with a one-sentence description and its trigger keywords, alongside the framework doc routing — so you scan a single Level-0 index to decide what to load instead of hunting through a table buried in `AGENTS.md`. `AGENTS.md` keeps only the "check the skills catalog before improvising" behavioral gate plus a pointer to the index, making the policy file leaner. Refs #838, #1882, #645.
 
 - **Leaner, more accurate always-loaded `AGENTS.md`.** The command reference no longer advertises retired commands as current — it now reflects the `/deft:directive:*` namespace and the deprecated `run` CLI, and points to the full alias table. Reserved placeholder sections and a verbatim internal field enumeration were dropped in favour of a one-line rule plus a pointer, and a leaked personal profile identifier was removed. The AGENTS.md size ratchet was tightened to the new, smaller line counts. Refs #2158, #2159, #2160, #2161, #1882, #645.

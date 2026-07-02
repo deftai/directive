@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2156: the biggest maintainer AGENTS.md reduction -- collapse the ~9 'Why this rule exists' / 'Recurrence record' / 'Cross-references' narrative blocks to rule+pointer, move the rationale to docs/analysis/, and de-dup the managed/maintainer overlap. Child of the #1882 map-not-manual umbrella; a Wave-2 reduction that lowers the #645 ratchet.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2156-agents-md-rationale-collapse",
+    "title": "Collapse AGENTS.md rationale/recurrence narrative to rule+pointer; de-dup managed/maintainer overlap",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2156",
+    "narratives": {
+      "Description": "The maintainer AGENTS.md carries ~9 long narrative blocks ('Why this rule exists', 'Recurrence record', 'Cross-references') that explain the HISTORY behind a rule rather than the rule itself. Per Rule Authority [AXIOM], the enforceable rule (and its deterministic gate) is the authority; the narrative is reference material that belongs in docs/analysis/, not in the always-loaded policy file. This story collapses each such block to a one-line rule + a pointer to its analysis doc / issue, and de-dups the maintainer/managed overlap where the maintainer half restates managed-section rules. It is the single biggest raw line reduction in the #1882 umbrella (~130 lines targeted). Because it is a reduction, it MUST lower the #645 ratchet (plan.policy.agentsMdBudget) to the new per-region counts after `task agents:refresh`.",
+      "ImplementationPlan": "1. Inventory the narrative blocks in AGENTS.md: every 'Why this rule exists', 'Recurrence record', and long 'Cross-references' passage (e.g. under PowerShell #798, Safe subprocess #1366, Cascade automation #1369, Multi-agent orchestration #954, CHANGELOG entry style #1242, Umbrella current-shape #1152, Test performance #975, etc.). 2. For each: KEEP the actionable rule (the ! / âŠ— / ~ directive lines) and the canonical gate/command reference; MOVE the history/rationale/recurrence prose into a docs/analysis/ file (create or append a per-topic analysis doc) and replace the in-file prose with a one-line pointer (e.g. 'Rationale + recurrence record: docs/analysis/<file>.md'). Do NOT weaken or drop any enforceable rule or its gate reference. 3. De-dup: where the maintainer half restates a rule already in the managed section verbatim (with only task->deft / path substitutions), reduce the maintainer copy to a short pointer to the managed section instead of a near-duplicate -- but ONLY where it is a true restatement, preserving any maintainer-only nuance. 4. If any consumer-relevant managed-section rule text changes, mirror into content/templates/agents-entry.md and run `task agents:refresh` (#1309), and update tests/content/test_agents_entry_contract.py curated marker list accordingly. 5. Recompute managed vs unmanaged AGENTS.md line counts and LOWER plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} in xbrief/PROJECT-DEFINITION.xbrief.json to the new counts. 6. CHANGELOG [Unreleased] entry (user-visible: leaner AGENTS.md; rationale moved to analysis docs, rules unchanged). Run `task check` GREEN (verify:agents-md-budget, agents-entry contract, verify:encoding, full suite). CRITICAL: this touches non-ASCII glyphs heavily -- use UTF-8-safe edits and rely on verify:encoding.",
+      "UserStory": "As an agent loading AGENTS.md every session, I want the file to state the rules and point to analysis docs for the history, so that the always-loaded context is rules-dense (a map) instead of narrative-heavy (a manual), without losing any enforceable rule.",
+      "Traces": "#2156, #1882, #645, #644, #2157"
+    },
+    "items": [
+      {
+        "id": "rc-a1",
+        "title": "Narrative blocks collapsed to rule+pointer, rationale moved to docs/analysis/",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given AGENTS.md, when read, then each 'Why this rule exists' / 'Recurrence record' / long 'Cross-references' block is replaced by the actionable rule + a one-line pointer to a docs/analysis/ doc that holds the moved history; no enforceable rule or gate reference is dropped or weakened."
+        }
+      },
+      {
+        "id": "rc-a2",
+        "title": "Managed/maintainer verbatim restatements de-duped to pointers",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a maintainer-half rule that verbatim restates a managed-section rule (task->deft / path substitutions only), when de-duped, then the maintainer copy is a short pointer to the managed section, preserving any maintainer-only nuance; `task agents:refresh` + the agents-entry contract test pass."
+        }
+      },
+      {
+        "id": "rc-a3",
+        "title": "#645 ratchet lowered to the new counts",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the smaller AGENTS.md after refresh, when the PR lands, then plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} is lowered to the new counts and verify:agents-md-budget passes at the tighter budget."
+        }
+      },
+      {
+        "id": "rc-a4",
+        "title": "task check green; no rule lost",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given `task check`, when it runs, then verify:agents-md-budget, the agents-entry contract test, verify:encoding, and the full suite pass, and a diff review confirms every enforceable directive still present (only rationale prose moved)."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#2156"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "docs/analysis/",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "tests/content/test_agents_entry_contract.py",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "AGENTS.md rationale/recurrence blocks collapsed to rule+pointer; history moved to docs/analysis/; managed/maintainer duplication reduced; #645 ratchet lowered; no enforceable rule dropped"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-legibility",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T14:24:25Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2156",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2156: collapse AGENTS.md rationale to rule+pointer"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
+      }
+    ],
+    "updated": "2026-07-02T14:24:25Z"
+  }
+}

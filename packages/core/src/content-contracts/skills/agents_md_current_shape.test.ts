@@ -4,6 +4,7 @@ import { readRepoFile } from "./helpers.js";
 /** Port of tests/content/test_agents_md_current_shape.py (#1838 #1530) */
 
 const agentsMdText = readRepoFile("AGENTS.md");
+const analysisText = readRepoFile("docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md");
 const ghSliceText = readRepoFile("skills/deft-directive-gh-slice/SKILL.md");
 const refinementText = readRepoFile("skills/deft-directive-refinement/SKILL.md");
 
@@ -67,22 +68,23 @@ describe("test_agents_md_current_shape", () => {
 
   it.each(CANONICAL_BODY_FIELDS)("canonical_body_structure_field_present %s", (field) => {
     const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
-    expect(section).toContain(field);
+    expect(section).toContain("docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md");
+    expect(analysisText).toContain(field);
   });
 
   it("body_structure_pass_type_enumerates_all_four", () => {
-    const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
     for (const passType of ["additive", "subtractive", "refactor", "verify"]) {
-      expect(section).toContain(passType);
+      expect(analysisText).toContain(passType);
     }
   });
 
   it("section_cross_references_consuming_skills", () => {
     const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
-    expect(section).toContain("skills/deft-directive-gh-slice/SKILL.md");
-    expect(section).toContain("skills/deft-directive-refinement/SKILL.md");
-    expect(section).toContain("#1140");
-    expect(section).toContain("#1119");
+    expect(section).toContain("docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md");
+    expect(analysisText).toContain("skills/deft-directive-gh-slice/SKILL.md");
+    expect(analysisText).toContain("skills/deft-directive-refinement/SKILL.md");
+    expect(analysisText).toContain("#1140");
+    expect(analysisText).toContain("#1119");
   });
 
   it("gh_slice_skill_cross_references_convention", () => {

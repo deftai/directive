@@ -65,7 +65,7 @@ Check what exists before doing anything else:
 
 ## WIP cap
 
-The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbrief/pending/` + `xbrief/active/`); the framework default is 10 (per umbrella #1119 Current Shape v3 / D4 / #1124). When the cap is reached, `task scope:promote` refuses with a relief hint pointing at `task scope:demote --batch --older-than-days 30` (D1 / #1121); the `--force` flag is the documented override for emergency promotions. Consumers configure the cap via `task triage:welcome --onboard` (Phase 4 wipCap prompt) or by inspecting / editing the typed field via `task policy:show --field=wipCap`; the framework's own `task check` aggregate runs `verify:wip-cap` with `--allow-over-cap` so the maintainer's own landing-day overage does not break self-check, while consumer projects depend on `verify:wip-cap` directly.
+Same rules as the managed section below; in this repo substitute `task` for `deft` (`task scope:promote`, `task scope:demote --batch --older-than-days 30`, `task triage:welcome --onboard`, `task policy:show --field=wipCap`, `verify:wip-cap` via `task check --allow-over-cap`).
 
 ## xBRIEF layout (#2034 / #2110)
 
@@ -84,22 +84,19 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Cache-as-authoritative work selection (#1149)
 
+Same `!` / `⊗` rules as the managed section below; in this repo substitute `task` for `deft` (`task triage:queue --limit=10`, D11 / #1128).
+
 ! When the operator asks "what should I work on next?" / "build a cohort" / "what's the queue?", the agent MUST run `task triage:queue --limit=10` (D11 / #1128) and present the ranked list before suggesting anything else. The agent MUST NOT recommend work from memory or open-GitHub-issue intuition.
 
 ⊗ Recommend a specific issue or xBRIEF without consulting `task triage:queue` (or showing the operator the result of the consultation).
 
 ## Codebase MAP Projection (#1595 / #1498)
 
-`xbrief/PROJECT-DEFINITION.xbrief.json` `plan.architecture.codeStructure` is the durable codebase-structure source. `.planning/codebase/MAP.md` is a generated orientation projection from that metadata plus provider/code-derived facts.
-
-- ~ If `.planning/codebase/MAP.md` exists, read it as orientation before broad codebase scanning.
-- ~ If it is absent or may be stale, run `task codebase:map` and `task verify:codebase-map-fresh` when those commands resolve; treat the result as advisory unless the current task edits `plan.architecture.codeStructure`, a configured provider artifact, or the generated MAP itself.
-- ! When the MAP is wrong, update `plan.architecture.codeStructure` or the selected provider artifact, then regenerate the MAP.
-- ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the xBRIEF metadata.
+Same `~` / `!` / `⊗` rules as the managed section below; in this repo substitute `task` for `deft` (`task codebase:map`, `task verify:codebase-map-fresh`).
 
 ## Skills
 
-Skill routing (which skill answers which trigger) is no longer a table in this policy file. To pick a skill, scan the **Skills Index** (Level-0) in `REFERENCES.md` — it lists every skill under `content/skills/` with a one-sentence description and trigger keywords, unified with the framework doc routing so agents consult one place to decide what to load. Load a `SKILL.md` (Level-1) only when the index indicates a match. The behavioral gate to scan `content/skills/` before improvising a workflow lives in `## Before Improvising` above; the `welcome` / `onboard triage` trigger still invokes `task triage:welcome --onboard` (N3 / #1143).
+See managed `## Skills` below and the **Skills Index** in `REFERENCES.md`; maintainer skill paths use `content/skills/`. The `welcome` / `onboard triage` trigger invokes `task triage:welcome --onboard` (N3 / #1143).
 
 ## Development Process (always follow)
 
@@ -154,7 +151,7 @@ Skill routing (which skill answers which trigger) is no longer a table in this p
 
 ## CHANGELOG entry style (#1242)
 
-**Why this rule exists:** GitHub release bodies are capped at 125,000 characters. The release pipeline (`scripts/release.py::_section_for_version`) auto-flows the promoted `CHANGELOG.md` `[<version>]` section into the GitHub release body, so a `[Unreleased]` section that accumulates engineering-log-style entries hard-caps the release. The 2026-05-19 v0.32.0 Phase 3 e2e rehearsal hit this -- `gh release create` exited HTTP 422 "body is too long (maximum is 125000 characters)" because ~22 Wave-2d entries had drifted into multi-paragraph implementation walkthroughs that summed to ~140K chars. This rule keeps the ceiling out of reach.
+Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CHANGELOG entry style (#1242).
 
 - ! CHANGELOG `[Unreleased]` and promoted-version entries MUST be brief release-notes (2-4 sentences, roughly 300-800 chars), not implementation detail.
 - ! Each entry MUST reference its canonical PR / issue number(s); preserve `Closes #N` / `Refs #N` tails when rewriting.
@@ -163,46 +160,36 @@ Skill routing (which skill answers which trigger) is no longer a table in this p
 - ⊗ MUST NOT exceed roughly 800 chars per entry. If the change genuinely needs more, split into multiple distinct user-visible bullets or move detail to the PR body and link it.
 - ~ Lead with the user-visible benefit, then the mechanism, then the link. Mirrors the personal `ship-report` convention.
 
-Canonical write-up + good / bad example: `CONTRIBUTING.md` `## CHANGELOG entry style (#1242)`. A deterministic-tier lint gate is a separate follow-up; v1 is prose-tier and enforced at code review on every PR touching `CHANGELOG.md`.
-
 ## Commands
 
 Product commands use the `/deft:directive:*` namespace (#418 / #1670); the prior `/deft:*` product forms are deprecation-warning aliases, and cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. The legacy Python `run` CLI is deprecated (#1933) -- use the agent-driven setup skill for first-time setup and spec generation. See `content/commands.md` for the full command + alias table and the managed `## Commands` section below for the rendered surface.
 
 ## PowerShell
 
-**Root-cause rule (#798):** On Windows PowerShell 5.1, ANY modification of a file containing non-ASCII content MUST go through Python `pathlib.Path.read_text(encoding="utf-8")` / `write_text(text, encoding="utf-8")`. The corruption happens on the **READ** side: `Get-Content -Raw` decodes via the active Windows codepage (cp1252 or cp437) BEFORE any safe write can preserve the bytes. A correct UTF-8 write of already-corrupted text just persists the mojibake. PowerShell 7+ (`pwsh`), bash, and zsh handle UTF-8 correctly and are exempt.
+Rationale + recurrence record + gate detail: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § PowerShell encoding (#798). Enforced by `task verify:encoding`.
 
 - ! On PS 5.1, MUST use Python `pathlib` for all file edits touching non-ASCII glyphs (em dashes, arrows, ⊗, ✓, …, smart quotes, etc.) -- never `Get-Content -Raw` / `Set-Content` / inline `-replace` / backtick-n interpolation
 - ! When writing files using PowerShell on PS 7+ where unavoidable, MUST use `New-Object System.Text.UTF8Encoding $false` -- never `[System.Text.Encoding]::UTF8` (writes BOM). See `content/scm/github.md` PS 5.1 section.
 - ! This AGENTS.md rule is the project-side mirror of the same prohibition maintained in the maintainer's personal agent profile, so consumer-installed copies of deft carry the rule even when that personal rule is not loaded
 - ⊗ Round-trip a file containing non-ASCII content through PS 5.1 commands (`Get-Content` → `-replace` → `Set-Content`, `Get-Content` → string concat → `WriteAllText`, here-strings interpolating non-ASCII) -- the read-side decode corrupts the bytes regardless of how the write side is encoded
 
-**Recurrence record:** four prior occurrences before the deterministic gate landed -- #236 (t1.11.1, content/scm/github.md), #240 (t1.11.2, multi-line here-string rule), #283 (t1.20.1, AGENTS.md UTF8Encoding rule), and PR #795 (2026-05-01, 132-line CHANGELOG mojibake on a maintainer with all three prose rules loaded; the read-side decode happened before any write).
-
-**Deterministic-tier enforcement (#798):** `scripts/verify_encoding.py` scans tracked text files for U+FFFD replacement chars, the curated CP1252/CP437-as-UTF-8 mojibake bigram set, and unexpected UTF-8 BOM on .md/.json/.yml/.yaml/.txt. Wired into `task check` via `task verify:encoding` and into `.githooks/pre-commit` via `--staged`. Three-state exit (0 clean / 1 corruption / 2 config error). Per `main.md` Rule Authority [AXIOM] this elevates the rule from prose tier to deterministic tier -- the gate is the rule body; this AGENTS.md section is a cross-reference, not a duplicate. Document an exception via `task verify:encoding -- --allow-list <path>` (newline-separated glob patterns).
-
-**Grok Build Windows capture limitations (#1353):** When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_command` leaks internal wrapper text (Get-Content and redirection fragments) whenever the command string contains `|`, `2>&1`, `| cat`, `>`, or similar metacharacters. Non-piped commands execute cleanly.
+Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Grok Build Windows capture (#1353); root-cause audit: `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md`.
 
 - ! Never emit commands containing pipes or redirections through the agent shell tool on this platform. For anything requiring a pipe, use one of: Python one-liners with `pathlib` / `subprocess.run(capture_output=True)` (preferred -- bypasses the wrapper at the OS level), run the operation in the user's native terminal and paste the result back, or isolate the work in a dedicated worktree and mark the step as "user shell required".
 - ! This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based) is not affected by this wrapper leakage.
 
-Cross-references: `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md` (root-cause analysis). Refs #1353.
-
 ## Safe subprocess capture (#1366)
 
-**Why this rule exists:** the 2026-05-26 #1166 swarm session repeatedly hit `Thread-3 (_readerthread) UnicodeDecodeError` from inside Python's `subprocess.run(..., capture_output=True, text=True)` whenever a tool (most often `scripts/pr_merge_readiness.py`) captured `gh api` output containing a Greptile rolling-summary body. The default `text=True` decode path uses the host codepage (cp1252 / cp437 on Windows), and Greptile bodies routinely carry glyphs (em dashes, smart quotes, arrows) that the codepage cannot decode. Once the reader thread crashes, the script returns empty / malformed stdout and any dependent monitor sees `head: None`. The structural fix is to force `encoding="utf-8", errors="replace"` on every text-capturing subprocess call so undecodable bytes become U+FFFD instead of crashing the read.
+Rationale + recurrence record: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Safe subprocess capture (#1366).
 
 - ! Any deft script that captures `gh` output or another Python subprocess for parsing MUST route the call through `scripts/_safe_subprocess.py::run_text` (or pass `encoding="utf-8", errors="replace"` to `subprocess.run` directly). The helper FORCES `capture_output=True`, `text=True`, `encoding="utf-8"`, `errors="replace"`, and `shell=False` -- callers cannot regress the safety contract via kwargs.
 - ! New scripts under `scripts/` that shell out for parsable output (gh, git, python, task) MUST adopt the helper from day one. Existing scripts are migrated opportunistically; `scripts/pr_merge_readiness.py` is the #1366 reference adopter.
 - ⊗ Pass `text=True` to `subprocess.run` without an explicit `encoding="utf-8", errors="replace"` pair when the captured output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages, web fetches). The default locale-codepage decode is the bug.
 - ⊗ Catch and silently swallow `UnicodeDecodeError` from a subprocess capture site -- the helper makes the error unreachable; if a future caller hits it, the right response is to fix the call site to route through the helper, not to swallow.
 
-**Recurrence record:** observed across multiple gh-shelling scripts during the #1166 swarm (`pr_merge_readiness.py`, `tmp_monitor_1363.py`, ad-hoc monitor scripts). The class of bug also bit prior PowerShell-encoding work (#236 / #240 / #283 / #795) on the file-edit side; the subprocess-capture side is the structural complement covered by #1366. Cross-references: `content/templates/agent-prompt-preamble.md` § 3.6, `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md` (related #1353 wrapper-leakage analysis), Wave-2 dependents #1365 (sub-agent visibility) and #1368 (`pr_merge_readiness.py` hardening), Wave-3 dependent #1369 (cascade automation).
-
 ## Cascade automation surface (#1369)
 
-**Why this rule exists:** the 2026-05-26 #1166 swarm cascade saw the monitor babysit individual PRs because there was no first-class "wait-until-ready, then merge" primitive that survived the Grok Build harness fragility documented at #1353 / #1366. The Wave-1+2 work made the underlying primitives reliable (`_safe_subprocess.run_text` #1366, `pr_merge_readiness.py` layered fallbacks #1368, `monitor_pr.py` resilient wait loop #1368) and the Wave-3 helper `scripts/pr_wait_mergeable.py` composes them into one verb. The cascade now has a deterministic three-state exit (0 merged / 1 timeout-or-escalation / 2 config error); the protected-issue inspector chains AHEAD of the wait loop so a Layer-3 false-positive (#701) cannot reach a `gh pr merge` call.
+Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Cascade automation surface (#1369). Canonical surface: `task pr:wait-mergeable-and-merge`.
 
 - ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>` (script: `scripts/pr_wait_mergeable.py`). Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
 - ! The per-PR atomic gate (`task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) documented in `content/skills/deft-directive-swarm/SKILL.md` Phase 5 -> 6 STILL applies for any in-cascade merge an operator runs by hand. The Wave-3 cascade surface is the automated wrapper; the per-PR atomic gate is the manual freshness-window-atomic check. The two co-exist -- one does not retire the other.
@@ -210,24 +197,18 @@ Cross-references: `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-open
 - ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
 - ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
 
-**Recurrence record:** the #1166 swarm cascade abandoned automated merging on PR #1363 + Wave 3 because the existing hand-rolled monitor (which pre-dated #1368 / #1366) went blind on `pr_merge_readiness.py` exits where `head: None` survived for 15+ minutes. The cascade automation surface (#1369) is the structural answer; the rule above keeps the surface load-bearing instead of an opt-in convenience that drifts back into hand-rolled loops on future swarms.
-
-Cross-references: `scripts/pr_wait_mergeable.py` (helper), `tasks/pr.yml` `wait-mergeable-and-merge` (Taskfile surface), `tests/cli/test_pr_wait_mergeable.py` (acceptance contract), `content/skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 + Phase 6 Step 5 (cascade automation citations), `scripts/monitor_pr.py` + `scripts/pr_merge_readiness.py` (Wave-2 wait-until-ready primitives, #1368), `scripts/pr_check_protected_issues.py` (Layer-3 #701).
-
 ## Headless swarm launch gate-stack (#1387)
 
-**Why this rule exists:** launching a swarm has historically required walking the full interactive Phase 0 (queue scan, promote-fill loop, lifecycle bridge, allocation approval) even when the operator already has a curated, pre-approved cohort in hand. The headless / low-ceremony launch path (#1387, built on the #1378 allocation-context token) collapses those per-phase gates into a single consent so a ready cohort launches in one shot. This gate-stack note is the maintainer-side mirror of `content/skills/deft-directive-swarm/SKILL.md`; both surfaces MUST agree (it is swarm-orchestration discipline, maintainer-only, like #954 / #1364 / #1369 -- not part of the consumer managed-section).
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Headless swarm launch gate-stack (#1387).
 
 - ! When the operator supplies a pre-approved cohort via the **C1** CLI `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`, the swarm skill's Phase 0 per-phase approval gates collapse into the SINGLE #1378 `## Allocation context` consent token (`dispatch_kind: swarm-cohort` + non-null `allocation_plan_id` + `batching_rationale`); the interactive promote-fill loop is skipped.
 - ! Phase 2 accepts a **pre-created worktree map** (the **C3** JSON array of `{ story_id, worktree_path, base_branch }`) resolved via `resolve_worktree_map(...)` in `scripts/swarm_worktrees.py` -- which raises on same-path collisions or base-branch mismatches -- instead of always running `git worktree add` per agent.
 - ! Phase 3 consumes the **C2** launch-manifest (the JSON array of `{ story_id, xbrief_path, worktree_path, branch, allocation_context }`, where `allocation_context` is the #1378 token) emitted by `task swarm:launch` as dispatch PREP before spawning; the spawn itself stays agent-driven via the platform adapter (`start_agent` / `spawn_subagent`). `task swarm:launch` does NOT spawn agents -- it emits the manifest and stops.
 - ⊗ Re-prompt the operator for per-phase batching approval when a pre-approved cohort is launched via `task swarm:launch` -- the #1378 allocation-context token is the batched consent (all-or-nothing dispatch envelope, #954).
 
-Cross-references: `content/skills/deft-directive-swarm/SKILL.md` Phase 0 (headless cohort fast-path), Phase 2 Step 1 Mode A (pre-created worktree map), Phase 3 Step 0.5 (launch-manifest consumption); `content/templates/agent-prompt-preamble.md` § 2.5 (the #1378 allocation-context token). Refs #1387, #1378.
-
 ## SCM tooling -- prefer ghx (#884)
 
-**Why this rule exists:** the deft `scm:*` task surface (and the multi-agent swarm flows that consume it) make many read-only `gh` calls per session. Without a cache proxy, large swarms can saturate the unauthenticated `gh` rate limit (5,000 req/hr/user) within minutes -- the failure mode is silent stalls or 403s mid-cascade, not a clean error. `ghx` ([brunoborges/ghx](https://github.com/brunoborges/ghx)) is a drop-in caching proxy for `gh` that coalesces concurrent identical requests and serves cached read-only responses; v0.26.0 `scripts/scm.py` already prefers `ghx` over `gh` at runtime via the `_BINARY_PREFERENCE` ladder when `ghx` is on PATH (see `scripts/scm.py::resolve_binary`).
+Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § SCM tooling — prefer ghx (#884).
 
 - ! When you need to invoke the GitHub CLI (`gh issue view`, `gh pr list`, `gh api`, ...) and `ghx` is on PATH, prefer `ghx` over `gh` -- the surface is identical and the cached responses are 10x faster on repeated calls
 - ! Fall back to `gh` transparently when `ghx` is not on PATH; do NOT fail or warn -- this mirrors the `scripts/scm.py` runtime ladder and keeps the rule additive for consumers who have not yet opted in
@@ -238,7 +219,7 @@ Cross-references: `content/skills/deft-directive-swarm/SKILL.md` Phase 0 (headle
 
 ## Test performance discipline (#975)
 
-**Why this rule exists:** the 2026-05-08 triage-suite profile (`pytest tests/ -k triage --durations=20`) found that 5 watchdog regression tests in `tests/integration/test_triage_bootstrap_at_scale.py` plus one in `tests/test_triage_bootstrap.py` accounted for ~68% of the triage-suite wall-clock (~5.85s out of ~8.54s). The watchdog tests assert real `time.sleep` / thread-join behaviour from #952 and so necessarily burn small amounts of wall-clock; without a marker convention they show up in every `task check` run on every iteration of every PR. Issue #975 introduced the `slow` pytest marker convention as a stop-gap (the proper fix is a monkeypatch-based clock injection, tracked as a follow-up to #975). This rule codifies the convention so future agents apply the marker (or refactor) when they encounter a similarly slow test, rather than re-discovering the friction.
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Test performance discipline (#975).
 
 - ! When a single test exceeds ~1s wall-clock, mark it with `@pytest.mark.slow` or refactor it to use injected clocks / `monkeypatch` so it runs in milliseconds. The marker is registered in `pyproject.toml` `[tool.pytest.ini_options]` and the `addopts = "-m 'not slow'"` default excludes marked tests from `task check` -- the slow lane is run explicitly via `task check:slow`. See `CONTRIBUTING.md` `### Slow tests (#975)` for the contributor surface.
 - ! When profiling a suite that feels slow, run `pytest <file> --durations=20` (or the equivalent task invocation) to see the top wall-clock offenders. Any single test exceeding 1s MUST be marked `@pytest.mark.slow` or refactored before merging.
@@ -246,11 +227,9 @@ Cross-references: `content/skills/deft-directive-swarm/SKILL.md` Phase 0 (headle
 - ~ Treat `@pytest.mark.slow` as a stop-gap, not a destination. Long-term, slow tests SHOULD be refactored to remove the wall-clock dependency (e.g. inject a fake clock, swap `time.sleep` for `monkeypatch`, use `threading.Event` instead of polling). The marker buys breathing room while the proper refactor lands.
 - ⊗ Add `@pytest.mark.slow` to tests that are fast but flaky -- the marker is for genuine wall-clock cost, not for hiding intermittent failures. Flaky tests must be fixed at the root cause, not hidden behind the slow lane.
 
-Cross-references: `pyproject.toml` (marker registration + default opt-out), `Taskfile.yml` `check:slow` (slow lane), `CONTRIBUTING.md` `### Slow tests (#975)` (contributor convention), `tests/integration/test_triage_bootstrap_at_scale.py` + `tests/test_triage_bootstrap.py` (current marker users).
-
 ## Multi-agent orchestration discipline (#954)
 
-**Why this rule exists:** the 2026-05-07 multi-agent session surfaced concrete recurrence patterns when orchestrators dispatched workers without a canonical preamble — workers polled GitHub via GraphQL surfaces (`gh pr view --json`, `gh pr ready`) and exhausted the 5000-req/hr GraphQL bucket mid-cascade; release agents looped on Draft↔Ready toggles burning more GraphQL budget; one worker self-terminated with `succeeded` lifecycle while reporting "holding for reply" in a status message, breaking the implied resume channel. The canonical preamble at `content/templates/agent-prompt-preamble.md` and the rules below institutionalise the mitigations. Consumer-installed deft carries this rule even when the orchestrator does not load it, so swarm cohorts inherit the discipline.
+Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Multi-agent orchestration discipline (#954). Canonical preamble: `content/templates/agent-prompt-preamble.md`.
 
 - ! When invoking `gh` for read-only operations, prefer REST surfaces over GraphQL -- forbid `gh issue view --json`, `gh pr view --json`, `gh pr ready`, `gh pr update-branch` (all GraphQL); use `gh api repos/<owner>/<repo>/issues/<N>` / `gh api repos/<owner>/<repo>/pulls/<N>` (REST) or `ghx api` (cached REST) instead. The GraphQL bucket is shared across all workers under the same identity and is the operational bottleneck, not the REST `core` bucket.
 - ! Within a single review cycle, toggle PR Draft↔Ready state at most once. Once Ready, stay Ready unless a P0 finding demands a re-Draft -- each toggle costs a GraphQL mutation and stale Draft re-toggles are the documented failure mode for the PR #652-class merge cascades.
@@ -259,7 +238,7 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 - ! Orchestrators dispatching implementation sub-agents MUST include the canonical preamble verbatim (or by reference) in the worker's dispatch envelope -- see `content/templates/agent-prompt-preamble.md`. The preamble covers AGENTS.md read mandate, the #810 xBRIEF gate walkthrough, the PowerShell 5.1 non-ASCII rule (#798), pre-pr + review-cycle skill mandates, the four rules above, sub-agent spawn rules per #727, orchestrator dispatch doctrine (#1880), and the mandatory DONE message protocol.
 - ⊗ Dispatch an implementation sub-agent without including the canonical preamble (or a reference to `content/templates/agent-prompt-preamble.md` it can read directly) -- the recurrence patterns above re-fire on every fresh dispatch that omits this institutional memory.
 
-**Orchestrator dispatch doctrine (#1880):** Root cause from the 2026-06-22 #1878 session (Gaps C and D). Canonical prose lives in `content/templates/agent-prompt-preamble.md` §9; skills cross-reference swarm Phase 3/5→6 and review-cycle Review Monitoring.
+Orchestrator dispatch doctrine (#1880): `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Multi-agent orchestration discipline (#954); canonical prose in `content/templates/agent-prompt-preamble.md` §9.
 
 - ! **Worker-owns-lifecycle (Gap C):** When dispatching an implementation worker, the envelope MUST declare `stop-at: pr-open` OR `drive-to: merge-ready` (default for story work). Workers scoped `drive-to: merge-ready` own PR + review cycle + fix batches through merge-ready as ONE unit of work — they spawn their own review poller per review-cycle monitoring tiers; the orchestrator MUST NOT hand back at PR-open and re-dispatch separate leaf agents for review/fixes.
 - ! **Background dispatch (Gap D):** Long-running workers (>~3 min: implementation, fix batches, review-cycle owners, pollers) MUST dispatch independently / in the background (on Cursor: Task tool `run_in_background: true`) so the conversation channel stays interactive; foreground dispatch is for short tasks only.
@@ -267,11 +246,11 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 - ⊗ Re-dispatch separate review/fix leaf agents after a `drive-to: merge-ready` implementation worker exits at PR-open (#1880 Gap C).
 - ⊗ Foreground/blocking dispatch for long-running implementation, fix, or review-cycle workers when background dispatch is available (#1880 Gap D).
 
-**ghx surface clarification (#954):** `ghx` is a cached read-only GET proxy for `gh`, NOT a full drop-in passthrough. The `ghx api` subcommand accepts a single positional path arg only -- multi-arg forms (e.g. `ghx api -X POST repos/.../comments --input file.json`) fail with `accepts 1 arg(s), received N`. Writes (POST/PATCH/PUT/DELETE via `gh api -X ...`) MUST fall through to `gh` directly. ghx wins for cached read-only `GET`s; `gh` owns mutations and any flag-rich `api` invocation. The `scripts/scm.py::resolve_binary` ladder already encodes this distinction at runtime; this clarification mirrors it for human readers.
+ghx surface clarification (#954): `ghx` is a cached read-only GET proxy for `gh`, NOT a full drop-in passthrough; `ghx api` accepts a single positional path arg only. Writes (POST/PATCH/PUT/DELETE via `gh api -X ...`) MUST fall through to `gh` directly. Detail: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Multi-agent orchestration discipline (#954).
 
 ## Umbrella current-shape convention (#1152)
 
-**Why this rule exists:** the #1140 design-pass-churn deep-think analysis surfaced failure mode F3 -- an umbrella issue authored on pass-1 and amended via N comments forces every fresh contributor on pass-N to reconstruct the current shape by reading the umbrella body plus N amendment comments in order. That reconstruction cost compounds with every pass; the #1119 umbrella's 4-pass inflation (4 -> 8 -> 11 -> 16 children) only became visible at pass-4 because no canonical current-shape surface existed at pass-3. The convention below collapses the reconstruction cost to one comment read for every fresh contributor on every umbrella, forever. Each umbrella carries exactly ONE canonical comment titled `## Current shape (as of pass-N)`, edited in place at the end of every design pass. Amendment comments remain as the audit trail (they are never removed); the canonical "what does the umbrella look like right now?" surface is the single edited-in-place comment.
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Umbrella current-shape convention (#1152). For status reporting, see also managed `## Umbrella status reading` below.
 
 - ! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.
 - ! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.
@@ -281,38 +260,18 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 - ⊗ Do NOT replace the current-shape comment with a fresh comment — it must be edited in place so its permalink is stable.
 - ⊗ Conclude umbrella or epic status from the issue body alone. The body is the pass-1 plan (stale by design). Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body (#2066).
 
-**Canonical body structure:** the current-shape comment body MUST carry the following sections in the order listed so any fresh contributor can scan the same skeleton across every umbrella:
-
-1. `Last updated:` -- ISO-8601 UTC timestamp of the most recent edit-in-place.
-2. `Last pass type:` -- one of `additive | subtractive | refactor | verify` (per the pass-type declaration counterpart, N14 / TBD).
-3. `Child count:` -- `<total> (<open>/<closed>)`.
-4. `Child-count history:` -- `pass-1: N1, pass-2: N2, ...` so inflation / deflation across passes is visible at a glance.
-5. `### Open children` -- list with brief role-tag per child.
-6. `### Closed children` -- list with closure reason per child.
-7. `### Wave order` -- dependency graph or wave-grouped list.
-8. `### Open questions` -- optional; surface decisions still owing operator input.
-9. `### Reading order for fresh contributors` -- the canonical three-step (umbrella body -> this comment -> amendment comments) so a new reader knows where to start.
-
-v1 ships the read/render-and-validate command `task umbrella:current-shape <N>` (native deft-ts verb, #2066): it fetches `repos/<owner>/<repo>/issues/<N>/comments` via the scm shim, locates the canonical `## Current shape (as of pass-N)` comment, prints it (or `--json` with section validation), and exits non-zero when no current-shape comment exists — it never falls back to the issue body. `--strict` MAY exit non-zero on missing required #1152 sections. A future v2 MAY add structured-amendment-comment parsing (N14 / TBD pass-type declaration) for richer mechanical renders.
-
-Cross-references: `content/skills/deft-directive-gh-slice/SKILL.md` (final phase -- file the umbrella, then file its current-shape comment per this convention), `content/skills/deft-directive-refinement/SKILL.md` and `content/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status, read the current-shape comment + linked xBRIEF, not the body), `content/templates/agent-prompt-preamble.md` (canonical orchestrator preamble that consumers of this convention dispatch against). Refs #1140 (parent meta-umbrella -- design-pass churn), #1119 (companion umbrella whose pattern motivated this convention; its v3 current-shape comment is the seed example pre-dating this convention), #2066 (claim-cites-state-surface -- forbid body-only status conclusions).
+Canonical body structure (9 required sections): `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Umbrella current-shape convention (#1152).
 
 ## Issue body→comments reading (#2143)
 
-**Why this rule exists:** the #2126 dispatch recurrence built a worker envelope from the issue body only; a maintainer comment on the same issue had already invalidated the body's suggested fix and named the correct approach. The umbrella current-shape convention (#1152) encodes the same principle for umbrellas — body is pass-1, comments supersede — but that discipline was not generalized to ordinary issues or enforced at ingest time.
-
-- ! Before ingesting or dispatching against any GitHub issue, fetch both the issue body AND `repos/<owner>/<repo>/issues/<N>/comments` via REST. Read body first, then the comment thread in chronological order.
-- ! The issue-ingest path (`packages/core/src/intake/issue-ingest.ts` / `task issue:ingest`) fetches `/comments` by default and folds the thread into the ingested overview so a body-only artifact is not the default.
-- ⊗ Build a dispatch envelope or conclude what an issue asks for from the issue body alone when the issue has comments (#2143).
-
-Cross-references: `content/templates/agent-prompt-preamble.md` § 5.6, issue #2143. Refs #1152, #2066, #2126.
+Same `!` / `⊗` rules as the managed section below; maintainer ingest uses `task issue:ingest`. Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Issue body→comments reading (#2143).
 
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=7fa176f4718f refreshed=2026-07-02T13:40:18Z session=1ab0f05c9cbf -->
+<!-- deft:managed-section v3 sha=329dd36e440e refreshed=2026-07-02T14:21:36Z session=de789b5cd64d -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -399,22 +358,18 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Umbrella status reading (#1152 / #2066)
 
-Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canonical `## Current shape (as of pass-N)` comment (live state). Before reporting umbrella status:
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Umbrella current-shape convention (#1152).
 
 - ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
-Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.
-
 ## Issue body→comments reading (#2143)
 
-When ingesting or dispatching against **any** GitHub issue (not only umbrellas), later maintainer comments may supersede the original body — the #2126 recurrence shipped the wrong fix from a body-only fetch.
+Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Issue body→comments reading (#2143); preamble § 5.6 in `.deft/core/content/templates/agent-prompt-preamble.md`.
 
 - ! Fetch both the issue body and `repos/<owner>/<repo>/issues/<N>/comments` via REST before concluding what the issue asks for or building a worker dispatch envelope. Read body first, then the comment thread in chronological order.
 - ! `deft issue:ingest` / `task issue:ingest` fetches `/comments` by default and folds the thread into the ingested overview (#2143).
 - ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
-
-Cross-references: `.deft/core/content/templates/agent-prompt-preamble.md` § 5.6. Refs #2143, #1152, #2066, #2126.
 
 ## Content packs
 
