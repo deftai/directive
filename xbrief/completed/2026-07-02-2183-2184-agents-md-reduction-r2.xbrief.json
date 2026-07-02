@@ -1,0 +1,66 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "AGENTS.md reduction round 2: de-duplicate the maintainer half against the managed section (#2183) and reduce verbose managed-section-template rationale/duplication (#2184), then ratchet the #645 budget down.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2183-2184-agents-md-reduction-r2",
+    "title": "refactor(agents-md): de-duplicate maintainer half + reduce managed-section template",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2183",
+    "narratives": {
+      "Description": "The maintainer AGENTS.md restated ~70% of the managed section (Returning Sessions, Deft Alignment Confirmation, Session-start ritual, Implementation Intent Gate, Story Start Gate) in full prose (#2183). The managed-section template also carried verbose mechanism paragraphs that propagate to every consumer (#2184). Both were collapsed to the established #2156 'Same rules as the managed section below; substitute task for deft' pointer pattern, preserving every #1309 propagation marker (commands, policy keys, headers, action verbs) and the #645 ratchet.",
+      "ImplementationPlan": "1. #2184: collapse the template Session-start ritual's three mechanism paragraphs (doctor internals / bootstrap narrative / triage-welcome internals) to one pointer; collapse the Branch Policy Disclosure override-paths list to a pointer to the Branch policy section above. Run agents:refresh to regenerate the AGENTS.md managed section. 2. #2183: collapse the five fully-duplicated maintainer behavioral sections to the #2156 pointer pattern, retaining the required task-form command markers (task session:start, task verify:tools, task doctor, task scope:promote/activate/complete, git status --short --branch, task xbrief:preflight) and the ### Story Start Gate header. 3. Ratchet plan.policy.agentsMdBudget down (managed 205->198, unmanaged 266->226). 4. Contract test tests/content/test_agents_entry_contract.py (TS port) must stay green; run task check.",
+      "UserStory": "As an agent loading AGENTS.md, I want the maintainer half and managed template to state each rule once (with a pointer to the canonical copy) instead of restating it, so the always-loaded context is smaller and more legible.",
+      "Traces": "#2183, #2184, #1882, #645, #2156, #1309"
+    },
+    "items": [
+      {
+        "id": "r1",
+        "title": "Maintainer half de-duplicated against managed (#2183)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Returning Sessions, Deft Alignment Confirmation, Session-start ritual, Implementation Intent Gate, Story Start Gate collapse to the #2156 pointer pattern; all required task-form markers preserved."
+        }
+      },
+      {
+        "id": "r2",
+        "title": "Managed-section template reduced (#2184)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Template Session-start ritual mechanism paragraphs + Branch Policy Disclosure override list collapse to pointers; agents:refresh regenerates AGENTS.md; consumer markers preserved."
+        }
+      },
+      {
+        "id": "r3",
+        "title": "Ratchet down + task check green",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "plan.policy.agentsMdBudget lowered to new actuals; contract test green; task check passes; CHANGELOG entry added."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2183, #2184"
+      },
+      "completedAt": "2026-07-02T17:27:12Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2183",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2183"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2184",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2184"
+      }
+    ],
+    "updated": "2026-07-02T17:27:12Z"
+  }
+}

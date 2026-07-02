@@ -64,10 +64,7 @@ Check what exists before doing anything else:
 
 ⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
 
-`deft doctor` remains the install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). When the managed-section is stale, the doctor points the operator at `deft agents:refresh` to regenerate AGENTS.md from `templates/agents-entry.md`. The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and, when behind, emits the canonical upgrade command `npm i -g @deftai/directive@latest` (#1339 / #1409 / #1912).
-
-**Canonical bootstrap / update path:** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade). Node ≥ 20 is required to run Deft (the live gates run on the TypeScript engine). On a machine without Node, install Node first, then use npm — the frozen legacy Go installer (GitHub Releases) is only a legacy/offline + layout-migration bridge (#1912), not a Node-free path. Legacy `deft upgrade` / `run upgrade` are metadata-only acknowledgment and `deft relocate -- --confirm` is back-compat only; git-clone / submodule / legacy doctor surfaces are de-emphasized in UPGRADING.md / README / skills. Agent example: after installing, start your session; `deft doctor` tells you the exact state.
-`deft triage:welcome` emits the triage one-liner and, when state is incomplete, nudges the operator at `deft triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual. D2's 4-hour suppression window governs repeat emission during session start: the headline re-emits only when a structured comparison-key field in the latest `xbrief/.eval/summary-history.jsonl` record changes (the canonical field set is owned by the `triage:welcome` implementation -- see #1279, not enumerated here).
+`deft doctor` is the install-integrity + toolchain + managed-section freshness probe (#1308); when the managed section is stale it points at `deft agents:refresh`, and when the payload is behind it emits the upgrade command `npm i -g @deftai/directive@latest`. Install/upgrade via npm (`npm i -g @deftai/directive`; Node ≥ 20) — see `.deft/core/UPGRADING.md` for the bootstrap/upgrade path (the legacy Go installer is a legacy/offline bridge only). `deft triage:welcome` emits the triage one-liner and nudges `deft triage:welcome --onboard` when state is incomplete; its D2 4-hour suppression window and comparison-key set are owned by the `triage:welcome` implementation (#1143 / #1279).
 
 ## WIP cap
 
@@ -142,11 +139,7 @@ When the active project's `xbrief/PROJECT-DEFINITION.xbrief.json` has `plan.poli
 
 This phrasing comes from `.deft/core/scripts/policy.py::disclosure_line` and stays in lockstep with the typed surface (#746). When the policy is OFF (default; `allowDirectCommitsToMaster=false`), no session-start disclosure is required -- the absence of the disclosure line itself signals the default-enforcing state.
 
-Override paths the user may invoke:
-- `deft policy:show` -- inspect resolved policy
-- `deft policy:enforce-branches` -- re-enable branch protection
-- `deft policy:allow-direct-commits -- --confirm` -- re-confirm opt-out (audited)
-- `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` -- emergency env-var bypass
+Override paths (`deft policy:show` / `deft policy:enforce-branches` / `deft policy:allow-direct-commits -- --confirm` / `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`) are detailed in the Branch policy & branch verification section above.
 
 ⊗ Begin a session that will commit/push without surfacing the policy state when allowDirectCommitsToMaster=true.
 
