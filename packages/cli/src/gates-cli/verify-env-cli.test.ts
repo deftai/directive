@@ -3,6 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { resolveCanonicalVerb } from "../dispatch.js";
+import { run as runToolchainCheckCli } from "../toolchain-check.js";
 import { repoRoot, runDeftTs } from "./_helpers.js";
 
 const temps: string[] = [];
@@ -69,24 +71,36 @@ describe("deft-ts verify-no-task-runtime (maps tests/cli/test_verify_no_task_run
 });
 
 describe("deft-ts toolchain-check", () => {
+  const stubRunner = (command: readonly string[]) => ({
+    returncode: 0,
+    stdout: `${command[0] ?? "tool"} version test\n`,
+    stderr: "",
+  });
+
   it("runs without config error", () => {
-    const { exitCode } = runDeftTs("toolchain-check", [], { cwd: repoRoot() });
+    const exitCode = runToolchainCheckCli([], { runner: stubRunner });
     expect([0, 1]).toContain(exitCode);
   });
 
   it("toolchain:check alias routes identically", () => {
-    const direct = runDeftTs("toolchain-check", [], { cwd: repoRoot() });
-    const alias = runDeftTs("toolchain:check", [], { cwd: repoRoot() });
-    expect(alias.exitCode).toBe(direct.exitCode);
+    expect(resolveCanonicalVerb("toolchain:check")).toBe("toolchain-check");
+    const direct = runToolchainCheckCli([], { runner: stubRunner });
+    const alias = runToolchainCheckCli([], { runner: stubRunner });
+    expect(alias).toBe(direct);
   });
 
   it("consumer mode skips maintainer-only tools", () => {
-    const maintainer = runDeftTs("toolchain-check", [], { cwd: repoRoot() });
-    const consumer = runDeftTs("toolchain-check", ["--consumer"], { cwd: repoRoot() });
-    expect([0, 1]).toContain(consumer.exitCode);
-    if (maintainer.exitCode === 1 && consumer.exitCode === 0) {
-      expect(consumer.stdout).toContain("All required tools available");
-    }
+    const maintainerOnlyMissing = (command: readonly string[]) => {
+      const name = command[0] ?? "";
+      if (name === "go" || name === "uv") {
+        return { error: "not-found" as const, message: "" };
+      }
+      return { returncode: 0, stdout: `${name} ok\n`, stderr: "" };
+    };
+    const maintainer = runToolchainCheckCli([], { runner: maintainerOnlyMissing });
+    const consumer = runToolchainCheckCli(["--consumer"], { runner: maintainerOnlyMissing });
+    expect(maintainer).toBe(1);
+    expect(consumer).toBe(0);
   });
 });
 
