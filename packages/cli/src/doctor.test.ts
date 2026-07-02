@@ -189,6 +189,45 @@ describe("doctor CLI", () => {
     expect(out).toContain("migrate:xbrief");
   });
 
+  it("signposts a half-migrated AGENTS.md header (xbrief tree + vbrief header) (#2154)", () => {
+    const root = makeRoot("doctor-header-drift-");
+    for (const folder of LIFECYCLE_FOLDERS) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      [
+        "# Consumer",
+        "## Lifecycle",
+        "- `task vbrief:preflight -- vbrief/active/foo.vbrief.json`",
+        "",
+        "<!-- deft:managed-section v3 -->",
+        "managed body",
+        "<!-- /deft:managed-section -->",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const out = captureStdout(() => {
+      run(["--project-root", root]);
+    });
+    expect(out).toContain("AGENTS.md header drift:");
+    expect(out).toContain("migrate:xbrief");
+    expect(out).toContain("vbrief/");
+  });
+
+  it("reports no AGENTS.md header drift for a clean xbrief header (#2154)", () => {
+    const root = makeRoot("doctor-header-clean-");
+    for (const folder of LIFECYCLE_FOLDERS) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
+    writeFileSync(join(root, "AGENTS.md"), "# Consumer\nAll on xbrief/ now.\n", "utf8");
+    const out = captureStdout(() => {
+      run(["--project-root", root]);
+    });
+    expect(out).toContain("AGENTS.md header drift: none");
+  });
+
   it("reports clean deposit hygiene when .deft/core has no packages/ (#2142)", () => {
     const root = makeRoot("doctor-deposit-clean-");
     makeLifecycleDirs(root);

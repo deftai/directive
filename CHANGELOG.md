@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`migrate:xbrief` now fixes stale `vbrief/` paths in your AGENTS.md header, not just the managed section (#2154).** Previously a crossover migration renamed the lifecycle tree and refreshed the managed Deft section but left the hand-maintained header pointing at the old `vbrief/` layout (`Session orientation`, `Lifecycle` examples, `test-single.vbrief.json`), so agents read the wrong paths every session while `deft doctor` still reported healthy. `migrate:xbrief` now rewrites the known crossover tokens (`vbrief/` → `xbrief/`, `*.vbrief.json` → `*.xbrief.json`, `vbrief:preflight` → `xbrief:preflight`) in the unmanaged header — idempotently and without touching the managed section — and prints a summary of what changed. `deft doctor` also gained a signpost that warns when an `xbrief/` tree still has a legacy header. Refs #2154, #2034, #2065, #1882.
+
 ### Removed
 
 ## [0.66.2] - 2026-07-01

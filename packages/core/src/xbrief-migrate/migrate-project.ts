@@ -11,6 +11,7 @@ import {
 import { dirname, join, relative, resolve } from "node:path";
 import { checkGitClean } from "../migrate-preflight/index.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
+import { patchAgentsMdHeader, renderHeaderPatchSummary } from "./agents-header.js";
 import {
   LEGACY_ARTIFACT_DIR,
   LEGACY_ARTIFACT_SUFFIX,
@@ -243,6 +244,19 @@ export function emitXbriefMigration(
   }
 }
 
+/**
+ * Rewrite legacy `vbrief` crossover tokens in the UNMANAGED AGENTS.md header
+ * after lifecycle migration + agents:refresh (#2154). The managed section is
+ * left byte-for-byte intact; only the freeform header/tail path literals are
+ * patched. Idempotent and non-fatal — a header with no legacy tokens is a
+ * clean no-op. Always returns 0; the migration itself already succeeded.
+ */
+function runHeaderPatch(projectRoot: string, io: XbriefMigrationIo): number {
+  const outcome = patchAgentsMdHeader(projectRoot);
+  io.writeOut(`${renderHeaderPatchSummary(outcome)}\n`);
+  return 0;
+}
+
 /** End-to-end migrate:xbrief handler including optional agents:refresh (#2110). */
 export function runXbriefMigrationCli(args: XbriefMigrationArgs, io: XbriefMigrationIo): number {
   const outcome = runXbriefMigration(args, io);
@@ -250,5 +264,10 @@ export function runXbriefMigrationCli(args: XbriefMigrationArgs, io: XbriefMigra
   if (code !== 0 || outcome.kind !== "migrated") {
     return code;
   }
-  return runAgentsRefresh(resolve(args.projectRoot), args.frameworkRoot, io);
+  const projectRoot = resolve(args.projectRoot);
+  const refreshCode = runAgentsRefresh(projectRoot, args.frameworkRoot, io);
+  if (refreshCode !== 0) {
+    return refreshCode;
+  }
+  return runHeaderPatch(projectRoot, io);
 }

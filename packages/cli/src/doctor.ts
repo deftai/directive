@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 import { parseDoctorFlags } from "@deftai/directive-core/dist/doctor/flags.js";
 import { cmdDoctor } from "@deftai/directive-core/dist/doctor/main.js";
 import { renderPrecutoverLine } from "@deftai/directive-core/dist/vbrief-validate/precutover.js";
-import { renderXbriefMigrationLine } from "@deftai/directive-core/xbrief-migrate";
+import {
+  renderStaleHeaderLine,
+  renderXbriefMigrationLine,
+} from "@deftai/directive-core/xbrief-migrate";
 
 /** Advisory when a consumer deposit carries git-vendored framework source (#2142). */
 export function renderStrayPackagesAdvisoryLine(projectRoot: string): string {
@@ -30,6 +33,7 @@ export function run(argv: string[]): number {
     const projectRoot = flags.projectRoot ?? process.cwd();
     process.stdout.write(`${renderPrecutoverLine(projectRoot)}\n`);
     process.stdout.write(`${renderXbriefMigrationLine(projectRoot)}\n`);
+    process.stdout.write(`${renderStaleHeaderLine(projectRoot)}\n`);
     process.stdout.write(`${renderStrayPackagesAdvisoryLine(projectRoot)}\n`);
   }
   return cmdDoctor(argv);
