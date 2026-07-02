@@ -130,6 +130,28 @@ describe("scope branch coverage", () => {
     expect(plan3.metadata).toBeTruthy();
   });
 
+  // #2212: after the vbrief->xbrief migration the stamper MUST resolve the
+  // xbrief/ PROJECT-DEFINITION so capacityBucket is not silently empty.
+  it("capacity-stamp reads default bucket from a migrated xbrief tree", () => {
+    root = mkdtempSync(join(tmpdir(), "cap-xbrief-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "seed.xbrief.json"),
+      formatVbriefJson({ plan: { title: "s", status: "running", items: [] } }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      formatVbriefJson({
+        plan: { policy: { capacityAllocation: { defaultBucket: "debt" } } },
+      }),
+      "utf8",
+    );
+    const plan: Record<string, unknown> = { status: "running" };
+    stampCompletionMetadata(plan, root, "2026-06-01T00:00:00Z");
+    expect((plan.metadata as Record<string, unknown>).capacityBucket).toBe("debt");
+  });
+
   it("transition covers error paths, no-ops, block/unblock, complete", () => {
     root = mkdtempSync(join(tmpdir(), "trans-"));
     expect(runTransition("bogus", "/x").ok).toBe(false);
