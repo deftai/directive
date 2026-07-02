@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage): scope/resolve.ts loads triageScope from hardcoded vbrief/ path on migrated trees",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(triage): scope/resolve.ts loads triageScope from hardcoded vbrief/ path on migrated trees",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2211",
@@ -36,6 +36,10 @@
         "title": "Issue #2109"
       }
     ],
-    "updated": "2026-07-02T23:04:40Z"
+    "updated": "2026-07-02T23:40:02Z",
+    "metadata": {
+      "completedAt": "2026-07-02T23:40:02Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

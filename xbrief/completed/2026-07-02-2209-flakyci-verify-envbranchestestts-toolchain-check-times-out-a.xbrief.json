@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "flaky(ci): verify-env/branches.test.ts toolchain-check times out at 5s in CI (real subprocess spawn)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "flaky(ci): verify-env/branches.test.ts toolchain-check times out at 5s in CI (real subprocess spawn)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2209",
@@ -27,6 +27,10 @@
         "title": "Issue #975"
       }
     ],
-    "updated": "2026-07-02T23:03:56Z"
+    "updated": "2026-07-02T23:40:01Z",
+    "metadata": {
+      "completedAt": "2026-07-02T23:40:01Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
