@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(check): `task check` diverges from CI TS lane (`pnpm run lint`) — biome format violations pass locally, fail CI",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(check): `task check` diverges from CI TS lane (`pnpm run lint`) — biome format violations pass locally, fail CI",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2220",
@@ -26,6 +26,10 @@
         "title": "Issue #2220: bug(check): `task check` diverges from CI TS lane (`pnpm run lint`) — biome format violations pass locally, fail CI"
       }
     ],
-    "updated": "2026-07-02T23:39:41Z"
+    "updated": "2026-07-02T23:51:41Z",
+    "metadata": {
+      "completedAt": "2026-07-02T23:51:41Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

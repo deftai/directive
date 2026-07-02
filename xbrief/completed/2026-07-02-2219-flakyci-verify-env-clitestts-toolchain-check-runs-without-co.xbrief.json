@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "flaky(ci): verify-env-cli.test.ts 'toolchain-check runs without config error' times out at 5s (real subprocess) — #2209 follow-up",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "flaky(ci): verify-env-cli.test.ts 'toolchain-check runs without config error' times out at 5s (real subprocess) — #2209 follow-up",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2219",
@@ -31,6 +31,10 @@
         "title": "Issue #2209"
       }
     ],
-    "updated": "2026-07-02T23:39:20Z"
+    "updated": "2026-07-02T23:51:41Z",
+    "metadata": {
+      "completedAt": "2026-07-02T23:51:41Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
