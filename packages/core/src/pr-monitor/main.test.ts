@@ -33,7 +33,11 @@ function fakeRunGh(responses?: { headOk?: boolean; commentsOk?: boolean }): RunG
         returncode: 0,
         stdout: JSON.stringify({
           check_runs: [
-            { name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" },
+            {
+              name: "TypeScript (build + lint + test)",
+              status: "completed",
+              conclusion: "success",
+            },
           ],
         }),
         stderr: "",
