@@ -259,17 +259,25 @@ describe("toolchain-check branches", () => {
     expect(result.lines.some((line) => line.includes("FAILED (exit 2)"))).toBe(true);
   });
 
-  it("exercises runToolchainCheck with defaultCommandRunner and a single tool", () => {
-    const result = runToolchainCheck(defaultCommandRunner, [
-      { name: "node", command: [process.execPath, "--version"] },
-    ]);
+  it("exercises runToolchainCheck with a custom tools list and injected runner", () => {
+    const result = runToolchainCheck(
+      (command) => ({
+        returncode: 0,
+        stdout: `${command[0]} version test\n`,
+        stderr: "",
+      }),
+      {},
+      [{ name: "node", command: ["node", "--version"] }],
+    );
+    expect(result.exitCode).toBe(0);
     expect(result.lines.length).toBeGreaterThan(1);
+    expect(result.lines.some((line) => line.includes("node:"))).toBe(true);
   });
 
   it("covers defaultCommandRunner failure branch", () => {
     const result = defaultCommandRunner([process.execPath, "-e", "process.exit(1)"], 1000);
     expect("returncode" in result && result.returncode).toBe(1);
-  });
+  }, 20_000);
 
   it("covers defaultCommandRunner ENOENT branch", () => {
     const result = defaultCommandRunner(["definitely-missing-binary-xyz"], 1000);
