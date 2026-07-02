@@ -1,0 +1,42 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2210"
+  },
+  "plan": {
+    "title": "bug(triage): scope-drift/add-ignore.ts writes triageScopeIgnores to vbrief/ path on migrated trees",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(triage): scope-drift/add-ignore.ts writes triageScopeIgnores to vbrief/ path on migrated trees",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2210",
+      "UserStory": "As a directive maintainer on a migrated xbrief/ tree, I want `triage:add-ignore` to write triageScopeIgnores to the same layout-resolved PROJECT-DEFINITION that triage:queue reads, so the entries I add actually filter the queue instead of throwing or landing in an orphaned vbrief/ file.",
+      "ImplementationPlan": "1. In packages/core/src/triage/scope-drift/add-ignore.ts, remove the local hardcoded `PROJECT_DEFINITION_REL_PATH = \"vbrief/PROJECT-DEFINITION.vbrief.json\"` and resolve the path via `resolveProjectDefinitionPath(projectRoot)` from packages/core/src/layout/resolve.ts — matching scope-rules.ts / queue/project.ts (the #2207 read-side fix).\n2. Ensure both the read (existing-policy load) and the write target the resolved path.\n3. Add a migrated-tree regression test: on a tree with an .xbrief.json artifact + xbrief/PROJECT-DEFINITION.xbrief.json, addIgnore writes there and resolveScopeIgnores reads it back.\n4. Run `task check`.",
+      "Traces": "#2210, #2207, #2109, #2112",
+      "Overview": "## Summary\n\nFollow-up from PR #2208 (#2207) — Greptile P2. After that PR, `scope-drift/scope-rules.ts` **reads** `triageScopeIgnores` via the layout-aware `resolveProjectDefinitionPath()` (so it resolves `xbrief/PROJECT-DEFINITION.xbrief.json` on migrated trees), but the sibling `packages/core/src/triage/scope-drift/add-ignore.ts` still **hardcodes** `vbrief/PROJECT-DEFINITION.vbrief.json` for both its read and its write.\n\n## Impact\n\nOn a fully-migrated tree (no `vbrief/PROJECT-DEFINITION.vbrief.json`):\n\n- `addIgnore()` (`triage:add-ignore`) throws `PROJECT-DEFINITION not found at …vbrief/…`, or\n- if a stale `vbrief/` copy exists, entries are written there and are **invisible** to `triage:queue`, which now reads from `xbrief/`.\n\nThis is the write-side mirror of the read-side bug fixed in #2207.\n\n## Fix\n\nSwap the hardcoded `vbrief/PROJECT-DEFINITION.vbrief.json` join in `add-ignore.ts` for `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts`, matching `scope-rules.ts` / `queue/project.ts`. Add a migrated-tree regression test.\n\n## Related\n\n- Refs #2207 (PR #2208, read-side fix)\n- Refs #2109 (vbrief→xbrief migration — missed call-site)\n- Refs #2112 (remove vbrief read path — natural home for this write-side cleanup)"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2210",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2210: bug(triage): scope-drift/add-ignore.ts writes triageScopeIgnores to vbrief/ path on migrated trees"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2207",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2207"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2109",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2109"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2112",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2112"
+      }
+    ],
+    "updated": "2026-07-02T23:04:09Z"
+  }
+}
