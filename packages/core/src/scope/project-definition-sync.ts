@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 import { relativeToVbrief, resolveVbriefRef, scopeIdsForFilename } from "./vbrief-ref.js";
 
@@ -126,7 +126,7 @@ export function syncProjectDefinitionAfterScopeMove(
     return;
   }
   const projectRoot = dirname(resolve(vbriefRoot));
-  const projectDefPath = join(projectRoot, PROJECT_DEFINITION_REL_PATH);
+  const projectDefPath = resolveProjectDefinitionPath(projectRoot);
   if (!existsSync(projectDefPath)) {
     return;
   }

@@ -85,6 +85,41 @@ describe("project-definition-sync branches", () => {
     expect(pd.plan.items.every((i: { status: string }) => i.status === "completed")).toBe(true);
   });
 
+  // #2213: on a migrated xbrief/ tree the sync MUST resolve PROJECT-DEFINITION
+  // via the layout-aware path so references/items rewrite after scope moves.
+  it("rewrites plan references on a migrated xbrief tree (#2213)", () => {
+    root = mkdtempSync(join(tmpdir(), "pd-sync-xbrief-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+    writeFileSync(
+      join(xbrief, "active", "seed.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "s", status: "running" } }),
+      "utf8",
+    );
+    writeFileSync(
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
+      formatVbriefJson({
+        plan: {
+          items: [],
+          references: [{ type: "x-vbrief/plan", uri: "file://active/top.xbrief.json" }],
+        },
+      }),
+      "utf8",
+    );
+    const active = join(xbrief, "active", "top.xbrief.json");
+    mkdirSync(join(xbrief, "pending"), { recursive: true });
+    writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
+    syncProjectDefinitionAfterScopeMove(
+      JSON.parse(readFileSync(active, "utf8")),
+      active,
+      join(xbrief, "pending", "top.xbrief.json"),
+      xbrief,
+      "pending",
+    );
+    const pd = JSON.parse(readFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
+    expect(pd.plan.references[0].uri).toBe("file://pending/top.xbrief.json");
+  });
+
   it("rewrites top-level plan references with file:// prefix", () => {
     const vbrief = setupProjectDef({
       plan: {
