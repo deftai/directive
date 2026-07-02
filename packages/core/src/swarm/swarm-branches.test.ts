@@ -33,6 +33,15 @@ describe("swarm verify-review-clean", () => {
       if (joined.includes("/comments")) {
         return { returncode: 0, stdout: body, stderr: "" };
       }
+      if (joined.includes("/check-runs")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+          }),
+          stderr: "",
+        };
+      }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     });
     const per = evaluatePr(1, "deftai/directive", runGh);

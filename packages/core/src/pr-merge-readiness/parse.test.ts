@@ -198,7 +198,18 @@ describe("computeGateResult layered fallbacks", () => {
     };
     return (cmd) => {
       const label = classify(cmd);
-      const resp = responses[label] ?? { returncode: 1, stderr: `unexpected ${label}` };
+      const resp =
+        responses[label] ??
+        (label === "check-runs"
+          ? {
+              returncode: 0,
+              stdout: JSON.stringify({
+                check_runs: [
+                  { name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" },
+                ],
+              }),
+            }
+          : { returncode: 1, stderr: `unexpected ${label}` });
       return {
         returncode: resp.returncode,
         stdout: resp.stdout ?? "",
@@ -248,6 +259,61 @@ describe("computeGateResult layered fallbacks", () => {
     expect(result.via).toBe(VIA_FALLBACK1);
     expect(result.failures).toEqual([]);
     expect(result.partialData.primary_error).toBeDefined();
+  });
+
+  it("blocks on failed required check-run", () => {
+    const result = computeGateResult(
+      1363,
+      "deftai/directive",
+      installFakeGh({
+        "head-sha": { returncode: 0, stdout: `${HEAD}\n` },
+        "comments-jq": { returncode: 0, stdout: cleanBody() },
+        "check-runs": {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "failure" }],
+          }),
+        },
+      }),
+    );
+    expect(result.failures.some((f) => f.includes("Required CI check-runs failed"))).toBe(true);
+  });
+
+  it("reports pending check-run as not-ready-yet", () => {
+    const result = computeGateResult(
+      1363,
+      "deftai/directive",
+      installFakeGh({
+        "head-sha": { returncode: 0, stdout: `${HEAD}\n` },
+        "comments-jq": { returncode: 0, stdout: cleanBody() },
+        "check-runs": {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "in_progress", conclusion: null }],
+          }),
+        },
+      }),
+    );
+    expect(result.failures.some((f) => f.includes("not-ready-yet"))).toBe(true);
+  });
+
+  it("honors ignore list for flaky non-required check", () => {
+    const result = computeGateResult(
+      1363,
+      "deftai/directive",
+      installFakeGh({
+        "head-sha": { returncode: 0, stdout: `${HEAD}\n` },
+        "comments-jq": { returncode: 0, stdout: cleanBody() },
+        "check-runs": {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "Flaky Optional", status: "completed", conclusion: "failure" }],
+          }),
+        },
+      }),
+      { ignoreCheckNames: ["Flaky Optional"] },
+    );
+    expect(result.failures).toEqual([]);
   });
 
   it("fallback2 never clean", () => {

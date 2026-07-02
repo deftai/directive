@@ -19,6 +19,15 @@ function fakeRunGh(): RunGhFn {
         stderr: "",
       };
     }
+    if (joined.includes("/check-runs")) {
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+        }),
+        stderr: "",
+      };
+    }
     return { returncode: 1, stdout: "", stderr: "unexpected" };
   };
 }
@@ -29,11 +38,34 @@ describe("parseArgs", () => {
       prNumber: 1,
       repo: "deftai/directive",
       emitJson: true,
+      skipCi: false,
+      ciIgnoreChecks: [],
     });
   });
 
   it("parses --repo= form", () => {
-    expect(parseArgs(["2", "--repo=org/repo"])).toMatchObject({ prNumber: 2, repo: "org/repo" });
+    expect(parseArgs(["2", "--repo=org/repo"])).toMatchObject({
+      prNumber: 2,
+      repo: "org/repo",
+      skipCi: false,
+      ciIgnoreChecks: [],
+    });
+  });
+
+  it("parses ci flags", () => {
+    expect(
+      parseArgs([
+        "3",
+        "--skip-ci",
+        "--ci-ignore-check",
+        "Flaky Bot",
+        "--ci-ignore-check=Optional Lint",
+      ]),
+    ).toMatchObject({
+      prNumber: 3,
+      skipCi: true,
+      ciIgnoreChecks: ["Flaky Bot", "Optional Lint"],
+    });
   });
 
   it("errors on missing pr number", () => {

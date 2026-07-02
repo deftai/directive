@@ -68,6 +68,15 @@ export function printHuman(result: GateResult): string {
       `P1=${result.verdict.p1Count}  P2=${result.verdict.p2Count}`,
   );
   lines.push(`  Errored sentinel:   ${result.verdict.errored ? "True" : "False"}`);
+  const ciBlock = result.partialData.ci;
+  if (ciBlock !== null && typeof ciBlock === "object" && !Array.isArray(ciBlock)) {
+    const ci = ciBlock as Record<string, unknown>;
+    if (typeof ci.summary_line === "string") {
+      lines.push(`  ${ci.summary_line}`);
+    } else if (typeof ci.ready_state === "string") {
+      lines.push(`  CI check-runs: ${ci.ready_state}`);
+    }
+  }
   if (result.via === VIA_FALLBACK2 && Object.keys(result.partialData).length > 0) {
     lines.push("  Fallback2 signal:");
     for (const key of ["pr_state", "merged", "mergeable", "mergeable_state"] as const) {

@@ -4,6 +4,12 @@ import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { GH_TIMEOUT_S, GREPTILE_LOGIN } from "./constants.js";
 import type { RunGhFn, RunGhResult } from "./types.js";
 
+export interface CheckRunRecord {
+  readonly name: string;
+  readonly status: string;
+  readonly conclusion: string;
+}
+
 /** UTF-8-safe gh capture via execFile (no shell) — mirrors _safe_subprocess.run_text (#1366). */
 export function defaultRunGh(cmd: readonly string[]): RunGhResult {
   if (cmd.length === 0 || cmd[0] !== "gh") {
@@ -270,31 +276,33 @@ export function fetchCheckRunsRest(
   sha: string,
   repo: string,
   runGh: RunGhFn,
-): { summary: Record<string, unknown> | null; error: string } {
+): { summary: Record<string, unknown> | null; checkRuns: CheckRunRecord[]; error: string } {
   const rc = runGh(["gh", "api", `repos/${repo}/commits/${sha}/check-runs`]);
   if (rc.returncode !== 0) {
     return {
       summary: null,
+      checkRuns: [],
       error: `gh api /commits/${"<"}sha>/check-runs failed: ${rc.stderr.trim()}`,
     };
   }
   if (!rc.stdout.trim()) {
-    return { summary: null, error: "empty body from gh api /commits/<sha>/check-runs" };
+    return { summary: null, checkRuns: [], error: "empty body from gh api /commits/<sha>/check-runs" };
   }
   let payload: unknown;
   try {
     payload = JSON.parse(rc.stdout) as unknown;
   } catch (exc: unknown) {
     const message = exc instanceof Error ? exc.message : String(exc);
-    return { summary: null, error: `could not parse check-runs JSON: ${message}` };
+    return { summary: null, checkRuns: [], error: `could not parse check-runs JSON: ${message}` };
   }
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-    return { summary: null, error: "unexpected check-runs JSON shape (not a dict)" };
+    return { summary: null, checkRuns: [], error: "unexpected check-runs JSON shape (not a dict)" };
   }
   const runs = (payload as Record<string, unknown>).check_runs;
   if (!Array.isArray(runs)) {
-    return { summary: null, error: "check-runs JSON missing check_runs list" };
+    return { summary: null, checkRuns: [], error: "check-runs JSON missing check_runs list" };
   }
+  const checkRuns: CheckRunRecord[] = [];
   const summary: Record<string, unknown> = {
     total: runs.length,
     by_status: {} as Record<string, number>,
@@ -310,11 +318,13 @@ export function fetchCheckRunsRest(
     const r = run as Record<string, unknown>;
     const status = typeof r.status === "string" ? r.status : "unknown";
     const conclusion = typeof r.conclusion === "string" ? r.conclusion : "none";
+    const name = typeof r.name === "string" && r.name.length > 0 ? r.name : "<unnamed>";
+    checkRuns.push({ name, status, conclusion });
     byStatus[status] = (byStatus[status] ?? 0) + 1;
     byConclusion[conclusion] = (byConclusion[conclusion] ?? 0) + 1;
     if (r.name === "Greptile Review") {
       summary.greptile_review = { status, conclusion };
     }
   }
-  return { summary, error: "" };
+  return { summary, checkRuns, error: "" };
 }

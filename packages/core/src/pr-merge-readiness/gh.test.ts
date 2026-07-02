@@ -89,6 +89,20 @@ describe("fetchCheckRunsRest", () => {
     expect(summary?.greptile_review).toEqual({ status: "completed", conclusion: "success" });
   });
 
+  it("returns normalized check run records", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({
+        check_runs: [{ name: "CI", status: "completed", conclusion: "success" }],
+      }),
+      stderr: "",
+    });
+    const result = fetchCheckRunsRest("sha", "deftai/directive", runGh);
+    expect(result.checkRuns).toEqual([
+      { name: "CI", status: "completed", conclusion: "success" },
+    ]);
+  });
+
   it("fails on missing check_runs list", () => {
     const runGh: RunGhFn = () => ({ returncode: 0, stdout: "{}", stderr: "" });
     expect(fetchCheckRunsRest("sha", "deftai/directive", runGh).summary).toBeNull();

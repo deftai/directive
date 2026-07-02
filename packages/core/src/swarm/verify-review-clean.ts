@@ -3,11 +3,14 @@ import { resolve } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import {
   defaultRunGh,
+  fetchCheckRunsRest,
   fetchGreptileCommentBody,
   fetchPrHeadSha,
 } from "../pr-merge-readiness/gh.js";
+import { buildCiSummaryLine, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
 import { evaluateGates, parseGreptileBody } from "../pr-merge-readiness/index.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import type { CiGateOptions } from "../pr-merge-readiness/ci-gate.js";
 import { EXIT_EXTERNAL_ERROR, EXIT_OK, EXIT_UNCLEAN } from "./constants.js";
 
 export interface CohortResolutionError {
@@ -21,6 +24,7 @@ export interface CohortPRResult {
   verdict: Record<string, unknown>;
   failures: string[];
   clean: boolean;
+  ci_summary: Record<string, unknown> | null;
 }
 
 export interface CohortResult {
@@ -139,6 +143,7 @@ export function evaluatePr(
   prNumber: number,
   repo: string | null,
   runGh: RunGhFn = defaultRunGh,
+  options: CiGateOptions = {},
 ): CohortPRResult | null {
   const headSha = fetchPrHeadSha(prNumber, repo, runGh);
   if (headSha === null) {
@@ -150,12 +155,56 @@ export function evaluatePr(
   }
   const verdict = parseGreptileBody(body);
   const failures = evaluateGates(prNumber, headSha, verdict);
+  let ciSummary: Record<string, unknown> | null = null;
+  if (failures.length === 0) {
+    if (repo === null) {
+      failures.push(
+        "Could not resolve repo for required CI check-run gate. " +
+          "Use --repo OWNER/REPO or run from a checked-out repository.",
+      );
+      ciSummary = {
+        ready_state: "blocked",
+        error: "repo unresolved for check-runs lookup",
+      };
+    } else if (options.skipCi === true) {
+      const ci = evaluateCiGate([], { skipCi: true });
+      ciSummary = {
+        ...ci.summary,
+        summary_line: "CI check-runs: skipped (--skip-ci)",
+      };
+    } else {
+      const checks = fetchCheckRunsRest(headSha, repo, runGh);
+      if (checks.summary === null) {
+        failures.push(
+          "Required CI check-runs could not be fetched; fail closed by default (#2169). " +
+            `Root cause: ${checks.error}`,
+        );
+        ciSummary = {
+          ready_state: "blocked",
+          error: checks.error,
+          checked_count: 0,
+          ignored_checks: [...(options.ignoreCheckNames ?? [])],
+          failed_required: [],
+          pending_required: [],
+          conclusions: [],
+        };
+      } else {
+        const ci = evaluateCiGate(checks.checkRuns, options);
+        failures.push(...ci.failures);
+        ciSummary = {
+          ...ci.summary,
+          summary_line: buildCiSummaryLine(ci.summary),
+        };
+      }
+    }
+  }
   return {
     pr_number: prNumber,
     head_sha: headSha,
     verdict: { ...verdict },
     failures: [...failures],
     clean: failures.length === 0,
+    ci_summary: ciSummary,
   };
 }
 
@@ -170,6 +219,7 @@ export function cohortResultToDict(cohort: CohortResult): Record<string, unknown
       clean: r.clean,
       verdict: r.verdict,
       failures: r.failures,
+      ci_summary: r.ci_summary,
     })),
     resolution_errors: cohort.resolution_errors,
   };
@@ -203,6 +253,9 @@ export function renderReviewCleanText(cohort: CohortResult): string {
         `P1=${String(v.p1Count ?? 0)}  P2=${String(v.p2Count ?? 0)}`,
     );
     lines.push(`    Errored sentinel:   ${v.errored === true ? "True" : "False"}`);
+    if (r.ci_summary && typeof r.ci_summary.summary_line === "string") {
+      lines.push(`    ${r.ci_summary.summary_line}`);
+    }
     r.failures.forEach((fail, index) => {
       lines.push(`      [${index + 1}] ${fail}`);
     });
@@ -226,6 +279,8 @@ export interface VerifyReviewCleanArgs {
   cohortGlobs?: readonly string[];
   repo?: string | null;
   emitJson?: boolean;
+  skipCi?: boolean;
+  ciIgnoreChecks?: readonly string[];
   runGh?: RunGhFn;
 }
 
@@ -273,7 +328,10 @@ export function verifyReviewClean(args: VerifyReviewCleanArgs): {
   const runGh = args.runGh ?? defaultRunGh;
   const prResults: CohortPRResult[] = [];
   for (const prNum of prNumbers) {
-    const perPr = evaluatePr(prNum, args.repo ?? null, runGh);
+    const perPr = evaluatePr(prNum, args.repo ?? null, runGh, {
+      skipCi: args.skipCi,
+      ignoreCheckNames: args.ciIgnoreChecks,
+    });
     if (perPr === null) {
       return { exitCode: EXIT_EXTERNAL_ERROR, stdout: "", stderr: "" };
     }

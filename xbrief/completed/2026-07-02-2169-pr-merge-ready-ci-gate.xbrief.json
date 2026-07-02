@@ -1,0 +1,77 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Harden pr:merge-ready to gate on GitHub CI check-run conclusions on the primary/fallback1 paths, not just Greptile (#2169).",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2169-pr-merge-ready-ci-gate",
+    "title": "harden(pr:merge-ready): gate on CI check-run conclusions",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2169",
+    "narratives": {
+      "Description": "task pr:merge-ready computes MERGE-READY purely from the Greptile parse (HEAD-SHA, confidence, P0/P1/P2). It does not consult GitHub CI check-run conclusions on the primary/fallback1 paths, so a red required CI check + clean Greptile reports MERGE-READY. fetchCheckRunsRest exists but is only used in the degraded fallback2 diagnostics path. Add required-check-run gating to the primary/fallback1 verdict.",
+      "ImplementationPlan": "1. In packages/core/src/pr-merge-readiness/compute.ts, after the Greptile gate passes on primary/fallback1, fetch check-runs for HEAD SHA (fetchCheckRunsRest in gh.ts) and fail MERGE-READY when any REQUIRED check-run conclusion is failure/cancelled/timed_out. Treat in_progress/queued as a distinct NOT-READY-yet state (not a hard fail). 2. Surface a CI summary line in the human output block (CI check-runs: <n passed>/<m failed>/<k pending>); include check-run conclusions in --json. 3. Documented escape hatch (--skip-ci or allow-list for known-flaky NON-required checks); required checks fail closed by default. 4. Extend the cohort verifier (scripts/verify-review-clean.ts or packages equivalent, task swarm:verify-review-clean) to inherit the same CI gate (share the parser/gate per #1364 lockstep). 5. Tests: green-CI+clean-Greptile=ready; red-required-CI+clean-Greptile=not-ready; pending-CI=not-ready-yet; flaky-non-required=escape honored. Run task check GREEN. CHANGELOG [Unreleased] ### Fixed entry.",
+      "UserStory": "As an operator relying on pr:merge-ready in the cascade, I want a red required CI check to block MERGE-READY even when Greptile is clean, so an admin squash-merge cannot land a red-CI commit.",
+      "Traces": "#2169, #1364, #1368, #1369"
+    },
+    "items": [
+      {
+        "id": "ci1",
+        "title": "Required check-run failure blocks MERGE-READY on primary/fallback1",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "pr:merge-ready reports NOT-READY when a required check-run on HEAD is failure/cancelled/timed_out; READY only when required checks green AND Greptile clean."
+        }
+      },
+      {
+        "id": "ci2",
+        "title": "Pending checks yield NOT-READY-yet (distinct from fail)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "in_progress/queued required checks produce a distinct not-ready-yet state, not a hard fail."
+        }
+      },
+      {
+        "id": "ci3",
+        "title": "Output + escape hatch",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Human output shows a CI summary line; --json includes conclusions; a documented --skip-ci / non-required allow-list escape hatch exists."
+        }
+      },
+      {
+        "id": "ci4",
+        "title": "Cohort verifier inherits the CI gate",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "swarm:verify-review-clean shares the same CI gate (lockstep per #1364)."
+        }
+      },
+      {
+        "id": "ci5",
+        "title": "Tests + task check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Tests cover ready / red-required / pending / flaky-non-required; task check passes; CHANGELOG entry added."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2169"
+      },
+      "completedAt": "2026-07-02T17:17:05Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2169",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2169"
+      }
+    ],
+    "updated": "2026-07-02T17:17:05Z"
+  }
+}

@@ -597,6 +597,15 @@ describe("swarm verify-review-clean deep coverage", () => {
           stderr: "",
         };
       }
+      if (joined.includes("/check-runs")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+          }),
+          stderr: "",
+        };
+      }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     });
     const result = verifyReviewClean({
@@ -671,6 +680,15 @@ describe("swarm verify-review-clean deep coverage", () => {
           stdout:
             "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
             `Last reviewed commit: [fix](https://github.com/deftai/directive/commit/${sha})\n`,
+          stderr: "",
+        };
+      }
+      if (joined.includes("/check-runs")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+          }),
           stderr: "",
         };
       }

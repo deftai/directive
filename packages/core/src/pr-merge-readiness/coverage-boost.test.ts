@@ -215,6 +215,15 @@ describe("coverage boost branches", () => {
           stderr: "",
         };
       }
+      if (j.includes("/check-runs")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+          }),
+          stderr: "",
+        };
+      }
       return { returncode: 1, stdout: "", stderr: "" };
     };
     expect(run(["5", "--repo", "deftai/directive"], { runGh })).toBe(0);
@@ -251,6 +260,15 @@ describe("coverage boost branches", () => {
           stdout:
             "## Greptile Summary\n\n**Confidence Score: 5/5**\n\n" +
             `Last reviewed commit: [x](https://github.com/deftai/directive/commit/${HEAD})\n`,
+          stderr: "",
+        };
+      }
+      if (j.includes("/check-runs")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+          }),
           stderr: "",
         };
       }
@@ -372,6 +390,15 @@ describe("coverage boost branches", () => {
         return {
           returncode: 0,
           stdout: JSON.stringify([{ user: { login: "greptile-apps[bot]" }, body: cleanBody }]),
+          stderr: "",
+        };
+      }
+      if (j.includes("/check-runs")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+          }),
           stderr: "",
         };
       }

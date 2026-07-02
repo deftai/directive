@@ -44,9 +44,17 @@ describe("output helpers", () => {
   });
 
   it("prints human merge-ready", () => {
-    const out = printHuman(baseResult);
+    const out = printHuman({
+      ...baseResult,
+      partialData: {
+        ci: {
+          summary_line: "CI check-runs: 1 passed / 0 failed / 0 pending",
+        },
+      },
+    });
     expect(out).toContain("MERGE-READY");
     expect(out).toContain("via=primary");
+    expect(out).toContain("CI check-runs: 1 passed / 0 failed / 0 pending");
   });
 
   it("prints human merge-blocked", () => {
@@ -109,7 +117,16 @@ describe("compute branches", () => {
     };
     return (cmd) => {
       const label = classify(cmd);
-      const resp = responses[label] ?? { returncode: 1, stderr: label };
+      const resp =
+        responses[label] ??
+        (label === "check-runs"
+          ? {
+              returncode: 0,
+              stdout: JSON.stringify({
+                check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+              }),
+            }
+          : { returncode: 1, stderr: label });
       return { returncode: resp.returncode, stdout: resp.stdout ?? "", stderr: resp.stderr ?? "" };
     };
   }

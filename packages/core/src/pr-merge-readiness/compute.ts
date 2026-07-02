@@ -5,6 +5,7 @@ import {
   VIA_FALLBACK2,
   VIA_PRIMARY,
 } from "./constants.js";
+import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import { evaluateGates, isMergeReady } from "./evaluate.js";
 import {
   fetchCheckRunsRest,
@@ -16,6 +17,7 @@ import {
 } from "./gh.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
 import type { GateResult, RunGhFn } from "./types.js";
+import type { CiGateOptions } from "./ci-gate.js";
 
 function buildGateResult(
   prNumber: number,
@@ -40,10 +42,72 @@ function buildGateResult(
   };
 }
 
+export interface ComputeGateOptions extends CiGateOptions {}
+
+function applyCiGateForHead(
+  repo: string | null,
+  headSha: string,
+  runGh: RunGhFn,
+  options: ComputeGateOptions,
+): { failures: string[]; ci: Record<string, unknown> } {
+  if (repo === null) {
+    return {
+      failures: [
+        "Could not resolve repo for required CI check-run gate. " +
+          "Use --repo OWNER/REPO or run from a checked-out repository.",
+      ],
+      ci: {
+        ready_state: "blocked",
+        error: "repo unresolved for check-runs lookup",
+      },
+    };
+  }
+
+  if (options.skipCi === true) {
+    const ciResult = evaluateCiGate([], { skipCi: true });
+    return {
+      failures: [],
+      ci: {
+        ...ciResult.summary,
+        summary_line: "CI check-runs: skipped (--skip-ci)",
+      },
+    };
+  }
+
+  const check = fetchCheckRunsRest(headSha, repo, runGh);
+  if (check.summary === null) {
+    return {
+      failures: [
+        "Required CI check-runs could not be fetched; fail closed by default (#2169). " +
+          `Root cause: ${check.error}`,
+      ],
+      ci: {
+        ready_state: "blocked",
+        error: check.error,
+        checked_count: 0,
+        ignored_checks: [...(options.ignoreCheckNames ?? [])],
+        failed_required: [],
+        pending_required: [],
+        conclusions: [],
+      },
+    };
+  }
+
+  const ciResult = evaluateCiGate(check.checkRuns, options);
+  return {
+    failures: [...ciResult.failures],
+    ci: {
+      ...ciResult.summary,
+      summary_line: buildCiSummaryLine(ciResult.summary),
+    },
+  };
+}
+
 function computePrimary(
   prNumber: number,
   repo: string | null,
   runGh: RunGhFn,
+  options: ComputeGateOptions,
 ): { result: GateResult | null; partial: Record<string, unknown> } {
   const partial: Record<string, unknown> = {};
 
@@ -62,6 +126,13 @@ function computePrimary(
 
   const verdict = parseGreptileBody(body);
   const failures = evaluateGates(prNumber, headSha, verdict);
+  const partialData: Record<string, unknown> = {};
+  if (failures.length === 0) {
+    const resolved = resolveRepo(repo, runGh);
+    const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
+    failures.push(...ci.failures);
+    partialData.ci = ci.ci;
+  }
   return {
     result: {
       prNumber,
@@ -70,7 +141,7 @@ function computePrimary(
       verdict,
       failures,
       via: VIA_PRIMARY,
-      partialData: {},
+      partialData,
       error: null,
     },
     partial,
@@ -82,6 +153,7 @@ function computeFallback1(
   repo: string | null,
   primaryPartial: Record<string, unknown>,
   runGh: RunGhFn,
+  options: ComputeGateOptions,
 ): { result: GateResult | null; partial: Record<string, unknown> } {
   const partial: Record<string, unknown> = { ...primaryPartial };
 
@@ -115,6 +187,11 @@ function computeFallback1(
     if (key !== "head_sha") {
       partialData[key] = value;
     }
+  }
+  if (failures.length === 0) {
+    const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
+    failures.push(...ci.failures);
+    partialData.ci = ci.ci;
   }
 
   return {
@@ -257,13 +334,14 @@ export function computeGateResult(
   prNumber: number,
   repo: string | null,
   runGh: RunGhFn,
+  options: ComputeGateOptions = {},
 ): GateResult {
-  let { result, partial } = computePrimary(prNumber, repo, runGh);
+  let { result, partial } = computePrimary(prNumber, repo, runGh, options);
   if (result !== null) {
     return result;
   }
 
-  ({ result, partial } = computeFallback1(prNumber, repo, partial, runGh));
+  ({ result, partial } = computeFallback1(prNumber, repo, partial, runGh, options));
   if (result !== null) {
     return result;
   }

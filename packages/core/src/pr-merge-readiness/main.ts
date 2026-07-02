@@ -7,6 +7,8 @@ export interface ParsedArgs {
   readonly prNumber: number | null;
   readonly repo: string | null;
   readonly emitJson: boolean;
+  readonly skipCi: boolean;
+  readonly ciIgnoreChecks: readonly string[];
   readonly error?: string;
 }
 
@@ -14,30 +16,78 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   let prNumber: number | null = null;
   let repo: string | null = null;
   let json = false;
+  let skipCi = false;
+  const ciIgnoreChecks: string[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--json") {
       json = true;
+    } else if (arg === "--skip-ci") {
+      skipCi = true;
+    } else if (arg === "--ci-ignore-check") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return {
+          prNumber,
+          repo,
+          emitJson: json,
+          skipCi,
+          ciIgnoreChecks,
+          error: "argument --ci-ignore-check: expected one argument",
+        };
+      }
+      ciIgnoreChecks.push(value);
+      i += 1;
+    } else if (arg?.startsWith("--ci-ignore-check=")) {
+      ciIgnoreChecks.push(arg.slice("--ci-ignore-check=".length));
     } else if (arg === "--repo") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { prNumber, repo, emitJson: json, error: "argument --repo: expected one argument" };
+        return {
+          prNumber,
+          repo,
+          emitJson: json,
+          skipCi,
+          ciIgnoreChecks,
+          error: "argument --repo: expected one argument",
+        };
       }
       repo = value;
       i += 1;
     } else if (arg?.startsWith("--repo=")) {
       repo = arg.slice("--repo=".length);
     } else if (arg?.startsWith("-")) {
-      return { prNumber, repo, emitJson: json, error: `unrecognized arguments: ${arg}` };
+      return {
+        prNumber,
+        repo,
+        emitJson: json,
+        skipCi,
+        ciIgnoreChecks,
+        error: `unrecognized arguments: ${arg}`,
+      };
     } else if (prNumber === null) {
       const n = Number(arg);
       if (!Number.isInteger(n) || n <= 0) {
-        return { prNumber, repo, emitJson: json, error: `invalid PR number: ${arg}` };
+        return {
+          prNumber,
+          repo,
+          emitJson: json,
+          skipCi,
+          ciIgnoreChecks,
+          error: `invalid PR number: ${arg}`,
+        };
       }
       prNumber = n;
     } else {
-      return { prNumber, repo, emitJson: json, error: `unrecognized arguments: ${arg}` };
+      return {
+        prNumber,
+        repo,
+        emitJson: json,
+        skipCi,
+        ciIgnoreChecks,
+        error: `unrecognized arguments: ${arg}`,
+      };
     }
   }
 
@@ -46,10 +96,12 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       prNumber,
       repo,
       emitJson: json,
+      skipCi,
+      ciIgnoreChecks,
       error: "the following arguments are required: pr_number",
     };
   }
-  return { prNumber, repo, emitJson: json };
+  return { prNumber, repo, emitJson: json, skipCi, ciIgnoreChecks };
 }
 
 export interface RunOptions {
@@ -64,7 +116,10 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   }
 
   const runGh = options.runGh ?? defaultRunGh;
-  const result = computeGateResult(args.prNumber as number, args.repo, runGh);
+  const result = computeGateResult(args.prNumber as number, args.repo, runGh, {
+    skipCi: args.skipCi,
+    ignoreCheckNames: args.ciIgnoreChecks,
+  });
 
   if (args.emitJson) {
     process.stdout.write(emitJson(result));
