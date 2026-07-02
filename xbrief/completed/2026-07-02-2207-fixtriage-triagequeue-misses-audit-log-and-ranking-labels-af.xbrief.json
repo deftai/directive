@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(triage): triage:queue misses audit log and ranking labels after xbrief migration (#2109 gap)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(triage): triage:queue misses audit log and ranking labels after xbrief migration (#2109 gap)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2207",
@@ -67,6 +67,9 @@
         "title": "Issue #1186"
       }
     ],
-    "updated": "2026-07-02T21:53:52Z"
+    "updated": "2026-07-02T22:00:35Z",
+    "metadata": {
+      "completedAt": "2026-07-02T22:00:35Z"
+    }
   }
 }

@@ -44,6 +44,28 @@ describe("loadProjectDefinition branches", () => {
     );
     expect(loadProjectDefinition(root)?.plan).toEqual({ policy: {} });
   });
+
+  // #2207: after the vbrief->xbrief migration the loader MUST resolve the
+  // xbrief/ PROJECT-DEFINITION so ranking labels don't silently fall back to
+  // the framework default.
+  it("resolves PROJECT-DEFINITION from a migrated xbrief tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "queue-project-xbrief-"));
+    roots.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "seed.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "s", status: "running" } }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ plan: { policy: { triageRankingLabels: ["urgent"] } } }),
+      "utf8",
+    );
+    expect(loadProjectDefinition(root)?.plan).toEqual({
+      policy: { triageRankingLabels: ["urgent"] },
+    });
+  });
 });
 
 describe("inferRepoFromGit branches", () => {

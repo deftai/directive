@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 
-const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
 const DEFAULT_TRIAGE_SCOPE = [{ rule: "all-open" }] as const;
 
 function loadProjectDefinition(projectRoot: string): Record<string, unknown> | null {
-  const path = join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+  const path = resolveProjectDefinitionPath(resolve(projectRoot));
   if (!existsSync(path)) return null;
   try {
     const data = JSON.parse(readFileSync(path, "utf8")) as unknown;

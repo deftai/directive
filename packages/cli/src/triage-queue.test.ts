@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -118,7 +118,72 @@ describe("triage-queue CLI", () => {
       expect(output).toContain("#1");
       expect(output).toContain("#2");
       expect(output).toContain("[untriaged]");
-      expect(output.indexOf("#2")).toBeLessThan(output.indexOf("#1"));
+      // #2207: audit log is resolved from projectRoot (not the CLI's install
+      // dir), so the seeded needs-ac decision for #1 is honoured -> #1 lands in
+      // the URGENT group and sorts ahead of the untriaged #2.
+      expect(output).toContain("[URGENT]");
+      expect(output.indexOf("#1")).toBeLessThan(output.indexOf("#2"));
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  // #2207 regression: on a migrated `xbrief/` tree the queue MUST resolve the
+  // audit log and ranking labels from projectRoot's xbrief/ layout, not the
+  // legacy vbrief/ path nor the CLI's framework install dir.
+  it("run resolves audit log + ranking labels from a migrated xbrief tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-triage-queue-xbrief-"));
+    temps.push(root);
+    const repo = "owner/repo";
+
+    // Migrated layout: an .xbrief.json artifact makes resolveLifecycleLayout
+    // prefer xbrief/ over vbrief/.
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "seed.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "seed", status: "running" } })}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "T", status: "running", policy: { triageRankingLabels: ["urgent"] } },
+      })}\n`,
+      "utf8",
+    );
+
+    // Cached issues.
+    for (const [n, updated] of [
+      [1, "2026-05-15T10:00:00Z"],
+      [2, "2026-05-17T10:00:00Z"],
+    ] as const) {
+      const dir = join(root, ".deft-cache", "github-issue", "owner", "repo", String(n));
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "raw.json"),
+        `${JSON.stringify({ number: n, title: `Issue ${n}`, state: "open", labels: [], updated_at: updated })}\n`,
+        "utf8",
+      );
+    }
+
+    // Accept decision for #1 lives in the xbrief/ eval dir.
+    mkdirSync(join(root, "xbrief", ".eval"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", ".eval", "candidates.jsonl"),
+      `${JSON.stringify({ repo, issue_number: 1, decision: "accept", timestamp: "2026-05-16T10:00:00Z", decision_id: "d1", actor: "test" })}\n`,
+      "utf8",
+    );
+
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(run(["queue", "--project-root", root, "--repo", repo, "--limit", "0"])).toBe(0);
+      const output = stdout.mock.calls.map((call) => String(call[0])).join("");
+      // Ranking labels loaded from xbrief/PROJECT-DEFINITION.xbrief.json.
+      expect(output).toContain("consumer ranking labels (in declared order): urgent");
+      // #1 has an accept decision -> [other] (triaged); #2 stays untriaged.
+      expect(output).toMatch(/\[other\][^\n]*#1\b/);
+      expect(output).toMatch(/\[untriaged\][^\n]*#2\b/);
     } finally {
       stdout.mockRestore();
     }

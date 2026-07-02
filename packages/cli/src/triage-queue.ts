@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveEvalPath } from "@deftai/directive-core/dist/layout/resolve.js";
 import {
   activeReferencedIssueNumbers,
   buildQueue,
@@ -141,14 +142,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-function resolveFrameworkRoot(): string {
-  const fromEnv = process.env.DEFT_ROOT?.trim() ?? "";
-  if (fromEnv.length > 0) {
-    return resolve(fromEnv);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-}
-
 /** Run triage:queue and return process exit code. */
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
@@ -168,14 +161,12 @@ export function run(argv: string[]): number {
   const issuesWithClosed = loadCachedIssues(repo, { projectRoot, includeClosed: true });
   const issuesByNumber = new Map(issuesWithClosed.map((row) => [row.number, row] as const));
   const auditEntries = readAuditEntries(repo, {
-    frameworkRoot: resolveFrameworkRoot(),
-    auditLogPath: args.auditLog,
+    auditLogPath: args.auditLog ?? resolveEvalPath(projectRoot, "candidates.jsonl"),
   });
   const rankingLabels = resolveRankingLabels(projectRoot);
   const activeRefs = activeReferencedIssueNumbers(projectRoot);
   const sliceRecords = loadSliceRecords({
-    frameworkRoot: resolveFrameworkRoot(),
-    slicesLogPath: args.slicesLog,
+    slicesLogPath: args.slicesLog ?? resolveEvalPath(projectRoot, "slices.jsonl"),
   });
   const orphanNumbers = collectOrphanIssueNumbers(sliceRecords, issuesByNumber);
   const limit = args.limit === 0 ? null : Math.max(0, args.limit);

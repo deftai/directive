@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`task triage:queue` again shows your triaged work and ranking labels after the `xbrief/` migration (#2207).** Following the `vbrief/`→`xbrief/` rename (#2109), the queue read your triage decisions and `plan.policy.triageRankingLabels` from the wrong location, so every issue showed as `[untriaged]` and the ranking-label header was empty even when your audit log and policy were populated. The queue now resolves the audit log, slices log, and PROJECT-DEFINITION through the layout-aware resolver against your project root — matching the sibling `triage:summary`/`triage:reconcile` verbs — so accepted issues surface correctly and labels rank the list again. Closes #2207. Refs #2109, #1128.
+
 ### Removed
 
 ## [0.67.0] - 2026-07-02
