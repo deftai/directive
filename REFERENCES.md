@@ -146,6 +146,7 @@ Load as needed:
 - **[coding/testing.md](./content/coding/testing.md)** - When writing tests or checking coverage
 - **[coding/security.md](./content/coding/security.md)** - When handling untrusted input, auth, secrets, dependencies, or building agent surfaces (#661)
 - **[tools/telemetry.md](./content/tools/telemetry.md)** - When implementing logging, tracing, metrics
+- **[tools/package-manager-network.md](./content/tools/package-manager-network.md)** - When touching `doctor`, session-start, session-ritual, or `verify:tools` code paths that could shell out to npm/pnpm (#2182)
 
 ### When Working in a Swarm
 

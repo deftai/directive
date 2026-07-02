@@ -27,10 +27,30 @@ export const DOCTOR_ALLOWED_FLAGS = [
   "--json",
   "--quiet",
   "--full",
+  "--network",
   "--project-root",
   "-h",
   "--help",
 ] as const;
+
+/** npm consumer deposit after #2022 Phase 3 -- Python scripts/ tree is intentionally absent. */
+export const NPM_PACKAGE_NAME = "@deftai/directive";
+
+// #2182: payload-staleness is the only doctor check that can reach a network
+// endpoint (git ls-remote against the framework's git remote, falling back to
+// `npm view` against the npm registry). It is OFF by default (offline tier)
+// and requires the explicit `--network` flag; this line discloses exactly
+// which tool + registry class it may contact BEFORE the check runs, and the
+// skip line tells an offline run how to opt in.
+export const NETWORK_DISCLOSURE_LINE =
+  "[deft doctor] --network: this run may contact your git remote (framework " +
+  "repo host) and, as a fallback, the npm registry (registry.npmjs.org) to " +
+  `look up the latest ${NPM_PACKAGE_NAME} version.`;
+
+export const PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE =
+  "skip -- offline tier (default). Run `deft doctor --network` to check " +
+  "framework currency against your git remote and the npm registry " +
+  "(discloses tool + registry before contacting either).";
 
 // Engine / lifecycle dirs that stay at the framework root (NOT relocated by
 // #1875). Shippable-content dirs moved under content/ -- see EXPECTED_CONTENT_DIRS.
@@ -57,8 +77,6 @@ export const EXPECTED_CONTENT_DIRS = ["languages", "strategies", "skills", "temp
 
 /** Post-freeze canonical upgrade path (#1997 / #2003 / #1912). */
 export const CANONICAL_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest";
-
-export const NPM_PACKAGE_NAME = "@deftai/directive";
 
 export const CLEAN_WINDOW_HOURS = 24;
 export const DIRTY_WINDOW_HOURS = 4;

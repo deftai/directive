@@ -8,6 +8,8 @@ import {
   CONSUMER_FRAMEWORK_DIRS,
   EXPECTED_CONTENT_DIRS,
   EXPECTED_FRAMEWORK_DIRS,
+  NETWORK_DISCLOSURE_LINE,
+  PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE,
   TASKFILE_INCLUDE_SNIPPET,
   UV_INSTALL_URL,
 } from "./constants.js";
@@ -176,13 +178,32 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (!jsonMode) {
     sink.blank();
   }
-  sink.info("Checking payload staleness from install manifest...");
-  runPayloadStalenessCheck(projectRoot, sink, addFinding, {
-    frameworkRoot,
-    readText: seams.readText,
-    isFile: seams.isFile,
-    runGitLsRemote: seams.runGitLsRemote,
-  });
+  // #2182: payload-staleness is the only doctor check that can reach a
+  // registry (git remote, then npm as a fallback). It stays in the OFFLINE
+  // tier (skipped) unless the operator explicitly opts into the NETWORK tier
+  // via `--network`, and the tool + registry class is disclosed BEFORE the
+  // check runs -- never silently, never as a side effect of a read-only
+  // `deft doctor` invocation (e.g. from the gated session-ritual step).
+  if (flags.network) {
+    sink.info(NETWORK_DISCLOSURE_LINE);
+    sink.info("Checking payload staleness from install manifest...");
+    runPayloadStalenessCheck(projectRoot, sink, addFinding, {
+      frameworkRoot,
+      readText: seams.readText,
+      isFile: seams.isFile,
+      runGitLsRemote: seams.runGitLsRemote,
+      runNpmViewVersion: seams.runNpmViewVersion,
+    });
+  } else {
+    sink.info(`payload-staleness: ${PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE}`);
+    addFinding({
+      severity: "skip",
+      message: PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE,
+      check: "payload-staleness",
+      status: "skip",
+      reason: "offline-tier",
+    });
+  }
 
   if (!jsonMode) {
     sink.blank();

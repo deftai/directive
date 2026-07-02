@@ -1,0 +1,77 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Make package-manager (npm/pnpm) network access explicit and security-scoped: read-only/session/ritual flows perform no registry access; doctor separates offline from network tiers; network-enabled checks are explicit and disclosed (#2182).",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2182-pkg-manager-network-scope",
+    "title": "Make package-manager network access explicit and security-scoped",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2182",
+    "narratives": {
+      "Description": "Directive runs against arbitrary repos incl. private monorepos. Session/ritual/doctor/read-only flows must not silently invoke npm/pnpm commands that can contact registries (disclosing package names/scopes/graph shape, tripping sandbox network approval, or creating confusing prompts). Registry traffic itself is sensitive. Package-manager network access must be opt-in, offline-by-default where possible, and disclosed before it runs.",
+      "ImplementationPlan": "1. Audit session:start, the session-start ritual, doctor, and read-only flows for any npm/pnpm invocation that can reach a registry (identify the exact call sites in scripts/doctor.py or the TS doctor, session-ritual, verify:tools, and taskfiles). 2. Ensure read-only/session/ritual flows perform NO package-manager network access — use offline/frozen modes (e.g. --offline / --prefer-offline / --frozen-lockfile / npm --offline) or skip entirely. 3. Split doctor into an offline tier (default, no registry) and an explicit network/package-manager tier gated behind a flag/command; the network tier discloses which tool + registry class it may contact BEFORE running. 4. Any command that may contact npm/pnpm registries is explicit in name, output, and approval prompt. 5. Tests: a fixture repo with a private-scope registry config; assert session:start and read-only flows invoke NO npm/pnpm (inject/stub the package-manager seam and assert it is not called with network). 6. Docs: state that package-manager network access is sensitive and opt-in. IMPORTANT: put any agent-facing guidance in a CONTENT DOC (e.g. content/tools/ or content/scm/), NOT in AGENTS.md or content/templates/agents-entry.md (a parallel reduction lane owns those files). Run task check GREEN; CHANGELOG [Unreleased] entry.",
+      "UserStory": "As an operator running directive against a private monorepo, I want session/health/read-only flows to never silently hit npm/pnpm registries, so my package scopes and dependency graph aren't disclosed and I don't get confusing network-approval prompts.",
+      "Traces": "#2182, #2176, #2180"
+    },
+    "items": [
+      {
+        "id": "pk1",
+        "title": "Read-only/session/ritual flows do no pkg-manager network access",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "task session:start and read-only flows perform no npm/pnpm registry access (verified by a stubbed seam asserting no network invocation)."
+        }
+      },
+      {
+        "id": "pk2",
+        "title": "Doctor offline tier vs network tier",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "task doctor runs an offline tier by default without contacting registries; network-enabled dependency checks require an explicit command/flag and disclose the tool + registry class first."
+        }
+      },
+      {
+        "id": "pk3",
+        "title": "Explicit naming + approval disclosure",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Any command that may contact npm/pnpm registries is explicit in name/output/approval prompt; offline/frozen modes used where possible."
+        }
+      },
+      {
+        "id": "pk4",
+        "title": "Tests with private-scope registry fixture",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Tests cover a repo with private scope registry config and verify session/read-only flows do not invoke npm/pnpm with network."
+        }
+      },
+      {
+        "id": "pk5",
+        "title": "Docs (content doc, NOT AGENTS.md) + task check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Agent-facing guidance lives in a content doc (not AGENTS.md/template); task check passes; CHANGELOG entry added."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2182"
+      },
+      "completedAt": "2026-07-02T17:22:36Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2182",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2182"
+      }
+    ],
+    "updated": "2026-07-02T17:22:36Z"
+  }
+}

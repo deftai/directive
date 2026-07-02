@@ -37,6 +37,7 @@ export interface DoctorFlags {
   readonly json: boolean;
   readonly quiet: boolean;
   readonly full: boolean;
+  readonly network: boolean;
   readonly help: boolean;
   readonly projectRoot: string | null;
   readonly unknown: readonly string[];
@@ -67,6 +68,7 @@ export interface DoctorSeams {
   readonly isDir?: (path: string) => boolean;
   readonly isFile?: (path: string) => boolean;
   readonly runGitLsRemote?: (deftDir: string, ref: string) => { ok: boolean; stdout: string };
+  readonly runNpmViewVersion?: () => { ok: boolean; version: string };
   readonly agentsRefreshPlan?: (projectRoot: string) => Record<string, unknown>;
   readonly agentsMdAdvisoryEvaluate?: (projectRoot: string) => AdvisoryEvaluateResult;
   readonly readState?: (projectRoot: string) => DoctorState | null;
