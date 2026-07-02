@@ -1,0 +1,99 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2190: make `biome check .` (the `pnpm run lint` step) diagnostic severity deterministic and config-owned, so the same pinned biome 2.5.0 cannot flip `noUnusedVariables` / `noNonNullAssertion` between warning and error across runs.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2190-biome-determinism",
+    "title": "Make biome lint severity deterministic and config-owned (noUnusedVariables / noNonNullAssertion)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2190",
+    "narratives": {
+      "Description": "PR #2186's CI run reported `noUnusedVariables` (packages/cli/src/*-fixtures.ts) and `noNonNullAssertion` (packages/core/src/architecture/sor-preflight.ts(.test.ts), packages/core/src/verify-source/cursor-tier1.test.ts) as 12 ERRORS (exit 1), while master/local report the identical diagnostics as 50 WARNINGS (exit 0) on the same pinned `@biomejs/biome@2.5.0`. `--frozen-lockfile` rules out version skew. `biome.json` currently relies on `linter.rules.preset: \"recommended\"` for these two rules, so their severity is preset-derived rather than config-owned -- a latent flip-to-error risk that can redden unrelated PRs. Repeated local reproduction (worktree checkout, main checkout, and an untracked-file file-discovery probe) consistently showed 0 errors / 50 warnings / `Checked 1162 files` across multiple runs; the error-tier flip did not reproduce locally, consistent with it being either a run-specific biome 2.5.0 internal non-determinism or an artifact of the CI runner environment (documented in docs/analysis/2026-07-02-2190-biome-determinism.md). Regardless of root cause, the fix is to remove the two flip-able rules from preset-inherited severity entirely.",
+      "ImplementationPlan": "1. Reproduce: run `biome check .` repeatedly in the worktree and in the main checkout, and once with an extra untracked file, to characterize the checked-file count and error/warning split; write findings to docs/analysis/2026-07-02-2190-biome-determinism.md. 2. biome.json: add explicit `linter.rules.correctness.noUnusedVariables: \"warn\"` and `linter.rules.style.noNonNullAssertion: \"warn\"` alongside the existing `preset: \"recommended\"`, so these two rules' severity is config-owned and cannot inherit a different tier from a preset/version change. 3. package.json: pin `@biomejs/biome` to the exact `2.5.0` (drop the `^` range) so the declared range can no longer float; update pnpm-lock.yaml's specifier via `pnpm install` and reverify `--frozen-lockfile` still resolves cleanly. 4. Add a small guard test (packages/core/src/verify-source/biome-config.ts + .test.ts) that parses biome.json and asserts both rules have an explicit non-\"error\" string severity, so a future preset bump or config edit can't silently reintroduce the flip-to-error risk without failing `task check`. 5. CHANGELOG [Unreleased] entry referencing #2190. 6. task check green (run repeatedly to confirm stable exit 0). Out of scope: mass-fixing the pre-existing 50 lint diagnostics.",
+      "UserStory": "As a maintainer landing PRs through the shared CI gate, I want `biome check .` diagnostic severity to be deterministic and declared in biome.json rather than inherited from a preset default, so that an unrelated PR cannot intermittently fail a required check on pre-existing diagnostics it did not touch.",
+      "Traces": "#2190, #1882, #2186"
+    },
+    "items": [
+      {
+        "id": "a1",
+        "title": "Determinism reproduction characterized and documented",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given repeated `biome check .` runs in a clean worktree checkout, the main checkout, and with an extra untracked file, when the runs are compared, then the checked-file count and error/warning split are recorded in docs/analysis/2026-07-02-2190-biome-determinism.md along with whether the error-tier flip reproduced locally."
+        }
+      },
+      {
+        "id": "a2",
+        "title": "noUnusedVariables and noNonNullAssertion severities are explicit and config-owned",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given biome.json, when `linter.rules` is read, then `correctness.noUnusedVariables` and `style.noNonNullAssertion` both carry an explicit \"warn\" (or \"info\") severity string that is not \"error\", independent of `preset`; `biome check .` still exits 0 on the current 50 diagnostics."
+        }
+      },
+      {
+        "id": "a3",
+        "title": "biome pinned to an exact version",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given package.json devDependencies, when `@biomejs/biome` is read, then its specifier is the exact `2.5.0` (no `^` range) and pnpm-lock.yaml's specifier field matches; `pnpm install --frozen-lockfile` succeeds unchanged."
+        }
+      },
+      {
+        "id": "a4",
+        "title": "Guard test + CHANGELOG entry; task check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the new biome-config guard test, when `pnpm run test` (part of `task check`) runs, then it fails if either rule's severity is missing or set to \"error\", and passes today; CHANGELOG [Unreleased] has a user-visible entry referencing #2190; `task check` exits 0 across repeated runs."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#2190"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "biome.json",
+          "package.json",
+          "pnpm-lock.yaml",
+          "packages/core/src/verify-source/biome-config.ts",
+          "packages/core/src/verify-source/biome-config.test.ts",
+          "docs/analysis/2026-07-02-2190-biome-determinism.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "biome.json declares explicit non-error severities for noUnusedVariables/noNonNullAssertion; @biomejs/biome pinned to exact 2.5.0; guard test added; task check green"
+        ],
+        "depends_on": [],
+        "conflict_group": "biome-config",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-02T18:55:56Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2190",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2190: flaky(ci): biome check . reports recommended-preset diagnostics as errors vs warnings non-deterministically on pinned 2.5.0"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: follow-up cohort during which #2190 was surfaced"
+      }
+    ],
+    "updated": "2026-07-02T18:55:56Z"
+  }
+}

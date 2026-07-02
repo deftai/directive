@@ -17,7 +17,7 @@
     "format": "biome format --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^2",
+    "@biomejs/biome": "2.5.0",
     "@types/node": "^24",
     "@vitest/coverage-v8": "^3",
     "typescript": "^5",
