@@ -1,0 +1,36 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2212"
+  },
+  "plan": {
+    "title": "bug(scope): capacity-stamp.ts reads capacityAllocation from hardcoded vbrief/ path on migrated trees",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(scope): capacity-stamp.ts reads capacityAllocation from hardcoded vbrief/ path on migrated trees",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2212",
+      "UserStory": "As a maintainer completing scopes on a migrated xbrief/ tree, I want metadata.capacityBucket stamped from plan.policy.capacityAllocation.defaultBucket so capacity accounting isn't silently empty.",
+      "ImplementationPlan": "1. In packages/core/src/scope/capacity-stamp.ts, resolve the PROJECT-DEFINITION via `resolveProjectDefinitionPath(projectRoot)` from packages/core/src/layout/resolve.ts instead of `join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH)`.\n2. Drop the now-unused import from policy/resolve.js.\n3. Add a migrated-tree regression test: stampCompletionMetadata stamps capacityBucket from xbrief/PROJECT-DEFINITION.xbrief.json.\n4. Run `task check`.",
+      "Traces": "#2212, #2207, #2109, #2112, #1419",
+      "Overview": "## Summary\n\nSame class as #2207 / #2210. `packages/core/src/scope/capacity-stamp.ts` reads `plan.policy.capacityAllocation.defaultBucket` from a hardcoded path:\n\n```ts\n// capacity-stamp.ts:4,8\nimport { PROJECT_DEFINITION_REL_PATH } from \"../policy/resolve.js\"; // \"vbrief/PROJECT-DEFINITION.vbrief.json\"\nconst path = join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);\n```\n\nThe read is wrapped in `try/catch` returning `\"\"` on failure. On a migrated `xbrief/` tree the file is absent -> catch -> `\"\"`.\n\n## Impact\n\n`stampCompletionMetadata()` (#1419) never stamps `metadata.capacityBucket` on completing briefs on migrated trees, because the default bucket resolves to empty. Silent capacity-accounting gap.\n\n## Fix\n\nResolve via `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts` instead of `join(projectRoot, PROJECT_DEFINITION_REL_PATH)`. Add a migrated-tree regression test asserting the bucket is stamped.\n\n## Related\n- Refs #2207 (PR #2208), #2210, #2109, #2112, #1419",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2212",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2212: bug(scope): capacity-stamp.ts reads capacityAllocation from hardcoded vbrief/ path on migrated trees"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2207",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2207"
+      }
+    ],
+    "updated": "2026-07-02T23:04:49Z"
+  }
+}
