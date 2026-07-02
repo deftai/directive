@@ -91,6 +91,9 @@ describe("init-deposit scaffold", () => {
     const agents = readFileSync(join(project, "AGENTS.md"), "utf8");
     expect(agents).toContain("<!-- deft:managed-section");
     expect(agents).toContain(AGENTS_MANAGED_CLOSE);
+    expect(agents).toContain("## Session orientation");
+    expect(agents).not.toContain("## Status");
+    expect(agents).not.toContain("## Known Issues");
   });
 
   it("deposits vbrief lifecycle dirs and schemas", async () => {

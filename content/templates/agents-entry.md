@@ -77,6 +77,14 @@ The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbri
 
 Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate:xbrief` to convert safely to `xbrief/` with semantic v0.6→v0.8 transforms. Legacy `x-vbrief/` reference tokens remain read-accepted until you migrate.
 
+## Unmanaged project header (#2065)
+
+The region above the managed-section marker is project-owned and preserved verbatim on `deft agents:refresh`; `deft doctor` does not freshness-check it.
+
+- ! Do NOT treat the unmanaged AGENTS.md header as the work queue — consult `deft triage:queue`, `xbrief/` lifecycle, GitHub issues, and `PROJECT-DEFINITION.xbrief.json` (#1149).
+- ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they duplicate authoritative sources and rot silently (Option A, #2065). Fresh installs scaffold a bounded **Session orientation** pointer instead.
+- ~ Ephemeral local notes (shell quirks, uncommitted test artifacts) MAY live under a `Local dev` heading only.
+
 ## Cache-as-authoritative work selection (#1149)
 
 ! When the operator asks "what should I work on next?" / "build a cohort" / "what's the queue?", run `deft triage:queue --limit=10` (D11 / #1128) and present the ranked list before suggesting anything else. The agent MUST NOT recommend work from memory or open-GitHub-issue intuition. This is the consumer-side mirror of the maintainer rule of the same name; the triage queue is the source of truth for what to work on next.

@@ -68,6 +68,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
 
 const PROPAGATION_HEADER_MARKERS = [
   "## Session-start ritual (#1149)",
+  "## Unmanaged project header (#2065)",
   "## Cache-as-authoritative work selection (#1149)",
   "## Skills",
   "## WIP cap",
@@ -118,6 +119,12 @@ const PROPAGATION_UMBRELLA_STATUS_MARKERS = [
   "claim-cites-state-surface",
   "issues/<N>/comments",
   "Conclude umbrella or epic status from the issue body alone",
+] as const;
+
+const UNMANAGED_HEADER_MARKERS = [
+  "Do NOT treat the unmanaged AGENTS.md header as the work queue",
+  "Do NOT add `Status`, `Next:`, or `Known Issues` blocks",
+  "Session orientation",
 ] as const;
 
 function normalizeWhitespace(text: string): string {
@@ -207,6 +214,11 @@ describe("test_agents_entry_contract", () => {
   it("propagation_umbrella_status_markers_present_in_both_files", () => {
     expect(missingMarkers(template, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, PROPAGATION_UMBRELLA_STATUS_MARKERS)).toEqual([]);
+  });
+
+  it("unmanaged_header_contract_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, UNMANAGED_HEADER_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, UNMANAGED_HEADER_MARKERS)).toEqual([]);
   });
 
   it("content_packs_note_references_discovery_commands", () => {

@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2065: retire the rot-prone unmanaged AGENTS.md project-header pattern (Status/Next/Known Issues) for consumer scaffolds and document canonical session-orientation sources. Option A (recommended). Child of #1882.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2065-unmanaged-header-contract",
+    "title": "Retire the rot-prone unmanaged AGENTS.md header pattern (Option A) + document canonical orientation sources",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2065",
+    "narratives": {
+      "Description": "Consumer AGENTS.md has an unmanaged project header (above the managed-section marker) that the framework preserves verbatim on `agents:refresh` (#794); `deft doctor` / managed-section freshness (#1308) only byte-compare the managed block, so the header is invisible to mechanical checks. Result: header sections like `Status`, `Next:`, `Known Issues` rot silently and misorient agents at session start (Returning Sessions ritual) while the install looks healthy. These sections duplicate and compete with the canonical, freshness-guaranteed sources (scoped work -> xbrief/ lifecycle; ranked queue -> `deft triage:queue`; tracked bugs -> GitHub issues; identity -> PROJECT-DEFINITION.xbrief.json). This story implements Option A (recommended): stop scaffolding those rot-prone sections for new consumer installs, document the canonical orientation sources, and tell agents not to treat the unmanaged header as a work queue. Reference implementation: deftai/cartograph#75.",
+      "ImplementationPlan": "1. Record the decision (Option A canonical) in the issue and in docs. 2. Update the consumer scaffold source so NEW installs do not emit Status / Next / Known Issues header blocks: adjust content/templates/agents-entry.md (and/or the installer scaffold that writes the unmanaged header) to a minimal, bounded header — project one-liner + build/orientation pointer only — and explicitly avoid tracked-state duplication. 3. Update UPGRADING.md: clarify managed vs unmanaged header expectations and that Status/Next/Known Issues should be retired (point at triage / xbrief / issues). 4. Update content/skills/deft-directive-sync/SKILL.md (and/or session-start orientation guidance) so agents are told: do NOT treat the unmanaged AGENTS.md header as the work queue -- consult `deft triage:queue` / xbrief/ lifecycle / GitHub issues / PROJECT-DEFINITION.xbrief.json instead. 5. If any consumer-relevant managed-section rule text changes, run `task agents:refresh` and update tests/content/test_agents_entry_contract.py accordingly (#1309). 6. Add a fixture consumer AGENTS.md (or a test) demonstrating the retired-header scaffold as the reference. 7. CHANGELOG [Unreleased] entry (user-visible: new installs no longer scaffold rot-prone Status/Known Issues; orientation comes from triage/xbrief/issues). Run `task check` GREEN. Option C (a verify:agents-md-header freshness gate) is OUT OF SCOPE here -- Option A is the recommended, lighter path; note it as a possible follow-up.",
+      "UserStory": "As an agent starting a session in a consumer project, I want AGENTS.md to NOT carry a stale hand-maintained Status/Known-Issues header that competes with the authoritative queue/issue/xbrief sources, so that session-start orientation is trustworthy and not silently months out of date.",
+      "Traces": "#2065, #1882, #794, #1308, #1149"
+    },
+    "items": [
+      {
+        "id": "h-a1",
+        "title": "New consumer scaffolds do not emit rot-prone header sections",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a fresh consumer install / scaffold, when the unmanaged AGENTS.md header is written, then it does NOT include Status / Next / Known Issues blocks — only a bounded project one-liner + orientation pointer; a fixture/test demonstrates the retired-header scaffold."
+        }
+      },
+      {
+        "id": "h-a2",
+        "title": "Docs record Option A + canonical orientation sources",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given UPGRADING.md and the scaffold template, when read, then they document that Status/Next/Known Issues are retired and session orientation comes from PROJECT-DEFINITION.xbrief.json + `deft triage:queue`/`triage:welcome` + GitHub issues + xbrief/ lifecycle."
+        }
+      },
+      {
+        "id": "h-a3",
+        "title": "Sync / session-start guidance tells agents not to treat the header as a work queue",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-sync/SKILL.md (or session-start orientation guidance), when read, then it instructs agents NOT to treat the unmanaged AGENTS.md header as the work queue and to consult triage/xbrief/issues instead."
+        }
+      },
+      {
+        "id": "h-a4",
+        "title": "task check green; propagation consistent",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given `task check`, when it runs, then agents-entry contract + verify:encoding + full suite pass; if a consumer-relevant managed rule changed, `task agents:refresh` ran and the contract marker list is consistent."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#2065"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "installer scaffold (unmanaged header writer)",
+          "UPGRADING.md",
+          "content/skills/deft-directive-sync/SKILL.md",
+          "tests",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "Option A implemented: new consumer scaffolds omit rot-prone Status/Next/Known Issues; docs + sync guidance point at canonical orientation sources; fixture/test reference"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-legibility",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T14:46:08Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2065",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2065: unmanaged project header rots silently"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
+      }
+    ],
+    "updated": "2026-07-02T14:46:08Z"
+  }
+}

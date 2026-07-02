@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **New consumer installs no longer scaffold rot-prone AGENTS.md Status/Known Issues headers (#2065).** Fresh installs now emit a bounded unmanaged header — project one-liner plus a Session orientation pointer at `xbrief/`, triage, and GitHub issues — and the managed section tells agents not to treat the header as the work queue. Option A (retire the pattern); parent #1882. Closes #2065.
+
 - **Leaner always-loaded `AGENTS.md` with rules unchanged (#2156).** Incident-driven narrative blocks (`Why this rule exists`, recurrence records, long cross-reference lists) in the maintainer policy file are collapsed to actionable rules plus one-line pointers into `docs/analysis/`; maintainer/managed overlap (cache, MAP, skills, WIP cap, issue comments) de-dupes to pointers where the managed section already carries the same directives. The #645 line-budget ratchet tightens to match. Refs #2156, #1882, #645.
 
 - **One place to find the right skill.** Skill routing is now a unified Skills Index in `REFERENCES.md` that lists every skill with a one-sentence description and its trigger keywords, alongside the framework doc routing — so you scan a single Level-0 index to decide what to load instead of hunting through a table buried in `AGENTS.md`. `AGENTS.md` keeps only the "check the skills catalog before improvising" behavioral gate plus a pointer to the index, making the policy file leaner. Refs #838, #1882, #645.

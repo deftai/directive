@@ -593,10 +593,16 @@ func TestWriteAgentsMD_MatchesTemplateFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not read %s: %v", templatePath, err)
 	}
+	headerPath := filepath.Join(repoRootFromDeftInstall(t), "content", "templates", "agents-consumer-header.md")
+	header, err := os.ReadFile(headerPath)
+	if err != nil {
+		t.Fatalf("could not read %s: %v", headerPath, err)
+	}
+	expected := strings.TrimRight(string(header), "\n") + "\n\n" + string(template)
 
-	if string(written) != string(template) {
-		t.Errorf("installer-written AGENTS.md drifted from %s: wrote %d bytes, template has %d bytes",
-			templatePath, len(written), len(template))
+	if string(written) != expected {
+		t.Errorf("installer-written AGENTS.md drifted from header+managed templates: wrote %d bytes, expected %d bytes",
+			len(written), len(expected))
 	}
 }
 

@@ -430,6 +430,17 @@ func renderAgentsEntry(installRoot string) string {
 	return strings.ReplaceAll(agentsMDEntry, canonicalInstallRootPOSIX+"/", posix+"/")
 }
 
+// renderConsumerHeader returns the bounded unmanaged AGENTS.md header scaffold
+// for fresh consumer installs (#2065 Option A).
+func renderConsumerHeader() string {
+	return strings.TrimRight(templates.AgentsConsumerHeader, "\n")
+}
+
+// renderFreshAgentsMD returns header + managed section for a greenfield AGENTS.md.
+func renderFreshAgentsMD(installRoot string) string {
+	return renderConsumerHeader() + "\n\n" + renderAgentsEntry(installRoot)
+}
+
 // agentsMDLayoutClaim returns the layout-specific body claim used by the
 // idempotency probe in WriteAgentsMD. The v3 template's lead sentence is
 // `Deft is installed in <installRoot>/.` -- when an existing AGENTS.md
@@ -583,8 +594,8 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 		if !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("could not read AGENTS.md: %w", err)
 		}
-		// File does not exist — create it.
-		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		// File does not exist — create it with the bounded consumer header (#2065).
+		if err := os.WriteFile(path, []byte(renderFreshAgentsMD(installRoot)), 0o644); err != nil {
 			return fmt.Errorf("could not create AGENTS.md: %w", err)
 		}
 		w.printf("AGENTS.md created.\n")

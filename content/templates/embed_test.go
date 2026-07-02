@@ -2,6 +2,7 @@ package templates
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -32,5 +33,31 @@ func TestAgentsEntryMatchesFile(t *testing.T) {
 func TestAgentsEntryNonEmpty(t *testing.T) {
 	if len(AgentsEntry) == 0 {
 		t.Fatal("AgentsEntry is empty -- templates/agents-entry.md embed is broken")
+	}
+}
+
+// TestAgentsConsumerHeaderMatchesFile asserts the embedded consumer header equals
+// templates/agents-consumer-header.md on disk (#2065).
+func TestAgentsConsumerHeaderMatchesFile(t *testing.T) {
+	onDisk, err := os.ReadFile("agents-consumer-header.md")
+	if err != nil {
+		t.Fatalf("could not read templates/agents-consumer-header.md: %v", err)
+	}
+	if AgentsConsumerHeader != string(onDisk) {
+		t.Errorf("embedded AgentsConsumerHeader drift from templates/agents-consumer-header.md:\n"+
+			"embedded len=%d, on-disk len=%d",
+			len(AgentsConsumerHeader), len(onDisk))
+	}
+}
+
+func TestAgentsConsumerHeaderOmitsRetiredSections(t *testing.T) {
+	if strings.Contains(AgentsConsumerHeader, "## Status") {
+		t.Error("consumer header must not scaffold ## Status (#2065)")
+	}
+	if strings.Contains(AgentsConsumerHeader, "## Known Issues") {
+		t.Error("consumer header must not scaffold ## Known Issues (#2065)")
+	}
+	if !strings.Contains(AgentsConsumerHeader, "## Session orientation") {
+		t.Fatal("consumer header must include Session orientation pointer")
 	}
 }

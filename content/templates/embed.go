@@ -18,3 +18,9 @@ import _ "embed"
 //
 //go:embed agents-entry.md
 var AgentsEntry string
+
+// AgentsConsumerHeader is the bounded unmanaged AGENTS.md header scaffold written
+// above the managed section on fresh consumer installs (#2065 Option A).
+//
+//go:embed agents-consumer-header.md
+var AgentsConsumerHeader string

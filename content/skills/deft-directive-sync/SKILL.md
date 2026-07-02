@@ -34,6 +34,15 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Beginning of a new session where framework updates may be available
 - After a known upstream deft release
 
+
+
+## Session orientation — unmanaged header (#2065)
+
+! The region of AGENTS.md **above** the `<!-- deft:managed-section ... -->` marker is project-owned, preserved verbatim on refresh, and **not** freshness-checked by `deft doctor`.
+
+- ! Do NOT treat that unmanaged header as the work queue — consult `deft triage:queue`, `xbrief/` lifecycle, GitHub issues, and `PROJECT-DEFINITION.xbrief.json` instead (#1149, #2065 Option A).
+- ⊗ Do NOT add or revive `Status`, `Next:`, or `Known Issues` blocks in AGENTS.md — they duplicate authoritative sources and rot silently while the managed section stays current.
+
 ## Framework Events Emitted Here
 
 ! When this skill responds to a context-window shift or an explicit "are you using Deft?" probe (per AGENTS.md Deft Alignment Confirmation), emit the paired `session:interrupted` -> `session:resumed` framework events via `scripts/_events.py` so observability of agent-runtime state transitions is structural, not prose-only:
@@ -210,6 +219,7 @@ After structure validation, sync framework-level assets.
 1. ~ Diff the structure (section headings, key rules) rather than expecting byte-identical content
 2. ~ Report any new sections or rules added upstream that are missing locally
 3. ~ Do NOT auto-overwrite -- present differences and let the user decide
+4. ~ If the unmanaged header still carries `Status`, `Next:`, or `Known Issues`, recommend replacing them with the **Session orientation** pointer at `xbrief/` + triage + issues (#2065 Option A) -- do NOT treat that header prose as the work queue
 
 ### 6b: Check codebase MAP freshness
 

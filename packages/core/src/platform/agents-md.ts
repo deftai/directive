@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { contentRoot } from "../content-root.js";
+import { composeGreenfieldAgentsMd } from "./agents-consumer-header.js";
 import { AGENTS_MANAGED_CLOSE, AGENTS_MANAGED_OPEN_V3_LITERAL } from "./constants.js";
 import { findManagedOpenMarker } from "./linear-scan.js";
 
@@ -245,7 +246,9 @@ export function agentsRefreshPlan(
       refreshed,
       session: sessionId,
       existing: null,
-      new_content: `${attributedRendered}\n`,
+      new_content: composeGreenfieldAgentsMd(attributedRendered, {
+        frameworkRoot: frameworkRoot(seams),
+      }),
     };
   }
   const normalised = existing.replace(/\r\n/g, "\n");

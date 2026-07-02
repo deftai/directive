@@ -65,6 +65,15 @@ deft migrate:xbrief
 
 If you upgraded before this fix landed and your header still points at `vbrief/`, `deft doctor` now emits an `AGENTS.md header drift:` signpost. Re-run `deft migrate:xbrief` (idempotent) to patch the header, or hand-edit the offending path literals.
 
+**Option A (canonical, #2065):** new installs scaffold a **bounded** unmanaged header only — a project one-liner plus a **Session orientation** pointer at the canonical sources below. Do **not** add freeform `Status`, `Next:`, or `Known Issues` blocks; they are retired because the framework preserves the header verbatim while `deft doctor` only checks the managed section (#794, #1308). Session orientation comes from:
+
+- `xbrief/PROJECT-DEFINITION.xbrief.json` (project identity)
+- `xbrief/` lifecycle folders (scoped work)
+- `deft triage:queue` / `deft triage:welcome` (ranked queue)
+- GitHub issues (tracked bugs)
+
+If your header still carries `Status` / `Known Issues` from an older handoff, replace them with the Session orientation pointer (reference implementation: [deftai/cartograph#75](https://github.com/deftai/cartograph/pull/75)). Ephemeral shell quirks MAY stay under a `Local dev` heading only.
+
 ## Public contract layer — `@deftai/directive-types` (#1799)
 
 Downstream TypeScript projects can import the canonical xBRIEF/policy contract instead of hand-mirroring JSON shapes:
