@@ -79,11 +79,7 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ## Unmanaged project header (#2065)
 
-The region above the managed-section marker is project-owned and preserved verbatim on `deft agents:refresh`; `deft doctor` does not freshness-check it.
-
-- ! Do NOT treat the unmanaged AGENTS.md header as the work queue — consult `deft triage:queue`, `xbrief/` lifecycle, GitHub issues, and `PROJECT-DEFINITION.xbrief.json` (#1149).
-- ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they duplicate authoritative sources and rot silently (Option A, #2065). Fresh installs scaffold a bounded **Session orientation** pointer instead.
-- ~ Ephemeral local notes (shell quirks, uncommitted test artifacts) MAY live under a `Local dev` heading only.
+! Do NOT treat the unmanaged AGENTS.md header as the work queue; ⊗ Do NOT add `Status`, `Next:`, or `Known Issues` blocks — they rot silently. See UPGRADING.md § AGENTS.md: managed vs unmanaged header for the Session orientation pointer and rationale.
 
 ## Cache-as-authoritative work selection (#1149)
 
