@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mocked unit tests no longer depend on real network or subprocess latency (#2166).** Doctor payload-staleness branch tests, framework-command validation, and GitHub auth-mode CLI coverage now stub git-ls-remote, npm-view, filesystem-walk, and gh-auth seams so CI cannot spuriously hit 5s vitest timeouts under load. Closes #2166. Refs #1882, #644.
+
 ### Added
 
 - **Directive now teaches the empirically-grounded AGENTS.md structure — and surfaces doc sprawl before it degrades agents (#646, #647).** A new `content/docs/agent-docs.md` reference encodes the measured structure pattern for a project's AGENTS.md (100–150 line main file + focused reference docs, numbered workflows, decision tables, real snippets, paired don't/do rules, module-level over root files) and the measured overexploration failure modes, so projects directive creates get the "model-upgrade" version of agent docs instead of the "worse than nothing" version. The `deft-directive-sync` skill gains an advisory (never-blocking) doc-sprawl awareness step that flags orphan docs and large reachable doc volumes, and `deft-directive-pre-pr` reminds you to keep newly added docs in the reference chain. Refs #646, #647, #1882, #644.

@@ -203,12 +203,18 @@ describe("doctor coverage final", () => {
 
   it("payload staleness skip when sha or ref missing", () => {
     const sink = createPlainSink({ write: () => {} });
+    const offlineSeams = {
+      runGitLsRemote: () => ({ ok: false, stdout: "" }),
+      runNpmViewVersion: () => ({ ok: false, version: "" }),
+    };
     runPayloadStalenessCheck("/tmp", sink, () => {}, {
+      ...offlineSeams,
       readText: (p) => (p.endsWith("VERSION") ? "ref: main\n" : "consumer\n"),
       isFile: (p) => p.endsWith("VERSION") || p.endsWith("AGENTS.md"),
       frameworkRoot: "/fw",
     });
     runPayloadStalenessCheck("/tmp", sink, () => {}, {
+      ...offlineSeams,
       readText: (p) => (p.endsWith("VERSION") ? "sha: abc\n" : "consumer\n"),
       isFile: (p) => p.endsWith("VERSION") || p.endsWith("AGENTS.md"),
       frameworkRoot: "/fw",

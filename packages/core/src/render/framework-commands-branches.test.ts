@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   cmdCoreLint,
@@ -20,9 +23,19 @@ describe("framework-commands branch coverage", () => {
   });
 
   it("cmdCoreValidate succeeds with capture", () => {
-    const result = runFrameworkCommand("core:validate", [], { capture: true });
-    expect(result.code).toBe(0);
-    expect(result.stdout).toContain("markdown files validated");
+    const root = mkdtempSync(join(tmpdir(), "fw-core-val-"));
+    writeFileSync(join(root, "sample.md"), "# sample\n", "utf8");
+    try {
+      const result = runFrameworkCommand("core:validate", [], {
+        capture: true,
+        frameworkRoot: root,
+        projectRoot: root,
+      });
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("markdown files validated");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("formatFrameworkCommand supports task surface prefix", () => {

@@ -341,11 +341,13 @@ export interface GitHubAuthModesCliArgs {
   githubAuthMode?: string | null;
   repo?: string;
   json?: boolean;
+  runGh?: GhRunner;
 }
 
 export function githubAuthModesMain(args: GitHubAuthModesCliArgs): number {
   const result = validateGithubAuthForWorker(args.githubAuthMode ?? null, {
     repo: args.repo ?? DEFAULT_VALIDATION_REPO,
+    runGh: args.runGh,
   });
   if (args.json) {
     process.stdout.write(`${JSON.stringify(resultToDict(result), null, 2)}\n`);

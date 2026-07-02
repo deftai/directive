@@ -440,24 +440,31 @@ describe("helpers branch sweep", () => {
   it("payload staleness skip branches", () => {
     const sink = createPlainSink({ write: () => {} });
     const add = vi.fn();
+    const offlineSeams = {
+      runGitLsRemote: () => ({ ok: false, stdout: "" }),
+      runNpmViewVersion: () => ({ ok: false, version: "" }),
+    };
     runPayloadStalenessCheck("/tmp", sink, add, {
+      ...offlineSeams,
       readText: () => "consumer",
       isFile: (p) => p.endsWith("VERSION"),
       frameworkRoot: "/fw",
-      runGitLsRemote: () => ({ ok: false, stdout: "" }),
     });
     runPayloadStalenessCheck("/tmp", sink, add, {
+      ...offlineSeams,
       readText: (p) => (p.endsWith("VERSION") ? "sha: abc\n" : "consumer"),
       isFile: () => true,
       frameworkRoot: "/fw",
     });
     runPayloadStalenessCheck("/tmp", sink, add, {
+      ...offlineSeams,
       readText: (p) => (p.endsWith("VERSION") ? "ref: main\nsha: abc\n" : "consumer"),
       isFile: () => true,
       frameworkRoot: "/fw",
       runGitLsRemote: () => ({ ok: true, stdout: "" }),
     });
     runPayloadStalenessCheck("/tmp", sink, add, {
+      ...offlineSeams,
       readText: (p) => (p.endsWith("VERSION") ? "ref: main\nsha: abc\n" : "consumer"),
       isFile: () => true,
       frameworkRoot: "/fw",
@@ -467,12 +474,14 @@ describe("helpers branch sweep", () => {
       }),
     });
     runPayloadStalenessCheck("/tmp", sink, add, {
+      ...offlineSeams,
       readText: (p) => (p.endsWith("VERSION") ? "ref: main\nsha: abc\n" : "consumer"),
       isFile: () => true,
       frameworkRoot: "/fw",
       runGitLsRemote: () => ({ ok: true, stdout: "abc refs/heads/main\n" }),
     });
     runPayloadStalenessCheck("/tmp", sink, add, {
+      ...offlineSeams,
       readText: (p) => (p.endsWith(".deft-version") ? "sha: x\nref: main\n" : null),
       isFile: (p) => p.endsWith(".deft-version"),
       frameworkRoot: "/fw",
