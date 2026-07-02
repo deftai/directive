@@ -1,5 +1,13 @@
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { dispatchTaskCheck, isFrameworkSourceContext, resolveCheckTarget } from "./orchestrator.js";
+import {
+  dispatchTaskCheck,
+  isFrameworkRepoRoot,
+  isFrameworkSourceContext,
+  resolveCheckTarget,
+} from "./orchestrator.js";
+
+const repoRoot = join(import.meta.dirname, "..", "..", "..", "..");
 
 describe("isFrameworkSourceContext", () => {
   it("returns true when framework and project roots are the same path", () => {
@@ -18,11 +26,35 @@ describe("isFrameworkSourceContext", () => {
   it("returns false for subpath relationship", () => {
     expect(isFrameworkSourceContext("/project/.deft/core", "/project")).toBe(false);
   });
+
+  it("returns true for a subdirectory of the framework source repo (#2220)", () => {
+    expect(isFrameworkSourceContext(repoRoot, join(repoRoot, "packages", "core"))).toBe(true);
+  });
+
+  it("returns false when projectRoot is outside the framework repo", () => {
+    expect(isFrameworkSourceContext(repoRoot, "/tmp/other-project")).toBe(false);
+  });
+});
+
+describe("isFrameworkRepoRoot", () => {
+  it("recognizes the real framework checkout", () => {
+    expect(isFrameworkRepoRoot(repoRoot)).toBe(true);
+  });
+
+  it("rejects a bare consumer-style path", () => {
+    expect(isFrameworkRepoRoot("/tmp/consumer/.deft/core")).toBe(false);
+  });
 });
 
 describe("resolveCheckTarget", () => {
   it("returns check:framework-source when roots are equal", () => {
     expect(resolveCheckTarget("/same/path", "/same/path")).toBe("check:framework-source");
+  });
+
+  it("returns check:framework-source for a framework-repo subdirectory (#2220)", () => {
+    expect(resolveCheckTarget(repoRoot, join(repoRoot, "packages", "core"))).toBe(
+      "check:framework-source",
+    );
   });
 
   it("returns check:consumer when roots differ", () => {

@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { afterEach } from "vitest";
 import {
   restIssueListPaginated,
@@ -158,9 +158,7 @@ export interface DispatchCall {
   frameworkRoot: string;
 }
 
-export function isFrameworkSourceContext(frameworkRoot: string, projectRoot: string): boolean {
-  return resolve(frameworkRoot) === resolve(projectRoot);
-}
+import { resolveCheckTarget } from "../check/orchestrator.js";
 
 /** Mirror ``scripts/_project_context.dispatch_task_check`` for consumer-task e2e. */
 export function dispatchTaskCheck(
@@ -168,9 +166,7 @@ export function dispatchTaskCheck(
   projectRoot: string,
   runner: (command: string, projectRoot: string, frameworkRoot: string) => { code: number },
 ): number {
-  const target = isFrameworkSourceContext(frameworkRoot, projectRoot)
-    ? "check:framework-source"
-    : "check:consumer";
+  const target = resolveCheckTarget(frameworkRoot, projectRoot);
   return runner(target, projectRoot, frameworkRoot).code;
 }
 
