@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #645 (encode + enforce the AGENTS.md line-budget ceiling with a deterministic gate); child of the #1882 map-not-manual umbrella.",
+    "created": "2026-07-01T00:00:00Z",
+    "updated": "2026-07-01T00:00:00Z"
+  },
+  "plan": {
+    "id": "645-agents-md-size-budget-gate",
+    "title": "Encode and enforce an AGENTS.md line-budget ceiling with a deterministic gate",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/645",
+    "narratives": {
+      "Description": "The maintainer AGENTS.md grew from 102 lines (when #645 was filed) to 569 lines (2026-07-01), 5.6x the empirically-supported 100-150 line ceiling in content/docs/good-agents-md.md. A prose-only ceiling demonstrably did not hold. Per main.md Rule Authority [AXIOM], a size budget that matters must be a deterministic gate, not a sentence. This story adds a verify:agents-md-budget gate that counts the managed section and the maintainer/unmanaged region separately (the #1309 propagation duplicates content across the deft:managed-section marker). CRITICAL DESIGN DECISION: the gate is a RATCHET seeded at the CURRENT per-region line counts, failing on INCREASE, not a static absolute ceiling. This decouples the story from #1882: a ratchet ships green today because the current file is by definition within its own seeded budget, and it immediately delivers the value (no further growth is possible without a deliberate, reviewed budget bump). A static 150-line ceiling would instead couple this story to #1882 -- it would warn/fail permanently until the reduction work lands. #1882 then LOWERS the ratchet: each reduction PR tightens the allowed max toward the 150 target. This story owns the ceiling mechanism and the freeze; #1882 owns the shrink that ratchets it down.",
+      "ImplementationPlan": "1. Add a size-budget verifier (TypeScript, packages/core, mirroring existing verify:* gates) that parses AGENTS.md, splits on the <!-- deft:managed-section --> / <!-- /deft:managed-section --> markers, and counts managed vs unmanaged line totals. 2. Read per-region budgets from a typed policy field (plan.policy) SEEDED AT THE CURRENT per-region line counts (the ratchet baseline), not a static 150; no magic numbers. A budget increase is an explicit, reviewed diff to the typed field -- that diff IS the 'was this growth deliberate?' checkpoint, and accommodates legitimate #1309-propagated consumer-rule additions. 3. Three-state exit (0 within budget / 1 over budget i.e. region exceeds its ratchet / 2 config error) with a remediation message pointing at REFERENCES.md and the push-to-reference pattern. 4. Wire into task check via a verify:agents-md-budget target; because it is a ratchet seeded at current size it can run at FAIL tier from day one without blocking (the file already satisfies its own baseline), though an advisory warn tier is acceptable if preferred (per the #1419 judgment-gate precedent). 5. Add the maintenance rule (push detail into a reference file + add a pointer; do not expand AGENTS.md; lowering a budget is always allowed, raising it requires justification) to REFERENCES.md / CONTRIBUTING.md with the empirical basis cited. 6. Add tests exercising within-budget (at baseline), over-budget (region grew past its ratchet), budget-lowered (reduction re-seeds tighter), missing-marker, and config-error paths.",
+      "UserStory": "As a directive maintainer, I want a deterministic gate that flags AGENTS.md growth past a configured line budget, so that the map-not-manual ceiling is enforced mechanically instead of eroding silently as it did from 102 to 569 lines.",
+      "Traces": "#645, #1882"
+    },
+    "items": [
+      {
+        "id": "645-a1",
+        "title": "Given an AGENTS.md region that grew past its ratchet baseline, when the gate runs, then it reports over-budget with a remediation hint",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an AGENTS.md whose managed or unmanaged region exceeds its ratchet-seeded line budget, when verify:agents-md-budget runs, then it exits non-zero and names the offending region plus the push-to-reference remediation. Given the file exactly at its seeded baseline, the gate passes (the ratchet ships green with no reduction required)."
+        }
+      },
+      {
+        "id": "645-a2",
+        "title": "Given the managed-section markers, when the gate counts lines, then managed and unmanaged regions are budgeted separately",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the deft:managed-section markers, when the gate parses AGENTS.md, then it counts the managed section and the maintainer/unmanaged region independently and applies each region's own budget."
+        }
+      },
+      {
+        "id": "645-a3",
+        "title": "Given a project Taskfile, when task check runs, then the budget gate participates at the configured tier",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given task check, when it runs on a PR touching AGENTS.md or the template, then verify:agents-md-budget participates at the configured (advisory by default) tier."
+        }
+      },
+      {
+        "id": "645-a4",
+        "title": "Given the docs, when a contributor reads REFERENCES.md/CONTRIBUTING.md, then the ceiling rule and remediation are documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given REFERENCES.md / CONTRIBUTING.md, when a contributor reads the AGENTS.md maintenance guidance, then the line-budget ceiling, the push-detail-to-references default, and the empirical basis (content/docs/good-agents-md.md) are stated."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#645"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/**/agents-md-budget*.ts",
+          "packages/core/src/**/agents-md-budget*.test.ts",
+          "tasks/verify.yml",
+          "REFERENCES.md",
+          "CONTRIBUTING.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "verify:agents-md-budget gate flags AGENTS.md growth past a configured line budget, counting managed vs unmanaged regions separately; ceiling + remediation documented"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-legibility",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-02T00:42:59Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/645",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #645: docs(agents-md): encode 100-150 line ceiling as an explicit AGENTS.md maintenance rule"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: design(agents-md): treat AGENTS.md as a map, not a manual"
+      }
+    ],
+    "updated": "2026-07-02T00:42:59Z"
+  }
+}

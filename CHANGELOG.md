@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **AGENTS.md now has a line-budget ratchet that stops it silently bloating (#645).** A new `verify:agents-md-budget` gate (wired into `task check`) counts the managed section and the hand-maintained region of AGENTS.md separately and fails when either grows past the budget recorded in `PROJECT-DEFINITION` (`plan.policy.agentsMdBudget`). The budget is seeded at the current size, so it ships green and only flags future growth — reductions are always allowed and should tighten the budget toward the ~100–150 line ceiling that keeps AGENTS.md a map, not a manual. Refs #645, #1882.
+
 ### Changed
 
 ### Fixed

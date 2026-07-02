@@ -360,6 +360,7 @@ tasks:
       - verify:cache-fresh
       - verify:pack-drift
       - verify-wip-cap-framework-self-check
+      - verify:agents-md-budget
       - vbrief:validate
       - codebase:validate-structure
       - verify:codebase-map-fresh

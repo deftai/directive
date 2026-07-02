@@ -30,6 +30,10 @@
       "types": "./dist/wip-cap/index.d.ts",
       "default": "./dist/wip-cap/index.js"
     },
+    "./agents-md-budget": {
+      "types": "./dist/agents-md-budget/index.d.ts",
+      "default": "./dist/agents-md-budget/index.js"
+    },
     "./xbrief-migrate": {
       "types": "./dist/xbrief-migrate/index.d.ts",
       "default": "./dist/xbrief-migrate/index.js"

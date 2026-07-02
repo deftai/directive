@@ -131,6 +131,14 @@ task check    # runs: validate + lint + test
 
 ⊗ Commit code that has not passed `task check`.
 
+### AGENTS.md line budget (#645)
+
+`task verify:agents-md-budget` (wired into `task check:framework-source`) is a **ratchet** that keeps AGENTS.md a map, not a manual (#1882). It counts the managed section and the unmanaged region separately and fails when either grows past `plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines}` in `PROJECT-DEFINITION`. The budget is seeded at the current per-region size, so the gate ships green; only *growth* fails.
+
+- ! When you need to add content, push the detail into a reference doc (`main.md` section, a content pack, or `docs/`) and leave a pointer from AGENTS.md — do not expand AGENTS.md itself. See `REFERENCES.md` § "AGENTS.md is a map, not a manual".
+- ! When you *reduce* AGENTS.md, lower the matching `managedMaxLines` / `unmanagedMaxLines` in the same PR so the ratchet tightens toward the ~150-line ceiling.
+- ? If growth is genuinely warranted (e.g. a new #1309-propagated consumer rule), raising the budget is an explicit, reviewed diff to the typed field — that diff is the "was this growth deliberate?" checkpoint.
+
 ### Slow tests (#975)
 
 Deft uses a `slow` pytest marker to keep `task check` fast on tight-loop iteration. Tests that exceed ~1s wall-clock (e.g. real `time.sleep` / thread-join waits in the watchdog regression suite) are marked with `@pytest.mark.slow` and **excluded by default** from `task check` via `addopts = "-m 'not slow'"` in `pyproject.toml`. The current marker users in `tests/integration/test_triage_bootstrap_at_scale.py` and `tests/test_triage_bootstrap.py` range from ~0.5s to ~1.9s; the **1s threshold is the contributor decision point**, not a hard floor on which existing tests qualify.

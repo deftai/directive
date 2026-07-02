@@ -47,6 +47,20 @@ describe("deft-ts verify-wip-cap", () => {
   });
 });
 
+describe("deft-ts verify-agents-md-budget (#645)", () => {
+  it("passes against the framework repo (ratchet seeded at current size)", () => {
+    const { exitCode } = runDeftTs("verify-agents-md-budget", ["--project-root", repoRoot()]);
+    expect(exitCode).toBe(0);
+  });
+
+  it("verify:agents-md-budget alias routes identically", () => {
+    const args = ["--project-root", repoRoot()];
+    expect(runDeftTs("verify:agents-md-budget", args).exitCode).toBe(
+      runDeftTs("verify-agents-md-budget", args).exitCode,
+    );
+  });
+});
+
 describe("deft-ts verify-judgment-gates (maps tests/cli/test_verify_judgment_gates.py)", () => {
   it("returns 2 when claim ledger path is missing", () => {
     const root = seedProject();

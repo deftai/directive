@@ -17,6 +17,14 @@
 - Load: When any term is undefined or used ambiguously; before introducing a new term
 - Contains: work decomposition hierarchy, hygiene terms, framework design terms, GSD → Deft mapping
 
+## 🗺️ AGENTS.md is a map, not a manual (#645 / #1882)
+
+AGENTS.md is the always-loaded front door. Empirical study (`content/docs/good-agents-md.md`) found agent-quality gains from AGENTS.md **reverse** once the file grows past ~100–150 lines: context is scarce, "everything important" becomes non-guidance, and stale rules accumulate.
+
+- **Default when adding content**: push the detail into a reference doc (`main.md` section, a content pack, or `docs/`) and leave a *pointer* from AGENTS.md — do **not** expand AGENTS.md itself.
+- **Enforced by a ratchet**: `task verify:agents-md-budget` (wired into `task check`) fails when the managed section or the unmanaged region grows past `plan.policy.agentsMdBudget` in `PROJECT-DEFINITION`. The budget is seeded at the current per-region size, so *growth* fails while *reductions* are always allowed.
+- **Lowering the budget is free; raising it is a reviewed diff.** Each reduction should tighten the matching `managedMaxLines` / `unmanagedMaxLines` line so the ratchet only ever ratchets down toward the ceiling.
+
 ## 📋 Task-Based Loading
 
 ### When Writing Code
