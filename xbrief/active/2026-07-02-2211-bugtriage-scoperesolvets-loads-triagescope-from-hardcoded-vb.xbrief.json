@@ -1,0 +1,41 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2211"
+  },
+  "plan": {
+    "title": "bug(triage): scope/resolve.ts loads triageScope from hardcoded vbrief/ path on migrated trees",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(triage): scope/resolve.ts loads triageScope from hardcoded vbrief/ path on migrated trees",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2211",
+      "UserStory": "As a maintainer on a migrated xbrief/ tree, I want scope-drift classification to honor my configured plan.policy.triageScope[] instead of silently falling back to DEFAULT_TRIAGE_SCOPE, so the queue's in-plan / scope-drift counts reflect my project.",
+      "ImplementationPlan": "1. In packages/core/src/triage/scope/resolve.ts, replace `join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH)` in projectDefinitionPath() with `resolveProjectDefinitionPath(projectRoot)` from packages/core/src/layout/resolve.ts.\n2. Drop the now-unused PROJECT_DEFINITION_REL_PATH import (keep DEFAULT_TRIAGE_SCOPE).\n3. Add a migrated-tree regression test: xbrief/PROJECT-DEFINITION.xbrief.json with a custom triageScope is honored (not the default).\n4. Run `task check`.",
+      "Traces": "#2211, #2207, #2109, #2112",
+      "Overview": "## Summary\n\nSame class as #2207 / #2210. `packages/core/src/triage/scope/resolve.ts` resolves `plan.policy.triageScope` via a hardcoded path:\n\n```ts\n// scope/resolve.ts:4,6-7\nimport { DEFAULT_TRIAGE_SCOPE, PROJECT_DEFINITION_REL_PATH } from \"./constants.js\"; // \"vbrief/PROJECT-DEFINITION.vbrief.json\"\nexport function projectDefinitionPath(projectRoot: string): string {\n  return join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);\n}\n```\n\n`loadProjectDefinition()` then reads that path; on a migrated `xbrief/` tree the file is absent, `existsSync` fails, and it returns `null` -> `triageScope` silently falls back to `DEFAULT_TRIAGE_SCOPE`.\n\n## Impact\n\nOn migrated trees the project's configured `plan.policy.triageScope[]` is ignored for scope-drift classification -- the queue's `[scope-drift]` / in-plan counts use the default scope, not the project's. Silent (graceful fallback masks it), exactly like the #2207 read-side bug.\n\n## Fix\n\nReplace the hardcoded `join(projectRoot, PROJECT_DEFINITION_REL_PATH)` with `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts`, matching `queue/project.ts` / `scope-drift/scope-rules.ts`. Add a migrated-tree regression test.\n\n## Related\n- Refs #2207 (PR #2208, read-side fix), #2210 (write-side sibling)\n- Refs #2109 (vbrief->xbrief migration -- missed call-site), #2112 (remove vbrief read path)",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2211",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2211: bug(triage): scope/resolve.ts loads triageScope from hardcoded vbrief/ path on migrated trees"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2207",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2207"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2109",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2109"
+      }
+    ],
+    "updated": "2026-07-02T23:04:40Z"
+  }
+}
