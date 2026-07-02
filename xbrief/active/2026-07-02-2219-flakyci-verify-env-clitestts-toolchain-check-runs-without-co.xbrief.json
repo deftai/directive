@@ -1,0 +1,36 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2219"
+  },
+  "plan": {
+    "title": "flaky(ci): verify-env-cli.test.ts 'toolchain-check runs without config error' times out at 5s (real subprocess) — #2209 follow-up",
+    "status": "running",
+    "narratives": {
+      "Description": "flaky(ci): verify-env-cli.test.ts 'toolchain-check runs without config error' times out at 5s (real subprocess) — #2209 follow-up",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2219",
+      "UserStory": "As a directive contributor, I want the CLI-level toolchain-check test to be deterministic so unrelated PRs don't get false-red CI when a cold runner's real deft-ts subprocess exceeds vitest's 5s default timeout.",
+      "ImplementationPlan": "1. In packages/cli/src/gates-cli/verify-env-cli.test.ts (~line 72, 'deft-ts toolchain-check > runs without config error'), remove the wall-clock dependency: prefer injecting a stub command runner / fake toolchain probe so runDeftTs('toolchain-check') does not spawn a real subprocess (mirror the #2209 fix in packages/core/src/verify-env/branches.test.ts). 2. If a genuine end-to-end runDeftTs invocation must be retained for coverage, give that single test an explicit testTimeout of 20000ms. 3. Confirm the file runs sub-second/deterministically (npx vitest run packages/cli/src/gates-cli/verify-env-cli.test.ts). 4. Run the biome lane (pnpm run lint) AND task check before pushing (see #2220). ",
+      "Traces": "#2219, #2209, #975",
+      "Overview": "## Summary\n\nSibling of #2209. `packages/cli/src/gates-cli/verify-env-cli.test.ts:72` — *\"deft-ts toolchain-check > runs without config error\"* — intermittently fails the **TypeScript (build + lint + test)** CI job with `Test timed out in 5000ms`. Observed on PR #2218 (run 28627819108): 8161 passed, this 1 test flaked; a re-run passes.\n\n## Root cause\n\nThe test calls `runDeftTs(\"toolchain-check\", [], { cwd: repoRoot })`, which spawns the real `deft-ts` CLI subprocess; `toolchain-check` in turn shells out to probe tool versions. On a cold/loaded CI runner the spawn + probes exceed vitest's default 5000ms `testTimeout`. This is the CLI-level twin of the core-level flake fixed in #2209 (`packages/core/src/verify-env/branches.test.ts`) — that fix was scoped to the core test and did not cover this CLI harness.\n\n## Fix (pick one)\n\n1. Inject a stub command runner / fake toolchain probe so no real subprocess is spawned (preferred, per #975).\n2. If a real end-to-end `runDeftTs` invocation is intentional here, raise this test's `testTimeout` (e.g. 20000ms) so cold-runner spawn latency doesn't trip the default.\n\n## Repro\n\nRe-run the TS lane on a cold runner, or: `npx vitest run packages/cli/src/gates-cli/verify-env-cli.test.ts`\n\nRefs #2209, #975. Discovered while landing the #2209-#2213 xbrief-migration swarm cohort.",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2219",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2219: flaky(ci): verify-env-cli.test.ts 'toolchain-check runs without config error' times out at 5s (real subprocess) — #2209 follow-up"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2209",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2209"
+      }
+    ],
+    "updated": "2026-07-02T23:39:20Z"
+  }
+}
