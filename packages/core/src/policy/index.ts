@@ -2,6 +2,7 @@ import { readPlanPolicy } from "./plan-extensions.js";
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
 import { DEFAULT_WIP_CAP } from "./wip.js";
 
+export * from "./agents-md-advisory.js";
 export * from "./autonomy.js";
 export * from "./capacity.js";
 export * from "./decisions.js";

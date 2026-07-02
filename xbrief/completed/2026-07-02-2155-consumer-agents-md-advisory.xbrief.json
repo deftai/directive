@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2155: advisory consumer-side AGENTS.md legibility signal (unmanaged-focused, advise->observe->enforce per #1419; never fail-closes check:consumer). Consumer companion to the maintainer-only #645 ratchet. Child of #1882.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2155-consumer-agents-md-advisory",
+    "title": "Advisory consumer AGENTS.md legibility signal (unmanaged-focused, non-failing)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2155",
+    "narratives": {
+      "Description": "The #645 ratchet governs the MAINTAINER (deftai/directive) AGENTS.md and is fail-closed for this repo only. Consumers get the managed section propagated but their UNMANAGED section is theirs -- we cannot know their real needs, so we must not fail-close their build on size. This story adds an ADVISORY consumer-side legibility signal: it measures the consumer AGENTS.md (focused on the unmanaged region, since the managed section is framework-owned) against a soft, operator-adjustable budget and SURFACES guidance without failing the gate. It follows the advise->observe->enforce posture (#1419): advisory-only in v1, operator can raise/configure the soft budget, and it never fail-closes check:consumer.",
+      "ImplementationPlan": "1. Study the consumer check surface (check:consumer / doctor consumer path) and the #645 evaluate module (packages/core agents-md-budget) for the region-counting helper to reuse. 2. Add an advisory evaluator that counts the consumer AGENTS.md unmanaged region and compares against a soft, operator-configurable budget (typed policy field, default generous; document how to raise it). It returns an advisory message, never a non-zero fail. 3. Wire it as advisory output in check:consumer / doctor (informational line, exit 0 always). Make the soft budget configurable via a typed plan.policy field and documented override. 4. Tests: at/under budget (silent or gentle), over budget (advisory message, still exit 0), configurable-raise honored, managed section excluded from the count. 5. Docs: consumer-facing note (REFERENCES.md or docs) explaining the advisory signal, why it's advisory, and how to adjust. CHANGELOG [Unreleased] entry. Run `task check` green.",
+      "UserStory": "As a consumer of directive, I want an ADVISORY signal when my AGENTS.md unmanaged section grows large (with an easy way to raise the threshold), so that I get legibility guidance without my build ever failing on a judgment call about my own file.",
+      "Traces": "#2155, #645, #1419, #1882"
+    },
+    "items": [
+      {
+        "id": "ca-a1",
+        "title": "Advisory-only: never fail-closes check:consumer",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a consumer AGENTS.md over the soft budget, when check:consumer / doctor runs, then an advisory message is surfaced and the command still exits 0 (never fail-closed)."
+        }
+      },
+      {
+        "id": "ca-a2",
+        "title": "Unmanaged-focused count with configurable soft budget",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the consumer AGENTS.md, when measured, then the framework-owned managed section is excluded and the soft budget is an operator-adjustable typed policy field with a documented override to raise it."
+        }
+      },
+      {
+        "id": "ca-a3",
+        "title": "Tests + docs + task check",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given tests for at/under/over budget + configurable-raise + managed-excluded, and a consumer-facing doc note, then `task check` passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#2155"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src (advisory evaluator, reuse agents-md-budget region helper)",
+          "packages/cli/src (check:consumer / doctor wiring)",
+          "tests",
+          "docs/REFERENCES.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "Advisory (non-failing) consumer AGENTS.md unmanaged-region legibility signal with operator-adjustable soft budget; advise->observe->enforce posture; tests + docs"
+        ],
+        "depends_on": [],
+        "conflict_group": "consumer-legibility",
+        "size": "medium",
+        "file_scope_confidence": "low",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T13:51:30Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2155",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2155: advisory consumer AGENTS.md legibility signal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
+      }
+    ],
+    "updated": "2026-07-02T13:51:30Z"
+  }
+}

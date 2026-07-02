@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **AGENTS.md now has a line-budget ratchet that stops it silently bloating (#645).** A new `verify:agents-md-budget` gate (wired into `task check`) counts the managed section and the hand-maintained region of AGENTS.md separately and fails when either grows past the budget recorded in `PROJECT-DEFINITION` (`plan.policy.agentsMdBudget`). The budget is seeded at the current size, so it ships green and only flags future growth — reductions are always allowed and should tighten the budget toward the ~100–150 line ceiling that keeps AGENTS.md a map, not a manual. Refs #645, #1882.
+- **Consumer projects get a gentle, never-failing nudge when their AGENTS.md grows (#2155).** `deft doctor` now reports the size of your project-authored (unmanaged) region of AGENTS.md and, when it exceeds a soft budget, prints an advisory note pointing you at the "map, not a manual" guidance — but always exits 0, so it can never fail your build. The framework-owned managed section is excluded from the count. The soft budget is the typed field `plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines` (generous by default); raise it to accept intentional growth and silence the nudge. Consumers who want a hard cap can opt in with `deft verify:agents-md-advisory --enforce`. Refs #2155, #645, #1419, #1882.
 
 ### Changed
 

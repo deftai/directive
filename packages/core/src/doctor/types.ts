@@ -1,3 +1,5 @@
+import type { AdvisoryEvaluateResult } from "../agents-md-advisory/evaluate.js";
+
 export const EXIT_CLEAN = 0;
 export const EXIT_DRIFT = 1;
 export const EXIT_CONFIG_ERROR = 2;
@@ -66,6 +68,7 @@ export interface DoctorSeams {
   readonly isFile?: (path: string) => boolean;
   readonly runGitLsRemote?: (deftDir: string, ref: string) => { ok: boolean; stdout: string };
   readonly agentsRefreshPlan?: (projectRoot: string) => Record<string, unknown>;
+  readonly agentsMdAdvisoryEvaluate?: (projectRoot: string) => AdvisoryEvaluateResult;
   readonly readState?: (projectRoot: string) => DoctorState | null;
   readonly writeState?: (
     projectRoot: string,

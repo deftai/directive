@@ -370,3 +370,15 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'verify:agents-md-budget --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  agents-md-advisory:
+    desc: "ADVISORY (never fail-closing) consumer AGENTS.md legibility signal (#2155). Counts the UNMANAGED (project-authored) region only -- the framework-owned managed section is excluded -- and compares it against the SOFT, operator-adjustable budget plan.policy.agentsMdAdvisory.unmanagedSoftMaxLines (generous default when unset). Consumer companion to the maintainer-only #645 ratchet; deliberately NOT a check:consumer dependency (advise->observe->enforce per #1419). Default posture ALWAYS exits 0; the opt-in --enforce flag promotes an over-budget region to a hard cap (exit 1). Raising the field is the documented, no-friction way to accept growth and silence the nudge."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+    # because the gate forwards user-facing flags via {{.CLI_ARGS}} (--quiet / --enforce).
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:agents-md-advisory --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
