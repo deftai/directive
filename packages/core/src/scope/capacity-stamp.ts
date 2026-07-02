@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
-import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
 
 function resolveDefaultCapacityBucket(projectRoot: string): string {
   try {
-    const path = join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+    const path = resolveProjectDefinitionPath(resolve(projectRoot));
     const raw = readFileSync(path, "utf8");
     const data = JSON.parse(raw) as Record<string, unknown>;
     const plan = data.plan;
