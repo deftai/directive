@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`task triage:queue` again shows your triaged work and ranking labels after the `xbrief/` migration (#2207).** Following the `vbrief/`→`xbrief/` rename (#2109), the queue read your triage decisions and `plan.policy.triageRankingLabels` from the wrong location, so every issue showed as `[untriaged]` and the ranking-label header was empty even when your audit log and policy were populated. The queue now resolves the audit log, slices log, and PROJECT-DEFINITION through the layout-aware resolver against your project root — matching the sibling `triage:summary`/`triage:reconcile` verbs — so accepted issues surface correctly and labels rank the list again. Closes #2207. Refs #2109, #1128.
+- **Scope completion again stamps capacity buckets on migrated `xbrief/` trees (#2212).** After the `vbrief/`→`xbrief/` rename (#2109), completing a scope read `plan.policy.capacityAllocation.defaultBucket` from the legacy path and silently skipped stamping `metadata.capacityBucket`, leaving capacity accounting empty. The completion stamper now resolves PROJECT-DEFINITION through the layout-aware resolver so your configured default bucket is recorded when a scope finishes. Closes #2212. Refs #2207, #2109, #1419.
 
 ### Removed
 
