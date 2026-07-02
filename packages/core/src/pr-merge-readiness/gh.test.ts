@@ -98,9 +98,7 @@ describe("fetchCheckRunsRest", () => {
       stderr: "",
     });
     const result = fetchCheckRunsRest("sha", "deftai/directive", runGh);
-    expect(result.checkRuns).toEqual([
-      { name: "CI", status: "completed", conclusion: "success" },
-    ]);
+    expect(result.checkRuns).toEqual([{ name: "CI", status: "completed", conclusion: "success" }]);
   });
 
   it("fails on missing check_runs list", () => {

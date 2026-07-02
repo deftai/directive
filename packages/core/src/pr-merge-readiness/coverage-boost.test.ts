@@ -219,7 +219,13 @@ describe("coverage boost branches", () => {
         return {
           returncode: 0,
           stdout: JSON.stringify({
-            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+            check_runs: [
+              {
+                name: "TypeScript (build + lint + test)",
+                status: "completed",
+                conclusion: "success",
+              },
+            ],
           }),
           stderr: "",
         };
@@ -267,7 +273,13 @@ describe("coverage boost branches", () => {
         return {
           returncode: 0,
           stdout: JSON.stringify({
-            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+            check_runs: [
+              {
+                name: "TypeScript (build + lint + test)",
+                status: "completed",
+                conclusion: "success",
+              },
+            ],
           }),
           stderr: "",
         };
@@ -397,7 +409,13 @@ describe("coverage boost branches", () => {
         return {
           returncode: 0,
           stdout: JSON.stringify({
-            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+            check_runs: [
+              {
+                name: "TypeScript (build + lint + test)",
+                status: "completed",
+                conclusion: "success",
+              },
+            ],
           }),
           stderr: "",
         };

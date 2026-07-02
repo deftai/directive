@@ -286,7 +286,11 @@ export function fetchCheckRunsRest(
     };
   }
   if (!rc.stdout.trim()) {
-    return { summary: null, checkRuns: [], error: "empty body from gh api /commits/<sha>/check-runs" };
+    return {
+      summary: null,
+      checkRuns: [],
+      error: "empty body from gh api /commits/<sha>/check-runs",
+    };
   }
   let payload: unknown;
   try {

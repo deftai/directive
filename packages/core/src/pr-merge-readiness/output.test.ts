@@ -123,7 +123,13 @@ describe("compute branches", () => {
           ? {
               returncode: 0,
               stdout: JSON.stringify({
-                check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" }],
+                check_runs: [
+                  {
+                    name: "TypeScript (build + lint + test)",
+                    status: "completed",
+                    conclusion: "success",
+                  },
+                ],
               }),
             }
           : { returncode: 1, stderr: label });

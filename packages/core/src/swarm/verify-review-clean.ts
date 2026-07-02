@@ -1,16 +1,16 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { hasArtifactSuffix } from "../layout/resolve.js";
+import type { CiGateOptions } from "../pr-merge-readiness/ci-gate.js";
+import { buildCiSummaryLine, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
 import {
   defaultRunGh,
   fetchCheckRunsRest,
   fetchGreptileCommentBody,
   fetchPrHeadSha,
 } from "../pr-merge-readiness/gh.js";
-import { buildCiSummaryLine, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
 import { evaluateGates, parseGreptileBody } from "../pr-merge-readiness/index.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
-import type { CiGateOptions } from "../pr-merge-readiness/ci-gate.js";
 import { EXIT_EXTERNAL_ERROR, EXIT_OK, EXIT_UNCLEAN } from "./constants.js";
 
 export interface CohortResolutionError {

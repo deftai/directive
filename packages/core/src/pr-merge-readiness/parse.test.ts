@@ -205,7 +205,11 @@ describe("computeGateResult layered fallbacks", () => {
               returncode: 0,
               stdout: JSON.stringify({
                 check_runs: [
-                  { name: "TypeScript (build + lint + test)", status: "completed", conclusion: "success" },
+                  {
+                    name: "TypeScript (build + lint + test)",
+                    status: "completed",
+                    conclusion: "success",
+                  },
                 ],
               }),
             }
@@ -271,7 +275,13 @@ describe("computeGateResult layered fallbacks", () => {
         "check-runs": {
           returncode: 0,
           stdout: JSON.stringify({
-            check_runs: [{ name: "TypeScript (build + lint + test)", status: "completed", conclusion: "failure" }],
+            check_runs: [
+              {
+                name: "TypeScript (build + lint + test)",
+                status: "completed",
+                conclusion: "failure",
+              },
+            ],
           }),
         },
       }),
@@ -289,7 +299,9 @@ describe("computeGateResult layered fallbacks", () => {
         "check-runs": {
           returncode: 0,
           stdout: JSON.stringify({
-            check_runs: [{ name: "TypeScript (build + lint + test)", status: "in_progress", conclusion: null }],
+            check_runs: [
+              { name: "TypeScript (build + lint + test)", status: "in_progress", conclusion: null },
+            ],
           }),
         },
       }),

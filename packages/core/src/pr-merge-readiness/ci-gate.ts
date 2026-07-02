@@ -40,7 +40,8 @@ function isPending(status: string, conclusion: string): boolean {
 }
 
 export function buildCiSummaryLine(summary: CiGateSummary): string {
-  const passed = summary.checked_count - summary.failed_required.length - summary.pending_required.length;
+  const passed =
+    summary.checked_count - summary.failed_required.length - summary.pending_required.length;
   return (
     `CI check-runs: ${passed} passed / ` +
     `${summary.failed_required.length} failed / ${summary.pending_required.length} pending`

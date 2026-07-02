@@ -1,3 +1,5 @@
+import type { CiGateOptions } from "./ci-gate.js";
+import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import {
   FALLBACK2_NOT_CLEAN_MSG,
   VIA_ERROR,
@@ -5,7 +7,6 @@ import {
   VIA_FALLBACK2,
   VIA_PRIMARY,
 } from "./constants.js";
-import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import { evaluateGates, isMergeReady } from "./evaluate.js";
 import {
   fetchCheckRunsRest,
@@ -17,7 +18,6 @@ import {
 } from "./gh.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
 import type { GateResult, RunGhFn } from "./types.js";
-import type { CiGateOptions } from "./ci-gate.js";
 
 function buildGateResult(
   prNumber: number,
