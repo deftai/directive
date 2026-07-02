@@ -66,9 +66,12 @@ describe("test_agents_md_current_shape", () => {
     expect(section).toContain("\u2297 Conclude umbrella or epic status from the issue body alone");
   });
 
-  it.each(CANONICAL_BODY_FIELDS)("canonical_body_structure_field_present %s", (field) => {
+  it("section_points_to_analysis_doc_for_canonical_body_structure", () => {
     const section = extractSection(agentsMdText, "Umbrella current-shape convention \\(#1152\\)");
     expect(section).toContain("docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md");
+  });
+
+  it.each(CANONICAL_BODY_FIELDS)("canonical_body_structure_field_present %s", (field) => {
     expect(analysisText).toContain(field);
   });
 
