@@ -65,8 +65,13 @@ describe("scope-drift add-ignore", () => {
     const ignores = resolveScopeIgnores(root);
     expect(ignores.labels.has("noise")).toBe(true);
 
-    const written = JSON.parse(readFileSync(xbriefPd, "utf8")) as { plan: unknown };
-    const policy = readPlanPolicy(written.plan) as { triageScopeIgnores: Array<{ label: string }> };
+    const written = JSON.parse(readFileSync(xbriefPd, "utf8")) as unknown;
+    if (written === null || typeof written !== "object") {
+      throw new Error("expected object PROJECT-DEFINITION");
+    }
+    const policy = readPlanPolicy((written as { plan: unknown }).plan) as {
+      triageScopeIgnores: Array<{ label: string }>;
+    };
     expect(policy.triageScopeIgnores).toEqual([{ label: "noise" }]);
     rmSync(root, { recursive: true, force: true });
   });
