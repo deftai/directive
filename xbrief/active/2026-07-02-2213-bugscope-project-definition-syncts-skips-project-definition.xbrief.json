@@ -1,0 +1,36 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2213"
+  },
+  "plan": {
+    "title": "bug(scope): project-definition-sync.ts skips PROJECT-DEFINITION sync (hardcoded vbrief/ path) on migrated trees",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(scope): project-definition-sync.ts skips PROJECT-DEFINITION sync (hardcoded vbrief/ path) on migrated trees",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2213",
+      "UserStory": "As a maintainer on a migrated xbrief/ tree, I want PROJECT-DEFINITION references/items rewritten after every scope lifecycle move so it doesn't drift out of sync with the brief's new path.",
+      "ImplementationPlan": "1. In packages/core/src/scope/project-definition-sync.ts::syncProjectDefinitionAfterScopeMove, resolve projectDefPath via `resolveProjectDefinitionPath(projectRoot)` from packages/core/src/layout/resolve.ts instead of `join(projectRoot, PROJECT_DEFINITION_REL_PATH)`.\n2. Drop the now-unused import from policy/resolve.js if no longer referenced.\n3. Add a migrated-tree regression test: after a scope move, references[] in xbrief/PROJECT-DEFINITION.xbrief.json are rewritten to the new path.\n4. Run `task check`.",
+      "Traces": "#2213, #2207, #2109, #2112, #1527",
+      "Overview": "## Summary\n\nSame class as #2207 / #2210. `packages/core/src/scope/project-definition-sync.ts::syncProjectDefinitionAfterScopeMove` (#1527) resolves the PROJECT-DEFINITION to sync via a hardcoded path:\n\n```ts\n// project-definition-sync.ts:4,128-131\nimport { PROJECT_DEFINITION_REL_PATH } from \"../policy/resolve.js\"; // \"vbrief/PROJECT-DEFINITION.vbrief.json\"\nconst projectRoot = dirname(resolve(vbriefRoot));\nconst projectDefPath = join(projectRoot, PROJECT_DEFINITION_REL_PATH);\nif (!existsSync(projectDefPath)) { return; }\n```\n\nOn a migrated `xbrief/` tree the file is absent -> the guard returns early -> the \"best-effort sync\" is a silent no-op.\n\n## Impact\n\nAfter every `scope:promote / activate / complete / demote / reopen`, PROJECT-DEFINITION `references[]` / `items[]` path rewrites are skipped on migrated trees. PROJECT-DEFINITION drifts out of sync with the moved brief's new lifecycle path. Silent (best-effort + early return).\n\n## Fix\n\nResolve via `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts`. Add a migrated-tree regression test asserting references are rewritten after a scope move.\n\n## Related\n- Refs #2207 (PR #2208), #2210, #2109, #2112, #1527",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2213",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2213: bug(scope): project-definition-sync.ts skips PROJECT-DEFINITION sync (hardcoded vbrief/ path) on migrated trees"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2207",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2207"
+      }
+    ],
+    "updated": "2026-07-02T23:05:05Z"
+  }
+}
