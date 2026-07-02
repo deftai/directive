@@ -353,9 +353,7 @@ export function main(argv: readonly string[]): number {
   }
 
   const vbriefDir =
-    projectRoot !== undefined
-      ? resolveLifecycleRoot(resolve(projectRoot))
-      : (positional[0] ?? "vbrief");
+    positional[0] ?? resolveLifecycleRoot(resolve(projectRoot !== undefined ? projectRoot : "."));
 
   const [ok, message] = acknowledge
     ? acknowledgeProjectDefinitionStaleness(vbriefDir)

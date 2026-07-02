@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -284,5 +284,43 @@ describe("project-render main() --project-root layout resolver (#2139)", () => {
     projectRenderMain(["--project-root", root]);
     const exit = projectRenderMain(["--acknowledge-staleness", "--project-root", root]);
     expect(exit).toBe(0);
+  });
+});
+
+describe("project-render main() cwd layout resolver (#2149)", () => {
+  const tmpDirs: string[] = [];
+  afterEach(() => {
+    for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  it("prefers xbrief layout from cwd without recreating vbrief", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-cwd-xbrief-"));
+    tmpDirs.push(root);
+    for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
+      mkdirSync(join(root, "xbrief", f), { recursive: true });
+    }
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8", created: "2026-07-01T00:00:00Z" },
+          plan: { title: "PROJECT-DEFINITION", status: "running", narratives: {}, items: [] },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const prevCwd = process.cwd();
+    try {
+      process.chdir(root);
+      const exit = projectRenderMain([]);
+      expect(exit).toBe(0);
+    } finally {
+      process.chdir(prevCwd);
+    }
+    expect(existsSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"))).toBe(false);
   });
 });

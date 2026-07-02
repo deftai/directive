@@ -1,5 +1,5 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CompletedProcess, call } from "../scm/call.js";
@@ -7,6 +7,15 @@ import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
 import { slugify, TODAY } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import {
+  LEGACY_ARTIFACT_SUFFIX,
+  LEGACY_INFO_ROOT_KEY,
+  LEGACY_VBRIEF_VERSION,
+  MIGRATED_ARTIFACT_SUFFIX,
+  MIGRATED_INFO_ROOT_KEY,
+  VBRIEF_VERSION,
+} from "../xbrief-migrate/constants.js";
+import { detectLegacyVbriefLayout } from "../xbrief-migrate/detect.js";
 import {
   findAcHeading,
   parseCheckboxItems,
@@ -44,6 +53,65 @@ const STATUS_MAP: Record<IngestStatus, [string, string]> = {
   pending: ["pending", "pending"],
   active: ["active", "running"],
 };
+
+interface IngestEmissionLayout {
+  readonly artifactSuffix: typeof LEGACY_ARTIFACT_SUFFIX | typeof MIGRATED_ARTIFACT_SUFFIX;
+  readonly infoRootKey: typeof LEGACY_INFO_ROOT_KEY | typeof MIGRATED_INFO_ROOT_KEY;
+  readonly infoVersion: string;
+}
+
+function inferLegacyLayoutFromLifecycleRoot(vbriefDir: string): boolean {
+  return basename(vbriefDir) !== "xbrief";
+}
+
+function readDeclaredInfoVersion(
+  vbriefDir: string,
+  infoRootKey: typeof LEGACY_INFO_ROOT_KEY | typeof MIGRATED_INFO_ROOT_KEY,
+  artifactSuffix: typeof LEGACY_ARTIFACT_SUFFIX | typeof MIGRATED_ARTIFACT_SUFFIX,
+  fallbackVersion: string,
+): string {
+  const projectDefinitionPath = join(vbriefDir, `PROJECT-DEFINITION${artifactSuffix}`);
+  try {
+    const parsed = JSON.parse(readFileSync(projectDefinitionPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+    const info = parsed[infoRootKey];
+    if (info !== null && typeof info === "object" && !Array.isArray(info)) {
+      const declared = (info as Record<string, unknown>).version;
+      if (typeof declared === "string" && declared.length > 0) {
+        return declared;
+      }
+    }
+  } catch {
+    // Fall back to the schema-default version when no declaration is available.
+  }
+  return fallbackVersion;
+}
+
+function resolveIngestEmissionLayout(vbriefDir: string, cwd?: string | null): IngestEmissionLayout {
+  const legacyLayout =
+    typeof cwd === "string" && cwd.length > 0
+      ? detectLegacyVbriefLayout(cwd).legacyLayout
+      : inferLegacyLayoutFromLifecycleRoot(vbriefDir);
+  if (legacyLayout) {
+    return {
+      artifactSuffix: LEGACY_ARTIFACT_SUFFIX,
+      infoRootKey: LEGACY_INFO_ROOT_KEY,
+      infoVersion: LEGACY_VBRIEF_VERSION,
+    };
+  }
+  return {
+    artifactSuffix: MIGRATED_ARTIFACT_SUFFIX,
+    infoRootKey: MIGRATED_INFO_ROOT_KEY,
+    infoVersion: readDeclaredInfoVersion(
+      vbriefDir,
+      MIGRATED_INFO_ROOT_KEY,
+      MIGRATED_ARTIFACT_SUFFIX,
+      VBRIEF_VERSION,
+    ),
+  };
+}
 
 const CONTROL_CHAR_LABELS: Record<string, string> = {
   "\b": "U+0008 backspace",
@@ -294,6 +362,10 @@ export function buildIssueVbrief(
   issue: Record<string, unknown>,
   status: IngestStatus,
   repoUrl: string,
+  options: {
+    infoRootKey?: typeof LEGACY_INFO_ROOT_KEY | typeof MIGRATED_INFO_ROOT_KEY;
+    infoVersion?: string;
+  } = {},
 ): [Record<string, unknown>, string] {
   const number = Number(issue.number);
   const title =
@@ -361,11 +433,14 @@ export function buildIssueVbrief(
     plan.references = references;
   }
 
+  const infoRootKey = options.infoRootKey ?? LEGACY_INFO_ROOT_KEY;
+  const infoVersion = options.infoVersion ?? EMITTED_VBRIEF_VERSION;
+  const briefLabel = infoRootKey === MIGRATED_INFO_ROOT_KEY ? "xBRIEF" : "vBRIEF";
   return [
     {
-      vBRIEFInfo: {
-        version: EMITTED_VBRIEF_VERSION,
-        description: `Scope vBRIEF ingested from GitHub issue #${number}`,
+      [infoRootKey]: {
+        version: infoVersion,
+        description: `Scope ${briefLabel} ingested from GitHub issue #${number}`,
       },
       plan,
     },
@@ -373,9 +448,15 @@ export function buildIssueVbrief(
   ];
 }
 
-export function targetFilename(number: number, title: string): string {
+export function targetFilename(
+  number: number,
+  title: string,
+  artifactSuffix:
+    | typeof LEGACY_ARTIFACT_SUFFIX
+    | typeof MIGRATED_ARTIFACT_SUFFIX = LEGACY_ARTIFACT_SUFFIX,
+): string {
   const slug = slugify(title) || `issue-${number}`;
-  return `${TODAY}-${number}-${slug}.vbrief.json`;
+  return `${TODAY}-${number}-${slug}${artifactSuffix}`;
 }
 
 export interface FetchIssueOptions {
@@ -542,8 +623,12 @@ export function ingestOne(
     cwd: options.cwd,
     cacheRoot: options.cacheRoot,
   });
-  const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl);
-  const filename = targetFilename(number, String(issue.title ?? ""));
+  const emissionLayout = resolveIngestEmissionLayout(options.vbriefDir, options.cwd);
+  const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl, {
+    infoRootKey: emissionLayout.infoRootKey,
+    infoVersion: emissionLayout.infoVersion,
+  });
+  const filename = targetFilename(number, String(issue.title ?? ""), emissionLayout.artifactSuffix);
   const target = join(options.vbriefDir, folder, filename);
 
   if (options.dryRun) {
@@ -736,6 +821,7 @@ export function ingestSingleForAccept(
     vbriefDir,
     status: options.status ?? "proposed",
     repoUrl,
+    cwd: root,
   });
   return [result, path];
 }

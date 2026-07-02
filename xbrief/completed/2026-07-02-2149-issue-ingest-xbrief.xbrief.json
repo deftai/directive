@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2149: make issue-ingest and project-render layout-aware so migrated xbrief-only projects emit .xbrief.json with xBRIEF v0.8 semantics, while legacy vbrief projects remain backward-compatible.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2149-issue-ingest-xbrief",
+    "title": "Make issue-ingest and project-render honor migrated xbrief-only layout",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2149",
+    "narratives": {
+      "Description": "On projects that already completed migrate:xbrief (legacy vbrief/ removed, xbrief/ present), issue-ingest still writes proposed scope files using legacy suffix/envelope (.vbrief.json with vBRIEFInfo.version 0.6), and project-render can recreate a stray vbrief/PROJECT-DEFINITION.vbrief.json. This produces layout drift and forces manual normalization after ingest. The fix makes both write paths detect layout using detectLegacyVbriefLayout(projectRoot): migrated xbrief-only projects emit xbrief/proposed/*.xbrief.json with xBRIEFInfo.version 0.8 (or project-declared xBRIEF schema version), while legacy vbrief-layout projects preserve existing .vbrief.json v0.6 behavior until migration.",
+      "ImplementationPlan": "1. Inspect intake issue-ingest write-path selection and project-render target resolution. 2. Add layout-aware write selection using detectLegacyVbriefLayout(projectRoot), with migrated projects writing .xbrief.json + xBRIEFInfo and legacy projects keeping .vbrief.json + vBRIEFInfo. 3. Preserve x-xbrief/github-issue reference tokens. 4. Update project-render so xbrief-only projects target xbrief/PROJECT-DEFINITION.xbrief.json and do not recreate vbrief/. 5. Add parity tests for both layouts in packages/core/src/intake/: legacy layout emits .vbrief.json v0.6, migrated xbrief-only emits .xbrief.json v0.8. 6. Add UPGRADING and/or issue-ingest skill cross-reference. 7. Run task check and complete lifecycle.",
+      "UserStory": "As an operator on a migrated xbrief-only project, I want issue-ingest and project-render to respect my current layout so ingested scopes and project artifacts stay consistent without manual file/schema surgery.",
+      "Traces": "#2149, #2034, #2110"
+    },
+    "items": [
+      {
+        "id": "a1",
+        "title": "Issue-ingest writes layout-aware scope artifacts",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a migrated project where vbrief/ is absent and xbrief/ exists, when issue-ingest runs, then the created scope file uses .xbrief.json and an xBRIEFInfo envelope with xBRIEF schema version 0.8 (or project-declared version). Given a legacy vbrief-layout project, existing .vbrief.json + vBRIEFInfo v0.6 behavior remains unchanged."
+        }
+      },
+      {
+        "id": "a2",
+        "title": "Project-render avoids recreating legacy vbrief on xbrief-only projects",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an xbrief-only project, when project:render/project-render executes, then output targets xbrief/PROJECT-DEFINITION.xbrief.json and does not recreate vbrief/PROJECT-DEFINITION.vbrief.json."
+        }
+      },
+      {
+        "id": "a3",
+        "title": "Parity tests cover both layouts",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given parity test scenarios in packages/core/src/intake/, when tests run, then legacy layout still emits .vbrief.json v0.6 and migrated xbrief-only layout emits .xbrief.json v0.8."
+        }
+      },
+      {
+        "id": "a4",
+        "title": "Docs and changelog reflect user-visible fix",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given UPGRADING.md and CHANGELOG [Unreleased], when this story lands, then they document the layout-aware ingest/render behavior and reference #2149."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2149"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/intake/**",
+          "packages/core/src/xbrief-migrate/**",
+          "packages/core/src/project-render/**",
+          "content/skills/**",
+          "UPGRADING.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "issue-ingest and project-render honor xbrief-only migrated layout while preserving legacy vbrief compatibility; parity tests cover both layouts; task check green"
+        ],
+        "depends_on": [],
+        "conflict_group": "intake-layout",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-02T18:55:47Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2149",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2149: issue-ingest writes legacy vbrief artifacts on xbrief-migrated projects"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2034: migrate to xbrief lifecycle naming"
+      }
+    ],
+    "updated": "2026-07-02T18:55:47Z"
+  }
+}

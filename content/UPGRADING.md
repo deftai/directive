@@ -56,6 +56,8 @@ deft migrate:xbrief
 
 (or `task migrate:xbrief` from a maintainer checkout). The command requires a clean working tree unless you pass `--force`. Legacy `vbrief/` paths and `x-vbrief/` tokens remain **read-accepted** until this migration runs; `deft update` may signpost the same guidance on non-patch upgrades.
 
+Post-migration behavior check (#2149): on xbrief-only projects (`vbrief/` removed), `task issue:ingest -- <N>` now emits `xbrief/proposed/*.xbrief.json` with `xBRIEFInfo.version` from `xbrief/PROJECT-DEFINITION.xbrief.json` (fallback `0.8`), while legacy `vbrief/` projects keep `.vbrief.json` + `vBRIEFInfo.version: "0.6"` until migrated. `task project:render` / `project-render` also stays on `xbrief/PROJECT-DEFINITION.xbrief.json` and no longer recreates `vbrief/` in migrated trees.
+
 ### AGENTS.md: managed vs unmanaged header (#2154)
 
 `migrate:xbrief` touches your `AGENTS.md` in two distinct regions:

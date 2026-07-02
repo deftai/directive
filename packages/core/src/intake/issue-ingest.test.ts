@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -40,6 +40,93 @@ describe("buildIssueVbrief", () => {
       { title: "Spec updated", status: "completed" },
     ]);
     expect((plan.narratives as Record<string, string>).Overview).toContain("Acceptance Criteria");
+  });
+});
+
+describe("issue-ingest layout-aware emission parity", () => {
+  it("keeps legacy vbrief output for legacy layout projects", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ingest-legacy-layout-"));
+    const vbriefDir = join(root, "vbrief");
+    mkdirSync(vbriefDir, { recursive: true });
+    try {
+      const [result, path] = ingestOne(
+        {
+          number: 601,
+          title: "Legacy layout issue",
+          html_url: "https://github.com/o/r/issues/601",
+          body: "Legacy body",
+          labels: [],
+        },
+        {
+          vbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toMatch(/\.vbrief\.json$/);
+      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as Record<string, unknown>;
+      expect(parsed.vBRIEFInfo).toEqual(
+        expect.objectContaining({
+          version: "0.6",
+        }),
+      );
+      expect(parsed.xBRIEFInfo).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("emits xbrief output for migrated xbrief-only projects", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ingest-migrated-layout-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    writeFileSync(
+      join(xbriefDir, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify(
+        {
+          xBRIEFInfo: {
+            version: "0.8",
+          },
+          plan: {
+            title: "PROJECT-DEFINITION",
+            status: "running",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    try {
+      const [result, path] = ingestOne(
+        {
+          number: 602,
+          title: "Migrated layout issue",
+          html_url: "https://github.com/o/r/issues/602",
+          body: "Migrated body",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toMatch(/\.xbrief\.json$/);
+      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as Record<string, unknown>;
+      expect(parsed.xBRIEFInfo).toEqual(
+        expect.objectContaining({
+          version: "0.8",
+        }),
+      );
+      expect(parsed.vBRIEFInfo).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
