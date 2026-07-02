@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Scope-drift classification again honors your configured `plan.policy.triageScope` after the `xbrief/` migration (#2211).** On migrated trees, `triage scope` and scope-drift counts were reading PROJECT-DEFINITION from the legacy `vbrief/` path, so a custom triage scope silently fell back to the framework default and in-plan / `[scope-drift]` counts did not match your project policy. The scope resolver now uses the same layout-aware PROJECT-DEFINITION path as the queue and scope-drift modules. Closes #2211. Refs #2207, #2109, #2112.
+
 - **`task triage:queue` again shows your triaged work and ranking labels after the `xbrief/` migration (#2207).** Following the `vbrief/`→`xbrief/` rename (#2109), the queue read your triage decisions and `plan.policy.triageRankingLabels` from the wrong location, so every issue showed as `[untriaged]` and the ranking-label header was empty even when your audit log and policy were populated. The queue now resolves the audit log, slices log, and PROJECT-DEFINITION through the layout-aware resolver against your project root — matching the sibling `triage:summary`/`triage:reconcile` verbs — so accepted issues surface correctly and labels rank the list again. Closes #2207. Refs #2109, #1128.
 
 ### Removed
