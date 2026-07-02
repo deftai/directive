@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { routeAndDispatch } from "./cli-router/index.js";
@@ -362,6 +362,12 @@ describe("dispatch", () => {
 
 const AGENTS_MD =
   '# Fixture AGENTS\n\nIntro line.\n\n## Skill Routing\n\n- "alpha" / "first skill" \u2192 `content/skills/alpha/SKILL.md`\n- "task only" \u2192 run `task something`\n\n## Next Section\n\nDone.\n';
+// REFERENCES.md Skills Index fixture (#2152). The alpha row lists index-only
+// triggers so the frontmatter-preferred precedence is observable: alpha carries
+// its own `triggers:` frontmatter list, so the pack keeps the frontmatter
+// values, not these index values.
+const REFERENCES_MD =
+  "# Fixture References\n\n## \ud83e\udded Skills Index\n\n| Skill | Description | Triggers |\n|---|---|---|\n| [alpha](./content/skills/alpha/SKILL.md) | Alpha fixture skill. | `index-only`, `should-be-overridden` |\n\n## Next Section\n\nDone.\n";
 const MAIN_MD =
   "# Fixture main\n\n- ! Always do the framework thing\n- regular bullet with no tier\n";
 const SKILL_ALPHA =
@@ -381,7 +387,7 @@ const SWARM_DOC =
   "# Swarm Spec\n\nThe swarm specification description.\n\n## Section\n\nSpec body.\n";
 
 const EXPECT_SKILLS =
-  '{\n  "pack": "skills-pack-0.1",\n  "version": "0.1",\n  "generated_from": "skills/*/SKILL.md + AGENTS.md (Skill Routing)",\n  "skills": [\n    {\n      "id": "alpha",\n      "description": "First fixture skill. Folded across two lines.",\n      "triggers": [\n        "alpha",\n        "first skill"\n      ],\n      "path": "skills/alpha/SKILL.md",\n      "version": "0.1",\n      "body": "# Alpha Skill\\n\\nBody with an em dash \\u2014 and a \\u2297 glyph.\\n",\n      "frontmatter_extra": "triggers:\\n  - alpha\\n  - first skill\\nmetadata:\\n  clawdbot:\\n    requires:\\n      bins: [\\"gh\\"]"\n    }\n  ]\n}\n';
+  '{\n  "pack": "skills-pack-0.1",\n  "version": "0.1",\n  "generated_from": "skills/*/SKILL.md frontmatter triggers + REFERENCES.md (Skills Index)",\n  "skills": [\n    {\n      "id": "alpha",\n      "description": "First fixture skill. Folded across two lines.",\n      "triggers": [\n        "alpha",\n        "first skill"\n      ],\n      "path": "skills/alpha/SKILL.md",\n      "version": "0.1",\n      "body": "# Alpha Skill\\n\\nBody with an em dash \\u2014 and a \\u2297 glyph.\\n",\n      "frontmatter_extra": "triggers:\\n  - alpha\\n  - first skill\\nmetadata:\\n  clawdbot:\\n    requires:\\n      bins: [\\"gh\\"]"\n    }\n  ]\n}\n';
 const EXPECT_RULES =
   '{\n  "pack": "rules-pack-0.1",\n  "version": "0.1",\n  "generated_from": "coding/*.md + AGENTS.md + main.md (marker-prefixed RFC2119 directives; AGENTS.md managed-section excluded; coding bodies rendered, AGENTS.md/main.md metadata-only)",\n  "rules": [\n    {\n      "id": "sample-001",\n      "tier": "MUST",\n      "domain": "sample",\n      "text": "Must do this",\n      "path": "coding/sample.md",\n      "body": "# Sample Coding Doc\\n\\n- ! Must do this\\n- ~ Should do that\\n- \\u2297 Must not do the bad thing\\n- \\u2249 Should not do the other thing\\n- ? May do this optionally\\n- This bullet MUST be recognized by prose\\n- plain bullet with no keyword\\n"\n    },\n    {\n      "id": "sample-002",\n      "tier": "SHOULD",\n      "domain": "sample",\n      "text": "Should do that",\n      "path": "coding/sample.md",\n      "body": null\n    },\n    {\n      "id": "sample-003",\n      "tier": "MUST_NOT",\n      "domain": "sample",\n      "text": "Must not do the bad thing",\n      "path": "coding/sample.md",\n      "body": null\n    },\n    {\n      "id": "sample-004",\n      "tier": "SHOULD_NOT",\n      "domain": "sample",\n      "text": "Should not do the other thing",\n      "path": "coding/sample.md",\n      "body": null\n    },\n    {\n      "id": "sample-005",\n      "tier": "MAY",\n      "domain": "sample",\n      "text": "May do this optionally",\n      "path": "coding/sample.md",\n      "body": null\n    },\n    {\n      "id": "sample-006",\n      "tier": "MUST",\n      "domain": "sample",\n      "text": "This bullet MUST be recognized by prose",\n      "path": "coding/sample.md",\n      "body": null\n    },\n    {\n      "id": "main-001",\n      "tier": "MUST",\n      "domain": "main",\n      "text": "Always do the framework thing",\n      "path": "main.md",\n      "body": null\n    }\n  ]\n}\n';
 const EXPECT_STRATEGIES =
@@ -407,6 +413,7 @@ describe("native pack-migrate handlers (#2022)", () => {
   let patternsDir: string;
   let swarmDir: string;
   let agentsMd: string;
+  let referencesMd: string;
   let mainMd: string;
 
   function writeFixture(rel: string, content: string): void {
@@ -418,6 +425,7 @@ describe("native pack-migrate handlers (#2022)", () => {
   beforeAll(() => {
     root = mkdtempSync(join(tmpdir(), "deft-pack-migrate-"));
     writeFixture("AGENTS.md", AGENTS_MD);
+    writeFixture("REFERENCES.md", REFERENCES_MD);
     writeFixture("main.md", MAIN_MD);
     writeFixture("content/skills/alpha/SKILL.md", SKILL_ALPHA);
     writeFixture("content/skills/beta/SKILL.md", SKILL_BETA);
@@ -433,6 +441,7 @@ describe("native pack-migrate handlers (#2022)", () => {
     patternsDir = join(root, "content/patterns");
     swarmDir = join(root, "content/swarm");
     agentsMd = join(root, "AGENTS.md");
+    referencesMd = join(root, "REFERENCES.md");
     mainMd = join(root, "main.md");
   });
 
@@ -453,7 +462,7 @@ describe("native pack-migrate handlers (#2022)", () => {
   function argsFor(verb: (typeof PACK_MIGRATE_VERBS)[number], out: string): string[] {
     switch (verb) {
       case "pack-migrate-skills":
-        return [verb, "--skills-dir", skillsDir, "--agents-md", agentsMd, "--out", out];
+        return [verb, "--skills-dir", skillsDir, "--references-md", referencesMd, "--out", out];
       case "pack-migrate-rules":
         return [
           verb,
@@ -543,8 +552,8 @@ describe("native pack-migrate handlers (#2022)", () => {
       "pack-migrate-skills",
       "--skills-dir",
       join(root, "does-not-exist"),
-      "--agents-md",
-      agentsMd,
+      "--references-md",
+      referencesMd,
       "--out",
       out,
     ]);
@@ -580,19 +589,19 @@ describe("native pack-migrate handlers (#2022)", () => {
     }
   });
 
-  it("reports a missing AGENTS.md for pack-migrate-skills", async () => {
-    const out = join(root, "missing-agents.json");
+  it("reports a missing REFERENCES.md for pack-migrate-skills", async () => {
+    const out = join(root, "missing-references.json");
     const result = await runVerb([
       "pack-migrate-skills",
       "--skills-dir",
       skillsDir,
-      "--agents-md",
-      join(root, "no-agents.md"),
+      "--references-md",
+      join(root, "no-references.md"),
       "--out",
       out,
     ]);
     expect(result.code).toBe(1);
-    expect(result.err).toContain("AGENTS.md not found");
+    expect(result.err).toContain("REFERENCES.md not found");
   });
 
   // Empty input directories produce an empty pack, which is an error for every verb.
@@ -614,8 +623,8 @@ describe("native pack-migrate handlers (#2022)", () => {
       "pack-migrate-skills",
       "--skills-dir",
       emptySkills,
-      "--agents-md",
-      agentsMd,
+      "--references-md",
+      referencesMd,
       "--out",
       out,
     ]);
@@ -671,7 +680,7 @@ describe("native pack-migrate handlers (#2022)", () => {
     const result = await runVerb([
       "pack-migrate-skills",
       `--skills-dir=${skillsDir}`,
-      `--agents-md=${agentsMd}`,
+      `--references-md=${referencesMd}`,
       `--out=${out}`,
     ]);
     expect(result.code).toBe(0);
@@ -705,8 +714,8 @@ describe("native pack-migrate handlers (#2022)", () => {
       "pack-migrate-skills",
       "--skills-dir",
       proofSkillsDir,
-      "--agents-md",
-      agentsMd,
+      "--references-md",
+      referencesMd,
       "--proof-skill",
       "one",
       "--out",
@@ -716,6 +725,83 @@ describe("native pack-migrate handlers (#2022)", () => {
     const byId = bodyById(readFileSync(out, "utf8"), "skills");
     expect(byId.one).not.toBeNull();
     expect(byId.two).toBeNull();
+  });
+
+  // #2152: the alpha fixture carries its own frontmatter `triggers:` list AND is
+  // listed in the REFERENCES.md Skills Index with different (index-only) values.
+  // The frontmatter contract wins, proving the two-tier precedence.
+  it("prefers SKILL.md frontmatter triggers over the REFERENCES.md index (#2152)", async () => {
+    const out = join(root, "precedence-skills.json");
+    const result = await runVerb(argsFor("pack-migrate-skills", out));
+    expect(result.code).toBe(0);
+    const parsed = JSON.parse(readFileSync(out, "utf8")) as {
+      skills: Array<{ id: string; triggers: string[] }>;
+    };
+    const alpha = parsed.skills.find((skill) => skill.id === "alpha");
+    expect(alpha?.triggers).toEqual(["alpha", "first skill"]);
+    expect(alpha?.triggers).not.toContain("index-only");
+  });
+
+  // #2152: a skill with no frontmatter triggers falls back to the REFERENCES.md
+  // Skills Index. The builder never consults an AGENTS.md "## Skill Routing"
+  // heading, so its removal by #838 cannot empty the trigger map.
+  it("sources triggers from the REFERENCES.md Skills Index without a '## Skill Routing' heading (#2152)", async () => {
+    const base = join(root, "src2152");
+    writeFixture(
+      "src2152/content/skills/gamma/SKILL.md",
+      "---\nname: gamma\ndescription: Gamma skill with no frontmatter triggers.\n---\n\n# Gamma\n\nBody.\n",
+    );
+    writeFixture(
+      "src2152/REFERENCES.md",
+      "# Refs\n\n## Skills Index\n\n| Skill | Description | Triggers |\n|---|---|---|\n| [gamma](./content/skills/gamma/SKILL.md) | Gamma. | `gamma`, `route gamma` |\n\n## Next\n\nDone.\n",
+    );
+    const out = join(base, "out.json");
+    const result = await runVerb([
+      "pack-migrate-skills",
+      "--skills-dir",
+      join(base, "content/skills"),
+      "--references-md",
+      join(base, "REFERENCES.md"),
+      "--out",
+      out,
+    ]);
+    expect(result.code).toBe(0);
+    const parsed = JSON.parse(readFileSync(out, "utf8")) as {
+      generated_from: string;
+      skills: Array<{ id: string; triggers: string[] }>;
+    };
+    expect(parsed.generated_from).not.toContain("Skill Routing");
+    expect(parsed.generated_from).not.toContain("AGENTS.md");
+    const gamma = parsed.skills.find((skill) => skill.id === "gamma");
+    expect(gamma?.triggers).toEqual(["gamma", "route gamma"]);
+  });
+
+  // #2152 regression guard: building the skills pack from the *real* shipped
+  // content must yield a non-empty trigger map for every skill. Before the fix
+  // this silently returned empty triggers post-#838 (the "wired but
+  // non-functional" failure the issue describes).
+  it("yields a non-empty trigger map for every shipped skill from real content (#2152)", async () => {
+    const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+    const out = join(root, "real-skills-pack.json");
+    const result = await runVerb([
+      "pack-migrate-skills",
+      "--skills-dir",
+      join(repoRoot, "content", "skills"),
+      "--references-md",
+      join(repoRoot, "REFERENCES.md"),
+      "--out",
+      out,
+    ]);
+    expect(result.code).toBe(0);
+    const parsed = JSON.parse(readFileSync(out, "utf8")) as {
+      generated_from: string;
+      skills: Array<{ id: string; triggers: string[] }>;
+    };
+    expect(parsed.skills.length).toBeGreaterThan(10);
+    for (const skill of parsed.skills) {
+      expect(skill.triggers.length, `skill ${skill.id} has empty triggers`).toBeGreaterThan(0);
+    }
+    expect(parsed.generated_from).not.toContain("Skill Routing");
   });
 
   // --proof-strategy switches body capture from "all non-redirect" to a single match.

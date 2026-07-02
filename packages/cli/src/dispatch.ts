@@ -769,35 +769,102 @@ function extractExtraFrontmatter(frontmatter: string): string | null {
   return extra.length ? extra.join("\n") : null;
 }
 
-const ROUTING_HEADING = "## Skill Routing";
-const ROUTING_PATH_RE = /`(?:content\/)?(skills\/[^`]+\/SKILL\.md)`/;
-const ARROW_SPLIT_RE = /\u2192|->/;
+// Skill trigger keywords are sourced from durable, post-#838 surfaces rather
+// than the removed AGENTS.md "## Skill Routing" table (#838 / #2152). Priority:
+//   1. each SKILL.md frontmatter `triggers:` list (the skill's own contract);
+//   2. the REFERENCES.md "Skills Index" table (the #838 single source of truth).
+// This decouples the skills pack from AGENTS.md, so adding a skill no longer
+// requires editing the always-loaded policy file and the trigger map stays
+// non-empty after #838 removed the heading parseRouting used to read.
 
-function parseRouting(agentsMd: string): Map<string, string[]> {
+const SKILLS_INDEX_HEADING_RE = /Skills Index/;
+const HEADING_LINE_RE = /^#{1,6}\s/;
+const SKILL_LINK_RE = /\(([^)]*skills\/[^)]+\/SKILL\.md)\)/;
+const BACKTICK_TOKEN_RE = /`([^`]+)`/g;
+
+/** Normalize a REFERENCES.md skill link path to the `skills/<name>/SKILL.md` key. */
+function normalizeSkillIndexPath(linkPath: string): string {
+  let p = linkPath.trim();
+  if (p.startsWith("./")) p = p.slice(2);
+  const marker = p.indexOf("skills/");
+  return marker >= 0 ? p.slice(marker) : p;
+}
+
+/**
+ * Parse the REFERENCES.md "Skills Index" table into a `skills/<name>/SKILL.md`
+ * -> triggers map. Skill rows are identified by their SKILL.md link (so the
+ * header and separator rows are skipped); the trigger cell is the last
+ * pipe-delimited column and its keywords are the backtick-quoted tokens.
+ */
+function parseSkillsIndexTriggers(referencesMd: string): Map<string, string[]> {
   const mapping = new Map<string, string[]>();
-  const start = agentsMd.indexOf(ROUTING_HEADING);
-  if (start === -1) return mapping;
-  const rest = agentsMd.slice(start + ROUTING_HEADING.length);
-  const end = rest.indexOf("\n## ");
-  const section = end !== -1 ? rest.slice(0, end) : rest;
-  for (const raw of splitLines(section)) {
+  let inSection = false;
+  for (const raw of splitLines(referencesMd)) {
     const line = raw.trim();
-    if (!line.startsWith("- ")) continue;
-    const pathMatch = ROUTING_PATH_RE.exec(line);
-    if (!pathMatch) continue;
-    const path = pathMatch[1] ?? "";
-    const head = line.split(ARROW_SPLIT_RE)[0] ?? "";
-    const keywords = (head.match(/"[^"]+"/g) ?? []).map((quoted) => quoted.slice(1, -1));
-    let bucket = mapping.get(path);
-    if (!bucket) {
-      bucket = [];
-      mapping.set(path, bucket);
+    if (HEADING_LINE_RE.test(line)) {
+      inSection = SKILLS_INDEX_HEADING_RE.test(line);
+      continue;
     }
-    for (const keyword of keywords) {
-      if (!bucket.includes(keyword)) bucket.push(keyword);
+    if (!inSection || !line.startsWith("|")) continue;
+    const linkMatch = SKILL_LINK_RE.exec(line);
+    if (!linkMatch) continue;
+    const path = normalizeSkillIndexPath(linkMatch[1] ?? "");
+    const cells = line
+      .split("|")
+      .map((cell) => cell.trim())
+      .filter((cell) => cell.length > 0);
+    const triggerCell = cells[cells.length - 1] ?? "";
+    const bucket = mapping.get(path) ?? [];
+    for (const match of triggerCell.matchAll(BACKTICK_TOKEN_RE)) {
+      const keyword = (match[1] ?? "").trim();
+      if (keyword && !bucket.includes(keyword)) bucket.push(keyword);
     }
+    if (bucket.length > 0) mapping.set(path, bucket);
   }
   return mapping;
+}
+
+/** Split an inline YAML flow list (`[a, "b"]`) into trimmed, unquoted tokens. */
+function parseFlowListTokens(value: string): string[] {
+  const inner = value.replace(/^\[/, "").replace(/\]$/, "");
+  const out: string[] = [];
+  for (const part of inner.split(",")) {
+    const token = pyStrip(pyStrip(part.trim(), '"'), "'");
+    if (token) out.push(token);
+  }
+  return out;
+}
+
+/** Extract a `triggers:` list (block or inline flow form) from SKILL.md frontmatter. */
+function parseFrontmatterTriggers(frontmatter: string): string[] {
+  const lines = frontmatter.split("\n");
+  const n = lines.length;
+  for (let i = 0; i < n; i += 1) {
+    const line = lineAt(lines, i);
+    if (isIndented(line)) continue;
+    const match = KEY_RE.exec(line);
+    if (!match || (match[1] ?? "") !== "triggers") continue;
+    const value = (match[2] ?? "").trim();
+    if (value.startsWith("[")) return parseFlowListTokens(value);
+    const out: string[] = [];
+    let j = i + 1;
+    while (j < n) {
+      const nxt = lineAt(lines, j);
+      if (nxt.trim() === "") {
+        j += 1;
+        continue;
+      }
+      if (!isIndented(nxt)) break;
+      const item = nxt.trim();
+      if (item.startsWith("- ")) {
+        const token = pyStrip(pyStrip(item.slice(2).trim(), '"'), "'");
+        if (token) out.push(token);
+      }
+      j += 1;
+    }
+    return out;
+  }
+  return [];
 }
 
 interface SkillEntry {
@@ -813,7 +880,7 @@ interface SkillEntry {
 function buildSkillEntry(
   skillMd: string,
   skillsDir: string,
-  routing: Map<string, string[]>,
+  indexTriggers: Map<string, string[]>,
   captureBody: boolean,
 ): SkillEntry | null {
   const text = readFileSync(skillMd, "utf8");
@@ -823,7 +890,12 @@ function buildSkillEntry(
   const name = (fields.name ?? "").trim();
   if (!name) return null;
   const relPath = relPosix(dirname(resolve(skillsDir)), resolve(skillMd));
-  const triggers = routing.get(relPath) ?? [];
+  // Prefer the skill's own frontmatter `triggers:` contract; fall back to the
+  // REFERENCES.md Skills Index (#838 single source of truth) so shipped skills
+  // that carry no frontmatter triggers still get a non-empty trigger list.
+  const frontmatterTriggers = parseFrontmatterTriggers(frontmatter);
+  const triggers =
+    frontmatterTriggers.length > 0 ? frontmatterTriggers : (indexTriggers.get(relPath) ?? []);
   const version = (fields.version ?? "").trim() || DEFAULT_SKILL_VERSION;
   return {
     id: name,
@@ -838,23 +910,28 @@ function buildSkillEntry(
 
 function buildSkillsPack(
   skillsDir: string,
-  agentsMd: string,
+  referencesMd: string,
   proofSkill: string | null,
 ): { pack: string; version: string; generated_from: string; skills: SkillEntry[] } {
-  const routing = parseRouting(readFileSync(agentsMd, "utf8"));
+  const indexTriggers = parseSkillsIndexTriggers(readFileSync(referencesMd, "utf8"));
   const captureAll = proofSkill === null;
   const proofPath = proofSkill !== null ? `skills/${proofSkill}/SKILL.md` : null;
   const base = dirname(resolve(skillsDir));
   const skills: SkillEntry[] = [];
   for (const skillMd of globSkillMd(skillsDir)) {
     const relPath = relPosix(base, resolve(skillMd));
-    const entry = buildSkillEntry(skillMd, skillsDir, routing, captureAll || relPath === proofPath);
+    const entry = buildSkillEntry(
+      skillMd,
+      skillsDir,
+      indexTriggers,
+      captureAll || relPath === proofPath,
+    );
     if (entry !== null) skills.push(entry);
   }
   return {
     pack: "skills-pack-0.1",
     version: PACK_VERSION,
-    generated_from: "skills/*/SKILL.md + AGENTS.md (Skill Routing)",
+    generated_from: "skills/*/SKILL.md frontmatter triggers + REFERENCES.md (Skills Index)",
     skills,
   };
 }
@@ -1113,13 +1190,13 @@ function parsePackArgs(
 
 function runPackMigrateSkills(argv: string[], io: DispatchIo): number {
   const contentRoot = resolveContentRoot();
-  const parsed = parsePackArgs(argv, ["--skills-dir", "--agents-md", "--proof-skill", "--out"]);
+  const parsed = parsePackArgs(argv, ["--skills-dir", "--references-md", "--proof-skill", "--out"]);
   if (parsed.error !== undefined) {
     io.writeErr(`error: ${parsed.error}\n`);
     return 2;
   }
   const skillsDir = parsed.values["--skills-dir"] ?? join(contentRoot, "skills");
-  const agentsMd = parsed.values["--agents-md"] ?? join(resolveDeftRoot(), "AGENTS.md");
+  const referencesMd = parsed.values["--references-md"] ?? join(resolveDeftRoot(), "REFERENCES.md");
   const proofSkill = parsed.values["--proof-skill"] ?? null;
   const out =
     parsed.values["--out"] ?? join(contentRoot, "packs", "skills", "skills-pack-0.1.json");
@@ -1128,11 +1205,11 @@ function runPackMigrateSkills(argv: string[], io: DispatchIo): number {
     io.writeErr(`error: skills directory not found: ${skillsDir}\n`);
     return 1;
   }
-  if (!isFileSafe(agentsMd)) {
-    io.writeErr(`error: AGENTS.md not found: ${agentsMd}\n`);
+  if (!isFileSafe(referencesMd)) {
+    io.writeErr(`error: REFERENCES.md not found: ${referencesMd}\n`);
     return 1;
   }
-  const pack = buildSkillsPack(skillsDir, agentsMd, proofSkill);
+  const pack = buildSkillsPack(skillsDir, referencesMd, proofSkill);
   if (pack.skills.length === 0) {
     io.writeErr(`error: no skills with frontmatter discovered under ${skillsDir}\n`);
     return 1;

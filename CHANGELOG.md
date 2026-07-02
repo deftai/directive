@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Skill trigger keywords survive the leaner AGENTS.md.** After the routing table was removed from `AGENTS.md` (#838), the skills-pack builder still parsed that now-absent heading and silently produced empty trigger keywords for every skill — degrading skill discovery without any error. Trigger keywords are now sourced from each skill's own `SKILL.md` frontmatter (with the `REFERENCES.md` Skills Index as the fallback), so routing keeps working after #838 and adding a skill no longer requires editing the always-loaded policy file. Refs #2152, #838, #1882.
+
 ### Removed
 
 ## [0.66.2] - 2026-07-01

@@ -1,0 +1,87 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2152: the skills-pack builder dispatch.ts::parseRouting still reads the removed '## Skill Routing' heading (removed by #838) and now yields an empty trigger map; re-source triggers from SKILL.md frontmatter / the REFERENCES.md Skills Index. Child of #1882; latent regression spun off from #838.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2152-parserouting-skill-routing-source",
+    "title": "parseRouting no longer depends on the removed AGENTS.md '## Skill Routing' heading",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2152",
+    "narratives": {
+      "Description": "#838 removed the '## Skill Routing' keyword->path table from AGENTS.md and the managed-section template, moving the routing index to the REFERENCES.md Skills Index. But dispatch.ts::parseRouting still parses the '## Skill Routing' heading to build its trigger map, so post-#838 it yields an EMPTY trigger map (latent coupling). This story re-sources the routing/trigger map from a durable source -- SKILL.md frontmatter (canonical, per-skill) and/or the REFERENCES.md Skills Index -- instead of the removed AGENTS.md heading, restoring a non-empty trigger map and decoupling routing data from the always-loaded policy file.",
+      "ImplementationPlan": "1. Locate dispatch.ts::parseRouting (packages/cli/src/dispatch.ts) and confirm the exact source it parses + the shape of the trigger map it returns, plus all callers. 2. Re-implement the trigger-map source: read triggers from each content/skills/*/SKILL.md frontmatter (the canonical per-skill trigger declaration) and/or the REFERENCES.md Skills Index table (built by #838). Prefer frontmatter as source of truth; fall back to the index if needed. 3. Preserve the existing return shape / behavior for callers; guarantee a non-empty map when skills exist. 4. Add/adjust tests: a regression test asserting parseRouting yields a non-empty trigger map covering the shipped skills, and does NOT depend on any '## Skill Routing' heading in AGENTS.md. 5. CHANGELOG [Unreleased] entry. Run `task check` green.",
+      "UserStory": "As a maintainer relying on skill routing/dispatch, I want the trigger map sourced from SKILL.md frontmatter / the REFERENCES.md index rather than the removed AGENTS.md heading, so that routing keeps working after #838 and adding a skill does not require editing the policy file.",
+      "Traces": "#2152, #838, #1882"
+    },
+    "items": [
+      {
+        "id": "pr-a1",
+        "title": "parseRouting yields a non-empty trigger map without the removed heading",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given #838 removed '## Skill Routing' from AGENTS.md, when parseRouting runs, then it returns a non-empty trigger map sourced from SKILL.md frontmatter / the REFERENCES.md Skills Index, covering the shipped skills."
+        }
+      },
+      {
+        "id": "pr-a2",
+        "title": "No dependency on AGENTS.md '## Skill Routing' heading",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the routing source, when AGENTS.md contains no '## Skill Routing' heading, then parseRouting still returns the full trigger map; a regression test asserts this."
+        }
+      },
+      {
+        "id": "pr-a3",
+        "title": "task check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given `task check`, when it runs on the PR, then the new/updated tests and the full suite pass."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#2152"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src (parseRouting tests)",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "parseRouting re-sourced from SKILL.md frontmatter / REFERENCES.md Skills Index; non-empty trigger map restored; regression test added"
+        ],
+        "depends_on": [],
+        "conflict_group": "dispatch-routing",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T13:48:40Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2152",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2152: parseRouting depends on removed Skill Routing heading"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
+      }
+    ],
+    "updated": "2026-07-02T13:48:40Z"
+  }
+}
