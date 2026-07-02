@@ -473,9 +473,17 @@ function runAgentsMdAdvisoryCheck(
     // No counts (missing / unreadable / malformed AGENTS.md): advisory stays
     // silent-but-informational; never a doctor error.
     sink.info(`${checkName}: skip -- AGENTS.md not measurable`);
-    addFinding({ severity: "skip", message: "AGENTS.md not measurable", check: checkName });
+    addFinding({
+      severity: "skip",
+      message: "AGENTS.md not measurable",
+      check: checkName,
+      status: "skip",
+    });
   } catch (exc) {
-    const message = `${checkName}: probe failed -- ${exc instanceof Error ? exc.name : "Error"}: ${exc}`;
+    // Sanitize newlines so an error string can't break out of the markdown
+    // bullet when findings are rendered (CWE-116).
+    const detail = `${exc instanceof Error ? exc.name : "Error"}: ${exc}`.replace(/\r?\n/g, " ");
+    const message = `${checkName}: probe failed -- ${detail}`;
     sink.warn(message);
     addFinding({ severity: "warning", message, check: checkName });
   }

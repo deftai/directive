@@ -16,11 +16,13 @@ function agentsWith(unmanaged: number, managed: number): string {
   for (let i = 0; i < unmanaged; i += 1) {
     lines.push(`unmanaged ${i}`);
   }
-  lines.push("<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->");
-  for (let i = 0; i < managed - 2; i += 1) {
-    lines.push(`managed ${i}`);
+  if (managed > 0) {
+    lines.push("<!-- deft:managed-section v3 sha=abc refreshed=x session=y -->");
+    for (let i = 0; i < managed - 2; i += 1) {
+      lines.push(`managed ${i}`);
+    }
+    lines.push("<!-- /deft:managed-section -->");
   }
-  lines.push("<!-- /deft:managed-section -->");
   return lines.join("\n");
 }
 
