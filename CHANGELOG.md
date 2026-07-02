@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`task triage:add-ignore` writes scope ignores to the correct PROJECT-DEFINITION on migrated `xbrief/` trees (#2210).** After the read-side fix in #2207, `triage:add-ignore` still hardcoded the legacy `vbrief/` path, so adding a label or milestone ignore could fail with "not found" or land in an orphaned file that `triage:queue` never reads. The write path now uses the same layout-aware resolver as the queue and scope-rules readers, so ignores you add actually filter the queue. Closes #2210. Refs #2207, #2109.
+
 - **`task triage:queue` again shows your triaged work and ranking labels after the `xbrief/` migration (#2207).** Following the `vbrief/`→`xbrief/` rename (#2109), the queue read your triage decisions and `plan.policy.triageRankingLabels` from the wrong location, so every issue showed as `[untriaged]` and the ranking-label header was empty even when your audit log and policy were populated. The queue now resolves the audit log, slices log, and PROJECT-DEFINITION through the layout-aware resolver against your project root — matching the sibling `triage:summary`/`triage:reconcile` verbs — so accepted issues surface correctly and labels rank the list again. Closes #2207. Refs #2109, #1128.
 
 ### Removed

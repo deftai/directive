@@ -1,15 +1,31 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { addIgnore } from "./add-ignore.js";
 import { computeDrift, renderDriftReport } from "./index.js";
+import { resolveScopeIgnores } from "./scope-rules.js";
 
 function writePd(root: string, policy: Record<string, unknown> = {}): void {
   mkdirSync(join(root, "vbrief"), { recursive: true });
   writeFileSync(
     join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
     JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { policy } }),
+    "utf8",
+  );
+}
+
+function writeMigratedPd(root: string, policy: Record<string, unknown> = {}): void {
+  mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+  writeFileSync(
+    join(root, "xbrief", "active", "seed.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "s", status: "running" } }),
+    "utf8",
+  );
+  writeFileSync(
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { policy } }),
     "utf8",
   );
 }
@@ -30,6 +46,28 @@ describe("scope-drift add-ignore", () => {
     expect(first.changed).toBe(true);
     const second = addIgnore(root, { label: "noise" });
     expect(second.changed).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  // #2210: write-side mirror of #2207 — addIgnore must target the layout-resolved
+  // xbrief/ PROJECT-DEFINITION on migrated trees so triage:queue sees the ignores.
+  it("writes triageScopeIgnores to a migrated xbrief tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "ignore-xbrief-"));
+    writeMigratedPd(root);
+    const xbriefPd = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    const vbriefPd = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+
+    const result = addIgnore(root, { label: "noise" });
+    expect(result.changed).toBe(true);
+    expect(existsSync(xbriefPd)).toBe(true);
+    expect(existsSync(vbriefPd)).toBe(false);
+
+    const ignores = resolveScopeIgnores(root);
+    expect(ignores.labels.has("noise")).toBe(true);
+
+    const written = JSON.parse(readFileSync(xbriefPd, "utf8")) as { plan: unknown };
+    const policy = readPlanPolicy(written.plan) as { triageScopeIgnores: Array<{ label: string }> };
+    expect(policy.triageScopeIgnores).toEqual([{ label: "noise" }]);
     rmSync(root, { recursive: true, force: true });
   });
 

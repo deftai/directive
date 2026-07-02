@@ -1,16 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 
-const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
-
-function projectDefinitionPath(projectRoot: string): string {
-  return join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
-}
-
 function loadForMutation(projectRoot: string): [Record<string, unknown>, string] {
-  const path = projectDefinitionPath(projectRoot);
+  const path = resolveProjectDefinitionPath(resolve(projectRoot));
   if (!existsSync(path)) {
     throw new Error(
       `PROJECT-DEFINITION not found at ${path}; run task triage:welcome / task triage:bootstrap to scaffold one first.`,
