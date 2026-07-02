@@ -71,18 +71,26 @@ function inferRepoFromGit(projectRoot: string): string | null {
   }
 }
 
-function normaliseRepoUrl(url: string): string | null {
+export function normaliseRepoUrl(url: string): string | null {
   if (!url) return null;
-  const cleaned = url.replace(/\/$/, "").replace(/\.git$/, "");
-  if (!cleaned.includes("github.com")) return null;
-  const tail =
-    cleaned
-      .split("github.com")
-      .pop()
-      ?.replace(/^[:/]+/, "") ?? "";
-  const parts = tail.split("/");
-  if (parts.length >= 2 && parts[0] && parts[1]) {
-    return `${parts[0]}/${parts[1]}`;
+  const cleaned = url
+    .trim()
+    .replace(/\/$/, "")
+    .replace(/\.git$/, "");
+  // Match `github.com` only as the HOST component of the remote URL: right
+  // after an optional scheme and optional `user@`, and immediately followed by
+  // `:` or `/`. A plain `includes("github.com")` would also accept spoofed
+  // hosts like `github.com.evil.com` or `evil.com/github.com/...` (CodeQL
+  // js/incomplete-url-substring-sanitization). Supports https/ssh/git schemes
+  // and the scp-like `git@github.com:owner/repo` form.
+  const match = cleaned.match(
+    /^(?:(?:https?|ssh|git):\/\/)?(?:[^/@]+@)?github\.com[:/]+([^/]+)\/([^/]+)/i,
+  );
+  if (!match) return null;
+  const owner = match[1];
+  const repo = match[2];
+  if (owner && repo) {
+    return `${owner}/${repo}`;
   }
   return null;
 }

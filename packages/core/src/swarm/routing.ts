@@ -229,6 +229,20 @@ export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env
 }
 
 /**
+ * Keys that would mutate the prototype chain rather than set an own property
+ * if used as a computed object key. Rejected for provider/role names so a
+ * malicious routing input cannot pollute `Object.prototype` (CodeQL
+ * js/prototype-polluting-assignment).
+ */
+const FORBIDDEN_ROUTING_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function assertSafeRoutingKey(kind: "provider" | "role", key: string): void {
+  if (FORBIDDEN_ROUTING_KEYS.has(key)) {
+    throw new Error(`routing ${kind} name "${key}" is not allowed`);
+  }
+}
+
+/**
  * Write a decision back to the route file (create-if-missing). Stamps
  * `decidedAt` when the caller did not supply one. Used by the interactive
  * resolver path (resolver step 5) and the `swarm:routing-set` task.
@@ -239,6 +253,8 @@ export function writeModelDecision(
   role: string,
   decision: RouteDecision,
 ): void {
+  assertSafeRoutingKey("provider", provider);
+  assertSafeRoutingKey("role", role);
   const { data } = loadRoutingFile(path);
   const file: RoutingFile = data ?? {};
   const existing = providerBlockOf(file, provider);

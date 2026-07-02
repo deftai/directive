@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { fileSha256 } from "./default-extractor.js";
-import { renderCodebaseMap, runCodebaseMapCli } from "./map.js";
+import { markdownText, renderCodebaseMap, runCodebaseMapCli } from "./map.js";
 import { selectCodebaseMap } from "./provider.js";
 
 function writeProjectDefinition(root: string, policy?: Record<string, unknown>): void {
@@ -188,5 +188,20 @@ describe("codebase MAP renderer", () => {
     });
     expect(text).toContain("fixture-provider");
     expect(text).toContain("`provider-app`");
+  });
+});
+
+describe("markdownText (CodeQL #50 backslash-first escaping)", () => {
+  it("escapes the backslash escape character before the pipe delimiter", () => {
+    // A pre-existing backslash must not be able to bypass the `|` escape.
+    expect(markdownText("a\\|b")).toBe("a\\\\\\|b");
+    expect(markdownText("c|d")).toBe("c\\|d");
+    expect(markdownText("e\\f")).toBe("e\\\\f");
+  });
+
+  it("collapses newlines and trims, and handles nullish input", () => {
+    expect(markdownText("line1\nline2")).toBe("line1 line2");
+    expect(markdownText(null)).toBe("");
+    expect(markdownText(undefined)).toBe("");
   });
 });

@@ -209,6 +209,16 @@ describe("writeModelDecision", () => {
     expect(data?.cursor?.["orchestrator"]?.model).toBe("gpt-5.5-medium");
     expect(readFileSync(path, "utf8").endsWith("\n")).toBe(true);
   });
+
+  it("rejects prototype-polluting provider/role keys (CodeQL #52)", () => {
+    for (const key of ["__proto__", "constructor", "prototype"]) {
+      expect(() => writeModelDecision(path, key, "leaf-implementation", { model: "x" })).toThrow();
+      expect(() => writeModelDecision(path, "cursor", key, { model: "x" })).toThrow();
+    }
+    // Object.prototype must be untouched by the attempted injection.
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(Object.prototype).not.toHaveProperty("polluted");
+  });
 });
 
 describe("SWARM_WORKER_ROLES", () => {

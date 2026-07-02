@@ -20,9 +20,12 @@ export const BANNER_TEMPLATE =
   "plan.architecture.codeStructure -->\n" +
   "<!-- Regenerate with: task codebase:map -->\n";
 
-function markdownText(value: unknown): string {
+export function markdownText(value: unknown): string {
   const text = value === null || value === undefined ? "" : String(value);
-  return text.replace(/\|/g, "\\|").replace(/\n/g, " ").trim();
+  // Escape the backslash escape character FIRST, then the `|` table delimiter.
+  // Escaping `|` alone lets a pre-existing backslash bypass the delimiter
+  // escape (CodeQL js/incomplete-sanitization).
+  return text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\n/g, " ").trim();
 }
 
 function code(value: unknown): string {

@@ -7,6 +7,7 @@ import {
   CANDIDATES_RELPATH,
   DEFAULT_SOURCE,
   evaluate,
+  normaliseRepoUrl,
   recoveryHintForStaleFailure,
 } from "./evaluate.js";
 
@@ -554,5 +555,27 @@ describe("evaluate -- correctness edge cases", () => {
         process.env.DEFT_CACHE_MAX_AGE_HOURS = prevVal;
       }
     }
+  });
+});
+
+describe("normaliseRepoUrl (CodeQL #51 host anchoring)", () => {
+  it("parses valid github.com remotes across url forms", () => {
+    expect(normaliseRepoUrl("https://github.com/deftai/directive")).toBe("deftai/directive");
+    expect(normaliseRepoUrl("https://github.com/deftai/directive.git")).toBe("deftai/directive");
+    expect(normaliseRepoUrl("git@github.com:deftai/directive.git")).toBe("deftai/directive");
+    expect(normaliseRepoUrl("ssh://git@github.com/deftai/directive")).toBe("deftai/directive");
+    expect(normaliseRepoUrl("github.com/deftai/directive")).toBe("deftai/directive");
+  });
+
+  it("rejects spoofed hosts where github.com is not the host component", () => {
+    expect(normaliseRepoUrl("https://github.com.evil.com/deftai/directive")).toBeNull();
+    expect(normaliseRepoUrl("https://evil.com/github.com/deftai/directive")).toBeNull();
+    expect(normaliseRepoUrl("https://notgithub.com/deftai/directive")).toBeNull();
+    expect(normaliseRepoUrl("https://evilgithub.com/deftai/directive")).toBeNull();
+  });
+
+  it("returns null on empty or malformed input", () => {
+    expect(normaliseRepoUrl("")).toBeNull();
+    expect(normaliseRepoUrl("https://github.com/only-owner")).toBeNull();
   });
 });

@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF: remediate the 3 open CodeQL code-scanning alerts on deftai/directive — #51 incomplete URL substring sanitization (preflight-cache/evaluate.ts), #50 incomplete string escaping (codebase/map.ts), #52 prototype-polluting assignment (swarm/routing.ts). Security hardening; test-backed.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "codeql-code-scanning-alerts",
+    "title": "Remediate 3 open CodeQL code-scanning alerts (#50 / #51 / #52)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/security/code-scanning",
+    "narratives": {
+      "Description": "GitHub code-scanning (CodeQL) reports 3 open alerts on deftai/directive: (1) alert #51 HIGH `js/incomplete-url-substring-sanitization` at packages/core/src/preflight-cache/evaluate.ts:77 -- `normaliseRepoUrl` gates on `cleaned.includes(\"github.com\")`, which matches attacker-controlled hosts like `github.com.evil.com` or `evil.com/github.com`; (2) alert #50 HIGH `js/incomplete-sanitization` at packages/core/src/codebase/map.ts:25 -- `markdownText` escapes the `|` table delimiter but not the backslash escape character first, so the escaping is bypassable; (3) alert #52 MEDIUM `js/prototype-polluting-assignment` at packages/core/src/swarm/routing.ts:246 -- `block[role] = {...}` where `role` (and `provider`) is user/CLI-supplied can set `Object.prototype` if a `__proto__` key is injected. All three are localized, low-blast-radius fixes with clear canonical remediations. Each fix gets a focused regression test that exercises the malicious input.",
+      "ImplementationPlan": "1. #51 (evaluate.ts): rewrite `normaliseRepoUrl` to match `github.com` only as the host component (right after scheme / optional userinfo and immediately followed by `:` or `/`), rejecting `github.com.evil.com`, `evil.com/github.com/...`, etc.; keep support for https / ssh / scp-like (`git@github.com:owner/repo`) forms. Export the helper for unit testing. 2. #50 (map.ts): in `markdownText`, escape the backslash escape character FIRST (`\\\\` -> `\\\\\\\\`) before escaping the `|` delimiter, so pre-existing backslashes cannot bypass the delimiter escape. Export the helper for unit testing. 3. #52 (routing.ts): in `writeModelDecision`, reject dangerous keys (`__proto__`, `constructor`, `prototype`) for BOTH `provider` and `role` before assignment (throw a clear error), so a malicious key cannot mutate `Object.prototype`. 4. Add regression tests: malicious-host rejection + valid-form parsing for normaliseRepoUrl; backslash-then-pipe escaping for markdownText; `__proto__` role/provider does not pollute `Object.prototype` for writeModelDecision. 5. CHANGELOG [Unreleased] entry (user-visible: security hardening of git-remote parsing, markdown-table escaping, and routing-file writes). Run `task check` GREEN. After merge, confirm the 3 code-scanning alerts auto-resolve on the next CodeQL scan.",
+      "UserStory": "As a maintainer, I want the 3 open CodeQL code-scanning alerts fixed with regression tests, so that the security board is clean and the flagged parsing/escaping/assignment paths can't be abused by malicious input.",
+      "Traces": "CodeQL #50, #51, #52"
+    },
+    "items": [
+      {
+        "id": "s51",
+        "title": "#51 host-anchored git-remote parsing",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given normaliseRepoUrl, when passed `https://github.com.evil.com/o/r` or `https://evil.com/github.com/o/r`, then it returns null; when passed valid https/ssh/scp github.com remotes, then it returns `owner/repo`. A test covers both."
+        }
+      },
+      {
+        "id": "s50",
+        "title": "#50 backslash-first markdown escaping",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given markdownText, when the input contains a backslash followed by a pipe, then the backslash is escaped before the pipe so the delimiter escape cannot be bypassed. A test asserts the escaped output."
+        }
+      },
+      {
+        "id": "s52",
+        "title": "#52 prototype-pollution guard on routing writes",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given writeModelDecision, when `role` or `provider` is `__proto__` (or `constructor`/`prototype`), then it throws and `Object.prototype` is not mutated. A test asserts no pollution."
+        }
+      },
+      {
+        "id": "s-check",
+        "title": "task check green; CHANGELOG entry",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given `task check`, when it runs, then the full suite + gates pass; CHANGELOG [Unreleased] carries a user-visible security-hardening entry."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "code_scanning_alerts": [
+          "#50",
+          "#51",
+          "#52"
+        ]
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "packages/core/src/codebase/map.ts",
+          "packages/core/src/swarm/routing.ts",
+          "packages/core/src/preflight-cache/evaluate.test.ts",
+          "packages/core/src/codebase/map.test.ts",
+          "packages/core/src/swarm/routing.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "3 CodeQL alerts remediated with regression tests; task check green"
+        ],
+        "depends_on": [],
+        "conflict_group": "security-codeql",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T16:29:01Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/security/code-scanning",
+        "type": "x-xbrief/link",
+        "title": "CodeQL code-scanning alerts #50, #51, #52"
+      }
+    ],
+    "updated": "2026-07-02T16:29:01Z"
+  }
+}
