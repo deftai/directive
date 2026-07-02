@@ -698,6 +698,17 @@ describe("native pack-migrate handlers (#2022)", () => {
     return Object.fromEntries(rows.map((row) => [row.id, row.body]));
   }
 
+  // Guard against a non-object / null JSON payload before any property access
+  // (JSON.parse can return top-level null without throwing).
+  function readSkillsPack(jsonText: string): {
+    generated_from: string;
+    skills: Array<{ id: string; triggers: string[] }>;
+  } {
+    const parsed: unknown = JSON.parse(jsonText);
+    expect(parsed === null || typeof parsed !== "object").toBe(false);
+    return parsed as { generated_from: string; skills: Array<{ id: string; triggers: string[] }> };
+  }
+
   // --proof-skill captures only the named skill's body; the others are metadata-only.
   it("captures only the named proof skill body", async () => {
     writeFixture(
@@ -734,9 +745,7 @@ describe("native pack-migrate handlers (#2022)", () => {
     const out = join(root, "precedence-skills.json");
     const result = await runVerb(argsFor("pack-migrate-skills", out));
     expect(result.code).toBe(0);
-    const parsed = JSON.parse(readFileSync(out, "utf8")) as {
-      skills: Array<{ id: string; triggers: string[] }>;
-    };
+    const parsed = readSkillsPack(readFileSync(out, "utf8"));
     const alpha = parsed.skills.find((skill) => skill.id === "alpha");
     expect(alpha?.triggers).toEqual(["alpha", "first skill"]);
     expect(alpha?.triggers).not.toContain("index-only");
@@ -766,14 +775,39 @@ describe("native pack-migrate handlers (#2022)", () => {
       out,
     ]);
     expect(result.code).toBe(0);
-    const parsed = JSON.parse(readFileSync(out, "utf8")) as {
-      generated_from: string;
-      skills: Array<{ id: string; triggers: string[] }>;
-    };
+    const parsed = readSkillsPack(readFileSync(out, "utf8"));
     expect(parsed.generated_from).not.toContain("Skill Routing");
     expect(parsed.generated_from).not.toContain("AGENTS.md");
     const gamma = parsed.skills.find((skill) => skill.id === "gamma");
     expect(gamma?.triggers).toEqual(["gamma", "route gamma"]);
+  });
+
+  // #2152: an inline YAML flow-list `triggers:` field is parsed quote-aware, so
+  // a quoted trigger containing a comma is one token, not two.
+  it("parses inline flow-list frontmatter triggers with a comma inside quotes (#2152)", async () => {
+    const base = join(root, "flowlist");
+    writeFixture(
+      "flowlist/content/skills/delta/SKILL.md",
+      '---\nname: delta\ndescription: Delta with inline flow-list triggers.\ntriggers: ["what\'s next, please", plain]\n---\n\n# Delta\n\nBody.\n',
+    );
+    writeFixture(
+      "flowlist/REFERENCES.md",
+      "# Refs\n\n## Skills Index\n\n| Skill | Description | Triggers |\n|---|---|---|\n\n## Next\n\nDone.\n",
+    );
+    const out = join(base, "out.json");
+    const result = await runVerb([
+      "pack-migrate-skills",
+      "--skills-dir",
+      join(base, "content/skills"),
+      "--references-md",
+      join(base, "REFERENCES.md"),
+      "--out",
+      out,
+    ]);
+    expect(result.code).toBe(0);
+    const parsed = readSkillsPack(readFileSync(out, "utf8"));
+    const delta = parsed.skills.find((skill) => skill.id === "delta");
+    expect(delta?.triggers).toEqual(["what's next, please", "plain"]);
   });
 
   // #2152 regression guard: building the skills pack from the *real* shipped
@@ -793,10 +827,7 @@ describe("native pack-migrate handlers (#2022)", () => {
       out,
     ]);
     expect(result.code).toBe(0);
-    const parsed = JSON.parse(readFileSync(out, "utf8")) as {
-      generated_from: string;
-      skills: Array<{ id: string; triggers: string[] }>;
-    };
+    const parsed = readSkillsPack(readFileSync(out, "utf8"));
     expect(parsed.skills.length).toBeGreaterThan(10);
     for (const skill of parsed.skills) {
       expect(skill.triggers.length, `skill ${skill.id} has empty triggers`).toBeGreaterThan(0);

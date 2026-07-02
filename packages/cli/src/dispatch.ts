@@ -777,7 +777,7 @@ function extractExtraFrontmatter(frontmatter: string): string | null {
 // requires editing the always-loaded policy file and the trigger map stays
 // non-empty after #838 removed the heading parseRouting used to read.
 
-const SKILLS_INDEX_HEADING_RE = /Skills Index/;
+const SKILLS_INDEX_HEADING_RE = /Skills Index/i;
 const HEADING_LINE_RE = /^#{1,6}\s/;
 const SKILL_LINK_RE = /\(([^)]*skills\/[^)]+\/SKILL\.md)\)/;
 const BACKTICK_TOKEN_RE = /`([^`]+)`/g;
@@ -824,12 +824,18 @@ function parseSkillsIndexTriggers(referencesMd: string): Map<string, string[]> {
   return mapping;
 }
 
+// Split on quoted phrases (single or double) or bare comma-delimited runs, so a
+// quoted trigger containing a comma (`["what's next, please", other]`) is not
+// mis-tokenised. All shipped skills use the block-list form today; this keeps
+// the inline flow-list form correct for future skills.
+const FLOW_LIST_TOKEN_RE = /(?:"([^"]*)")|(?:'([^']*)')|([^,]+)/g;
+
 /** Split an inline YAML flow list (`[a, "b"]`) into trimmed, unquoted tokens. */
 function parseFlowListTokens(value: string): string[] {
   const inner = value.replace(/^\[/, "").replace(/\]$/, "");
   const out: string[] = [];
-  for (const part of inner.split(",")) {
-    const token = pyStrip(pyStrip(part.trim(), '"'), "'");
+  for (const match of inner.matchAll(FLOW_LIST_TOKEN_RE)) {
+    const token = (match[1] ?? match[2] ?? match[3] ?? "").trim();
     if (token) out.push(token);
   }
   return out;
