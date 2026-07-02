@@ -1,0 +1,102 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2189: gate pr:merge-ready / swarm:verify-review-clean on the SLizard check-run's structured verdict (Decision / Merge impact / severity counts), not just the Greptile rolling-summary. Fixes the gap where a PR merged through the cascade with an unresolved SLizard blocking finding.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2189-slizard-merge-gate",
+    "title": "Gate merge-readiness on the SLizard structured review verdict (mirror the Greptile + CI gates)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2189",
+    "narratives": {
+      "Description": "PR #2187 merged through `task pr:wait-mergeable-and-merge` while a SLizard review was still requesting changes (Decision: request_changes, Merge impact: blocking, P1: 1). The merge-readiness gate only parses the Greptile rolling-summary comment for its verdict; it has no equivalent check for SLizard, which posts its verdict in a check-run named `SLizard` (output.summary carries `Decision:` / `Merge impact:` / severity counts). Because the cascade uses `gh pr merge --admin`, branch-protection required-status enforcement is also bypassed, so nothing caught the blocking finding. The generic CI check-run gate (#2169) fails closed on a check-run `conclusion=failure`, which partially covers a failing SLizard run, but it (a) does not parse the structured verdict, so a `request_changes`/`blocking` decision carried on a non-`failure` conclusion is missed, and (b) surfaces SLizard indistinctly among build/test checks. This story adds a dedicated SLizard verdict gate that parses the check-run summary and fails merge-readiness on a blocking decision, mirroring the existing Greptile + CI gates, and wires it into both `pr:merge-ready` and `swarm:verify-review-clean` in lockstep.",
+      "ImplementationPlan": "1. gh.ts: add optional `summary` (from check-run `output.summary`) to CheckRunRecord and populate it in fetchCheckRunsRest; capture a `slizard_review` block in the summary dict (mirroring greptile_review) for fallback2 surfacing. 2. New slizard-gate.ts: SLIZARD_CHECK_NAME + isSlizardCheck(name); parseSlizardVerdict(summary) extracting Decision, Merge impact, P0/P1/P2 counts; evaluateSlizardGate(checkRuns, {skipSlizard}) returning {failures, summary} -> blocked on Decision=request_changes OR Merge impact=blocking OR conclusion in FAILED set; not_ready_yet when the SLizard run is pending; skipped when no SLizard check-run present (optional second reviewer) or --skip-slizard. 3. compute.ts: run evaluateSlizardGate off the same fetched checkRuns, auto-add the SLizard check name to the CI gate's ignore list so it is not double-counted, and attach a `slizard` partialData block + its failures (primary + fallback1). 4. main.ts: add `--skip-slizard` flag threaded into ComputeGateOptions. 5. output.ts: add a SLizard verdict line to the human output; JSON carries partial_data.slizard automatically. 6. verify-review-clean.ts + verify-review-clean-cli.ts: run the SLizard gate in evaluatePr lockstep with the CI gate; add `--skip-slizard`. 7. Fold in the test-only null-guard nit from #2189 in packages/core/src/doctor/network-gate.test.ts (JSON.parse result may be non-object). 8. Tests: slizard-gate.test.ts (blocking decision, blocking impact, clean approve, absent->skipped, pending->not-ready-yet, conclusion=failure, --skip-slizard) + a compute-level integration test with a fake runGh. 9. CHANGELOG [Unreleased] user-visible entry. 10. task check GREEN.",
+      "UserStory": "As an operator driving a PR to merge via the cascade (or the merge-at-will path), I want merge-readiness to fail closed while SLizard is still requesting changes, so that a second reviewer's blocking finding cannot be bypassed just because Greptile's own verdict is clean.",
+      "Traces": "#2189, #2169, #1369, #1368"
+    },
+    "items": [
+      {
+        "id": "a1",
+        "title": "SLizard check-run verdict is fetched and parsed",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a commit whose check-runs include a `SLizard` run with output.summary containing `Decision:` / `Merge impact:` / severity counts, when fetchCheckRunsRest runs, then the SLizard run's summary is captured and parseSlizardVerdict extracts decision, merge impact, and P0/P1/P2 counts."
+        }
+      },
+      {
+        "id": "a2",
+        "title": "Blocking SLizard verdict fails merge-readiness",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a SLizard verdict with Decision=request_changes or Merge impact=blocking (or a failing conclusion), when evaluateSlizardGate runs, then it returns a failure and pr:merge-ready exits non-zero; a clean approve verdict passes; an absent SLizard check-run or --skip-slizard yields ready_state=skipped without failing."
+        }
+      },
+      {
+        "id": "a3",
+        "title": "Gate wired into pr:merge-ready and swarm:verify-review-clean in lockstep",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given compute.ts (primary + fallback1) and verify-review-clean.ts evaluatePr, when a blocking SLizard verdict is present, then both surfaces report the SLizard failure and the SLizard check is excluded from the generic CI required set (no double-count); the human/JSON output surfaces the SLizard verdict distinctly."
+        }
+      },
+      {
+        "id": "a4",
+        "title": "task check green; nit folded; CHANGELOG entry",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given task check, when it runs, then the new slizard-gate tests + full suite + verify:encoding + agents-md-budget pass; the network-gate.test.ts JSON.parse null-guard nit is folded in; CHANGELOG [Unreleased] has a user-visible entry."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1369",
+        "child_issue": "#2189"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pr-merge-readiness/gh.ts",
+          "packages/core/src/pr-merge-readiness/slizard-gate.ts",
+          "packages/core/src/pr-merge-readiness/slizard-gate.test.ts",
+          "packages/core/src/pr-merge-readiness/compute.ts",
+          "packages/core/src/pr-merge-readiness/main.ts",
+          "packages/core/src/pr-merge-readiness/output.ts",
+          "packages/core/src/swarm/verify-review-clean.ts",
+          "packages/core/src/swarm/verify-review-clean-cli.ts",
+          "packages/core/src/doctor/network-gate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "SLizard structured verdict gate added; pr:merge-ready + swarm:verify-review-clean fail closed on a blocking SLizard decision; --skip-slizard escape hatch; task check green"
+        ],
+        "depends_on": [],
+        "conflict_group": "pr-merge-readiness",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-02T18:29:17Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2189",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2189: pr:wait-mergeable-and-merge merges through SLizard blocking findings"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2169",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2169: harden pr:merge-ready to gate on CI check-run conclusions"
+      }
+    ],
+    "updated": "2026-07-02T18:29:17Z"
+  }
+}

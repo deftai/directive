@@ -45,7 +45,15 @@ describe("parseArgs", () => {
       repo: "deftai/directive",
       emitJson: true,
       skipCi: false,
+      skipSlizard: false,
       ciIgnoreChecks: [],
+    });
+  });
+
+  it("parses --skip-slizard", () => {
+    expect(parseArgs(["4", "--skip-slizard"])).toMatchObject({
+      prNumber: 4,
+      skipSlizard: true,
     });
   });
 

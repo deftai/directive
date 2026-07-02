@@ -8,6 +8,8 @@ export interface CheckRunRecord {
   readonly name: string;
   readonly status: string;
   readonly conclusion: string;
+  /** check-run `output.summary` text, when present (used by the SLizard verdict gate, #2189). */
+  readonly summary?: string;
 }
 
 /** UTF-8-safe gh capture via execFile (no shell) — mirrors _safe_subprocess.run_text (#1366). */
@@ -272,6 +274,16 @@ export function fetchPrHeadShaRest(
   return { sha: null, error: "PR JSON missing head.sha" };
 }
 
+/** Pull the `output.summary` string off a raw check-run payload, if present (#2189). */
+function extractCheckRunSummary(run: Record<string, unknown>): string | null {
+  const output = run.output;
+  if (output === null || typeof output !== "object" || Array.isArray(output)) {
+    return null;
+  }
+  const summary = (output as Record<string, unknown>).summary;
+  return typeof summary === "string" && summary.length > 0 ? summary : null;
+}
+
 export function fetchCheckRunsRest(
   sha: string,
   repo: string,
@@ -312,6 +324,7 @@ export function fetchCheckRunsRest(
     by_status: {} as Record<string, number>,
     by_conclusion: {} as Record<string, number>,
     greptile_review: null,
+    slizard_review: null,
   };
   const byStatus = summary.by_status as Record<string, number>;
   const byConclusion = summary.by_conclusion as Record<string, number>;
@@ -323,11 +336,19 @@ export function fetchCheckRunsRest(
     const status = typeof r.status === "string" ? r.status : "unknown";
     const conclusion = typeof r.conclusion === "string" ? r.conclusion : "none";
     const name = typeof r.name === "string" && r.name.length > 0 ? r.name : "<unnamed>";
-    checkRuns.push({ name, status, conclusion });
+    const runSummary = extractCheckRunSummary(r);
+    const record: CheckRunRecord =
+      runSummary === null
+        ? { name, status, conclusion }
+        : { name, status, conclusion, summary: runSummary };
+    checkRuns.push(record);
     byStatus[status] = (byStatus[status] ?? 0) + 1;
     byConclusion[conclusion] = (byConclusion[conclusion] ?? 0) + 1;
     if (r.name === "Greptile Review") {
       summary.greptile_review = { status, conclusion };
+    }
+    if (name.toLowerCase().includes("slizard")) {
+      summary.slizard_review = { status, conclusion };
     }
   }
   return { summary, checkRuns, error: "" };

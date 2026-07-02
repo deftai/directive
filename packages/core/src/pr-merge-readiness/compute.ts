@@ -9,6 +9,7 @@ import {
 } from "./constants.js";
 import { evaluateGates, isMergeReady } from "./evaluate.js";
 import {
+  type CheckRunRecord,
   fetchCheckRunsRest,
   fetchGreptileBodyRest,
   fetchGreptileCommentBody,
@@ -17,6 +18,8 @@ import {
   resolveRepo,
 } from "./gh.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
+import type { SlizardGateOptions } from "./slizard-gate.js";
+import { evaluateSlizardGate, isSlizardCheck } from "./slizard-gate.js";
 import type { GateResult, RunGhFn } from "./types.js";
 
 function buildGateResult(
@@ -42,14 +45,41 @@ function buildGateResult(
   };
 }
 
-export interface ComputeGateOptions extends CiGateOptions {}
+export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {}
+
+interface ReviewGateOutcome {
+  failures: string[];
+  ci: Record<string, unknown>;
+  slizard: Record<string, unknown>;
+}
+
+/** Run the CI + SLizard gates off a single check-runs fetch (#2169 / #2189). */
+function evaluateCiAndSlizard(
+  checkRuns: readonly CheckRunRecord[],
+  options: ComputeGateOptions,
+): { failures: string[]; ci: Record<string, unknown>; slizard: Record<string, unknown> } {
+  const slizardResult = evaluateSlizardGate(checkRuns, options);
+  // The SLizard check is scored by the structured gate, so exclude it from the
+  // generic CI required set to avoid double-counting the same run.
+  const slizardNames = checkRuns.filter((r) => isSlizardCheck(r.name)).map((r) => r.name);
+  const ciOptions: CiGateOptions = {
+    skipCi: options.skipCi,
+    ignoreCheckNames: [...(options.ignoreCheckNames ?? []), ...slizardNames],
+  };
+  const ciResult = evaluateCiGate(checkRuns, ciOptions);
+  return {
+    failures: [...ciResult.failures, ...slizardResult.failures],
+    ci: { ...ciResult.summary, summary_line: buildCiSummaryLine(ciResult.summary) },
+    slizard: { ...slizardResult.summary },
+  };
+}
 
 function applyCiGateForHead(
   repo: string | null,
   headSha: string,
   runGh: RunGhFn,
   options: ComputeGateOptions,
-): { failures: string[]; ci: Record<string, unknown> } {
+): ReviewGateOutcome {
   if (repo === null) {
     return {
       failures: [
@@ -60,18 +90,20 @@ function applyCiGateForHead(
         ready_state: "blocked",
         error: "repo unresolved for check-runs lookup",
       },
+      slizard: {
+        ready_state: "skipped",
+        present: false,
+        summary_line: "SLizard review: skipped (repo unresolved for check-runs lookup)",
+      },
     };
   }
 
+  // When CI is skipped we do not fetch check-runs, so the SLizard gate cannot
+  // evaluate either; run both gates against an empty set to honor the overrides.
   if (options.skipCi === true) {
-    const ciResult = evaluateCiGate([], { skipCi: true });
-    return {
-      failures: [],
-      ci: {
-        ...ciResult.summary,
-        summary_line: "CI check-runs: skipped (--skip-ci)",
-      },
-    };
+    const outcome = evaluateCiAndSlizard([], options);
+    outcome.ci.summary_line = "CI check-runs: skipped (--skip-ci)";
+    return { failures: outcome.failures, ci: outcome.ci, slizard: outcome.slizard };
   }
 
   const check = fetchCheckRunsRest(headSha, repo, runGh);
@@ -90,17 +122,16 @@ function applyCiGateForHead(
         pending_required: [],
         conclusions: [],
       },
+      slizard: {
+        ready_state: "skipped",
+        present: false,
+        summary_line: `SLizard review: skipped (check-runs unavailable: ${check.error})`,
+      },
     };
   }
 
-  const ciResult = evaluateCiGate(check.checkRuns, options);
-  return {
-    failures: [...ciResult.failures],
-    ci: {
-      ...ciResult.summary,
-      summary_line: buildCiSummaryLine(ciResult.summary),
-    },
-  };
+  const outcome = evaluateCiAndSlizard(check.checkRuns, options);
+  return { failures: outcome.failures, ci: outcome.ci, slizard: outcome.slizard };
 }
 
 function computePrimary(
@@ -132,6 +163,7 @@ function computePrimary(
     const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
     failures.push(...ci.failures);
     partialData.ci = ci.ci;
+    partialData.slizard = ci.slizard;
   }
   return {
     result: {
@@ -192,6 +224,7 @@ function computeFallback1(
     const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
     failures.push(...ci.failures);
     partialData.ci = ci.ci;
+    partialData.slizard = ci.slizard;
   }
 
   return {

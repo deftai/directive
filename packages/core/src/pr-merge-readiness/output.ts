@@ -77,6 +77,15 @@ export function printHuman(result: GateResult): string {
       lines.push(`  CI check-runs: ${ci.ready_state}`);
     }
   }
+  const slizardBlock = result.partialData.slizard;
+  if (slizardBlock !== null && typeof slizardBlock === "object" && !Array.isArray(slizardBlock)) {
+    const slizard = slizardBlock as Record<string, unknown>;
+    if (typeof slizard.summary_line === "string") {
+      lines.push(`  ${slizard.summary_line}`);
+    } else if (typeof slizard.ready_state === "string") {
+      lines.push(`  SLizard review: ${slizard.ready_state}`);
+    }
+  }
   if (result.via === VIA_FALLBACK2 && Object.keys(result.partialData).length > 0) {
     lines.push("  Fallback2 signal:");
     for (const key of ["pr_state", "merged", "mergeable", "mergeable_state"] as const) {

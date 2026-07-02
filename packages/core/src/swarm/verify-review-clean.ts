@@ -10,7 +10,12 @@ import {
   fetchPrHeadSha,
 } from "../pr-merge-readiness/gh.js";
 import { evaluateGates, parseGreptileBody } from "../pr-merge-readiness/index.js";
+import type { SlizardGateOptions } from "../pr-merge-readiness/slizard-gate.js";
+import { evaluateSlizardGate, isSlizardCheck } from "../pr-merge-readiness/slizard-gate.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
+
+type ReviewGateOptions = CiGateOptions & SlizardGateOptions;
+
 import { EXIT_EXTERNAL_ERROR, EXIT_OK, EXIT_UNCLEAN } from "./constants.js";
 
 export interface CohortResolutionError {
@@ -25,6 +30,7 @@ export interface CohortPRResult {
   failures: string[];
   clean: boolean;
   ci_summary: Record<string, unknown> | null;
+  slizard_summary: Record<string, unknown> | null;
 }
 
 export interface CohortResult {
@@ -143,7 +149,7 @@ export function evaluatePr(
   prNumber: number,
   repo: string | null,
   runGh: RunGhFn = defaultRunGh,
-  options: CiGateOptions = {},
+  options: ReviewGateOptions = {},
 ): CohortPRResult | null {
   const headSha = fetchPrHeadSha(prNumber, repo, runGh);
   if (headSha === null) {
@@ -156,6 +162,7 @@ export function evaluatePr(
   const verdict = parseGreptileBody(body);
   const failures = evaluateGates(prNumber, headSha, verdict);
   let ciSummary: Record<string, unknown> | null = null;
+  let slizardSummary: Record<string, unknown> | null = null;
   if (failures.length === 0) {
     if (repo === null) {
       failures.push(
@@ -166,12 +173,16 @@ export function evaluatePr(
         ready_state: "blocked",
         error: "repo unresolved for check-runs lookup",
       };
+      slizardSummary = { ready_state: "skipped", present: false };
     } else if (options.skipCi === true) {
       const ci = evaluateCiGate([], { skipCi: true });
       ciSummary = {
         ...ci.summary,
         summary_line: "CI check-runs: skipped (--skip-ci)",
       };
+      const slizard = evaluateSlizardGate([], options);
+      failures.push(...slizard.failures);
+      slizardSummary = { ...slizard.summary };
     } else {
       const checks = fetchCheckRunsRest(headSha, repo, runGh);
       if (checks.summary === null) {
@@ -188,13 +199,23 @@ export function evaluatePr(
           pending_required: [],
           conclusions: [],
         };
+        slizardSummary = { ready_state: "skipped", present: false };
       } else {
-        const ci = evaluateCiGate(checks.checkRuns, options);
-        failures.push(...ci.failures);
+        const slizard = evaluateSlizardGate(checks.checkRuns, options);
+        // SLizard is scored by the structured gate; exclude it from the generic CI set.
+        const slizardNames = checks.checkRuns
+          .filter((r) => isSlizardCheck(r.name))
+          .map((r) => r.name);
+        const ci = evaluateCiGate(checks.checkRuns, {
+          skipCi: options.skipCi,
+          ignoreCheckNames: [...(options.ignoreCheckNames ?? []), ...slizardNames],
+        });
+        failures.push(...ci.failures, ...slizard.failures);
         ciSummary = {
           ...ci.summary,
           summary_line: buildCiSummaryLine(ci.summary),
         };
+        slizardSummary = { ...slizard.summary };
       }
     }
   }
@@ -205,6 +226,7 @@ export function evaluatePr(
     failures: [...failures],
     clean: failures.length === 0,
     ci_summary: ciSummary,
+    slizard_summary: slizardSummary,
   };
 }
 
@@ -220,6 +242,7 @@ export function cohortResultToDict(cohort: CohortResult): Record<string, unknown
       verdict: r.verdict,
       failures: r.failures,
       ci_summary: r.ci_summary,
+      slizard_summary: r.slizard_summary,
     })),
     resolution_errors: cohort.resolution_errors,
   };
@@ -256,6 +279,9 @@ export function renderReviewCleanText(cohort: CohortResult): string {
     if (r.ci_summary && typeof r.ci_summary.summary_line === "string") {
       lines.push(`    ${r.ci_summary.summary_line}`);
     }
+    if (r.slizard_summary && typeof r.slizard_summary.summary_line === "string") {
+      lines.push(`    ${r.slizard_summary.summary_line}`);
+    }
     r.failures.forEach((fail, index) => {
       lines.push(`      [${index + 1}] ${fail}`);
     });
@@ -280,6 +306,7 @@ export interface VerifyReviewCleanArgs {
   repo?: string | null;
   emitJson?: boolean;
   skipCi?: boolean;
+  skipSlizard?: boolean;
   ciIgnoreChecks?: readonly string[];
   runGh?: RunGhFn;
 }
@@ -330,6 +357,7 @@ export function verifyReviewClean(args: VerifyReviewCleanArgs): {
   for (const prNum of prNumbers) {
     const perPr = evaluatePr(prNum, args.repo ?? null, runGh, {
       skipCi: args.skipCi,
+      skipSlizard: args.skipSlizard,
       ignoreCheckNames: args.ciIgnoreChecks,
     });
     if (perPr === null) {

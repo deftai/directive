@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Merge-readiness now fails closed on a blocking SLizard review, not just Greptile (#2189).** `task pr:merge-ready` and `task swarm:verify-review-clean` now parse the SLizard check-run's structured verdict (`Decision`, `Merge impact`, severity counts) and block merge when SLizard is requesting changes or marks the change blocking — even when Greptile's own verdict and CI are clean. Previously a PR could merge through the `task pr:wait-mergeable-and-merge` cascade with an unresolved SLizard blocking finding. An absent SLizard check is treated as "skipped" (it's an optional second reviewer), and `--skip-slizard` is the explicit override. Closes #2189. Refs #2169, #1369.
 - **Mocked unit tests no longer depend on real network or subprocess latency (#2166).** Doctor payload-staleness branch tests, framework-command validation, and GitHub auth-mode CLI coverage now stub git-ls-remote, npm-view, filesystem-walk, and gh-auth seams so CI cannot spuriously hit 5s vitest timeouts under load. Closes #2166. Refs #1882, #644.
 
 ### Added

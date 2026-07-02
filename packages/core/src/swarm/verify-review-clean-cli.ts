@@ -9,6 +9,7 @@ export function verifyReviewCleanMain(argv: string[] = process.argv.slice(2)): n
   let repo: string | null = null;
   let emitJson = false;
   let skipCi = false;
+  let skipSlizard = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--cohort" && argv[i + 1] !== undefined) {
@@ -21,6 +22,8 @@ export function verifyReviewCleanMain(argv: string[] = process.argv.slice(2)): n
       emitJson = true;
     } else if (arg === "--skip-ci") {
       skipCi = true;
+    } else if (arg === "--skip-slizard") {
+      skipSlizard = true;
     } else if (arg === "--ci-ignore-check" && argv[i + 1] !== undefined) {
       ciIgnoreChecks.push(argv[i + 1] ?? "");
       i += 1;
@@ -36,6 +39,7 @@ export function verifyReviewCleanMain(argv: string[] = process.argv.slice(2)): n
     repo,
     emitJson,
     skipCi,
+    skipSlizard,
     ciIgnoreChecks,
   });
   if (result.stdout.length > 0) {

@@ -8,6 +8,7 @@ export interface ParsedArgs {
   readonly repo: string | null;
   readonly emitJson: boolean;
   readonly skipCi: boolean;
+  readonly skipSlizard: boolean;
   readonly ciIgnoreChecks: readonly string[];
   readonly error?: string;
 }
@@ -17,6 +18,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   let repo: string | null = null;
   let json = false;
   let skipCi = false;
+  let skipSlizard = false;
   const ciIgnoreChecks: string[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -25,6 +27,8 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       json = true;
     } else if (arg === "--skip-ci") {
       skipCi = true;
+    } else if (arg === "--skip-slizard") {
+      skipSlizard = true;
     } else if (arg === "--ci-ignore-check") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -33,6 +37,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
           repo,
           emitJson: json,
           skipCi,
+          skipSlizard,
           ciIgnoreChecks,
           error: "argument --ci-ignore-check: expected one argument",
         };
@@ -49,6 +54,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
           repo,
           emitJson: json,
           skipCi,
+          skipSlizard,
           ciIgnoreChecks,
           error: "argument --repo: expected one argument",
         };
@@ -63,6 +69,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
         repo,
         emitJson: json,
         skipCi,
+        skipSlizard,
         ciIgnoreChecks,
         error: `unrecognized arguments: ${arg}`,
       };
@@ -74,6 +81,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
           repo,
           emitJson: json,
           skipCi,
+          skipSlizard,
           ciIgnoreChecks,
           error: `invalid PR number: ${arg}`,
         };
@@ -85,6 +93,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
         repo,
         emitJson: json,
         skipCi,
+        skipSlizard,
         ciIgnoreChecks,
         error: `unrecognized arguments: ${arg}`,
       };
@@ -97,11 +106,12 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       repo,
       emitJson: json,
       skipCi,
+      skipSlizard,
       ciIgnoreChecks,
       error: "the following arguments are required: pr_number",
     };
   }
-  return { prNumber, repo, emitJson: json, skipCi, ciIgnoreChecks };
+  return { prNumber, repo, emitJson: json, skipCi, skipSlizard, ciIgnoreChecks };
 }
 
 export interface RunOptions {
@@ -118,6 +128,7 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   const runGh = options.runGh ?? defaultRunGh;
   const result = computeGateResult(args.prNumber as number, args.repo, runGh, {
     skipCi: args.skipCi,
+    skipSlizard: args.skipSlizard,
     ignoreCheckNames: args.ciIgnoreChecks,
   });
 

@@ -94,10 +94,11 @@ describe("payload-staleness offline-by-default gating (#2182)", () => {
     // the #2182 acceptance criteria calls out: "assert not-called-with-network".
     expect(spawnSyncMock).not.toHaveBeenCalled();
 
-    const payload = JSON.parse(stdout.join(""));
-    const finding = (payload.findings as Array<Record<string, unknown>>).find(
-      (f) => f.check === "payload-staleness",
-    );
+    const payload: unknown = JSON.parse(stdout.join(""));
+    expect(payload).not.toBeNull();
+    expect(typeof payload).toBe("object");
+    const findings = (payload as { findings: Array<Record<string, unknown>> }).findings;
+    const finding = findings.find((f) => f.check === "payload-staleness");
     expect(finding?.status).toBe("skip");
     expect(finding?.reason).toBe("offline-tier");
     expect(String(finding?.message)).toContain("--network");
