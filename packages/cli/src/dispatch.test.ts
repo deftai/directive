@@ -1,3 +1,5 @@
+import type { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -8,9 +10,16 @@ import {
   CLI_MODULE_VERBS,
   CORE_MODULE_VERBS,
   dispatch,
+  fetchAndVerifyGhxInstaller,
+  fetchAndVerifyGhxInstallerAsset,
+  GHX_COMMIT_SHA,
+  GHX_INSTALL_PS1_SHA256,
+  GHX_INSTALL_SH_SHA256,
   GHX_VERSION,
+  type GhxInstallerAsset,
   INSTALL_PS1_URL,
   INSTALL_SH_URL,
+  installVerifiedGhxAsset,
   parseDirectiveBootstrapArgs,
   printHelp,
   registeredVerbs,
@@ -21,6 +30,7 @@ import {
   SETUP_SKILL_REL_PATH,
   TRIAGE_ACTION_ALIAS_SUBCOMMANDS,
   VERB_ALIASES,
+  verifyGhxSha256,
 } from "./dispatch.js";
 
 const engineVersion = engineInfo().version;
@@ -1212,18 +1222,18 @@ describe("native setup:ghx handler (#2022)", () => {
     expect(VERB_ALIASES["setup:ghx"]).toBe("setup-ghx");
   });
 
-  it("skips install when ghx is already on PATH", () => {
+  it("skips install when ghx is already on PATH", async () => {
     const { io, out } = captureIo();
-    const code = runSetupGhx([], io, {
+    const code = await runSetupGhx([], io, {
       whichFn: (name) => (name === "ghx" ? "/usr/local/bin/ghx" : null),
     });
     expect(code).toBe(0);
     expect(out.join("")).toContain("ghx already on PATH");
   });
 
-  it("--check nudges directive setup:ghx when gh is present but ghx is missing", () => {
+  it("--check nudges directive setup:ghx when gh is present but ghx is missing", async () => {
     const { io, out } = captureIo();
-    const code = runSetupGhx(["--check"], io, {
+    const code = await runSetupGhx(["--check"], io, {
       whichFn: (name) => (name === "gh" ? "/usr/bin/gh" : null),
     });
     expect(code).toBe(0);
@@ -1231,9 +1241,9 @@ describe("native setup:ghx handler (#2022)", () => {
     expect(out.join("")).toContain("directive setup:ghx");
   });
 
-  it("declines install by default when consent is empty (default deny)", () => {
+  it("declines install by default when consent is empty (default deny)", async () => {
     const { io, out } = captureIo();
-    const code = runSetupGhx([], io, {
+    const code = await runSetupGhx([], io, {
       whichFn: () => null,
       readConsentLine: () => "\n",
     });
@@ -1241,10 +1251,10 @@ describe("native setup:ghx handler (#2022)", () => {
     expect(out.join("")).toContain("Skipping ghx install");
   });
 
-  it("installs only when consent is explicitly yes", () => {
+  it("installs only when consent is explicitly yes", async () => {
     const { io, out } = captureIo();
     let installed = false;
-    const code = runSetupGhx([], io, {
+    const code = await runSetupGhx([], io, {
       whichFn: () => null,
       readConsentLine: () => "yes\n",
       runInstall: () => {
@@ -1263,10 +1273,156 @@ describe("native setup:ghx handler (#2022)", () => {
     expect(result.err).toContain("mutually exclusive");
   });
 
-  it("pins installer URLs to GHX_VERSION", () => {
-    expect(INSTALL_PS1_URL).toContain(`/${GHX_VERSION}/`);
-    expect(INSTALL_SH_URL).toContain(`/${GHX_VERSION}/`);
+  it("pins installer URLs to the immutable GHX_COMMIT_SHA, not a mutable tag", () => {
+    expect(INSTALL_PS1_URL).toContain(`/${GHX_COMMIT_SHA}/`);
+    expect(INSTALL_SH_URL).toContain(`/${GHX_COMMIT_SHA}/`);
+    expect(GHX_COMMIT_SHA).toMatch(/^[0-9a-f]{40}$/);
+    expect(INSTALL_PS1_URL).not.toContain(`/${GHX_VERSION}/`);
+    expect(INSTALL_SH_URL).not.toContain(`/${GHX_VERSION}/`);
     expect(INSTALL_PS1_URL).not.toContain("/main/");
+  });
+
+  it("vendors 64-hex-char SHA-256 hashes for both installer scripts", () => {
+    expect(GHX_INSTALL_SH_SHA256).toMatch(/^[0-9a-f]{64}$/);
+    expect(GHX_INSTALL_PS1_SHA256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  // -------------------------------------------------------------------------
+  // #2178: download-verify-execute pipeline -- no live `curl | bash` /
+  // `irm | iex` pipe, no ExecutionPolicy Bypass, hash mismatch aborts before
+  // any execution.
+  // -------------------------------------------------------------------------
+
+  describe("verifyGhxSha256", () => {
+    it("matches case- and whitespace-insensitively", () => {
+      const buf = Buffer.from("hello world");
+      const expected = createHash("sha256").update(buf).digest("hex");
+      expect(verifyGhxSha256(buf, expected.toUpperCase())).toBe(true);
+      expect(verifyGhxSha256(buf, `  ${expected}\n`)).toBe(true);
+    });
+
+    it("rejects a mismatched hash", () => {
+      const buf = Buffer.from("hello world");
+      expect(verifyGhxSha256(buf, "0".repeat(64))).toBe(false);
+    });
+  });
+
+  describe("fetchAndVerifyGhxInstaller / fetchAndVerifyGhxInstallerAsset", () => {
+    it("hash mismatch aborts without writing or executing anything", async () => {
+      const downloadFn = vi.fn(async () => Buffer.from("tampered content"));
+      await expect(fetchAndVerifyGhxInstaller("linux", downloadFn)).rejects.toThrow(
+        /SHA-256 mismatch/,
+      );
+      expect(downloadFn).toHaveBeenCalledWith(INSTALL_SH_URL);
+    });
+
+    it("happy path downloads, verifies against a matching hash, and writes a local temp file", async () => {
+      const fixture = Buffer.from("#!/usr/bin/env bash\necho fixture installer\n");
+      const fixtureHash = createHash("sha256").update(fixture).digest("hex");
+      const downloadFn = vi.fn(async () => fixture);
+      const asset: GhxInstallerAsset = {
+        url: "https://example.invalid/install.sh",
+        sha256: fixtureHash,
+        fileExt: "sh",
+      };
+      const installerPath = await fetchAndVerifyGhxInstallerAsset(asset, downloadFn);
+      try {
+        expect(existsSync(installerPath)).toBe(true);
+        expect(readFileSync(installerPath)).toEqual(fixture);
+      } finally {
+        rmSync(dirname(installerPath), { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("installVerifiedGhxAsset / installSetupGhx (download -> verify -> execute)", () => {
+    it("executes the verified local temp file directly -- no pipe, no ExecutionPolicy Bypass", async () => {
+      const fixture = Buffer.from("#!/usr/bin/env bash\necho fixture installer\n");
+      const fixtureHash = createHash("sha256").update(fixture).digest("hex");
+      const downloadFn = vi.fn(async () => fixture);
+      const asset: GhxInstallerAsset = {
+        url: "https://example.invalid/install.sh",
+        sha256: fixtureHash,
+        fileExt: "sh",
+      };
+      let capturedCmd: string | undefined;
+      let capturedArgs: readonly string[] | undefined;
+      let capturedPath: string | undefined;
+      const runner = ((cmd: string, args: readonly string[]) => {
+        capturedCmd = cmd;
+        capturedArgs = args;
+        capturedPath = args[args.length - 1];
+        expect(capturedPath).toBeDefined();
+        expect(existsSync(capturedPath as string)).toBe(true);
+        return { status: 0 } as ReturnType<typeof spawnSync>;
+      }) as typeof spawnSync;
+
+      const code = await installVerifiedGhxAsset(asset, "linux", () => null, runner, downloadFn);
+
+      expect(code).toBe(0);
+      expect(capturedCmd).toBe("bash");
+      expect(capturedArgs).toHaveLength(1);
+      expect(capturedPath).not.toContain("|");
+      // Temp file is cleaned up after execution.
+      expect(existsSync(capturedPath as string)).toBe(false);
+    });
+
+    it("builds a Windows command with RemoteSigned, not Bypass, and no pipe", async () => {
+      const fixture = Buffer.from("Write-Host 'fixture installer'\n");
+      const fixtureHash = createHash("sha256").update(fixture).digest("hex");
+      const downloadFn = vi.fn(async () => fixture);
+      const asset: GhxInstallerAsset = {
+        url: "https://example.invalid/install.ps1",
+        sha256: fixtureHash,
+        fileExt: "ps1",
+      };
+      let capturedArgs: readonly string[] | undefined;
+      const runner = ((_cmd: string, args: readonly string[]) => {
+        capturedArgs = args;
+        return { status: 0 } as ReturnType<typeof spawnSync>;
+      }) as typeof spawnSync;
+
+      const code = await installVerifiedGhxAsset(asset, "windows", () => null, runner, downloadFn);
+
+      expect(code).toBe(0);
+      expect(capturedArgs).toContain("RemoteSigned");
+      expect(capturedArgs).not.toContain("Bypass");
+      expect(capturedArgs).toContain("-File");
+      expect(capturedArgs?.join(" ")).not.toMatch(/irm|iex|Invoke-Expression/);
+    });
+
+    it("propagates a hash mismatch without invoking the runner", async () => {
+      const downloadFn = vi.fn(async () => Buffer.from("tampered"));
+      const runner = vi.fn();
+      const asset: GhxInstallerAsset = {
+        url: "https://example.invalid/install.sh",
+        sha256: "0".repeat(64),
+        fileExt: "sh",
+      };
+      await expect(
+        installVerifiedGhxAsset(
+          asset,
+          "linux",
+          () => null,
+          runner as unknown as typeof spawnSync,
+          downloadFn,
+        ),
+      ).rejects.toThrow(/SHA-256 mismatch/);
+      expect(runner).not.toHaveBeenCalled();
+    });
+  });
+
+  it("consent gate is checked before any download or execution", async () => {
+    const { io, out } = captureIo();
+    const downloadFn = vi.fn();
+    const code = await runSetupGhx([], io, {
+      whichFn: () => null,
+      readConsentLine: () => "n\n",
+      downloadFn,
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("Skipping ghx install");
+    expect(downloadFn).not.toHaveBeenCalled();
   });
 });
 

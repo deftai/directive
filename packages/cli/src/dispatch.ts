@@ -4,16 +4,19 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readdirSync,
   readFileSync,
   readSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
 import {
@@ -1342,24 +1345,110 @@ function runPackMigrateSwarmSpec(argv: string[], io: DispatchIo): number {
 }
 
 // ===========================================================================
-// Native setup:ghx handler (#2022 Phase 1).
+// Native setup:ghx handler (#2022 Phase 1; #2178 download-verify-execute).
 //
 // Port of scripts/setup_ghx.py to native TypeScript: consent-gated ghx proxy
 // installer with three-state exit (0 ok / 1 install failure / 2 config error).
+//
+// #2178: the installer no longer pipes remote bytes straight into a shell
+// (`curl | bash` / `irm | iex`). Socket Security's AI-malware heuristic flags
+// exactly that live-pipe-with-no-integrity-check pattern and blocks every
+// consumer PR that bumps @deftai/directive (Socket scored the package ~65%
+// likely malicious, severity 0.78 -- seen on deftai/evolution#1046 / #1047).
+// Instead: download the installer script to memory, verify it against a
+// SHA-256 vendored below, write it to a private local temp file, and only
+// then execute that local file directly. The fetch URL also pins to the
+// immutable commit SHA that GHX_VERSION resolved to at vendor time (not the
+// mutable tag name), so a future tag force-move on the upstream repo cannot
+// swap the fetched bytes out from under the vendored hash without also
+// failing the hash check.
+//
+// Bumping GHX_VERSION (`.github/workflows/ci.yml` env.GHX_VERSION MUST stay
+// in lockstep):
+//   1. Resolve the new tag's commit SHA:
+//        gh api repos/brunoborges/ghx/git/refs/tags/<new-version>
+//      Use `object.sha`. If `object.type` is "tag" (an annotated tag, not a
+//      lightweight one), resolve one level further:
+//        gh api repos/brunoborges/ghx/git/tags/<object.sha>
+//      and use THAT response's `object.sha` (the commit, not the tag object).
+//   2. Refetch both installers at the resolved commit and recompute hashes:
+//        curl -fsSL https://raw.githubusercontent.com/brunoborges/ghx/<sha>/install.sh  | sha256sum
+//        curl -fsSL https://raw.githubusercontent.com/brunoborges/ghx/<sha>/install.ps1 | sha256sum
+//   3. Update GHX_VERSION, GHX_COMMIT_SHA, GHX_INSTALL_SH_SHA256, and
+//      GHX_INSTALL_PS1_SHA256 below IN THE SAME COMMIT as the matching
+//      `.github/workflows/ci.yml` env values -- never let the two drift.
 // ===========================================================================
 
-/** Pinned ghx version — keep in lockstep with .github/workflows/ci.yml env.GHX_VERSION. */
+/** Pinned ghx version (display only) — keep in lockstep with .github/workflows/ci.yml env.GHX_VERSION. */
 export const GHX_VERSION = "v1.5.1";
 
-export const INSTALL_PS1_URL = `https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.ps1`;
-export const INSTALL_SH_URL = `https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.sh`;
+/**
+ * Immutable commit SHA the GHX_VERSION tag resolved to at vendor time
+ * (2026-07-02, via `gh api repos/brunoborges/ghx/git/refs/tags/v1.5.1`).
+ * Fetch URLs pin to this SHA rather than the mutable tag name so a future
+ * tag force-move on brunoborges/ghx cannot silently swap the fetched bytes
+ * out from under the vendored SHA-256 hashes below (#2178).
+ */
+export const GHX_COMMIT_SHA = "aa4a2786660e27392b0d3e8886f140e0a0261a0c";
+
+export const INSTALL_PS1_URL = `https://raw.githubusercontent.com/brunoborges/ghx/${GHX_COMMIT_SHA}/install.ps1`;
+export const INSTALL_SH_URL = `https://raw.githubusercontent.com/brunoborges/ghx/${GHX_COMMIT_SHA}/install.sh`;
+
+/**
+ * SHA-256 of the installer scripts at GHX_COMMIT_SHA, vendored so the
+ * download-verify-execute pipeline below can refuse to run tampered bytes.
+ * Matches `.github/workflows/ci.yml` env.GHX_INSTALL_SH_SHA256 /
+ * GHX_INSTALL_PS1_SHA256 (#1070 / #1328) — keep both in lockstep (#2178).
+ */
+export const GHX_INSTALL_SH_SHA256 =
+  "08c768feb6d2bc485079898f7e76c2b07576cbb1188a356acf99dac0fc55d1cb";
+export const GHX_INSTALL_PS1_SHA256 =
+  "5f67eab68970ecc55bb0fc1b8399ba6f3ce4b2aadeee39255d628e96d187a5ed";
 
 export type SetupGhxHost = "windows" | "darwin" | "linux" | string;
+
+/** Downloads a URL and resolves to its raw bytes. Injectable so tests never hit the network. */
+export type GhxDownloadFn = (url: string) => Promise<Buffer>;
+
+async function defaultGhxDownload(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`download failed: HTTP ${res.status} ${res.statusText} for ${url}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
+
+/** True when `buf`'s SHA-256 (hex) matches `expectedHex`, case- and whitespace-insensitive. */
+export function verifyGhxSha256(buf: Buffer, expectedHex: string): boolean {
+  const actual = createHash("sha256").update(buf).digest("hex");
+  return actual.toLowerCase() === expectedHex.trim().toLowerCase();
+}
+
+export interface GhxInstallerAsset {
+  url: string;
+  sha256: string;
+  fileExt: "sh" | "ps1";
+}
+
+export function resolveGhxInstallerAsset(host: SetupGhxHost): GhxInstallerAsset {
+  if (host === "windows") {
+    return { url: INSTALL_PS1_URL, sha256: GHX_INSTALL_PS1_SHA256, fileExt: "ps1" };
+  }
+  if (host === "darwin" || host === "linux") {
+    return { url: INSTALL_SH_URL, sha256: GHX_INSTALL_SH_SHA256, fileExt: "sh" };
+  }
+  throw new Error(
+    `no upstream ghx installer available for host '${host}'; ` +
+      "see https://github.com/brunoborges/ghx#install for manual options",
+  );
+}
 
 export interface SetupGhxDeps {
   whichFn?: WhichFn;
   readConsentLine?: () => string;
-  runInstall?: (host: SetupGhxHost) => number;
+  runInstall?: (host: SetupGhxHost) => number | Promise<number>;
+  downloadFn?: GhxDownloadFn;
+  runner?: typeof spawnSync;
 }
 
 interface SetupGhxArgs {
@@ -1420,36 +1509,77 @@ export function promptSetupGhxConsent(
   return answer === "y" || answer === "yes";
 }
 
-export function buildSetupGhxInstallCommand(
-  host: SetupGhxHost,
-  whichFn: WhichFn = defaultWhich,
-): string[] {
-  if (host === "windows") {
-    const psBin = whichFn("pwsh") ?? whichFn("powershell") ?? "powershell";
-    return [
-      psBin,
-      "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-Command",
-      `irm ${INSTALL_PS1_URL} | iex`,
-    ];
-  }
-  if (host === "darwin" || host === "linux") {
-    return ["bash", "-c", `curl -fsSL ${INSTALL_SH_URL} | bash`];
-  }
-  throw new Error(
-    `no upstream ghx installer available for host '${host}'; ` +
-      "see https://github.com/brunoborges/ghx#install for manual options",
-  );
+function ghxTempFileName(fileExt: "sh" | "ps1"): string {
+  return `ghx-install-${GHX_VERSION}.${fileExt}`;
 }
 
-export function installSetupGhx(
+/**
+ * Downloads `asset`, verifies it against its vendored SHA-256, and writes it
+ * to a private local temp file. Returns the local path, ready for direct
+ * local-file execution (never piped into a shell). Throws -- without
+ * writing or executing anything -- on a hash mismatch (#2178). Split out
+ * from `fetchAndVerifyGhxInstaller` so tests can exercise the download ->
+ * verify -> write pipeline against a synthetic asset/hash without depending
+ * on the real vendored constants or the network.
+ */
+export async function fetchAndVerifyGhxInstallerAsset(
+  asset: GhxInstallerAsset,
+  downloadFn: GhxDownloadFn = defaultGhxDownload,
+): Promise<string> {
+  const bytes = await downloadFn(asset.url);
+  if (!verifyGhxSha256(bytes, asset.sha256)) {
+    const actual = createHash("sha256").update(bytes).digest("hex");
+    throw new Error(
+      `ghx installer SHA-256 mismatch for ${asset.url} ` +
+        `(expected ${asset.sha256}, got ${actual}); refusing to execute. ` +
+        "The pinned commit's bytes may have changed, or the download was tampered with.",
+    );
+  }
+  const dir = mkdtempSync(join(tmpdir(), "deft-ghx-"));
+  const installerPath = join(dir, ghxTempFileName(asset.fileExt));
+  writeFileSync(installerPath, bytes, { mode: 0o700 });
+  return installerPath;
+}
+
+/**
+ * Downloads the pinned installer for `host`, verifies it against the
+ * vendored SHA-256, and writes it to a private local temp file. Returns the
+ * local path, ready for direct local-file execution (never piped into a
+ * shell). Throws -- without writing or executing anything -- on a hash
+ * mismatch (#2178).
+ */
+export async function fetchAndVerifyGhxInstaller(
   host: SetupGhxHost,
+  downloadFn: GhxDownloadFn = defaultGhxDownload,
+): Promise<string> {
+  return fetchAndVerifyGhxInstallerAsset(resolveGhxInstallerAsset(host), downloadFn);
+}
+
+/**
+ * Executes an already-downloaded, hash-verified installer from its local
+ * temp path. No live pipe (`curl | bash` / `irm | iex`) and no
+ * `-ExecutionPolicy Bypass` -- the file is written by Node, so it never
+ * carries a Windows Mark-of-the-Web zone identifier the way a browser or
+ * `Invoke-WebRequest` download would; `RemoteSigned` treats it as a local,
+ * unsigned-but-trusted script (#2178).
+ */
+export function executeVerifiedGhxInstaller(
+  host: SetupGhxHost,
+  installerPath: string,
   whichFn: WhichFn = defaultWhich,
   runner: typeof spawnSync = spawnSync,
 ): number {
-  const cmd = buildSetupGhxInstallCommand(host, whichFn);
+  const cmd =
+    host === "windows"
+      ? [
+          whichFn("pwsh") ?? whichFn("powershell") ?? "powershell",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "RemoteSigned",
+          "-File",
+          installerPath,
+        ]
+      : ["bash", installerPath];
   const proc = runner(cmd[0] ?? "", cmd.slice(1), {
     env: { ...process.env, GHX_VERSION },
     stdio: "inherit",
@@ -1457,8 +1587,52 @@ export function installSetupGhx(
   return proc.status ?? 1;
 }
 
+/**
+ * Downloads, hash-verifies, and executes `asset` for `host`. Cleans up the
+ * temp file (and its containing directory) regardless of outcome. Split out
+ * from `installSetupGhx` so tests can exercise the full download -> verify
+ * -> execute -> cleanup pipeline against a synthetic asset without depending
+ * on the real vendored constants or the network (#2178).
+ */
+export async function installVerifiedGhxAsset(
+  asset: GhxInstallerAsset,
+  host: SetupGhxHost,
+  whichFn: WhichFn = defaultWhich,
+  runner: typeof spawnSync = spawnSync,
+  downloadFn: GhxDownloadFn = defaultGhxDownload,
+): Promise<number> {
+  const installerPath = await fetchAndVerifyGhxInstallerAsset(asset, downloadFn);
+  try {
+    return executeVerifiedGhxInstaller(host, installerPath, whichFn, runner);
+  } finally {
+    try {
+      rmSync(dirname(installerPath), { recursive: true, force: true });
+    } catch {
+      // Best-effort cleanup; a leftover temp file is not fatal.
+    }
+  }
+}
+
+/**
+ * Downloads, hash-verifies, and executes the ghx installer for `host`.
+ * Cleans up the temp file (and its containing directory) regardless of
+ * outcome (#2178).
+ */
+export async function installSetupGhx(
+  host: SetupGhxHost,
+  whichFn: WhichFn = defaultWhich,
+  runner: typeof spawnSync = spawnSync,
+  downloadFn: GhxDownloadFn = defaultGhxDownload,
+): Promise<number> {
+  return installVerifiedGhxAsset(resolveGhxInstallerAsset(host), host, whichFn, runner, downloadFn);
+}
+
 /** Native `setup:ghx` handler (replaces scripts/setup_ghx.py shell-out, #2022 Phase 1). */
-export function runSetupGhx(argv: string[], io: DispatchIo, deps: SetupGhxDeps = {}): number {
+export async function runSetupGhx(
+  argv: string[],
+  io: DispatchIo,
+  deps: SetupGhxDeps = {},
+): Promise<number> {
   const args = parseSetupGhxArgs(argv);
   if (args.error !== undefined) {
     io.writeErr(`setup-ghx: ${args.error}\n`);
@@ -1516,9 +1690,11 @@ export function runSetupGhx(argv: string[], io: DispatchIo, deps: SetupGhxDeps =
   }
 
   const host = detectSetupGhxHost();
-  const runInstall = deps.runInstall ?? ((h) => installSetupGhx(h, whichFn));
+  const runInstall =
+    deps.runInstall ??
+    ((h: SetupGhxHost) => installSetupGhx(h, whichFn, deps.runner, deps.downloadFn));
   try {
-    const rc = runInstall(host);
+    const rc = await runInstall(host);
     if (rc !== 0) {
       io.writeErr(
         `[setup_ghx] error: upstream installer exited ${rc}. ` +
