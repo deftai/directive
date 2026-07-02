@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
-import { DEFAULT_TRIAGE_SCOPE, PROJECT_DEFINITION_REL_PATH } from "./constants.js";
+import { DEFAULT_TRIAGE_SCOPE } from "./constants.js";
 
 export function projectDefinitionPath(projectRoot: string): string {
-  return join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+  return resolveProjectDefinitionPath(resolve(projectRoot));
 }
 
 export function loadProjectDefinition(projectRoot: string): Record<string, unknown> | null {

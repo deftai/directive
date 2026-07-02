@@ -13,7 +13,7 @@ import { evaluateRules } from "./evaluate.js";
 import { inferRepoFromIssues } from "./milestone.js";
 import { subscriptionHash } from "./normalize.js";
 import { renderList } from "./renderers.js";
-import { resolveScopeRules } from "./resolve.js";
+import { getRawScope, loadProjectDefinition, resolveScopeRules } from "./resolve.js";
 import { validateScopeRules } from "./validate.js";
 
 function writePd(root: string, plan: Record<string, unknown>): void {
@@ -85,6 +85,32 @@ describe("resolveScopeRules", () => {
     const custom = [{ rule: "labels", "any-of": ["bug"] }];
     writePd(root, { title: "x", status: "running", items: [], policy: { triageScope: custom } });
     expect(resolveScopeRules(root)).toEqual(custom);
+  });
+
+  // #2211: after the vbrief->xbrief migration the resolver MUST read
+  // plan.policy.triageScope from xbrief/PROJECT-DEFINITION.xbrief.json instead
+  // of silently falling back to DEFAULT_TRIAGE_SCOPE.
+  it("honors custom triageScope on a migrated xbrief tree", () => {
+    const root = mkdtempSync(join(tmpdir(), "scope-xbrief-"));
+    const custom = [{ rule: "labels", "any-of": ["epic"] }];
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "seed.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "s", status: "running" } }),
+      "utf8",
+    );
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "p", status: "running", policy: { triageScope: custom } },
+      }),
+      "utf8",
+    );
+    const data = loadProjectDefinition(root);
+    expect(getRawScope(data)).toEqual(custom);
+    expect(resolveScopeRules(root)).toEqual(custom);
+    expect(resolveScopeRules(root)).not.toEqual([{ rule: "all-open" }]);
   });
 });
 
