@@ -116,8 +116,15 @@ describe("project-definition-sync branches", () => {
       xbrief,
       "pending",
     );
-    const pd = JSON.parse(readFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
-    expect(pd.plan.references[0].uri).toBe("file://pending/top.xbrief.json");
+    const pd = JSON.parse(
+      readFileSync(join(xbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ) as unknown;
+    if (pd === null || typeof pd !== "object") {
+      throw new Error("expected object PROJECT-DEFINITION");
+    }
+    expect((pd as { plan: { references: Array<{ uri: string }> } }).plan.references[0].uri).toBe(
+      "file://pending/top.xbrief.json",
+    );
   });
 
   it("rewrites top-level plan references with file:// prefix", () => {
