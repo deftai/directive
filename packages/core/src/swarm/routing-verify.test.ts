@@ -123,6 +123,20 @@ describe("verifyRouting (advise posture, never blocks)", () => {
     expect(r.report).toContain("undecided");
   });
 
+  it("resolves provider cursor from CURSOR_AGENT without --provider override (#1877)", () => {
+    const { dir, env } = withRouteFile({
+      cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+    });
+    cleanups.push(dir);
+    const r = verifyRouting({
+      projectRoot: dir,
+      environ: { ...env, CURSOR_AGENT: "1" },
+      advise: true,
+    });
+    expect(r.exitCode).toBe(0);
+    expect(r.report).toContain("provider 'cursor'");
+  });
+
   it("exit 0 even on a malformed route file (advisory)", () => {
     const { dir, env } = withRouteFile("{not json");
     cleanups.push(dir);

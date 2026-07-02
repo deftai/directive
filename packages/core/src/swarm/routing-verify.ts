@@ -8,13 +8,13 @@
  *       1 = at least one in-scope role is undecided / not dispatchable
  *       2 = config error (unreadable / malformed route file)
  */
-import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import {
   dispatchProviderFromRuntime,
   HARNESS_BOUND_PROVIDERS,
   loadRoutingFile,
   ROUTING_MODE_HARNESS_DEFAULT,
+  resolveDispatchProvider,
   resolveModelRoute,
   resolveRoutingPath,
 } from "./routing.js";
@@ -33,7 +33,7 @@ export interface VerifyRoutingOptions {
   advise?: boolean;
   /** Override the resolved provider (else derived from the runtime). */
   provider?: string | null;
-  /** Inject the runtime descriptor (else getPlatformCapabilities().runtimeMode). */
+  /** Inject the runtime descriptor (legacy test seam; else resolveDispatchProvider). */
   runtimeProbe?: () => string;
 }
 
@@ -46,14 +46,16 @@ function resolveProvider(options: VerifyRoutingOptions): string {
   if (options.provider !== undefined && options.provider !== null && options.provider.length > 0) {
     return options.provider;
   }
-  const probe = options.runtimeProbe ?? (() => getPlatformCapabilities().runtimeMode);
-  let runtimeMode = "";
-  try {
-    runtimeMode = probe();
-  } catch {
-    runtimeMode = "";
+  if (options.runtimeProbe !== undefined) {
+    let runtimeMode = "";
+    try {
+      runtimeMode = options.runtimeProbe();
+    } catch {
+      runtimeMode = "";
+    }
+    return dispatchProviderFromRuntime(runtimeMode);
   }
-  return dispatchProviderFromRuntime(runtimeMode);
+  return resolveDispatchProvider(options.environ ?? process.env);
 }
 
 export function verifyRouting(options: VerifyRoutingOptions): VerifyRoutingResult {

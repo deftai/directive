@@ -96,7 +96,7 @@ Worked example (a tiered leaf worker on Composer):
 - model_source: cursor-route
 ```
 
-! Pre-dispatch gate (#1739): run `task verify:routing` before spawning a cohort -- it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. Session start runs `task verify:routing -- --advise` (non-blocking disclosure).
+! Pre-dispatch gate (#1739 / #1877): run `task verify:routing` before spawning ANY sub-agent (cohort OR solo) — it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. `task verify:story-ready` chains the same routing gate for single Cursor/Grok Task dispatches (#1877). Session start runs `task verify:routing -- --advise` (non-blocking disclosure).
 
 Reference: `.deft/routing.local.json` + `task swarm:routing-set` + `task verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `scripts/policy.py` `SWARM_WORKER_ROLES`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
 

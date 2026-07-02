@@ -51,8 +51,9 @@ function buildRepo(status = "running"): { root: string; vbriefPath: string } {
 function silentRun(argv: string[]): number {
   const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
   const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+  const args = argv.includes("--skip-routing") ? argv : [...argv, "--skip-routing"];
   try {
-    return run(argv);
+    return run(args);
   } finally {
     out.mockRestore();
     err.mockRestore();
@@ -176,12 +177,63 @@ describe("run", () => {
     const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     try {
-      expect(run(["--vbrief-path", vbriefPath, "--project-root", root, "--json"])).toBe(0);
+      expect(
+        run(["--vbrief-path", vbriefPath, "--project-root", root, "--json", "--skip-routing"]),
+      ).toBe(0);
       const written = out.mock.calls.map((c) => String(c[0])).join("");
       expect(written).toContain('"ready":true');
     } finally {
       out.mockRestore();
       err.mockRestore();
+    }
+  });
+
+  it("chains verify:routing for cursor provider when routing is undecided (#1877)", () => {
+    const saved = process.env.CURSOR_AGENT;
+    process.env.CURSOR_AGENT = "1";
+    const { root, vbriefPath } = buildRepo();
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(run(["--vbrief-path", vbriefPath, "--project-root", root])).toBe(1);
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+      if (saved === undefined) {
+        delete process.env.CURSOR_AGENT;
+      } else {
+        process.env.CURSOR_AGENT = saved;
+      }
+    }
+  });
+
+  it("passes routing gate for cursor when leaf-implementation is decided (#1877)", () => {
+    const savedAgent = process.env.CURSOR_AGENT;
+    const savedRouting = process.env.DEFT_ROUTING_PATH;
+    process.env.CURSOR_AGENT = "1";
+    const { root, vbriefPath } = buildRepo();
+    const routingPath = join(root, ".deft", "routing.local.json");
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      routingPath,
+      JSON.stringify({
+        cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+      }),
+    );
+    process.env.DEFT_ROUTING_PATH = routingPath;
+    try {
+      expect(run(["--vbrief-path", vbriefPath, "--project-root", root, "--allow-dirty"])).toBe(0);
+    } finally {
+      if (savedAgent === undefined) {
+        delete process.env.CURSOR_AGENT;
+      } else {
+        process.env.CURSOR_AGENT = savedAgent;
+      }
+      if (savedRouting === undefined) {
+        delete process.env.DEFT_ROUTING_PATH;
+      } else {
+        process.env.DEFT_ROUTING_PATH = savedRouting;
+      }
     }
   });
 });

@@ -9,6 +9,7 @@ import {
   ROUTING_MODE_HARNESS_DEFAULT,
   ROUTING_MODE_PINNED,
   type RoutingFile,
+  resolveDispatchProvider,
   resolveModelRoute,
   resolveRoutingPath,
   SWARM_WORKER_ROLES,
@@ -85,6 +86,27 @@ describe("dispatchProviderFromRuntime", () => {
   it("passes through unknown and defaults empty", () => {
     expect(dispatchProviderFromRuntime("warp")).toBe("warp");
     expect(dispatchProviderFromRuntime("")).toBe("unknown");
+  });
+});
+
+describe("resolveDispatchProvider (#1877)", () => {
+  it("maps Cursor env signals to cursor even when runtime_mode would be cloud-headless", () => {
+    expect(resolveDispatchProvider({ CURSOR_AGENT: "1", CI: "true" })).toBe("cursor");
+    expect(resolveDispatchProvider({ CURSOR_COMPOSER: "1" })).toBe("cursor");
+  });
+
+  it("maps grok-build signals to grok", () => {
+    expect(resolveDispatchProvider({ GROK_BUILD: "true" })).toBe("grok");
+    expect(resolveDispatchProvider({ DEFT_AGENT_RUNTIME: "grok-build" })).toBe("grok");
+  });
+
+  it("maps CI without Cursor composer to cloud-headless", () => {
+    expect(resolveDispatchProvider({ CI: "true" })).toBe("cloud-headless");
+    expect(resolveDispatchProvider({ GITHUB_ACTIONS: "true" })).toBe("cloud-headless");
+  });
+
+  it("returns unknown for a plain local shell", () => {
+    expect(resolveDispatchProvider({})).toBe("unknown");
   });
 });
 

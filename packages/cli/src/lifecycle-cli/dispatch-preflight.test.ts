@@ -75,6 +75,7 @@ describe("deft-ts preflight / verify gates (#1838 s3)", () => {
       vbriefPath,
       "--project-root",
       root,
+      "--skip-routing",
     ]);
     const alias = await runDispatch([
       "verify:story-ready",
@@ -82,6 +83,7 @@ describe("deft-ts preflight / verify gates (#1838 s3)", () => {
       vbriefPath,
       "--project-root",
       root,
+      "--skip-routing",
     ]);
     expect(alias.exitCode).toBe(canonical.exitCode);
     expect(canonical.exitCode).toBe(0);

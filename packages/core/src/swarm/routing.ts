@@ -38,6 +38,15 @@ export const ROUTING_FILENAME = "routing.local.json";
 /** Providers whose model is harness-bound -- deft cannot pin or verify a slug. */
 export const HARNESS_BOUND_PROVIDERS = new Set<string>(["grok"]);
 
+/** Providers whose per-role model must be decided before sub-agent dispatch (#1739 / #1877). */
+export const ROUTING_GATED_DISPATCH_PROVIDERS = new Set<string>(["cursor", "grok"]);
+
+const TRUTHY_ENV = new Set(["1", "true", "yes", "on"]);
+
+function envTruthy(environ: NodeJS.ProcessEnv, name: string): boolean {
+  return TRUTHY_ENV.has((environ[name] ?? "").trim().toLowerCase());
+}
+
 export interface RouteDecision {
   model: string | null;
   mode?: string;
@@ -188,6 +197,33 @@ export function dispatchProviderFromRuntime(runtimeMode: string): string {
     return "cursor";
   }
   return normalized;
+}
+
+/**
+ * Resolve the `dispatch_provider` routing key from the active runtime envelope.
+ * Separate from `runtime_mode` (#1557): Cursor sessions may carry
+ * `runtime_mode=cloud-headless` for gh-auth purposes but route under provider
+ * `cursor` for model selection (#1877).
+ */
+export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env): string {
+  if (envTruthy(environ, "CURSOR_COMPOSER") || envTruthy(environ, "CURSOR_AGENT")) {
+    return "cursor";
+  }
+  const runtime = (environ.DEFT_AGENT_RUNTIME ?? "").trim().toLowerCase();
+  if (envTruthy(environ, "GROK_BUILD") || runtime === "grok-build") {
+    return "grok";
+  }
+  if (runtime === "cloud" || runtime === "headless") {
+    return "cloud-headless";
+  }
+  if (
+    envTruthy(environ, "GITHUB_ACTIONS") ||
+    envTruthy(environ, "BUILDKITE") ||
+    (envTruthy(environ, "CI") && !envTruthy(environ, "CURSOR_COMPOSER"))
+  ) {
+    return "cloud-headless";
+  }
+  return "unknown";
 }
 
 /**

@@ -21,8 +21,8 @@ import {
 } from "./constants.js";
 import { readinessReport } from "./readiness.js";
 import {
-  dispatchProviderFromRuntime,
   loadRoutingFile,
+  resolveDispatchProvider,
   resolveModelRoute,
   resolveRoutingPath,
 } from "./routing.js";
@@ -679,7 +679,7 @@ export function swarmLaunch(args: LaunchArgs): {
   let modelSource: string | null = null;
   let routingProvider: string | null = null;
   if (routingFile !== null) {
-    routingProvider = dispatchProviderFromRuntime(runtimeMode);
+    routingProvider = resolveDispatchProvider(process.env);
     const route = resolveModelRoute(routingFile, routingProvider, LEAF_CODING_WORKER_ROLE);
     // A malformed decision object must fail loud here: the legacy backend gate
     // was already bypassed above (routingFile !== null), so silently continuing

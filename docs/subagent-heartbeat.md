@@ -16,6 +16,25 @@ other two produced **zero** observable signals (no commits, no PR
 comments, no messages). The monitor could not tell whether they were
 working, stalled, or dead. This contract closes that visibility gap.
 
+## Cursor Task pollers (#1877)
+
+! Every long-running Cursor `Task` sub-agent (review-monitor poller,
+implementation worker whose tool loop is expected to exceed ~3 minutes,
+or any backgrounded `run_in_background: true` worker) MUST honour this
+heartbeat contract — same obligation as the `spawn_subagent` path above
+(#1166). The Cursor completion-notification channel does NOT replace
+periodic heartbeats; it only signals terminal completion.
+
+~ Cursor pollers write to the same `.deft-scratch/subagent-status/<agent-id>.json`
+path and schema documented below. The monitor helper
+(`scripts/subagent_monitor.py`) reads both Grok Build and Cursor poller
+records from that directory without a separate Cursor-specific surface.
+
+Cross-references: `skills/deft-directive-review-cycle/SKILL.md` Review
+Monitoring (Approach 1 / heartbeat contract for Cursor pollers),
+`skills/deft-directive-swarm/SKILL.md` Phase 3 Step 2e (Cursor launch).
+Refs #1877, #1166.
+
 ## Where heartbeats live
 
 ! Every long-running sub-agent (review-cycle poller, watchdog, or

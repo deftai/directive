@@ -1,0 +1,108 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for the #1877 residual: add Cursor as an explicit Tier-1 descriptor in the swarm Phase 3 + review-cycle monitoring matrices, resolve verify:routing as 'cursor' (not cloud-headless) in Cursor, wire verify:routing into the single-dispatch pre-dispatch gate stack, and extend the #1166 heartbeat to Cursor pollers >3min. Parent #935.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "1877-cursor-tier1-descriptor-routing",
+    "title": "Cursor Tier-1 descriptor + single-dispatch routing enforcement + cursor provider resolution",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/1877",
+    "narratives": {
+      "Description": "Cursor has a first-class backgroundable sub-agent primitive (the Task tool) and is therefore Tier 1, but the swarm Phase 3 Step 1 detection matrix and the review-cycle Review Monitoring tier table never probe for it, so a Cursor agent falls through to generic-terminal / a blocking poll. Separately, `task verify:routing` resolves the provider as 'cloud-headless' when running in Cursor (confirmed live), and the routing gate is only wired for swarm cohorts -- a single Cursor Task dispatch can silently inherit the parent model with no resolved-model enforcement (the exact miss observed in the #1882 Wave-3 swarm). This story delivers the documented #1877 residual (AC1 + AC3 + the #1880-folded single-dispatch + cursor-provider items + optional stretch verify check).",
+      "ImplementationPlan": "1. Cursor provider descriptor: make provider detection resolve 'cursor' (cursor-composer interactive / cursor-cloud-agent cloud, Task-tool dispatch primitive) when running under Cursor, so `task verify:routing` and the session advisory bucket routes under a Cursor provider rather than falling through to cloud-headless/generic-terminal. Find the provider-detection code path used by swarm-routing-verify / the routing resolver (packages/core / packages/cli). Preserve existing providers. 2. Tier-1 matrices: add the Cursor descriptor mapped to Tier 1 -> Approach 1 (backgrounded Task poller) in content/skills/deft-directive-swarm/SKILL.md Phase 3 Step 1 detection matrix AND content/skills/deft-directive-review-cycle/SKILL.md Review Monitoring tier table. 3. Single-dispatch routing enforcement (folded from #1880): wire `verify:routing` into the canonical single-dispatch pre-dispatch gate stack (not just cohorts) so any single Cursor Task implementation/monitor dispatch requires a resolved model for the dispatched role -- fail or prompt when undecided. 4. Heartbeat: extend the #1166 heartbeat contract (docs/subagent-heartbeat.md) requirement to Cursor pollers whose loop runs > ~3 min, same as the spawn_subagent path. 5. Stretch (include if low-cost): a deterministic verify:/detection helper so 'Cursor -> Tier 1' is machine-resolved rather than prose-trusted. 6. If any consumer-relevant managed-section rule changes, mirror into content/templates/agents-entry.md and run `task agents:refresh` (template-propagation discipline #1309). Update content contract tests (skills/preamble) as needed. 7. CHANGELOG [Unreleased] entry. New source files get tests. Run `task check` green.",
+      "UserStory": "As an agent orchestrating a swarm from Cursor, I want Cursor recognized as a Tier-1 dispatch provider so routing resolves under a Cursor bucket, monitoring uses a backgrounded Task poller (not a blocking loop), and even a single Task dispatch is gated on a resolved model -- so the parent-model-inheritance miss cannot recur silently.",
+      "Traces": "#1877, #1880, #1739, #1531, #1342, #1166, #935"
+    },
+    "items": [
+      {
+        "id": "c-a1",
+        "title": "verify:routing resolves as a Cursor provider in Cursor",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an agent running under Cursor, when `task verify:routing` (and the session advisory) run, then the resolved provider is a Cursor descriptor (cursor-composer / cursor-cloud-agent), not cloud-headless / generic-terminal."
+        }
+      },
+      {
+        "id": "c-a2",
+        "title": "Cursor is a Tier-1 descriptor in both matrices",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the swarm Phase 3 Step 1 detection matrix and the review-cycle Review Monitoring tier table, when read, then each enumerates a Cursor descriptor (Task-tool primitive) mapped to Tier 1 -> Approach 1 (backgrounded Task poller); a content-contract test asserts it."
+        }
+      },
+      {
+        "id": "c-a3",
+        "title": "Single Cursor Task dispatch is gated on a resolved model",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a single (non-cohort) Cursor Task implementation/monitor dispatch, when the pre-dispatch gate stack runs, then `verify:routing` requires a resolved model for the dispatched role and fails/prompts when the role is undecided."
+        }
+      },
+      {
+        "id": "c-a4",
+        "title": "Heartbeat extended to Cursor pollers >3min",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a Cursor poller whose loop runs > ~3 min, when the guidance is read, then the #1166 heartbeat contract requirement explicitly applies to it, same as the spawn_subagent path."
+        }
+      },
+      {
+        "id": "c-a5",
+        "title": "task check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given `task check`, when it runs on the PR, then content-contract tests, any new verify check, verify:encoding, and the full suite pass; template propagation ran if a consumer-relevant rule changed."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#935",
+        "child_issue": "#1877"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src (provider detection / routing resolver)",
+          "packages/cli/src (verify:routing single-dispatch wiring)",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/templates/agent-prompt-preamble.md",
+          "docs/subagent-heartbeat.md",
+          "tests",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "Cursor resolves as a Tier-1 provider in verify:routing + both monitoring matrices; single-dispatch routing gate enforces a resolved model; heartbeat extended to Cursor pollers >3min"
+        ],
+        "depends_on": [],
+        "conflict_group": "cursor-dispatch-wiring",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T14:15:58Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1877",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1877: Cursor Tier-1 descriptor in swarm + review-cycle matrices"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/935",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #935: beta readiness — cross-agent compat (parent)"
+      }
+    ],
+    "updated": "2026-07-02T14:15:58Z"
+  }
+}

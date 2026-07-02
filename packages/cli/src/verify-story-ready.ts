@@ -3,6 +3,11 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate, gitPorcelain, parseAllocationSection } from "@deftai/directive-core/story-ready";
+import {
+  ROUTING_GATED_DISPATCH_PROVIDERS,
+  resolveDispatchProvider,
+  verifyRouting,
+} from "@deftai/directive-core/swarm";
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -10,6 +15,8 @@ interface ParsedArgs {
   allocationContext: string | null;
   allowDirty: boolean;
   emitJson: boolean;
+  skipRouting: boolean;
+  roles: string[];
   help?: boolean;
   error?: string;
 }
@@ -22,6 +29,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     allocationContext: null,
     allowDirty: false,
     emitJson: false,
+    skipRouting: false,
+    roles: [],
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -57,6 +66,25 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--allocation-context=")) {
       parsed.allocationContext = arg.slice("--allocation-context=".length);
+    } else if (arg === "--skip-routing") {
+      parsed.skipRouting = true;
+    } else if (arg === "--roles") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --roles: expected one argument" };
+      }
+      for (const role of value.split(",")) {
+        if (role.trim().length > 0) {
+          parsed.roles.push(role.trim());
+        }
+      }
+      i += 1;
+    } else if (arg?.startsWith("--roles=")) {
+      for (const role of arg.slice("--roles=".length).split(",")) {
+        if (role.trim().length > 0) {
+          parsed.roles.push(role.trim());
+        }
+      }
     } else if (arg === "--help" || arg === "-h") {
       return { ...parsed, help: true };
     } else {
@@ -72,8 +100,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
 const HELP_TEXT = `usage: verify-story-ready [--vbrief-path PATH] [--project-root PATH]
                           [--allocation-context PATH] [--allow-dirty] [--json]
+                          [--skip-routing] [--roles ROLE[,ROLE...]]
 
-Deterministic story-start Gate 0 (#1378). Three-state exit: 0 ready / 1 not ready / 2 config error.
+Deterministic story-start Gate 0 (#1378). When the active dispatch provider is
+cursor or grok, chains verify:routing (#1877 single-dispatch enforcement).
+Three-state exit: 0 ready / 1 not ready / 2 config error.
 `;
 
 function emitJson(
@@ -136,6 +167,27 @@ export function run(argv: string[]): number {
     allowDirty: args.allowDirty,
     parsed,
   });
+
+  if (result.exitCode === 0 && !args.skipRouting) {
+    const provider = resolveDispatchProvider(process.env);
+    if (ROUTING_GATED_DISPATCH_PROVIDERS.has(provider)) {
+      const routingResult = verifyRouting({
+        projectRoot,
+        environ: process.env,
+        roles: args.roles.length > 0 ? args.roles : undefined,
+      });
+      if (routingResult.exitCode !== 0) {
+        if (args.emitJson) {
+          process.stdout.write(
+            `${emitJson(vbriefPath, routingResult.exitCode, routingResult.report, result.dispatchKind)}\n`,
+          );
+        } else {
+          process.stderr.write(`${routingResult.report}\n`);
+        }
+        return routingResult.exitCode;
+      }
+    }
+  }
 
   if (args.emitJson) {
     process.stdout.write(
