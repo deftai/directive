@@ -90,38 +90,17 @@ describe("test_agents_md_session_start", () => {
     expect(/^\u2297\s+Recommend/m.test(section)).toBe(true);
   });
 
-  it("skill_routing_triage_hygiene_entry_present", () => {
-    const routing = extractSection(agentsMdText, "Skill Routing");
-    expect(routing).toBeTruthy();
-    expect(routing).toContain('"triage hygiene"');
-    expect(routing).toContain('"work the cache"');
-    expect(routing).toContain("skills/deft-directive-triage/SKILL.md");
-  });
-
-  it("skill_routing_whats_next_entry_present", () => {
-    const routing = extractSection(agentsMdText, "Skill Routing");
-    expect(routing).toContain('"what\'s next"');
-    expect(routing).toContain('"queue"');
-    expect(routing).toContain('"build a cohort"');
-    expect(routing).toContain("skills/deft-directive-triage/SKILL.md");
-  });
-
-  it("skill_routing_welcome_entry_present", () => {
-    const routing = extractSection(agentsMdText, "Skill Routing");
-    expect(routing).toContain('"welcome"');
-    expect(routing).toContain('"onboard triage"');
-    expect(routing).toContain("task triage:welcome");
-    expect(routing).toContain("(N3 / #1143)");
-  });
-
-  it("skill_routing_refinement_amendment_present", () => {
-    const routing = extractSection(agentsMdText, "Skill Routing");
-    expect(routing).toContain("Phase 0 consults the triage cache first (see N1 / #1141)");
-  });
-
-  it("skill_routing_swarm_amendment_present", () => {
-    const routing = extractSection(agentsMdText, "Skill Routing");
-    expect(routing).toContain("Phase 0 is queue-driven (see N2 / #1142)");
+  // #838: the `## Skill Routing` keyword->path table moved to the REFERENCES.md
+  // Skills Index. AGENTS.md keeps only a `## Skills` pointer + the behavioral
+  // "Before Improvising" gate. The welcome/onboard-triage invocation is asserted
+  // via the propagation command markers in agents_entry_contract.test.ts.
+  it("skill_routing_table_replaced_with_pointer", () => {
+    expect(agentsMdText).not.toContain("## Skill Routing");
+    const skills = extractSection(agentsMdText, "Skills");
+    expect(skills).toBeTruthy();
+    expect(skills).toContain("Skills Index");
+    expect(skills).toContain("REFERENCES.md");
+    expect(skills).toContain("task triage:welcome --onboard");
   });
 
   it("pre_start_agent_gate_stack_paragraph_present", () => {

@@ -12,7 +12,6 @@ const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft verify:tools", "task verify:tools"],
   ["deft triage:welcome --onboard", "task triage:welcome --onboard"],
   ["deft triage:queue", "task triage:queue"],
-  ["triage <N>", "triage <N>"],
   ["deft verify:cache-fresh", "task verify:cache-fresh"],
   ["deft codebase:map", "task codebase:map"],
   ["deft verify:codebase-map-fresh", "task verify:codebase-map-fresh"],
@@ -70,7 +69,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
 const PROPAGATION_HEADER_MARKERS = [
   "## Session-start ritual (#1149)",
   "## Cache-as-authoritative work selection (#1149)",
-  "## Skill Routing",
+  "## Skills",
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
   "### Story Start Gate",
@@ -87,10 +86,32 @@ const PROPAGATION_ACTION_VERBS = [
   "start agent",
 ] as const;
 
-const PROPAGATION_PROBE_ROUTING_MARKERS = [
-  "run probe",
-  "/deft:run:probe",
-  "deft-directive-probe/SKILL.md",
+// #838: skill routing moved from the AGENTS.md `## Skill Routing` table to the
+// REFERENCES.md Skills Index. AGENTS.md keeps only a `## Skills` pointer.
+const SKILLS_POINTER_MARKERS = ["## Skills", "Skills Index", "REFERENCES.md"] as const;
+
+// Every non-deprecated skill catalogued under content/skills/ that the
+// REFERENCES.md Skills Index MUST list (name + description + triggers).
+const INDEXED_SKILL_IDS = [
+  "deft-directive-setup",
+  "deft-directive-cost",
+  "deft-directive-build",
+  "deft-directive-pre-pr",
+  "deft-directive-review-cycle",
+  "deft-directive-swarm",
+  "deft-directive-decompose",
+  "deft-directive-refinement",
+  "deft-directive-triage",
+  "deft-directive-sync",
+  "deft-directive-interview",
+  "deft-directive-probe",
+  "deft-directive-debug",
+  "deft-directive-glossary",
+  "deft-directive-gh-arch",
+  "deft-directive-gh-slice",
+  "deft-directive-release",
+  "deft-directive-write-skill",
+  "deft-directive-article-review",
 ] as const;
 
 const PROPAGATION_UMBRELLA_STATUS_MARKERS = [
@@ -166,9 +187,21 @@ describe("test_agents_entry_contract", () => {
     expect(missingMarkers(agents, PROPAGATION_ACTION_VERBS)).toEqual([]);
   });
 
-  it("propagation_probe_routing_markers_present_in_both_files", () => {
-    expect(missingMarkers(template, PROPAGATION_PROBE_ROUTING_MARKERS)).toEqual([]);
-    expect(missingMarkers(agents, PROPAGATION_PROBE_ROUTING_MARKERS)).toEqual([]);
+  it("skill_routing_table_removed_from_policy_files", () => {
+    // #838: the keyword->path routing table moved to the REFERENCES.md Skills Index.
+    expect(agents).not.toContain("## Skill Routing");
+    expect(template).not.toContain("## Skill Routing");
+  });
+
+  it("skills_pointer_present_in_both_files", () => {
+    expect(missingMarkers(template, SKILLS_POINTER_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, SKILLS_POINTER_MARKERS)).toEqual([]);
+  });
+
+  it("references_md_indexes_every_skill", () => {
+    const references = readRepoFile("REFERENCES.md");
+    expect(references).toContain("Skills Index");
+    expect(missingMarkers(references, INDEXED_SKILL_IDS)).toEqual([]);
   });
 
   it("propagation_umbrella_status_markers_present_in_both_files", () => {

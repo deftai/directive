@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #838 (unify skill routing + doc routing into a single REFERENCES.md Level-0 index; remove the Skill Routing table from AGENTS.md); child of the #1882 map-not-manual umbrella and a Wave-2 reduction that lowers the #645 ratchet.",
+    "created": "2026-07-01T00:00:00Z",
+    "updated": "2026-07-01T00:00:00Z"
+  },
+  "plan": {
+    "id": "838-unify-skill-doc-routing-references",
+    "title": "Unify skill routing and doc routing into a single REFERENCES.md Level-0 index",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/838",
+    "narratives": {
+      "Description": "Directive has two routing systems solving the same 'what do I load when condition X is true?' problem inconsistently: the task-triggered doc routing map in REFERENCES.md, and the keyword->path Skill Routing table hardcoded in AGENTS.md (and duplicated into the managed section via the #1309 propagation, so it appears twice in the maintainer AGENTS.md). The Skill Routing table is a content-routing index living in a policy file (wrong layer), has no descriptions (agents cannot judge relevance without reading full SKILL.md, defeating lazy loading), and is incomplete (only a subset of the skills catalog). This story removes the Skill Routing section from AGENTS.md (leaving the behavioral 'check skills/ before improvising' gate + a pointer to REFERENCES.md) and adds a Skills Index section to REFERENCES.md as the unified Level-0 index: name + one-sentence description + triggers for every skill. Because it is a reduction, it MUST lower the #645 ratchet (plan.policy.agentsMdBudget) to the new per-region line counts -- lowering the ratchet is the documented Wave-2 pattern from #1882.",
+      "ImplementationPlan": "1. Add a '## Skills Index' section near the top of REFERENCES.md (Level-0), with a table of every skill under content/skills/ (name | one-sentence description | trigger keywords), sourced from each SKILL.md frontmatter/description. Include the Level 0/1/2 loading semantics note. 2. Remove the '## Skill Routing' content-routing table from the maintainer AGENTS.md; replace with a one-line pointer to REFERENCES.md Skills Index. Preserve the behavioral 'Before Improvising' gate (scan content/skills/ before designing a workflow). 3. Remove the mirrored 'Skill Routing' block from content/templates/agents-entry.md (the managed-section source) and add the same pointer; then run `task agents:refresh` so the rendered managed section in AGENTS.md inherits the change (#1309 propagation discipline). 4. Update tests/content/test_agents_entry_contract.py: remove the skill-routing entries from the curated marker list so the whitespace-normalized containment check passes with routing no longer in the managed section (add the new pointer marker if appropriate). 5. Recompute the managed vs unmanaged AGENTS.md line counts after `agents:refresh` and LOWER plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} in xbrief/PROJECT-DEFINITION.xbrief.json to the new (smaller) counts, tightening the #645 ratchet toward the ceiling. 6. Add/adjust a deterministic check where cheap: a test asserting AGENTS.md no longer contains the old skill-routing trigger-table markers AND REFERENCES.md contains a Skills Index entry per shipped skill (or extend the existing contract test). 7. Add a CHANGELOG [Unreleased] entry (user-visible: agents now consult one Level-0 index for both skills and docs). Run `task check` (must be green, including verify:agents-md-budget, the agents-entry contract test, and verify:encoding).",
+      "UserStory": "As an agent (and as a directive maintainer), I want a single REFERENCES.md Level-0 index that routes to both skills and framework docs with descriptions, so that I can decide what to load by scanning one place, AGENTS.md stays a lean policy file, and adding a skill no longer requires editing the policy file.",
+      "Traces": "#838, #1882, #645, #644"
+    },
+    "items": [
+      {
+        "id": "838-a1",
+        "title": "Given REFERENCES.md, when an agent needs to pick a skill, then a Skills Index lists every skill with description + triggers",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given REFERENCES.md, when read at Level 0, then a '## Skills Index' section lists every skill under content/skills/ with a name, a one-sentence description, and trigger keywords, plus the Level 0/1/2 loading-semantics note."
+        }
+      },
+      {
+        "id": "838-a2",
+        "title": "Given AGENTS.md, when the Skill Routing table is removed, then only a behavioral gate + pointer to REFERENCES.md remain",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the maintainer AGENTS.md and content/templates/agents-entry.md, when the Skill Routing content table is removed, then the behavioral 'check skills/ before improvising' gate remains and a one-line pointer to the REFERENCES.md Skills Index replaces the table; `task agents:refresh` regenerates the managed section and the agents-entry contract test passes."
+        }
+      },
+      {
+        "id": "838-a3",
+        "title": "Given the reduction, when it lands, then the #645 ratchet is lowered to the new per-region counts",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the smaller AGENTS.md after refresh, when the PR lands, then plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} is lowered to the new counts and `task verify:agents-md-budget` passes at the tighter budget."
+        }
+      },
+      {
+        "id": "838-a4",
+        "title": "Given task check, when it runs on the PR, then all gates pass",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `task check`, when it runs on a PR touching AGENTS.md, the template, and REFERENCES.md, then the agents-entry contract test, verify:agents-md-budget, verify:encoding, and the full suite pass."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#838"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "REFERENCES.md",
+          "tests/content/test_agents_entry_contract.py",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "REFERENCES.md Skills Index is the unified Level-0 index for skills + docs; AGENTS.md Skill Routing table removed (behavioral gate + pointer retained); managed section refreshed; #645 ratchet lowered to new counts"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-legibility",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T02:24:09Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/838",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #838: unify skill routing and doc routing in REFERENCES.md"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: treat AGENTS.md as a map, not a manual (umbrella)"
+      }
+    ],
+    "updated": "2026-07-02T02:24:09Z"
+  }
+}

@@ -4,7 +4,6 @@ import {
   DEPRECATED_SKILL_REDIRECT_STUBS,
   PLATFORM_DETECTION_HEADING,
   RFC2119_LEGEND,
-  readAgentsMd,
   readRepoFile,
   readSkill,
   repoFileExists,
@@ -819,11 +818,12 @@ describe("test_skills", () => {
       .map((d) => d.name);
     expect(bareDeft).toEqual([]);
   });
-  it("agents_md_routing_all_deft_directive_paths", () => {
-    const text = readAgentsMd();
-    const paths = [...text.matchAll(/\u2192\s+`(content\/skills\/[^`]+)`/g)].map((m) => m[1]);
+  it("references_md_index_all_deft_directive_paths", () => {
+    // #838: skill routing moved from AGENTS.md to the REFERENCES.md Skills Index.
+    const text = readRepoFile("REFERENCES.md");
+    const paths = [...text.matchAll(/content\/skills\/([a-z0-9-]+)\/SKILL\.md/g)].map((m) => m[1]);
     expect(paths.length).toBeGreaterThan(0);
-    const nonDirective = paths.filter((p) => !p.includes("deft-directive-"));
+    const nonDirective = paths.filter((p) => !p.startsWith("deft-directive-"));
     expect(nonDirective).toEqual([]);
   });
   it("deft_directive_swarm_see_also_link_correct", () => {

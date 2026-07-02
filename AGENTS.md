@@ -103,29 +103,9 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 - ! When the MAP is wrong, update `plan.architecture.codeStructure` or the selected provider artifact, then regenerate the MAP.
 - ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the xBRIEF metadata.
 
-## Skill Routing
+## Skills
 
-When user input matches a trigger keyword, read the corresponding skill:
-
-- "review cycle" / "check reviews" / "run review cycle" → `content/skills/deft-directive-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" → `content/skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5; Phase 0 is queue-driven (see N2 / #1142)
-- "decompose" / "story decomposition" / "swarm readiness" → `content/skills/deft-directive-decompose/SKILL.md` — converts phase/epic scopes into swarm-ready story xBRIEFs before swarm allocation.
-- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" → `content/skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit; Phase 0 consults the triage cache first (see N1 / #1141). The refinement frontmatter's `work the cache` trigger routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
-- "triage <N>" / "triage issue" / "ingest issue" → `content/skills/deft-directive-refinement/SKILL.md` — canonical xBRIEF intake for GitHub issues
-- "build" / "implement" / "implement spec" → `content/skills/deft-directive-build/SKILL.md`
-- "cost" / "budget" / "pre-build cost" / "how much will this cost" → `content/skills/deft-directive-cost/SKILL.md`
-- "setup" / "bootstrap" / "onboard" → `content/skills/deft-directive-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "update xbrief" / "sync frameworks" → `content/skills/deft-directive-sync/SKILL.md`
-- "pre-pr" / "quality loop" / "rwldl" / "self-review" → `content/skills/deft-directive-pre-pr/SKILL.md`
-- "interview loop" / "q&a loop" / "run interview loop" → `content/skills/deft-directive-interview/SKILL.md`
-- "run probe" / "/deft:run:probe" / "probe" → `content/skills/deft-directive-probe/SKILL.md` — adversarial one-question-per-turn plan stress-testing; no xBRIEF or plan artifacts until probe completion criteria are met (#1518)
-- "release" / "cut release" / "v0.X.Y" / "publish release" → `content/skills/deft-directive-release/SKILL.md` — operationalizes the `task release` / `task release:publish` / `task release:rollback` / `task release:e2e` surface (#74 + #716 safety hardening); re-uses the `content/skills/deft-directive-swarm/SKILL.md` Phase 6 Step 5 Slack announcement template
-- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" → `content/skills/deft-directive-glossary/SKILL.md` — extracts a DDD-style ubiquitous language from the current conversation, flags ambiguities and synonyms, proposes a canonical glossary, and writes `UBIQUITOUS_LANGUAGE.md`; integrates with `content/glossary.md` as a baseline when present (#441)
-- "improve architecture" / "deep modules" / "interface design" / "refactor RFC" → `content/skills/deft-directive-gh-arch/SKILL.md` — explores codebase for shallow modules, designs competing interfaces in parallel via sub-agents, files a refactor RFC as a GitHub Issue (#442 re-land)
-- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" → `content/skills/deft-directive-debug/SKILL.md` — evidence-based root-cause investigation MODE: claim ledger, falsification + red-team waves, chat answer-embargo until evidence closes, and the `task verify:investigation` close gate; operationalizes `content/coding/debugging.md` (#1621)
-- "triage hygiene" / "work the cache" → `content/skills/deft-directive-triage/SKILL.md`
-- "what's next" / "queue" / "build a cohort" → `content/skills/deft-directive-triage/SKILL.md`
-- "welcome" / "onboard triage" → invokes `task triage:welcome --onboard` (N3 / #1143)
+Skill routing (which skill answers which trigger) is no longer a table in this policy file. To pick a skill, scan the **Skills Index** (Level-0) in `REFERENCES.md` — it lists every skill under `content/skills/` with a one-sentence description and trigger keywords, unified with the framework doc routing so agents consult one place to decide what to load. Load a `SKILL.md` (Level-1) only when the index indicates a match. The behavioral gate to scan `content/skills/` before improvising a workflow lives in `## Before Improvising` above; the `welcome` / `onboard triage` trigger still invokes `task triage:welcome --onboard` (N3 / #1143).
 
 ## Development Process (always follow)
 
@@ -345,7 +325,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=d48b028f92c2 refreshed=2026-06-29T23:19:20Z session=21aef8433a25 -->
+<!-- deft:managed-section v3 sha=4a455360697b refreshed=2026-07-02T02:16:47Z session=f1a7c4485a2e -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -443,6 +423,16 @@ Umbrella and epic issues carry a pass-1 body (plan, stale by design) and a canon
 
 Cross-references: `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` and `.deft/core/.agents/skills/deft-directive-triage/SKILL.md` (before reporting umbrella status). Refs #1152, #2066.
 
+## Issue body→comments reading (#2143)
+
+When ingesting or dispatching against **any** GitHub issue (not only umbrellas), later maintainer comments may supersede the original body — the #2126 recurrence shipped the wrong fix from a body-only fetch.
+
+- ! Fetch both the issue body and `repos/<owner>/<repo>/issues/<N>/comments` via REST before concluding what the issue asks for or building a worker dispatch envelope. Read body first, then the comment thread in chronological order.
+- ! `deft issue:ingest` / `task issue:ingest` fetches `/comments` by default and folds the thread into the ingested overview (#2143).
+- ⊗ Build a dispatch envelope from the issue body alone when the issue has comments.
+
+Cross-references: `.deft/core/content/templates/agent-prompt-preamble.md` § 5.6. Refs #2143, #1152, #2066, #2126.
+
 ## Content packs
 
 Deft ships versioned content packs (e.g. lessons learned from prior work) under `.deft/core/packs/`. Discover and LOAD pack content via the slice surface instead of reading whole pack files into context:
@@ -462,31 +452,9 @@ Deft ships versioned content packs (e.g. lessons learned from prior work) under 
 - ! When the MAP is wrong, update `plan.architecture.codeStructure` or the selected provider artifact, then regenerate the MAP.
 - ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the xBRIEF metadata.
 
-## Skill Routing
+## Skills
 
-When user input matches a trigger keyword, read the corresponding skill (paths are relative to the consumer's project root and resolve under `.deft/core/.agents/skills/`):
-
-- "review cycle" / "check reviews" / "run review cycle" -> `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" -> `.deft/core/.agents/skills/deft-directive-swarm/SKILL.md`
-- "decompose" / "story decomposition" / "swarm readiness" -> `.deft/core/.agents/skills/deft-directive-decompose/SKILL.md`
-- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" -> `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` -- the `work the cache` phrase routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
-- "triage <N>" / "triage issue" / "ingest issue" -> `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md`
-- "build" / "implement" / "implement spec" -> `.deft/core/.agents/skills/deft-directive-build/SKILL.md`
-- "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/.agents/skills/deft-directive-cost/SKILL.md`
-- "setup" / "bootstrap" / "onboard" -> `.deft/core/.agents/skills/deft-directive-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "update xbrief" / "sync frameworks" -> `.deft/core/.agents/skills/deft-directive-sync/SKILL.md`
-- "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/.agents/skills/deft-directive-pre-pr/SKILL.md`
-- "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/.agents/skills/deft-directive-interview/SKILL.md`
-- "run probe" / "/deft:directive:run:probe" / "probe" -> `.deft/core/.agents/skills/deft-directive-probe/SKILL.md` (deprecated alias: `/deft:run:probe`)
-- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/.agents/skills/deft-directive-glossary/SKILL.md`
-- "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/.agents/skills/deft-directive-gh-arch/SKILL.md`
-- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/.agents/skills/deft-directive-debug/SKILL.md`
-- "triage hygiene" / "work the cache" -> `.deft/core/.agents/skills/deft-directive-triage/SKILL.md`
-- "what's next" / "queue" / "build a cohort" -> `.deft/core/.agents/skills/deft-directive-triage/SKILL.md`
-- "welcome" / "onboard triage" -> invokes `deft triage:welcome --onboard` (N3 / #1143)
-- "lessons" / "prior art" / "what have we learned about X" -> discover packs with `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` and load the relevant slice before improvising (see Content packs above)
-
-The `deft-directive-release` skill is intentionally excluded -- it cuts deft framework releases against a temp clone of `deftai/directive` and is not a consumer-facing surface.
+Skill routing (which skill answers which trigger) is not a table in this policy section. To pick a skill, scan the **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — it lists every skill under `.deft/core/.agents/skills/` with a one-sentence description and trigger keywords, unified with the framework doc routing so you consult one place to decide what to load. Read a `SKILL.md` (Level-1) only when the index indicates a match. Before improvising a multi-step workflow, scan the skills catalog first — skills are versioned and tested. The `welcome` / `onboard triage` trigger invokes `deft triage:welcome --onboard` (N3 / #1143); for `lessons` / `prior art`, discover packs with `deft packs:slice --list-packs` then load the relevant slice (see Content packs above).
 
 ## Branch policy & branch verification
 

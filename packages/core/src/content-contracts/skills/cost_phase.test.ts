@@ -197,11 +197,12 @@ describe("test_cost_phase", () => {
     expect(lower).toContain("cost-estimate.md");
     expect(lower).toContain("cost phase gate");
   });
-  it("agents_md_cost_routing_entry", () => {
-    const text = readRepoFile("AGENTS.md");
+  it("references_md_cost_routing_entry", () => {
+    // #838: skill routing moved from AGENTS.md to the REFERENCES.md Skills Index.
+    const text = readRepoFile("REFERENCES.md");
     expect(text).toContain("skills/deft-directive-cost/SKILL.md");
     expect(
-      text.includes('"cost"') || text.includes('"budget"') || text.includes('"pre-build cost"'),
+      text.includes("cost") || text.includes("budget") || text.includes("pre-build cost"),
     ).toBe(true);
   });
   it.each(_JARGON_TERMS)("cost_skill_no_jargon_outside_anti_pattern %s", (term) => {

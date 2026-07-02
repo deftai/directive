@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **One place to find the right skill.** Skill routing is now a unified Skills Index in `REFERENCES.md` that lists every skill with a one-sentence description and its trigger keywords, alongside the framework doc routing — so you scan a single Level-0 index to decide what to load instead of hunting through a table buried in `AGENTS.md`. `AGENTS.md` keeps only the "check the skills catalog before improvising" behavioral gate plus a pointer to the index, making the policy file leaner. Refs #838, #1882, #645.
+
 ### Fixed
 
 ### Removed

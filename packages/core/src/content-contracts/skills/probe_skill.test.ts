@@ -4,8 +4,7 @@ import { readRepoFile, repoFileExists } from "./helpers.js";
 /** Port of tests/content/test_probe_skill.py (#1838 #1530) */
 
 const _PROBE_PATH = "skills/deft-directive-probe/SKILL.md";
-const _AGENTS_MD = "AGENTS.md";
-const _TEMPLATE = "templates/agents-entry.md";
+const _REFERENCES_MD = "REFERENCES.md";
 const _MAX_SKILL_LINES = 150;
 const _REQUIRED_TRIGGERS = ["run probe", "/deft:run:probe", "probe"];
 
@@ -80,15 +79,13 @@ describe("test_probe_skill", () => {
     const guard_region = text.split("## Output")[0];
     expect(guard_region.toLowerCase()).toContain("github");
   });
-  it("agents_md_probe_routing_entry", () => {
-    const text = readRepoFile(_AGENTS_MD);
-    expect(text).toContain("skills/deft-directive-probe/SKILL.md");
-    expect(text.includes('"run probe"') || text.includes('"/deft:run:probe"')).toBe(true);
-  });
-  it("agents_entry_template_probe_routing_entry", () => {
-    const text = readRepoFile(_TEMPLATE);
+  it("references_md_probe_index_entry", () => {
+    // #838: skill routing moved from AGENTS.md / the agents-entry template to the
+    // REFERENCES.md Skills Index. Probe discoverability (#1518) now lives there.
+    const text = readRepoFile(_REFERENCES_MD);
     expect(text).toContain("deft-directive-probe/SKILL.md");
-    expect(text.includes('"run probe"') || text.includes('"/deft:run:probe"')).toBe(true);
+    const missing = _REQUIRED_TRIGGERS.filter((t) => !text.includes(t));
+    expect(missing.length).toBe(0);
   });
   it("probe_skill_exit_block_present", () => {
     const text = readRepoFile(_PROBE_PATH);

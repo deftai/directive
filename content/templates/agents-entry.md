@@ -125,31 +125,9 @@ Deft ships versioned content packs (e.g. lessons learned from prior work) under 
 - ! When the MAP is wrong, update `plan.architecture.codeStructure` or the selected provider artifact, then regenerate the MAP.
 - ⊗ Treat a stale or absent MAP as an unrelated implementation blocker, hand-edit `.planning/codebase/MAP.md`, or make the generated projection more authoritative than the xBRIEF metadata.
 
-## Skill Routing
+## Skills
 
-When user input matches a trigger keyword, read the corresponding skill (paths are relative to the consumer's project root and resolve under `.deft/core/.agents/skills/`):
-
-- "review cycle" / "check reviews" / "run review cycle" -> `.deft/core/.agents/skills/deft-directive-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" -> `.deft/core/.agents/skills/deft-directive-swarm/SKILL.md`
-- "decompose" / "story decomposition" / "swarm readiness" -> `.deft/core/.agents/skills/deft-directive-decompose/SKILL.md`
-- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" -> `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md` -- the `work the cache` phrase routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
-- "triage <N>" / "triage issue" / "ingest issue" -> `.deft/core/.agents/skills/deft-directive-refinement/SKILL.md`
-- "build" / "implement" / "implement spec" -> `.deft/core/.agents/skills/deft-directive-build/SKILL.md`
-- "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/.agents/skills/deft-directive-cost/SKILL.md`
-- "setup" / "bootstrap" / "onboard" -> `.deft/core/.agents/skills/deft-directive-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "update xbrief" / "sync frameworks" -> `.deft/core/.agents/skills/deft-directive-sync/SKILL.md`
-- "pre-pr" / "quality loop" / "rwldl" / "self-review" -> `.deft/core/.agents/skills/deft-directive-pre-pr/SKILL.md`
-- "interview loop" / "q&a loop" / "run interview loop" -> `.deft/core/.agents/skills/deft-directive-interview/SKILL.md`
-- "run probe" / "/deft:directive:run:probe" / "probe" -> `.deft/core/.agents/skills/deft-directive-probe/SKILL.md` (deprecated alias: `/deft:run:probe`)
-- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" -> `.deft/core/.agents/skills/deft-directive-glossary/SKILL.md`
-- "improve architecture" / "deep modules" / "interface design" / "refactor RFC" -> `.deft/core/.agents/skills/deft-directive-gh-arch/SKILL.md`
-- "debug" / "root cause" / "investigate" / "why did X break" / "why is X slow" / "systematic debugging" / "forensic" -> `.deft/core/.agents/skills/deft-directive-debug/SKILL.md`
-- "triage hygiene" / "work the cache" -> `.deft/core/.agents/skills/deft-directive-triage/SKILL.md`
-- "what's next" / "queue" / "build a cohort" -> `.deft/core/.agents/skills/deft-directive-triage/SKILL.md`
-- "welcome" / "onboard triage" -> invokes `deft triage:welcome --onboard` (N3 / #1143)
-- "lessons" / "prior art" / "what have we learned about X" -> discover packs with `deft packs:slice --list-packs`, then `deft packs:slice <pack> --list` and load the relevant slice before improvising (see Content packs above)
-
-The `deft-directive-release` skill is intentionally excluded -- it cuts deft framework releases against a temp clone of `deftai/directive` and is not a consumer-facing surface.
+Skill routing (which skill answers which trigger) is not a table in this policy section. To pick a skill, scan the **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — it lists every skill under `.deft/core/.agents/skills/` with a one-sentence description and trigger keywords, unified with the framework doc routing so you consult one place to decide what to load. Read a `SKILL.md` (Level-1) only when the index indicates a match. Before improvising a multi-step workflow, scan the skills catalog first — skills are versioned and tested. The `welcome` / `onboard triage` trigger invokes `deft triage:welcome --onboard` (N3 / #1143); for `lessons` / `prior art`, discover packs with `deft packs:slice --list-packs` then load the relevant slice (see Content packs above).
 
 ## Branch policy & branch verification
 

@@ -35,8 +35,10 @@ describe("agents-refresh CLI (#1996)", () => {
     const project = freshProject();
     expect(runAgentsRefresh(["--project-root", project])).toBe(0);
     const text = readFileSync(join(project, "AGENTS.md"), "utf8");
-    expect(text).toContain(".deft/core/.agents/skills/deft-directive-build/SKILL.md");
-    expect(text).not.toMatch(/-> `\.deft\/core\/skills\/deft-directive-/);
+    // #838 removed the Skill Routing table; the setup-skill path in the First
+    // Session branch still exercises the runtime `.agents/skills/` path format.
+    expect(text).toContain(".deft/core/.agents/skills/deft-directive-setup/SKILL.md");
+    expect(text).not.toMatch(/`\.deft\/core\/skills\/deft-directive-/);
   });
 
   it("--check exits 0 when current", () => {

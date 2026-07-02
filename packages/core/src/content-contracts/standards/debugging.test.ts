@@ -113,16 +113,13 @@ describe("test_debugging.py", () => {
     });
   });
   describe("TestDebugSkillRouting1621", () => {
-    it("test_agents_md_routing", () => {
-      const text = readText("AGENTS.md");
+    // #838: skill routing moved from AGENTS.md / the agents-entry template to the
+    // REFERENCES.md Skills Index (unified Level-0 index for skills + docs).
+    it("test_references_md_routing", () => {
+      const text = readText("REFERENCES.md");
       expect(text).toContain("skills/deft-directive-debug/SKILL.md");
       expect(text).toContain("debug");
       expect(text).toContain("root cause");
-    });
-    it("test_template_routing", () => {
-      expect(readText("templates/agents-entry.md")).toContain(
-        ".deft/core/.agents/skills/deft-directive-debug/SKILL.md",
-      );
     });
   });
 });

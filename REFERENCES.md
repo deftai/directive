@@ -25,6 +25,40 @@ AGENTS.md is the always-loaded front door. Empirical study (`content/docs/good-a
 - **Enforced by a ratchet**: `task verify:agents-md-budget` (wired into `task check`) fails when the managed section or the unmanaged region grows past `plan.policy.agentsMdBudget` in `PROJECT-DEFINITION`. The budget is seeded at the current per-region size, so *growth* fails while *reductions* are always allowed.
 - **Lowering the budget is free; raising it is a reviewed diff.** Each reduction should tighten the matching `managedMaxLines` / `unmanagedMaxLines` line so the ratchet only ever ratchets down toward the ceiling.
 
+## 🧭 Skills Index
+
+This is the unified Level-0 index for **both skills and framework docs**. Scan the descriptions here to decide what to load — you should be able to judge relevance without opening any target file.
+
+- **Level 0** — Scan this index (descriptions + triggers only). Decide what is relevant.
+- **Level 1** — Read the full file (a `SKILL.md` or a framework doc from the Task-Based Loading sections below) only when Level 0 indicates a match.
+- **Level 2** — Read a specific reference file *within* a skill, or a specific section of a doc, only when Level 1 directs you there.
+
+Skills live under [`content/skills/`](./content/skills/) (installed as `.deft/core/.agents/skills/`). Before improvising a multi-step workflow, scan this catalog first — skills are versioned, tested, and encode lessons from prior runs.
+
+| Skill | Description | Triggers |
+|---|---|---|
+| [deft-directive-setup](./content/skills/deft-directive-setup/SKILL.md) | Set up a new project: bootstrap user preferences, project config, or generate a specification conversationally. | `setup`, `bootstrap`, `onboard` |
+| [deft-directive-cost](./content/skills/deft-directive-cost/SKILL.md) | Pre-build cost & budget transparency phase producing a plain-English `COST-ESTIMATE.md` with a recorded build / rescope / no-build / skip decision. | `cost`, `budget`, `pre-build cost`, `how much will this cost` |
+| [deft-directive-build](./content/skills/deft-directive-build/SKILL.md) | Implement a project from its scope xBRIEFs phase by phase with quality gates. | `build`, `implement`, `implement spec` |
+| [deft-directive-pre-pr](./content/skills/deft-directive-pre-pr/SKILL.md) | Iterative pre-PR quality loop (read / write / lint / diff) run before pushing a branch until a pass yields zero changes. | `pre-pr`, `quality loop`, `rwldl`, `self-review` |
+| [deft-directive-review-cycle](./content/skills/deft-directive-review-cycle/SKILL.md) | Greptile / bot reviewer response loop: fetch findings, batch-fix all P0/P1, re-review until clean. | `review cycle`, `check reviews`, `run review cycle` |
+| [deft-directive-swarm](./content/skills/deft-directive-swarm/SKILL.md) | Parallel local agent orchestration over story xBRIEFs: worktrees, dispatch, monitoring, PR cascade. | `swarm`, `parallel agents`, `run agents` |
+| [deft-directive-decompose](./content/skills/deft-directive-decompose/SKILL.md) | Convert approved phase / epic scope xBRIEFs into swarm-ready story xBRIEFs before concurrent allocation. | `decompose`, `story decomposition`, `swarm readiness` |
+| [deft-directive-refinement](./content/skills/deft-directive-refinement/SKILL.md) | Conversational refinement: ingest external work items into `xbrief/proposed/`, deduplicate, evaluate, and promote / demote through the lifecycle. | `refinement`, `reprioritize`, `refine`, `triage`, `pre-ingest`, `action menu`, `triage <N>`, `triage issue`, `ingest issue` |
+| [deft-directive-triage](./content/skills/deft-directive-triage/SKILL.md) | Triage-cache hygiene and "what's next?" queue selection: sync the cache, classify candidates, present a ranked queue, and walk per-item decisions. | `triage hygiene`, `work the cache`, `what's next`, `queue`, `build a cohort` |
+| [deft-directive-sync](./content/skills/deft-directive-sync/SKILL.md) | Session-start framework sync: pull latest deft, validate xBRIEF lifecycle structure, detect stale origins, and summarize changes. | `sync`, `good morning`, `update deft`, `update xbrief`, `sync frameworks` |
+| [deft-directive-interview](./content/skills/deft-directive-interview/SKILL.md) | Deterministic structured Q&A loop of focused questions with numbered options, defaults, and a confirmation gate targeting xBRIEF narratives. | `interview loop`, `q&a loop`, `run interview loop` |
+| [deft-directive-probe](./content/skills/deft-directive-probe/SKILL.md) | Adversarial one-question-per-turn plan stress-testing before any xBRIEF or plan artifacts are written. | `run probe`, `/deft:run:probe`, `probe` |
+| [deft-directive-debug](./content/skills/deft-directive-debug/SKILL.md) | Systematic evidence-based root-cause investigation MODE with a claim ledger, mandatory falsification, and a validator close gate. | `debug`, `root cause`, `investigate`, `why did X break`, `why is X slow`, `systematic debugging`, `forensic` |
+| [deft-directive-glossary](./content/skills/deft-directive-glossary/SKILL.md) | Extract a DDD-style ubiquitous-language glossary from the conversation, flag ambiguities, and write `UBIQUITOUS_LANGUAGE.md`. | `glossary`, `ubiquitous language`, `domain model`, `DDD`, `define terms` |
+| [deft-directive-gh-arch](./content/skills/deft-directive-gh-arch/SKILL.md) | Explore a codebase for shallow modules, design competing interfaces via sub-agents, and file a refactor RFC as a GitHub Issue. | `improve architecture`, `deep modules`, `interface design`, `refactor RFC` |
+| [deft-directive-gh-slice](./content/skills/deft-directive-gh-slice/SKILL.md) | Break a `SPECIFICATION.md`, PRD, or plan into independently-grabbable GitHub Issues using tracer-bullet vertical slices. | `gh slice`, `create implementation tickets`, `vertical slices`, `break into issues` |
+| [deft-directive-release](./content/skills/deft-directive-release/SKILL.md) | Cut a v0.X.Y release of the deft framework safely through the 8-phase pre-flight / rehearsal / draft / publish workflow. | `release`, `cut release`, `v0.X.Y`, `publish release` |
+| [deft-directive-write-skill](./content/skills/deft-directive-write-skill/SKILL.md) | Create a new deft skill with proper structure, RFC2119 notation, triggers, and progressive disclosure. | `write skill`, `create skill`, `new skill` |
+| [deft-directive-article-review](./content/skills/deft-directive-article-review/SKILL.md) | Evaluate an article, paper, or post for lessons that could improve directive, and optionally file GitHub issues. | `analyze this article`, `evaluate this article`, `what can we learn from this` |
+
+The `welcome` / `onboard triage` phrase invokes `task triage:welcome --onboard` (N3 / #1143) rather than routing to a skill. The framework doc routing (which framework `.md` file to load for a given task) lives in the Task-Based Loading sections below.
+
 ## 📋 Task-Based Loading
 
 ### When Writing Code

@@ -59,7 +59,9 @@ describe("test_agents_md", () => {
 
   it("agents_md_skill_completion_gate_chaining", () => {
     const text = readAgentsMd();
-    expect(text.toLowerCase()).toContain("chains to");
+    // Skill Completion Gate mandates chaining instructions on skill exit (#838:
+    // the incidental "chains to" phrasing moved out with the Skill Routing table).
+    expect(text.toLowerCase()).toContain("chaining");
   });
 
   it("agents_md_returning_sessions_has_must_marker", () => {
