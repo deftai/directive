@@ -62,16 +62,12 @@ Check what exists before doing anything else:
 
 ⊗ Self-report the session-start ritual as complete without a fresh `deft session:start` state, or bypass `deft verify:session-ritual` before implementation dispatch. Headless workers and CI MAY set `DEFT_SESSION_RITUAL_SKIP=1`; the verifier exits 0 but warns when the bypass hides a failure.
 
+⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+
 `deft doctor` remains the install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). When the managed-section is stale, the doctor points the operator at `deft agents:refresh` to regenerate AGENTS.md from `templates/agents-entry.md`. The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and, when behind, emits the canonical upgrade command `npm i -g @deftai/directive@latest` (#1339 / #1409 / #1912).
 
 **Canonical bootstrap / update path:** Install and upgrade via npm: `npm i -g @deftai/directive` (install) or `npm i -g @deftai/directive@latest` (upgrade). Node ≥ 20 is required to run Deft (the live gates run on the TypeScript engine). On a machine without Node, install Node first, then use npm — the frozen legacy Go installer (GitHub Releases) is only a legacy/offline + layout-migration bridge (#1912), not a Node-free path. Legacy `deft upgrade` / `run upgrade` are metadata-only acknowledgment and `deft relocate -- --confirm` is back-compat only; git-clone / submodule / legacy doctor surfaces are de-emphasized in UPGRADING.md / README / skills. Agent example: after installing, start your session; `deft doctor` tells you the exact state.
-`deft triage:welcome` emits the triage one-liner and, when state is incomplete, nudges the operator at `deft triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual. D2's 4-hour suppression window governs repeat emission during session start; the canonical key compares structured fields from the latest `xbrief/.eval/summary-history.jsonl` record: `cache_empty`, `untriaged`, `stale_defer`, `in_flight`, `in_flight_filesystem`, `in_flight_cache_scoped`, `triage_scope_configured`, `wip_count`, `wip_cap`, `repos`, `scope_drift`, and `reconcilable` (#1279). Re-emission within the window occurs when any key field changes, including when the `[triage:scope]` discrepancy line appears or resolves.
-
-## Resume nudge (conditional, #1269)
-
-Reserved placement for the optional 6th conditional step (resume nudge from the ritual sentinel) tracked by #1269. The substance lands with that PR; this anchor exists today so consumers see the canonical placement once #1269 merges and the sentinel becomes available.
-
-⊗ Reorder, skip, or merge the ritual tiers above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+`deft triage:welcome` emits the triage one-liner and, when state is incomplete, nudges the operator at `deft triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual. D2's 4-hour suppression window governs repeat emission during session start: the headline re-emits only when a structured comparison-key field in the latest `xbrief/.eval/summary-history.jsonl` record changes (the canonical field set is owned by the `triage:welcome` implementation -- see #1279, not enumerated here).
 
 ## WIP cap
 
