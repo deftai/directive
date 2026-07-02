@@ -164,19 +164,12 @@ Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § CH
 
 Product commands use the `/deft:directive:*` namespace (#418 / #1670); the prior `/deft:*` product forms are deprecation-warning aliases, and cross-product session commands (`/deft:continue`, `/deft:checkpoint`) stay at the umbrella `/deft:*` level. The legacy Python `run` CLI is deprecated (#1933) -- use the agent-driven setup skill for first-time setup and spec generation. See `content/commands.md` for the full command + alias table and the managed `## Commands` section below for the rendered surface.
 
-## PowerShell
+## Platform-conditional rules (PowerShell / Windows)
 
-Rationale + recurrence record + gate detail: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § PowerShell encoding (#798). Enforced by `task verify:encoding`.
+Platform/tool/runtime-specific rules are lazy-loaded, not shipped in the always-loaded surface, so they don't crowd context for sessions that can't trigger them (#2157). If your session matches a trigger below, load `content/scm/github.md` § "PowerShell platform-conditional rules for agents" **before** the risky operation:
 
-- ! On PS 5.1, MUST use Python `pathlib` for all file edits touching non-ASCII glyphs (em dashes, arrows, ⊗, ✓, …, smart quotes, etc.) -- never `Get-Content -Raw` / `Set-Content` / inline `-replace` / backtick-n interpolation
-- ! When writing files using PowerShell on PS 7+ where unavoidable, MUST use `New-Object System.Text.UTF8Encoding $false` -- never `[System.Text.Encoding]::UTF8` (writes BOM). See `content/scm/github.md` PS 5.1 section.
-- ! This AGENTS.md rule is the project-side mirror of the same prohibition maintained in the maintainer's personal agent profile, so consumer-installed copies of deft carry the rule even when that personal rule is not loaded
-- ⊗ Round-trip a file containing non-ASCII content through PS 5.1 commands (`Get-Content` → `-replace` → `Set-Content`, `Get-Content` → string concat → `WriteAllText`, here-strings interpolating non-ASCII) -- the read-side decode corrupts the bytes regardless of how the write side is encoded
-
-Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Grok Build Windows capture (#1353); root-cause audit: `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md`.
-
-- ! Never emit commands containing pipes or redirections through the agent shell tool on this platform. For anything requiring a pipe, use one of: Python one-liners with `pathlib` / `subprocess.run(capture_output=True)` (preferred -- bypasses the wrapper at the OS level), run the operation in the user's native terminal and paste the result back, or isolate the work in a dedicated worktree and mark the step as "user shell required".
-- ! This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based) is not affected by this wrapper leakage.
+- ! Editing files with non-ASCII glyphs from PowerShell (especially PS 5.1) -- authoritatively enforced at commit by `task verify:encoding` (#798); the gate is the rule.
+- ! Running shell commands under the Grok Build Windows + pwsh 7+ runtime -- piped/redirected commands leak wrapper text (#1353); PTY-based Warp + Claude are exempt.
 
 ## Safe subprocess capture (#1366)
 
@@ -271,7 +264,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=3b70cfb9f138 refreshed=2026-07-02T14:55:21Z session=3d2396135a7c -->
+<!-- deft:managed-section v3 sha=032b5cb7c41f refreshed=2026-07-02T16:05:23Z session=5abbca216bc9 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -423,14 +416,12 @@ Override paths the user may invoke:
 
 ⊗ Begin a session that will commit/push without surfacing the policy state when allowDirectCommitsToMaster=true.
 
-## PowerShell
+## Platform-conditional rules (PowerShell / Windows)
 
-**Grok Build Windows capture limitations (#1353):** When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_command` leaks internal wrapper text (Get-Content and redirection fragments) whenever the command string contains `|`, `2>&1`, `| cat`, `>`, or similar metacharacters. Non-piped commands execute cleanly.
+Platform/tool/runtime-specific rules are lazy-loaded, not rendered here, so they don't crowd context for sessions that can't trigger them (#2157 / #1882). If your session matches a trigger below, load `.deft/core/content/scm/github.md` § "PowerShell platform-conditional rules for agents" **before** the risky operation:
 
-- ! Never emit commands containing pipes or redirections through the agent shell tool on this platform. For anything requiring a pipe, use one of: Python one-liners with `pathlib` / `subprocess.run(capture_output=True)` (preferred -- bypasses the wrapper at the OS level), run the operation in the user's native terminal and paste the result back, or isolate the work in a dedicated worktree and mark the step as "user shell required".
-- ! This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based) is not affected.
-
-Cross-reference: `.deft/core/docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md`. Refs #1353.
+- ! Editing files with non-ASCII glyphs from PowerShell (especially PS 5.1) -- enforced at commit by `deft verify:encoding` (#798).
+- ! Running shell commands under the Grok Build Windows + pwsh 7+ runtime -- piped/redirected commands leak wrapper text (#1353); PTY-based Warp + Claude are exempt.
 
 ## Development Process
 

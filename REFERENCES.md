@@ -137,7 +137,7 @@ Load when working on platform-specific deployment guidance:
 Load as needed:
 
 - **[scm/git.md](./content/scm/git.md)** - Before committing (commit conventions)
-- **[scm/github.md](./content/scm/github.md)** - When setting up CI/CD, PRs, issues
+- **[scm/github.md](./content/scm/github.md)** - When setting up CI/CD, PRs, issues; also carries the **PowerShell / Windows platform-conditional rules** (§ "PowerShell platform-conditional rules for agents") — load before editing files with non-ASCII glyphs from PowerShell (PS 5.1 encoding, #798) or running shell commands under the Grok Build Windows + pwsh 7+ runtime (#1353)
 - **[tools/taskfile.md](./content/tools/taskfile.md)** - When creating/modifying tasks
 - **[coding/testing.md](./content/coding/testing.md)** - When writing tests or checking coverage
 - **[coding/security.md](./content/coding/security.md)** - When handling untrusted input, auth, secrets, dependencies, or building agent surfaces (#661)

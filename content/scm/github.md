@@ -149,6 +149,29 @@ PowerShell 5.x (Windows default) uses UTF-16LE internally and may inject a BOM o
 
 - ! Never paste multi-line PowerShell string literals (here-strings `@" ... "@`) directly into the Warp agent input box -- Warp splits multi-line input across separate command blocks, causing syntax errors or silent truncation. Always write multi-line PS content to a temp file first (e.g. `[System.IO.File]::WriteAllText($tmpFile, $content, [System.Text.UTF8Encoding]::new($false))`), then use the temp file path in subsequent commands
 
+## PowerShell platform-conditional rules for agents (#798 / #1353)
+
+These runtime-specific rules are lazy-loaded here rather than shipped in the always-loaded AGENTS.md, so they don't crowd context for sessions that can't trigger them (#2157 / #1882). Load this section **before** the risky operation when your session matches one of the triggers below.
+
+### PS 5.1 non-ASCII file edits (#798) -- gate-enforced by `verify:encoding`
+
+The corruption happens on the **read** side: `Get-Content -Raw` decodes via the active Windows codepage (cp1252 / cp437) BEFORE any safe write can preserve the bytes, so a correct UTF-8 write of already-corrupted text just persists the mojibake. PowerShell 7+ (`pwsh`), bash, and zsh handle UTF-8 correctly and are exempt.
+
+- ! On PS 5.1, use Python `pathlib` (`Path.read_text(encoding="utf-8")` / `write_text(text, encoding="utf-8")`) for ALL file edits touching non-ASCII glyphs (em dashes, arrows, ⊗, ✓, …, smart quotes) -- never `Get-Content -Raw` / `Set-Content` / inline `-replace` / backtick-n interpolation.
+- ! When writing files from PS 7+ where unavoidable, use `New-Object System.Text.UTF8Encoding $false` -- never `[System.Text.Encoding]::UTF8` (writes a BOM).
+- ⊗ Round-trip a file containing non-ASCII content through PS 5.1 commands (`Get-Content` → `-replace` → `Set-Content`, string-concat → `WriteAllText`, here-strings interpolating non-ASCII) -- the read-side decode corrupts the bytes regardless of the write encoding.
+
+The deterministic `verify:encoding` gate (wired into `task check` and the pre-commit hook) enforces this at commit time by scanning for U+FFFD, the CP1252 / CP437-as-UTF-8 mojibake bigram set, and unexpected BOMs. Because the gate travels with the repo and fires only on the corrupting op, it is the authoritative form of the rule (#798).
+
+### Grok Build Windows + pwsh 7+ shell capture (#1353) -- runtime-detect
+
+When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_command` leaks internal wrapper text (Get-Content and redirection fragments) whenever the command string contains `|`, `2>&1`, `| cat`, `>`, or similar metacharacters. Non-piped commands execute cleanly.
+
+- ! Never emit commands containing pipes or redirections through the agent shell tool on this runtime. For anything needing a pipe, use one of: Python one-liners with `pathlib` / `subprocess.run(capture_output=True)` (preferred -- bypasses the wrapper at the OS level), run the operation in the user's native terminal and paste the result back, or isolate the work in a dedicated worktree and mark the step "user shell required".
+- ! Applies to the Grok Build runtime (pwsh 7+) only; Warp + Claude (PTY-based) is not affected by this wrapper leakage.
+
+Refs #798, #1353 (root-cause audit), #2157.
+
 ## Windows / ASCII Conventions for Machine-Editable Sections
 
 Agent `edit_files` operations can fail when structured file sections contain Unicode characters that do not round-trip cleanly through Windows toolchains (xref warpdotdev/warp#9022). The following rules apply to **machine-editable structured sections**: ROADMAP.md phase bodies, CHANGELOG.md entries, and Open Issues Index rows.

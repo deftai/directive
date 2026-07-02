@@ -1,0 +1,99 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2157: lazy-load platform/tool/runtime-conditional PowerShell rules (#798 gate-enforced, #1353 Grok Build runtime) out of the always-loaded surface (managed section + both AGENTS.md halves) into content/scm/github.md, with runtime-detect pointers + a REFERENCES.md task-triggered entry. Child of #1882.",
+    "created": "2026-07-02T00:00:00Z",
+    "updated": "2026-07-02T00:00:00Z"
+  },
+  "plan": {
+    "id": "2157-lazy-load-platform-conditional-rules",
+    "title": "Lazy-load platform/tool/runtime-conditional PowerShell rules out of the always-loaded surface",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2157",
+    "narratives": {
+      "Description": "A rule that can only fire on a specific OS/shell/runtime is dead weight for every consumer not on it -- it crowds scarce always-loaded context and dilutes signal (#1882 failure modes 1+2). Two concrete instances: (1) the `## PowerShell` #1353 Grok Build Windows+pwsh7 capture rule ships in the MANAGED section (content/templates/agents-entry.md -> every consumer's AGENTS.md) yet only fires on one runtime; (2) the #798 PS 5.1 non-ASCII rule (maintainer half of AGENTS.md) is already enforced by the deterministic `verify:encoding` gate. Design rule: gate-enforced ⇒ don't ship the prose in the always-loaded surface (the gate is the rule, platform-correct by construction); non-gated runtime rules ⇒ runtime-detect + lazy-load, not render into everyone's file; avoid environment-aware rendering keyed to the install host (breaks shared cross-platform repos). This story moves the full PowerShell prose (both #798 how-to and #1353 capture) into content/scm/github.md as the single source of truth, and replaces the always-loaded blocks with terse runtime/platform-conditional POINTERS that tell a matching session to load github.md before the risky op. The maintainer↔managed ~70% restate and the orchestration-block/agent-prompt-preamble duplication are OUT OF SCOPE here (they belong with #2156's de-dup line, already merged); this story is strictly the platform-conditional-rule relocation.",
+      "ImplementationPlan": "1. content/scm/github.md: ensure it is the single source of truth for PowerShell platform rules -- it already carries the #798 PS 5.1 encoding how-to; ADD the #1353 Grok Build Windows+pwsh7 capture guidance (no pipes/redirections through the agent shell tool on that runtime; Warp+Claude PTY exempt) as a clearly-headed subsection. 2. content/templates/agents-entry.md (MANAGED section): replace the `## PowerShell` #1353 prose block with a terse `## Platform-conditional rules (PowerShell / Windows)` pointer -- 1 line stating lazy-load-not-rendered rationale + 2 runtime-detect triggers (PS 5.1 non-ASCII edits, enforced at commit by `deft verify:encoding`; Grok Build Windows+pwsh7 shell capture) each pointing at `.deft/core/content/scm/github.md` § PowerShell, to be loaded BEFORE the risky op. 3. AGENTS.md (maintainer half, the `## PowerShell` block ~L167-179): collapse the #798 + #1353 prose to the same terse platform-conditional pointer (root-relative `content/scm/github.md`); keep the `verify:encoding`-enforced framing. 4. REFERENCES.md: extend the `scm/github.md` task-based-loading entry so the platform-conditional PowerShell rules are discoverable via the Level-0 index (load before editing files / running shell under PowerShell or the Grok Build runtime). 5. Run `task agents:refresh` to regenerate the AGENTS.md managed section from the template; update the contract-test header marker `\"## PowerShell\"` -> `\"## Platform-conditional rules\"` in packages/core/src/content-contracts/skills/agents_entry_contract.test.ts (#1309 lockstep). 6. Lower plan.policy.agentsMdBudget managedMaxLines + unmanagedMaxLines to the new (smaller) actual counts (ratchet down). 7. CHANGELOG [Unreleased] entry (user-visible: platform-specific PowerShell rules no longer crowd every consumer's AGENTS.md -- they lazy-load from the git/GitHub doc when your runtime matches). Run `task check` GREEN.",
+      "UserStory": "As an agent or operator whose runtime is NOT Windows PowerShell / the Grok Build runtime, I want platform-specific PowerShell rules kept out of my always-loaded AGENTS.md, so that scarce context isn't spent on rules I can never trigger -- while an agent that IS on that runtime is still pointed (before the risky op) at the full guidance in content/scm/github.md.",
+      "Traces": "#2157, #1882, #645, #798, #1353, #1309, #2156"
+    },
+    "items": [
+      {
+        "id": "p1",
+        "title": "content/scm/github.md is the single source of truth for both PowerShell rules",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given content/scm/github.md, when read, then it contains BOTH the #798 PS 5.1 non-ASCII encoding how-to (already present) AND the #1353 Grok Build Windows+pwsh7 capture guidance (no piped/redirected commands through the agent shell tool; PTY-based Warp+Claude exempt) as a headed subsection."
+        }
+      },
+      {
+        "id": "p2",
+        "title": "Managed section carries a runtime-detect pointer, not the prose",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given content/templates/agents-entry.md (and the regenerated AGENTS.md managed section), when read, then the PowerShell prose is replaced by a terse platform-conditional pointer with runtime-detect triggers pointing at content/scm/github.md; no consumer-inapplicable platform prose remains in the always-loaded managed section."
+        }
+      },
+      {
+        "id": "p3",
+        "title": "Maintainer half collapses to the same pointer",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the AGENTS.md maintainer-half `## PowerShell` block, when read, then the #798 + #1353 prose is collapsed to a terse platform-conditional pointer (verify:encoding framing retained) referencing content/scm/github.md."
+        }
+      },
+      {
+        "id": "p4",
+        "title": "REFERENCES.md makes the relocated rules discoverable + ratchet lowered + task check green",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given REFERENCES.md, the contract test, the budget, and `task check`: the github.md entry surfaces the PowerShell platform-conditional guidance; the `## PowerShell` contract marker is updated to the new header; managedMaxLines + unmanagedMaxLines are lowered to the new counts; agents-entry contract + verify:encoding + full suite pass; CHANGELOG has a user-visible entry."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1882",
+        "child_issue": "#2157"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "content/scm/github.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "REFERENCES.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "PowerShell platform-conditional rules relocated to content/scm/github.md; managed + maintainer surfaces carry runtime-detect pointers; REFERENCES.md discoverable; ratchet lowered; task check green"
+        ],
+        "depends_on": [],
+        "conflict_group": "agents-md-legibility",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "high"
+      },
+      "completedAt": "2026-07-02T16:07:48Z"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2157",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2157: lazy-load platform/tool/runtime-conditional rules"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1882",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1882: AGENTS.md map-not-manual umbrella"
+      }
+    ],
+    "updated": "2026-07-02T16:07:48Z"
+  }
+}

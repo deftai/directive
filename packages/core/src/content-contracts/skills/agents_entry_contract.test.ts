@@ -74,7 +74,7 @@ const PROPAGATION_HEADER_MARKERS = [
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
   "### Story Start Gate",
-  "## PowerShell",
+  "## Platform-conditional rules (PowerShell / Windows)",
   "## Content packs",
 ] as const;
 
