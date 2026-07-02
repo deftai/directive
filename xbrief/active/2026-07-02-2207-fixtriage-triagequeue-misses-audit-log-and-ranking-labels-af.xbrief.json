@@ -1,0 +1,72 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2207"
+  },
+  "plan": {
+    "title": "fix(triage): triage:queue misses audit log and ranking labels after xbrief migration (#2109 gap)",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(triage): triage:queue misses audit log and ranking labels after xbrief migration (#2109 gap)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2207",
+      "UserStory": "As a directive maintainer working on a migrated `xbrief/` tree, I want `task triage:queue` to load my triage decisions and ranking labels from the `xbrief/` layout so that accepted issues show as triaged and the queue ranks by my configured labels — the same behavior the sibling `triage:summary` verb already has.",
+      "ImplementationPlan": "1. `packages/cli/src/triage-queue.ts`: pass `projectRoot` to `readAuditEntries()` and `loadSliceRecords()` instead of `resolveFrameworkRoot()`, matching `triage:summary`. Resolve audit/slices via `resolveEvalPath(projectRoot, ...)`.\n2. `packages/core/src/triage/queue/project.ts`: replace the hardcoded `vbrief/PROJECT-DEFINITION.vbrief.json` join with the layout-aware `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts`.\n3. `packages/core/src/triage/scope-drift/scope-rules.ts`: same layout-aware PROJECT-DEFINITION load so `triageScope[]` / `triageScopeIgnores[]` resolve on migrated trees.\n4. `packages/core/src/triage/queue/constants.ts`: update or deprecate the stale `vbrief/` default path constants in favor of the resolver.\n5. Tests: add xbrief-layout regression coverage — accept decision in `xbrief/.eval/candidates.jsonl` yields `[other]`, and configured `triageRankingLabels` from `xbrief/PROJECT-DEFINITION.xbrief.json` appear in the header. Cover the consumer scenario (project root ≠ framework root).\n6. Run `task check`; add CHANGELOG `[Unreleased]` entry.",
+      "Traces": "#2207, #2109, #2112, #1128",
+      "Overview": "## Summary\n\nAfter the `vbrief/` → `xbrief/` migration (#2109), `task triage:queue` reports every cached issue as `[untriaged]` and prints `consumer ranking labels: <empty>`, even when the operator has a populated `xbrief/.eval/candidates.jsonl` with accept decisions and `plan.policy.triageRankingLabels` configured in `xbrief/PROJECT-DEFINITION.xbrief.json`.\n\nSibling verbs (`triage:summary`, `triage:reconcile`) read the correct paths and see the audit state; only `triage:queue` is broken.\n\n## User-visible impact\n\n- Accepted/triaged issues surface as `[untriaged]` — operators lose the primary work-selection signal (D11 / #1128).\n- Configured ranking labels (`blocks-merge`, `urgent`, `bug`, …) are ignored; queue header shows `<empty>` and `(label: …)` hints never appear.\n- `triageScopeIgnores[]` may not load from PROJECT-DEFINITION on migrated trees (same hardcoded vbrief path in scope-rules).\n- On npm consumer installs (framework root = `.deft/core`, project root = clone), audit/slices resolution via `frameworkRoot` reads the wrong tree entirely.\n\n## Root cause (two bugs, one missed #2109 part-2a sweep)\n\n### 1. Audit log + slices log resolve against wrong root\n\n`packages/cli/src/triage-queue.ts` passes `frameworkRoot: resolveFrameworkRoot()` to `readAuditEntries()` and `loadSliceRecords()`. When `DEFT_ROOT` is unset, `resolveFrameworkRoot()` walks up two levels from `packages/cli/dist/bin.js` → **`packages/`**, not the repo/project root.\n\nObserved audit path:\n\n```\n/home/msadams/repos/deft/directive/packages/vbrief/.eval/candidates.jsonl  ← missing\n```\n\nActual audit path (44 accept rows present):\n\n```\n/home/msadams/repos/deft/directive/xbrief/.eval/candidates.jsonl\n```\n\nResult: zero audit entries loaded → all issues derive to `[untriaged]`.\n\n**Contrast:** `packages/core/src/triage/summary/index.ts` correctly uses `projectRoot` + `resolveEvalPath()`.\n\n### 2. PROJECT-DEFINITION + policy still hardcoded to vbrief path\n\n`packages/core/src/triage/queue/project.ts` and `packages/core/src/triage/scope-drift/scope-rules.ts` still read:\n\n```\nvbrief/PROJECT-DEFINITION.vbrief.json\n```\n\nOn migrated trees this file is absent, so `triageRankingLabels`, `triageScope[]`, and `triageScopeIgnores[]` fall back to framework defaults (empty ranking labels).\n\n**Contrast:** `packages/core/src/policy/resolve.ts` already exposes layout-aware `projectDefinitionPath()` via `resolveProjectDefinitionPath()`.\n\n## Reproduction\n\nOn a migrated `xbrief/` tree with populated audit log:\n\n```bash\n# Confirm audit log exists and has accept rows\nwc -l xbrief/.eval/candidates.jsonl\n\n# Queue shows everything untriaged + empty ranking labels\ntask triage:queue -- --limit=10\n\n# Sibling verbs see the real state\ntask triage:summary\ntask triage:reconcile -- --dry-run\n```\n\nDebug one-liner (frameworkRoot from bin.js resolves to `packages/`):\n\n```bash\nnode -e \"\nimport { resolveAuditLogPath, readAuditEntries } from './packages/core/dist/triage/queue/audit.js';\nconst fw = '/home/msadams/repos/deft/directive/packages';\nconsole.log(resolveAuditLogPath({ frameworkRoot: fw }));\nconsole.log(readAuditEntries('deftai/directive', { frameworkRoot: fw }).length);\n\"\n# → packages/vbrief/.eval/candidates.jsonl, 0 entries\n```\n\n## Proposed fix\n\n1. **`triage:queue` CLI:** pass `projectRoot` (not `frameworkRoot`) to audit/slices resolution, matching `triage:summary`.\n2. **`queue/project.ts`:** switch to `projectDefinitionPath()` / `resolveProjectDefinitionPath()` from `packages/core/src/layout/resolve.js` (or re-export from `policy/resolve.ts`).\n3. **`scope-drift/scope-rules.ts`:** same layout-aware PROJECT-DEFINITION load (or delegate to shared helper).\n4. **Constants cleanup:** update `packages/core/src/triage/queue/constants.ts` stale `vbrief/` default paths or mark deprecated in favor of `resolveEvalPath()`.\n5. **Tests:** add regression coverage for migrated `xbrief/` tree — queue must show `[other]` for issues with accept decisions in `xbrief/.eval/candidates.jsonl` and must print configured ranking labels from `xbrief/PROJECT-DEFINITION.xbrief.json`.\n\n## Acceptance criteria\n\n- [ ] On migrated `xbrief/` tree, `task triage:queue` loads audit entries from `xbrief/.eval/candidates.jsonl` via `projectRoot`.\n- [ ] Issues with latest `accept` decision in audit log appear in `[other]` group, not `[untriaged]`.\n- [ ] Queue header lists `plan.policy.triageRankingLabels` from `xbrief/PROJECT-DEFINITION.xbrief.json`.\n- [ ] Consumer install scenario (framework root ≠ project root) resolves audit/slices under project root.\n- [ ] Existing `triage:queue` tests updated; new xbrief-layout regression test added.\n- [ ] `task check` passes.\n\n## Related\n\n- Refs #2109 (part 2a claimed full triage sweep; `triage:queue` submodules missed)\n- Refs #2112 (remove vbrief read path — this bug should be fixed before/alongside that cleanup)\n- Refs #1128 (D11 triage queue)\n- Refs #1186 (consumer triage config / ranking labels)\n\n## Discovered during\n\nInteractive session triage investigation after xbrief migration — operator reported queue previously showed triaged items with ranking labels; post-migration all items show `[untriaged]`."
+    },
+    "items": [
+      {
+        "title": "On migrated `xbrief/` tree, `task triage:queue` loads audit entries from `xbrief/.eval/candidates.jsonl` via `projectRoot`.",
+        "status": "proposed"
+      },
+      {
+        "title": "Issues with latest `accept` decision in audit log appear in `[other]` group, not `[untriaged]`.",
+        "status": "proposed"
+      },
+      {
+        "title": "Queue header lists `plan.policy.triageRankingLabels` from `xbrief/PROJECT-DEFINITION.xbrief.json`.",
+        "status": "proposed"
+      },
+      {
+        "title": "Consumer install scenario (framework root ≠ project root) resolves audit/slices under project root.",
+        "status": "proposed"
+      },
+      {
+        "title": "Existing `triage:queue` tests updated; new xbrief-layout regression test added.",
+        "status": "proposed"
+      },
+      {
+        "title": "`task check` passes.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2207",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2207: fix(triage): triage:queue misses audit log and ranking labels after xbrief migration (#2109 gap)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2109",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2109"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2112",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2112"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1128",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1128"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1186",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1186"
+      }
+    ],
+    "updated": "2026-07-02T21:53:52Z"
+  }
+}
