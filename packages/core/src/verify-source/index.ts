@@ -1,3 +1,4 @@
+export * from "./biome-config.js";
 export * from "./code-structure-validate.js";
 export * from "./content-manifest.js";
 export {

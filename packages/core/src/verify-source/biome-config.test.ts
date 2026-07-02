@@ -39,6 +39,16 @@ describe("findRuleSeverities", () => {
     ]);
     expect(findings[0]?.severity).toBeNull();
   });
+
+  it("returns null when the rule entry is neither a string nor an object", () => {
+    const config = {
+      linter: { rules: { correctness: { noUnusedVariables: 1 } } },
+    };
+    const [finding] = findRuleSeverities(config, [
+      { group: "correctness", rule: "noUnusedVariables" },
+    ]);
+    expect(finding?.severity).toBeNull();
+  });
 });
 
 describe("evaluateBiomeConfigGuard", () => {

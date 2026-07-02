@@ -35,6 +35,18 @@ tasks:
         vars:
           ENGINE_CMD: 'rule-ownership-lint --root "{{.DEFT_ROOT}}"'
 
+  biome-config:
+    desc: "Guard against #2190 (biome check . flipping recommended-preset diagnostic severity between warning and error non-deterministically): asserts biome.json declares an explicit non-error severity for noUnusedVariables and noNonNullAssertion. Three-state exit (0 clean / 1 missing/error severity / 2 config error)."
+    deps:
+      - task: :engine:_ts-build
+    # Framework-source-only gate: it reads THIS repo's own biome.json, so it
+    # targets DEFT_ROOT (not USER_WORKING_DIR) -- a consumer deposit has no
+    # TS engine / biome.json to guard. Mirrors verify:content-manifest.
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify-biome-config --project-root "{{.DEFT_ROOT}}"'
+
   content-manifest:
     desc: "Verify the Content Manifest (conventions/content-manifest.json) classifies every git-tracked top-level entry (#1821). Fails on an unclassified entry, a stale classified path, an invalid bucket, or a duplicate path. Wave-1 shippability audit for the engine/content split (#1669)."
     deps:

@@ -133,6 +133,7 @@ export const CLI_MODULE_VERBS = [
   "verify-no-task-runtime",
   "validate-links",
   "validate-strategy-output",
+  "verify-biome-config",
   "verify-bridge-drift",
   "verify-capacity",
   "verify-content-manifest",
@@ -228,6 +229,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "validate:links": "validate-links",
   "verify:rule-ownership": "rule-ownership-lint",
   "rule:ownership-lint": "rule-ownership-lint",
+  "verify:biome-config": "verify-biome-config",
   "verify:content-manifest": "verify-content-manifest",
   "verify:contract-drift": "verify-contract-drift",
   "verify:cursor-tier1": "verify-cursor-tier1",
@@ -271,6 +273,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
 const SUBDIR_CLI_STEMS: Readonly<Record<string, string>> = {
   "verify-stubs": "verify-source-cli/verify-stubs",
   "rule-ownership-lint": "verify-source-cli/rule-ownership-lint",
+  "verify-biome-config": "verify-source-cli/verify-biome-config",
   "verify-content-manifest": "verify-source-cli/verify-content-manifest",
   "verify-contract-drift": "verify-source-cli/verify-contract-drift",
   "verify-cursor-tier1": "verify-source-cli/verify-cursor-tier1",
