@@ -11,11 +11,11 @@ import {
   LEGACY_ARTIFACT_SUFFIX,
   LEGACY_INFO_ROOT_KEY,
   LEGACY_VBRIEF_VERSION,
+  MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
   MIGRATED_INFO_ROOT_KEY,
   VBRIEF_VERSION,
 } from "../xbrief-migrate/constants.js";
-import { detectLegacyVbriefLayout } from "../xbrief-migrate/detect.js";
 import {
   findAcHeading,
   parseCheckboxItems,
@@ -60,10 +60,6 @@ interface IngestEmissionLayout {
   readonly infoVersion: string;
 }
 
-function inferLegacyLayoutFromLifecycleRoot(vbriefDir: string): boolean {
-  return basename(vbriefDir) !== "xbrief";
-}
-
 function readDeclaredInfoVersion(
   vbriefDir: string,
   infoRootKey: typeof LEGACY_INFO_ROOT_KEY | typeof MIGRATED_INFO_ROOT_KEY,
@@ -89,12 +85,24 @@ function readDeclaredInfoVersion(
   return fallbackVersion;
 }
 
-function resolveIngestEmissionLayout(vbriefDir: string, cwd?: string | null): IngestEmissionLayout {
-  const legacyLayout =
-    typeof cwd === "string" && cwd.length > 0
-      ? detectLegacyVbriefLayout(cwd).legacyLayout
-      : inferLegacyLayoutFromLifecycleRoot(vbriefDir);
-  if (legacyLayout) {
+/**
+ * Decide the emission format (`.xbrief.json` + `xBRIEFInfo` vs legacy `.vbrief.json`
+ * + `vBRIEFInfo`) for an ingested scope artifact.
+ *
+ * The decision is STRUCTURAL and keyed on the resolved lifecycle root directory
+ * (`vbriefDir`), which is itself produced by `resolveLifecycleLayout` / `resolveLifecycleRoot`
+ * -- the exact same layout-decision logic `project:render` uses. This guarantees the two
+ * surfaces cannot diverge (#2149 finding #1): whichever tree `resolveLifecycleLayout` selected
+ * (`xbrief/` when migrated, else `vbrief/`) is the tree ingest writes into, and the emission
+ * format always matches that directory.
+ *
+ * It deliberately does NOT content-scan the tree for legacy markers (`detectLegacyVbriefLayout`).
+ * A historical vBRIEF-serialized artifact sitting in `xbrief/completed/` is migrated content,
+ * not a legacy layout, and must NOT force legacy emission on a migrated project (#2149 finding #3).
+ */
+function resolveIngestEmissionLayout(vbriefDir: string): IngestEmissionLayout {
+  const migrated = basename(vbriefDir) === MIGRATED_ARTIFACT_DIR;
+  if (!migrated) {
     return {
       artifactSuffix: LEGACY_ARTIFACT_SUFFIX,
       infoRootKey: LEGACY_INFO_ROOT_KEY,
@@ -623,7 +631,7 @@ export function ingestOne(
     cwd: options.cwd,
     cacheRoot: options.cacheRoot,
   });
-  const emissionLayout = resolveIngestEmissionLayout(options.vbriefDir, options.cwd);
+  const emissionLayout = resolveIngestEmissionLayout(options.vbriefDir);
   const [vbrief, folder] = buildIssueVbrief(enriched, options.status, options.repoUrl, {
     infoRootKey: emissionLayout.infoRootKey,
     infoVersion: emissionLayout.infoVersion,

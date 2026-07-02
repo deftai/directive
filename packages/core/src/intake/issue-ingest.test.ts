@@ -62,6 +62,7 @@ describe("issue-ingest layout-aware emission parity", () => {
           status: "proposed",
           repoUrl: "https://github.com/o/r",
           cwd: root,
+          scmCall: () => completed("[]", "", 0),
         },
       );
       expect(result).toBe("created");
@@ -113,6 +114,7 @@ describe("issue-ingest layout-aware emission parity", () => {
           status: "proposed",
           repoUrl: "https://github.com/o/r",
           cwd: root,
+          scmCall: () => completed("[]", "", 0),
         },
       );
       expect(result).toBe("created");
@@ -123,6 +125,53 @@ describe("issue-ingest layout-aware emission parity", () => {
           version: "0.8",
         }),
       );
+      expect(parsed.vBRIEFInfo).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("still emits xbrief output when a completed artifact carries legacy vBRIEFInfo (#2149)", () => {
+    // Regression for the self-defeating detection bug: a historical vBRIEF-serialized
+    // artifact inside a migrated xbrief/ tree (e.g. a completed story lifecycle file) must
+    // NOT force legacy emission. The decision is structural (which tree we write into), not
+    // a content scan of the tree.
+    const root = mkdtempSync(join(tmpdir(), "deft-ingest-legacy-content-in-xbrief-"));
+    const xbriefDir = join(root, "xbrief");
+    const completedDir = join(xbriefDir, "completed");
+    mkdirSync(completedDir, { recursive: true });
+    writeFileSync(
+      join(xbriefDir, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "PROJECT-DEFINITION" } }),
+      "utf8",
+    );
+    // A completed story artifact still serialized with a legacy vBRIEFInfo envelope.
+    writeFileSync(
+      join(completedDir, "2026-07-02-legacy-completed.xbrief.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Old story" } }),
+      "utf8",
+    );
+    try {
+      const [result, path] = ingestOne(
+        {
+          number: 603,
+          title: "Migrated project with legacy content",
+          html_url: "https://github.com/o/r/issues/603",
+          body: "Migrated body",
+          labels: [],
+        },
+        {
+          vbriefDir: xbriefDir,
+          status: "proposed",
+          repoUrl: "https://github.com/o/r",
+          cwd: root,
+          scmCall: () => completed("[]", "", 0),
+        },
+      );
+      expect(result).toBe("created");
+      expect(path).toMatch(/\.xbrief\.json$/);
+      const parsed = JSON.parse(readFileSync(path as string, "utf8")) as Record<string, unknown>;
+      expect(parsed.xBRIEFInfo).toEqual(expect.objectContaining({ version: "0.8" }));
       expect(parsed.vBRIEFInfo).toBeUndefined();
     } finally {
       rmSync(root, { recursive: true, force: true });
