@@ -1,7 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ResolutionFacts } from "../resolution/index.js";
 import { parseDoctorFlags } from "./flags.js";
-import { cmdDoctor } from "./main.js";
+import {
+  cmdDoctor,
+  enforceDirectiveSurface,
+  resolveOperatingMode,
+  resolvePlatformSkew,
+  resolveReconciliationLine,
+  runResolutionDecision,
+} from "./main.js";
 import { createPlainSink } from "./output.js";
+import type { DoctorSeams, Finding } from "./types.js";
 
 describe("cmdDoctor", () => {
   it("returns 2 for unknown flags", () => {
@@ -71,5 +83,307 @@ describe("createPlainSink", () => {
     sink.finalSuccess("shown");
     expect(lines.join("")).toContain("shown");
     expect(lines.join("")).not.toContain("hidden");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #2267: read-only, plan()-derived resolution decision surface.
+// ---------------------------------------------------------------------------
+
+const createdRoots: string[] = [];
+
+function makeRoot(): string {
+  const root = mkdtempSync(join(tmpdir(), "deft-doctor-2267-"));
+  createdRoots.push(root);
+  return root;
+}
+
+afterEach(() => {
+  vi.clearAllMocks();
+  while (createdRoots.length > 0) {
+    const root = createdRoots.pop();
+    if (root) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+const FACTS_BASE: ResolutionFacts = {
+  hasGit: false,
+  hasAppCode: false,
+  hasDeftCore: false,
+  deftCorePayloadVersion: null,
+  hasManagedSection: false,
+  managedSectionSha: null,
+  hasVbrief: false,
+  hasXbrief: false,
+  preCutoverArtifacts: false,
+  engineReachable: false,
+  engineVersion: null,
+  pinVersion: null,
+};
+
+const noEngine = () => ({ reachable: false, version: null });
+const engineAt = (version: string) => () => ({ reachable: true, version });
+
+function writePackagePin(root: string, version: string): void {
+  writeFileSync(
+    join(root, "package.json"),
+    JSON.stringify({ private: true, devDependencies: { "@deftai/directive": version } }),
+    "utf8",
+  );
+}
+
+function makeDeposit(root: string): void {
+  mkdirSync(join(root, ".deft", "core"), { recursive: true });
+}
+
+function makeLegacyVbrief(root: string): void {
+  for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
+    mkdirSync(join(root, "vbrief", folder), { recursive: true });
+  }
+}
+
+function makeLocalEngine(root: string, platform: string, intact: boolean): void {
+  const platformDir = join(root, ".deft", ".cli", platform);
+  mkdirSync(platformDir, { recursive: true });
+  if (intact) {
+    writeFileSync(join(platformDir, "package.json"), "{}", "utf8");
+    mkdirSync(join(platformDir, "node_modules", ".bin"), { recursive: true });
+    writeFileSync(join(platformDir, "node_modules", ".bin", "directive"), "#!/bin/sh\n", "utf8");
+  }
+}
+
+function runDecision(
+  root: string,
+  seams: DoctorSeams,
+): { summary: ReturnType<typeof runResolutionDecision>; findings: Finding[]; text: string } {
+  const lines: string[] = [];
+  const sink = createPlainSink({ write: (t) => lines.push(t) });
+  const findings: Finding[] = [];
+  const summary = runResolutionDecision(root, false, sink, (f) => findings.push(f), seams);
+  return { summary, findings, text: lines.join("") };
+}
+
+function countNextCommands(text: string): number {
+  return (text.match(/^Next command:/gm) ?? []).length;
+}
+
+function snapshot(root: string): string[] {
+  const entries: string[] = [];
+  const walk = (dir: string): void => {
+    for (const name of readdirSync(dir).sort()) {
+      const full = join(dir, name);
+      const rel = relative(root, full);
+      if (statSync(full).isDirectory()) {
+        entries.push(`${rel}/`);
+        walk(full);
+      } else {
+        entries.push(rel);
+      }
+    }
+  };
+  walk(root);
+  return entries.sort();
+}
+
+describe("enforceDirectiveSurface (#2267 no bare task)", () => {
+  it("rewrites a bare task command to the directive surface without Taskfile wiring", () => {
+    expect(enforceDirectiveSurface("task update:x", false)).toBe("directive update:x");
+  });
+
+  it("keeps a task command when Taskfile wiring exists", () => {
+    expect(enforceDirectiveSurface("task update:x", true)).toBe("task update:x");
+  });
+
+  it("passes directive/npm commands and null through unchanged", () => {
+    expect(enforceDirectiveSurface("npx @deftai/directive init", false)).toBe(
+      "npx @deftai/directive init",
+    );
+    expect(enforceDirectiveSurface(null, false)).toBeNull();
+  });
+});
+
+describe("resolveOperatingMode (#2267)", () => {
+  it("labels each operating mode", () => {
+    expect(resolveOperatingMode(FACTS_BASE)).toContain("greenfield");
+    expect(resolveOperatingMode({ ...FACTS_BASE, hasAppCode: true })).toContain("brownfield");
+    expect(resolveOperatingMode({ ...FACTS_BASE, hasManagedSection: true })).toContain("hybrid");
+    expect(
+      resolveOperatingMode({ ...FACTS_BASE, hasDeftCore: true, hasManagedSection: true }),
+    ).toContain("hybrid");
+    expect(resolveOperatingMode({ ...FACTS_BASE, hasDeftCore: true })).toContain("vendored");
+    expect(resolveOperatingMode({ ...FACTS_BASE, preCutoverArtifacts: true })).toContain(
+      "pre-cutover",
+    );
+  });
+});
+
+describe("resolveReconciliationLine (#2267)", () => {
+  it("reports current when engine/pin/content align", () => {
+    const line = resolveReconciliationLine({
+      ...FACTS_BASE,
+      engineReachable: true,
+      engineVersion: "0.68.0",
+      pinVersion: "0.68.0",
+      deftCorePayloadVersion: "0.68.0",
+    });
+    expect(line).toContain("current");
+  });
+
+  it("flags engine behind pin", () => {
+    const line = resolveReconciliationLine({
+      ...FACTS_BASE,
+      engineReachable: true,
+      engineVersion: "0.60.0",
+      pinVersion: "0.68.0",
+    });
+    expect(line).toContain("behind");
+  });
+
+  it("folds in engine-ahead skew", () => {
+    const line = resolveReconciliationLine({
+      ...FACTS_BASE,
+      engineReachable: true,
+      engineVersion: "0.69.0",
+      pinVersion: "0.68.0",
+    });
+    expect(line).toContain("ahead");
+  });
+});
+
+describe("resolvePlatformSkew (#2267 cross-platform skew)", () => {
+  it("detects a partial/divergent local engine as skew", () => {
+    const root = makeRoot();
+    makeLocalEngine(root, "linux", true);
+    makeLocalEngine(root, "win32", false); // present but partial
+    const res = resolvePlatformSkew(root, {
+      resolutionPlatforms: ["linux", "darwin", "win32"],
+    });
+    expect(res.skewDetected).toBe(true);
+    expect(res.line).toContain("skew detected");
+    expect(res.findings.some((f) => f.check === "resolution:platform-skew")).toBe(true);
+  });
+
+  it("reports no engines when every platform is absent", () => {
+    const root = makeRoot();
+    const res = resolvePlatformSkew(root, { resolutionPlatforms: ["linux", "darwin"] });
+    expect(res.skewDetected).toBe(false);
+    expect(res.line).toContain("absent on all");
+    expect(res.findings).toHaveLength(0);
+  });
+});
+
+describe("runResolutionDecision state matrix (#2267)", () => {
+  it("greenfield -> exactly one init next command, directive-surfaced", () => {
+    const root = makeRoot();
+    const { summary, findings, text } = runDecision(root, { engineProbe: noEngine });
+    expect(summary.mode).toBe("init");
+    expect(summary.actionRequired).toBe(true);
+    expect(summary.operatingMode).toContain("greenfield");
+    expect(summary.nextCommand).toBe("npx @deftai/directive init");
+    expect(summary.nextCommand?.startsWith("task ")).toBe(false);
+    expect(countNextCommands(text)).toBe(1);
+    expect(findings.filter((f) => f.check === "resolution")).toHaveLength(1);
+    expect(text).toContain("Root cause:");
+    expect(text).toContain("Does / why safe:");
+  });
+
+  it("pre-cutover -> migrate with a manual next action (no command leaks)", () => {
+    const root = makeRoot();
+    writeFileSync(join(root, "SPECIFICATION.md"), "# Legacy hand-authored spec\n", "utf8");
+    const { summary, text } = runDecision(root, { engineProbe: noEngine });
+    expect(summary.mode).toBe("migrate");
+    expect(summary.nextCommand).toBeNull();
+    expect(summary.operatingMode).toContain("pre-cutover");
+    expect(text).toContain("Next command: (manual");
+    expect(countNextCommands(text)).toBe(1);
+  });
+
+  it("healthy deposit + legacy vbrief -> proceed; secondary migrate advice only after primary clears", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writePackagePin(root, "0.68.0");
+    makeLegacyVbrief(root);
+    const { summary, findings, text } = runDecision(root, { engineProbe: engineAt("0.68.0") });
+    expect(summary.mode).toBe("proceed");
+    expect(summary.actionRequired).toBe(false);
+    expect(countNextCommands(text)).toBe(0);
+    expect(text).toContain("directive migrate:xbrief");
+    expect(summary.warnings.some((w) => w.includes("migrate:xbrief"))).toBe(true);
+    expect(findings.filter((f) => f.check === "resolution")[0]?.severity).toBe("skip");
+  });
+
+  it("engine behind pin (mismatched env) -> one install-global directive command", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writePackagePin(root, "0.68.0");
+    const { summary, text } = runDecision(root, { engineProbe: engineAt("0.60.0") });
+    expect(summary.mode).toBe("install-global");
+    expect(summary.nextCommand).toBe("npm i -g @deftai/directive@0.68.0");
+    expect(summary.reconciliation).toContain("behind");
+    expect(summary.nextCommand?.startsWith("task ")).toBe(false);
+    expect(countNextCommands(text)).toBe(1);
+  });
+
+  it("engine ahead within window (mismatched env) -> update", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writePackagePin(root, "0.68.0");
+    const { summary } = runDecision(root, { engineProbe: engineAt("0.69.0") });
+    expect(summary.mode).toBe("update");
+    expect(summary.nextCommand).toBe("npx @deftai/directive update");
+    expect(summary.reconciliation).toContain("ahead");
+  });
+});
+
+describe("cmdDoctor read-only + resolution wiring (#2267)", () => {
+  it("mutates no project files in default report mode (only throttle state may be written)", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writePackagePin(root, "0.68.0");
+    const before = snapshot(root);
+    const writeTextSpy = vi.fn();
+    const stateWrites: string[] = [];
+    const exit = cmdDoctor(["--full", "--json", "--project-root", root], {
+      whichFn: () => "/usr/bin/x",
+      engineProbe: engineAt("0.68.0"),
+      writeText: writeTextSpy,
+      writeState: (p) => {
+        stateWrites.push(p);
+        return null;
+      },
+    });
+    const after = snapshot(root);
+    expect(writeTextSpy).not.toHaveBeenCalled();
+    expect(after).toEqual(before);
+    expect(typeof exit).toBe("number");
+  });
+
+  it("emits the resolution block in the --json payload", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    writePackagePin(root, "0.68.0");
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    try {
+      cmdDoctor(["--full", "--json", "--project-root", root], {
+        whichFn: () => "/usr/bin/x",
+        engineProbe: engineAt("0.68.0"),
+        writeState: () => null,
+      });
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    const payload = JSON.parse(stdout.join("")) as {
+      resolution?: { mode?: string; operating_mode?: string; next_command?: string | null };
+    };
+    expect(payload.resolution).toBeDefined();
+    expect(payload.resolution?.mode).toBe("proceed");
+    expect(payload.resolution?.operating_mode).toContain("vendored");
   });
 });

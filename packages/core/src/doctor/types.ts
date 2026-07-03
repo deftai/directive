@@ -1,4 +1,6 @@
 import type { AdvisoryEvaluateResult } from "../agents-md-advisory/evaluate.js";
+import type { EngineProbeResult } from "../resolution/classify.js";
+import type { ResolutionMode } from "../resolution/index.js";
 
 export const EXIT_CLEAN = 0;
 export const EXIT_DRIFT = 1;
@@ -29,6 +31,35 @@ export interface Finding {
   readonly suggestion?: string | null;
   readonly status?: string;
   readonly [key: string]: unknown;
+}
+
+/**
+ * The single read-only decision surface derived from the shared keystone
+ * `plan()` (#2267 / epic #2203). `plan()` is the ONE classifier: doctor never
+ * re-derives the mode here, it only renders the mode + the single ordered next
+ * action plus the operating-mode / reconciliation / cross-platform-skew context.
+ */
+export interface ResolutionSummary {
+  /** Human-facing operating mode (hybrid / vendored / greenfield / ...). */
+  readonly operatingMode: string;
+  /** engine/pin/VERSION reconciliation verdict line. */
+  readonly reconciliation: string;
+  /** Cross-platform `.deft/.cli/<platform>` engine presence + skew line. */
+  readonly platformSkew: string;
+  /** True when the platform installs diverge (present/partial/absent mix). */
+  readonly platformSkewDetected: boolean;
+  /** Resolved mode from `plan()` (the single classifier). */
+  readonly mode: ResolutionMode;
+  /** True when the resolved mode requires operator action (mode !== "proceed"). */
+  readonly actionRequired: boolean;
+  /** The ONE primary next command, directive-surfaced; null for manual actions. */
+  readonly nextCommand: string | null;
+  /** Why the primary action is recommended. */
+  readonly rootCause: string;
+  /** What the remediation does + why it is safe. */
+  readonly remediation: string;
+  /** Ordered secondary warnings from `plan()` (informational, not directives). */
+  readonly warnings: readonly string[];
 }
 
 export interface DoctorFlags {
@@ -85,4 +116,15 @@ export interface DoctorSeams {
   readonly readYn?: (prompt: string, defaultYes: boolean) => boolean;
   readonly writeText?: (path: string, content: string) => void;
   readonly now?: () => Date;
+  /**
+   * Engine-reachability probe threaded into the shared `classify()`. Injected so
+   * the resolution decision stays deterministic + offline in tests; the default
+   * shells out to `directive --version` / `deft --version`.
+   */
+  readonly engineProbe?: () => EngineProbeResult;
+  /**
+   * Platform ids probed for cross-platform `.deft/.cli/<platform>` engine skew.
+   * Defaults to `["linux", "darwin", "win32"]`.
+   */
+  readonly resolutionPlatforms?: readonly string[];
 }

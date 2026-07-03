@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`directive doctor` is now a strictly read-only, decision-oriented diagnostic (#2267).** It reports your operating mode (hybrid / vendored / greenfield / pre-cutover) plus an engine/pin/VERSION reconciliation line, surfaces cross-platform `.deft/.cli/<platform>` engine skew, and derives its verdict from the shared `plan()` classifier so there is a single source of truth. When action is required it emits exactly one `Next command:` paired with a root-cause and a remediation "does / why safe" rationale, suppressing secondary migration advice until the primary blocker clears, never printing a bare `task` command in a project without Taskfile wiring, and never mutating project files. Refs #2267, #2203.
+
 ### Fixed
 
 ### Removed

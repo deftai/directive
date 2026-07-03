@@ -6,7 +6,7 @@
   "plan": {
     "id": "2267-directive-doctor",
     "title": "directive doctor: read-only, one next action with root-cause + remediation rationale",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Make `directive doctor` diagnostic-only and decision-oriented: it inspects health, states the operating mode plus version reconciliation, and emits exactly one next command paired with a root-cause and a remediation rationale, and it never mutates project files. It derives every finding from the shared keystone plan() schema rather than a second classifier, suppresses secondary migration advice until the primary blocker clears, never recommends a bare task command in a project with no Taskfile, and surfaces cross-platform engine skew.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2267",
@@ -113,8 +113,10 @@
           "Colocated vitest across pre-cutover/legacy-vbrief/missing-Taskfile/current-xBRIEF/partial-install/mismatched-env; task check:framework-source green."
         ],
         "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2266 (update) in wave 3 -- file_scope is disjoint (doctor touches doctor/* + cli/doctor.ts; update touches init-deposit/refresh.ts + init-cli/*). CHANGELOG.md intentionally omitted from file_scope to keep the concurrent overlap matrix clean; worker still adds a CHANGELOG entry (trivial append resolved at second merge). Depends on the merged keystone #2264 (plan()). Consumes resolution/* read-only. The migrate --untrack-core verb doctor points at is shipped by #2269 (merged); this story owns only the doctor-side detection + emission."
-      }
+      },
+      "completedAt": "2026-07-03T23:36:13Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-03T23:15:17Z"
+    "updated": "2026-07-03T23:36:13Z"
   }
 }
