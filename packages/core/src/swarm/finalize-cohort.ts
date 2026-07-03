@@ -6,7 +6,7 @@ import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issu
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { completeCohort, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
-import { resolveStories } from "./launch.js";
+import { completedBriefReferencesIssue, resolveStories } from "./launch.js";
 import { runText } from "./subprocess.js";
 
 export interface FinalizeCohortResult {
@@ -21,6 +21,7 @@ export interface FinalizeCohortResult {
   readonly branch: string | null;
   readonly pr_url: string | null;
   readonly errors: readonly string[];
+  readonly warnings: readonly string[];
   readonly ok: boolean;
 }
 
@@ -152,6 +153,36 @@ function fetchClosingIssues(
     };
   }
   return { issues: [...new Set(linked)].sort((a, b) => a - b), error: null };
+}
+
+/**
+ * Read an issue's open/closed state via the scm shim (`gh api .../issues/<N>`).
+ * Returns true only when the live state is definitively "closed". Any lookup
+ * failure (no repo, gh error, unparseable payload) returns false so a genuine
+ * misconfig is surfaced rather than silently swallowed as a benign skip (#2247).
+ */
+function fetchIssueClosed(issue: number, repo: string | null, runGh: RunGhFn): boolean {
+  if (repo === null || repo.length === 0) {
+    return false;
+  }
+  const parsed = parseRepo(repo);
+  if (parsed === null) {
+    return false;
+  }
+  const path = `repos/${parsed.owner}/${parsed.name}/issues/${issue}`;
+  const result = runGh(["gh", "api", path]);
+  if (result.returncode !== 0) {
+    return false;
+  }
+  try {
+    const payload = JSON.parse(result.stdout) as unknown;
+    if (payload === null || typeof payload !== "object") {
+      return false;
+    }
+    return (payload as Record<string, unknown>).state === "closed";
+  } catch {
+    return false;
+  }
 }
 
 function deriveLabel(
@@ -361,6 +392,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       errors: [`project root does not exist: ${projectRoot}`],
+      warnings: [],
       ok: false,
       emitJson: args.emitJson ?? false,
       exitCode: EXIT_CONFIG_ERROR,
@@ -380,6 +412,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       errors: [`no xbrief/ directory under project root: ${projectRoot}`],
+      warnings: [],
       ok: false,
       emitJson: args.emitJson ?? false,
       exitCode: EXIT_CONFIG_ERROR,
@@ -408,19 +441,69 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
   }
 
-  const resolveTokens = [...storyTokens, ...[...closingIssues].map((n) => String(n))];
-  if (resolveTokens.length === 0) {
+  if (storyTokens.length === 0 && closingIssues.size === 0) {
     errors.push("empty cohort: pass --pr <numbers> and/or --stories <ids|paths>.");
   }
 
-  let storyPaths: string[] = [];
-  if (resolveTokens.length > 0) {
-    const resolved = resolveStories(projectRoot, resolveTokens);
-    storyPaths = resolved.resolved.map((s) => s.path);
+  const warnings: string[] = [];
+  const storyPaths: string[] = [];
+  const seenPaths = new Set<string>();
+  const addStory = (path: string): void => {
+    const resolvedPath = resolve(path);
+    if (!seenPaths.has(resolvedPath)) {
+      seenPaths.add(resolvedPath);
+      storyPaths.push(path);
+    }
+  };
+
+  // Operator-supplied story tokens keep the hard-error contract: an explicit
+  // --stories token that does not resolve to an active brief is a real error.
+  if (storyTokens.length > 0) {
+    const resolved = resolveStories(projectRoot, storyTokens);
+    for (const story of resolved.resolved) {
+      addStory(story.path);
+    }
     errors.push(...resolved.errors);
   }
 
+  // Closing-issue tokens are incidental (they come from a merged PR's structured
+  // closing refs, not the operator). A benign ref -- one whose issue is already
+  // closed OR already has a brief in completed/ -- is SKIPPED WITH A WARNING
+  // rather than aborting the whole sweep. A genuine misconfig (open issue, no
+  // active and no completed brief) is still surfaced as a hard error (#2247).
+  for (const issue of [...closingIssues].sort((a, b) => a - b)) {
+    const resolved = resolveStories(projectRoot, [String(issue)]);
+    if (resolved.resolved.length > 0) {
+      for (const story of resolved.resolved) {
+        addStory(story.path);
+      }
+      continue;
+    }
+    const noActiveBrief = resolved.errors.some((e) => e.includes("no active story references"));
+    if (!noActiveBrief) {
+      // A different resolution problem (e.g. ambiguous match) is not a benign
+      // incidental ref -- surface it verbatim.
+      errors.push(...resolved.errors);
+      continue;
+    }
+    const completedBrief = completedBriefReferencesIssue(projectRoot, issue);
+    const issueClosed = completedBrief || fetchIssueClosed(issue, repo, runGh);
+    if (completedBrief || issueClosed) {
+      const reason = completedBrief
+        ? "a completed brief already exists"
+        : "the issue is already closed";
+      warnings.push(
+        `#${issue}: no active story references this closing issue; skipped (${reason}).`,
+      );
+    } else {
+      errors.push(`#${issue}: no active story references this closing issue.`);
+    }
+  }
+
   if (storyPaths.length === 0) {
+    // When every closing ref was a benign skip and no real stories remain, the
+    // run is clean-with-warnings (nothing to sweep), not a config error.
+    const cleanNoop = errors.length === 0 && warnings.length > 0;
     return buildResponse({
       projectRoot,
       dryRun,
@@ -433,9 +516,14 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       errors,
-      ok: false,
+      warnings,
+      ok: cleanNoop,
       emitJson: args.emitJson ?? false,
-      exitCode: errors.some((e) => e.includes("not merged")) ? EXIT_GATE_FAILED : EXIT_CONFIG_ERROR,
+      exitCode: cleanNoop
+        ? EXIT_OK
+        : errors.some((e) => e.includes("not merged"))
+          ? EXIT_GATE_FAILED
+          : EXIT_CONFIG_ERROR,
     });
   }
 
@@ -478,6 +566,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       branch: null,
       prUrl: null,
       errors,
+      warnings,
       ok: false,
       emitJson: args.emitJson ?? false,
       exitCode: EXIT_GATE_FAILED,
@@ -523,6 +612,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     branch,
     prUrl,
     errors,
+    warnings,
     ok,
     emitJson: args.emitJson ?? false,
     exitCode: ok ? EXIT_OK : EXIT_GATE_FAILED,
@@ -541,6 +631,7 @@ function buildResponse(input: {
   branch: string | null;
   prUrl: string | null;
   errors: readonly string[];
+  warnings: readonly string[];
   ok: boolean;
   emitJson: boolean;
   exitCode: number;
@@ -557,6 +648,7 @@ function buildResponse(input: {
     branch: input.branch,
     pr_url: input.prUrl,
     errors: input.errors,
+    warnings: input.warnings,
     ok: input.ok,
   };
 
@@ -595,6 +687,12 @@ function buildResponse(input: {
   if (input.prUrl !== null) {
     lines.push(`  PR: ${input.prUrl}`);
   }
+  if (input.warnings.length > 0) {
+    lines.push("  Warnings:");
+    for (const warning of input.warnings) {
+      lines.push(`    - ${oneLine(warning)}`);
+    }
+  }
   if (input.errors.length > 0) {
     lines.push("  Errors:");
     for (const err of input.errors) {
@@ -602,9 +700,15 @@ function buildResponse(input: {
     }
   }
   lines.push("");
+  const skipNote =
+    input.warnings.length > 0
+      ? ` (${input.warnings.length} incidental closing ref${
+          input.warnings.length === 1 ? "" : "s"
+        } skipped)`
+      : "";
   lines.push(
     input.ok
-      ? "Result: FINALIZE CLEAN -- cohort briefs swept to completed/."
+      ? `Result: FINALIZE CLEAN -- cohort briefs swept to completed/.${skipNote}`
       : "Result: FINALIZE INCOMPLETE -- see errors above.",
   );
 

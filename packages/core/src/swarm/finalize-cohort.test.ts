@@ -48,14 +48,48 @@ function writeActiveStory(project: string, storyId: string, issueNumber: number)
   return full;
 }
 
+function writeCompletedStory(project: string, storyId: string, issueNumber: number): string {
+  const full = join(project, "xbrief", "completed", `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+  writeFileSync(
+    full,
+    JSON.stringify({
+      plan: {
+        id: storyId,
+        title: storyId,
+        status: "done",
+        references: [
+          {
+            uri: `https://github.com/deftai/directive/issues/${issueNumber}`,
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        items: [{ id: "i1", title: "t", status: "done" }],
+      },
+    }),
+    "utf8",
+  );
+  return full;
+}
+
 interface MockPrState {
   readonly merged: boolean;
   readonly closingIssues: number[];
   readonly body?: string;
 }
 
-function mockRunGh(mergedPrs: Record<number, MockPrState>): RunGhFn {
+function mockRunGh(
+  mergedPrs: Record<number, MockPrState>,
+  issueStates: Record<number, "open" | "closed"> = {},
+): RunGhFn {
   return (cmd) => {
+    const issuePath = cmd.find((part) => part.startsWith("repos/") && part.includes("/issues/"));
+    if (issuePath !== undefined) {
+      const match = issuePath.match(/\/issues\/(\d+)$/);
+      const issueNumber = match ? Number(match[1]) : 0;
+      const state = issueStates[issueNumber] ?? "open";
+      return { returncode: 0, stdout: JSON.stringify({ state }), stderr: "" };
+    }
     if (cmd.includes("pr") && cmd.includes("view") && cmd.includes("closingIssuesReferences")) {
       const viewIdx = cmd.indexOf("view");
       const prNumber = Number(cmd[viewIdx + 1]);
@@ -250,6 +284,64 @@ describe("finalizeCohort", () => {
     const baseIdx = createCall?.indexOf("--base") ?? -1;
     expect(baseIdx).toBeGreaterThanOrEqual(0);
     expect(createCall?.[baseIdx + 1]).toBe("develop");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("skips an incidental closing ref to an already-completed issue and sweeps the rest (#2115)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-skip-completed-"));
+    const storyPath = writeActiveStory(project, "story-2240", 2240);
+    writeCompletedStory(project, "story-2115", 2115);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [2241],
+      repo: "deftai/directive",
+      noCommit: true,
+      runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 2115] } }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.story_paths).toHaveLength(1);
+    expect(result.result.story_paths[0]).toContain("story-2240");
+    expect(result.result.warnings.some((w) => w.includes("#2115"))).toBe(true);
+    expect(result.result.errors).toEqual([]);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith("complete", storyPath);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("skips an incidental closing ref whose issue is already closed on the tracker (#2247)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-skip-closed-"));
+    writeActiveStory(project, "story-2240", 2240);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [2241],
+      repo: "deftai/directive",
+      noCommit: true,
+      runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 8888] } }, { 8888: "closed" }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(result.result.story_paths).toHaveLength(1);
+    expect(result.result.warnings.some((w) => w.includes("#8888") && w.includes("closed"))).toBe(
+      true,
+    );
+    expect(result.result.errors).toEqual([]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("surfaces a closing ref to an open issue with neither active nor completed brief (#2247)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-misconfig-"));
+    const storyPath = writeActiveStory(project, "story-2240", 2240);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [2241],
+      repo: "deftai/directive",
+      noCommit: true,
+      runGh: mockRunGh({ 2241: { merged: true, closingIssues: [2240, 9999] } }, { 9999: "open" }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("#9999"))).toBe(true);
+    // The genuine misconfig is surfaced, but the real cohort story still sweeps.
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith("complete", storyPath);
     rmSync(project, { recursive: true, force: true });
   });
 
