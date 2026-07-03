@@ -1,37 +1,67 @@
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { resolveProjectDefinitionPath } from "../layout/resolve.js";
-import { readPlanPolicy } from "../policy/plan-extensions.js";
+import { cachedIssueLabels, extractIssueRef } from "../capacity/backfill.js";
+import { classifyBucket, loadBucketMatchers } from "../policy/capacity.js";
 
-function resolveDefaultCapacityBucket(projectRoot: string): string {
-  try {
-    const path = resolveProjectDefinitionPath(resolve(projectRoot));
-    const raw = readFileSync(path, "utf8");
-    const data = JSON.parse(raw) as Record<string, unknown>;
-    const plan = data.plan;
-    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-      return "";
-    }
-    const policy = readPlanPolicy(plan);
-    if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-      return "";
-    }
-    const allocation = (policy as Record<string, unknown>).capacityAllocation;
-    if (typeof allocation !== "object" || allocation === null || Array.isArray(allocation)) {
-      return "";
-    }
-    const defaultBucket = (allocation as Record<string, unknown>).defaultBucket;
-    return typeof defaultBucket === "string" ? defaultBucket : "";
-  } catch {
-    return "";
-  }
+/** Read the labels for an issue reference. Returns null when they cannot be resolved. */
+export type LabelReader = (repo: string, issueNumber: number) => ReadonlySet<string> | null;
+
+export interface StampCompletionOptions {
+  /**
+   * Explicit label set for the completing brief. When provided it takes precedence
+   * over any linked-issue lookup, keeping bucket resolution pure and network-free.
+   */
+  readonly labels?: Iterable<string>;
+  /**
+   * Injectable reader used to resolve labels from the brief's linked issue when no
+   * explicit `labels` are supplied. Defaults to a cached-issue lookup (no network).
+   */
+  readonly labelReader?: LabelReader;
 }
 
-/** Stamp completedAt + capacityBucket onto a completing vBRIEF (#1419). */
+function normalizeLabels(labels: Iterable<string>): Set<string> {
+  const out = new Set<string>();
+  for (const label of labels) {
+    if (typeof label === "string" && label.trim().length > 0) {
+      out.add(label);
+    }
+  }
+  return out;
+}
+
+/**
+ * Resolve the capacityBucket for a completing brief by matching its issue labels
+ * against `capacityAllocation.buckets[].match.labels` (first declared match wins),
+ * falling back to `defaultBucket` when nothing matches (#2237).
+ */
+function resolveCapacityBucket(
+  plan: Record<string, unknown>,
+  projectRoot: string,
+  options: StampCompletionOptions,
+): string {
+  const root = resolve(projectRoot);
+  const { matchers, default_bucket: defaultBucket } = loadBucketMatchers(root);
+
+  let labels: ReadonlySet<string> | null = null;
+  if (options.labels !== undefined) {
+    labels = normalizeLabels(options.labels);
+  } else {
+    const [repo, issueNumber] = extractIssueRef(plan);
+    if (repo !== null && issueNumber !== null) {
+      const reader: LabelReader = options.labelReader ?? ((r, n) => cachedIssueLabels(root, r, n));
+      labels = reader(repo, issueNumber);
+    }
+  }
+
+  const [bucket] = classifyBucket(labels ?? new Set<string>(), matchers, defaultBucket);
+  return bucket;
+}
+
+/** Stamp completedAt + label-matched capacityBucket onto a completing vBRIEF (#1419, #2237). */
 export function stampCompletionMetadata(
   plan: Record<string, unknown>,
   projectRoot: string,
   timestamp: string,
+  options: StampCompletionOptions = {},
 ): void {
   let metadata = plan.metadata;
   if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) {
@@ -40,11 +70,14 @@ export function stampCompletionMetadata(
   }
   const meta = metadata as Record<string, unknown>;
   meta.completedAt = timestamp;
+
   const existing = meta.capacityBucket;
-  if (!(typeof existing === "string" && existing.trim().length > 0)) {
-    const bucket = resolveDefaultCapacityBucket(projectRoot);
-    if (bucket.length > 0) {
-      meta.capacityBucket = bucket;
-    }
+  if (typeof existing === "string" && existing.trim().length > 0) {
+    return;
+  }
+
+  const bucket = resolveCapacityBucket(plan, projectRoot, options);
+  if (bucket.length > 0) {
+    meta.capacityBucket = bucket;
   }
 }
