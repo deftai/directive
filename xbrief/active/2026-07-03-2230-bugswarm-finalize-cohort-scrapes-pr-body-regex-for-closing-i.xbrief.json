@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2230"
+  },
+  "plan": {
+    "title": "bug(swarm): finalize-cohort scrapes PR body regex for closing issues -- matches descriptive 'closed #N' (should use GitHub structured closing references)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(swarm): finalize-cohort scrapes PR body regex for closing issues -- matches descriptive 'closed #N' (should use GitHub structured closing references)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2230",
+      "UserStory": "As a swarm orchestrator running `task swarm:finalize-cohort`, I want the swept cohort to be derived from each PR's real GitHub closing-issue links, so a PR body that merely says 'closed #N' / 'fixed #N' descriptively never causes an unrelated active brief to be swept active/ -> completed/.",
+      "ImplementationPlan": "1. In packages/core/src/swarm/finalize-cohort.ts, replace the body regex scrape in fetchClosingIssues (the /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s+#(\\d+)/gi matchAll over PR body) with GitHub's structured closing references. Prefer the same source the #701 protected-issue tooling uses: the PR's closingIssuesReferences (GraphQL node) — or the REST-backed equivalent — so the linkage matches what GitHub itself uses to auto-close on merge. 2. Keep the RunGhFn injection seam so the resolution stays unit-testable with a stub. 3. If a body-only fallback must remain for an offline path, anchor it to the canonical GitHub closing-keyword grammar and reject bare descriptive forms ('closed #N' adjective). 4. Preserve the existing three-state exit + FinalizeCohortResult shape. 5. Regression tests: (a) a PR whose body mentions 'closed #<unrelated>' where #<unrelated> HAS an active brief does NOT sweep that brief; (b) real Closes #N links still resolve and sweep. 6. Run pnpm run lint + task check.",
+      "Traces": "#2230, #2225, #2228, #701",
+      "Overview": "## Summary\n\n`task swarm:finalize-cohort` (added in #2225 / PR #2228) resolves *which* scope briefs to sweep by fetching each merged PR's body and regex-scraping closing-issue references. The regex over-matches: it treats the **adjective** \"closed #N\" (and \"fixed #N\" / \"resolved #N\" used descriptively) as a closing directive, so it can pull in issues the PR never actually closed.\n\n## Root cause\n\n`fetchClosingIssues` in `packages/core/src/swarm/finalize-cohort.ts` matches:\n\n```\n/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s+#(\\d+)/gi\n```\n\nagainst the raw PR body. The alternative `close[sd]?` matches the word **\"closed\"**, and `\\s+#(\\d+)` then captures the following number. A body that *describes* another issue's state — e.g. \"the incomplete-fix follow-on to the **closed #1997**\" — is parsed as \"closes #1997\".\n\n## Observed\n\nWhile finalizing the #2225/#2115/#2181 cohort (`--pr 2226,2227,2228`), the command reported:\n\n```\nClosing issues: #1997, #2115, #2181, #2225\n```\n\n`#1997` is a long-closed prior issue that PR #2226's body (fixing #2115) only *referenced* narratively (\"closed #1997\" / \"Refs #1997\"), never closed. The three real stories still resolved correctly, so **this instance was harmless** — `#1997` has no brief in `xbrief/active/`, so `resolveStories` produced no extra sweep.\n\n## Impact / why it matters\n\nThe false positive is benign only because the spurious issue had no active brief. If a PR body ever says \"closed #N\" / \"fixed #N\" / \"resolved #N\" describing an issue that **does** have an active brief in the tree, `finalize-cohort` would sweep a brief that was NOT part of the merged cohort — moving it `active/ -> completed/` and resetting its lifecycle incorrectly. This is a latent correctness bug in a brand-new automation surface that mutates lifecycle state.\n\n## Proposed fix\n\nPrefer GitHub's **structured closing references** over body regex-scraping:\n\n- Use `closingIssuesReferences` (the same linkage GitHub itself uses to auto-close on merge) via the PR's GraphQL node, or the REST timeline/`closed`-event data, instead of `matchAll` over `body`.\n- This also aligns with the umbrella/protected-issue tooling (#701) which already reasons about `closingIssuesReferences`.\n- If a regex fallback must stay (offline / body-only path), anchor it to the canonical GitHub closing-keyword grammar and reject bare descriptive forms — but structured references are authoritative and should be the primary source.\n\n## Acceptance criteria\n\n- `finalize-cohort` resolves cohort stories from the PRs' actual closing-issue links, not arbitrary body text.\n- A PR body containing \"closed #N\" / \"fixed #N\" as descriptive prose does NOT add #N to the swept set.\n- Regression test: a PR whose body mentions \"closed #<unrelated-with-active-brief>\" does not sweep that unrelated brief.\n- Existing cohort-finalize behavior (real `Closes #N` links) unchanged.\n\n## Context\n\nSurfaced dogfooding `swarm:finalize-cohort` on 2026-07-02 (the cohort that shipped the command itself). Refs #2225, #2228, #701."
+    },
+    "items": [
+      {
+        "title": "`finalize-cohort` resolves cohort stories from the PRs' actual closing-issue links, not arbitrary body text.",
+        "status": "proposed"
+      },
+      {
+        "title": "A PR body containing \"closed #N\" / \"fixed #N\" as descriptive prose does NOT add #N to the swept set.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test: a PR whose body mentions \"closed #<unrelated-with-active-brief>\" does not sweep that unrelated brief.",
+        "status": "proposed"
+      },
+      {
+        "title": "Existing cohort-finalize behavior (real `Closes #N` links) unchanged.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2230",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2230: bug(swarm): finalize-cohort scrapes PR body regex for closing issues -- matches descriptive 'closed #N' (should use GitHub structured closing references)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1997",
+        "type": "x-xbrief/closes",
+        "title": "Issue #1997"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1997",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1997"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2225",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2225"
+      }
+    ],
+    "updated": "2026-07-03T01:46:13Z"
+  }
+}
