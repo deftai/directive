@@ -218,10 +218,6 @@
       "types": "./dist/umbrella-current-shape/index.d.ts",
       "default": "./dist/umbrella-current-shape/index.js"
     },
-    "./install-upgrade": {
-      "types": "./dist/install-upgrade/index.d.ts",
-      "default": "./dist/install-upgrade/index.js"
-    },
     "./task-surface": {
       "types": "./dist/task-surface/index.d.ts",
       "default": "./dist/task-surface/index.js"

@@ -8,7 +8,7 @@
  * Refs #1942, #1430, #1671.
  */
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
@@ -128,6 +128,36 @@ function syncBareVersionMarker(projectDir: string, version: string): void {
     writeFileSync(join(targetDir, ".deft-version"), `${normalized}\n`, "utf8");
   } catch {
     // best-effort, mirrors install-upgrade marker write
+  }
+}
+
+/**
+ * Retire a stale legacy `.deft/VERSION` after the canonical `.deft/core/VERSION`
+ * has been (re)written (#2064). Folded in from the former `install-upgrade`
+ * path so the shared refresh transaction covers the v0.27.x -> v0.28 manifest
+ * transition (#1046 PR-B) that the doctor's `install-manifest-disagreement`
+ * check still cites `task upgrade` to repair. Only acts when the canonical
+ * manifest lives at `<project>/.deft/core/VERSION` and a legacy
+ * `<project>/.deft/VERSION` disagrees; renames the legacy file to
+ * `.deft/VERSION.premigrate` (best-effort, never fatal).
+ */
+function migrateLegacyInstallManifest(projectDir: string, canonicalManifestPath: string): void {
+  const canonical = resolve(canonicalManifestPath);
+  const expectedParent = resolve(projectDir, ".deft", "core");
+  if (resolve(canonical, "..") !== expectedParent) return;
+
+  const legacy = join(projectDir, ".deft", "VERSION");
+  if (!existsSync(legacy) || !statSync(legacy).isFile()) return;
+
+  try {
+    const legacyVersion = manifestTagToVersion(parseInstallManifest(readFileSync(legacy, "utf8")));
+    const canonicalVersion = manifestTagToVersion(
+      parseInstallManifest(readFileSync(canonical, "utf8")),
+    );
+    if (legacyVersion !== null && legacyVersion === canonicalVersion) return;
+    renameSync(legacy, join(projectDir, ".deft", "VERSION.premigrate"));
+  } catch {
+    // best-effort
   }
 }
 
@@ -314,7 +344,12 @@ export async function runRefreshDeposit(
     fetchedBy: "directive-update",
     ...(previousManagedBy ? { managedBy: previousManagedBy } : {}),
   };
-  writeInstallManifest(projectDir, deftDir, manifestFields);
+  const writtenManifestPath = writeInstallManifest(projectDir, deftDir, manifestFields);
+
+  // #2064: retire a stale legacy .deft/VERSION now that the canonical
+  // .deft/core/VERSION has been rewritten (folded in from install-upgrade so no
+  // manifest behavior is lost by the redirect). Best-effort; never fatal.
+  migrateLegacyInstallManifest(projectDir, writtenManifestPath);
 
   // #2055: regenerate the bare .deft-version derivative so it agrees with the
   // freshly written manifest tag (otherwise doctor's manifest-agreement check

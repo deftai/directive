@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`deft install-upgrade` now redirects to `deft update`, ending the two-verb upgrade confusion (#2064).** The two commands used to overlap: `deft update` file-swaps the vendored payload, but `install-upgrade` only rewrote the version marker/manifest without swapping — so on a stale deposit it reported a confident false "Project already at X. Nothing to do." that steered operators away from the command that actually works. `install-upgrade` (and its `task upgrade` alias) now print a one-line notice and delegate to the exact `deft update` path, so `deft update` is the single canonical upgrade verb. Closes #2064. Refs #2057, #2058, #2053.
 - **TS-native `directive init` / `directive update` now stage the project-root `Taskfile.yml` deft include as installer-managed (#1576).** When the installer appends or repairs the `includes.deft` block in a consumer root Taskfile, that path is added to scoped staging and reported in `--json` `staged_paths`, and the deposited `deft-core-guard` allowlist exempts it alongside `.deft/core/**` so upgrade PRs do not look like mixed framework+app commits. The frozen Go installer is unchanged (#1912); this fix lands on the TS update path (#1933). Closes #1576. Refs #1453, #1912, #1933.
 
 ### Fixed

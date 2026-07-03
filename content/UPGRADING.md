@@ -30,6 +30,8 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
 
    This re-copies the vendored `.deft/core/` payload and refreshes project-root `.githooks/` (#2049).
 
+   > **`deft update` is the single canonical upgrade verb (#2064).** The older `deft install-upgrade` (and its `task upgrade` maintainer alias) now print a one-line notice and delegate to this exact `deft update` path — they no longer have their own semantics. Previously `install-upgrade` only rewrote the marker/manifest without swapping the payload, so on a stale deposit it reported a false "Project already at X. Nothing to do." Use `deft update`; there is nothing `install-upgrade` does that `deft update` does not.
+
 3. **Stamp npm provenance (one-time, idempotent):**
 
    ```bash
@@ -367,6 +369,8 @@ The transition is one-way -- v0.28 has no shim back to the bare-only marker. To 
 
 <!-- 1061: AGENTS.md drift repair via task upgrade BEGIN -->
 ## From drifted AGENTS.md -> current install (`task upgrade` repair path, #1061)
+
+> **Consolidation note (#2064):** `deft install-upgrade` and its `task upgrade` maintainer alias now delegate to the single canonical `deft update` path (see [Canonical upgrade — npm](#canonical-upgrade--npm-v0551)). The legacy `.deft/VERSION` retirement described below (backed up as `.deft/VERSION.premigrate`) is folded into `deft update`, so the drift-repair steps here still apply verbatim — the doctor now names `deft update` as the fix.
 
 - **Applies when:** `task framework:doctor` reports drift on any of the four checks (`quick-start-resolves`, `skill-paths-resolve`, `manifest-agreement`, `install-path-consistency`). Common causes: a canonical-reinstall over a pre-v0.27 AGENTS.md (the #1060 recurrence pattern), a marker-version mismatch where AGENTS.md still carries the v1 / v2 managed-section sentinel after a framework bump, or an install-path-consistency mismatch detected via the new `install_root` manifest field that #1062 added to `<install>/VERSION` (the doctor reads the manifest's `install_root` first, then falls back to the AGENTS.md install-root parse, and FAILs when the resolved directory does not exist on disk).
 - **Safe to auto-run:** Yes. `task upgrade` is the canonical user-facing entrypoint added in #1061; it wraps `run upgrade` and is idempotent on re-run (a second invocation against a current manifest + AGENTS.md is a no-op). The wrapper: (1) re-pulls the framework version marker by writing / refreshing `.deft-version`; (2) re-writes the canonical install manifest at `<install>/VERSION` (`ref` / `sha` / `tag` / `install_root` / `fetched_at` / `fetched_by`); (3) refreshes AGENTS.md to the current marker version (v3 sentinel with sha / refreshed / session attributes) via `cmd_agents_refresh`. Pre-v0.27 AGENTS.md files (no managed-section markers, or v1 markers) are migrated in place: content above and below the bracketed block is preserved verbatim, only the framework-owned managed section is rewritten.
