@@ -1,0 +1,129 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2266; refined to swarm-ready 2026-07-03 (epic #2203 wave 3, concurrent with #2267)."
+  },
+  "plan": {
+    "id": "2266-directive-update",
+    "title": "directive update: refresh-only + self-heal",
+    "status": "running",
+    "narratives": {
+      "Description": "Narrow `directive update` to refresh-only + self-heal of an EXISTING Directive install so it is never the hidden first-run adoption command. It refreshes only framework-owned payload and managed files, self-heals the engine through the keystone global-first ladder when needed, writes only the non-destructive .gitignore entry (never git rm --cached), and reports exactly one of four states: not-initialized (stop, hint init), current, updated, or migration-required. Behavior half of #2199; the version half is the keystone #2264.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2266",
+      "Overview": "Part of epic #2203. Absorbs #2199 (behavior half; version half is #child A #2264).\n\n## Summary\n\nNarrow `directive update` to **refresh-only + self-heal** of an existing Directive install. `update` is never the hidden first-run adoption command.\n\n## Contract (Decisions 2, 3, 4, 6)\n\n- Valid install exists -> refresh framework-owned payload + managed files; run the global-first ladder (#child A) to self-heal the engine when needed; forward-migrate content and re-stamp `VERSION`.\n- No install exists -> stop: `This project is not initialized. Run directive init.` (Never create a partial install.)\n- Initialized + current -> report no update needed.\n- Migration required -> report update is not enough; point to `directive init` or the exact `migrate` command.\n- **Non-destructive `.gitignore` write only**: `update` may add the ignore entry for framework-owned paths, but it MUST NOT run the destructive `git rm --cached .deft/core` -- that is the deliberate `migrate --untrack-core` step (#child F #2269, merged).\n- Output distinguishes `not initialized` / `current` / `updated` / `migration required`.\n\n## Acceptance criteria\n\n- `update` in a non-Directive project does not create a partial install and prints the `init` hint.\n- `update` in an initialized project refreshes only framework-owned files.\n- Self-heal path works in a mismatched env (delegates to #child A ladder).\n- `update` writes the gitignore entry but never un-tracks `.deft/core`.\n- `--dry-run` / `--plan` supported; idempotent.\n- Tests cover initialized, uninitialized, current, stale, migration-needed, and mismatched-env states.\n\n## Related\n\nAbsorbs #2199. Depends on #child A (#2264). Un-track is #child F (#2269). Parent #2203.\n",
+      "UserStory": "As a Directive consumer with an existing install, I want `directive update` to refresh only the framework-owned payload and self-heal the engine via the resolution ladder while refusing to create a partial install or run any destructive git rm, so that updating is a safe idempotent refresh that clearly reports whether the project was not-initialized or current or updated or migration-required.",
+      "ImplementationPlan": "1. In `packages/core/src/init-deposit/refresh.ts` (the runRefreshDeposit orchestrator behind runRefreshDepositCli), add an explicit state classifier that returns one of {not-initialized, current, updated, migration-required} BEFORE any copy: reuse the keystone `classify()`/`plan()` from `packages/core/src/resolution/` to detect install presence, current-vs-stale, and migration-required; when not-initialized, STOP with `This project is not initialized. Run directive init.` and never write a partial install.\n2. Self-heal: when the engine is unreachable/mismatched, delegate to the keystone `engine-ladder.ts` (global-first) to resolve/self-heal, then proceed with the refresh; keep the existing content re-copy + managed-section re-render + VERSION re-stamp for the updated path.\n3. Enforce non-destructive boundary: `update` may write the `.gitignore` entry via `init-deposit/gitignore.ts` but MUST NOT call any `git rm --cached` path (that belongs to #2269 migrate --untrack-core); assert this with a boundary test.\n4. Add `--dry-run`/`--plan` to `CANONICAL_UPDATE_ARGV` in `packages/cli/src/init-cli/constants.ts` and thread the flag through `packages/cli/src/init-cli/update.ts` so the classified plan prints without executing; keep the verb idempotent.\n5. Colocated vitest in `refresh.test.ts` (+ an update CLI test) covering not-initialized/current/updated/migration-required/mismatched-env and the dry-run + idempotency paths. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-read-refresh-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2266, #2203, #2199, #2264, #2269",
+      "Labels": "enhancement, adoption-blocker, process, tooling, area:installer, area:cli"
+    },
+    "items": [
+      {
+        "id": "2266-a1-not-initialized-stops",
+        "title": "Given a project with no Directive install, when `directive update` runs, then it creates no partial install and prints `This project is not initialized. Run directive init.`",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project with no Directive install, when `directive update` runs, then it creates no partial install and prints `This project is not initialized. Run directive init.`",
+          "Traces": "#2266, #2203"
+        }
+      },
+      {
+        "id": "2266-a2-refresh-only-framework-owned",
+        "title": "Given an initialized project, when `directive update` runs, then it refreshes only framework-owned payload + managed files, re-stamps VERSION, and reports the `updated` (or `current`) state without touching app code.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an initialized project, when `directive update` runs, then it refreshes only framework-owned payload + managed files, re-stamps VERSION, and reports the `updated` (or `current`) state without touching app code.",
+          "Traces": "#2266, #2199"
+        }
+      },
+      {
+        "id": "2266-a3-self-heal-mismatched-env",
+        "title": "Given a mismatched environment where the engine is unreachable, when `directive update` runs, then it self-heals by delegating to the keystone global-first ladder and completes the refresh with zero manual npm/PATH steps.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a mismatched environment where the engine is unreachable, when `directive update` runs, then it self-heals by delegating to the keystone global-first ladder and completes the refresh with zero manual npm/PATH steps.",
+          "Traces": "#2266, #2264"
+        }
+      },
+      {
+        "id": "2266-a4-nondestructive-gitignore-only",
+        "title": "Given the update code path, when it reconciles ignore state, then it writes the .gitignore entry for framework-owned paths but never invokes git rm --cached (the destructive un-track stays in migrate --untrack-core), verified by a boundary test.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the update code path, when it reconciles ignore state, then it writes the .gitignore entry for framework-owned paths but never invokes git rm --cached (the destructive un-track stays in migrate --untrack-core), verified by a boundary test.",
+          "Traces": "#2266, #2269"
+        }
+      },
+      {
+        "id": "2266-a5-dry-run-idempotent",
+        "title": "Given `--dry-run` (or `--plan`), when `directive update` runs, then it prints the classified plan (not-initialized/current/updated/migration-required) without executing, and re-running update on a current project is a no-op reporting `current`.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `--dry-run` (or `--plan`), when `directive update` runs, then it prints the classified plan (not-initialized/current/updated/migration-required) without executing, and re-running update on a current project is a no-op reporting `current`.",
+          "Traces": "#2266, #2203"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "process",
+      "tooling",
+      "area:installer",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2266",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2266: directive update: refresh-only + self-heal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2199",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2199"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "model_tier": "high",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "cli-verb-update",
+        "file_scope": [
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/core/src/init-deposit/refresh.test.ts",
+          "packages/cli/src/init-cli/update.ts",
+          "packages/cli/src/init-cli/update.test.ts",
+          "packages/cli/src/init-cli/constants.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/init-deposit",
+          "pnpm exec vitest run packages/cli/src/init-cli",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "directive update narrowed to refresh-only + self-heal: four-state classifier (not-initialized/current/updated/migration-required) reusing the keystone classify()/plan(); not-initialized stops with the init hint and never writes a partial install.",
+          "Self-heal delegates to the keystone global-first ladder in a mismatched env.",
+          "Non-destructive gitignore write only (never git rm --cached), asserted by a boundary test.",
+          "--dry-run/--plan supported and idempotent; colocated vitest across all states green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2267 (doctor) in wave 3 -- file_scope is disjoint (update touches init-deposit/refresh.ts + init-cli/update.ts + constants.ts; doctor touches doctor/* + cli/doctor.ts). CHANGELOG.md intentionally omitted from file_scope to keep the concurrent overlap matrix clean; the worker still adds a CHANGELOG entry (trivial append resolved at the second merge). Depends on the merged keystone #2264 (classify/plan/engine-ladder). Consumes resolution/* read-only. Does NOT own the destructive un-track (that is #2269, merged) or the init dispatcher (that is #2265, follows this)."
+      }
+    },
+    "updated": "2026-07-03T23:15:15Z"
+  }
+}

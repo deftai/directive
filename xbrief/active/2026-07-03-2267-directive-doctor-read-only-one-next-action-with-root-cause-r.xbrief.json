@@ -1,0 +1,120 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2267; refined to swarm-ready 2026-07-03 (epic #2203 wave 3, concurrent with #2266)."
+  },
+  "plan": {
+    "id": "2267-directive-doctor",
+    "title": "directive doctor: read-only, one next action with root-cause + remediation rationale",
+    "status": "running",
+    "narratives": {
+      "Description": "Make `directive doctor` diagnostic-only and decision-oriented: it inspects health, states the operating mode plus version reconciliation, and emits exactly one next command paired with a root-cause and a remediation rationale, and it never mutates project files. It derives every finding from the shared keystone plan() schema rather than a second classifier, suppresses secondary migration advice until the primary blocker clears, never recommends a bare task command in a project with no Taskfile, and surfaces cross-platform engine skew.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2267",
+      "Overview": "Part of epic #2203. Absorbs #2200.\n\n## Summary\n\nMake `directive doctor` diagnostic-only and decision-oriented: inspect health, report findings, emit exactly one next command **with its reason**, and never mutate.\n\n## Behavior (Decision 3 addendum, Decisions 6/4)\n\n- Read-only. Inspects install integrity, AGENTS/managed-section state + sha, toolchain, layout, xBRIEF/vBRIEF state, engine-vs-pin-vs-`VERSION` skew.\n- Derives findings from the same `plan()` schema as #child A (#2264) / #child E (no second classifier).\n- States the **operating mode** (\"This project is in hybrid mode; engine v0.65 global, content v0.65, pin v0.65 -- current\").\n- Emits exactly one `Next command:` when action is required, each paired with a two-part rationale: **root cause** (why the finding exists) + **what the remediation does / why it is safe**. Example:\n\n```text\nFinding: .deft/core is tracked in git but hybrid mode expects it gitignored.\n  Root cause: legacy vendored install predates the hybrid cutover.\nNext command: directive migrate --untrack-core\n  Does: removes .deft/core from the git index + adds the ignore entry; content\n  is reconstituted from the pinned engine, so nothing is lost.\n```\n\n- Suppresses secondary migration advice until the primary blocker is resolved (no contradictory instructions for one state).\n- Never recommends a bare `task ...` in a project without Taskfile wiring; prefers `directive ...`.\n- Surfaces cross-platform engine skew (Windows-native vs Linux-sandbox `.deft/.cli/<platform>` divergence).\n- The `migrate --untrack-core` remediation this doctor points at is the verb SHIPPED by #2269 (merged); this story owns the doctor-side detection + emission.\n\n## Acceptance criteria\n\n- Never mutates project files.\n- Exactly one primary next command when action is required, with root-cause + remediation rationale.\n- No contradictory migration instructions for the same state; no bare `task` without a Taskfile.\n- States operating mode + version reconciliation; surfaces platform skew.\n- Tests cover pre-cutover, legacy `vbrief`, missing Taskfile, current xBRIEF, partial install, and mismatched-env states.\n\n## Related\n\nAbsorbs #2200. Depends on #child A (#2264). Parent #2203.\n",
+      "UserStory": "As a Directive consumer running any command, I want `directive doctor` to be strictly read-only and derive its findings from the shared plan() schema so it reports the operating mode plus exactly one next command with a root-cause and remediation rationale, so that I get one unambiguous safe next action instead of contradictory migration advice or bare task commands in a project with no Taskfile.",
+      "ImplementationPlan": "1. In `packages/core/src/doctor/main.ts` (cmdDoctor) and `packages/core/src/doctor/checks.ts`, route findings through the shared keystone `plan()` from `packages/core/src/resolution/` so there is a single classifier: build the finding set + the single nextAction {command, rootCause, remediation} from plan() output rather than doctor-local re-detection. Add/extend `packages/core/src/doctor/types.ts` for the finding+rationale shape.\n2. Guarantee read-only: audit cmdDoctor and its helpers so no code path writes project files in the default report mode; keep any state write confined to the existing throttle-state file only (doctor-state.ts) and cover it with a no-mutation test.\n3. Emit exactly ONE primary `Next command:` when action is required with the two-part rationale, and suppress secondary migration advice until the primary blocker clears (ordered precedence from plan()); state the operating mode + engine/pin/VERSION reconciliation; surface cross-platform `.deft/.cli/<platform>` skew.\n4. Never print a bare `task ...` remediation in a project with no Taskfile wiring -- prefer `directive ...`; reuse `doctor/taskfile.ts` detection to choose the phrasing.\n5. Colocated vitest in `main.test.ts` / `checks.test.ts` covering pre-cutover, legacy vbrief, missing-Taskfile, current-xBRIEF, partial-install, and mismatched-env states plus the no-mutation guard. Wire the CLI in `packages/cli/src/doctor.ts` if the finding surface changes. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-read-doctor-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2267, #2203, #2200, #2264, #2269",
+      "Labels": "enhancement, adoption-blocker, doctor, agent-experience, area:cli"
+    },
+    "items": [
+      {
+        "id": "2267-a1-read-only",
+        "title": "Given any project state, when `directive doctor` runs in its default report mode, then it mutates no project files (only the existing throttle-state file may be written), verified by a no-mutation test.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given any project state, when `directive doctor` runs in its default report mode, then it mutates no project files (only the existing throttle-state file may be written), verified by a no-mutation test.",
+          "Traces": "#2267, #2203"
+        }
+      },
+      {
+        "id": "2267-a2-one-next-command-rationale",
+        "title": "Given a project state that requires action, when `directive doctor` runs, then it emits exactly one primary `Next command:` derived from the shared plan() schema, each paired with a root-cause line and a remediation-does/why-safe line.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project state that requires action, when `directive doctor` runs, then it emits exactly one primary `Next command:` derived from the shared plan() schema, each paired with a root-cause line and a remediation-does/why-safe line.",
+          "Traces": "#2267, #2264"
+        }
+      },
+      {
+        "id": "2267-a3-no-contradiction-no-bare-task",
+        "title": "Given a single project state, when `directive doctor` reports, then it gives no contradictory migration instructions (secondary advice suppressed until the primary blocker clears) and never prints a bare `task ...` command in a project with no Taskfile wiring.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a single project state, when `directive doctor` reports, then it gives no contradictory migration instructions (secondary advice suppressed until the primary blocker clears) and never prints a bare `task ...` command in a project with no Taskfile wiring.",
+          "Traces": "#2267, #2203"
+        }
+      },
+      {
+        "id": "2267-a4-mode-and-skew",
+        "title": "Given engine/pin/VERSION and cross-platform state, when `directive doctor` runs, then it states the operating mode plus the version reconciliation and surfaces cross-platform .deft/.cli/<platform> engine skew.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given engine/pin/VERSION and cross-platform state, when `directive doctor` runs, then it states the operating mode plus the version reconciliation and surfaces cross-platform .deft/.cli/<platform> engine skew.",
+          "Traces": "#2267, #2264"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "doctor",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2267",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2267: directive doctor: read-only, one next action with root-cause + remediation rationale"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2200",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2200"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "model_tier": "high",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "cli-verb-doctor",
+        "file_scope": [
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/main.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/types.ts",
+          "packages/cli/src/doctor.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/doctor",
+          "pnpm exec vitest run packages/cli/src/doctor.test.ts",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "directive doctor made strictly read-only and derived from the shared keystone plan() (single classifier); no-mutation guard test.",
+          "Exactly one primary Next command with root-cause + remediation rationale; secondary advice suppressed until the primary blocker clears.",
+          "States operating mode + engine/pin/VERSION reconciliation; surfaces cross-platform .deft/.cli/<platform> skew; never prints a bare task without a Taskfile.",
+          "Colocated vitest across pre-cutover/legacy-vbrief/missing-Taskfile/current-xBRIEF/partial-install/mismatched-env; task check:framework-source green."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2266 (update) in wave 3 -- file_scope is disjoint (doctor touches doctor/* + cli/doctor.ts; update touches init-deposit/refresh.ts + init-cli/*). CHANGELOG.md intentionally omitted from file_scope to keep the concurrent overlap matrix clean; worker still adds a CHANGELOG entry (trivial append resolved at second merge). Depends on the merged keystone #2264 (plan()). Consumes resolution/* read-only. The migrate --untrack-core verb doctor points at is shipped by #2269 (merged); this story owns only the doctor-side detection + emission."
+      }
+    },
+    "updated": "2026-07-03T23:15:17Z"
+  }
+}
