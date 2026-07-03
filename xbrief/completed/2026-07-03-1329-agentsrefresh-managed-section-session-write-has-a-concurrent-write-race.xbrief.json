@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "agents:refresh managed-section `session=` write has a concurrent-write race (TS: platform/agents-md.ts + agents-refresh.ts)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "deft agents:refresh performs a non-atomic, unlocked read-modify-write of the AGENTS.md managed-section header (which carries session=<id>). Two near-simultaneous refreshes can race and silently overwrite each other; a bare writeFileSync can also partial-write.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1329 (retargeted from the deleted scripts/ritual_sentinel.py to the current TS surface)",
@@ -50,6 +50,10 @@
         "title": "Issue #2084"
       }
     ],
-    "updated": "2026-07-03T11:56:37Z"
+    "updated": "2026-07-03T12:56:38Z",
+    "metadata": {
+      "completedAt": "2026-07-03T12:56:38Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }

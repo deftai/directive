@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Forward-coverage gate: migrate the prose 'new source files MUST include tests' rule to deterministic enforcement (verify:forward-coverage)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The 'new source files MUST include corresponding test files in the same PR' rule lives at prose tier only in AGENTS.md and is routinely bypassed by sub-agents. Add a deterministic verify:forward-coverage gate (mirroring verify:encoding / verify:branch) wired into task check and the pre-commit hook.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1310",
@@ -58,6 +58,10 @@
         "title": "Issue #747"
       }
     ],
-    "updated": "2026-07-03T11:56:38Z"
+    "updated": "2026-07-03T12:56:38Z",
+    "metadata": {
+      "completedAt": "2026-07-03T12:56:38Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }

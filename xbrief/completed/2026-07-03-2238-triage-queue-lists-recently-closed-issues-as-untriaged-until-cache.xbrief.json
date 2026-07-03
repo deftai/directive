@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage): queue lists recently-closed issues as [untriaged] until cache refresh",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "task triage:queue keeps listing an already-closed/merged issue as [untriaged] because the queue renders from the cached candidate set without reconciling against the issue's live open/closed state.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2238",
@@ -45,6 +45,10 @@
         "title": "Issue #2207"
       }
     ],
-    "updated": "2026-07-03T11:56:36Z"
+    "updated": "2026-07-03T12:56:38Z",
+    "metadata": {
+      "completedAt": "2026-07-03T12:56:38Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

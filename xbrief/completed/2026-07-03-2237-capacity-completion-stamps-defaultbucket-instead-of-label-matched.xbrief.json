@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(capacity): completion stamps defaultBucket instead of label-matched capacityBucket",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Completion metadata stamping uses capacityAllocation.defaultBucket unconditionally and never matches the issue/brief labels against the configured buckets[].match.labels mapping, so every auto-stamped brief is miscategorized as the default bucket.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2237",
@@ -54,6 +54,10 @@
         "title": "Issue #1419"
       }
     ],
-    "updated": "2026-07-03T11:56:35Z"
+    "updated": "2026-07-03T12:56:38Z",
+    "metadata": {
+      "completedAt": "2026-07-03T12:56:38Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

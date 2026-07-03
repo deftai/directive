@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(skills): pre-filing master-diff check -- run git ls-tree origin/master before filing an issue that proposes adding a file",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add a MUST rule + MUST NOT anti-pattern to the canonical issue-filing skill requiring a git ls-tree origin/master (or gh contents API) existence check before filing an issue that proposes ADDING a file, so stale 'add file X' issues (where X already exists on master) are not filed.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1102",
@@ -54,6 +54,10 @@
         "title": "Issue #1100"
       }
     ],
-    "updated": "2026-07-03T11:56:37Z"
+    "updated": "2026-07-03T12:56:38Z",
+    "metadata": {
+      "completedAt": "2026-07-03T12:56:38Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
