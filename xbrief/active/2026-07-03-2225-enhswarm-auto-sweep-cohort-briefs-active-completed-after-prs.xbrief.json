@@ -1,0 +1,49 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2225"
+  },
+  "plan": {
+    "title": "enh(swarm): auto-sweep cohort briefs active/ -> completed/ after PRs merge (eliminate stop-at:pr-open lifecycle-sweep tax)",
+    "status": "running",
+    "narratives": {
+      "Description": "enh(swarm): auto-sweep cohort briefs active/ -> completed/ after PRs merge (eliminate stop-at:pr-open lifecycle-sweep tax)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2225",
+      "UserStory": "As a swarm orchestrator, I want a cohort's scope briefs to move active/ -> completed/ automatically once their PRs merge, so a stop-at:pr-open swarm doesn't leave WIP inflated and force me to hand-author a separate swarm:complete-cohort sweep PR every cycle.",
+      "ImplementationPlan": "1. Implement Option 1 (smallest, keeps human in the merge loop): add a `swarm:finalize-cohort` surface (or extend the `pr:wait-mergeable-and-merge` cascade) that, after confirming a cohort's PRs report MERGED, runs the existing `completeCohort(...)` (packages/core/src/swarm/complete-cohort*.ts) for the merged stories and lands the active/->completed/ move -- without the operator hand-authoring a separate PR. 2. Keep `swarm:complete-cohort` available as the idempotent manual primitive (do NOT remove it). 3. Detect the cohort's merged stories from the closing-issue -> active-brief mapping (Closes #N) or an explicit story list passed by the cascade. 4. Branch-policy: the sweep still needs a commit; either fold it into the cascade's own branch flow or emit an auto-PR -- must NOT regress branch policy (#747) or the #1519 consumer check split. 5. Update the deft-directive-swarm skill Phase 5->6 to reference the finalize path. 6. Tests: cohort with merged PRs finalizes to completed/ + WIP reset; manual swarm:complete-cohort still works; consumer path untouched.",
+      "Traces": "#2225, #1880, #1487, #1369, #747",
+      "Overview": "## Problem\n\nEvery swarm dispatched with `stop-at: pr-open` (the default for the orchestrator-owns-merge pattern) leaves each worker's scope xBRIEF in `xbrief/active/` after its PR merges. The worker runs `scope:activate` (pending -> active) and commits it, but nothing moves the brief active -> completed, because completion happens *after* the merge, outside the worker's envelope.\n\nThe result is a recurring **lifecycle-sweep tax**: the orchestrator must open a *separate* `swarm:complete-cohort` PR (branch-policy routes it through a PR) purely to move the merged briefs active/ -> completed/ and reset WIP.\n\nObserved twice in a single session:\n- 5-issue cohort #2209-#2213 -> PRs #2214-#2218 merged -> briefs stuck in `active/` (WIP 5/10) -> sweep PR #2221.\n- Follow-up cohort #2219-#2220 -> PRs #2222/#2223 merged -> briefs stuck in `active/` again (WIP 2/10) -> sweep PR #2224.\n\nEach cohort therefore costs **N implementation PRs + 1 extra ceremony PR**. The extra PR carries no code, only lifecycle JSON moves, but still burns a full CI round-trip, a review-bot pass, and operator attention.\n\n## Impact / who hits this\n\nAny operator running a `stop-at: pr-open` swarm cohort (the documented orchestrator-owns-merge doctrine, #1880 Gap C). WIP stays inflated until a human remembers to sweep, and `triage:summary` reads a misleading in-flight count between merge and sweep. The `deft-directive-swarm` skill has no completion step wired to the merge cascade, so the sweep is easy to forget entirely.\n\n## Proposed options (pick during design)\n\n1. **Post-cascade auto-sweep hook.** After `pr:wait-mergeable-and-merge` reports `MERGED` for a cohort's PRs, have the cascade surface (or a new `swarm:finalize-cohort`) automatically run `swarm:complete-cohort` for the merged stories and open/land the sweep as part of the same automation, instead of leaving it manual.\n2. **`drive-to: merge-ready` completion ownership.** Extend the worker envelope so a `drive-to: merge-ready` worker (not `stop-at: pr-open`) is responsible for the active -> completed move once its own PR is merge-ready, folding the lifecycle transition into the unit of work (aligns with #1880 Gap C worker-owns-lifecycle).\n3. **Merge-hook / label-driven sweep.** On PR merge, detect the `Closes #N` story + its active brief and sweep it (GH Action or local post-merge step), so no dedicated PR is ever needed for the lifecycle move.\n\nOption 1 is the smallest change and keeps the human in the loop for the merge decision while removing the *separate-PR* tax (the sweep can piggyback on the last cohort merge or a single batched finalize). Option 2 is the more principled fix but touches the dispatch envelope contract.\n\n## Acceptance criteria\n\n- Running a `stop-at: pr-open` cohort through the standard merge cascade ends with the cohort's briefs in `completed/` and WIP reset, **without** an operator hand-authoring a separate `swarm:complete-cohort` PR.\n- `swarm:complete-cohort` remains available as a manual/idempotent primitive.\n- Consumer-safe: no regression to the #1519 consumer `check` split or branch policy.\n- Skill docs (`deft-directive-swarm` Phase 5->6) reference the new completion path.\n\n## Context\n\nSurfaced while dogfooding the xbrief-migration fix swarm on 2026-07-02. Refs #1880 (worker-owns-lifecycle / orchestrator dispatch doctrine), #1487 (`swarm:complete-cohort`), #1369 (cascade automation surface)."
+    },
+    "items": [
+      {
+        "title": "Running a `stop-at: pr-open` cohort through the standard merge cascade ends with the cohort's briefs in `completed/` and WIP reset, **without** an operator hand-authoring a separate `swarm:complete-cohort` PR.",
+        "status": "proposed"
+      },
+      {
+        "title": "`swarm:complete-cohort` remains available as a manual/idempotent primitive.",
+        "status": "proposed"
+      },
+      {
+        "title": "Consumer-safe: no regression to the #1519 consumer `check` split or branch policy.",
+        "status": "proposed"
+      },
+      {
+        "title": "Skill docs (`deft-directive-swarm` Phase 5->6) reference the new completion path.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2225",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2225: enh(swarm): auto-sweep cohort briefs active/ -> completed/ after PRs merge (eliminate stop-at:pr-open lifecycle-sweep tax)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1880",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1880"
+      }
+    ],
+    "updated": "2026-07-03T00:34:10Z"
+  }
+}
