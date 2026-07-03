@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Stop session-start/runtime commands from invoking pnpm builds or package-manager retry loops",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Stop session-start/runtime commands from invoking pnpm builds or package-manager retry loops",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2181",
@@ -60,6 +60,10 @@
         "title": "Issue #2181: Stop session-start/runtime commands from invoking pnpm builds or package-manager retry loops"
       }
     ],
-    "updated": "2026-07-03T00:35:30Z"
+    "updated": "2026-07-03T01:17:20Z",
+    "metadata": {
+      "completedAt": "2026-07-03T01:17:20Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

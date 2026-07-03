@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "enh(swarm): auto-sweep cohort briefs active/ -> completed/ after PRs merge (eliminate stop-at:pr-open lifecycle-sweep tax)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "enh(swarm): auto-sweep cohort briefs active/ -> completed/ after PRs merge (eliminate stop-at:pr-open lifecycle-sweep tax)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2225",
@@ -44,6 +44,10 @@
         "title": "Issue #1880"
       }
     ],
-    "updated": "2026-07-03T00:34:10Z"
+    "updated": "2026-07-03T01:17:20Z",
+    "metadata": {
+      "completedAt": "2026-07-03T01:17:20Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

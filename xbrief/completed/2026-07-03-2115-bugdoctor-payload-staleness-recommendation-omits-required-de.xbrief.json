@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(doctor): payload-staleness recommendation omits required `deft update` for vendored consumers (incomplete follow-on to #1997)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(doctor): payload-staleness recommendation omits required `deft update` for vendored consumers (incomplete follow-on to #1997)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2115",
@@ -28,6 +28,10 @@
         "title": "Issue #2115: bug(doctor): payload-staleness recommendation omits required `deft update` for vendored consumers (incomplete follow-on to #1997)"
       }
     ],
-    "updated": "2026-07-03T00:34:25Z"
+    "updated": "2026-07-03T01:17:20Z",
+    "metadata": {
+      "completedAt": "2026-07-03T01:17:20Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
