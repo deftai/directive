@@ -1,11 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  latestLocalPublishableTag,
-  latestRemotePublishableTag,
-  toPep440,
-} from "../../platform/resolve-version.js";
+import { latestLocalPublishableTag, toPep440 } from "../../platform/resolve-version.js";
 import { isFile, repoRoot } from "./_helpers.js";
 
 function readRootPackageVersion(): string | null {
@@ -19,9 +15,13 @@ function readRootPackageVersion(): string | null {
   }
 }
 
+// Resolve the newest publishable tag using the LOCAL git object store only
+// (`git tag --list`) -- never `git ls-remote`. A live remote round-trip made this
+// unit test flake against vitest's 5s budget under CI load (#2256); the local
+// lookup is offline + fast and preserves the best-effort freshness assertion
+// below (a shallow clone with no tags simply early-returns). Real release tooling
+// still uses latestRemotePublishableTag for the authoritative remote check.
 function latestReleaseTag(): [string | null, string] {
-  const remote = latestRemotePublishableTag("origin", repoRoot());
-  if (remote) return [remote, "origin"];
   const local = latestLocalPublishableTag(repoRoot());
   if (local) return [local, "local"];
   return [null, "none"];

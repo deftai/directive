@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2256"
+  },
+  "plan": {
+    "title": "bug(test): pyproject_version_freshness test flakes on a live git ls-remote (5s vitest timeout in CI)",
+    "status": "completed",
+    "narratives": {
+      "Description": "packages/core/src/content-contracts/standards/pyproject_version_freshness.test.ts > test_manifest_version_matches_latest_tag intermittently times out at vitest's 5000ms budget in CI, failing the TypeScript (build + lint + test) check on otherwise-clean PRs. It is a network-timing flake, not a logic regression.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2256",
+      "UserStory": "As a contributor whose PR is otherwise green, I want the version-freshness unit test to run offline and deterministically, so a slow GitHub round-trip never times out my CI and forces a re-run.",
+      "ImplementationPlan": "1. Root cause: the test's latestReleaseTag() calls latestRemotePublishableTag('origin', repoRoot()), which at packages/core/src/platform/resolve-version.ts:273 runs a synchronous network call execFileSync('git', ['ls-remote','--tags','--refs','--', remote]). Under CI load this exceeds vitest's 5s testTimeout. 2. Remove the live-remote dependency from the TEST path (pick the cleanest): (a) resolve the tag locally only in the test via latestLocalPublishableTag(repoRoot()) (git describe / git tag --list -- local + fast), keeping the existing early-return-when-null behavior; OR (b) inject a seam so the test supplies an offline/fake tag resolver (no execFileSync in the unit test); OR (c) add a bounded timeout to latestRemotePublishableTag and have the test tolerate null/timeout gracefully. 3. The assertion is already best-effort (`if (!tag || manifestVersion === '0.0.0') return`), so dropping the network leg loses ~no coverage. 4. Keep the production resolve-version.ts remote helper behavior unchanged for real release tooling (if you add a timeout param, make it additive + covered). 5. Ensure the whole test file runs well under 1s with no network. 6. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#2256, #2209, #2219, #2249",
+      "Overview": "See https://github.com/deftai/directive/issues/2256. On PR #2249 the check failed with 'Test timed out in 5000ms' for test_manifest_version_matches_latest_tag; 8256/8257 passed and a re-run went green. Same flaky class as #2209/#2219 (wall-clock/network dependence in a unit test). The culprit is a synchronous git ls-remote origin inside the test. Fix: make the unit test offline/deterministic.",
+      "GuardRails": "TS-native repo, vitest. Do NOT change production release-tooling behavior of latestRemotePublishableTag (real release flows still need the remote lookup) -- scope the fix to the TEST path (or an additive, tested timeout). Do NOT mark the test skipped as the fix -- it must still assert freshness when a tag is locally resolvable. Keep it offline; a shallow clone with no tags should early-return cleanly, not fail."
+    },
+    "items": [
+      {
+        "title": "test_manifest_version_matches_latest_tag runs offline and deterministically (no git ls-remote / network in the test path).",
+        "status": "proposed"
+      },
+      {
+        "title": "The test still verifies manifest-vs-tag freshness when a tag is resolvable locally, and early-returns cleanly when none is available.",
+        "status": "proposed"
+      },
+      {
+        "title": "The whole test file runs in well under 1s with no wall-clock/network dependence that can exceed vitest's 5s budget.",
+        "status": "proposed"
+      },
+      {
+        "title": "Production resolve-version.ts remote helper behavior is unchanged for real release tooling (or any timeout added is additive + tested).",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2256",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2256: pyproject_version_freshness test flakes on live git ls-remote"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2209",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2209 (same flaky class)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2219",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2219 (same flaky class)"
+      }
+    ],
+    "updated": "2026-07-03T15:15:23Z",
+    "metadata": {
+      "completedAt": "2026-07-03T15:15:23Z",
+      "capacityBucket": "technical-debt"
+    }
+  }
+}
