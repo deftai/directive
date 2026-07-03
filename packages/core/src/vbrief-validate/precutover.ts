@@ -1,19 +1,26 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { GENERATED_SPEC_PURPOSE, GENERATED_SPEC_SOURCE_SPEC } from "../spec-authority/constants.js";
+import {
+  resolveLifecycleLayout,
+  resolveLifecycleRoot,
+  resolveSpecArtifactPath,
+} from "../layout/resolve.js";
+import {
+  contentHasGeneratedSpecSource,
+  GENERATED_SPEC_PURPOSE,
+} from "../spec-authority/constants.js";
 import { isFullSpecState, isGreenfieldSpecExport } from "../spec-authority/resolver.js";
 import { DEPRECATION_SENTINEL } from "../vbrief-build/constants.js";
 
 export { DEPRECATION_SENTINEL as DEPRECATED_REDIRECT_SENTINEL };
 
 const DEPRECATION_REDIRECT_PURPOSE = "<!-- Purpose: deprecation redirect -->";
-const SPEC_SOURCE_RELPATH = join("vbrief", "specification.vbrief.json");
 
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
 export function missingLifecycleFolders(projectRoot: string): string[] {
-  const vbriefRoot = join(projectRoot, "vbrief");
-  return LIFECYCLE_FOLDERS.filter((folder) => !existsSync(join(vbriefRoot, folder)));
+  const lifecycleRoot = resolveLifecycleRoot(projectRoot);
+  return LIFECYCLE_FOLDERS.filter((folder) => !existsSync(join(lifecycleRoot, folder)));
 }
 
 function hasCompleteLifecycle(projectRoot: string): boolean {
@@ -25,12 +32,12 @@ export function isDeprecationRedirect(content: string): boolean {
   return content.includes(DEPRECATION_SENTINEL) || content.includes(DEPRECATION_REDIRECT_PURPOSE);
 }
 
-/** Full-spec generated export (specification.vbrief.json source line). */
+/** Full-spec generated export (layout-resolved specification artifact source line). */
 export function isGeneratedSpecificationExport(projectRoot: string, content: string): boolean {
   return (
     content.includes(GENERATED_SPEC_PURPOSE) &&
-    content.includes(GENERATED_SPEC_SOURCE_SPEC) &&
-    existsSync(join(projectRoot, SPEC_SOURCE_RELPATH))
+    contentHasGeneratedSpecSource(content) &&
+    existsSync(resolveSpecArtifactPath(projectRoot))
   );
 }
 
@@ -62,6 +69,7 @@ function rootMarkdownIsLegacy(projectRoot: string, filename: string, content: st
   if (filename === "SPECIFICATION.md") {
     if (isGeneratedSpecificationExport(projectRoot, content)) return false;
     if (isGreenfieldSpecExport(projectRoot)) return false;
+    if (isFullSpecState(projectRoot)) return false;
   }
   return filename === "SPECIFICATION.md" || filename === "PROJECT.md";
 }
@@ -107,11 +115,11 @@ export function detectPreCutover(projectRoot: string): PrecutoverDetection {
     }
   }
 
-  const vbriefRoot = join(projectRoot, "vbrief");
-  if (existsSync(vbriefRoot)) {
+  const layout = resolveLifecycleLayout(projectRoot);
+  if (existsSync(layout.root)) {
     const missing = missingLifecycleFolders(projectRoot);
     if (missing.length > 0) {
-      reasons.push(`vbrief/ is missing lifecycle folder(s): ${missing.join(", ")}`);
+      reasons.push(`${layout.artifactDir}/ is missing lifecycle folder(s): ${missing.join(", ")}`);
     }
   }
 

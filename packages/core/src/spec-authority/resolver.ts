@@ -7,10 +7,10 @@ import {
 } from "../layout/resolve.js";
 import { SPEC_RENDER_BANNER } from "../render/constants.js";
 import {
+  contentHasGeneratedPdSource,
+  contentHasGeneratedSpecSource,
   EXPORT_SPEC_PD_BANNER,
   GENERATED_SPEC_PURPOSE,
-  GENERATED_SPEC_SOURCE_PD,
-  GENERATED_SPEC_SOURCE_SPEC,
 } from "./constants.js";
 
 export type SpecAuthorityKind = "full-spec" | "greenfield";
@@ -59,14 +59,14 @@ export function isFullSpecState(projectRoot: string): boolean {
   const authority = resolveSpecAuthority(projectRoot);
   if (authority?.kind !== "full-spec") return false;
   const specMd = readSpecMarkdown(projectRoot);
-  return specMd.includes(GENERATED_SPEC_PURPOSE) && specMd.includes(GENERATED_SPEC_SOURCE_SPEC);
+  return specMd.includes(GENERATED_SPEC_PURPOSE) && contentHasGeneratedSpecSource(specMd);
 }
 
 export function isGreenfieldSpecExport(projectRoot: string): boolean {
   const authority = resolveSpecAuthority(projectRoot);
   if (authority?.kind !== "greenfield") return false;
   const specMd = readSpecMarkdown(projectRoot);
-  return specMd.includes(GENERATED_SPEC_PURPOSE) && specMd.includes(GENERATED_SPEC_SOURCE_PD);
+  return specMd.includes(GENERATED_SPEC_PURPOSE) && contentHasGeneratedPdSource(specMd);
 }
 
 export function isCurrentGeneratedSpecification(projectRoot: string): boolean {
