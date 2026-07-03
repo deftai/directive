@@ -774,7 +774,20 @@ What the sweep does (script: `scripts/swarm_complete_cohort.py`):
 
 ! **Interactive path:** the monitor runs `task swarm:complete-cohort` by hand (or `--dry-run` first to preview the planned transitions) once the merge cascade finishes, then runs `task xbrief:validate`.
 
-! **Headless / multi-worker path:** the cohort sweep is NOT optional here -- it is the structural fix for the #1487 recurrence where the multi-worker close-out never executed the per-cohort completion. The launching monitor (or the close-out automation that follows `task pr:wait-mergeable-and-merge`, #1369) MUST invoke `task swarm:complete-cohort -- --cohort '<cohort-glob>'` after the last cohort PR merges and MUST gate on its exit 0 plus a green `task xbrief:validate` before declaring the swarm closed. The `--json` flag emits a structured verdict for a parent monitor agent to consume.
+! **Headless / multi-worker path (#2225):** after the merge cascade (`task pr:wait-mergeable-and-merge`, #1369) reports the cohort's PRs MERGED, the monitor SHOULD invoke the automated finalize surface instead of hand-authoring a separate lifecycle-sweep PR:
+
+```pwsh path=null start=null
+# Resolve merged stories from PR closing keywords and land the sweep PR:
+task swarm:finalize-cohort -- --pr <N1>,<N2> --repo <owner/repo> [--label <cohort-label>]
+# Preview only (no commit / no PR):
+task swarm:finalize-cohort -- --pr <N1>,<N2> --repo <owner/repo> --dry-run
+# Explicit story list when PR bodies omit Closes #N:
+task swarm:finalize-cohort -- --stories <issue-or-path>... --repo <owner/repo>
+```
+
+The finalize surface runs the same `completeCohort(...)` engine as `task swarm:complete-cohort`, fast-forwards the local base branch, creates a `swarm/finalize/<label>` feature branch (branch policy #747 safe), commits the `xbrief/` lifecycle moves, and auto-opens the sweep PR. Pass `--no-commit` to sweep only (manual Step 2b), or `--no-open-pr` to commit locally without opening the PR. Gate on exit 0 plus green `task xbrief:validate` before declaring the swarm closed.
+
+! **Manual fallback (#1487):** `task swarm:complete-cohort` remains the idempotent manual primitive when finalize automation is unavailable or you need a dry-run preview of transitions only. The headless path above replaces the historical requirement to hand-author a separate `chore(xbrief)` sweep PR every cycle.
 
 ⊗ Declare a swarm closed while any cohort story xBRIEF remains in `xbrief/active/` or any fully-childless decompose-created epic parent remains in `xbrief/pending/` -- run `task swarm:complete-cohort` and confirm `task xbrief:validate` is green first (#1487).
 
