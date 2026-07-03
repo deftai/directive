@@ -9,7 +9,9 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { platform as osPlatform } from "node:os";
 import { join, resolve } from "node:path";
+import type { ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
 import { copyTree } from "../deposit/copy-tree.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
@@ -17,7 +19,19 @@ import { manifestTagToVersion, parseInstallManifest } from "../doctor/manifest.j
 import { readCorePackageVersion } from "../engine-version.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
+import {
+  type ClassifySeams,
+  checkLocalEngineIntegrity,
+  classify,
+  type EngineInstallRunner,
+  type EngineResolution,
+  type LadderFacts,
+  plan,
+  type ReprojectRunner,
+  resolveEngine,
+} from "../resolution/index.js";
 import { gitPorcelain } from "../story-ready/git.js";
+import { ensureInitGitignoreLines, type GitLsFiles } from "./gitignore.js";
 import { depositStagePaths, isInstallerManagedPath, printCommitGuidance } from "./hygiene.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
 import {
@@ -64,6 +78,130 @@ export interface RefreshDepositSeams {
   nowIso?: () => string;
   gitPorcelain?: (projectRoot: string) => string | null;
   detectLegacy?: (projectDir: string) => LegacyLayoutDetection;
+  /**
+   * #2266: `git ls-files` probe threaded into the non-destructive `.gitignore`
+   * upkeep so the refresh never invokes a destructive `git rm --cached` path.
+   */
+  gitLsFiles?: GitLsFiles;
+}
+
+/**
+ * The four states `directive update` classifies an EXISTING install into BEFORE
+ * any copy (#2266). Derived from the keystone `classify()`/`plan()` spine
+ * (#2264) — there is exactly one classifier in the system; this maps the shared
+ * {@link ResolutionPlan} onto the narrow update-verb contract.
+ *
+ * - `not-initialized`     — no Directive footprint at all; STOP, hint `init`.
+ * - `current`             — initialized and already up to date; refresh is a no-op.
+ * - `updated`             — initialized and the refresh forward-migrates content.
+ * - `migration-required`  — pre-cutover artifacts; `update` is not enough.
+ */
+export type UpdateState = "not-initialized" | "current" | "updated" | "migration-required";
+
+export interface UpdateClassification {
+  readonly state: UpdateState;
+  readonly plan: ResolutionPlan;
+  readonly facts: ResolutionFacts;
+}
+
+/** The exact refusal shown when `update` runs against an un-initialized project. */
+export const NOT_INITIALIZED_MESSAGE = "This project is not initialized. Run directive init.";
+
+/** `update` refused because the project has no install / needs a different verb. */
+export const UPDATE_REFUSED_EXIT_CODE = 1;
+
+/** A project is initialized when it carries ANY Directive footprint. */
+function isInitialized(facts: ResolutionFacts): boolean {
+  return facts.hasDeftCore || facts.hasManagedSection || facts.pinVersion !== null;
+}
+
+/**
+ * Collapse the shared resolution {@link ResolutionPlan} onto the four update
+ * states. Pre-cutover wins over everything (migrate before any refresh); a
+ * project with no footprint is not-initialized; an initialized project that the
+ * spine says can `proceed` is already current; everything else (deposit
+ * reconstitution, content behind pin, engine self-heal) is an `updated` refresh.
+ */
+export function updateStateFromPlan(
+  facts: ResolutionFacts,
+  resolutionPlan: ResolutionPlan,
+): UpdateState {
+  if (resolutionPlan.mode === "migrate") return "migration-required";
+  if (!isInitialized(facts)) return "not-initialized";
+  if (resolutionPlan.mode === "proceed") return "current";
+  return "updated";
+}
+
+/**
+ * Run the up-front four-state classifier (#2266). Reuses the keystone
+ * `classify()` fact-set + `plan()` precedence table — no second classifier.
+ */
+export function classifyUpdateState(
+  projectDir: string,
+  classifySeams: ClassifySeams = {},
+): UpdateClassification {
+  const facts = classify(projectDir, classifySeams);
+  const resolutionPlan = plan(facts, {});
+  return { state: updateStateFromPlan(facts, resolutionPlan), plan: resolutionPlan, facts };
+}
+
+export interface SelfHealSeams {
+  /** Pre-computed ladder facts; when omitted, cheap local probes build them. */
+  readonly ladderFacts?: LadderFacts;
+  /** Injected side-effecting install runner; when omitted, the install is deferred. */
+  readonly engineInstallRunner?: EngineInstallRunner;
+  /** Injected content re-projection after a fresh install. */
+  readonly reproject?: ReprojectRunner;
+}
+
+/**
+ * Cheap, non-networked ladder facts for the default self-heal path. The global
+ * engine version is whatever `classify()` already probed; the local sandbox
+ * engine integrity is a filesystem check. `registryUp`/`globalPrefixWritable`
+ * default optimistic so the ladder surfaces the canonical `npm i -g` remediation
+ * when no install runner is wired.
+ */
+export function buildDefaultLadderFacts(projectDir: string, facts: ResolutionFacts): LadderFacts {
+  const integrity = checkLocalEngineIntegrity(projectDir);
+  return {
+    pinVersion: facts.pinVersion,
+    globalEngineVersion: facts.engineReachable ? facts.engineVersion : null,
+    localEngine: integrity.present ? { version: null, integrity } : null,
+    registryUp: true,
+    globalPrefixWritable: true,
+    stagedTarballAvailable: false,
+    platform: osPlatform(),
+  };
+}
+
+/**
+ * Self-heal a mismatched / unreachable engine by DELEGATING to the keystone
+ * global-first ladder (`resolveEngine`, #2264). The refresh's content copy comes
+ * from the resolved content package and does not itself require the engine, so
+ * this is a best-effort heal that prints the ladder trace and remediation; when
+ * a caller wires an install runner, the ladder performs the install with zero
+ * manual npm/PATH steps (#2266 a3).
+ */
+export function selfHealEngine(
+  projectDir: string,
+  facts: ResolutionFacts,
+  io: InitDepositIo,
+  seams: SelfHealSeams = {},
+): EngineResolution {
+  const ladderFacts = seams.ladderFacts ?? buildDefaultLadderFacts(projectDir, facts);
+  const resolution = resolveEngine(ladderFacts, {
+    installRunner: seams.engineInstallRunner,
+    reproject: seams.reproject,
+  });
+  io.printf(`\n[deft update] engine self-heal (global-first ladder): ${resolution.trace}\n`);
+  if (!resolution.selfHealed && !resolution.decision.usable) {
+    io.printf(`[deft update] ${resolution.decision.reason}\n`);
+    if (resolution.decision.rung === "install-global") {
+      const suffix = facts.pinVersion ? `@${facts.pinVersion}` : "";
+      io.printf(`  Remediation: npm i -g @deftai/directive${suffix}\n`);
+    }
+  }
+  return resolution;
 }
 
 function normalizeVersion(version: string): string {
@@ -256,10 +394,12 @@ export function buildVersionSkewNotice(
 export function buildUpdateSummaryJson(
   result: RefreshDepositResult,
   options: RefreshDepositArgs,
+  updateState?: UpdateState,
 ): Record<string, unknown> {
   return {
     success: true,
     action: "upgrade",
+    ...(updateState ? { update_state: updateState } : {}),
     version: result.engineVersion,
     project_dir: result.projectDir,
     deft_dir: result.deftDir,
@@ -287,10 +427,17 @@ export function buildUpdateSummaryJson(
   };
 }
 
-export function printUpdateComplete(result: RefreshDepositResult, io: InitDepositIo): void {
+export function printUpdateComplete(
+  result: RefreshDepositResult,
+  io: InitDepositIo,
+  updateState?: UpdateState,
+): void {
   io.printf("\n✓ Deft framework payload refreshed.\n\n");
   io.printf(`  Location     : ${result.deftDir}\n`);
   io.printf(`  Content      : v${normalizeVersion(result.contentVersion)}\n`);
+  if (updateState) {
+    io.printf(`  State        : ${updateState}\n`);
+  }
   io.printf(`  AGENTS.md    : ${result.agentsMdUpdated ? "updated" : "already current"}\n`);
   if (result.versionSkewNotice) {
     io.printf(`\n${result.versionSkewNotice}\n`);
@@ -360,6 +507,13 @@ export async function runRefreshDeposit(
 
   await depositNeutralization(projectDir, io);
 
+  // #2266: non-destructive `.gitignore` upkeep for framework-owned paths. This
+  // NEVER un-tracks a committed deposit -- `ensureInitGitignoreLines` only writes
+  // `.gitignore` and leaves an already-tracked `.deft/core` tracked. The
+  // destructive `git rm --cached .deft/core` un-track is the deliberate
+  // `migrate --untrack-core` step (#2269), not `update`.
+  ensureInitGitignoreLines(projectDir, io, { gitLsFiles: seams.gitLsFiles });
+
   let taskfileWired = false;
   if (args.nonInteractive) {
     taskfileWired = ensureTaskfile(projectDir, io);
@@ -395,6 +549,115 @@ export interface RunRefreshDepositCliOptions extends RefreshDepositArgs {
   readonly writeOut: (text: string) => void;
   readonly writeErr: (text: string) => void;
   readonly seams?: RefreshDepositSeams;
+  /** #2266: print the classified plan without executing the refresh (`--dry-run`/`--plan`). */
+  readonly dryRun?: boolean;
+  /** #2266: seams for the up-front four-state classifier (default: real fs + engine probe). */
+  readonly classifySeams?: ClassifySeams;
+  /** #2266: pre-computed engine-ladder facts for the self-heal delegation (default: probed). */
+  readonly ladderFacts?: LadderFacts;
+  /** #2266: injected engine install runner for the ladder self-heal (default: deferred). */
+  readonly engineInstallRunner?: EngineInstallRunner;
+  /** #2266: injected content re-projection after a self-heal install. */
+  readonly reproject?: ReprojectRunner;
+}
+
+function buildRefusalJson(
+  state: UpdateState,
+  projectDir: string,
+  message: string,
+  command: string,
+): Record<string, unknown> {
+  return {
+    success: false,
+    action: "update",
+    update_state: state,
+    project_dir: projectDir,
+    message,
+    next_action: { command },
+  };
+}
+
+/** Emit the `not-initialized` refusal: STOP, hint `init`, never write a partial install. */
+function emitNotInitialized(
+  options: RunRefreshDepositCliOptions,
+  io: InitDepositIo,
+  projectDir: string,
+): number {
+  io.printf(`${NOT_INITIALIZED_MESSAGE}\n`);
+  if (options.jsonOut) {
+    options.writeOut(
+      `${JSON.stringify(
+        buildRefusalJson("not-initialized", projectDir, NOT_INITIALIZED_MESSAGE, "directive init"),
+        null,
+        2,
+      )}\n`,
+    );
+  }
+  return UPDATE_REFUSED_EXIT_CODE;
+}
+
+/** Emit the `migration-required` refusal: `update` is not enough; point at init/migrate. */
+function emitMigrationRequired(
+  options: RunRefreshDepositCliOptions,
+  io: InitDepositIo,
+  projectDir: string,
+  classification: UpdateClassification,
+): number {
+  const remediation = classification.plan.nextAction.remediation;
+  const message = `directive update: this project requires migration before it can be refreshed. ${remediation}`;
+  io.printf(`${message}\n`);
+  if (options.jsonOut) {
+    options.writeOut(
+      `${JSON.stringify(
+        buildRefusalJson(
+          "migration-required",
+          projectDir,
+          message,
+          classification.plan.nextAction.command ?? "directive init",
+        ),
+        null,
+        2,
+      )}\n`,
+    );
+  }
+  return UPDATE_REFUSED_EXIT_CODE;
+}
+
+/** Emit the classified plan for `--dry-run`/`--plan` without executing the refresh. */
+function emitDryRunPlan(
+  options: RunRefreshDepositCliOptions,
+  io: InitDepositIo,
+  projectDir: string,
+  classification: UpdateClassification,
+): number {
+  const { state, plan: resolutionPlan } = classification;
+  io.printf(`\n[deft update] dry-run -- classified plan (no changes written):\n`);
+  io.printf(`  State        : ${state}\n`);
+  io.printf(`  Mode         : ${resolutionPlan.mode}\n`);
+  io.printf(`  Root cause   : ${resolutionPlan.nextAction.rootCause}\n`);
+  io.printf(`  Remediation  : ${resolutionPlan.nextAction.remediation}\n`);
+  for (const warning of resolutionPlan.warnings) {
+    io.printf(`  Warning      : ${warning}\n`);
+  }
+  if (options.jsonOut) {
+    options.writeOut(
+      `${JSON.stringify(
+        {
+          success: true,
+          action: "update",
+          dry_run: true,
+          update_state: state,
+          mode: resolutionPlan.mode,
+          project_dir: projectDir,
+          next_action: resolutionPlan.nextAction,
+          warnings: resolutionPlan.warnings,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  }
+  return 0;
 }
 
 /** CLI-facing wrapper: runs refresh, emits JSON or wizard UX, returns exit code. */
@@ -409,13 +672,44 @@ export async function runRefreshDepositCli(options: RunRefreshDepositCliOptions)
     },
   };
 
+  // #2266: classify up front (BEFORE any copy) and gate on the four states.
+  // Legacy layouts keep their existing refusal path (thrown by runRefreshDeposit
+  // and handled below), so classification is skipped for them.
+  const projectDir = resolve(options.projectDir);
+  const detectLegacy = options.seams?.detectLegacy ?? detectLegacyLayout;
+  let classification: UpdateClassification | null = null;
+  if (!detectLegacy(projectDir).legacy) {
+    classification = classifyUpdateState(projectDir, options.classifySeams ?? {});
+    if (classification.state === "not-initialized") {
+      return emitNotInitialized(options, io, projectDir);
+    }
+    if (classification.state === "migration-required") {
+      return emitMigrationRequired(options, io, projectDir, classification);
+    }
+    if (options.dryRun) {
+      return emitDryRunPlan(options, io, projectDir, classification);
+    }
+    // #2266 a3: self-heal a mismatched / unreachable engine via the keystone
+    // global-first ladder before the refresh proceeds.
+    if (!classification.facts.engineReachable) {
+      selfHealEngine(projectDir, classification.facts, io, {
+        ladderFacts: options.ladderFacts,
+        engineInstallRunner: options.engineInstallRunner,
+        reproject: options.reproject,
+      });
+    }
+  }
+
   try {
     const result = await runRefreshDeposit(options, io, options.seams);
+    const state = classification?.state;
     if (options.jsonOut) {
-      options.writeOut(`${JSON.stringify(buildUpdateSummaryJson(result, options), null, 2)}\n`);
-      printUpdateComplete(result, { printf: options.writeErr });
+      options.writeOut(
+        `${JSON.stringify(buildUpdateSummaryJson(result, options, state), null, 2)}\n`,
+      );
+      printUpdateComplete(result, { printf: options.writeErr }, state);
     } else {
-      printUpdateComplete(result, io);
+      printUpdateComplete(result, io, state);
     }
     return 0;
   } catch (cause) {

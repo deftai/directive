@@ -4,6 +4,13 @@ export const CANONICAL_INIT_ARGV = ["--yes", "--repo-root", ".", "--json"] as co
 /** Canonical headless upgrade argv (#1339 / #1409). */
 export const CANONICAL_UPDATE_ARGV = ["--yes", "--upgrade", "--repo-root", ".", "--json"] as const;
 
+/**
+ * Flags that make `directive update` classify + print its plan without executing
+ * the refresh (#2266). Recognised in the USER argv (never part of the canonical
+ * always-applied argv above, which must stay a real refresh).
+ */
+export const UPDATE_DRY_RUN_FLAGS = ["--dry-run", "--plan"] as const;
+
 /** Canonical migrate argv: defaults to cwd, human-readable unless --json (#1941). */
 export const CANONICAL_MIGRATE_ARGV = ["--repo-root", "."] as const;
 

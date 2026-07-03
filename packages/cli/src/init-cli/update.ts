@@ -1,11 +1,18 @@
 import { parseUpdateArgv, runRefreshDepositCli } from "@deftai/directive-core/init-deposit";
 import type { DispatchIo } from "../dispatch.js";
-import { CANONICAL_UPDATE_ARGV } from "./constants.js";
+import { CANONICAL_UPDATE_ARGV, UPDATE_DRY_RUN_FLAGS } from "./constants.js";
+
+/** True when the user argv asked for a classify-only dry-run (`--dry-run`/`--plan`). */
+export function isUpdateDryRun(argv: readonly string[]): boolean {
+  const flags = UPDATE_DRY_RUN_FLAGS as readonly string[];
+  return argv.some((arg) => flags.includes(arg));
+}
 
 export function runUpdate(argv: readonly string[], io: DispatchIo): Promise<number> {
   const args = parseUpdateArgv(CANONICAL_UPDATE_ARGV, argv);
   return runRefreshDepositCli({
     ...args,
+    dryRun: isUpdateDryRun(argv),
     writeOut: io.writeOut,
     writeErr: io.writeErr,
   });

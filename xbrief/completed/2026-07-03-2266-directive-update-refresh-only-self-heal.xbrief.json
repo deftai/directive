@@ -6,7 +6,7 @@
   "plan": {
     "id": "2266-directive-update",
     "title": "directive update: refresh-only + self-heal",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Narrow `directive update` to refresh-only + self-heal of an EXISTING Directive install so it is never the hidden first-run adoption command. It refreshes only framework-owned payload and managed files, self-heals the engine through the keystone global-first ladder when needed, writes only the non-destructive .gitignore entry (never git rm --cached), and reports exactly one of four states: not-initialized (stop, hint init), current, updated, or migration-required. Behavior half of #2199; the version half is the keystone #2264.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2266",
@@ -122,8 +122,10 @@
           "--dry-run/--plan supported and idempotent; colocated vitest across all states green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2267 (doctor) in wave 3 -- file_scope is disjoint (update touches init-deposit/refresh.ts + init-cli/update.ts + constants.ts; doctor touches doctor/* + cli/doctor.ts). CHANGELOG.md intentionally omitted from file_scope to keep the concurrent overlap matrix clean; the worker still adds a CHANGELOG entry (trivial append resolved at the second merge). Depends on the merged keystone #2264 (classify/plan/engine-ladder). Consumes resolution/* read-only. Does NOT own the destructive un-track (that is #2269, merged) or the init dispatcher (that is #2265, follows this)."
-      }
+      },
+      "completedAt": "2026-07-03T23:43:43Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-03T23:15:15Z"
+    "updated": "2026-07-03T23:43:43Z"
   }
 }

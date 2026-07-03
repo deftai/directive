@@ -10,18 +10,24 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ResolutionFacts } from "@deftai/directive-types";
+import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
+import type { ClassifySeams } from "../resolution/index.js";
 import { type LegacyLayoutDetection, LegacyLayoutRefusedError } from "./legacy-detect.js";
 import {
   buildVersionSkewNotice,
   frameworkRefreshSideEffects,
+  NOT_INITIALIZED_MESSAGE,
   parseUpdateArgv,
   printRefreshSideEffects,
   printUpdateComplete,
   runRefreshDeposit,
   runRefreshDepositCli,
+  UPDATE_REFUSED_EXIT_CODE,
+  updateStateFromPlan,
 } from "./refresh.js";
 
 // `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
@@ -539,5 +545,426 @@ describe("runRefreshDepositCli legacy refusal", () => {
 
     expect(code).toBe(2);
     expect(out.join("")).toContain("refusing to refresh");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #2266: refresh-only + self-heal narrowing.
+// ---------------------------------------------------------------------------
+
+function makeFacts(overrides: Partial<ResolutionFacts> = {}): ResolutionFacts {
+  return {
+    hasGit: false,
+    hasAppCode: false,
+    hasDeftCore: false,
+    deftCorePayloadVersion: null,
+    hasManagedSection: false,
+    managedSectionSha: null,
+    hasVbrief: false,
+    hasXbrief: false,
+    preCutoverArtifacts: false,
+    engineReachable: true,
+    engineVersion: "0.53.0",
+    pinVersion: "0.53.0",
+    ...overrides,
+  };
+}
+
+describe("updateStateFromPlan (#2266 four-state classifier)", () => {
+  it("maps pre-cutover artifacts to migration-required (wins over everything)", () => {
+    const facts = makeFacts({ hasDeftCore: true, preCutoverArtifacts: true });
+    const state = updateStateFromPlan(facts, {
+      schemaVersion: RESOLUTION_PLAN_SCHEMA_VERSION,
+      mode: "migrate",
+      files: [],
+      nextAction: { command: null, rootCause: "pre-cutover", remediation: "migrate first" },
+      warnings: [],
+    });
+    expect(state).toBe("migration-required");
+  });
+
+  it("maps an empty project (no footprint) to not-initialized", () => {
+    const facts = makeFacts({
+      hasDeftCore: false,
+      hasManagedSection: false,
+      pinVersion: null,
+    });
+    const state = updateStateFromPlan(facts, {
+      schemaVersion: RESOLUTION_PLAN_SCHEMA_VERSION,
+      mode: "init",
+      files: [],
+      nextAction: {
+        command: "npx @deftai/directive init",
+        rootCause: "greenfield",
+        remediation: "init",
+      },
+      warnings: [],
+    });
+    expect(state).toBe("not-initialized");
+  });
+
+  it("treats a managed-section-only project as initialized (deposit reconstitution = updated)", () => {
+    const facts = makeFacts({ hasDeftCore: false, hasManagedSection: true, pinVersion: null });
+    const state = updateStateFromPlan(facts, {
+      schemaVersion: RESOLUTION_PLAN_SCHEMA_VERSION,
+      mode: "init",
+      files: [],
+      nextAction: { command: null, rootCause: "deposit absent", remediation: "reconstitute" },
+      warnings: [],
+    });
+    expect(state).toBe("updated");
+  });
+
+  it("maps a proceed plan on an initialized project to current", () => {
+    const facts = makeFacts({ hasDeftCore: true });
+    const state = updateStateFromPlan(facts, {
+      schemaVersion: RESOLUTION_PLAN_SCHEMA_VERSION,
+      mode: "proceed",
+      files: [],
+      nextAction: { command: null, rootCause: "matched", remediation: "run gate" },
+      warnings: [],
+    });
+    expect(state).toBe("current");
+  });
+
+  it("maps an update plan on an initialized project to updated", () => {
+    const facts = makeFacts({ hasDeftCore: true });
+    const state = updateStateFromPlan(facts, {
+      schemaVersion: RESOLUTION_PLAN_SCHEMA_VERSION,
+      mode: "update",
+      files: [],
+      nextAction: {
+        command: "npx @deftai/directive update",
+        rootCause: "behind",
+        remediation: "update",
+      },
+      warnings: [],
+    });
+    expect(state).toBe("updated");
+  });
+});
+
+describe("directive update refresh-only + self-heal (#2266)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  function installFakeContentPackage(projectRoot: string, version = "0.53.0"): string {
+    const pkgDir = join(projectRoot, "node_modules", "@deftai", "directive-content");
+    mkdirSync(join(pkgDir, "templates"), { recursive: true });
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({ name: CONTENT_PACKAGE_NAME, version }),
+      "utf8",
+    );
+    copyFileSync(
+      join(process.cwd(), "content/templates/agents-entry.md"),
+      join(pkgDir, "templates/agents-entry.md"),
+    );
+    writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");
+    return pkgDir;
+  }
+
+  /** Write a minimal initialized install (deposit + managed AGENTS.md + committed pin). */
+  function writeInitializedProject(
+    project: string,
+    opts: { contentVersion: string; pinVersion: string; sha?: string },
+  ): void {
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(deftDir, { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      `tag: 'v${opts.contentVersion}'\nsha: abc\ninstall_root: '.deft/core'\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      `# Operator prose\n\n<!-- deft:managed-section v3 sha=${opts.sha ?? "deadbeefcafe"} -->\nbody\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "package.json"),
+      JSON.stringify({ private: true, devDependencies: { "@deftai/directive": opts.pinVersion } }),
+      "utf8",
+    );
+  }
+
+  function classifySeams(engine: { reachable: boolean; version: string | null }): ClassifySeams {
+    return { engineProbe: () => engine, preCutoverProbe: () => false };
+  }
+
+  function initGitRepo(root: string): void {
+    execFileSync("git", ["init"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
+  }
+
+  it("STOPS on an un-initialized project without writing a partial install (a1)", async () => {
+    const project = freshRoot("update-noinit-");
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: false, version: null }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => {
+          throw new Error("resolveContentRoot must NOT run for a not-initialized project");
+        },
+      },
+    });
+
+    expect(code).toBe(UPDATE_REFUSED_EXIT_CODE);
+    expect(err.join("")).toContain(NOT_INITIALIZED_MESSAGE);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.update_state).toBe("not-initialized");
+    expect(payload.success).toBe(false);
+    // No partial install: the deposit directory was never created.
+    expect(existsSync(join(project, ".deft", "core"))).toBe(false);
+  });
+
+  it("STOPS with migration-required when pre-cutover artifacts are present", async () => {
+    const project = freshRoot("update-migrate-");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: {
+        engineProbe: () => ({ reachable: true, version: "0.53.0" }),
+        preCutoverProbe: () => true,
+      },
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => {
+          throw new Error("resolveContentRoot must NOT run when migration is required");
+        },
+      },
+    });
+
+    expect(code).toBe(UPDATE_REFUSED_EXIT_CODE);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.update_state).toBe("migration-required");
+    expect(err.join("")).toContain("migration");
+  });
+
+  it("--dry-run prints the classified plan without executing the refresh (a5)", async () => {
+    const project = freshRoot("update-dryrun-");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      dryRun: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.53.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => {
+          throw new Error("resolveContentRoot must NOT run in dry-run mode");
+        },
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.dry_run).toBe(true);
+    expect(payload.update_state).toBe("current");
+    expect(payload.mode).toBeDefined();
+    // VERSION untouched -> nothing was re-stamped.
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.53.0");
+  });
+
+  it("reports current and refreshes idempotently on an up-to-date install (a2/a5)", async () => {
+    const project = freshRoot("update-current-");
+    const contentRoot = installFakeContentPackage(project, "0.53.0");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.53.0" });
+    const seams = {
+      resolveContentRoot: async () => contentRoot,
+      readEngineVersion: () => "0.53.0",
+      nowIso: () => "2026-07-03T12:00:00Z",
+      gitPorcelain: () => null,
+      gitLsFiles: () => null,
+    };
+
+    const run = async (): Promise<Record<string, unknown>> => {
+      const out: string[] = [];
+      const code = await runRefreshDepositCli({
+        projectDir: project,
+        jsonOut: true,
+        nonInteractive: true,
+        upgrade: true,
+        classifySeams: classifySeams({ reachable: true, version: "0.53.0" }),
+        writeOut: (t) => out.push(t),
+        writeErr: () => {},
+        seams,
+      });
+      expect(code).toBe(0);
+      return parseJsonObject(out.join(""));
+    };
+
+    const first = await run();
+    expect(first.update_state).toBe("current");
+    const second = await run();
+    expect(second.update_state).toBe("current");
+  });
+
+  it("reports updated and re-stamps VERSION when content is behind the pin (a2)", async () => {
+    const project = freshRoot("update-updated-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.54.0" });
+    const out: string[] = [];
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => {},
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.54.0",
+        nowIso: () => "2026-07-03T12:00:00Z",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.update_state).toBe("updated");
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain("v0.54.0");
+  });
+
+  it("self-heals a mismatched engine via the global-first ladder, then completes the refresh (a3)", async () => {
+    const project = freshRoot("update-selfheal-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    writeInitializedProject(project, { contentVersion: "0.53.0", pinVersion: "0.54.0" });
+    const out: string[] = [];
+    const err: string[] = [];
+
+    const installRunner = vi.fn(() => ({
+      installed: true,
+      version: "0.54.0",
+      detail: "fake npm i -g @deftai/directive@0.54.0",
+    }));
+
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      // Engine unreachable in the execution env -> triggers the self-heal delegation.
+      classifySeams: classifySeams({ reachable: false, version: null }),
+      ladderFacts: {
+        pinVersion: "0.54.0",
+        globalEngineVersion: null,
+        localEngine: null,
+        registryUp: true,
+        globalPrefixWritable: true,
+        stagedTarballAvailable: false,
+        platform: "linux",
+      },
+      engineInstallRunner: installRunner,
+      writeOut: (t) => out.push(t),
+      writeErr: (t) => err.push(t),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.54.0",
+        nowIso: () => "2026-07-03T12:00:00Z",
+        gitPorcelain: () => null,
+        gitLsFiles: () => null,
+      },
+    });
+
+    expect(code).toBe(0);
+    // The ladder ran the install with zero manual npm/PATH steps.
+    expect(installRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ rung: "install-global", pinVersion: "0.54.0" }),
+    );
+    expect(err.join("")).toContain("engine self-heal (global-first ladder)");
+    // The refresh still completed after the self-heal.
+    expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
+  });
+
+  it("writes the .gitignore entry but NEVER un-tracks .deft/core (boundary test, a4)", async () => {
+    const project = freshRoot("update-boundary-");
+    const contentRoot = installFakeContentPackage(project, "0.54.0");
+    initGitRepo(project);
+    writeInitializedProject(project, { contentVersion: "0.54.0", pinVersion: "0.54.0" });
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+
+    const trackedBefore = execFileSync("git", ["ls-files", "--", ".deft/core"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(trackedBefore.trim().length).toBeGreaterThan(0);
+
+    const out: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      classifySeams: classifySeams({ reachable: true, version: "0.54.0" }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => {},
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.54.0",
+        nowIso: () => "2026-07-03T12:00:00Z",
+      },
+    });
+
+    expect(code).toBe(0);
+
+    // Boundary: the committed deposit stays tracked -- `update` never runs the
+    // destructive `git rm --cached .deft/core` (that is migrate --untrack-core,
+    // #2269). If it had, ls-files would be empty here.
+    const trackedAfter = execFileSync("git", ["ls-files", "--", ".deft/core"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(trackedAfter.trim().length).toBeGreaterThan(0);
+
+    // And nothing under .deft/core is staged for deletion (a git rm --cached would
+    // surface as a staged `D` entry in porcelain).
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(porcelain).not.toMatch(/^D..*\.deft\/core/m);
+    expect(porcelain).not.toMatch(/^.D.*\.deft\/core/m);
+
+    // The non-destructive .gitignore write DID land the canonical baseline.
+    expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft-cache/");
   });
 });
