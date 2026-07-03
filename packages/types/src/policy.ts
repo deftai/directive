@@ -11,6 +11,14 @@ export interface PlanPolicy {
   readonly allowDirectCommitsToMaster?: boolean;
   readonly wipCap?: number;
   readonly sessionRitualStalenessHours?: number | null;
+  /**
+   * Engine-vs-pin skew tolerance for the three-band skew policy (#2264).
+   *
+   * Pre-1.0 the window is measured in minor versions (default 3); post-1.0 it
+   * collapses to "same major". `engine > pin` beyond this window fails closed
+   * unless `--accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW=1` is supplied.
+   */
+  readonly engineSkewWindow?: number | null;
   readonly triageScope?: readonly TriageScopeRule[];
   readonly triageScopeIgnores?: readonly unknown[];
   readonly triageRankingLabels?: readonly string[];
@@ -46,4 +54,5 @@ export const REGISTERED_POLICY_FIELD_NAMES = [
   "plan.policy.triageAutoClassify",
   "plan.policy.triageHoldMarkers",
   "plan.policy.swarmSubagentBackend",
+  "plan.policy.engineSkewWindow",
 ] as const;

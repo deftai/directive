@@ -260,6 +260,82 @@ export function writeInstallManifest(
   return path;
 }
 
+/** Canonical committed pin dependency name (mirrors resolution/pin.ts). */
+export const PIN_DEPENDENCY_NAME = "@deftai/directive";
+
+export interface EnsurePackageJsonPinResult {
+  readonly changed: boolean;
+  /** Exact version written to the devDependency pin. */
+  readonly pinVersion: string;
+  /** A fresh package.json was created (vs. an existing one updated). */
+  readonly created: boolean;
+}
+
+/**
+ * Write the committed `package.json` version pin on `@deftai/directive`
+ * (exact devDependency; `"private": true` preserved) so the resolution spine
+ * has a canonical, npm-native pin to read before directive runs. This unblocks
+ * #2269 (which is gated on the pin existing).
+ *
+ * Behavior:
+ *  - existing `package.json`  -> the exact devDependency pin is set/updated;
+ *    an existing `"private"` value is preserved verbatim (never clobbered).
+ *  - absent `package.json`    -> a minimal `{ "private": true, ... }` is created.
+ *  - idempotent               -> re-running with the same pin makes no change.
+ *
+ * This is a deposit primitive; wiring it into the `init` verb flow is owned by
+ * #2265 (the init-consumes-plan child), per the #2264 scope guard.
+ */
+export function ensurePackageJsonPin(
+  projectDir: string,
+  version: string,
+  io: InitDepositIo,
+): EnsurePackageJsonPinResult {
+  const pinVersion = version.trim().replace(/^v/i, "");
+  const path = join(projectDir, "package.json");
+  const existed = existsSync(path);
+
+  let pkg: Record<string, unknown> = {};
+  if (existed) {
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        pkg = parsed as Record<string, unknown>;
+      } else {
+        throw new Error("package.json root must be a JSON object");
+      }
+    } catch (cause) {
+      throw new Error(`could not parse package.json (leaving it unchanged): ${String(cause)}`);
+    }
+  } else {
+    // Fresh scaffold: a consumer deposit is a non-published workspace.
+    pkg.private = true;
+  }
+
+  const devDeps: Record<string, unknown> =
+    typeof pkg.devDependencies === "object" &&
+    pkg.devDependencies !== null &&
+    !Array.isArray(pkg.devDependencies)
+      ? { ...(pkg.devDependencies as Record<string, unknown>) }
+      : {};
+
+  if (devDeps[PIN_DEPENDENCY_NAME] === pinVersion) {
+    io.printf(`package.json already pins ${PIN_DEPENDENCY_NAME}@${pinVersion} — skipping.\n`);
+    return { changed: false, pinVersion, created: false };
+  }
+
+  devDeps[PIN_DEPENDENCY_NAME] = pinVersion;
+  pkg.devDependencies = devDeps;
+
+  writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+  io.printf(
+    existed
+      ? `package.json updated: pinned ${PIN_DEPENDENCY_NAME}@${pinVersion} (exact).\n`
+      : `package.json created: pinned ${PIN_DEPENDENCY_NAME}@${pinVersion} (exact, private).\n`,
+  );
+  return { changed: true, pinVersion, created: !existed };
+}
+
 export function writeAgentsMd(projectDir: string, deftDir: string, io: InitDepositIo): boolean {
   const plan = agentsRefreshPlan(projectDir, { frameworkRoot: deftDir }) as Record<string, unknown>;
   const state = plan.state;

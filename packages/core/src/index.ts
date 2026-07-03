@@ -38,6 +38,7 @@ export * as releaseE2e from "./release-e2e/index.js";
 export * as releasePublish from "./release-publish/index.js";
 export * as releaseRollback from "./release-rollback/index.js";
 export * as render from "./render/index.js";
+export * as resolution from "./resolution/index.js";
 export * as scm from "./scm/index.js";
 export * as scope from "./scope/index.js";
 export * as session from "./session/index.js";

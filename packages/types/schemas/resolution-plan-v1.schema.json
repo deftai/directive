@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xbrief.dev/schemas/resolution-plan-v1.schema.json",
+  "title": "Resolution Plan Schema v1",
+  "description": "Versioned public output of the resolution-spine plan() function (keystone #2264 / epic #2203). The single source of truth every consumption context (init / update / doctor / headless) derives from. MUST stay in lockstep with @deftai/directive-types resolution.ts.",
+  "type": "object",
+  "required": ["schemaVersion", "mode", "files", "nextAction", "warnings"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "resolution-plan/v1",
+      "description": "Schema version tag stamped into every plan."
+    },
+    "mode": {
+      "$ref": "#/$defs/ResolutionMode"
+    },
+    "files": {
+      "type": "array",
+      "description": "Files the plan recommends materialising (empty in the keystone spine).",
+      "items": { "$ref": "#/$defs/ResolutionFile" }
+    },
+    "nextAction": {
+      "$ref": "#/$defs/ResolutionNextAction"
+    },
+    "warnings": {
+      "type": "array",
+      "description": "Non-fatal advisories (loud skew deltas, legacy-tree hints, reconciliation mismatches).",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "ResolutionMode": {
+      "type": "string",
+      "description": "The one recommended resolution mode. plan() emits exactly one.",
+      "enum": [
+        "proceed",
+        "init",
+        "migrate",
+        "update",
+        "install-global",
+        "install-sandbox",
+        "install-staged",
+        "blocked"
+      ]
+    },
+    "ResolutionEncoding": {
+      "type": "string",
+      "enum": ["utf-8", "base64"]
+    },
+    "ResolutionFile": {
+      "type": "object",
+      "required": ["path", "content", "encoding"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "content": { "type": "string" },
+        "encoding": { "$ref": "#/$defs/ResolutionEncoding" }
+      }
+    },
+    "ResolutionNextAction": {
+      "type": "object",
+      "required": ["command", "rootCause", "remediation"],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": ["string", "null"],
+          "description": "Command to run, or null when the action is manual / has no single command."
+        },
+        "rootCause": { "type": "string" },
+        "remediation": { "type": "string" }
+      }
+    }
+  }
+}

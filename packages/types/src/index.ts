@@ -47,6 +47,17 @@ export {
   type VBriefReference,
 } from "./reference.js";
 export {
+  RESOLUTION_ENCODINGS,
+  RESOLUTION_MODES,
+  RESOLUTION_PLAN_SCHEMA_VERSION,
+  type ResolutionEncoding,
+  type ResolutionFacts,
+  type ResolutionFile,
+  type ResolutionMode,
+  type ResolutionNextAction,
+  type ResolutionPlan,
+} from "./resolution.js";
+export {
   FOLDER_ALLOWED_STATUSES,
   type Status,
   VALID_STATUSES,

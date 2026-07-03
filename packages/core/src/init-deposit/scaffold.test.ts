@@ -20,7 +20,9 @@ import {
   ensureCoreGuardWorkflow,
   ensureGitattributes,
   ensureGreptileIgnore,
+  ensurePackageJsonPin,
   ensureTaskfile,
+  PIN_DEPENDENCY_NAME,
   pruneFrameworkSelfTests,
   pruneVendoredTsTests,
   writeAgentsMd,
@@ -374,5 +376,72 @@ describe("init-deposit scaffold", () => {
     await depositNeutralization(project, io);
     expect(lines.join("")).toContain("Warning: neutralization step failed");
     expect(existsSync(join(project, ".gitattributes"))).toBe(true);
+  });
+
+  describe("ensurePackageJsonPin (#2264 a6 / unblocks #2269)", () => {
+    function readPkg(project: string): Record<string, unknown> {
+      return JSON.parse(readFileSync(join(project, "package.json"), "utf8"));
+    }
+
+    it("creates a private package.json with an exact pin when absent", () => {
+      const project = freshRoot("scaffold-pin-create-");
+      const { lines, io } = captureIo();
+      const result = ensurePackageJsonPin(project, "v0.65.0", io);
+      expect(result.changed).toBe(true);
+      expect(result.created).toBe(true);
+      expect(result.pinVersion).toBe("0.65.0");
+      const pkg = readPkg(project);
+      expect(pkg.private).toBe(true);
+      expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.65.0");
+      expect(lines.join("")).toContain("created");
+    });
+
+    it("updates an existing package.json and preserves private + other fields", () => {
+      const project = freshRoot("scaffold-pin-update-");
+      writeFileSync(
+        join(project, "package.json"),
+        JSON.stringify({ name: "my-app", private: true, scripts: { build: "tsc" } }, null, 2),
+        "utf8",
+      );
+      const { io } = captureIo();
+      const result = ensurePackageJsonPin(project, "0.65.0", io);
+      expect(result.changed).toBe(true);
+      expect(result.created).toBe(false);
+      const pkg = readPkg(project);
+      expect(pkg.name).toBe("my-app");
+      expect(pkg.private).toBe(true);
+      expect((pkg.scripts as Record<string, string>).build).toBe("tsc");
+      expect((pkg.devDependencies as Record<string, string>)[PIN_DEPENDENCY_NAME]).toBe("0.65.0");
+    });
+
+    it("does not add private to an existing package.json that omits it", () => {
+      const project = freshRoot("scaffold-pin-nopriv-");
+      writeFileSync(
+        join(project, "package.json"),
+        JSON.stringify({ name: "public-lib" }, null, 2),
+        "utf8",
+      );
+      const { io } = captureIo();
+      ensurePackageJsonPin(project, "0.65.0", io);
+      const pkg = readPkg(project);
+      expect("private" in pkg).toBe(false);
+    });
+
+    it("is idempotent when the exact pin already matches", () => {
+      const project = freshRoot("scaffold-pin-idem-");
+      const { io } = captureIo();
+      ensurePackageJsonPin(project, "0.65.0", io);
+      const { lines, io: io2 } = captureIo();
+      const result = ensurePackageJsonPin(project, "0.65.0", io2);
+      expect(result.changed).toBe(false);
+      expect(lines.join("")).toContain("already pins");
+    });
+
+    it("throws on a malformed package.json instead of clobbering it", () => {
+      const project = freshRoot("scaffold-pin-bad-");
+      writeFileSync(join(project, "package.json"), "not-json", "utf8");
+      const { io } = captureIo();
+      expect(() => ensurePackageJsonPin(project, "0.65.0", io)).toThrow(/could not parse/);
+    });
   });
 });

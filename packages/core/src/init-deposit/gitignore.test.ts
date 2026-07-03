@@ -57,6 +57,13 @@ describe("ensureInitGitignoreLines", () => {
     expect(lines.join("")).toContain(".gitignore updated");
   });
 
+  it("born-ignores the local engine cache dir (.deft/.cli/) (#2264)", () => {
+    const root = freshRoot("gitignore-cli-");
+    ensureInitGitignoreLines(root, { printf: () => {} });
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain(".deft/.cli/");
+    expect(readGitignore(root)).toContain(".deft/.cli/");
+  });
+
   it("is idempotent on a second init run", () => {
     const root = freshRoot("gitignore-idempotent-");
     const io = { printf: () => {} };

@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Shared resolution spine so Directive can always tell you the one right next step (#2264).** A single classifier gathers the orthogonal facts about your project and engine, and one `plan()` function collapses them into exactly one recommended action (proceed / init / migrate / update / install / blocked) behind a versioned, public JSON contract. It adds a global-first engine ladder that self-heals a missing or stale engine (including sandbox installs into `.deft/.cli/`), a three-band engine-vs-pin skew policy with an `--accept-engine-jump` escape hatch, and reads the committed `package.json` pin so init/update/doctor/headless all derive from the same source of truth. This is the library keystone; the user-facing rewiring lands in follow-ups. Refs #2264, #2203.
+
 ### Changed
 
 ### Fixed

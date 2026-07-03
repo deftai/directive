@@ -30,6 +30,7 @@ const DEFT_CORE_COVERING_LINES = new Set([".deft/core/", ".deft/core"]);
  */
 export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft-cache/",
+  ".deft/.cli/",
   ".deft/ritual-state.json",
   ".deft/last-session.json",
   ".deft/routing.local.json",
