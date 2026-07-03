@@ -4,6 +4,7 @@ export * from "./cache.js";
 export * from "./constants.js";
 export * from "./derive-group.js";
 export * from "./ranking-labels.js";
+export * from "./reconcile-live-state.js";
 export * from "./render.js";
 export * from "./repo.js";
 export * from "./scope-ignores-filter.js";

@@ -1,7 +1,11 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import {
+  resetLiveOpenIssuesReader,
+  setLiveOpenIssuesReader,
+} from "@deftai/directive-core/dist/triage/queue/index.js";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./triage-queue.js";
 import {
   augmentParityArgv,
@@ -18,6 +22,12 @@ afterAll(() => {
   for (const temp of temps) {
     rmSync(temp, { recursive: true, force: true });
   }
+});
+
+// Keep every CLI `run` hermetic: never let the default reconcile reader shell
+// out to `gh`. Individual tests override the reader as needed.
+afterEach(() => {
+  resetLiveOpenIssuesReader();
 });
 
 function silentRun(argv: string[]): number {
@@ -81,6 +91,11 @@ describe("triage-queue CLI", () => {
     });
   });
 
+  it("parseArgs defaults reconcile on and honours --no-reconcile", () => {
+    expect(parseArgs(["queue", "--repo", "owner/repo"]).reconcile).toBe(true);
+    expect(parseArgs(["queue", "--repo", "owner/repo", "--no-reconcile"]).reconcile).toBe(false);
+  });
+
   it("parseArgs rejects invalid limit values", () => {
     const args = parseArgs(["queue", "--limit", "many"]);
     expect(args.error).toContain("invalid int value");
@@ -111,9 +126,18 @@ describe("triage-queue CLI", () => {
     temps.push(root);
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
-      expect(run(["queue", "--project-root", root, "--repo", "owner/repo", "--limit", "0"])).toBe(
-        0,
-      );
+      expect(
+        run([
+          "queue",
+          "--project-root",
+          root,
+          "--repo",
+          "owner/repo",
+          "--limit",
+          "0",
+          "--no-reconcile",
+        ]),
+      ).toBe(0);
       const output = stdout.mock.calls.map((call) => String(call[0])).join("");
       expect(output).toContain("#1");
       expect(output).toContain("#2");
@@ -123,6 +147,52 @@ describe("triage-queue CLI", () => {
       // the URGENT group and sorts ahead of the untriaged #2.
       expect(output).toContain("[URGENT]");
       expect(output.indexOf("#1")).toBeLessThan(output.indexOf("#2"));
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  // #2238 regression: a candidate that is cached as `open` but has been closed
+  // live must NOT render in the queue. The stubbed live-open reader reports only
+  // the still-open issue, so the stale-open/live-closed one drops off.
+  it("reconciles out a cached-open issue that is closed live", () => {
+    const root = buildFixtureRepo({
+      issues: [
+        { number: 2115, title: "Merged already", state: "open", updatedAt: "2026-07-01T10:00:00Z" },
+        { number: 3000, title: "Still open", state: "open", updatedAt: "2026-07-02T10:00:00Z" },
+      ],
+    });
+    temps.push(root);
+    // Live truth: only #3000 is open (#2115 was merged/closed).
+    setLiveOpenIssuesReader(() => new Set<number>([3000]));
+
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(run(["queue", "--project-root", root, "--repo", "owner/repo", "--limit", "0"])).toBe(
+        0,
+      );
+      const output = stdout.mock.calls.map((call) => String(call[0])).join("");
+      expect(output).toContain("#3000");
+      expect(output).not.toContain("#2115");
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  it("keeps the queue intact when the live reader fails (fail-open)", () => {
+    const root = buildFixtureRepo({
+      issues: [{ number: 2115, title: "Merged already", state: "open" }],
+    });
+    temps.push(root);
+    setLiveOpenIssuesReader(() => null);
+
+    const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(run(["queue", "--project-root", root, "--repo", "owner/repo", "--limit", "0"])).toBe(
+        0,
+      );
+      const output = stdout.mock.calls.map((call) => String(call[0])).join("");
+      expect(output).toContain("#2115");
     } finally {
       stdout.mockRestore();
     }
@@ -177,7 +247,9 @@ describe("triage-queue CLI", () => {
 
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
-      expect(run(["queue", "--project-root", root, "--repo", repo, "--limit", "0"])).toBe(0);
+      expect(
+        run(["queue", "--project-root", root, "--repo", repo, "--limit", "0", "--no-reconcile"]),
+      ).toBe(0);
       const output = stdout.mock.calls.map((call) => String(call[0])).join("");
       // Ranking labels loaded from xbrief/PROJECT-DEFINITION.xbrief.json.
       expect(output).toContain("consumer ranking labels (in declared order): urgent");

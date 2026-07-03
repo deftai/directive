@@ -10,6 +10,7 @@ import {
   loadCachedIssues,
   loadSliceRecords,
   readAuditEntries,
+  reconcileLiveOpenState,
   renderQueue,
   resolveRankingLabels,
   resolveRepo,
@@ -21,6 +22,7 @@ interface ParsedArgs {
   repo: string | null;
   limit: number;
   includeBlocked: boolean;
+  reconcile: boolean;
   cacheRoot: string | null;
   auditLog: string | null;
   slicesLog: string | null;
@@ -34,6 +36,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     repo: process.env.DEFT_TRIAGE_REPO ?? null,
     limit: DEFAULT_QUEUE_LIMIT,
     includeBlocked: false,
+    reconcile: true,
     cacheRoot: null,
     auditLog: null,
     slicesLog: null,
@@ -46,6 +49,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
     if (arg === "--include-blocked") {
       parsed.includeBlocked = true;
+      continue;
+    }
+    if (arg === "--no-reconcile") {
+      parsed.reconcile = false;
       continue;
     }
     if (arg === "--project-root") {
@@ -157,7 +164,14 @@ export function run(argv: string[]): number {
     return 2;
   }
 
-  const issuesForQueue = loadCachedIssues(repo, { projectRoot });
+  const cachedForQueue = loadCachedIssues(repo, { projectRoot });
+  // Reconcile the cached candidate set against live open/closed state so a
+  // just-closed/merged issue never lingers in the queue as [untriaged] until
+  // the cache refreshes (#2238). Fails open: a read error passes candidates
+  // through unchanged rather than emptying the queue.
+  const issuesForQueue = args.reconcile
+    ? reconcileLiveOpenState(cachedForQueue, repo)
+    : cachedForQueue;
   const issuesWithClosed = loadCachedIssues(repo, { projectRoot, includeClosed: true });
   const issuesByNumber = new Map(issuesWithClosed.map((row) => [row.number, row] as const));
   const auditEntries = readAuditEntries(repo, {

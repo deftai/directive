@@ -1,0 +1,50 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2238"
+  },
+  "plan": {
+    "title": "bug(triage): queue lists recently-closed issues as [untriaged] until cache refresh",
+    "status": "running",
+    "narratives": {
+      "Description": "task triage:queue keeps listing an already-closed/merged issue as [untriaged] because the queue renders from the cached candidate set without reconciling against the issue's live open/closed state.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2238",
+      "UserStory": "As an operator asking 'what should I work on next?', I want the triage queue to exclude issues that are already closed, so a just-merged issue never appears as actionable [untriaged] work.",
+      "ImplementationPlan": "1. Locate the triage:queue read/render path (packages/cli/src/triage-queue.ts entry + packages/core/src/triage/queue/*). Confirm how candidates are sourced (cached candidates.jsonl / slices log) and where open/closed state is (or is not) consulted. 2. Verify the hazard is live first: reproduce that a closed issue still renders [untriaged]. 3. Fix by reconciling candidate state against live issue state before rendering: filter out issues whose state is closed. Prefer the existing gh/ghx read shim (scm.call / cached REST) rather than a new raw gh call; batch the state lookup to avoid N calls where feasible. If a cheaper signal exists (e.g. the candidate record already carries a closed flag that is just not honored), use it. 4. Keep the ranking-label ordering and existing output shape intact -- only closed issues drop off. 5. Do NOT regress the recently-fixed audit-log/ranking read-path (this is a staleness/reconcile bug, distinct from the #2207/#2210/#2211 path-resolution fixes). 6. Regression test: a candidate set containing a closed issue renders WITHOUT it (inject a stub issue-state reader); an open issue still renders. 7. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#2238, #2207, #1128",
+      "Overview": "See https://github.com/deftai/directive/issues/2238. Observed wrapping the #2225 dogfood cohort: the now-closed #2115 stayed in triage:queue as [untriaged] after its PR merged because no formal triage decision was recorded and the cache had not refreshed. Cosmetic but misleading -- operators can re-pick closed work. Distinct from the #2207/#2210/#2211/#2212/#2213 xbrief-migration read-path fixes (those were wrong-path reads; this is stale-cache vs live-state).",
+      "GuardRails": "TS-native repo. Implement under packages/core/src/triage/ + packages/cli/src/triage-queue.ts. Route any GitHub reads through the scm shim (scripts/scm.py equivalent / scm.call), NOT raw gh -- verify:scm-boundary enforces this. Prefer REST/cached reads over GraphQL. Verify the hazard is live before implementing; if the candidate cache already records issue state and the render just ignores it, the fix is to honor it (no network needed)."
+    },
+    "items": [
+      {
+        "title": "triage:queue does not present closed issues as [untriaged] actionable work.",
+        "status": "proposed"
+      },
+      {
+        "title": "Queue reconciles cached candidates against live issue state (or honors an existing state field) before rendering.",
+        "status": "proposed"
+      },
+      {
+        "title": "Ranking-label ordering and existing output shape are unchanged for open issues.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test: a closed issue in the candidate set is filtered out; an open issue still renders (injected state reader).",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2238",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2238: bug(triage): queue lists recently-closed issues as [untriaged] until cache refresh"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2207",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2207"
+      }
+    ],
+    "updated": "2026-07-03T11:56:36Z"
+  }
+}
