@@ -13,7 +13,7 @@ function rewriteOnePlanRef(
   if (typeof value !== "string" || value.length === 0) {
     return [value, false];
   }
-  const resolved = resolveVbriefRef(value, vbriefDir);
+  const resolved = resolveVbriefRef(value, vbriefDir, { allowCrossFolderSearch: false });
   if (resolved === null || resolve(resolved) !== resolve(oldParentResolved)) {
     return [value, false];
   }
@@ -51,7 +51,7 @@ function rewriteParentChildReference(
     if (!referenceTypeMatches(String(r.type ?? ""), "plan")) {
       continue;
     }
-    const resolved = resolveVbriefRef(r.uri, vbriefDir);
+    const resolved = resolveVbriefRef(r.uri, vbriefDir, { allowCrossFolderSearch: false });
     if (resolved === null || resolve(resolved) !== resolve(oldChildResolved)) {
       continue;
     }

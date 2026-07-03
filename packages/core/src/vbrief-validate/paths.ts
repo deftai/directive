@@ -1,4 +1,5 @@
 import { basename, relative, resolve, sep } from "node:path";
+import { resolveLifecycleArtifactRef } from "../layout/lifecycle-ref.js";
 import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 
 /** Return true when ``child`` resolves under ``parent``. */
@@ -24,7 +25,7 @@ export function resolveRefPath(uri: string, vbriefDir: string): string | null {
   if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("#")) {
     return null;
   }
-  return resolve(vbriefDir, uri);
+  return resolveLifecycleArtifactRef(uri, vbriefDir);
 }
 
 /** Split like Python ``str.split(sep, maxsplit)`` (maxsplit splits, not result length). */

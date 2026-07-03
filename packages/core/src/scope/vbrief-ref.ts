@@ -1,9 +1,17 @@
 import { resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import {
+  type ResolveLifecycleArtifactRefOptions,
+  resolveLifecycleArtifactRef,
+} from "../layout/lifecycle-ref.js";
 import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 
 /** Resolve a vBRIEF reference URI to an absolute path, or null. */
-export function resolveVbriefRef(uri: unknown, vbriefDir: string): string | null {
+export function resolveVbriefRef(
+  uri: unknown,
+  vbriefDir: string,
+  options: ResolveLifecycleArtifactRefOptions = {},
+): string | null {
   if (typeof uri !== "string" || uri.length === 0) {
     return null;
   }
@@ -15,7 +23,7 @@ export function resolveVbriefRef(uri: unknown, vbriefDir: string): string | null
   } else {
     rel = uri;
   }
-  return resolve(vbriefDir, rel);
+  return resolveLifecycleArtifactRef(rel, vbriefDir, options);
 }
 
 /** Collect planRef values from the plan root and top-level items. */
