@@ -1,6 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { CANONICAL_UPGRADE_COMMAND, NPM_PACKAGE_NAME } from "./constants.js";
+import { detectCanonicalVendoredManifest, isNpmManaged } from "../init-deposit/migrate.js";
+import {
+  CANONICAL_UPGRADE_COMMAND,
+  NPM_PACKAGE_NAME,
+  VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND,
+} from "./constants.js";
 import { locateManifest, parseInstallManifest } from "./manifest.js";
 import type { OutputSink } from "./output.js";
 import { readTextSafe, resolveDefaultFrameworkRoot } from "./paths.js";
@@ -112,11 +117,24 @@ function emitUnverified(
   });
 }
 
+function resolveUpgradeCommand(
+  projectRoot: string,
+  manifest: Record<string, string>,
+  isFile: (path: string) => boolean,
+): string {
+  const vendoredManifest = detectCanonicalVendoredManifest(projectRoot, isFile);
+  if (vendoredManifest !== null && isNpmManaged(manifest)) {
+    return VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND;
+  }
+  return CANONICAL_UPGRADE_COMMAND;
+}
+
 function emitStale(
   checkName: string,
   installedLabel: string,
   remoteLabel: string,
   ref: string,
+  upgradeCommand: string,
   sink: OutputSink,
   addFinding: (finding: Finding) => void,
   extras: Record<string, unknown> = {},
@@ -124,7 +142,7 @@ function emitStale(
 ): void {
   const msg =
     `Framework payload is stale (installed ${installedLabel} behind ${behindWord} ${remoteLabel} for ref '${ref}'). ` +
-    `Recommendation: run \`${CANONICAL_UPGRADE_COMMAND}\` from any shell with Node ≥ 20.`;
+    `Recommendation: run \`${upgradeCommand}\` from any shell with Node ≥ 20.`;
   sink.warn(msg);
   addFinding({
     severity: "warning",
@@ -132,7 +150,7 @@ function emitStale(
     check: checkName,
     status: "stale",
     ref,
-    suggestion: CANONICAL_UPGRADE_COMMAND,
+    suggestion: upgradeCommand,
     ...extras,
   });
 }
@@ -196,6 +214,7 @@ export function runPayloadStalenessCheck(
   }
 
   const manifest = parseInstallManifest(text);
+  const upgradeCommand = resolveUpgradeCommand(projectRoot, manifest, isFile);
   const installedSha = (manifest.sha ?? "").trim();
   const ref = (manifest.ref ?? manifest.tag ?? "").trim();
   const tag = (manifest.tag ?? "").trim();
@@ -253,6 +272,7 @@ export function runPayloadStalenessCheck(
         `sha ${installedSha.slice(0, 8)}...`,
         `sha ${remoteSha.slice(0, 8)}...`,
         ref,
+        upgradeCommand,
         sink,
         addFinding,
         { installed_sha: installedSha, remote_sha: remoteSha, resolver: "git-ls-remote" },
@@ -270,6 +290,7 @@ export function runPayloadStalenessCheck(
         `v${installedVersion}`,
         `v${npmResult.version}`,
         ref,
+        upgradeCommand,
         sink,
         addFinding,
         {
