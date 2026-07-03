@@ -18,14 +18,15 @@ export function resolveRefPath(uri: string, vbriefDir: string): string | null {
   if (typeof uri !== "string") {
     return null;
   }
+  let rel: string;
   if (uri.startsWith("file://")) {
-    const rel = uri.slice("file://".length);
-    return resolve(vbriefDir, rel);
-  }
-  if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("#")) {
+    rel = uri.slice("file://".length);
+  } else if (uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("#")) {
     return null;
+  } else {
+    rel = uri;
   }
-  return resolveLifecycleArtifactRef(uri, vbriefDir);
+  return resolveLifecycleArtifactRef(rel, vbriefDir);
 }
 
 /** Split like Python ``str.split(sep, maxsplit)`` (maxsplit splits, not result length). */

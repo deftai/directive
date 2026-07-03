@@ -90,6 +90,18 @@ describe("resolveLifecycleArtifactRef (#1926)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("resolveRefPath searches lifecycle folders for file:// URIs after a move", () => {
+    const root = mkdtempSync(join(tmpdir(), "lifecycle-ref-fileuri-"));
+    const vbrief = join(root, "xbrief");
+    mkdirSync(join(vbrief, "completed"), { recursive: true });
+    const artifact = join(vbrief, "completed", "2026-01-01-parent.xbrief.json");
+    writeFileSync(artifact, "{}", "utf8");
+    expect(resolveRefPath("file://proposed/2026-01-01-parent.xbrief.json", vbrief)).toBe(
+      resolve(artifact),
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("returns missing direct path when artifact is absent everywhere", () => {
     const root = mkdtempSync(join(tmpdir(), "lifecycle-ref-missing-"));
     const vbrief = join(root, "xbrief");
