@@ -2,7 +2,7 @@ import * as initDeposit from "@deftai/directive-core/init-deposit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { routeAndDispatch } from "../cli-router/index.js";
 import type { DispatchIo } from "../dispatch.js";
-import { CANONICAL_MIGRATE_ARGV } from "./constants.js";
+import { CANONICAL_MIGRATE_ARGV, MIGRATE_UNTRACK_CORE_FLAG } from "./constants.js";
 import { runMigrate } from "./migrate.js";
 
 function captureIo(): { io: DispatchIo; out: string[]; err: string[] } {
@@ -77,6 +77,53 @@ describe("runMigrate handler", () => {
     runMigrate(["--repo-root", "."], io);
 
     expect(err.join("")).toBe("");
+  });
+});
+
+describe("migrate --untrack-core dispatch (#2269)", () => {
+  it("exposes the --untrack-core subcommand flag", () => {
+    expect(MIGRATE_UNTRACK_CORE_FLAG).toBe("--untrack-core");
+  });
+
+  it("dispatches --untrack-core to runUntrackCoreCli, not the provenance stamp", () => {
+    const untrack = vi.spyOn(initDeposit, "runUntrackCoreCli").mockReturnValue(0);
+    const stamp = vi.spyOn(initDeposit, "runMigrateCli").mockReturnValue(0);
+    const { io } = captureIo();
+
+    const code = runMigrate(["--untrack-core"], io);
+
+    expect(code).toBe(0);
+    expect(untrack).toHaveBeenCalledOnce();
+    expect(stamp).not.toHaveBeenCalled();
+    expect(untrack.mock.calls[0]?.[0]?.jsonOut).toBe(false);
+  });
+
+  it("propagates --json and --repo-root into the un-track wrapper", () => {
+    const untrack = vi.spyOn(initDeposit, "runUntrackCoreCli").mockReturnValue(0);
+    const { io } = captureIo();
+
+    runMigrate(["--untrack-core", "--repo-root", "/tmp/untrack-target", "--json"], io);
+
+    const call = untrack.mock.calls[0]?.[0];
+    expect(call?.projectDir).toBe("/tmp/untrack-target");
+    expect(call?.jsonOut).toBe(true);
+  });
+
+  it("propagates the un-track wrapper exit code (refused -> 1)", () => {
+    vi.spyOn(initDeposit, "runUntrackCoreCli").mockReturnValue(1);
+    const { io } = captureIo();
+    expect(runMigrate(["--untrack-core"], io)).toBe(1);
+  });
+
+  it("bare migrate keeps the provenance-stamp path (no un-track)", () => {
+    const untrack = vi.spyOn(initDeposit, "runUntrackCoreCli").mockReturnValue(0);
+    const stamp = vi.spyOn(initDeposit, "runMigrateCli").mockReturnValue(0);
+    const { io } = captureIo();
+
+    runMigrate(["--repo-root", "."], io);
+
+    expect(stamp).toHaveBeenCalledOnce();
+    expect(untrack).not.toHaveBeenCalled();
   });
 });
 

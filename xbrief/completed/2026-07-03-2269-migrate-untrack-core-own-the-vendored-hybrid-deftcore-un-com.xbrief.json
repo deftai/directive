@@ -6,7 +6,7 @@
   "plan": {
     "id": "2269-migrate-untrack-core",
     "title": "migrate --untrack-core: own the vendored->hybrid .deft/core un-commit",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Own the one-time vendored->hybrid un-commit as an explicit `migrate --untrack-core` step so migrated consumers stop carrying a tracked-but-should-be-ignored .deft/core payload. The destructive `git rm --cached -r .deft/core` index mutation lives only here (never in update/init, which only write the non-destructive .gitignore entry), is gated on the committed package.json pin existing so content can be reconstituted from the pinned engine, reconciles .gitignore, and is idempotent. This un-orphans #2123 and closes the #1941/#1942 circular deferral.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2269",
@@ -130,8 +130,10 @@
           "Colocated vitest across tracked/already-untracked/missing-pin/rerun + init/update boundary test; task check:framework-source green."
         ],
         "notes": "Refined to swarm-ready 2026-07-03 via codebase read (migrate.ts is a provenance-stamp verb today; --untrack-core is a new destructive subcommand). SCOPE GUARD: this story owns the migrate --untrack-core VERB + git-index mutation + missing-pin guard + gitignore reconciliation. The doctor detection that SURFACES this verb (Next command emission) is owned by child D (#2267); keeping it out of scope keeps conflict_group git-index-migrate disjoint from D's core-cli-verbs. Depends on #2264 (committed pin + resolution/pin.ts reader), now merged."
-      }
+      },
+      "completedAt": "2026-07-03T22:49:52Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-03T22:34:07Z"
+    "updated": "2026-07-03T22:49:52Z"
   }
 }

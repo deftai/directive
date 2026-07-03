@@ -6,3 +6,10 @@ export const CANONICAL_UPDATE_ARGV = ["--yes", "--upgrade", "--repo-root", ".", 
 
 /** Canonical migrate argv: defaults to cwd, human-readable unless --json (#1941). */
 export const CANONICAL_MIGRATE_ARGV = ["--repo-root", "."] as const;
+
+/**
+ * Subcommand flag selecting the vendored→hybrid `.deft/core` un-commit (#2269).
+ * `migrate --untrack-core` dispatches to the destructive un-track path; bare
+ * `migrate` keeps its non-destructive provenance-stamp behavior.
+ */
+export const MIGRATE_UNTRACK_CORE_FLAG = "--untrack-core";

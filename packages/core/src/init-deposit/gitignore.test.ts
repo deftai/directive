@@ -15,10 +15,12 @@ import { copyTree } from "../deposit/copy-tree.js";
 import {
   CANONICAL_GITIGNORE_BASELINE,
   ensureInitGitignoreLines,
+  ensureUntrackCoreGitignoreLines,
   GITIGNORE_DEFT_CORE_LINE,
   isDepositTrackedInGit,
   reconstituteDepositFromContent,
   resolveInitGitignoreLines,
+  UNTRACK_CORE_GITIGNORE_LINES,
 } from "./gitignore.js";
 
 describe("ensureInitGitignoreLines", () => {
@@ -118,6 +120,71 @@ describe("ensureInitGitignoreLines", () => {
     const resolved = resolveInitGitignoreLines(root);
     expect(resolved.includeDeftCore).toBe(false);
     expect(resolved.lines).not.toContain(GITIGNORE_DEFT_CORE_LINE);
+  });
+});
+
+describe("ensureUntrackCoreGitignoreLines (#2269)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  function readGitignore(root: string): string {
+    return readFileSync(join(root, ".gitignore"), "utf8");
+  }
+
+  it("forces the .deft/core/ entry plus the canonical baseline", () => {
+    const root = freshRoot("untrack-gi-");
+    const result = ensureUntrackCoreGitignoreLines(root, { printf: () => {} });
+
+    expect(result.changed).toBe(true);
+    expect(result.deftCoreIgnored).toBe(true);
+    const text = readGitignore(root);
+    expect(text).toContain(GITIGNORE_DEFT_CORE_LINE);
+    expect(text).toContain(".deft/.cli/");
+    expect(text).toContain(".deft/ritual-state.json");
+    expect(text).toContain(".deft-cache/");
+  });
+
+  it("adds .deft/core/ even when a prior init left it untracked-omitted", () => {
+    const root = freshRoot("untrack-gi-add-");
+    // A tracked-deposit init writes the baseline WITHOUT .deft/core/.
+    writeFileSync(join(root, ".gitignore"), `${CANONICAL_GITIGNORE_BASELINE.join("\n")}\n`, "utf8");
+
+    const result = ensureUntrackCoreGitignoreLines(root, { printf: () => {} });
+
+    expect(result.changed).toBe(true);
+    expect(readGitignore(root)).toContain(GITIGNORE_DEFT_CORE_LINE);
+  });
+
+  it("never adds package.json to the ignore set", () => {
+    const root = freshRoot("untrack-gi-pkg-");
+    ensureUntrackCoreGitignoreLines(root, { printf: () => {} });
+
+    expect(UNTRACK_CORE_GITIGNORE_LINES).not.toContain("package.json");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain("package.json");
+    expect(readGitignore(root)).not.toMatch(/^package\.json\s*$/m);
+  });
+
+  it("is idempotent on a second reconcile", () => {
+    const root = freshRoot("untrack-gi-idem-");
+    ensureUntrackCoreGitignoreLines(root, { printf: () => {} });
+    const first = readGitignore(root);
+
+    const second = ensureUntrackCoreGitignoreLines(root, { printf: () => {} });
+
+    expect(second.changed).toBe(false);
+    expect(readGitignore(root)).toBe(first);
+    expect(first.split(GITIGNORE_DEFT_CORE_LINE).length - 1).toBe(1);
   });
 });
 

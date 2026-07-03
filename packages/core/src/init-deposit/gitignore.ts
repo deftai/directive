@@ -128,18 +128,33 @@ export function resolveInitGitignoreLines(
 }
 
 /**
- * Ensure the consumer `.gitignore` carries the canonical baseline plus, for
- * greenfield installs, the `.deft/core/` ignore entry. Heals forbidden blanket
- * `vbrief/.eval/` lines (#1464). Never un-commits a tracked deposit (#1941).
+ * Ignore entries the deft framework MUST NEVER add to `.gitignore`. The
+ * committed `package.json` pin (#2264) is the reconstitution anchor for the
+ * un-committed deposit; ignoring it would silently drop the pin from version
+ * control and break `migrate --untrack-core`'s reconstitution guarantee (#2269).
  */
-export function ensureInitGitignoreLines(
+const NEVER_IGNORE_LINES = new Set(["package.json", "/package.json"]);
+
+interface GitignoreReconciliation {
+  readonly changed: boolean;
+  readonly additions: string[];
+  readonly blanketRemoved: boolean;
+  readonly deftCoreIgnored: boolean;
+  readonly alreadyCovered: boolean;
+}
+
+/**
+ * Read, heal, and reconcile `.gitignore` against `targetLines`. Shared by the
+ * greenfield-init and the vendored→hybrid un-commit reconcilers so the
+ * read/heal/append/write path lives in exactly one place. Pure of any caller
+ * messaging — the callers decide what to print from the returned record. The
+ * `package.json` pin is filtered out unconditionally (#2269 invariant).
+ */
+function reconcileGitignoreFile(
   projectDir: string,
-  io: InitDepositIo,
-  options: { gitLsFiles?: GitLsFiles } = {},
-): EnsureInitGitignoreResult {
-  const gitLsFiles = options.gitLsFiles ?? defaultGitLsFiles;
-  const { lines: targetLines, includeDeftCore } = resolveInitGitignoreLines(projectDir, gitLsFiles);
-  const tracked = isDepositTrackedInGit(projectDir, gitLsFiles);
+  targetLines: readonly string[],
+  includeDeftCoreRationale: boolean,
+): GitignoreReconciliation {
   const path = join(projectDir, ".gitignore");
 
   let existing = "";
@@ -173,17 +188,20 @@ export function ensureInitGitignoreLines(
 
   const additions: string[] = [];
   for (const line of targetLines) {
+    // Invariant (#2269): never ignore the committed package.json pin.
+    if (NEVER_IGNORE_LINES.has(line.trim())) continue;
     if (!gitignoreCoversLine(present, line)) {
       additions.push(line);
     }
   }
 
   if (!blanketRemoved && additions.length === 0) {
-    io.printf(".gitignore already covers the canonical deft entries — skipping.\n");
     return {
       changed: false,
+      additions,
+      blanketRemoved,
       deftCoreIgnored: gitignoreCoversLine(present, GITIGNORE_DEFT_CORE_LINE),
-      skippedDeftCoreBecauseTracked: tracked === true,
+      alreadyCovered: true,
     };
   }
 
@@ -201,7 +219,7 @@ export function ensureInitGitignoreLines(
       body += "\n";
     }
     body += DEFT_FRAMEWORK_GITIGNORE_HEADER;
-    if (includeDeftCore && additions.includes(GITIGNORE_DEFT_CORE_LINE)) {
+    if (includeDeftCoreRationale && additions.includes(GITIGNORE_DEFT_CORE_LINE)) {
       body += DEFT_CORE_GITIGNORE_RATIONALE;
     }
     for (const add of additions) {
@@ -215,10 +233,45 @@ export function ensureInitGitignoreLines(
     throw new Error(`could not write .gitignore: ${String(cause)}`);
   }
 
-  if (additions.length > 0) {
-    io.printf(`.gitignore updated with canonical entries: ${additions.join(", ")}\n`);
+  const finalPresent = collectPresentGitignoreLines(body);
+  return {
+    changed: true,
+    additions,
+    blanketRemoved,
+    deftCoreIgnored: gitignoreCoversLine(finalPresent, GITIGNORE_DEFT_CORE_LINE),
+    alreadyCovered: false,
+  };
+}
+
+/**
+ * Ensure the consumer `.gitignore` carries the canonical baseline plus, for
+ * greenfield installs, the `.deft/core/` ignore entry. Heals forbidden blanket
+ * `vbrief/.eval/` lines (#1464). Never un-commits a tracked deposit (#1941).
+ */
+export function ensureInitGitignoreLines(
+  projectDir: string,
+  io: InitDepositIo,
+  options: { gitLsFiles?: GitLsFiles } = {},
+): EnsureInitGitignoreResult {
+  const gitLsFiles = options.gitLsFiles ?? defaultGitLsFiles;
+  const { lines: targetLines, includeDeftCore } = resolveInitGitignoreLines(projectDir, gitLsFiles);
+  const tracked = isDepositTrackedInGit(projectDir, gitLsFiles);
+
+  const res = reconcileGitignoreFile(projectDir, targetLines, includeDeftCore);
+
+  if (res.alreadyCovered) {
+    io.printf(".gitignore already covers the canonical deft entries — skipping.\n");
+    return {
+      changed: false,
+      deftCoreIgnored: res.deftCoreIgnored,
+      skippedDeftCoreBecauseTracked: tracked === true,
+    };
   }
-  if (blanketRemoved) {
+
+  if (res.additions.length > 0) {
+    io.printf(`.gitignore updated with canonical entries: ${res.additions.join(", ")}\n`);
+  }
+  if (res.blanketRemoved) {
     io.printf(".gitignore healed: removed forbidden blanket vbrief/.eval/ line (#1464).\n");
   }
   if (tracked === true) {
@@ -227,11 +280,62 @@ export function ensureInitGitignoreLines(
     );
   }
 
-  const finalPresent = collectPresentGitignoreLines(body);
   return {
     changed: true,
-    deftCoreIgnored: gitignoreCoversLine(finalPresent, GITIGNORE_DEFT_CORE_LINE),
+    deftCoreIgnored: res.deftCoreIgnored,
     skippedDeftCoreBecauseTracked: tracked === true,
+  };
+}
+
+/**
+ * The reconciled ignore set for the vendored→hybrid un-commit (#2269): the
+ * canonical baseline (which already covers `.deft/.cli/`, `.deft/ritual-state.json`,
+ * and the `.deft-cache/` path) plus the `.deft/core/` deposit entry that
+ * greenfield init born-ignores. `package.json` is deliberately absent — the
+ * committed pin MUST stay tracked so content can be reconstituted after the
+ * deposit is un-committed.
+ */
+export const UNTRACK_CORE_GITIGNORE_LINES: readonly string[] = [
+  ...CANONICAL_GITIGNORE_BASELINE,
+  GITIGNORE_DEFT_CORE_LINE,
+];
+
+/**
+ * Reconcile `.gitignore` for the `migrate --untrack-core` path: force the
+ * `.deft/core/` deposit entry (init leaves a tracked deposit alone, but
+ * un-track has just removed it from the index, so it MUST now be ignored) plus
+ * the canonical baseline, and never ignore the committed `package.json` pin.
+ * Idempotent: a second run over an already-reconciled `.gitignore` makes no
+ * change.
+ */
+export function ensureUntrackCoreGitignoreLines(
+  projectDir: string,
+  io: InitDepositIo,
+): EnsureInitGitignoreResult {
+  const res = reconcileGitignoreFile(projectDir, UNTRACK_CORE_GITIGNORE_LINES, false);
+
+  if (res.alreadyCovered) {
+    io.printf(
+      ".gitignore already ignores .deft/core/ and the canonical deft entries — skipping.\n",
+    );
+    return {
+      changed: false,
+      deftCoreIgnored: res.deftCoreIgnored,
+      skippedDeftCoreBecauseTracked: false,
+    };
+  }
+
+  if (res.additions.length > 0) {
+    io.printf(`.gitignore updated with canonical entries: ${res.additions.join(", ")}\n`);
+  }
+  if (res.blanketRemoved) {
+    io.printf(".gitignore healed: removed forbidden blanket vbrief/.eval/ line (#1464).\n");
+  }
+
+  return {
+    changed: true,
+    deftCoreIgnored: res.deftCoreIgnored,
+    skippedDeftCoreBecauseTracked: false,
   };
 }
 
