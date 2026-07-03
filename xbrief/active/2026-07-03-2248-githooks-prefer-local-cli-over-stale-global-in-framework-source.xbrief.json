@@ -1,0 +1,60 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2248"
+  },
+  "plan": {
+    "title": "bug(hooks): .githooks run_deft prefers a stale global deft over the fresh local CLI in a framework-source checkout (new verbs block commits)",
+    "status": "running",
+    "narratives": {
+      "Description": "In a framework-source (monorepo) checkout, the git hooks' shared resolver .githooks/_deft-run.sh prefers a global `deft` on PATH over the freshly-built local CLI (packages/cli/dist/bin.js). When a PR adds a new verb (e.g. verify:forward-coverage from #1310), the stale global CLI does not know the verb and the hook fails with `directive: unknown verb '<verb>'`, blocking commits/pushes until the operator manually refreshes the global install.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2248",
+      "UserStory": "As a maintainer committing in the framework-source monorepo, I want the git hooks to invoke the freshly-built local CLI (which always has the current verb set) rather than a stale global `deft`, so a newly-added-and-wired verb does not block my commits after `task build`.",
+      "ImplementationPlan": "1. In .githooks/_deft-run.sh, change run_deft resolution so that in a framework-source checkout (detectable via `packages/cli/dist/bin.js` existing under $REPO_ROOT, or another monorepo marker) the LOCAL built CLI is preferred over a global `deft`. 2. Consumer installs (vendored .deft/core with no local build) must keep resolving the global `deft` exactly as today -- do not regress the consumer path. 3. Add a DEFT_HOOKS_PREFER_GLOBAL=1 escape hatch to force the global for the rare inverse case. 4. This is a shell-script change; the recurrence bit BOTH swarm workers and the finalize-cohort commit in the #2249-#2255 cohort, each needing a manual /tmp shim -- eliminate that tax. 5. Add coverage: a test (bats-style or a TS harness that execs the script under a temp fake-global on PATH + a temp REPO_ROOT with/without dist/bin.js) asserting local-preferred-when-dist-present, global-preferred-when-no-dist, and DEFT_HOOKS_PREFER_GLOBAL override. 6. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#2248, #1310, #2067, #2049",
+      "Overview": "See https://github.com/deftai/directive/issues/2248. .githooks/_deft-run.sh's run_deft does `if command -v deft; then deft \"$@\"; elif [ -f dist/bin.js ]; then node dist/bin.js ...`. Global always wins when present, even in a maintainer monorepo where the local build is authoritative and fresher for verb coverage. Fix: prefer local build in framework-source checkouts; keep global for consumers; add an escape hatch.",
+      "GuardRails": "Do NOT break the consumer (vendored .deft/core) resolution path -- consumers have no local build and MUST keep using the global. Detect framework-source via a stable marker (existing dist/bin.js under $REPO_ROOT and/or a monorepo sentinel like pnpm-workspace.yaml), not a brittle heuristic. Keep the freeze-gate happy (this is not Go installer code). Preserve exit codes so hook pass/fail semantics are unchanged."
+    },
+    "items": [
+      {
+        "title": "In a framework-source checkout with a built packages/cli/dist/bin.js, the hooks invoke the local CLI (new verbs work without refreshing the global).",
+        "status": "proposed"
+      },
+      {
+        "title": "Consumer installs (no local build) still resolve the global `deft` exactly as before.",
+        "status": "proposed"
+      },
+      {
+        "title": "A newly-added verb wired into a hook does not block commits in the monorepo after `task build`.",
+        "status": "proposed"
+      },
+      {
+        "title": "DEFT_HOOKS_PREFER_GLOBAL=1 escape hatch forces the global resolution.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression coverage exercises local-preferred, consumer-global, and the override.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2248",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2248: hooks prefer stale global deft over fresh local CLI"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1310",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1310 (the verb whose landing surfaced this)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2067",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2067 (the _deft-run.sh resolver)"
+      }
+    ],
+    "updated": "2026-07-03T15:12:14Z",
+    "metadata": {}
+  }
+}

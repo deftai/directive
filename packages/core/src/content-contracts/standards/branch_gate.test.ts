@@ -23,6 +23,13 @@ describe("test_branch_gate.py", () => {
     expect(text).toContain("packages/cli/dist/bin.js");
     expect(text).toContain("run_deft()");
   });
+  it("test_deft_run_sh_prefers_local_in_framework_source (#2248)", () => {
+    const text = readText(".githooks/_deft-run.sh");
+    // Framework-source detection via the monorepo sentinel, plus the escape
+    // hatch that forces the global for the rare inverse case.
+    expect(text).toContain("pnpm-workspace.yaml");
+    expect(text).toContain("DEFT_HOOKS_PREFER_GLOBAL");
+  });
   it("test_taskfile_check_includes_verify_branch", () => {
     const text = readText("Taskfile.yml");
     expect(text).toContain("verify:branch");
