@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CANONICAL_UPGRADE_COMMAND } from "./constants.js";
+import { CANONICAL_UPGRADE_COMMAND, VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND } from "./constants.js";
 import { createPlainSink } from "./output.js";
 import { runPayloadStalenessCheck } from "./payload-staleness.js";
 import type { Finding } from "./types.js";
@@ -67,6 +67,30 @@ describe("payload-staleness (#2003 / #2004)", () => {
       });
       expect(findings.find((f) => f.status === "stale")).toBeUndefined();
       expect(findings.find((f) => f.status === "unverified")).toBeDefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("vendored npm-managed deposit stale via npm view emits two-hop upgrade (#2115)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      seedManifest(root, "d".repeat(40), "v0.63.0");
+      const findings: Finding[] = [];
+      const sink = createPlainSink();
+      runPayloadStalenessCheck(root, sink, (f) => findings.push(f), {
+        isFile: (p) => p.includes("VERSION"),
+        readText: (p) =>
+          p.includes("VERSION")
+            ? `sha: ${"d".repeat(40)}\nref: v0.63.0\ntag: v0.63.0\nmanaged_by: 'npm'\n`
+            : null,
+        runGitLsRemote: () => ({ ok: true, stdout: "" }),
+        runNpmViewVersion: () => ({ ok: true, version: "0.65.0" }),
+      });
+      const stale = findings.find((f) => f.status === "stale");
+      expect(stale?.suggestion).toBe(VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND);
+      expect(String(stale?.suggestion)).toContain("deft update");
+      expect(String(stale?.message)).toContain("deft update");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

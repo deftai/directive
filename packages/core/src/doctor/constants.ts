@@ -78,6 +78,9 @@ export const EXPECTED_CONTENT_DIRS = ["languages", "strategies", "skills", "temp
 /** Post-freeze canonical upgrade path (#1997 / #2003 / #1912). */
 export const CANONICAL_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest";
 
+/** Vendored npm-managed deposit: global bump plus in-place `.deft/core/` refresh (#2115). */
+export const VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND = `${CANONICAL_UPGRADE_COMMAND} && deft update`;
+
 export const CLEAN_WINDOW_HOURS = 24;
 export const DIRTY_WINDOW_HOURS = 4;
 export const ENV_STATE_PATH = "DEFT_DOCTOR_STATE_PATH";
