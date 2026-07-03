@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2246"
+  },
+  "plan": {
+    "title": "bug(capacity): label-aware completion stamping misses freshly-filed issues absent from the on-disk label cache",
+    "status": "running",
+    "narratives": {
+      "Description": "The #2237 label-aware capacityBucket resolution reads labels only from the on-disk label cache (network-free), so a freshly-filed issue not yet in the cache misses and falls back to defaultBucket. Add a fail-open live-label fallback on cache miss.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2246",
+      "UserStory": "As a maintainer completing a just-filed bug in the same session, I want its capacityBucket to resolve to technical-debt (via a live label read when the cache misses) instead of falling back to new-capability, so capacity accounting is correct without a manual data-correction pass.",
+      "ImplementationPlan": "1. In packages/core/src/scope/capacity-stamp.ts, resolveCapacityBucket currently resolves labels via the on-disk cache (cachedIssueLabels) only. A cache MISS is currently indistinguishable from 'no labels' and silently takes the defaultBucket fallback. 2. Add a fail-open LIVE label fallback: when the cache has no entry for the completing issue, fetch labels via a single REST read through the scm shim (scm.call / restIssue* helper, PRs excluded). Only if the live read ALSO fails/returns nothing do you take defaultBucket. 3. Keep the cache as the fast path: NO new network call when the cache already has labels. Keep the reader injectable (labelReader seam) so tests are network-free. 4. Preserve all #2237 behavior: explicit pre-existing metadata.capacityBucket never overwritten; first-declared-match-wins; bucket ids read from PROJECT-DEFINITION config, not hardcoded. 5. Regression tests (extend packages/core/src/scope/capacity-stamp.test.ts): cache-miss + live reader returns [bug] -> matched bucket (technical-debt under shipped config); cache-miss + live reader fails -> defaultBucket; cache-hit -> no live call (assert reader not invoked). 6. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#2246, #2237, #2245, #2238",
+      "Overview": "See https://github.com/deftai/directive/issues/2246. During the #2245 finalize sweep, older bug issues (#1102/#1329/#1310) stamped technical-debt but freshly-filed #2237/#2238 fell back to new-capability (cache miss); they were hand-corrected on the sweep branch. Fix: fail-open live-label fallback on cache miss in stampCompletionMetadata.",
+      "GuardRails": "TS-native repo. Route the live label read through the scm shim (verify:scm-boundary enforces no raw gh). Prefer REST over GraphQL. Fast path (cache hit) must NOT make a network call. Fail open: any live-read failure still yields defaultBucket, never a crash. Do not regress #2237's precedence/ordering guarantees."
+    },
+    "items": [
+      {
+        "title": "Cache-miss on a bug-labeled issue triggers a fail-open live label read that resolves the correct bucket (technical-debt), not defaultBucket.",
+        "status": "proposed"
+      },
+      {
+        "title": "Cache-hit path makes no new network call (fast path preserved).",
+        "status": "proposed"
+      },
+      {
+        "title": "Live-read failure falls back to defaultBucket without crashing.",
+        "status": "proposed"
+      },
+      {
+        "title": "All #2237 guarantees preserved (pre-existing bucket respected, first-declared-match-wins, config-driven ids).",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression tests cover cache-miss+live-match, cache-miss+live-fail, and cache-hit-no-call.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2246",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2246: label-aware completion stamping misses freshly-filed issues"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2237",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2237"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2245",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2245"
+      }
+    ],
+    "updated": "2026-07-03T13:27:16Z"
+  }
+}
