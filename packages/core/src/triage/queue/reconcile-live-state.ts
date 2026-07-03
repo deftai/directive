@@ -16,6 +16,15 @@ export type LiveOpenIssuesReader = (repo: string) => ReadonlySet<number> | null;
  * routed through the scm gh-rest shim. Prefers REST over GraphQL and issues a
  * single logical lookup for the whole open set rather than N per-issue calls.
  * Any failure is swallowed to `null` so the queue degrades to cached rendering.
+ *
+ * Latency ceiling: no explicit `limit` is passed ON PURPOSE. The reconcile drops
+ * any candidate absent from this set, so a truncated page would incorrectly drop
+ * genuinely-open issues (a false-negative is worse than the latency). The set is
+ * therefore the COMPLETE live-open list, bounded only by `restIssueListPaginated`'s
+ * pagination cap (`REST_PAGINATION_MAX_PAGES` * per-page = 100 * 100 = 10,000 open
+ * issues); a repo with more open issues than that raises rather than silently
+ * truncating. In practice open-issue counts are 10^1-10^2, so this is 1-2 REST
+ * pages. Batch here, never per-candidate.
  */
 export function defaultLiveOpenIssuesReader(repo: string): ReadonlySet<number> | null {
   try {
@@ -33,18 +42,6 @@ export function defaultLiveOpenIssuesReader(repo: string): ReadonlySet<number> |
   }
 }
 
-let readerImpl: LiveOpenIssuesReader = defaultLiveOpenIssuesReader;
-
-/** Override the module-level live-open reader (test seam; mirrors cache/fetch). */
-export function setLiveOpenIssuesReader(fn: LiveOpenIssuesReader): void {
-  readerImpl = fn;
-}
-
-/** Restore the default REST-backed live-open reader. */
-export function resetLiveOpenIssuesReader(): void {
-  readerImpl = defaultLiveOpenIssuesReader;
-}
-
 /**
  * Reconcile cached candidate issues against live open/closed state before the
  * queue renders (#2238). The cached candidate set records `state`, but that
@@ -54,11 +51,15 @@ export function resetLiveOpenIssuesReader(): void {
  * Drops any candidate whose number is NOT in the live-open set. When the reader
  * returns `null` (state undeterminable) the candidates pass through unchanged so
  * a network / auth failure never silently empties the queue.
+ *
+ * `reader` defaults to {@link defaultLiveOpenIssuesReader}; tests (and the CLI)
+ * inject a stub via this optional parameter -- there is no module-level mutable
+ * seam, so nothing test-only leaks into the package's public API.
  */
 export function reconcileLiveOpenState(
   issues: readonly CachedIssue[],
   repo: string,
-  reader: LiveOpenIssuesReader = readerImpl,
+  reader: LiveOpenIssuesReader = defaultLiveOpenIssuesReader,
 ): readonly CachedIssue[] {
   const liveOpen = reader(repo);
   if (liveOpen === null) {

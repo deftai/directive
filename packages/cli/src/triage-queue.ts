@@ -7,6 +7,7 @@ import {
   buildQueue,
   collectOrphanIssueNumbers,
   DEFAULT_QUEUE_LIMIT,
+  type LiveOpenIssuesReader,
   loadCachedIssues,
   loadSliceRecords,
   readAuditEntries,
@@ -149,8 +150,13 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
+/** Optional injection seam for `run` (tests supply a stub live-open reader). */
+export interface RunOptions {
+  readonly liveOpenReader?: LiveOpenIssuesReader;
+}
+
 /** Run triage:queue and return process exit code. */
-export function run(argv: string[]): number {
+export function run(argv: string[], options: RunOptions = {}): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`triage_queue: ${args.error}\n`);
@@ -170,7 +176,7 @@ export function run(argv: string[]): number {
   // the cache refreshes (#2238). Fails open: a read error passes candidates
   // through unchanged rather than emptying the queue.
   const issuesForQueue = args.reconcile
-    ? reconcileLiveOpenState(cachedForQueue, repo)
+    ? reconcileLiveOpenState(cachedForQueue, repo, options.liveOpenReader)
     : cachedForQueue;
   const issuesWithClosed = loadCachedIssues(repo, { projectRoot, includeClosed: true });
   const issuesByNumber = new Map(issuesWithClosed.map((row) => [row.number, row] as const));

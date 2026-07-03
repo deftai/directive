@@ -1,11 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  resetLiveOpenIssuesReader,
-  setLiveOpenIssuesReader,
-} from "@deftai/directive-core/dist/triage/queue/index.js";
-import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./triage-queue.js";
 import {
   augmentParityArgv,
@@ -25,10 +21,9 @@ afterAll(() => {
 });
 
 // Keep every CLI `run` hermetic: never let the default reconcile reader shell
-// out to `gh`. Individual tests override the reader as needed.
-afterEach(() => {
-  resetLiveOpenIssuesReader();
-});
+// out to `gh`. Fixture-based tests that don't exercise reconcile pass
+// `--no-reconcile`; tests that DO exercise it inject a stub reader.
+const failOpenReader = (): null => null;
 
 function silentRun(argv: string[]): number {
   const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
@@ -163,14 +158,15 @@ describe("triage-queue CLI", () => {
       ],
     });
     temps.push(root);
-    // Live truth: only #3000 is open (#2115 was merged/closed).
-    setLiveOpenIssuesReader(() => new Set<number>([3000]));
 
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
-      expect(run(["queue", "--project-root", root, "--repo", "owner/repo", "--limit", "0"])).toBe(
-        0,
-      );
+      // Live truth: only #3000 is open (#2115 was merged/closed).
+      expect(
+        run(["queue", "--project-root", root, "--repo", "owner/repo", "--limit", "0"], {
+          liveOpenReader: () => new Set<number>([3000]),
+        }),
+      ).toBe(0);
       const output = stdout.mock.calls.map((call) => String(call[0])).join("");
       expect(output).toContain("#3000");
       expect(output).not.toContain("#2115");
@@ -184,13 +180,14 @@ describe("triage-queue CLI", () => {
       issues: [{ number: 2115, title: "Merged already", state: "open" }],
     });
     temps.push(root);
-    setLiveOpenIssuesReader(() => null);
 
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     try {
-      expect(run(["queue", "--project-root", root, "--repo", "owner/repo", "--limit", "0"])).toBe(
-        0,
-      );
+      expect(
+        run(["queue", "--project-root", root, "--repo", "owner/repo", "--limit", "0"], {
+          liveOpenReader: failOpenReader,
+        }),
+      ).toBe(0);
       const output = stdout.mock.calls.map((call) => String(call[0])).join("");
       expect(output).toContain("#2115");
     } finally {
