@@ -228,7 +228,11 @@ export function setPolicy(
   // PROJECT-DEFINITION mutation lock so a concurrent policy/ritual mutator
   // cannot lose this update or desync the typed flag from the audit row (#1260).
   return projectDefinitionMutationLock(projectRoot, () => {
-    const data = JSON.parse(readFileSync(path, { encoding: "utf8" })) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
+    }
+    const data = parsed as Record<string, unknown>;
     if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
       if (data.plan === undefined) {
         data.plan = {};

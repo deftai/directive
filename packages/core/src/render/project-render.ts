@@ -1,8 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
-import { projectDefinitionMutationLock } from "../vbrief-build/project-definition-io.js";
+import {
+  atomicWriteProjectDefinition,
+  projectDefinitionMutationLock,
+} from "../vbrief-build/project-definition-io.js";
 import {
   deriveRegistryItemStatus,
   registryMetadataReferencesFromScope,
@@ -275,11 +278,16 @@ export function renderProjectDefinition(
 
     let projectDef: JsonObject;
     if (existsSync(projectDefPath)) {
+      let parsed: unknown;
       try {
-        projectDef = JSON.parse(readFileSync(projectDefPath, "utf8")) as JsonObject;
+        parsed = JSON.parse(readFileSync(projectDefPath, "utf8"));
       } catch (exc) {
         return [false, `✗ Failed to read ${projectDefPath}: ${String(exc)}`];
       }
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return [false, `✗ ${projectDefPath} top-level value is not a JSON object`];
+      }
+      projectDef = parsed as JsonObject;
       const plan = (projectDef.plan ?? {}) as JsonObject;
       plan.items = items;
       if (
@@ -313,7 +321,9 @@ export function renderProjectDefinition(
     }
 
     mkdirSync(vbriefDir, { recursive: true });
-    writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");
+    // Atomic temp+rename write under the lock so external readers never observe
+    // a partially-written PROJECT-DEFINITION (#1260).
+    atomicWriteProjectDefinition(projectDefPath, projectDef);
 
     const itemCount = items.length;
     const planMeta = ((projectDef.plan as JsonObject)?.metadata ?? {}) as JsonObject;
@@ -346,12 +356,16 @@ export function acknowledgeProjectDefinitionStaleness(
       return [false, `✗ ${projectDefPath} not found — run project:render first`];
     }
 
-    let projectDef: JsonObject;
+    let parsed: unknown;
     try {
-      projectDef = JSON.parse(readFileSync(projectDefPath, "utf8")) as JsonObject;
+      parsed = JSON.parse(readFileSync(projectDefPath, "utf8"));
     } catch (exc) {
       return [false, `✗ Failed to read ${projectDefPath}: ${String(exc)}`];
     }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return [false, `✗ ${projectDefPath} top-level value is not a JSON object`];
+    }
+    const projectDef = parsed as JsonObject;
 
     const plan = (projectDef.plan ?? {}) as JsonObject;
     if (
@@ -389,7 +403,9 @@ export function acknowledgeProjectDefinitionStaleness(
     (projectDef[layout.infoRootKey] as JsonObject).updated = now;
     projectDef.plan = plan;
 
-    writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");
+    // Atomic temp+rename write under the lock so external readers never observe
+    // a partially-written PROJECT-DEFINITION (#1260).
+    atomicWriteProjectDefinition(projectDefPath, projectDef);
     const ackCount = completedItems.length;
     return [
       true,

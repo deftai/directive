@@ -64,7 +64,11 @@ export function writeTriageScope(
   return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
     const path = projectDefinitionPath(projectRoot);
     if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
-    const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
+    }
+    const data = parsed as Record<string, unknown>;
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       throw new Error("PROJECT-DEFINITION 'plan' is not an object");
@@ -106,7 +110,11 @@ export function writeWipCap(
   return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
     const path = projectDefinitionPath(projectRoot);
     if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
-    const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
+    }
+    const data = parsed as Record<string, unknown>;
     const plan = data.plan;
     if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
       throw new Error("PROJECT-DEFINITION 'plan' is not an object");

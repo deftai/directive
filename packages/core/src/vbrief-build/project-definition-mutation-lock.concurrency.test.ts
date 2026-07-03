@@ -33,6 +33,19 @@ function makeMigratedProject(): { root: string; defPath: string } {
   return { root, defPath };
 }
 
+/**
+ * Parse a PROJECT-DEFINITION and guard the top-level shape. `JSON.parse` can
+ * return `null` (or a non-object) without throwing, so property access must
+ * follow a null/object guard rather than run against the raw parsed value.
+ */
+function readGuarded(path: string): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${path} top-level value is not a JSON object`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
 describe("projectDefinitionMutationLock concurrency (#1260)", () => {
   it("two different setters compose without losing an update", () => {
     const { root, defPath } = makeMigratedProject();
@@ -42,10 +55,9 @@ describe("projectDefinitionMutationLock concurrency (#1260)", () => {
       setPolicy(root, { allowDirectCommits: true, actor: "test" });
       writeWipCap(root, 5, { actor: "test" });
 
-      const data = JSON.parse(readFileSync(defPath, "utf8")) as {
-        plan: Record<string, Record<string, unknown>>;
-      };
-      const policy = data.plan[PLAN_POLICY_KEY];
+      const data = readGuarded(defPath);
+      const plan = data.plan as Record<string, Record<string, unknown>>;
+      const policy = plan[PLAN_POLICY_KEY];
       expect(policy.allowDirectCommitsToMaster).toBe(true);
       expect(policy.wipCap).toBe(5);
       // The sidecar lock is always released.
@@ -60,28 +72,25 @@ describe("projectDefinitionMutationLock concurrency (#1260)", () => {
     try {
       const path = resolveProjectDefinitionPath(root);
       projectDefinitionMutationLock(root, () => {
-        const data = JSON.parse(readFileSync(path, "utf8")) as {
-          plan: Record<string, Record<string, number>>;
-        };
-        data.plan[PLAN_POLICY_KEY].wipCap = 3;
+        const data = readGuarded(path);
+        const plan = data.plan as Record<string, Record<string, number>>;
+        plan[PLAN_POLICY_KEY].wipCap = 3;
         writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
       });
 
       let observed: unknown;
       projectDefinitionMutationLock(root, () => {
-        const data = JSON.parse(readFileSync(path, "utf8")) as {
-          plan: Record<string, Record<string, number>>;
-        };
-        observed = data.plan[PLAN_POLICY_KEY].wipCap;
-        data.plan[PLAN_POLICY_KEY].wipCap = data.plan[PLAN_POLICY_KEY].wipCap + 1;
+        const data = readGuarded(path);
+        const plan = data.plan as Record<string, Record<string, number>>;
+        observed = plan[PLAN_POLICY_KEY].wipCap;
+        plan[PLAN_POLICY_KEY].wipCap = plan[PLAN_POLICY_KEY].wipCap + 1;
         writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
       });
 
       expect(observed).toBe(3);
-      const final = JSON.parse(readFileSync(defPath, "utf8")) as {
-        plan: Record<string, Record<string, unknown>>;
-      };
-      expect(final.plan[PLAN_POLICY_KEY].wipCap).toBe(4);
+      const final = readGuarded(defPath);
+      const finalPlan = final.plan as Record<string, Record<string, unknown>>;
+      expect(finalPlan[PLAN_POLICY_KEY].wipCap).toBe(4);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
