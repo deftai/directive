@@ -10,7 +10,8 @@ import {
   writeFileSync,
   writeSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { PROJECT_DEFINITION_REL_PATH } from "./constants.js";
 import { pythonJsonPretty } from "./json.js";
 import type { JsonObject } from "./types.js";
@@ -42,8 +43,12 @@ export function projectDefinitionMutationLock<T>(
 ): T {
   const sleepMs = deps.sleepMs ?? defaultSleep;
   const now = deps.now ?? Date.now;
-  const path = projectDefinitionPath(projectRoot);
-  const lockPath = join(dirname(path), `${path.split(/[/\\]/).pop()}.lock`);
+  // Derive the sidecar lock path from the layout-aware resolved PROJECT-DEFINITION
+  // path (xbrief/ when migrated, else vbrief/) so the lock lives next to the real
+  // artifact and every mutator sharing a project root contends on the same lock,
+  // instead of the constant vbrief/ path which would strand a stray lock (#1260).
+  const path = resolveProjectDefinitionPath(resolve(projectRoot));
+  const lockPath = `${path}.lock`;
   mkdirSync(dirname(lockPath), { recursive: true });
 
   if (mutationThreadLock.held) {

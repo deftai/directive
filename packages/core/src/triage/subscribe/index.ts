@@ -11,6 +11,7 @@ import {
 import { basename, join } from "node:path";
 import { resolveEvalPath, resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
+import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 
 export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.eval/subscription-history.jsonl";
 export const SUBSCRIPTION_HISTORY_SCHEMA = "deft.triage.subscription-change.v1";
@@ -327,65 +328,70 @@ function mutate(
     );
   }
 
-  const [data, path] = loadProjectDefinitionForMutation(projectRoot);
-  if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
-  }
-  const plan = data.plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(plan);
-  const existingPolicy = plan[PLAN_POLICY_KEY];
-  if (
-    typeof existingPolicy !== "object" ||
-    existingPolicy === null ||
-    Array.isArray(existingPolicy)
-  ) {
-    if (existingPolicy === undefined) {
-      plan[PLAN_POLICY_KEY] = {};
-    } else {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
+  // Serialise the read-modify-write + subscription-history append under the
+  // shared PROJECT-DEFINITION mutation lock so concurrent mutators cannot lose
+  // an update or emit out-of-order audit rows (#1260).
+  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
+    const [data, path] = loadProjectDefinitionForMutation(projectRoot);
+    if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
     }
-  }
-  const policy = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
-  if (!Array.isArray(policy.triageScope)) {
-    if (policy.triageScope === undefined) {
-      policy.triageScope = [];
-    } else {
-      throw new Error(`PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScope'`);
+    const plan = data.plan as Record<string, unknown>;
+    migrateLegacyPolicyKey(plan);
+    const existingPolicy = plan[PLAN_POLICY_KEY];
+    if (
+      typeof existingPolicy !== "object" ||
+      existingPolicy === null ||
+      Array.isArray(existingPolicy)
+    ) {
+      if (existingPolicy === undefined) {
+        plan[PLAN_POLICY_KEY] = {};
+      } else {
+        throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
+      }
     }
-  }
-  const rules = policy.triageScope as TriageRule[];
+    const policy = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
+    if (!Array.isArray(policy.triageScope)) {
+      if (policy.triageScope === undefined) {
+        policy.triageScope = [];
+      } else {
+        throw new Error(`PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScope'`);
+      }
+    }
+    const rules = policy.triageScope as TriageRule[];
 
-  const before = snapshotRules(rules);
-  let changed: boolean;
-  let message: string;
-  if (options.op === "subscribe") {
-    [changed, message] = applySubscribe(
-      rules,
-      options.label,
-      options.milestone,
-      options.issue,
-      options.issueNote ?? "added via task triage:subscribe",
-    );
-  } else {
-    [changed, message] = applyUnsubscribe(rules, options.label, options.milestone, options.issue);
-  }
+    const before = snapshotRules(rules);
+    let changed: boolean;
+    let message: string;
+    if (options.op === "subscribe") {
+      [changed, message] = applySubscribe(
+        rules,
+        options.label,
+        options.milestone,
+        options.issue,
+        options.issueNote ?? "added via task triage:subscribe",
+      );
+    } else {
+      [changed, message] = applyUnsubscribe(rules, options.label, options.milestone, options.issue);
+    }
 
-  if (!changed) {
-    return [false, message];
-  }
+    if (!changed) {
+      return [false, message];
+    }
 
-  atomicWriteProjectDefinition(path, data);
-  const after = snapshotRules(rules);
-  recordSubscriptionChange(projectRoot, {
-    op: options.op,
-    label: options.label,
-    milestone: options.milestone,
-    issue: options.issue,
-    before,
-    after,
-    actor: options.actor,
+    atomicWriteProjectDefinition(path, data);
+    const after = snapshotRules(rules);
+    recordSubscriptionChange(projectRoot, {
+      op: options.op,
+      label: options.label,
+      milestone: options.milestone,
+      issue: options.issue,
+      before,
+      after,
+      actor: options.actor,
+    });
+    return [true, message];
   });
-  return [true, message];
 }
 
 export function subscribe(

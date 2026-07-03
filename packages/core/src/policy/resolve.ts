@@ -1,6 +1,10 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
+import {
+  atomicWriteProjectDefinition,
+  projectDefinitionMutationLock,
+} from "../vbrief-build/project-definition-io.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 
 /** Filesystem-relative location of the project-definition vBRIEF (display/back-compat). */
@@ -220,60 +224,65 @@ export function setPolicy(
     throw new Error(`PROJECT-DEFINITION not found at ${path}`);
   }
 
-  const data = JSON.parse(readFileSync(path, { encoding: "utf8" })) as Record<string, unknown>;
-  if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
-    if (data.plan === undefined) {
-      data.plan = {};
-    } else {
-      throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+  // Serialise the read-modify-write + audit-log append behind the shared
+  // PROJECT-DEFINITION mutation lock so a concurrent policy/ritual mutator
+  // cannot lose this update or desync the typed flag from the audit row (#1260).
+  return projectDefinitionMutationLock(projectRoot, () => {
+    const data = JSON.parse(readFileSync(path, { encoding: "utf8" })) as Record<string, unknown>;
+    if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
+      if (data.plan === undefined) {
+        data.plan = {};
+      } else {
+        throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+      }
     }
-  }
-  const plan = data.plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(plan);
-  const existingPolicy = plan[PLAN_POLICY_KEY];
-  if (
-    typeof existingPolicy !== "object" ||
-    existingPolicy === null ||
-    Array.isArray(existingPolicy)
-  ) {
-    if (existingPolicy === undefined) {
-      plan[PLAN_POLICY_KEY] = {};
-    } else {
-      throw new Error("plan.policy is not an object");
+    const plan = data.plan as Record<string, unknown>;
+    migrateLegacyPolicyKey(plan);
+    const existingPolicy = plan[PLAN_POLICY_KEY];
+    if (
+      typeof existingPolicy !== "object" ||
+      existingPolicy === null ||
+      Array.isArray(existingPolicy)
+    ) {
+      if (existingPolicy === undefined) {
+        plan[PLAN_POLICY_KEY] = {};
+      } else {
+        throw new Error("plan.policy is not an object");
+      }
     }
-  }
-  const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
+    const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
 
-  const previous = policyBlock.allowDirectCommitsToMaster;
-  policyBlock.allowDirectCommitsToMaster = Boolean(allowDirectCommits);
+    const previous = policyBlock.allowDirectCommitsToMaster;
+    policyBlock.allowDirectCommitsToMaster = Boolean(allowDirectCommits);
 
-  let legacyDropped = false;
-  const narratives = plan.narratives;
-  if (
-    typeof narratives === "object" &&
-    narratives !== null &&
-    !Array.isArray(narratives) &&
-    LEGACY_NARRATIVE_KEY in narratives
-  ) {
-    delete (narratives as Record<string, unknown>)[LEGACY_NARRATIVE_KEY];
-    legacyDropped = true;
-  }
+    let legacyDropped = false;
+    const narratives = plan.narratives;
+    if (
+      typeof narratives === "object" &&
+      narratives !== null &&
+      !Array.isArray(narratives) &&
+      LEGACY_NARRATIVE_KEY in narratives
+    ) {
+      delete (narratives as Record<string, unknown>)[LEGACY_NARRATIVE_KEY];
+      legacyDropped = true;
+    }
 
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, { encoding: "utf8" });
+    atomicWriteProjectDefinition(path, data);
 
-  const changed = previous !== Boolean(allowDirectCommits) || legacyDropped;
-  const parts = [
-    `actor=${actor}`,
-    `allowDirectCommitsToMaster=${allowDirectCommits ? "true" : "false"}`,
-    `previous=${pythonRepr(previous)}`,
-  ];
-  if (legacyDropped) {
-    parts.push("legacy-narrative-migrated=true");
-  }
-  if (note) {
-    parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
-  }
-  const auditEntry = parts.join(" ");
-  appendAuditLog(projectRoot, auditEntry);
-  return { changed, auditEntry };
+    const changed = previous !== Boolean(allowDirectCommits) || legacyDropped;
+    const parts = [
+      `actor=${actor}`,
+      `allowDirectCommitsToMaster=${allowDirectCommits ? "true" : "false"}`,
+      `previous=${pythonRepr(previous)}`,
+    ];
+    if (legacyDropped) {
+      parts.push("legacy-narrative-migrated=true");
+    }
+    if (note) {
+      parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
+    }
+    const auditEntry = parts.join(" ");
+    appendAuditLog(projectRoot, auditEntry);
+    return { changed, auditEntry };
+  });
 }

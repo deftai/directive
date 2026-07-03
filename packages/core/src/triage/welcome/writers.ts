@@ -15,6 +15,7 @@ import {
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
+import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 import {
   AUDIT_LOG_REL_PATH,
   DEFAULT_RELIEF_AGE_DAYS,
@@ -59,35 +60,38 @@ export function writeTriageScope(
   rules: Array<Record<string, unknown>>,
   options: { presetLabel: string; actor?: string } = { presetLabel: "custom" },
 ): [boolean, string] {
-  const path = projectDefinitionPath(projectRoot);
-  if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
-  const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
-  const plan = data.plan;
-  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-    throw new Error("PROJECT-DEFINITION 'plan' is not an object");
-  }
-  const planRec = plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(planRec);
-  let policy = planRec[PLAN_POLICY_KEY];
-  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-    policy = {};
-    planRec[PLAN_POLICY_KEY] = policy;
-  }
-  const policyRec = policy as Record<string, unknown>;
-  const previous = policyRec.triageScope;
-  policyRec.triageScope = rules;
-  atomicWrite(path, data);
-  const changed = JSON.stringify(previous) !== JSON.stringify(rules);
-  const actor = options.actor ?? WELCOME_AUDIT_TAG;
-  const auditEntry = [
-    `actor=${actor}`,
-    "field=plan.policy.triageScope",
-    `preset=${options.presetLabel}`,
-    `rule_count=${rules.length}`,
-    `changed=${changed ? "true" : "false"}`,
-  ].join(" ");
-  appendAuditEntry(projectRoot, auditEntry);
-  return [changed, auditEntry];
+  // Serialise read-modify-write + audit append under the shared lock (#1260).
+  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
+    const path = projectDefinitionPath(projectRoot);
+    if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
+    const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+    }
+    const planRec = plan as Record<string, unknown>;
+    migrateLegacyPolicyKey(planRec);
+    let policy = planRec[PLAN_POLICY_KEY];
+    if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+      policy = {};
+      planRec[PLAN_POLICY_KEY] = policy;
+    }
+    const policyRec = policy as Record<string, unknown>;
+    const previous = policyRec.triageScope;
+    policyRec.triageScope = rules;
+    atomicWrite(path, data);
+    const changed = JSON.stringify(previous) !== JSON.stringify(rules);
+    const actor = options.actor ?? WELCOME_AUDIT_TAG;
+    const auditEntry = [
+      `actor=${actor}`,
+      "field=plan.policy.triageScope",
+      `preset=${options.presetLabel}`,
+      `rule_count=${rules.length}`,
+      `changed=${changed ? "true" : "false"}`,
+    ].join(" ");
+    appendAuditEntry(projectRoot, auditEntry);
+    return [changed, auditEntry];
+  });
 }
 
 export function writeWipCap(
@@ -98,44 +102,47 @@ export function writeWipCap(
   if (!Number.isInteger(wipCap) || wipCap < 1) {
     throw new Error(`wipCap must be a positive int, got ${JSON.stringify(wipCap)}`);
   }
-  const path = projectDefinitionPath(projectRoot);
-  if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
-  const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
-  const plan = data.plan;
-  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-    throw new Error("PROJECT-DEFINITION 'plan' is not an object");
-  }
-  const planRec = plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(planRec);
-  let policy = planRec[PLAN_POLICY_KEY];
-  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-    policy = {};
-    planRec[PLAN_POLICY_KEY] = policy;
-  }
-  const policyRec = policy as Record<string, unknown>;
-  const previous = policyRec.wipCap;
-  const actor = options.actor ?? WELCOME_AUDIT_TAG;
+  // Serialise read-modify-write + audit append under the shared lock (#1260).
+  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
+    const path = projectDefinitionPath(projectRoot);
+    if (!existsSync(path)) throw new Error(`PROJECT-DEFINITION not found at ${path}`);
+    const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+    }
+    const planRec = plan as Record<string, unknown>;
+    migrateLegacyPolicyKey(planRec);
+    let policy = planRec[PLAN_POLICY_KEY];
+    if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+      policy = {};
+      planRec[PLAN_POLICY_KEY] = policy;
+    }
+    const policyRec = policy as Record<string, unknown>;
+    const previous = policyRec.wipCap;
+    const actor = options.actor ?? WELCOME_AUDIT_TAG;
 
-  if (previous === undefined && wipCap === DEFAULT_WIP_CAP) {
-    return [false, ""];
-  }
-  if (previous !== undefined && wipCap === DEFAULT_WIP_CAP) {
-    delete policyRec.wipCap;
+    if (previous === undefined && wipCap === DEFAULT_WIP_CAP) {
+      return [false, ""];
+    }
+    if (previous !== undefined && wipCap === DEFAULT_WIP_CAP) {
+      delete policyRec.wipCap;
+      atomicWrite(path, data);
+      const auditEntry =
+        `actor=${actor} field=plan.policy.wipCap action=cleared-to-default value=${wipCap} ` +
+        `previous=${JSON.stringify(previous)} changed=true`;
+      appendAuditEntry(projectRoot, auditEntry);
+      return [true, auditEntry];
+    }
+    policyRec.wipCap = wipCap;
     atomicWrite(path, data);
+    const changed = previous !== wipCap;
     const auditEntry =
-      `actor=${actor} field=plan.policy.wipCap action=cleared-to-default value=${wipCap} ` +
-      `previous=${JSON.stringify(previous)} changed=true`;
+      `actor=${actor} field=plan.policy.wipCap value=${wipCap} previous=${JSON.stringify(previous)} ` +
+      `changed=${changed ? "true" : "false"}`;
     appendAuditEntry(projectRoot, auditEntry);
-    return [true, auditEntry];
-  }
-  policyRec.wipCap = wipCap;
-  atomicWrite(path, data);
-  const changed = previous !== wipCap;
-  const auditEntry =
-    `actor=${actor} field=plan.policy.wipCap value=${wipCap} previous=${JSON.stringify(previous)} ` +
-    `changed=${changed ? "true" : "false"}`;
-  appendAuditEntry(projectRoot, auditEntry);
-  return [changed, auditEntry];
+    return [changed, auditEntry];
+  });
 }
 
 export interface ReliefPreview {

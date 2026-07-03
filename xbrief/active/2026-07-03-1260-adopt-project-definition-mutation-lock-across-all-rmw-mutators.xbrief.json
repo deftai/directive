@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1260"
+  },
+  "plan": {
+    "title": "bug(triage,policy): adopt PROJECT-DEFINITION mutation lock across all RMW mutators",
+    "status": "running",
+    "narratives": {
+      "Description": "Multiple PROJECT-DEFINITION mutators perform unlocked read-modify-write, so two concurrent mutators (interactive ritual + scripted policy set, or two policy sets) can lose each other's updates and drift the typed override from the audit log. Route every mutator through the existing mutation lock + atomic write.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1260",
+      "UserStory": "As an operator or swarm agent, I want every writer of PROJECT-DEFINITION to serialize its read-modify-write behind the shared mutation lock and write atomically, so concurrent policy/ritual mutations never lose updates or desync the audit log.",
+      "ImplementationPlan": "1. VERIFY-FIRST / CURRENT-SURFACE: the issue cites Python scripts/policy.py + scripts/_project_definition_io.py + vbrief/PROJECT-DEFINITION.vbrief.json, but the repo is TS-native and the file is now xbrief/PROJECT-DEFINITION.xbrief.json. A projectDefinitionMutationLock ALREADY EXISTS in TS (the #1329 worker explicitly left it untouched). FIND it (search packages/core/src for projectDefinitionMutationLock / atomic write of PROJECT-DEFINITION) before writing anything. 2. AUDIT every TS site that read-modify-writes xbrief/PROJECT-DEFINITION.xbrief.json: policy setters (wipCap, allowDirectCommitsToMaster / typed-flag setter), triage/scope mutators that persist typed fields (e.g. triageScope), welcome/onboard materialization, capacityAllocation writers, and any other grep hits. 3. Route each mutator's RMW critical section through the existing mutation lock + atomic-write helper (reuse; do NOT invent a second lock util -- the #1329 applyAgentsRefresh pattern reused withAppendLock + atomicWriteText). 4. Concurrency tests: two in-process mutators on the same project root race-free (second reads first's persisted state before mutating); lock-blocked second invocation sees the first's value; no lost update, no out-of-order audit rows. Follow test-performance discipline for any wall-clock. 5. No behavior change for serial callers (typed flag, audit row, operator output identical). 6. CHANGELOG [Unreleased]: 'Policy/PROJECT-DEFINITION mutators are now safe to invoke concurrently.' 7. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#1260, #1257, #1329, #954",
+      "Overview": "See https://github.com/deftai/directive/issues/1260. PR #1257 introduced a PROJECT-DEFINITION mutation lock but only covered the welcome ritual's two writers; the broader adoption was deferred. In the TS migration the lock primitive exists (projectDefinitionMutationLock) but not all mutators route through it. Adopt it at every mutation site + atomic write, with concurrency tests. Out of scope: locking arbitrary lifecycle xBRIEF renames; schema changes.",
+      "GuardRails": "TS-native repo, xbrief/ layout. Do NOT touch the frozen Python scripts as the fix surface -- implement in TS. REUSE the existing lock + atomic-write helpers (projectDefinitionMutationLock and/or withAppendLock + atomicWriteText from #1329); adding a competing lock util is forbidden. This cohort's #2064/#1056/#2246/#2247 workers touch different files -- avoid editing shared lock helpers in a way that would collide; if you must extend a helper, keep it additive. Verify-first: enumerate the actual current mutators before wrapping."
+    },
+    "items": [
+      {
+        "title": "Every TS writer of xbrief/PROJECT-DEFINITION.xbrief.json routes its RMW through the existing mutation lock + atomic write.",
+        "status": "proposed"
+      },
+      {
+        "title": "Concurrency test: two simultaneous setters on one project root -> no lost update, second reads first's persisted state.",
+        "status": "proposed"
+      },
+      {
+        "title": "Lock-blocked second invocation observes the first's on-disk value before mutating.",
+        "status": "proposed"
+      },
+      {
+        "title": "No surface behavior change for serial callers (typed flag, audit row, output identical).",
+        "status": "proposed"
+      },
+      {
+        "title": "task check green with the new concurrency tests; no competing lock util introduced.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1260",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1260: adopt PROJECT-DEFINITION mutation lock across all RMW mutators"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1257",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1257"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1329",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1329"
+      }
+    ],
+    "updated": "2026-07-03T13:27:17Z"
+  }
+}

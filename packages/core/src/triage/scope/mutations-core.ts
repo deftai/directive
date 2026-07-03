@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { resolveEvalPath, resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
+import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 import { SUBSCRIPTION_HISTORY_SCHEMA } from "./constants.js";
 import { pyStrRepr } from "./python-repr.js";
 import { utcIso } from "./time.js";
@@ -171,94 +172,103 @@ export function subscribe(
     );
   }
 
-  const [data, path] = loadProjectDefinitionForMutation(projectRoot);
-  const plan = data.plan;
-  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
-  }
-  const planRec = plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(planRec);
-  if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
-  const policy = planRec[PLAN_POLICY_KEY];
-  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
-  }
-  const policyRec = policy as Record<string, unknown>;
-  if (policyRec.triageScope === undefined) policyRec.triageScope = [];
-  const rules = policyRec.triageScope;
-  if (!Array.isArray(rules)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScope'`);
-  }
+  // Serialise the read-modify-write + subscription-history append under the
+  // shared PROJECT-DEFINITION mutation lock so concurrent mutators cannot lose
+  // an update or emit out-of-order audit rows (#1260).
+  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
+    const [data, path] = loadProjectDefinitionForMutation(projectRoot);
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
+    }
+    const planRec = plan as Record<string, unknown>;
+    migrateLegacyPolicyKey(planRec);
+    if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
+    const policy = planRec[PLAN_POLICY_KEY];
+    if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
+    }
+    const policyRec = policy as Record<string, unknown>;
+    if (policyRec.triageScope === undefined) policyRec.triageScope = [];
+    const rules = policyRec.triageScope;
+    if (!Array.isArray(rules)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScope'`);
+    }
 
-  const before = snapshotRules(rules);
-  let changed: boolean;
-  let message: string;
-  if (options.label !== undefined) {
-    [changed, message] = applySubscribeLabel(rules, options.label);
-  } else if (options.milestone !== undefined) {
-    [changed, message] = applySubscribeMilestone(rules, options.milestone);
-  } else {
-    throw new Error("subscribe() requires exactly one of label or milestone");
-  }
-  if (!changed) return [false, message];
+    const before = snapshotRules(rules);
+    let changed: boolean;
+    let message: string;
+    if (options.label !== undefined) {
+      [changed, message] = applySubscribeLabel(rules, options.label);
+    } else if (options.milestone !== undefined) {
+      [changed, message] = applySubscribeMilestone(rules, options.milestone);
+    } else {
+      throw new Error("subscribe() requires exactly one of label or milestone");
+    }
+    if (!changed) return [false, message];
 
-  atomicWriteProjectDefinition(path, data);
-  recordSubscriptionChange(projectRoot, {
-    op: "subscribe",
-    label: options.label ?? null,
-    milestone: options.milestone ?? null,
-    before,
-    after: snapshotRules(rules),
-    actor: options.actor,
+    atomicWriteProjectDefinition(path, data);
+    recordSubscriptionChange(projectRoot, {
+      op: "subscribe",
+      label: options.label ?? null,
+      milestone: options.milestone ?? null,
+      before,
+      after: snapshotRules(rules),
+      actor: options.actor,
+    });
+    return [true, message];
   });
-  return [true, message];
 }
 
 export function addIgnore(projectRoot: string, label: string): [boolean, string] {
   if (!label.trim())
     throw new Error(`label must be a non-empty string; got ${JSON.stringify(label)}`);
 
-  const [data, path] = loadProjectDefinitionForMutation(projectRoot);
-  const plan = data.plan;
-  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
-  }
-  const planRec = plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(planRec);
-  if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
-  const policy = planRec[PLAN_POLICY_KEY];
-  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
-  }
-  const policyRec = policy as Record<string, unknown>;
-  if (policyRec.triageScopeIgnores === undefined) policyRec.triageScopeIgnores = [];
-  const raw = policyRec.triageScopeIgnores;
-  if (!Array.isArray(raw)) {
-    throw new Error(
-      `PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScopeIgnores'`,
-    );
-  }
-
-  const before = snapshotRules(raw);
-  for (const entry of raw) {
-    if (
-      typeof entry === "object" &&
-      entry !== null &&
-      !Array.isArray(entry) &&
-      (entry as Record<string, unknown>).label === label
-    ) {
-      return [false, `already-ignored (label=${label})`];
+  // Serialise the read-modify-write + subscription-history append under the
+  // shared PROJECT-DEFINITION mutation lock (#1260).
+  return projectDefinitionMutationLock(projectRoot, (): [boolean, string] => {
+    const [data, path] = loadProjectDefinitionForMutation(projectRoot);
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
     }
-  }
-  raw.push({ label });
-  atomicWriteProjectDefinition(path, data);
-  const after = snapshotRules(raw);
-  recordSubscriptionChange(projectRoot, {
-    op: "ignore-label",
-    label,
-    before,
-    after,
-    actor: null,
+    const planRec = plan as Record<string, unknown>;
+    migrateLegacyPolicyKey(planRec);
+    if (planRec[PLAN_POLICY_KEY] === undefined) planRec[PLAN_POLICY_KEY] = {};
+    const policy = planRec[PLAN_POLICY_KEY];
+    if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan.policy' key`);
+    }
+    const policyRec = policy as Record<string, unknown>;
+    if (policyRec.triageScopeIgnores === undefined) policyRec.triageScopeIgnores = [];
+    const raw = policyRec.triageScopeIgnores;
+    if (!Array.isArray(raw)) {
+      throw new Error(
+        `PROJECT-DEFINITION at ${path} has a non-list 'plan.policy.triageScopeIgnores'`,
+      );
+    }
+
+    const before = snapshotRules(raw);
+    for (const entry of raw) {
+      if (
+        typeof entry === "object" &&
+        entry !== null &&
+        !Array.isArray(entry) &&
+        (entry as Record<string, unknown>).label === label
+      ) {
+        return [false, `already-ignored (label=${label})`];
+      }
+    }
+    raw.push({ label });
+    atomicWriteProjectDefinition(path, data);
+    const after = snapshotRules(raw);
+    recordSubscriptionChange(projectRoot, {
+      op: "ignore-label",
+      label,
+      before,
+      after,
+      actor: null,
+    });
+    return [true, `added ignore (label=${label})`];
   });
-  return [true, `added ignore (label=${label})`];
 }

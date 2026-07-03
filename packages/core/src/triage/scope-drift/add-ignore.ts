@@ -2,6 +2,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
+import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 
 function loadForMutation(projectRoot: string): [Record<string, unknown>, string] {
   const path = resolveProjectDefinitionPath(resolve(projectRoot));
@@ -57,31 +58,35 @@ export function addIgnore(
     throw new Error(`${key} must be a non-empty string; got ${JSON.stringify(value)}`);
   }
 
-  const [data, path] = loadForMutation(projectRoot);
-  const plan = data.plan;
-  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
-    throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
-  }
-  const planRec = plan as Record<string, unknown>;
-  migrateLegacyPolicyKey(planRec);
-  let policy = planRec[PLAN_POLICY_KEY];
-  if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
-    policy = {};
-    planRec[PLAN_POLICY_KEY] = policy;
-  }
-  const policyRec = policy as Record<string, unknown>;
-  const raw: unknown[] = Array.isArray(policyRec.triageScopeIgnores)
-    ? (policyRec.triageScopeIgnores as unknown[])
-    : [];
-  policyRec.triageScopeIgnores = raw;
-  for (const entry of raw) {
-    if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
-      if ((entry as Record<string, unknown>)[key] === value) {
-        return { changed: false, message: `already-ignored (${key}=${value})` };
+  // Serialise the read-modify-write under the shared PROJECT-DEFINITION
+  // mutation lock so concurrent mutators cannot lose an update (#1260).
+  return projectDefinitionMutationLock(projectRoot, (): AddIgnoreResult => {
+    const [data, path] = loadForMutation(projectRoot);
+    const plan = data.plan;
+    if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+      throw new Error(`PROJECT-DEFINITION at ${path} has a non-object 'plan' key`);
+    }
+    const planRec = plan as Record<string, unknown>;
+    migrateLegacyPolicyKey(planRec);
+    let policy = planRec[PLAN_POLICY_KEY];
+    if (typeof policy !== "object" || policy === null || Array.isArray(policy)) {
+      policy = {};
+      planRec[PLAN_POLICY_KEY] = policy;
+    }
+    const policyRec = policy as Record<string, unknown>;
+    const raw: unknown[] = Array.isArray(policyRec.triageScopeIgnores)
+      ? (policyRec.triageScopeIgnores as unknown[])
+      : [];
+    policyRec.triageScopeIgnores = raw;
+    for (const entry of raw) {
+      if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
+        if ((entry as Record<string, unknown>)[key] === value) {
+          return { changed: false, message: `already-ignored (${key}=${value})` };
+        }
       }
     }
-  }
-  raw.push({ [key]: value });
-  atomicWrite(path, data);
-  return { changed: true, message: `added ignore (${key}=${value})` };
+    raw.push({ [key]: value });
+    atomicWrite(path, data);
+    return { changed: true, message: `added ignore (${key}=${value})` };
+  });
 }

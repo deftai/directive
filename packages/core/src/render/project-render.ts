@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { basename, join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
+import { projectDefinitionMutationLock } from "../vbrief-build/project-definition-io.js";
 import {
   deriveRegistryItemStatus,
   registryMetadataReferencesFromScope,
@@ -261,62 +262,67 @@ export function renderProjectDefinition(
   vbriefDir: string,
   options: RenderProjectOptions = {},
 ): RenderProjectResult {
-  const nowDate = options.now ?? new Date();
-  const now = nowDate.toISOString().replace(/\.\d{3}Z$/, "Z");
-  const layout = resolveProjectDefinitionLayout(vbriefDir);
-  const projectDefPath = join(vbriefDir, layout.filename);
-  const items = scanLifecycleFolders(vbriefDir);
-  const createdNew = !existsSync(projectDefPath);
+  // Serialise the whole read-modify-write of PROJECT-DEFINITION under the shared
+  // mutation lock so a concurrent policy/triage mutator cannot be clobbered by the
+  // materialised items/metadata write (or vice versa) (#1260).
+  return projectDefinitionMutationLock(resolve(vbriefDir, ".."), (): RenderProjectResult => {
+    const nowDate = options.now ?? new Date();
+    const now = nowDate.toISOString().replace(/\.\d{3}Z$/, "Z");
+    const layout = resolveProjectDefinitionLayout(vbriefDir);
+    const projectDefPath = join(vbriefDir, layout.filename);
+    const items = scanLifecycleFolders(vbriefDir);
+    const createdNew = !existsSync(projectDefPath);
 
-  let projectDef: JsonObject;
-  if (existsSync(projectDefPath)) {
-    try {
-      projectDef = JSON.parse(readFileSync(projectDefPath, "utf8")) as JsonObject;
-    } catch (exc) {
-      return [false, `✗ Failed to read ${projectDefPath}: ${String(exc)}`];
+    let projectDef: JsonObject;
+    if (existsSync(projectDefPath)) {
+      try {
+        projectDef = JSON.parse(readFileSync(projectDefPath, "utf8")) as JsonObject;
+      } catch (exc) {
+        return [false, `✗ Failed to read ${projectDefPath}: ${String(exc)}`];
+      }
+      const plan = (projectDef.plan ?? {}) as JsonObject;
+      plan.items = items;
+      if (
+        typeof projectDef[layout.infoRootKey] !== "object" ||
+        projectDef[layout.infoRootKey] === null
+      ) {
+        projectDef[layout.infoRootKey] = {};
+      }
+      (projectDef[layout.infoRootKey] as JsonObject).updated = now;
+      const narratives =
+        typeof plan.narratives === "object" &&
+        plan.narratives !== null &&
+        !Array.isArray(plan.narratives)
+          ? (plan.narratives as Record<string, string>)
+          : {};
+      const completedItems = items.filter((i) => i.status === "completed");
+      if (
+        typeof plan.metadata !== "object" ||
+        plan.metadata === null ||
+        Array.isArray(plan.metadata)
+      ) {
+        plan.metadata = {};
+      }
+      const planMetadata = plan.metadata as JsonObject;
+      const review = parseStalenessReview(planMetadata);
+      const flags = computeStalenessFlags(narratives, completedItems, review);
+      planMetadata.staleness_flags = flags;
+      projectDef.plan = plan;
+    } else {
+      projectDef = createSkeleton(items, now, layout);
     }
-    const plan = (projectDef.plan ?? {}) as JsonObject;
-    plan.items = items;
-    if (
-      typeof projectDef[layout.infoRootKey] !== "object" ||
-      projectDef[layout.infoRootKey] === null
-    ) {
-      projectDef[layout.infoRootKey] = {};
-    }
-    (projectDef[layout.infoRootKey] as JsonObject).updated = now;
-    const narratives =
-      typeof plan.narratives === "object" &&
-      plan.narratives !== null &&
-      !Array.isArray(plan.narratives)
-        ? (plan.narratives as Record<string, string>)
-        : {};
-    const completedItems = items.filter((i) => i.status === "completed");
-    if (
-      typeof plan.metadata !== "object" ||
-      plan.metadata === null ||
-      Array.isArray(plan.metadata)
-    ) {
-      plan.metadata = {};
-    }
-    const planMetadata = plan.metadata as JsonObject;
-    const review = parseStalenessReview(planMetadata);
-    const flags = computeStalenessFlags(narratives, completedItems, review);
-    planMetadata.staleness_flags = flags;
-    projectDef.plan = plan;
-  } else {
-    projectDef = createSkeleton(items, now, layout);
-  }
 
-  mkdirSync(vbriefDir, { recursive: true });
-  writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");
+    mkdirSync(vbriefDir, { recursive: true });
+    writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");
 
-  const itemCount = items.length;
-  const planMeta = ((projectDef.plan as JsonObject)?.metadata ?? {}) as JsonObject;
-  const flagCount = Array.isArray(planMeta.staleness_flags) ? planMeta.staleness_flags.length : 0;
-  const action = createdNew ? "created" : "updated";
-  const parts = [`✓ ${layout.filename} ${action} (${itemCount} scope items)`];
-  if (flagCount > 0) parts.push(`⚠ ${flagCount} staleness flag(s) -- agent review recommended`);
-  return [true, parts.join("\n")];
+    const itemCount = items.length;
+    const planMeta = ((projectDef.plan as JsonObject)?.metadata ?? {}) as JsonObject;
+    const flagCount = Array.isArray(planMeta.staleness_flags) ? planMeta.staleness_flags.length : 0;
+    const action = createdNew ? "created" : "updated";
+    const parts = [`✓ ${layout.filename} ${action} (${itemCount} scope items)`];
+    if (flagCount > 0) parts.push(`⚠ ${flagCount} staleness flag(s) -- agent review recommended`);
+    return [true, parts.join("\n")];
+  });
 }
 
 /**
@@ -329,59 +335,67 @@ export function acknowledgeProjectDefinitionStaleness(
   vbriefDir: string,
   options: RenderProjectOptions = {},
 ): RenderProjectResult {
-  const nowDate = options.now ?? new Date();
-  const now = isoTimestamp(nowDate);
-  const layout = resolveProjectDefinitionLayout(vbriefDir);
-  const projectDefPath = join(vbriefDir, layout.filename);
-  if (!existsSync(projectDefPath)) {
-    return [false, `✗ ${projectDefPath} not found — run project:render first`];
-  }
+  // Serialise the read-modify-write of PROJECT-DEFINITION under the shared
+  // mutation lock so a concurrent policy/triage mutator is not clobbered (#1260).
+  return projectDefinitionMutationLock(resolve(vbriefDir, ".."), (): RenderProjectResult => {
+    const nowDate = options.now ?? new Date();
+    const now = isoTimestamp(nowDate);
+    const layout = resolveProjectDefinitionLayout(vbriefDir);
+    const projectDefPath = join(vbriefDir, layout.filename);
+    if (!existsSync(projectDefPath)) {
+      return [false, `✗ ${projectDefPath} not found — run project:render first`];
+    }
 
-  let projectDef: JsonObject;
-  try {
-    projectDef = JSON.parse(readFileSync(projectDefPath, "utf8")) as JsonObject;
-  } catch (exc) {
-    return [false, `✗ Failed to read ${projectDefPath}: ${String(exc)}`];
-  }
+    let projectDef: JsonObject;
+    try {
+      projectDef = JSON.parse(readFileSync(projectDefPath, "utf8")) as JsonObject;
+    } catch (exc) {
+      return [false, `✗ Failed to read ${projectDefPath}: ${String(exc)}`];
+    }
 
-  const plan = (projectDef.plan ?? {}) as JsonObject;
-  if (typeof plan.metadata !== "object" || plan.metadata === null || Array.isArray(plan.metadata)) {
-    plan.metadata = {};
-  }
-  const planMetadata = plan.metadata as JsonObject;
-  const items = scanLifecycleFolders(vbriefDir);
-  const completedItems = items.filter((i) => i.status === "completed");
-  const existing = parseStalenessReview(planMetadata);
-  planMetadata.staleness_review = buildStalenessAcknowledgement(completedItems, {
-    now: nowDate,
-    existing,
+    const plan = (projectDef.plan ?? {}) as JsonObject;
+    if (
+      typeof plan.metadata !== "object" ||
+      plan.metadata === null ||
+      Array.isArray(plan.metadata)
+    ) {
+      plan.metadata = {};
+    }
+    const planMetadata = plan.metadata as JsonObject;
+    const items = scanLifecycleFolders(vbriefDir);
+    const completedItems = items.filter((i) => i.status === "completed");
+    const existing = parseStalenessReview(planMetadata);
+    planMetadata.staleness_review = buildStalenessAcknowledgement(completedItems, {
+      now: nowDate,
+      existing,
+    });
+    const narratives =
+      typeof plan.narratives === "object" &&
+      plan.narratives !== null &&
+      !Array.isArray(plan.narratives)
+        ? (plan.narratives as Record<string, string>)
+        : {};
+    planMetadata.staleness_flags = computeStalenessFlags(
+      narratives,
+      completedItems,
+      parseStalenessReview(planMetadata),
+    );
+    if (
+      typeof projectDef[layout.infoRootKey] !== "object" ||
+      projectDef[layout.infoRootKey] === null
+    ) {
+      projectDef[layout.infoRootKey] = {};
+    }
+    (projectDef[layout.infoRootKey] as JsonObject).updated = now;
+    projectDef.plan = plan;
+
+    writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");
+    const ackCount = completedItems.length;
+    return [
+      true,
+      `✓ PROJECT-DEFINITION staleness acknowledged (${ackCount} completed scope(s) watermarked)`,
+    ];
   });
-  const narratives =
-    typeof plan.narratives === "object" &&
-    plan.narratives !== null &&
-    !Array.isArray(plan.narratives)
-      ? (plan.narratives as Record<string, string>)
-      : {};
-  planMetadata.staleness_flags = computeStalenessFlags(
-    narratives,
-    completedItems,
-    parseStalenessReview(planMetadata),
-  );
-  if (
-    typeof projectDef[layout.infoRootKey] !== "object" ||
-    projectDef[layout.infoRootKey] === null
-  ) {
-    projectDef[layout.infoRootKey] = {};
-  }
-  (projectDef[layout.infoRootKey] as JsonObject).updated = now;
-  projectDef.plan = plan;
-
-  writeFileSync(projectDefPath, `${JSON.stringify(projectDef, null, 2)}\n`, "utf8");
-  const ackCount = completedItems.length;
-  return [
-    true,
-    `✓ PROJECT-DEFINITION staleness acknowledged (${ackCount} completed scope(s) watermarked)`,
-  ];
 }
 
 /** CLI entry (mirrors ``scripts/project_render.main``). */
