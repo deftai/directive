@@ -1,0 +1,37 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1926"
+  },
+  "plan": {
+    "title": "Path-based planRef dangles when reconcile:issues moves a closed parent vBRIEF across lifecycle folders",
+    "status": "running",
+    "narratives": {
+      "Description": "Path-based planRef dangles when reconcile:issues moves a closed parent vBRIEF across lifecycle folders",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1926",
+      "UserStory": "As a release manager, I want `reconcile:issues --apply-lifecycle-fixes` moving a closed parent/umbrella brief from proposed/ to completed/ to NOT dangle its children's folder-qualified planRef, so I can commit the correct lifecycle fix without forcing --allow-vbrief-drift (which masks ALL drift).",
+      "ImplementationPlan": "1. Root cause: planRef (and the 'decomposed from proposed/...' description) embed the lifecycle folder in the path, so any lifecycle move (reconcile, scope:complete) dangles cross-references. 2. Prefer the LEAST-invasive fix: add/reuse a resolver that treats planRef as a lifecycle-folder-agnostic basename/id and resolves the folder at read time by searching all five lifecycle folders (mirror the layout-aware resolver pattern). If a resolver-only fix cannot satisfy validate, fall back to having reconcile:issues / scope:* rewrite dependent planRefs when they move a referenced brief. 3. Ensure `task xbrief:validate` (a.k.a. vbrief:validate) passes WITHOUT --allow-vbrief-drift after the move. 4. Regression test: move a closed parent proposed/ -> completed/ and assert children planRefs still resolve and validate is green. 5. Keep changes scoped; run pnpm run lint + task check. If the correct fix is materially larger than a resolver + reconcile rewrite, STOP and report findings.",
+      "Traces": "#1926, #11",
+      "Overview": "## Symptom\nWhen `task reconcile:issues --apply-lifecycle-fixes` moves a closed parent/umbrella vBRIEF from `proposed/` to `completed/`, every child vBRIEF that references it via a folder-qualified `planRef` is left pointing at a now-empty path. This forced `--allow-vbrief-drift` on both the v0.55.0 and v0.55.1 release cuts.\n\nExample: closed issue #11's umbrella vBRIEF `2026-04-23-11-npm-pip-cli-distribution-...vbrief.json` has children with:\n\n```json\n\"planRef\": \"proposed/2026-04-23-11-npm-pip-cli-distribution-...vbrief.json\"\n```\n\nMoving the parent to `completed/` dangles those `proposed/...` refs.\n\n## Root cause\n`planRef` (and the `decomposed from proposed/...` description string) embed the lifecycle folder in the path. Lifecycle moves are routine (reconcile, scope:complete), so any folder-qualified cross-reference is inherently fragile.\n\n## Impact\n- Reconcile's correct lifecycle fix (closed parent -> completed/) cannot be committed without breaking child refs.\n- Release cuts must repeatedly revert the move and pass `--allow-vbrief-drift`, which masks *all* drift, not just this benign case.\n\n## Suggested fix (pick one)\n- Make `planRef` lifecycle-folder-agnostic (store the vBRIEF id/basename, resolve folder at read time), or\n- Have `reconcile:issues` / `scope:*` rewrite dependent `planRef`s when they move a referenced vBRIEF, or\n- Add a resolver that treats `planRef` as a basename and searches all lifecycle folders.\n\nFound during the v0.55.0 and v0.55.1 releases. Refs #11.",
+      "Labels": "bug, area:vbrief"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1926",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1926: Path-based planRef dangles when reconcile:issues moves a closed parent vBRIEF across lifecycle folders"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-xbrief/refs",
+        "title": "Issue #11"
+      }
+    ],
+    "updated": "2026-07-03T01:46:50Z"
+  }
+}
