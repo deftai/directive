@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2247"
+  },
+  "plan": {
+    "title": "bug(swarm): finalize-cohort aborts the whole sweep on a closing ref to an already-completed/absent issue (no active brief)",
+    "status": "running",
+    "narratives": {
+      "Description": "finalize-cohort hard-errors and aborts the entire sweep when a merged PR's structured closing reference points to an issue with no active brief -- even when that issue is already closed/completed and is only an incidental reference. It should skip such refs with a warning.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2247",
+      "UserStory": "As a swarm orchestrator finalizing a cohort, I want an incidental closing ref to an already-completed issue (with no active brief) to be skipped with a warning rather than aborting the whole active/ -> completed/ sweep, so a benign 'Closes #<already-done>' in a PR body does not block lifecycle bookkeeping.",
+      "ImplementationPlan": "1. In packages/core/src/swarm/finalize-cohort.ts, closing issues resolved from PRs are unioned into resolveTokens; resolveStories then treats any token lacking an active brief as a hard error, and storyPaths==0 or accumulated errors abort the run (Result: FINALIZE INCOMPLETE). 2. Change the resolution so a closing-issue token that has NO active brief is SKIPPED WITH A WARNING when the issue is already closed OR a brief already exists in completed/ (i.e., it is a benign/incidental reference). Reserve a hard error only for a token that genuinely should have an active brief (open issue, no active and no completed brief) so real misconfig is not hidden. 3. Keep the real cohort stories sweeping unaffected; the presence of a skipped closing ref must not prevent the matched stories from moving active/ -> completed/. 4. Preserve the three-state exit contract + FinalizeCohortResult shape (add a warnings channel if needed; do not repurpose errors for skips). 5. Verify against the real recurrence: the #2245 cohort had PR #2241 closing #2115 (already completed) which aborted the sweep -- reproduce with a stub and assert CLEAN-with-warning. 6. Regression tests: (a) closing ref to already-closed issue w/ completed brief and no active brief -> skipped, rest sweeps, exit CLEAN; (b) closing ref to an open issue with neither active nor completed brief -> still surfaced (warn/error per chosen policy); (c) normal cohort unchanged. 7. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#2247, #2230, #2245, #2225",
+      "Overview": "See https://github.com/deftai/directive/issues/2247. Finalizing #2240-#2244, PR #2241 carried a structured closingIssuesReferences link to #2115 (completed in the prior cohort). finalize-cohort resolved #2115, found no active brief, and hard-errored 'FINALIZE INCOMPLETE' though all 5 real stories resolved. Worked around with --stories. Fix: skip benign already-closed/completed closing refs with a warning; keep hard error only for genuine misconfig.",
+      "GuardRails": "TS-native repo. This is the correctness follow-up to #2230 (which fixed descriptive-regex false positives by adopting structured closing refs). Do NOT reintroduce body regex-scraping. Route any live issue-state read through the scm shim. Keep the three-state exit semantics intact; skips are warnings, not errors. Determine 'already-completed' by checking xbrief/completed/ for a brief referencing the issue, and/or the issue's closed state via the scm shim."
+    },
+    "items": [
+      {
+        "title": "A cohort PR closing an already-completed/closed issue with no active brief finalizes CLEAN, skipping that ref with a warning.",
+        "status": "proposed"
+      },
+      {
+        "title": "The real cohort stories still sweep active/ -> completed/ regardless of the skipped ref.",
+        "status": "proposed"
+      },
+      {
+        "title": "A closing ref to an open issue with neither active nor completed brief is still surfaced (genuine misconfig not hidden).",
+        "status": "proposed"
+      },
+      {
+        "title": "Three-state exit contract + result shape preserved; skips reported as warnings, not errors.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test reproduces the #2115 case (CLEAN-with-warning) plus the genuine-misconfig case.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2247",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2247: finalize-cohort aborts on closing ref with no active brief"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2230",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2230"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2245",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2245"
+      }
+    ],
+    "updated": "2026-07-03T13:27:16Z"
+  }
+}

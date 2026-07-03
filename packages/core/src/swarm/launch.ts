@@ -176,17 +176,17 @@ function projectRel(projectRoot: string, path: string): string {
   }
 }
 
-function indexActiveStories(projectRoot: string): ActiveStory[] {
-  const activeDir = resolveLifecycleFolder(projectRoot, "active");
+function indexStoriesInFolder(projectRoot: string, folder: string): ActiveStory[] {
+  const dir = resolveLifecycleFolder(projectRoot, folder);
   const index: ActiveStory[] = [];
-  if (!existsSync(activeDir)) {
+  if (!existsSync(dir)) {
     return index;
   }
-  for (const name of readdirSync(activeDir).sort()) {
+  for (const name of readdirSync(dir).sort()) {
     if (!hasArtifactSuffix(name)) {
       continue;
     }
-    const path = join(activeDir, name);
+    const path = join(dir, name);
     const data = loadJson(path);
     if (data === null) {
       continue;
@@ -195,6 +195,20 @@ function indexActiveStories(projectRoot: string): ActiveStory[] {
     index.push({ path, story_id: storyId(path, plan), issues: issueNumbers(plan) });
   }
   return index;
+}
+
+function indexActiveStories(projectRoot: string): ActiveStory[] {
+  return indexStoriesInFolder(projectRoot, "active");
+}
+
+/**
+ * True when a brief in `xbrief/completed/` (or the legacy `vbrief/completed/`)
+ * references the given issue number in its `references[]` / `Traces`. Used by
+ * finalize-cohort (#2247) to classify an incidental closing ref to an
+ * already-completed issue as a benign skip rather than a hard error.
+ */
+export function completedBriefReferencesIssue(projectRoot: string, issue: number): boolean {
+  return indexStoriesInFolder(projectRoot, "completed").some((s) => s.issues.has(issue));
 }
 
 export function looksLikePath(token: string): boolean {
