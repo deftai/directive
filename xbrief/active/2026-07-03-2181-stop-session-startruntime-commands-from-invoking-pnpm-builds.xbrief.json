@@ -1,0 +1,65 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2181"
+  },
+  "plan": {
+    "title": "Stop session-start/runtime commands from invoking pnpm builds or package-manager retry loops",
+    "status": "running",
+    "narratives": {
+      "Description": "Stop session-start/runtime commands from invoking pnpm builds or package-manager retry loops",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2181",
+      "UserStory": "As an operator/agent starting a session, I want `task session:start` (and other runtime/session commands) to run the already-built Directive CLI or fail fast with a clear prerequisite message, NOT invoke pnpm/npm, compile TypeScript, or enter package-manager retry loops -- so a sandboxed or offline session isn't blocked by registry retry noise, engine warnings, or an exit-130 stuck build.",
+      "ImplementationPlan": "1. In Taskfile.yml, decouple `session:start` (and sibling runtime/session commands) from the `engine:_ts-build` dependency / `pnpm run build` invocation. Runtime dispatch (`engine:invoke`) should run the existing built CLI artifact (packages/cli/dist/bin.js) when present, and in a SOURCE checkout that lacks the artifact, fail fast with an actionable message (e.g. 'Run `task build` first') -- NOT trigger a build. 2. Node-version checks must read `process.versions.node` directly, not rely on pnpm engine warnings. 3. Keep explicit dev/release commands (`task build`, `task check`, e2e/packaging) free to run package-manager/build steps -- only runtime/session commands are constrained. 4. Do not remove package `engines` declarations or TS builds from build/check/release flows (non-goals). 5. Tests: assert `session:start` dispatch does NOT depend on `engine:_ts-build` / raw `pnpm run build`, and that a missing build artifact yields a fast actionable error (mock/stub the artifact-present vs absent branches). 6. Run pnpm run lint + task check; note task check itself may build -- that's allowed (it's a dev command).",
+      "Traces": "#2181, #2176, #2180",
+      "Overview": "## Summary\n\nRuntime/session commands such as `task session:start` should not invoke `pnpm`, build TypeScript, install/check dependencies, or enter package-manager retry loops. They should run the installed/built Directive CLI or fail fast with a clear prerequisite message.\n\n## Problem\n\nIn a normal issue-filing session, `task session:start` ran `engine:_ts-build`, which invoked `pnpm --dir <repo> run build`. That caused:\n\n- registry/DNS retry noise under sandboxed network restrictions,\n- an unsupported engine warning from pnpm (`node >=24` wanted, Node v22 present),\n- long retry/backoff behavior that was not doing useful project work,\n- an eventual `engine:_ts-build` exit 130 after the stuck retry was interrupted,\n- generated local artifacts such as `.pnpm-store/`.\n\nThis is too much work for a session-start command. It also blurs runtime and development concerns: an installed CLI package should rely on its packaged `bin`/dependencies, and source checkouts should not compile on every session invocation.\n\n## Proposed behavior\n\n- `task session:start` and other runtime/session commands do not run `pnpm`, `npm`, dependency installation, dependency verification, or TypeScript builds.\n- Installed Directive uses the packaged CLI entrypoint.\n- Source checkouts use an existing built CLI artifact when present.\n- If a source checkout lacks a required build artifact, fail fast with a clear message such as `Run task build first`.\n- Node compatibility is checked directly from Node (`process.versions.node`) where needed, not by invoking pnpm and relying on package-manager engine warnings.\n- Explicit development commands such as `task build`, `task check`, or release/e2e packaging flows remain allowed to run package-manager/build steps.\n\n## Acceptance criteria\n\n- `task session:start` completes without invoking `pnpm` or `npm`.\n- `task session:start` does not contact the npm registry.\n- `task session:start` does not create `.pnpm-store/` or other package-manager artifacts.\n- Missing build artifacts in a source checkout produce a fast, actionable error.\n- Package-manager retry/backoff cannot block session-start.\n- Exit 130 from an interrupted package-manager retry loop is no longer possible in `session:start` because no package manager is invoked.\n- Tests assert that `session:start` dispatch does not depend on `engine:_ts-build` or raw `pnpm run build`.\n\n## Non-goals\n\n- This does not remove TypeScript builds from explicit build/check/release workflows.\n- This does not remove package `engines` declarations.\n- This does not prevent `doctor` from checking toolchain health when explicitly requested.\n\n## Related\n\nRelated: #2176, #2180. This is the runtime/package-manager failure mode exposed by the current session ritual behavior.\n",
+      "Labels": "enhancement, adoption-blocker, agent-experience, runtime-portability, tooling, area:cli"
+    },
+    "items": [
+      {
+        "title": "`task session:start` completes without invoking `pnpm` or `npm`.",
+        "status": "proposed"
+      },
+      {
+        "title": "`task session:start` does not contact the npm registry.",
+        "status": "proposed"
+      },
+      {
+        "title": "`task session:start` does not create `.pnpm-store/` or other package-manager artifacts.",
+        "status": "proposed"
+      },
+      {
+        "title": "Missing build artifacts in a source checkout produce a fast, actionable error.",
+        "status": "proposed"
+      },
+      {
+        "title": "Package-manager retry/backoff cannot block session-start.",
+        "status": "proposed"
+      },
+      {
+        "title": "Exit 130 from an interrupted package-manager retry loop is no longer possible in `session:start` because no package manager is invoked.",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests assert that `session:start` dispatch does not depend on `engine:_ts-build` or raw `pnpm run build`.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "runtime-portability",
+      "tooling",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2181",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2181: Stop session-start/runtime commands from invoking pnpm builds or package-manager retry loops"
+      }
+    ],
+    "updated": "2026-07-03T00:35:30Z"
+  }
+}
