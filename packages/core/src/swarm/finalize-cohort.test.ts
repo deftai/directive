@@ -174,6 +174,39 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("opens the sweep PR against the configured base branch (--base)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-base-"));
+    const storyPath = writeActiveStory(project, "story-f", 2225);
+    const ghCalls: string[][] = [];
+    const capturingRunGh: (command: readonly string[]) => TextCaptureResult = (cmd) => {
+      ghCalls.push([...cmd]);
+      if (cmd.includes("pr") && cmd.includes("create")) {
+        return {
+          returncode: 0,
+          stdout: "https://github.com/deftai/directive/pull/9999",
+          stderr: "",
+        };
+      }
+      return { returncode: 0, stdout: "", stderr: "" };
+    };
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-f",
+      repo: "deftai/directive",
+      baseBranch: "develop",
+      runGit: mockRunGit(),
+      runGh: capturingRunGh,
+    });
+    expect(result.exitCode).toBe(0);
+    const createCall = ghCalls.find((c) => c.includes("pr") && c.includes("create"));
+    expect(createCall).toBeDefined();
+    const baseIdx = createCall?.indexOf("--base") ?? -1;
+    expect(baseIdx).toBeGreaterThanOrEqual(0);
+    expect(createCall?.[baseIdx + 1]).toBe("develop");
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("manual completeCohortMain still works independently", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-manual-"));
     const storyPath = writeActiveStory(project, "story-e", 2225);

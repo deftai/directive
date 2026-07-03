@@ -80,6 +80,10 @@ function safeSegment(text: string): string {
   return cleaned.length > 0 ? cleaned : "cohort";
 }
 
+function oneLine(text: string): string {
+  return text.replace(/\r?\n/g, " ");
+}
+
 function parseRepo(repo: string): { owner: string; name: string } | null {
   const slash = repo.indexOf("/");
   if (slash <= 0 || slash >= repo.length - 1) {
@@ -106,7 +110,14 @@ function fetchPrMergedAt(
     };
   }
   try {
-    const payload = JSON.parse(result.stdout) as Record<string, unknown>;
+    const parsed = JSON.parse(result.stdout) as unknown;
+    if (parsed === null || typeof parsed !== "object") {
+      return {
+        mergedAt: null,
+        error: `unexpected gh api response for PR #${prNumber}: not a JSON object`,
+      };
+    }
+    const payload = parsed as Record<string, unknown>;
     const mergedAt = payload.merged_at;
     if (mergedAt === null) {
       return { mergedAt: null, error: `PR #${prNumber} is not merged yet.` };
@@ -147,7 +158,14 @@ function fetchClosingIssues(
     };
   }
   try {
-    const payload = JSON.parse(apiResult.stdout) as Record<string, unknown>;
+    const parsed = JSON.parse(apiResult.stdout) as unknown;
+    if (parsed === null || typeof parsed !== "object") {
+      return {
+        issues: [],
+        error: `unexpected gh api response for PR #${prNumber}: not a JSON object`,
+      };
+    }
+    const payload = parsed as Record<string, unknown>;
     const body = typeof payload.body === "string" ? payload.body : "";
     const issues = new Set<number>();
     for (const match of body.matchAll(/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi)) {
@@ -289,6 +307,7 @@ function pushAndOpenPr(
   projectRoot: string,
   branch: string,
   repo: string,
+  baseBranch: string,
   storyPaths: readonly string[],
   prNumbers: readonly number[],
   runGit: typeof runText,
@@ -319,6 +338,8 @@ function pushAndOpenPr(
     "create",
     "--repo",
     repo,
+    "--base",
+    baseBranch,
     "--head",
     branch,
     "--title",
@@ -501,6 +522,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           projectRoot,
           branch,
           repo,
+          baseBranch,
           storyPaths,
           prNumbers,
           runGit,
@@ -588,7 +610,7 @@ function buildResponse(input: {
   if (input.storyPaths.length > 0) {
     lines.push("  Stories:");
     for (const path of input.storyPaths) {
-      lines.push(`    - ${path}`);
+      lines.push(`    - ${oneLine(path)}`);
     }
   }
   if (input.branch !== null) {
@@ -603,7 +625,7 @@ function buildResponse(input: {
   if (input.errors.length > 0) {
     lines.push("  Errors:");
     for (const err of input.errors) {
-      lines.push(`    - ${err}`);
+      lines.push(`    - ${oneLine(err)}`);
     }
   }
   lines.push("");
