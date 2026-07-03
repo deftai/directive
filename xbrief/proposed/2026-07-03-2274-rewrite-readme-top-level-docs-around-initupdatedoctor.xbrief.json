@@ -42,6 +42,16 @@
         "uri": "https://github.com/deftai/directive/issues/2274",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2274: Rewrite README + top-level docs around init/update/doctor"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2201",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2201"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

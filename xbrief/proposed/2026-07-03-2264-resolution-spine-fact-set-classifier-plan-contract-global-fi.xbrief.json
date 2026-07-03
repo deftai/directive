@@ -51,6 +51,31 @@
         "uri": "https://github.com/deftai/directive/issues/2264",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2264: Resolution spine: fact-set classifier + plan() contract + global-first ladder + pin (keystone)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1036",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1036"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2124",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2124"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2199",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2199"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/537",
+        "type": "x-xbrief/refs",
+        "title": "Issue #537"
       }
     ],
     "metadata": {

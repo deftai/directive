@@ -55,6 +55,21 @@
         "uri": "https://github.com/deftai/directive/issues/2265",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2265: directive init: universal adoption dispatcher"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2198",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2198"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2199",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2199"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

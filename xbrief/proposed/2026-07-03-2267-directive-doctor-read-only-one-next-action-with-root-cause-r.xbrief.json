@@ -46,6 +46,16 @@
         "uri": "https://github.com/deftai/directive/issues/2267",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2267: directive doctor: read-only, one next action with root-cause + remediation rationale"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2200",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2200"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

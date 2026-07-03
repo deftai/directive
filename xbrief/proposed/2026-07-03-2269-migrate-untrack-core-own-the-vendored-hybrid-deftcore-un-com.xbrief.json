@@ -46,6 +46,31 @@
         "uri": "https://github.com/deftai/directive/issues/2269",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2269: migrate --untrack-core: own the vendored->hybrid .deft/core un-commit"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1941"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1942"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2123",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2123"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2124",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2124"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

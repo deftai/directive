@@ -51,6 +51,16 @@
         "uri": "https://github.com/deftai/directive/issues/2266",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2266: directive update: refresh-only + self-heal"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2199",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2199"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

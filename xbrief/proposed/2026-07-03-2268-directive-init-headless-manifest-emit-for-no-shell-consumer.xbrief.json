@@ -46,6 +46,21 @@
         "uri": "https://github.com/deftai/directive/issues/2268",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2268: directive init --headless: manifest emit for no-shell consumer products"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1036",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1036"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2253",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2253"
       }
     ],
     "metadata": {

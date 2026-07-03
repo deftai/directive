@@ -52,6 +52,16 @@
         "uri": "https://github.com/deftai/directive/issues/2110",
         "type": "x-xbrief/refs",
         "title": "Issue #2110"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2202",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2202"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

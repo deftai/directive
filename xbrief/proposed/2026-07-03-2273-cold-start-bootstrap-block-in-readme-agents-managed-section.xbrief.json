@@ -47,6 +47,11 @@
         "uri": "https://github.com/deftai/directive/issues/2273",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2273: Cold-start bootstrap block in README + AGENTS managed section"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

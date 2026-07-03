@@ -46,6 +46,16 @@
         "uri": "https://github.com/deftai/directive/issues/2271",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2271: USER.md / user-config resolution in mismatched + headless envs"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2124",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2124"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {

@@ -42,6 +42,11 @@
         "uri": "https://github.com/deftai/directive/issues/2272",
         "type": "x-xbrief/github-issue",
         "title": "Issue #2272: Cold-clone reconstitution: end-to-end acceptance test"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
       }
     ],
     "metadata": {
