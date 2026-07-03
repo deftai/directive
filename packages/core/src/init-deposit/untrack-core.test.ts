@@ -9,7 +9,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PinReadResult } from "../resolution/pin.js";
 import type { GitLsFiles } from "./gitignore.js";
@@ -136,6 +137,24 @@ describe("untrackCore", () => {
     expect(result.message).toContain("non-exact");
   });
 
+  it("refuses a non-exact pin even when readPin resolves a version (guard is not coupled to pinVersion===null)", () => {
+    const root = freshRoot("untrack-range-resolved-");
+    const git = fakeGit(true);
+
+    // A hypothetical readPin that resolves a concrete version from a range spec
+    // while still flagging it non-exact. The guard MUST refuse on nonExact alone.
+    const result = untrackCore(root, {
+      gitLsFiles: git.gitLsFiles,
+      gitRmCached: git.gitRmCached,
+      readPin: () => pin("0.59.0", { rawSpec: "^0.59.0", nonExact: true }),
+    });
+
+    expect(result.outcome).toBe("refused-missing-pin");
+    expect(result.exitCode).toBe(1);
+    expect(git.calls).toEqual([]);
+    expect(result.message).toContain("non-exact");
+  });
+
   it("is an idempotent no-op when the deposit is already untracked and ignored", () => {
     const root = freshRoot("untrack-clean-");
     // Pre-seed a fully reconciled .gitignore so the second-run reconcile is a no-op.
@@ -221,6 +240,8 @@ describe("untrackCore", () => {
     expect(result.outcome).toBe("git-error");
     expect(result.exitCode).toBe(2);
     expect(result.message).toContain("git rm --cached failed");
+    // The trimmed git detail is interpolated into the guard message.
+    expect(result.message).toContain("fatal: not a git repository");
   });
 });
 
@@ -254,7 +275,12 @@ describe("runUntrackCoreCli", () => {
     });
 
     expect(code).toBe(0);
-    const payload = JSON.parse(io.out.join("")) as Record<string, unknown>;
+    // JSON.parse can return a top-level null/primitive without throwing; assert
+    // an object before property access so a malformed payload fails loud here.
+    const parsed: unknown = JSON.parse(io.out.join(""));
+    expect(parsed).toBeTypeOf("object");
+    expect(parsed).not.toBeNull();
+    const payload = parsed as Record<string, unknown>;
     expect(payload.action).toBe("migrate-untrack-core");
     expect(payload.outcome).toBe("untracked");
     expect(payload.exit_code).toBe(0);
@@ -308,7 +334,9 @@ describe("runUntrackCoreCli", () => {
 
 describe("destructive-mutation boundary (#2269 a1)", () => {
   it("git rm --cached is invoked only from untrack-core.ts across init-deposit + init-cli", () => {
-    const initDepositDir = import.meta.dirname;
+    // Portable __dirname (avoids relying on the Node-version-gated
+    // `import.meta.dirname`, which some type-checkers reject).
+    const initDepositDir = dirname(fileURLToPath(import.meta.url));
     const initCliDir = resolve(initDepositDir, "../../../cli/src/init-cli");
     // The destructive index mutation is the `["rm", "--cached", ...]` argv
     // adjacency — NOT a bare `--cached` (e.g. the non-destructive

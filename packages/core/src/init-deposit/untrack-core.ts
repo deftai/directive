@@ -136,8 +136,12 @@ export function untrackCore(projectRoot: string, seams: UntrackCoreSeams = {}): 
   }
 
   // Tracked: gate on the committed pin so content stays reconstitutable.
+  // Refuse on either an absent pin OR a non-exact range spec — a range cannot
+  // deterministically reconstitute the exact deposit, so it is not a safe gate.
+  // The `|| pin.nonExact` makes the invariant self-documenting and robust to any
+  // future `readPin` that resolves a version alongside `nonExact: true` (#2269).
   const pin = readPinFn(projectRoot);
-  if (pin.pinVersion === null) {
+  if (pin.pinVersion === null || pin.nonExact) {
     return {
       outcome: "refused-missing-pin",
       exitCode: 1,
