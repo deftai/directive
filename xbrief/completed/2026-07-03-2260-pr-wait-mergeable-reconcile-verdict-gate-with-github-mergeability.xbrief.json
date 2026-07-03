@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(cascade): pr:wait-mergeable-and-merge polls without merging a GitHub-mergeable PR (verdict gate diverges from mergeStateStatus; no heartbeat)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "task pr:wait-mergeable-and-merge (TS pr-wait-mergeable cascade -> pr-monitor poller) can poll for many minutes without concluding merge-ready and without merging, even though GitHub reports mergeStateStatus: CLEAN, mergeable: MERGEABLE, and all required checks green. The operator is left with a live-but-idle process; a manual gh pr merge --admin merges instantly.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2260",
@@ -54,7 +54,10 @@
         "title": "Issue #701 (protected-issue precondition)"
       }
     ],
-    "updated": "2026-07-03T16:04:46Z",
-    "metadata": {}
+    "updated": "2026-07-03T16:33:33Z",
+    "metadata": {
+      "completedAt": "2026-07-03T16:33:33Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
