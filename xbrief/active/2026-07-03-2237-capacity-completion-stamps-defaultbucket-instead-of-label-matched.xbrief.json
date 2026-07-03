@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2237"
+  },
+  "plan": {
+    "title": "bug(capacity): completion stamps defaultBucket instead of label-matched capacityBucket",
+    "status": "running",
+    "narratives": {
+      "Description": "Completion metadata stamping uses capacityAllocation.defaultBucket unconditionally and never matches the issue/brief labels against the configured buckets[].match.labels mapping, so every auto-stamped brief is miscategorized as the default bucket.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2237",
+      "UserStory": "As a maintainer relying on capacity-allocation accounting, I want a completing brief's capacityBucket to be derived from its issue labels (matched against plan.policy.capacityAllocation.buckets[].match.labels), so bug-labeled work is counted as technical-debt (not new-capability) and the 30-day capacity window reflects the real work mix.",
+      "ImplementationPlan": "1. Root cause is in packages/core/src/scope/capacity-stamp.ts: stampCompletionMetadata() calls resolveDefaultCapacityBucket() which returns only capacityAllocation.defaultBucket; it ignores the buckets[].match.labels mapping. 2. Add label-aware resolution: read capacityAllocation.buckets (each has id + match.labels.any-of), and select the FIRST bucket (in declared order) whose any-of label set intersects the brief/issue's labels; fall back to defaultBucket only when no bucket matches. 3. Source of labels: the completing brief already carries its issue reference(s); resolve labels from the brief metadata if present, else derive from the linked issue. Keep resolution pure/injectable so it is unit-testable without network (accept a labels list argument, or an injectable label reader). Do NOT add a hard gh dependency to the stamping hot path if labels are already available on the brief. 4. Preserve precedence: an explicit pre-existing metadata.capacityBucket is never overwritten. 5. Both call paths must benefit: deft scope:complete (#1419) and swarm:finalize-cohort (#2225) go through stampCompletionMetadata -- verify both. 6. Regression tests in packages/core/src/scope/ (mirror capacity-stamp existing test style): (a) bug-labeled brief -> technical-debt under the shipped config; (b) no-label-match -> defaultBucket fallback; (c) pre-existing capacityBucket respected (no overwrite); (d) first-declared-match-wins when labels hit multiple buckets. 7. Run pnpm run lint AND the full-repo lint lane (pnpm run lint at repo root, not just changed files -- CI checks all 1176 files, biome organizeImports/correctness are ERROR severity) + task check before opening the PR.",
+      "Traces": "#2237, #2225, #1419, #2235",
+      "Overview": "See https://github.com/deftai/directive/issues/2237 for full detail. stampCompletionMetadata in packages/core/src/scope/capacity-stamp.ts stamps metadata.capacityBucket from capacityAllocation.defaultBucket (\"new-capability\") whenever a completing brief has no pre-existing bucket, ignoring the label->bucket mapping already present in the config (bug -> technical-debt). Surfaced dogfooding swarm:finalize-cohort (#2225) on the #2230/#2205/#1926/#1576 cohort: all four bug-labeled briefs were stamped new-capability. Greptile flagged it P1 on sweep PR #2235. Affects scope:complete (#1419) too -- stampCompletionMetadata is the shared surface.",
+      "GuardRails": "The repo is TS-native (post Python->TS migration). Implement in TypeScript under packages/core/src/scope/. Do NOT resurrect any Python capacity script. Match labels against the buckets ALREADY defined in xbrief/PROJECT-DEFINITION.xbrief.json capacityAllocation -- do not hardcode bucket ids. The four affected completed briefs were already data-corrected in PR #2239; this issue fixes the STAMPING LOGIC so it never recurs."
+    },
+    "items": [
+      {
+        "title": "stampCompletionMetadata resolves capacityBucket by matching issue labels against capacityAllocation.buckets[].match.labels (first declared match wins).",
+        "status": "proposed"
+      },
+      {
+        "title": "A brief with no matching label falls back to defaultBucket.",
+        "status": "proposed"
+      },
+      {
+        "title": "An explicit pre-existing metadata.capacityBucket is respected (never overwritten).",
+        "status": "proposed"
+      },
+      {
+        "title": "Both scope:complete and swarm:finalize-cohort paths exercise the label-aware resolution.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression tests cover label-match, no-match fallback, pre-existing-bucket precedence, and first-declared-match ordering.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2237",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2237: bug(capacity): completion stamps defaultBucket instead of label-matched capacityBucket"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2225",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2225"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1419"
+      }
+    ],
+    "updated": "2026-07-03T11:56:35Z"
+  }
+}
