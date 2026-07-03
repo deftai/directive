@@ -225,7 +225,9 @@ export async function runInitDeposit(
 
   const configDir = createUserConfigDir(io);
 
-  const { stagePaths, staged, stagedPaths } = depositStagePaths(projectDir);
+  const { stagePaths, staged, stagedPaths } = depositStagePaths(projectDir, {
+    includeTaskfile: taskfileWired,
+  });
   printCommitGuidance(io, stagePaths, staged);
 
   return {

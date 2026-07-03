@@ -9,7 +9,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { gitPorcelain } from "../story-ready/git.js";
-import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./scaffold.js";
+import { CANONICAL_INSTALL_ROOT } from "./constants.js";
+import type { InitDepositIo } from "./scaffold.js";
 
 export const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
 export const CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
@@ -72,7 +73,23 @@ export function isInstallerManagedPath(path: string): boolean {
   return matchesInstallerManaged(path, installerManagedMatchers());
 }
 
-export function frameworkStagePaths(projectDir: string, deftDir: string): string[] {
+export interface FrameworkStagePathsOptions {
+  /**
+   * Include the project-root ``Taskfile.yml`` in the stage set. Defaults to
+   * ``false``: unlike the other allowlisted paths, ``Taskfile.yml`` is a
+   * consumer-owned file that merely *contains* an installer-managed include
+   * block, so it must only be staged when the installer actually wired that
+   * block this run -- otherwise an unrelated user edit would be silently
+   * ``git add``ed (#1576 review).
+   */
+  readonly includeTaskfile?: boolean;
+}
+
+export function frameworkStagePaths(
+  projectDir: string,
+  deftDir: string,
+  options: FrameworkStagePathsOptions = {},
+): string[] {
   const paths: string[] = [];
   const seen = new Set<string>();
   const add = (rel: string): void => {
@@ -89,6 +106,7 @@ export function frameworkStagePaths(projectDir: string, deftDir: string): string
   }
 
   for (const matcher of installerManagedMatchers()) {
+    if (matcher.exact === "Taskfile.yml" && !options.includeTaskfile) continue;
     if (matcher.exact) {
       add(matcher.exact);
     } else if (matcher.prefix) {
@@ -190,22 +208,26 @@ function actuallyStagedPaths(
   );
 }
 
-export interface DepositStagePathsSeams extends StageFrameworkPathsSeams {
+export interface DepositStagePathsOptions
+  extends StageFrameworkPathsSeams,
+    FrameworkStagePathsOptions {
   readCachedNames?: (projectDir: string) => string[];
 }
 
 export function depositStagePaths(
   projectDir: string,
-  seams: DepositStagePathsSeams = {},
+  options: DepositStagePathsOptions = {},
 ): {
   stagePaths: string[];
   staged: boolean;
   stagedPaths: string[];
 } {
   const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
-  const stagePaths = frameworkStagePaths(projectDir, deftDir);
-  const { staged } = stageFrameworkPaths(projectDir, stagePaths, seams);
-  const readCachedNames = seams.readCachedNames ?? defaultCachedNames;
+  const stagePaths = frameworkStagePaths(projectDir, deftDir, {
+    includeTaskfile: options.includeTaskfile ?? false,
+  });
+  const { staged } = stageFrameworkPaths(projectDir, stagePaths, options);
+  const readCachedNames = options.readCachedNames ?? defaultCachedNames;
   const cachedNames = staged ? readCachedNames(projectDir) : [];
   return {
     stagePaths,

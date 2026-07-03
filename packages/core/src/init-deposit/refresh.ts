@@ -330,7 +330,9 @@ export async function runRefreshDeposit(
     taskfileWired = ensureTaskfile(projectDir, io);
   }
 
-  const { stagePaths, staged, stagedPaths } = depositStagePaths(projectDir);
+  const { stagePaths, staged, stagedPaths } = depositStagePaths(projectDir, {
+    includeTaskfile: taskfileWired,
+  });
   printCommitGuidance(io, stagePaths, staged);
 
   const readPorcelain = seams.gitPorcelain ?? gitPorcelain;

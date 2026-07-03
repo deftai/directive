@@ -29,10 +29,14 @@ describe("installer-managed allowlist (#1576)", () => {
         "version: '3'\ntasks:\n  hello:\n    cmds: [echo hi]\n",
         "utf8",
       );
-      const paths = frameworkStagePaths(root, join(root, ".deft", "core"));
+      const paths = frameworkStagePaths(root, join(root, ".deft", "core"), {
+        includeTaskfile: true,
+      });
       expect(paths).toContain("Taskfile.yml");
       expect(paths).toContain(".deft/core");
       expect(paths).toContain("AGENTS.md");
+      // When the include was not wired this run, Taskfile.yml is excluded.
+      expect(frameworkStagePaths(root, join(root, ".deft", "core"))).not.toContain("Taskfile.yml");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -85,7 +89,7 @@ describe("scoped staging", () => {
     );
     expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain("build:");
 
-    const { stagedPaths } = depositStagePaths(project);
+    const { stagedPaths } = depositStagePaths(project, { includeTaskfile: true });
     expect(stagedPaths).toContain("Taskfile.yml");
 
     const porcelain = execFileSync("git", ["status", "--porcelain"], {
@@ -124,11 +128,44 @@ describe("scoped staging", () => {
     // Only Taskfile.yml is modified after baseline; AGENTS.md / .deft/core are clean.
     expect(ensureTaskfile(project, { printf: () => {} })).toBe(true);
 
-    const { stagePaths, stagedPaths } = depositStagePaths(project);
+    const { stagePaths, stagedPaths } = depositStagePaths(project, { includeTaskfile: true });
     expect(stagePaths).toContain("AGENTS.md");
     expect(stagedPaths).toContain("Taskfile.yml");
     expect(stagedPaths).not.toContain("AGENTS.md");
     expect(stagedPaths).not.toContain(".deft/core");
+  });
+
+  it("does not stage Taskfile.yml when the include was not wired this run (#1576)", async () => {
+    const project = freshRoot("hygiene-unwired-taskfile-");
+
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    writeFileSync(
+      join(project, "Taskfile.yml"),
+      "version: '3'\ntasks:\n  build:\n    cmds: [npm run build]\n",
+      "utf8",
+    );
+    initGitRepo(project);
+
+    // Simulate an interactive run: the user edits their own Taskfile.yml, but
+    // the installer never wired the deft include (includeTaskfile omitted).
+    writeFileSync(
+      join(project, "Taskfile.yml"),
+      "version: '3'\ntasks:\n  build:\n    cmds: [npm run build]\n  test:\n    cmds: [npm test]\n",
+      "utf8",
+    );
+
+    const { stagePaths, stagedPaths } = depositStagePaths(project);
+    expect(stagePaths).not.toContain("Taskfile.yml");
+    expect(stagedPaths).not.toContain("Taskfile.yml");
+
+    // The user's Taskfile.yml edit is left un-staged for them to handle.
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(porcelain).toMatch(/Taskfile\.yml/);
   });
 
   it("stageFrameworkPaths is a no-op outside git", () => {
