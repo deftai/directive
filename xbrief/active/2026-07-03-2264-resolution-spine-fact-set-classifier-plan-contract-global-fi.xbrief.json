@@ -1,0 +1,161 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2264; refined to swarm-ready 2026-07-03 (keystone of epic #2203)."
+  },
+  "plan": {
+    "id": "2264-resolution-spine",
+    "title": "Resolution spine: fact-set classifier + plan() contract + global-first ladder + pin (keystone)",
+    "status": "running",
+    "narratives": {
+      "Description": "Build the shared resolution spine that all three Directive consumption contexts (matched shell, mismatched sandbox, headless product) stand on. It comprises an orthogonal fact-set classifier, a single ordered plan() that emits a versioned public JSON schema, a global-first engine-resolution ladder with a local-engine integrity check, a committed package.json version pin reconciled against .deft/core/VERSION and the AGENTS managed-section sha, and a three-band engine-skew policy. This is the keystone every other epic #2203 child derives from, so it ships first and delivers library primitives rather than user-facing verb behavior.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2264",
+      "Overview": "Part of epic #2203. Keystone child — everything else depends on this.\n\n## Summary\n\nBuild the shared resolution spine that all three consumption contexts (matched shell, mismatched sandbox, headless product) stand on: the fact-set classifier, the `plan()` contract, the global-first engine-resolution ladder, the `package.json` version pin + `VERSION` reconciliation, and the three-band skew policy.\n\nAbsorbs #2124 (global-first ladder + committed pin) and the version half of #2199.\n\n## Classifier + plan() (Decision 5)\n\n- `classify()` returns an **orthogonal fact-set**, never a single enum: `hasGit, hasAppCode, hasDeftCore, deftCorePayloadVersion, hasManagedSection, managedSectionSha, hasVbrief, hasXbrief, preCutoverArtifacts, engineReachable, engineVersion, pinVersion`.\n- `plan()` applies an explicit, ordered **precedence table** over the fact-set and emits exactly one recommended action + rationale.\n- `plan()` output is a **versioned public JSON schema** — `{ schemaVersion, mode, files: [{ path, content, encoding }], nextAction: { command, rootCause, remediation }, warnings[] }`. `doctor` prints it; headless (#child E) serializes it; products consume it. Single source of truth (closes the #537 split-source drift risk).\n\n## Global-first engine-resolution ladder (from #2124)\n\n```text\n1. global `deft` reachable AND >= pin?                    -> use it   (matched / new machine / post-upgrade)\n2. local .deft/.cli/<platform> reachable, intact, >= pin? -> use it   (warm mismatched sandbox)\n3. must install:\n   a. registry up + global prefix writable                -> npm i -g @deftai/directive@<pin>\n   b. registry up + global prefix NOT writable (sandbox)  -> npm install --prefix .deft/.cli/<platform>\n   c. registry down                                        -> pre-staged tarball / vendored payload; else hard-fail \"stage this\"\n```\n\nReproduced motivation (Cowork session, 2026-06-30, preserved from #2124): a native Ubuntu `coworkd/oneshot-*` container bridges only user-selected folders over FUSE; the host FS and its global npm install are invisible; `$HOME` is outside persistent mounts so in-sandbox `npm i -g` evaporates next session; each bash invocation is independent so PATH does not carry over. The agent could read every rule in `.deft/core/` but execute no gate. The defect is **execution-env != install-env**, not \"ephemeral sandbox\" — the ladder detects the mismatch (is `deft` reachable in the env I am actually running in?) and self-heals only then.\n\n## Version artifacts (Decision 2)\n\n- **Committed pin** = `package.json` devDependency on `@deftai/directive` (exact version, `\"private\": true`). Read before directive runs; npm-native so the ladder is plain npm. Canonical; converges with deftai/deftvisage#1036.\n- **`.deft/core/VERSION`** = currently-projected content marker, engine-written. `update` (#child C) forward-migrates content and re-stamps it.\n- Reconciliation compares engine version, the pin, and `VERSION`; the AGENTS managed-section `sha=` is part of the reconciliation, not just `VERSION`.\n\n## Three-band skew policy (Decision 4)\n\nContent is always forward-migrated (`update`) before any gate runs.\n\n- `engine == pin` -> proceed silently (trace only).\n- `engine > pin` within `plan.policy.engineSkewWindow` (default ~3 minors pre-1.0; \"same major\" post-1.0) -> proceed, emit loud delta, run `update` first.\n- `engine > pin` beyond the window -> **fail closed** non-interactively (require `--accept-engine-jump`); prompt when interactive. `DEFT_ACCEPT_ENGINE_SKEW=1` is the CI escape.\n- `engine < pin` -> reject global, fall through the ladder.\n\n## Acceptance criteria\n\n- One classifier module + one ordered precedence table, both unit-tested across the major fact combinations (incl. brownfield+pre-cutover, initialized-stale+legacy-vbrief).\n- `plan()` emits the versioned schema; `doctor` and headless derive from it (no second classifier).\n- Ladder self-heals in a mismatched env with zero manual npm/PATH steps and emits a **structured trace** (\"global: absent; local: v0.63 < pin v0.65; installed --prefix; re-projected content v0.65\").\n- Local-engine **integrity check**: a present-but-partial `.deft/.cli/` (interrupted install) is treated as not-usable, not as a valid engine.\n- Three-band skew policy enforced; large pre-1.0 jump fails closed without `--accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW=1`.\n- Pin read from `package.json`; `VERSION` reconciled; managed-section sha included.\n\n## Related\n\nAbsorbs #2124. Parent #2203. Bootstrap block that invokes this ladder is #child J1.\n",
+      "UserStory": "As a Directive consumer running in a matched shell or a mismatched sandbox or a headless product with no shell, I want one shared resolution spine (a fact-set classifier feeding a single ordered plan() that emits a versioned schema plus a global-first engine-resolution ladder plus a committed package.json pin with VERSION reconciliation plus a three-band skew policy), so that init and update and doctor and headless emit all derive their decisions from one source of truth instead of re-detecting state and a mismatched execution environment self-heals with zero manual npm or PATH steps.",
+      "ImplementationPlan": "Scope note: this keystone delivers the shared LIBRARY primitives (classify/plan/ladder/pin/skew + versioned schema + local-engine integrity). It does NOT rewire the user-facing behavior of init/update/doctor/headless — those are children B (#2265), C (#2266), D (#2267), E (#2268), which CONSUME plan(). Keep the verb behavior changes out of this PR; expose the spine and prove it with unit + contract tests.\n\n1. New module `packages/core/src/resolution/` (exported from `packages/core/package.json` as `./resolution`, re-exported via `packages/core/src/index.ts`):\n   - `classify.ts` — `classify(cwd, opts)` returns the orthogonal fact-set (`hasGit, hasAppCode, hasDeftCore, deftCorePayloadVersion, hasManagedSection, managedSectionSha, hasVbrief, hasXbrief, preCutoverArtifacts, engineReachable, engineVersion, pinVersion`). REUSE existing detectors rather than re-implementing: `vbrief-validate/precutover.ts` (preCutoverArtifacts), `platform/agents-md.ts::parseManagedSectionAttrs` (hasManagedSection/managedSectionSha), `doctor/manifest.ts` + `init-deposit/constants.ts::CANONICAL_INSTALL_ROOT` (hasDeftCore/deftCorePayloadVersion), `engine-version.ts` (engineVersion), `init-deposit/legacy-detect.ts` (legacy/xbrief-vs-vbrief signals).\n   - `plan.ts` — `plan(facts, policy)` applies ONE explicit ordered precedence table and returns exactly one recommended action + rationale, shaped as the versioned schema `{ schemaVersion, mode, files, nextAction: { command, rootCause, remediation }, warnings }`. This is the single source of truth (closes #537 split-source drift).\n   - `engine-ladder.ts` — pure decision function for the global-first ladder (global>=pin -> local .deft/.cli/<platform> intact+>=pin -> install: global-prefix | --prefix sandbox | staged tarball | hard-fail). Emits a structured trace string. Side-effecting install is factored behind an injected runner so it is unit-testable without touching the network.\n   - `integrity.ts` — local-engine integrity check: a present-but-partial `.deft/.cli/<platform>` (interrupted install) is classified not-usable.\n   - `skew-policy.ts` — three-band policy over (engine, pin) using `plan.policy.engineSkewWindow`; `engine==pin` silent, within-window loud+update-first, beyond-window fail-closed unless `--accept-engine-jump`/`DEFT_ACCEPT_ENGINE_SKEW=1`, `engine<pin` reject-global.\n   - `pin.ts` — read the committed `package.json` devDependency pin; reconcile engine vs pin vs `.deft/core/VERSION` and the AGENTS managed-section `sha=`.\n   - `index.ts` — barrel export.\n2. Types + schema: add `packages/types/schemas/resolution-plan-v1.schema.json` (the versioned public plan() output schema) and matching TS types in `packages/types/src/resolution.ts`; export from `packages/types/src/index.ts`. Add `engineSkewWindow` to the typed `PlanPolicy` in `packages/types/src/policy.ts` (default ~3 minors pre-1.0). Keep the schema and TS types in lockstep so `task verify:contract-drift` stays green.\n3. Pin write-on-scaffold + gitignore: extend `packages/core/src/init-deposit/scaffold.ts` to write the committed `package.json` pin (exact `@deftai/directive` devDependency, `\"private\": true` preserved) so #2269 (which is gated on the pin existing) is unblocked; add `.deft/.cli/` to `packages/core/src/init-deposit/gitignore.ts`.\n4. Tests: colocated vitest across the major fact combinations — brownfield+pre-cutover, initialized-stale+legacy-vbrief, matched, warm-sandbox, cold-sandbox, registry-down; ladder self-heal trace; partial-`.deft/.cli` integrity rejection; three-band skew (silent / loud / fail-closed / reject-global) incl. the escape-hatch env var + flag; pin/VERSION/sha reconciliation.\n5. Prove `plan()` is the single classifier via a contract test that a consumer (doctor/headless surface) derives from `plan()` output rather than re-classifying. Add a CHANGELOG `[Unreleased]` entry. Run `task ts:check-lane`, `task verify:contract-drift`, and `task check:framework-source`.",
+      "Source": "verified:subagent-codebase-map-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2264, #2203, #2124, #2199, #537, deftai/deftvisage#1036",
+      "Labels": "enhancement, adoption-blocker, agent-experience, runtime-portability, area:installer, area:cli"
+    },
+    "items": [
+      {
+        "id": "2264-a1-classifier-precedence",
+        "title": "Given a project directory in any of the major state combinations (matched, brownfield+pre-cutover, initialized-stale+legacy-vbrief, warm sandbox, cold sandbox, registry-down), when classify() runs, then it returns the orthogonal fact-set (never a single enum) and plan() applies one ordered precedence table to emit exactly one recommended action + rationale, both unit-tested across those combinations.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project directory in any of the major state combinations (matched, brownfield+pre-cutover, initialized-stale+legacy-vbrief, warm sandbox, cold sandbox, registry-down), when classify() runs, then it returns the orthogonal fact-set (never a single enum) and plan() applies one ordered precedence table to emit exactly one recommended action + rationale, both unit-tested across those combinations.",
+          "Traces": "#2264, #2203"
+        }
+      },
+      {
+        "id": "2264-a2-plan-schema-single-source",
+        "title": "Given plan() output, when a downstream consumer (doctor / headless) needs a decision, then it derives from the versioned resolution-plan-v1 JSON schema plan() emits (no second classifier), enforced by a contract test and by resolution-plan-v1.schema.json matching its TS types under task verify:contract-drift.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given plan() output, when a downstream consumer (doctor / headless) needs a decision, then it derives from the versioned resolution-plan-v1 JSON schema plan() emits (no second classifier), enforced by a contract test and by resolution-plan-v1.schema.json matching its TS types under task verify:contract-drift.",
+          "Traces": "#2264, #537, deftai/deftvisage#1036"
+        }
+      },
+      {
+        "id": "2264-a3-ladder-self-heal-and-integrity",
+        "title": "Given a mismatched execution environment (global deft absent or < pin), when the global-first ladder runs, then it self-heals with zero manual npm/PATH steps and emits a structured trace (e.g. \"global: absent; local: v0.63 < pin v0.65; installed --prefix; re-projected content v0.65\"), and given a present-but-partial .deft/.cli/<platform> (interrupted install) the integrity check treats it as not-usable and falls through to install.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a mismatched execution environment (global deft absent or < pin), when the global-first ladder runs, then it self-heals with zero manual npm/PATH steps and emits a structured trace (e.g. \"global: absent; local: v0.63 < pin v0.65; installed --prefix; re-projected content v0.65\"), and given a present-but-partial .deft/.cli/<platform> (interrupted install) the integrity check treats it as not-usable and falls through to install.",
+          "Traces": "#2264, #2124"
+        }
+      },
+      {
+        "id": "2264-a5-three-band-skew",
+        "title": "Given engine vs pin skew, when the skew policy runs, then engine==pin proceeds silently, within-window proceeds loud + update-first, beyond-window fails closed non-interactively (requires --accept-engine-jump or DEFT_ACCEPT_ENGINE_SKEW=1), and engine<pin rejects the global and falls through the ladder.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given engine vs pin skew, when the skew policy runs, then engine==pin proceeds silently, within-window proceeds loud + update-first, beyond-window fails closed non-interactively (requires --accept-engine-jump or DEFT_ACCEPT_ENGINE_SKEW=1), and engine<pin rejects the global and falls through the ladder.",
+          "Traces": "#2264, #2199"
+        }
+      },
+      {
+        "id": "2264-a6-pin-version-sha-reconcile",
+        "title": "Given a scaffolded project, when directive resolves, then the pin is read from package.json (exact @deftai/directive devDependency, \"private\": true preserved), .deft/core/VERSION and the AGENTS managed-section sha= are reconciled against it, .deft/.cli/ is gitignored, and the pin is written on scaffold so #2269 (gated on pin existing) is unblocked.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a scaffolded project, when directive resolves, then the pin is read from package.json (exact @deftai/directive devDependency, \"private\": true preserved), .deft/core/VERSION and the AGENTS managed-section sha= are reconciled against it, .deft/.cli/ is gitignored, and the pin is written on scaffold so #2269 (gated on pin existing) is unblocked.",
+          "Traces": "#2264, #2199, #2269"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "runtime-portability",
+      "area:installer",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2264",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2264: Resolution spine: fact-set classifier + plan() contract + global-first ladder + pin (keystone)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1036",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1036"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2124",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2124"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2199",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2199"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/537",
+        "type": "x-xbrief/refs",
+        "title": "Issue #537"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "size": "L",
+        "model_tier": "high",
+        "depends_on": [],
+        "conflict_group": "core-resolution-spine",
+        "file_scope": [
+          "packages/core/src/resolution/classify.ts",
+          "packages/core/src/resolution/plan.ts",
+          "packages/core/src/resolution/engine-ladder.ts",
+          "packages/core/src/resolution/skew-policy.ts",
+          "packages/core/src/resolution/pin.ts",
+          "packages/core/src/resolution/integrity.ts",
+          "packages/core/src/resolution/index.ts",
+          "packages/core/src/resolution/classify.test.ts",
+          "packages/core/src/resolution/plan.test.ts",
+          "packages/core/src/resolution/engine-ladder.test.ts",
+          "packages/core/src/resolution/skew-policy.test.ts",
+          "packages/core/src/resolution/pin.test.ts",
+          "packages/core/src/resolution/integrity.test.ts",
+          "packages/core/src/index.ts",
+          "packages/core/package.json",
+          "packages/types/schemas/resolution-plan-v1.schema.json",
+          "packages/types/src/resolution.ts",
+          "packages/types/src/policy.ts",
+          "packages/types/src/index.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/scaffold.test.ts",
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/resolution",
+          "task verify:contract-drift",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/resolution module: classify() fact-set + plan() precedence engine + global-first engine ladder + local-engine integrity check + three-band skew policy + pin/VERSION/sha reconciliation, exported from packages/core (./resolution).",
+          "Versioned public resolution-plan-v1 JSON schema in packages/types/schemas with matching TS types in packages/types/src/resolution.ts; engineSkewWindow added to PlanPolicy.",
+          "Committed package.json pin written on scaffold and .deft/.cli/ gitignored (unblocks #2269).",
+          "Colocated vitest coverage across the major fact combinations + a contract test proving downstream derives from plan(); task ts:check-lane, verify:contract-drift, and check:framework-source green."
+        ],
+        "notes": "Refined to swarm-ready 2026-07-03 via codebase inspection (subagent map). Kept as ONE keystone story rather than sub-decomposed: it is greenfield module work in packages/core/src/resolution/ plus schema/types wiring, sized L for a high-tier agent. SCOPE GUARD: this story delivers the shared library spine only; the user-facing behavior rewiring of init (#2265), update (#2266), doctor (#2267), and headless emit (#2268) is explicitly OUT of scope and consumes plan() downstream. conflict_group core-resolution-spine is disjoint from the children's core-cli-verbs / git-index-migrate / headless groups."
+      }
+    },
+    "updated": "2026-07-03T21:48:07Z"
+  }
+}
