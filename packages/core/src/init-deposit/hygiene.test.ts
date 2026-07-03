@@ -43,6 +43,42 @@ describe("installer-managed allowlist (#1576)", () => {
   });
 });
 
+describe("xbrief/ allowlist parity (#2277)", () => {
+  const xbriefLifecycleDirs = ["proposed", "pending", "active", "completed", "cancelled"] as const;
+
+  it("treats xbrief/.deft-version as installer-managed", () => {
+    expect(isInstallerManagedPath("xbrief/.deft-version")).toBe(true);
+  });
+
+  it("treats each xbrief/<lifecycle>/.gitkeep marker as installer-managed", () => {
+    for (const sub of xbriefLifecycleDirs) {
+      expect(isInstallerManagedPath(`xbrief/${sub}/.gitkeep`)).toBe(true);
+    }
+  });
+
+  it("treats xbrief/xbrief.md and the xbrief/ schema+migration prefixes as installer-managed", () => {
+    expect(isInstallerManagedPath("xbrief/xbrief.md")).toBe(true);
+    expect(isInstallerManagedPath("xbrief/schemas/scope.schema.json")).toBe(true);
+    expect(isInstallerManagedPath("xbrief/migration/2026-07-03.md")).toBe(true);
+  });
+
+  it("allowlists xbrief/.deft-version in the deposited guard ERE alternation", () => {
+    const ere = installerManagedGuardEre();
+    expect(ere).toContain("xbrief/\\.deft-version");
+    for (const sub of xbriefLifecycleDirs) {
+      expect(ere).toContain(`xbrief/${sub}/\\.gitkeep`);
+    }
+  });
+
+  it("keeps the legacy vbrief/ allowlist entries for not-yet-migrated projects", () => {
+    expect(isInstallerManagedPath("vbrief/.deft-version")).toBe(true);
+    for (const sub of xbriefLifecycleDirs) {
+      expect(isInstallerManagedPath(`vbrief/${sub}/.gitkeep`)).toBe(true);
+    }
+    expect(installerManagedGuardEre()).toContain("vbrief/\\.deft-version");
+  });
+});
+
 describe("scoped staging", () => {
   const created: string[] = [];
 

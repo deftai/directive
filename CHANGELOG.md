@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Migrated `xbrief/` projects can now run routine framework upgrades without the deft-core-guard falsely blocking the deposit PR (#2277).** The installer-managed allowlist only listed the legacy `vbrief/` paths, so after the `vbrief/`->`xbrief/` migration the framework-managed `xbrief/.deft-version` marker was treated as an app file and every `deft update` deposit PR tripped the `no-mixed-core-and-app` guard. The allowlist (which drives both the deposited guard workflow and the staging classifier) now mirrors the `xbrief/` version marker, `xbrief.md`, `schemas/`, `migration/`, and lifecycle `.gitkeep` paths, while keeping the `vbrief/` entries for not-yet-migrated consumers. Closes #2277. Refs #2034, #2110, #1576.
+
 ### Removed
 
 ## [0.68.0] - 2026-07-03

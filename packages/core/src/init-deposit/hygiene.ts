@@ -14,6 +14,8 @@ import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 export const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
 export const CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
 
+// The lifecycle dir names are identical across the legacy `vbrief/` tree and the
+// post-#2034 / #2110 `xbrief/` tree, so both allowlist families reuse this list.
 const VBRIEF_LIFECYCLE_DIRS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
 export interface InstallerManagedMatcher {
@@ -33,11 +35,20 @@ export function installerManagedMatchers(): InstallerManagedMatcher[] {
     { exact: CODEQL_CONFIG_REL },
     { exact: CORE_GUARD_WORKFLOW_REL },
     { exact: "Taskfile.yml" },
+    // Legacy vbrief/ tree -- retained for not-yet-migrated consumers.
     { exact: "vbrief/.deft-version" },
     { exact: "vbrief/vbrief.md" },
     { prefix: "vbrief/schemas/" },
     { prefix: "vbrief/migration/" },
     ...VBRIEF_LIFECYCLE_DIRS.map((sub) => ({ exact: `vbrief/${sub}/.gitkeep` })),
+    // Migrated xbrief/ tree (#2034 / #2110). The framework-managed version marker
+    // now lives at xbrief/.deft-version, so it MUST be allowlisted or every routine
+    // `deft update` framework-deposit PR trips no-mixed-core-and-app (#2277).
+    { exact: "xbrief/.deft-version" },
+    { exact: "xbrief/xbrief.md" },
+    { prefix: "xbrief/schemas/" },
+    { prefix: "xbrief/migration/" },
+    ...VBRIEF_LIFECYCLE_DIRS.map((sub) => ({ exact: `xbrief/${sub}/.gitkeep` })),
   ];
 }
 

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "deft-core-guard allowlist omits xbrief/ paths -- blocks framework-deposit PRs on migrated projects",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The deft-core-guard.yml installer-managed allowlist enumerates only legacy vbrief/ paths and was never given xbrief/ equivalents when the vbrief->xbrief migration (#2034 / #2110) landed. On any migrated (xbrief/) project, a routine `deft update` framework-deposit PR fails the no-mixed-core-and-app guard because the framework-managed xbrief/.deft-version marker is classified as a non-framework file.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2277",
@@ -42,11 +42,12 @@
         "title": "Issue #2277: deft-core-guard allowlist omits xbrief/ paths -- blocks framework-deposit PRs on migrated projects"
       }
     ],
-    "updated": "2026-07-03T20:02:52Z",
+    "updated": "2026-07-03T20:09:08Z",
     "metadata": {
       "kind": "story",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "completedAt": "2026-07-03T20:09:08Z"
     }
   }
 }
