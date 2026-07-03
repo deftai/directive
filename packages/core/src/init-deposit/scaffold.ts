@@ -24,8 +24,8 @@ import { agentsRefreshPlan } from "../platform/agents-md.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 import { installerManagedGuardEre } from "./hygiene.js";
 
-export { CANONICAL_INSTALL_ROOT };
 export type { InitDepositIo };
+export { CANONICAL_INSTALL_ROOT };
 export const CORE_GLOB = ".deft/core/**";
 
 const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
