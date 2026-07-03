@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Path-based planRef dangles when reconcile:issues moves a closed parent vBRIEF across lifecycle folders",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Path-based planRef dangles when reconcile:issues moves a closed parent vBRIEF across lifecycle folders",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1926",
@@ -32,6 +32,10 @@
         "title": "Issue #11"
       }
     ],
-    "updated": "2026-07-03T01:46:50Z"
+    "updated": "2026-07-03T03:05:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T03:05:06Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "installer: Taskfile.yml include is modified but not staged or guard-allowlisted during upgrade",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "installer: Taskfile.yml include is modified but not staged or guard-allowlisted during upgrade",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1576",
@@ -44,6 +44,10 @@
         "title": "Issue #1576: installer: Taskfile.yml include is modified but not staged or guard-allowlisted during upgrade"
       }
     ],
-    "updated": "2026-07-03T01:47:55Z"
+    "updated": "2026-07-03T03:05:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T03:05:06Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

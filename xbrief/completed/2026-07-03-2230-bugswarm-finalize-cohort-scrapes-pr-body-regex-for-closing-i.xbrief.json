@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(swarm): finalize-cohort scrapes PR body regex for closing issues -- matches descriptive 'closed #N' (should use GitHub structured closing references)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(swarm): finalize-cohort scrapes PR body regex for closing issues -- matches descriptive 'closed #N' (should use GitHub structured closing references)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2230",
@@ -54,6 +54,10 @@
         "title": "Issue #2225"
       }
     ],
-    "updated": "2026-07-03T01:46:13Z"
+    "updated": "2026-07-03T03:05:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T03:05:06Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

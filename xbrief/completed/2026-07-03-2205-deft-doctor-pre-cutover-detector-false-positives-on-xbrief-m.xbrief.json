@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "deft doctor pre-cutover detector false-positives on xbrief-migrated projects (hardcodes vbrief/ paths)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "deft doctor pre-cutover detector false-positives on xbrief-migrated projects (hardcodes vbrief/ paths)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2205",
@@ -27,6 +27,10 @@
         "title": "Issue #2205: deft doctor pre-cutover detector false-positives on xbrief-migrated projects (hardcodes vbrief/ paths)"
       }
     ],
-    "updated": "2026-07-03T01:46:29Z"
+    "updated": "2026-07-03T03:05:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T03:05:06Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
