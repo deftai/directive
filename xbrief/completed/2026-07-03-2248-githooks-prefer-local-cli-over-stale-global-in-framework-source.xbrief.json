@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(hooks): .githooks run_deft prefers a stale global deft over the fresh local CLI in a framework-source checkout (new verbs block commits)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "In a framework-source (monorepo) checkout, the git hooks' shared resolver .githooks/_deft-run.sh prefers a global `deft` on PATH over the freshly-built local CLI (packages/cli/dist/bin.js). When a PR adds a new verb (e.g. verify:forward-coverage from #1310), the stale global CLI does not know the verb and the hook fails with `directive: unknown verb '<verb>'`, blocking commits/pushes until the operator manually refreshes the global install.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2248",
@@ -54,7 +54,10 @@
         "title": "Issue #2067 (the _deft-run.sh resolver)"
       }
     ],
-    "updated": "2026-07-03T15:12:14Z",
-    "metadata": {}
+    "updated": "2026-07-03T15:40:35Z",
+    "metadata": {
+      "completedAt": "2026-07-03T15:40:35Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
