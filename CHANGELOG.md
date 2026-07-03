@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **New `task verify:forward-coverage` gate fails a commit or PR that adds a source file without a test in the same diff (#1310).** The long-standing "new source files MUST ship with tests" rule was prose-only; it is now enforced deterministically, mirroring `verify:encoding` and `verify:branch`. Any newly added `*.py`/`*.go`/`*.ts`/`*.tsx` source file (tests and `*.d.ts` excluded) must land with a matching test file in the same change, or the gate fails. It runs in the `task check` aggregate and the pre-commit hook, with an `--allow-list <path>` escape hatch for generated code and shims. Closes #1310. Refs #798, #747.
 - **`task swarm:finalize-cohort` auto-sweeps merged cohort briefs to `completed/` without a hand-authored lifecycle PR (#2225).** After a `stop-at: pr-open` swarm's PRs merge, the new surface resolves each merged story from its `Closes #N` link (or an explicit `--stories` list), runs the same deterministic `completeCohort(...)` sweep as `task swarm:complete-cohort`, and lands the `active/` -> `completed/` moves on a feature branch with an auto-opened PR — so WIP resets without the extra ceremony PR every cycle. `task swarm:complete-cohort` remains the idempotent manual primitive. Closes #2225. Refs #1880, #1487, #1369.
 
 ### Changed

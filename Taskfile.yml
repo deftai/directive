@@ -353,6 +353,7 @@ tasks:
       - verify:bridge-drift
       - verify:branch
       - verify:encoding
+      - verify:forward-coverage
       - verify:vbrief-conformance
       - verify:destructive-gh-verbs
       - verify:scm-boundary

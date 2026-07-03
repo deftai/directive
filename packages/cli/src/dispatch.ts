@@ -130,6 +130,7 @@ export const CLI_MODULE_VERBS = [
   "vbrief-validation",
   "verify-branch",
   "verify-encoding",
+  "verify-forward-coverage",
   "verify-hooks-installed",
   "verify-investigation",
   "verify-judgment-gates",
@@ -214,6 +215,7 @@ const TRIAGE_ACTION_COLON_ALIASES = Object.fromEntries(
 /** Task-style aliases (framework_commands / Taskfile names). */
 export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "verify:encoding": "verify-encoding",
+  "verify:forward-coverage": "verify-forward-coverage",
   "verify:branch": "verify-branch",
   "verify:vbrief-conformance": "vbrief-validate",
   "verify:wip-cap": "verify-wip-cap",

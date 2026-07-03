@@ -130,6 +130,7 @@ Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):
 - `deft verify:branch` -- branch gate wired into the `deft check` aggregate; refuses a commit on the default branch unless `plan.policy.allowDirectCommitsToMaster = true` (typed) or `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is set.
 - `.githooks/pre-commit` / `pre-push` -- local hooks installed via `deft setup`; verify via `deft verify:hooks-installed`. After a framework upgrade, run `deft update` to refresh hook templates to the current TS-native `deft verify:*` / `deft preflight-gh` wiring (#2049).
 - `deft policy:show --field=allowDirectCommitsToMaster` -- inspect the resolved policy; `deft policy:allow-direct-commits -- --confirm` writes the typed override with an audit row.
+- `deft verify:forward-coverage` -- forward-coverage gate (#1310): a NEW source file (`scripts/`, `src/`, `cmd/`, `packages/*/src`, or `*.py`/`*.go`/`*.ts`/`*.tsx`, excluding tests + `*.d.ts`) added without a corresponding test in the SAME diff fails the gate. Wired into `deft check` + the pre-commit hook (`--staged`); document genuine exceptions (shims, generated code) via `--allow-list <path>`. Mirrors the `deft verify:encoding` (#798) prose->deterministic migration.
 
 ## Branch Policy Disclosure (#746)
 
