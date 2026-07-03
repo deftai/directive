@@ -1,0 +1,33 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2115"
+  },
+  "plan": {
+    "title": "bug(doctor): payload-staleness recommendation omits required `deft update` for vendored consumers (incomplete follow-on to #1997)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(doctor): payload-staleness recommendation omits required `deft update` for vendored consumers (incomplete follow-on to #1997)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2115",
+      "UserStory": "As a vendored/npm-managed Directive consumer, when `deft doctor` says my payload is stale I want it to name the COMPLETE two-hop upgrade path (global npm bump AND `deft update`), so following the recommendation literally actually closes the staleness gap instead of leaving me still BEHIND.",
+      "ImplementationPlan": "1. Locate the staleness recommendation logic (packages/**/payload-staleness.ts and the CANONICAL_UPGRADE_COMMAND constant touched by the closed #1997). 2. For a vendored / npm-managed deposit (managed_by: npm, .deft/core present), emit the two-step command `npm i -g @deftai/directive@latest && deft update` (the global bump refreshes the package; `deft update` refreshes the in-place .deft/core/ deposit). Distinguish 'global package stale' from 'vendored deposit stale' so each layout gets the command that actually closes its gap. Do NOT change the non-vendored/global-only recommendation. 3. Add a regression test asserting the vendored-deposit staleness recommendation string contains `deft update` (and the two-hop form). 4. Keep scope to the doctor signpost text only -- this is NOT the #2064 install-upgrade product-consolidation decision. 5. Run pnpm run lint + task check.",
+      "Traces": "#2115, #1997, #2057",
+      "Overview": "## Summary\n\nOn a vendored `.deft/core/` (npm-managed) consumer install, when `deft doctor` detects a stale payload it recommends **only** `npm i -g @deftai/directive@latest`. For a vendored deposit that command refreshes the **global** package but does **not** refresh the project's `.deft/core/` payload — so an operator who follows the advice literally and re-runs `doctor` is **still BEHIND**, with no indication that a second step (`deft update`) is required.\n\nThis is the incomplete-fix follow-on to the **closed** #1997: that issue correctly swapped the post-freeze recommendation from the Go bridge (`deft-install --yes --upgrade ...`) to npm, but it only emits the **first hop** of the documented happy path. The path established at #2057's closure is:\n\n```bash\nnpm i -g @deftai/directive@latest\ndeft update      # <-- the step doctor never names\ndeft migrate     # one-time, idempotent\ndeft doctor\n```\n\n## Environment\n\n- OS: WSL2 (Linux), Node v22.22.3\n- Consumer layout: vendored `.deft/core/`, `managed_by: npm`\n- Project deposit: `ref v0.63.0`; global `@deftai/directive`: 0.64.0; npm registry latest: 0.65.0\n\n## Observed\n\n`deft doctor` payload-staleness block:\n\n```\n⚠ Framework payload is stale (installed v0.63.0 behind npm registry v0.65.0 for ref 'v0.63.0').\n  Recommendation: run `npm i -g @deftai/directive@latest` from any shell with Node ≥ 20.\n```\n\nAfter running exactly that recommendation, `deft framework:check-updates` still reported `BEHIND upstream=v0.65.0 current=v0.63.0`. The deposit only refreshed once `deft update` was run (which `doctor` never mentioned).\n\n## Expected\n\nFor a vendored / npm-managed deposit, the staleness recommendation should name the **two-step** path — global package bump **and** `deft update` (the in-place deposit refresh) — e.g.:\n\n```\nRecommendation: npm i -g @deftai/directive@latest && deft update\n```\n\nEquivalently: doctor should distinguish \"global package stale\" from \"vendored deposit stale\" and emit the command that actually closes the gap for the detected layout.\n\n## Why this isn't already covered\n\n- **#1997 (closed)** only swapped Go-bridge → npm-global in `CANONICAL_UPGRADE_COMMAND` / `payload-staleness.ts`; it did not add the `deft update` follow-up for vendored deposits.\n- **#2064 (open)** is the `install-upgrade` vs `directive update` *product/consolidation* decision — a different surface than the doctor signpost text.\n\n## Repro\n\n1. On a vendored `.deft/core/` npm-managed install one minor version behind, run `deft doctor`.\n2. Observe the staleness recommendation names only `npm i -g @deftai/directive@latest`.\n3. Run exactly that, then `deft framework:check-updates` → still `BEHIND`.\n4. Run `deft update` → deposit refreshes; `check-updates` → `OK`.\n\n## Suggested fix\n\n- Update `payload-staleness.ts` recommendation text to emit the layout-appropriate command: for vendored/npm-managed deposits, `npm i -g @deftai/directive@latest && deft update`.\n- Add a regression assertion that the vendored-deposit staleness recommendation contains `deft update`.\n\n_Filed from a live consumer \"update directive\" session on the `statusreport` project (0.63.0 → 0.65.0)._",
+      "Labels": "bug, adoption-blocker, installer"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2115",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2115: bug(doctor): payload-staleness recommendation omits required `deft update` for vendored consumers (incomplete follow-on to #1997)"
+      }
+    ],
+    "updated": "2026-07-03T00:34:25Z"
+  }
+}
