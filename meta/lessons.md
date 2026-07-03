@@ -630,3 +630,13 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Canonical encoding (strongest-applicable layer):** the rule body lives in `AGENTS.md` + `templates/agents-entry.md` (`## Returning Sessions` + `### Deft Alignment Confirmation`), propagated to the consumer managed-section via `task agents:refresh` (#1309). Deterministic shape-coverage: `tests/content/test_agents_md.py` (must-marker, Test-Path anti-pattern, name-echo, external-context precedence wording). The behavioral eval that actually catches the substitution failure class (conflicting USER.md vs external-context names) is deferred to its own issue (Fix D); the greet-skill structural cleanup is Fix E.
 
 **Cross-references:** `AGENTS.md` / `templates/agents-entry.md` `## Returning Sessions` + `### Deft Alignment Confirmation` (rule body); `tests/content/test_agents_md.py` (shape coverage); #163 (CLI gate parity, complementary); #258 (Warp Drive inventory, documentation half of the same root cause); #78 (adjacent bootstrap-update offer).
+
+## Pre-filing master-diff check before proposing to add a file (2026-07)
+
+**Source:** Issue #1102. On 2026-05-12 a refinement session (PR #1098) filed #1099 proposing to add `.github/dependabot.yml` without checking master -- the file already existed (landed via #1070 / v0.29.1). #1099 closed as a stale duplicate the same day; #1100 was re-filed as the additive-delta scope.
+
+**Key insight:** A one-second `git ls-tree origin/master -- <path>` (or `gh api repos/{owner}/{repo}/contents/{path}` without a clone) existence check before filing an add-a-file issue prevents this whole close-and-refile class. If the path already exists, the issue must be scoped to the DELTA vs the on-master state, not the original 'deposit this file' framing.
+
+**Canonical encoding (strongest-applicable layer):** the `!` MUST rule + `⊗` anti-pattern live in the canonical issue-filing skill `skills/deft-directive-gh-slice/SKILL.md` (Step 5 + Anti-Patterns), cross-referenced from `skills/deft-directive-refinement/SKILL.md` Phase 1. Deterministic shape-coverage: `packages/core/src/content-contracts/skills/gh_slice_prefiling_master_diff.test.ts`.
+
+**Cross-references:** #1070 (`.github/dependabot.yml` originally landed), #1099 (stale-duplicate filing, closed), #1100 (corrected additive-scope refile), PR #1098 (refinement session that surfaced the pattern).

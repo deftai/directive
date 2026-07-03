@@ -18,6 +18,7 @@ export * as capacity from "./capacity/index.js";
 export * as codebase from "./codebase/index.js";
 export * as doctor from "./doctor/index.js";
 export * from "./encoding/index.js";
+export * from "./forward-coverage/evaluate.js";
 export * as intake from "./intake/index.js";
 export * as layout from "./layout/index.js";
 export * as legacyBridge from "./legacy-bridge/index.js";

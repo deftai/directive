@@ -3,7 +3,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { atomicWriteText } from "../cache/io.js";
 import { contentRoot } from "../content-root.js";
+import { type LockDeps, withAppendLock } from "../slice/lock.js";
 import { composeGreenfieldAgentsMd } from "./agents-consumer-header.js";
 import { AGENTS_MANAGED_CLOSE, AGENTS_MANAGED_OPEN_V3_LITERAL } from "./constants.js";
 import { findManagedOpenMarker } from "./linear-scan.js";
@@ -310,6 +312,68 @@ export function agentsRefreshPlan(
     existing,
     new_content: newContent,
   };
+}
+
+/** Managed-section states whose plan yields a new AGENTS.md body to write. */
+const AGENTS_REFRESH_WRITABLE_STATES: ReadonlySet<string> = new Set(["absent", "missing", "stale"]);
+
+export interface ApplyAgentsRefreshOptions {
+  /** Compute state only, never write — mirrors `agents:refresh --check`. */
+  readonly check?: boolean;
+  /** Compute the plan but skip the write — mirrors `agents:refresh --dry-run`. */
+  readonly dryRun?: boolean;
+}
+
+export interface AgentsRefreshApplyResult {
+  readonly state: string;
+  readonly path: string;
+  /** True only when the managed section was written to disk on this call. */
+  readonly wrote: boolean;
+  /** True when the plan produced writable `new_content` for a writable state. */
+  readonly writable: boolean;
+}
+
+/**
+ * Serialize the AGENTS.md managed-section read->compute->write behind an advisory
+ * file lock and write atomically (temp file + rename), so concurrent
+ * install/upgrade/migrate/refresh writers cannot clobber one another's `session=`
+ * write or leave a partially-written file (#1329).
+ *
+ * Reuses the existing cross-process append lock (`withAppendLock`, keyed here on
+ * the AGENTS.md path -> `AGENTS.md.lock`) and atomic writer (`atomicWriteText`)
+ * rather than introducing a competing lock utility. The parallel
+ * `projectDefinitionMutationLock` remains owned by #1260; a general lock helper is
+ * deliberately not added here to avoid two competing mutation-lock utilities.
+ */
+export function applyAgentsRefresh(
+  projectRoot: string,
+  options: ApplyAgentsRefreshOptions = {},
+  seams: AgentsMdSeams = {},
+  lockDeps: LockDeps = {},
+): AgentsRefreshApplyResult {
+  const agentsMd = join(projectRoot, "AGENTS.md");
+  return withAppendLock(
+    agentsMd,
+    () => {
+      const plan = agentsRefreshPlan(projectRoot, seams);
+      const state = String(plan.state ?? "unknown");
+      const path = String(plan.path ?? agentsMd);
+      const newContent = plan.new_content;
+      if (
+        options.check === true ||
+        options.dryRun === true ||
+        !AGENTS_REFRESH_WRITABLE_STATES.has(state) ||
+        typeof newContent !== "string"
+      ) {
+        const writable =
+          AGENTS_REFRESH_WRITABLE_STATES.has(state) && typeof newContent === "string";
+        return { state, path, wrote: false, writable };
+      }
+      atomicWriteText(path, newContent);
+      return { state, path, wrote: true, writable: true };
+    },
+    lockDeps,
+  );
 }
 
 export function hasV3ManagedMarker(

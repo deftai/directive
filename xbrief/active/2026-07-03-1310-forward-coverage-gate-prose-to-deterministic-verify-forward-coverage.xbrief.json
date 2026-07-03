@@ -1,0 +1,63 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1310"
+  },
+  "plan": {
+    "title": "Forward-coverage gate: migrate the prose 'new source files MUST include tests' rule to deterministic enforcement (verify:forward-coverage)",
+    "status": "running",
+    "narratives": {
+      "Description": "The 'new source files MUST include corresponding test files in the same PR' rule lives at prose tier only in AGENTS.md and is routinely bypassed by sub-agents. Add a deterministic verify:forward-coverage gate (mirroring verify:encoding / verify:branch) wired into task check and the pre-commit hook.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1310",
+      "UserStory": "As a maintainer, I want a deterministic verify:forward-coverage gate that fails when a PR adds a new source file without a corresponding test file, so the forward-coverage rule survives context drift the way the encoding and branch-policy gates do.",
+      "ImplementationPlan": "1. LOCATE CURRENT SURFACE FIRST: the issue proposes scripts/verify_forward_coverage.py mirroring scripts/verify_encoding.py, but the repo is now TS-native -- verify:encoding is a TS gate (find its current implementation, e.g. packages/core/src/verify-* or the verify:* task wiring, and MIRROR that pattern). Implement the new gate in TypeScript with the same three-state exit (0 clean / 1 missing forward coverage / 2 config error) and the same task/hook wiring conventions the current verify:encoding uses. Do NOT add a Python script. 2. Behaviour: read the staged (--staged) or HEAD-relative diff; for each NEW file under scripts/, src/, cmd/, packages/*/src/ or matching *.py/*.go/*.ts/*.tsx (excluding *.test.ts / *_test.go / test_*.py themselves and .d.ts), assert a corresponding test file exists in the SAME diff (co-located <name>.test.ts, tests/.../test_<name>.py, *_test.go, etc.). New-file granularity only for v1 (keep false positives near zero). 3. Allow-list escape hatch: --allow-list <path> (newline-separated globs) for entry-point shims / __main__ stubs / generated code / fixtures, matching the encoding-gate convention. 4. Wiring: add task verify:forward-coverage; include it in the task check aggregate; invoke from .githooks/pre-commit with --staged. 5. Cross-reference the AGENTS.md prose forward-coverage rule to the new gate (prose->deterministic migration note in the same paragraph, matching the encoding-gate template). Because AGENTS.md is consumer-relevant + template-propagated, mirror the change into content/templates/agents-entry.md and run task agents:refresh (template propagation discipline #1309). 6. Regression test (this PR is the canonical first user of its own gate): fixtures for clean / missing-test / config-error diffs. 7. Run repo-root pnpm run lint (full lane) + task check.",
+      "Traces": "#1310, #798, #747",
+      "Overview": "See https://github.com/deftai/directive/issues/1310. Prose-tier rules erode under context drift; sub-agents ship new src/ code with no unit tests because a per-task checklist's specificity beats prose authority. Mirror the #798 encoding-gate and #747 branch-gate prose->deterministic migration: add verify:forward-coverage (three-state exit), wire into task check + pre-commit, document an allow-list, and cross-reference the AGENTS.md prose rule. v1 = new-file granularity; modified-file public-symbol scanning is explicitly out of scope.",
+      "GuardRails": "TS-native repo -- implement the gate in TypeScript mirroring the CURRENT verify:encoding implementation and task/hook wiring (find it first; do NOT copy the legacy Python scripts/verify_encoding.py shape). Editing AGENTS.md consumer-relevant rules REQUIRES mirroring into content/templates/agents-entry.md + task agents:refresh (#1309) or the agents-entry contract test fails. Keep v1 scope to NEW files only. Ensure the gate does not flag its OWN new files without their tests (this PR must be self-clean)."
+    },
+    "items": [
+      {
+        "title": "task verify:forward-coverage exists (TS, three-state exit) and fails on a synthetic diff adding a new source file without a test.",
+        "status": "proposed"
+      },
+      {
+        "title": "task check runs the new gate.",
+        "status": "proposed"
+      },
+      {
+        "title": ".githooks/pre-commit runs the gate with --staged.",
+        "status": "proposed"
+      },
+      {
+        "title": "A documented allow-list mechanism exists for genuine exceptions (shims, generated code).",
+        "status": "proposed"
+      },
+      {
+        "title": "The AGENTS.md prose forward-coverage rule is cross-referenced to the gate, mirrored into content/templates/agents-entry.md, and agents:refresh re-run (#1309).",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test exercises the gate against clean / missing-test / config-error fixture diffs.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1310",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1310: Forward-coverage gate: prose to deterministic enforcement"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/798",
+        "type": "x-xbrief/refs",
+        "title": "Issue #798"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/747",
+        "type": "x-xbrief/refs",
+        "title": "Issue #747"
+      }
+    ],
+    "updated": "2026-07-03T11:56:38Z"
+  }
+}

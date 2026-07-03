@@ -17,6 +17,8 @@ run_deft verify:branch --project-root "$REPO_ROOT" || exit $?
 
 run_deft verify:encoding --staged --project-root "$REPO_ROOT" || exit $?
 
+run_deft verify:forward-coverage --staged --project-root "$REPO_ROOT" || exit $?
+
 if [ -d "$REPO_ROOT/xbrief" ] || [ -d "$REPO_ROOT/vbrief" ]; then
     run_deft verify:vbrief-conformance --staged --project-root "$REPO_ROOT" || exit $?
 fi

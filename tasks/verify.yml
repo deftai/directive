@@ -157,6 +157,20 @@ tasks:
         vars:
           ENGINE_CMD: 'verify:encoding --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  forward-coverage:
+    desc: "Forward-coverage gate (#1310): fail when a NEW source file (scripts/, src/, cmd/, packages/*/src, or *.py/*.go/*.ts/*.tsx, excluding *.test.ts / *_test.go / test_*.py / *.d.ts) is added without a corresponding test in the SAME diff. Migrates the prose 'new source files MUST include tests' rule to deterministic enforcement, mirroring verify:encoding (#798) / verify:branch (#747). Defaults to the HEAD-relative diff; pass --staged for the pre-commit invocation. Three-state exit (0 clean / 1 missing forward coverage / 2 config error)."
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
+    # user-facing flags (--staged / --head / --allow-list <path> / --quiet) MUST
+    # NOT be silently swallowed by go-task's incremental-build cache (same
+    # rationale as verify:encoding above).
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'verify:forward-coverage --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   vbrief-conformance:
     desc: "Detect bare non-conformant vBRIEF keys (#1620). Scans tracked vbrief/**/*.vbrief.json and flags any document/plan/item key that is not 0.6 spec-core, x-directive/-namespaced, or x-vbrief/-namespaced. plan.policy + plan.completedNote carry a TEMPORARY allow-list pending vBRIEF #12. Defaults to --all; pass --staged for the pre-commit invocation."
     dir: '{{.USER_WORKING_DIR}}'
