@@ -158,17 +158,58 @@ export function printCommitGuidance(
   io.printf("  5. Merge:  gh pr merge --squash --delete-branch   # after deft-core-guard passes\n");
 }
 
-export function depositStagePaths(projectDir: string): {
+function defaultCachedNames(projectDir: string): string[] {
+  try {
+    const out = execFileSync("git", ["diff", "--cached", "--name-only", "-z"], {
+      cwd: projectDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return out
+      .split("\0")
+      .map((entry) => entry.trim().replace(/\\/g, "/"))
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Narrow the candidate stage paths to those that actually have staged index
+ * changes. A candidate file matches when the cached name is identical; a
+ * candidate directory (e.g. ``.deft/core``) matches when any cached name lives
+ * beneath it. This keeps ``staged_paths`` honest for downstream automation --
+ * it reports what git actually staged, not every path passed to ``git add``.
+ */
+function actuallyStagedPaths(
+  stagePaths: readonly string[],
+  cachedNames: readonly string[],
+): string[] {
+  return stagePaths.filter((candidate) =>
+    cachedNames.some((name) => name === candidate || name.startsWith(`${candidate}/`)),
+  );
+}
+
+export interface DepositStagePathsSeams extends StageFrameworkPathsSeams {
+  readCachedNames?: (projectDir: string) => string[];
+}
+
+export function depositStagePaths(
+  projectDir: string,
+  seams: DepositStagePathsSeams = {},
+): {
   stagePaths: string[];
   staged: boolean;
   stagedPaths: string[];
 } {
   const deftDir = join(projectDir, CANONICAL_INSTALL_ROOT);
   const stagePaths = frameworkStagePaths(projectDir, deftDir);
-  const { staged } = stageFrameworkPaths(projectDir, stagePaths);
+  const { staged } = stageFrameworkPaths(projectDir, stagePaths, seams);
+  const readCachedNames = seams.readCachedNames ?? defaultCachedNames;
+  const cachedNames = staged ? readCachedNames(projectDir) : [];
   return {
     stagePaths,
     staged,
-    stagedPaths: staged ? stagePaths : [],
+    stagedPaths: staged ? actuallyStagedPaths(stagePaths, cachedNames) : [],
   };
 }

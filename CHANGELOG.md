@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **TS-native `directive init` / `directive update` now stage the project-root `Taskfile.yml` deft include as installer-managed (#1576).** When the installer appends or repairs the `includes.deft` block in a consumer root Taskfile, that path is added to scoped staging and reported in `--json` `staged_paths`, and the deposited `deft-core-guard` allowlist exempts it alongside `.deft/core/**` so upgrade PRs do not look like mixed framework+app commits. The frozen Go installer is unchanged (#1912); this fix lands on the TS update path (#1933). Closes #1576. Refs #1453, #1912, #1933.
- `task session:start`, `verify:session-ritual`, `verify:tools`, `triage:summary`, `triage:welcome`, and `verify:cache-fresh` now dispatch the already-built CLI without an `engine:_ts-build` dependency, so sandboxed or offline sessions are not blocked by package-manager retry loops or engine warnings. Source checkouts without `packages/cli/dist/bin.js` fail fast with a clear `task build` prerequisite; Node compatibility is checked via `process.versions.node`, not pnpm. Explicit dev commands such as `task build` and `task check` still compile as before. Closes #2181. Refs #2176, #2180.
 
 ### Fixed
 

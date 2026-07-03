@@ -107,6 +107,30 @@ describe("scoped staging", () => {
     expect(cached).not.toContain("src/app.ts");
   });
 
+  it("stagedPaths reports only paths with real index changes, not every candidate (#1576)", async () => {
+    const { ensureTaskfile } = await import("./scaffold.js");
+    const project = freshRoot("hygiene-actually-staged-");
+
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    writeFileSync(
+      join(project, "Taskfile.yml"),
+      "version: '3'\ntasks:\n  build:\n    cmds: [npm run build]\n",
+      "utf8",
+    );
+    initGitRepo(project);
+
+    // Only Taskfile.yml is modified after baseline; AGENTS.md / .deft/core are clean.
+    expect(ensureTaskfile(project, { printf: () => {} })).toBe(true);
+
+    const { stagePaths, stagedPaths } = depositStagePaths(project);
+    expect(stagePaths).toContain("AGENTS.md");
+    expect(stagedPaths).toContain("Taskfile.yml");
+    expect(stagedPaths).not.toContain("AGENTS.md");
+    expect(stagedPaths).not.toContain(".deft/core");
+  });
+
   it("stageFrameworkPaths is a no-op outside git", () => {
     const project = freshRoot("hygiene-nogit-");
     mkdirSync(join(project, ".deft", "core"), { recursive: true });
