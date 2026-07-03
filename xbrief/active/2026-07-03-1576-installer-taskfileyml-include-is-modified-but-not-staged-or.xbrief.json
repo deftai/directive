@@ -1,0 +1,49 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1576"
+  },
+  "plan": {
+    "title": "installer: Taskfile.yml include is modified but not staged or guard-allowlisted during upgrade",
+    "status": "running",
+    "narratives": {
+      "Description": "installer: Taskfile.yml include is modified but not staged or guard-allowlisted during upgrade",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1576",
+      "UserStory": "As a consumer upgrading Directive, I want the installer's edit to my project-root Taskfile.yml (the deft `includes:` block) to be staged and reported as installer-managed, so an upgrade doesn't leave a confusing mixed state with one un-staged, un-allowlisted project-root diff.",
+      "ImplementationPlan": "0. FIRST determine which code path is authoritative TODAY: the bug was seen via the frozen Go `deft-install` binary, but `directive update` is now TS-native (#1933). The Go installer (cmd/deft-install) is FROZEN behind verify:go-freeze (#1912) -- do NOT bump it past the frozen tag. Fix the CURRENT TS update/install path (packages/**) that appends the root Taskfile.yml includes block. 1. When the installer appends/edits the project-root Taskfile.yml deft includes block, add that exact path to the staging set / `staged_paths` in the success JSON AND ensure it is recognized as installer-managed by the deft-core-guard allowlist. 2. Regression test: after a simulated upgrade that writes the includes block, Taskfile.yml is in staged_paths and not left as an un-tracked/un-staged surprise diff. 3. If the ONLY code path that reproduces is the frozen Go installer and there is no live TS equivalent, STOP and report that (with the freeze-gate constraint) rather than modifying frozen Go code. 4. Run pnpm run lint + task check.",
+      "Traces": "#1576, #1912, #1933",
+      "Overview": "## Summary\n\nDuring a real consumer upgrade in `deftai/cartograph`, `deft-install --yes --upgrade --repo-root . --json` appended the Deft include block to the project root `Taskfile.yml`, but did not stage `Taskfile.yml` or list it in the success JSON `staged_paths`.\n\nThat leaves the upgrade in a confusing mixed state: the framework payload and known installer-managed paths are staged, while one installer-created project-root diff remains unstaged and is not obviously covered by `deft-core-guard`'s installer-managed allowlist.\n\n## Observed\n\nRan from project root on branch `chore/upgrade-directive`:\n\n```bash\n/tmp/deft-upgrade-cartograph/install-linux-amd64 --yes --upgrade --repo-root . --json\n```\n\nThe installer reported:\n\n```text\nAppended new `includes:` block with deft entry to Taskfile.yml (Epic-4).\n```\n\nIt also printed a scoped staging set / `staged_paths`, but that set did not include `Taskfile.yml`.\n\nAfter the upgrade:\n\n```bash\ngit diff --name-only\n# Taskfile.yml\n```\n\nThe unstaged project-root diff was:\n\n```diff\n+# Added by deft-install --yes (Epic-4)\n+includes:\n+  deft:\n+    taskfile: ./.deft/core/Taskfile.yml\n+    optional: true\n```\n\nThe vendored framework payload `.deft/core/Taskfile.yml` was correctly staged as part of the framework refresh. The problematic file is the consumer project's root `Taskfile.yml`.\n\n## Expected\n\nIf the installer modifies the project `Taskfile.yml` to wire in `.deft/core/Taskfile.yml`, it should treat that exact edit as installer-managed:\n\n- Stage `Taskfile.yml` when the only change is the Deft include projection.\n- Include `Taskfile.yml` in the `staged_paths` / success JSON so agents can see it was intentional.\n- Update the `deft-core-guard` installer-managed allowlist so an upgrade PR containing `.deft/core/**` plus the Deft include projection does not look like a mixed framework+app PR.\n- Ideally make the behavior idempotent and safe around existing project taskfiles: append only when absent, preserve existing project tasks, and avoid overwriting unrelated user edits.\n\n## Why this matters\n\n#1453 shifted upgrade commit hygiene left by scoped-staging only framework + installer-managed paths and warning against `git add -A`. This `Taskfile.yml` projection appears to be a missed installer-managed path in that model.\n\nIn the same live run, #1458 behavior worked as intended: an earlier attempt downloaded the installer binary into the repo, making the tree dirty, and the installer refused the upgrade with `dirty_tree_require_clean`. After rerunning from `/tmp` on a clean tree, the upgrade succeeded but left the `Taskfile.yml` include unstaged.\n\n## Acceptance criteria\n\n- A clean consumer upgrade that appends/repairs the Deft `includes.deft` block leaves no unstaged installer-created `Taskfile.yml` diff.\n- `--json` success output includes `Taskfile.yml` in `staged_paths` when the installer stages it.\n- The generated `deft-core-guard` allowlist treats the Deft include projection as installer-managed when mixed with `.deft/core/**` in the same PR.\n- Tests cover a consumer root `Taskfile.yml` with existing app tasks and assert those tasks are preserved while the Deft include is added idempotently.\n\n## Related\n\n- #1453\n- #1458",
+      "Labels": "bug, installer"
+    },
+    "items": [
+      {
+        "title": "A clean consumer upgrade that appends/repairs the Deft `includes.deft` block leaves no unstaged installer-created `Taskfile.yml` diff.",
+        "status": "proposed"
+      },
+      {
+        "title": "`--json` success output includes `Taskfile.yml` in `staged_paths` when the installer stages it.",
+        "status": "proposed"
+      },
+      {
+        "title": "The generated `deft-core-guard` allowlist treats the Deft include projection as installer-managed when mixed with `.deft/core/**` in the same PR.",
+        "status": "proposed"
+      },
+      {
+        "title": "Tests cover a consumer root `Taskfile.yml` with existing app tasks and assert those tasks are preserved while the Deft include is added idempotently.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1576",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1576: installer: Taskfile.yml include is modified but not staged or guard-allowlisted during upgrade"
+      }
+    ],
+    "updated": "2026-07-03T01:47:55Z"
+  }
+}
