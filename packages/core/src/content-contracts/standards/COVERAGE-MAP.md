@@ -22,7 +22,7 @@
 | `test_structure.py` | `structure.test.ts` | Bucket A: mechanical content assertion port |
 | `test_shape.py` | `shape.test.ts` | Bucket B: shape schemas in _shapes.ts (was tests/fixtures/shapes.py) |
 | `test_code_structure_profile.py` | `code_structure_profile.test.ts` | Bucket B: CODE_STRUCTURE_VERSION + validateFile from verify-source/code-structure-validate.ts |
-| `test_pyproject_version_freshness.py` | `pyproject_version_freshness.test.ts` | Bucket B: toPep440 + latestRemotePublishableTag from platform/resolve-version.ts |
+| `test_pyproject_version_freshness.py` | `pyproject_version_freshness.test.ts` | Bucket B: toPep440 + latestLocalPublishableTag from platform/resolve-version.ts (offline tag lookup, no ls-remote -- #2256) |
 | `test_consumer_config_example.py` | `consumer_config_example.test.ts` | Bucket A: mechanical content assertion port |
 | `test_install_oneliner.py` | `install_oneliner.test.ts` | Bucket A: mechanical content assertion port |
 | `test_readme_brownfield.py` | `readme_brownfield.test.ts` | Bucket A: mechanical content assertion port |
