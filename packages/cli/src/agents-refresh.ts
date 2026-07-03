@@ -2,10 +2,9 @@
 /**
  * agents:refresh — rewrite AGENTS.md managed section from the canonical template (#768 / #1996).
  */
-import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { agentsRefreshPlan } from "@deftai/directive-core/platform";
+import { applyAgentsRefresh } from "@deftai/directive-core/platform";
 
 export interface AgentsRefreshArgs {
   projectRoot: string;
@@ -47,8 +46,13 @@ export function runAgentsRefresh(argv: readonly string[]): number {
     return 2;
   }
 
-  const plan = agentsRefreshPlan(args.projectRoot) as Record<string, unknown>;
-  const state = String(plan.state ?? "unknown");
+  // The read->compute->write is serialized behind an advisory lock and written
+  // atomically inside applyAgentsRefresh, so concurrent refreshers cannot clobber
+  // one another's session= write or observe a partial write (#1329).
+  const { state, path, writable } = applyAgentsRefresh(args.projectRoot, {
+    check: args.check,
+    dryRun: args.dryRun,
+  });
 
   if (args.check) {
     if (state === "current") return 0;
@@ -66,19 +70,16 @@ export function runAgentsRefresh(argv: readonly string[]): number {
     return 2;
   }
 
-  const newContent = plan.new_content;
-  if (typeof newContent !== "string") {
+  if (!writable) {
     process.stderr.write("agents:refresh failed: plan produced no new_content\n");
     return 2;
   }
 
-  const path = String(plan.path ?? resolve(args.projectRoot, "AGENTS.md"));
   if (args.dryRun) {
     process.stdout.write(`[dry-run] would write ${path} (state=${state})\n`);
     return 0;
   }
 
-  writeFileSync(path, newContent, "utf8");
   process.stdout.write(`AGENTS.md updated (state=${state}).\n`);
   return 0;
 }

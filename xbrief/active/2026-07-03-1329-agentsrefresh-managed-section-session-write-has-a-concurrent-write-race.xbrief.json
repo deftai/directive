@@ -1,0 +1,55 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1329 (retargeted)"
+  },
+  "plan": {
+    "title": "agents:refresh managed-section `session=` write has a concurrent-write race (TS: platform/agents-md.ts + agents-refresh.ts)",
+    "status": "running",
+    "narratives": {
+      "Description": "deft agents:refresh performs a non-atomic, unlocked read-modify-write of the AGENTS.md managed-section header (which carries session=<id>). Two near-simultaneous refreshes can race and silently overwrite each other; a bare writeFileSync can also partial-write.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1329 (retargeted from the deleted scripts/ritual_sentinel.py to the current TS surface)",
+      "UserStory": "As an operator/agent running install/upgrade/migrate flows (or multiple agents concurrently), I want the AGENTS.md managed-section refresh to be atomic w.r.t. concurrent writers, so the session= attribute and managed block never get silently clobbered or partially written.",
+      "ImplementationPlan": "1. VERIFY-FIRST GUARDRAIL: before writing any fix, confirm the hazard is live on the CURRENT surface. The originally-cited scripts/ritual_sentinel.py was removed in the Python->TS migration (#1860/#2084) and never wrote AGENTS.md. The live RMW is: packages/core/src/platform/agents-md.ts -> agentsRefreshPlan() (reads AGENTS.md, computes new content with fresh session=<id>) and packages/cli/src/agents-refresh.ts -> writeFileSync(path, newContent) with NO lock and NO atomic temp+rename. Reproduce or reason-demonstrate the race/partial-write before implementing. If the surface has moved again, STOP and report (do not fix dead code). 2. Serialize the RMW: wrap the read->compute->write in an advisory file lock (cross-platform; prefer an existing dependency already in the tree such as proper-lockfile if present, else a minimal lockfile via fs O_EXCL, else CAS). Other writers block briefly then re-read and apply on top of the winner. 3. Write atomically: temp-file in the same dir + fs.rename over AGENTS.md (avoids partial writes) -- in ADDITION to the lock, not instead of. 4. Keep the change scoped to the agents:refresh write path; do not alter managed-section CONTENT/rendering. 5. Regression test: spawn N concurrent agents:refresh writers against a temp AGENTS.md and assert the final on-disk session= equals one of the N inputs (no partial corruption, no non-input value). Use child processes or concurrent promises as appropriate; if wall-clock heavy, mark @slow-equivalent per test-performance discipline. 6. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#1329, #1860, #2084",
+      "Overview": "See https://github.com/deftai/directive/issues/1329 (retargeted). Hazard: (A) reads base S0, (B) reads S0, (A) writes, (B) writes from S0 overwriting A. Bare writeFileSync also risks partial writes. Invoked by install/upgrade/migrate (not session:start, which records session_id in .deft/ritual-state.json via session-start.ts). A prior swarm worker hit its verify-first gate and documented that the cited Python module is dead and the race moved to the TS agents:refresh path -- see the forensic comment on the issue.",
+      "GuardRails": "TS-native repo. Fix ONLY the TS surface (platform/agents-md.ts + agents-refresh.ts). VERIFY the hazard is live before coding; if agents:refresh already serializes/atomically-writes, STOP and report (close as already-fixed) rather than inventing work. Do NOT add a second locking helper if the tree already has one (search first) -- reuse it. This cohort intentionally excludes #1260 (broader PROJECT-DEFINITION mutation lock) to avoid two workers inventing competing lock utils; if you add a general lock helper, put it somewhere reusable and note it for #1260."
+    },
+    "items": [
+      {
+        "title": "Hazard verified live on the TS agents:refresh write path before implementing (else stop-and-report).",
+        "status": "proposed"
+      },
+      {
+        "title": "Managed-section read-modify-write is serialized (advisory lock or CAS) against concurrent writers.",
+        "status": "proposed"
+      },
+      {
+        "title": "AGENTS.md write is atomic (temp-file + rename), no partial writes.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test: N concurrent agents:refresh writers -> final session= equals one of the N inputs (no corruption).",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1329",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1329: agents:refresh managed-section session= write has a concurrent-write race"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1860",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1860"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2084",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2084"
+      }
+    ],
+    "updated": "2026-07-03T11:56:37Z"
+  }
+}

@@ -97,6 +97,7 @@ Iterate until the user approves the breakdown.
 
 ### Step 5: Create the GitHub issues
 
+- ! **Pre-filing master-diff check (#1102):** before filing an issue that proposes ADDING a file or directory, run `git ls-tree origin/master -- <path>` (or `gh api repos/{owner}/{repo}/contents/{path}` for repos without a local clone) to confirm the file does not already exist on master. If it does, scope the issue to the DELTA between current state and the proposed end-state, not the original "deposit this file" framing.
 - ! Create issues in dependency order (blockers first) so you can reference real issue numbers
 - ! Use `gh issue create` for each approved slice with the template below
 - ! Trace each issue back to the relevant SPECIFICATION.md phase/task IDs where applicable
@@ -197,3 +198,4 @@ task slice:list                  # enumerate recorded slices for verification
 - ⊗ Proceeding without `gh` authentication
 - ⊗ Omitting dependency ordering — blockers must be created first
 - ⊗ Describing implementation internals instead of observable behavior in issue bodies
+- ⊗ File an issue proposing to add a file or directory that already exists on master without first running the `git ls-tree origin/master -- <path>` existence check (#1102) -- the stale "add file X" filing (#1099 proposed adding `.github/dependabot.yml`, which had already landed via #1070; closed as a duplicate and re-filed as the additive-delta #1100) is exactly the recurrence this check prevents
