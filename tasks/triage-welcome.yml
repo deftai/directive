@@ -24,7 +24,7 @@ tasks:
   welcome:
     desc: "Run the 6-phase onboarding ritual (N3 / #1143): detect prior state, prompt subscription scope, run triage:bootstrap, prompt wipCap, offer WIP relief, print triage:summary. Idempotent; re-run resumes cleanly. -- task triage:welcome -- [--no-subprocess]"
     internal: true
-    deps: [":engine:_ts-build"]
+    # Runtime/session dispatch: no engine:_ts-build / pnpm build (#2181).
     dir: '{{.USER_WORKING_DIR}}'
     env:
       DEFT_TASK_PREFIX: '{{.DEFT_TASK_PREFIX | default ""}}'

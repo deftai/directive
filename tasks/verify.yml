@@ -190,8 +190,8 @@ tasks:
   cache-fresh:
     desc: "Pre-`start_agent` cache-freshness gate (#1127). Refuses implementation dispatch when the triage cache is stale, missing, or the target issue's latest decision is not `accept`. Subscription-aware via plan.policy.triageScope[] (D12 / #1131). Flags: --for-issue N / --max-age-hours N / --allow-stale / --repo OWNER/NAME / --allow-missing-bootstrap (consumed by the framework's own `task check` so a fresh checkout passes -- consumers leave it OFF)."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
+    # Runtime/session + pre-dispatch gate: no engine:_ts-build / pnpm build (#2181).
+    # Parent `task check` still builds via its own engine:_ts-build dep first.
     # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
     # because the gate forwards user-facing flags via {{.CLI_ARGS}}
     # (--for-issue / --max-age-hours / --allow-stale / --repo) that
@@ -220,8 +220,7 @@ tasks:
   session-ritual:
     desc: "Fail-closed session ritual verifier (#1348). Flags: --tier quick|gated / --json. Set DEFT_SESSION_RITUAL_SKIP=1 for headless workers and CI."
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
+    # Runtime/session dispatch: no engine:_ts-build / pnpm build (#2181).
     # No sources/generates: this gate is time-, HEAD-, and worktree-sensitive.
     cmds:
       # Oracle/fallback (parity): scripts/verify_session_ritual.py (#1828 Wave 8 / #1854 s3).
@@ -232,8 +231,7 @@ tasks:
   tools:
     desc: "Detect required Deft host tools and print install or manual guidance (#1187). Flags: --install / --yes / --json"
     dir: '{{.USER_WORKING_DIR}}'
-    deps:
-      - task: :engine:_ts-build
+    # Runtime/session dispatch: no engine:_ts-build / pnpm build (#2181).
     cmds:
       # Oracle/fallback (parity): scripts/verify_tools.py (#1828 Wave 8).
       - task: :engine:invoke
