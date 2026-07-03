@@ -154,6 +154,8 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ! Scan external sources for new work items and create proposed scope xBRIEFs.
 
+! **Pre-filing master-diff check (#1102).** When a refinement pass FILES a new GitHub issue that proposes ADDING a file or directory (rather than ingesting an existing issue), first run the pre-filing existence check from [`../deft-directive-gh-slice/SKILL.md`](../deft-directive-gh-slice/SKILL.md) Step 5 -- `git ls-tree origin/master -- <path>` (or `gh api repos/{owner}/{repo}/contents/{path}`) -- so a stale "add file X" issue is never opened against state that already exists on master (the #1099 -> #1100 close-and-refile recurrence).
+
 ### Step 1: Gather Sources
 
 1. ? Scan non-GitHub sources (Jira, direct user requests, etc.) manually if applicable — those ingest paths are not yet task-wrapped

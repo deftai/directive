@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1102"
+  },
+  "plan": {
+    "title": "fix(skills): pre-filing master-diff check -- run git ls-tree origin/master before filing an issue that proposes adding a file",
+    "status": "running",
+    "narratives": {
+      "Description": "Add a MUST rule + MUST NOT anti-pattern to the canonical issue-filing skill requiring a git ls-tree origin/master (or gh contents API) existence check before filing an issue that proposes ADDING a file, so stale 'add file X' issues (where X already exists on master) are not filed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1102",
+      "UserStory": "As a maintainer/agent filing issues, I want the filing skill to require a one-second on-master existence check before proposing to add a file, so I never file a stale duplicate like #1099 (which proposed adding .github/dependabot.yml that already existed) and avoid the close-and-refile bookkeeping.",
+      "ImplementationPlan": "1. LOCATE CURRENT SURFACE FIRST: the issue references skills/deft-directive-gh-triage/SKILL.md and skills/deft-directive-refinement/SKILL.md, but the maintainer skill path is now content/skills/. Skill docs may be PROJECTIONS rendered from content packs -- check content/packs/ (e.g. skills pack JSON) before editing any SKILL.md directly. If the target skill's SKILL.md is a rendered projection, edit the SOURCE pack JSON and run the render task (task packs:render) to regenerate; committing a hand-edited projection will fail the pack-render drift gate. 2. Add a `!` MUST rule to the canonical issue-filing skill: before filing an issue that proposes ADDING a file/dir, run `git ls-tree origin/master -- <path>` (or `gh api repos/{owner}/{repo}/contents/{path}` without a clone) to confirm it does not already exist; if it does, scope the issue to the DELTA vs current on-master state. 3. Add a corresponding `⊗` MUST NOT anti-pattern prohibiting 'add file already on master' filings that ignore existing state. 4. Cross-reference from the refinement skill Phase 1 (filing step) to the new rule. 5. Add a short recurrence cross-reference in meta/lessons.md (if that surface still exists; else the current lessons/packs equivalent). 6. Add/extend a DETERMINISTIC content test asserting the rule + anti-pattern tokens are present in the rendered skill -- find the current content-test surface (tests/content/*.py if still Python, or the TS content-test equivalent) and mirror its style. 7. Run repo-root pnpm run lint (full lane) + task check.",
+      "Traces": "#1102, #1070, #1099, #1100",
+      "Overview": "See https://github.com/deftai/directive/issues/1102. On 2026-05-12 an agent filed #1099 proposing to add .github/dependabot.yml without checking master -- it already existed (PR #1070). #1099 closed as duplicate; #1100 re-filed as the additive delta. A 1s git ls-tree origin/master check prevents this class. Land a `!` MUST rule + `⊗` anti-pattern in the canonical filing skill, cross-ref from refinement Phase 1, recurrence note in lessons, plus a deterministic content test.",
+      "GuardRails": "Maintainer skills live under content/skills/. Rendered SKILL.md files may be PROJECTIONS from content/packs/*.json -- ALWAYS edit the source pack + re-render (task packs:render), never the projection directly (pack-render drift gate will fail CI, as seen on PR #2228). Verify the current content-test surface (Python tests/content/ vs TS) before writing the test. If the exact skills named in the issue no longer exist, map to the closest current canonical filing/refinement skill and note the mapping."
+    },
+    "items": [
+      {
+        "title": "A `!` MUST rule (pre-filing git ls-tree origin/master existence check for add-file proposals) lands in the canonical issue-filing skill (via source pack if projection-rendered).",
+        "status": "proposed"
+      },
+      {
+        "title": "A `⊗` MUST NOT anti-pattern prohibiting stale 'add file already on master' filings is added.",
+        "status": "proposed"
+      },
+      {
+        "title": "The refinement skill Phase 1 filing step cross-references the new rule.",
+        "status": "proposed"
+      },
+      {
+        "title": "A recurrence cross-reference is recorded in the current lessons surface.",
+        "status": "proposed"
+      },
+      {
+        "title": "A deterministic content test asserts the rule + anti-pattern tokens are present in the rendered skill.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1102",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1102: fix(skills): pre-filing master-diff check"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1099",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1099"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1100",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1100"
+      }
+    ],
+    "updated": "2026-07-03T11:56:37Z"
+  }
+}
