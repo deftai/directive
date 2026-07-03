@@ -93,3 +93,19 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'swarm-complete-cohort {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
+
+  # swarm:finalize-cohort -- post-merge cohort lifecycle automation (#2225).
+  # After a cohort's PRs merge, resolves the merged stories (via Closes #N ->
+  # active-brief mapping or an explicit --stories list), runs the same
+  # completeCohort(...) sweep as swarm:complete-cohort, and lands the
+  # active/ -> completed/ moves on a feature branch with an auto-opened PR —
+  # eliminating the hand-authored lifecycle-sweep PR tax for stop-at:pr-open
+  # swarms. swarm:complete-cohort remains the idempotent manual primitive.
+  finalize-cohort:
+    desc: "After cohort PRs merge, auto-sweep story briefs active/ -> completed/ and open the lifecycle PR (#2225)"
+    deps: [":engine:_ts-build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'swarm-finalize-cohort {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'

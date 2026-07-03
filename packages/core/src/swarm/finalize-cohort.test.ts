@@ -1,0 +1,184 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../scope/transition.js", () => ({
+  runTransition: vi.fn((verb: string) => ({ ok: true, message: `${verb} ok` })),
+}));
+
+import type { RunGhFn } from "../pr-protected-issues/types.js";
+import { runTransition } from "../scope/transition.js";
+import { finalizeCohort } from "./finalize-cohort.js";
+import { finalizeCohortMain } from "./finalize-cohort-cli.js";
+import type { TextCaptureResult } from "./subprocess.js";
+
+function writeActiveStory(project: string, storyId: string, issueNumber: number): string {
+  const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+  writeFileSync(
+    join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({
+      plan: {
+        title: "Project",
+        status: "running",
+        policy: { allowDirectCommitsToMaster: false, wipCap: 10 },
+      },
+    }),
+    "utf8",
+  );
+  writeFileSync(
+    full,
+    JSON.stringify({
+      plan: {
+        id: storyId,
+        title: storyId,
+        status: "running",
+        references: [
+          {
+            uri: `https://github.com/deftai/directive/issues/${issueNumber}`,
+            type: "x-xbrief/github-issue",
+          },
+        ],
+        items: [{ id: "i1", title: "t", status: "pending" }],
+      },
+    }),
+    "utf8",
+  );
+  return full;
+}
+
+function mockRunGh(
+  mergedPrs: Record<number, { merged: boolean; closingIssues: number[] }>,
+): RunGhFn {
+  return (cmd) => {
+    const path = cmd.find((part) => part.startsWith("repos/") && part.includes("/pulls/"));
+    if (path !== undefined) {
+      const match = path.match(/\/pulls\/(\d+)$/);
+      const prNumber = match ? Number(match[1]) : 0;
+      const state = mergedPrs[prNumber];
+      if (state === undefined) {
+        return { returncode: 1, stdout: "", stderr: "not found" };
+      }
+      const body = state.closingIssues.map((n) => `Closes #${n}`).join("\n");
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          merged_at: state.merged ? "2026-07-02T12:00:00Z" : null,
+          body,
+        }),
+        stderr: "",
+      };
+    }
+    if (cmd.includes("pr") && cmd.includes("create")) {
+      return { returncode: 0, stdout: "https://github.com/deftai/directive/pull/9999", stderr: "" };
+    }
+    return { returncode: 0, stdout: "", stderr: "" };
+  };
+}
+
+function mockRunGit(onCommit?: () => void): (command: readonly string[]) => TextCaptureResult {
+  let currentBranch = "";
+  return (command) => {
+    const joined = command.join(" ");
+    if (joined.includes("git switch -c")) {
+      currentBranch = command[command.length - 1] ?? "";
+      return { returncode: 0, stdout: "", stderr: "" };
+    }
+    if (joined.includes("git symbolic-ref")) {
+      return currentBranch.length > 0
+        ? { returncode: 0, stdout: `${currentBranch}\n`, stderr: "" }
+        : { returncode: 1, stdout: "", stderr: "detached" };
+    }
+    if (joined.includes("git commit")) {
+      onCommit?.();
+      return { returncode: 0, stdout: "", stderr: "" };
+    }
+    if (joined.includes("git rev-parse HEAD")) {
+      return { returncode: 0, stdout: "abc123\n", stderr: "" };
+    }
+    if (joined.includes("git status --short")) {
+      return { returncode: 0, stdout: "M xbrief/active/story-a.xbrief.json\n", stderr: "" };
+    }
+    return { returncode: 0, stdout: "", stderr: "" };
+  };
+}
+
+describe("finalizeCohort", () => {
+  beforeEach(() => {
+    vi.mocked(runTransition).mockClear();
+  });
+
+  it("finalizes merged PR stories to completed via explicit --stories", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-"));
+    const storyPath = writeActiveStory(project, "story-a", 2225);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      noCommit: true,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.ok).toBe(true);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith("complete", storyPath);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("resolves stories from merged PR closing issues", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-pr-"));
+    writeActiveStory(project, "story-b", 2115);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [42],
+      repo: "deftai/directive",
+      noCommit: true,
+      runGh: mockRunGh({ 42: { merged: true, closingIssues: [2115] } }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.closing_issues).toEqual([2115]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("rejects unmerged PRs", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-unmerged-"));
+    writeActiveStory(project, "story-c", 2181);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [43],
+      repo: "deftai/directive",
+      noCommit: true,
+      runGh: mockRunGh({ 43: { merged: false, closingIssues: [2181] } }),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors.some((e) => e.includes("not merged"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("commits lifecycle moves on a feature branch when requested", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-commit-"));
+    const storyPath = writeActiveStory(project, "story-d", 2225);
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-d",
+      repo: "deftai/directive",
+      runGit: mockRunGit(() => {
+        committed = true;
+      }),
+      runGh: mockRunGh({}),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(committed).toBe(true);
+    expect(result.result.branch).toBe("swarm/finalize/story-d");
+    expect(result.result.pr_url).toContain("9999");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("manual completeCohortMain still works independently", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-manual-"));
+    const storyPath = writeActiveStory(project, "story-e", 2225);
+    const code = finalizeCohortMain(["--project-root", project, "--no-commit", storyPath]);
+    expect(code).toBe(0);
+    rmSync(project, { recursive: true, force: true });
+  });
+});

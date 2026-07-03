@@ -47,6 +47,11 @@ describe("deft-ts swarm:* dispatcher (#1838 s4)", () => {
     expect(await dispatch(["swarm-complete-cohort", "--project-root", root], silentIo())).toBe(2);
   });
 
+  it("swarm-finalize-cohort rejects empty cohort with exit 2", async () => {
+    const root = emptyProject();
+    expect(await dispatch(["swarm-finalize-cohort", "--project-root", root], silentIo())).toBe(2);
+  });
+
   it("swarm-verify-review-clean requires --pr with exit 2", async () => {
     expect(await dispatch(["swarm-verify-review-clean"], silentIo())).toBe(2);
   });

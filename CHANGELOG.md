@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`task swarm:finalize-cohort` auto-sweeps merged cohort briefs to `completed/` without a hand-authored lifecycle PR (#2225).** After a `stop-at: pr-open` swarm's PRs merge, the new surface resolves each merged story from its `Closes #N` link (or an explicit `--stories` list), runs the same deterministic `completeCohort(...)` sweep as `task swarm:complete-cohort`, and lands the `active/` -> `completed/` moves on a feature branch with an auto-opened PR — so WIP resets without the extra ceremony PR every cycle. `task swarm:complete-cohort` remains the idempotent manual primitive. Closes #2225. Refs #1880, #1487, #1369.
+
 ### Changed
 
 ### Fixed
