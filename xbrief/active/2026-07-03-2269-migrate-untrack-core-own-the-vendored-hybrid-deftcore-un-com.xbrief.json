@@ -1,0 +1,137 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2269; refined to swarm-ready 2026-07-03 (epic #2203 wave 2)."
+  },
+  "plan": {
+    "id": "2269-migrate-untrack-core",
+    "title": "migrate --untrack-core: own the vendored->hybrid .deft/core un-commit",
+    "status": "running",
+    "narratives": {
+      "Description": "Own the one-time vendored->hybrid un-commit as an explicit `migrate --untrack-core` step so migrated consumers stop carrying a tracked-but-should-be-ignored .deft/core payload. The destructive `git rm --cached -r .deft/core` index mutation lives only here (never in update/init, which only write the non-destructive .gitignore entry), is gated on the committed package.json pin existing so content can be reconstituted from the pinned engine, reconciles .gitignore, and is idempotent. This un-orphans #2123 and closes the #1941/#1942 circular deferral.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2269",
+      "Overview": "Part of epic #2203. Un-orphans #2123.\n\n## Summary\n\nOwn the one-time vendored->hybrid un-commit (`git rm --cached .deft/core`) as an explicit, doctor-surfaced `migrate --untrack-core` step. This closes the circular deferral in #2123 where #1941 and #1942 each deferred it to the other, leaving migrated consumers tracked-but-should-be-ignored indefinitely.\n\n## Behavior (Decision 3)\n\n- The **destructive** index mutation lives here, never in `update`. `update`/`init` only write the non-destructive `.gitignore` entry.\n- `doctor` (#child D, #2267) detects \"payload tracked but should be ignored\" and emits `Next command: directive migrate --untrack-core` with root-cause + remediation rationale. That detection/emission is OWNED by D; this story provides the verb D points at.\n- `migrate --untrack-core` runs `git rm --cached -r .deft/core`, ensures the ignore entry, and leaves an unambiguous layout.\n- **Gated on the pin existing** (#child A #2264 / Decision 2): content can be reconstituted from the pinned engine after un-tracking, so nothing is lost. Reuse the committed-pin reader from `packages/core/src/resolution/pin.ts` (keystone) for the guard. This is the safety precondition #2124 identified for #2123.\n- Idempotent: once untracked + ignored, re-running is a no-op and `doctor` stops recommending it.\n\n## Acceptance criteria\n\n- `update`/`init` never run `git rm --cached`; they only write the gitignore entry.\n- `migrate --untrack-core` un-tracks `.deft/core`, writes the ignore entry, and is idempotent.\n- Refuses / warns if no committed pin exists (would leave content unrecoverable).\n- `.gitignore` reconciled: ignores `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache; NOT `package.json`.\n- Tests: tracked deposit, already-untracked, missing-pin guard, rerun.\n\n## Related\n\nAbsorbs #2123. Depends on #child A (#2264). Surfaced by #child D (#2267). Parent #2203.\n",
+      "UserStory": "As a consumer who migrated a vendored .deft/core deposit to hybrid npm-managed mode, I want an explicit idempotent `migrate --untrack-core` verb that runs git rm --cached on the tracked payload and reconciles .gitignore only after confirming a committed pin exists, so that the tracked-but-should-be-ignored deposit is cleaned up exactly once with no risk of losing content that cannot be reconstituted.",
+      "ImplementationPlan": "1. Add a new core module `packages/core/src/init-deposit/untrack-core.ts` with a pure `untrackCore(projectRoot, seams)` orchestrator: probe whether `.deft/core` is git-tracked (injected git runner seam, default shells out to `git ls-files .deft/core`), run the missing-pin guard by reusing `readCommittedPin` from `packages/core/src/resolution/pin.ts` (keystone), and only then run `git rm --cached -r .deft/core` (injected runner). Return a three-state result (untracked / already-clean-noop / refused-missing-pin). Never touch working-tree files, never delete content on disk.\n2. Reconcile `.gitignore` via `packages/core/src/init-deposit/gitignore.ts`: ensure `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, and the cache path are ignored, and assert `package.json` is NEVER added to the ignore set. (`.deft/.cli/` was born-ignored by the keystone; extend the reconciler for the migrate path.)\n3. Wire the CLI: add `--untrack-core` to `CANONICAL_MIGRATE_ARGV` in `packages/cli/src/init-cli/constants.ts` and branch in `packages/cli/src/init-cli/migrate.ts::runMigrate` so `migrate --untrack-core` dispatches to a `runUntrackCoreCli` wrapper (three-state 0/1/2 exit, JSON + human output) while bare `migrate` keeps the existing provenance-stamp behavior.\n4. Guard the boundary: assert (test + no new call site) that `init`/`update` code paths never invoke `git rm --cached` — the destructive mutation exists ONLY in untrack-core.ts.\n5. Colocated vitest: `untrack-core.test.ts` (tracked deposit -> untracked; already-untracked -> idempotent no-op; missing-pin -> refused/warn; rerun -> no-op) and extend `gitignore.test.ts` for the reconciled ignore set. Add a brief CHANGELOG `[Unreleased]` entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-read-migrate-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2269, #2203, #2123, #2124, #1941, #1942",
+      "Labels": "enhancement, adoption-blocker, tooling, vendored-deposit, area:installer"
+    },
+    "items": [
+      {
+        "id": "2269-a1-destructive-mutation-isolated",
+        "title": "Given the init and update code paths, when they run, then neither invokes `git rm --cached` (they only write the non-destructive .gitignore entry) and the only call site of the destructive index mutation is the untrack-core module, verified by a boundary test.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the init and update code paths, when they run, then neither invokes `git rm --cached` (they only write the non-destructive .gitignore entry) and the only call site of the destructive index mutation is the untrack-core module, verified by a boundary test.",
+          "Traces": "#2269, #2203"
+        }
+      },
+      {
+        "id": "2269-a2-untrack-idempotent",
+        "title": "Given a project whose .deft/core is git-tracked and a committed pin exists, when `directive migrate --untrack-core` runs, then it runs git rm --cached -r .deft/core, ensures the ignore entry, and re-running is a no-op that mutates nothing.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project whose .deft/core is git-tracked and a committed pin exists, when `directive migrate --untrack-core` runs, then it runs git rm --cached -r .deft/core, ensures the ignore entry, and re-running is a no-op that mutates nothing.",
+          "Traces": "#2269, #2123"
+        }
+      },
+      {
+        "id": "2269-a3-missing-pin-guard",
+        "title": "Given a project with no committed package.json pin, when `directive migrate --untrack-core` runs, then it refuses (or warns and aborts) the git rm --cached so content that could not be reconstituted from a pinned engine is never left unrecoverable.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project with no committed package.json pin, when `directive migrate --untrack-core` runs, then it refuses (or warns and aborts) the git rm --cached so content that could not be reconstituted from a pinned engine is never left unrecoverable.",
+          "Traces": "#2269, #2124, #2264"
+        }
+      },
+      {
+        "id": "2269-a4-gitignore-reconciled",
+        "title": "Given the .gitignore reconciliation, when untrack-core runs, then it ignores .deft/core/, .deft/.cli/, ritual-state.json, and the cache path, and it never adds package.json to the ignore set.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the .gitignore reconciliation, when untrack-core runs, then it ignores .deft/core/, .deft/.cli/, ritual-state.json, and the cache path, and it never adds package.json to the ignore set.",
+          "Traces": "#2269, #2123"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "tooling",
+      "vendored-deposit",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2269",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2269: migrate --untrack-core: own the vendored->hybrid .deft/core un-commit"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1941",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1941"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1942",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1942"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2123",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2123"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2124",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2124"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "size": "M",
+        "model_tier": "high",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "git-index-migrate",
+        "file_scope": [
+          "packages/core/src/init-deposit/untrack-core.ts",
+          "packages/core/src/init-deposit/untrack-core.test.ts",
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "packages/cli/src/init-cli/migrate.ts",
+          "packages/cli/src/init-cli/migrate.test.ts",
+          "packages/cli/src/init-cli/constants.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/init-deposit",
+          "pnpm exec vitest run packages/cli/src/init-cli",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "New packages/core/src/init-deposit/untrack-core.ts orchestrator: git-tracked probe + missing-pin guard (reusing resolution/pin.ts) + injected git runner for git rm --cached -r .deft/core; three-state result; idempotent.",
+          "CLI wiring: --untrack-core added to CANONICAL_MIGRATE_ARGV and dispatched in migrate.ts; bare migrate keeps provenance-stamp behavior.",
+          "gitignore reconciled (.deft/core/, .deft/.cli/, ritual-state.json, cache ignored; package.json never ignored).",
+          "Colocated vitest across tracked/already-untracked/missing-pin/rerun + init/update boundary test; task check:framework-source green."
+        ],
+        "notes": "Refined to swarm-ready 2026-07-03 via codebase read (migrate.ts is a provenance-stamp verb today; --untrack-core is a new destructive subcommand). SCOPE GUARD: this story owns the migrate --untrack-core VERB + git-index mutation + missing-pin guard + gitignore reconciliation. The doctor detection that SURFACES this verb (Next command emission) is owned by child D (#2267); keeping it out of scope keeps conflict_group git-index-migrate disjoint from D's core-cli-verbs. Depends on #2264 (committed pin + resolution/pin.ts reader), now merged."
+      }
+    },
+    "updated": "2026-07-03T22:34:07Z"
+  }
+}

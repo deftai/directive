@@ -6,7 +6,7 @@
   "plan": {
     "id": "2264-resolution-spine",
     "title": "Resolution spine: fact-set classifier + plan() contract + global-first ladder + pin (keystone)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Build the shared resolution spine that all three Directive consumption contexts (matched shell, mismatched sandbox, headless product) stand on. It comprises an orthogonal fact-set classifier, a single ordered plan() that emits a versioned public JSON schema, a global-first engine-resolution ladder with a local-engine integrity check, a committed package.json version pin reconciled against .deft/core/VERSION and the AGENTS managed-section sha, and a three-band engine-skew policy. This is the keystone every other epic #2203 child derives from, so it ships first and delivers library primitives rather than user-facing verb behavior.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2264",
@@ -154,8 +154,10 @@
           "Colocated vitest coverage across the major fact combinations + a contract test proving downstream derives from plan(); task ts:check-lane, verify:contract-drift, and check:framework-source green."
         ],
         "notes": "Refined to swarm-ready 2026-07-03 via codebase inspection (subagent map). Kept as ONE keystone story rather than sub-decomposed: it is greenfield module work in packages/core/src/resolution/ plus schema/types wiring, sized L for a high-tier agent. SCOPE GUARD: this story delivers the shared library spine only; the user-facing behavior rewiring of init (#2265), update (#2266), doctor (#2267), and headless emit (#2268) is explicitly OUT of scope and consumes plan() downstream. conflict_group core-resolution-spine is disjoint from the children's core-cli-verbs / git-index-migrate / headless groups."
-      }
+      },
+      "completedAt": "2026-07-03T22:32:23Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-03T21:48:07Z"
+    "updated": "2026-07-03T22:32:23Z"
   }
 }
