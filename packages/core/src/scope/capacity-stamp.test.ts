@@ -142,6 +142,81 @@ describe("stampCompletionMetadata label-aware bucket resolution (#2237)", () => 
     expect((plan.metadata as Record<string, unknown>).capacityBucket).toBe("technical-debt");
   });
 
+  it("cache miss on a bug-labeled issue takes the live fallback -> technical-debt (#2246)", () => {
+    root = mkdtempSync(join(tmpdir(), "cap-live-match-"));
+    writeConfig(root);
+    // No cache file written -> cachedIssueLabels returns null (cache miss).
+    const plan: Record<string, unknown> = {
+      status: "running",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/2237",
+        },
+      ],
+    };
+    let liveCalls = 0;
+    stampCompletionMetadata(plan, root, TS, {
+      liveLabelReader: (repo, issue) => {
+        liveCalls += 1;
+        expect(repo).toBe("deftai/directive");
+        expect(issue).toBe(2237);
+        return new Set(["bug"]);
+      },
+    });
+    expect(liveCalls).toBe(1);
+    expect((plan.metadata as Record<string, unknown>).capacityBucket).toBe("technical-debt");
+  });
+
+  it("cache miss + failing live read falls back to defaultBucket without crashing (#2246)", () => {
+    root = mkdtempSync(join(tmpdir(), "cap-live-fail-"));
+    writeConfig(root);
+    const plan: Record<string, unknown> = {
+      status: "running",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/2238",
+        },
+      ],
+    };
+    stampCompletionMetadata(plan, root, TS, {
+      // A live-read failure is modeled as a null return (fail-open).
+      liveLabelReader: () => null,
+    });
+    expect((plan.metadata as Record<string, unknown>).capacityBucket).toBe("new-capability");
+  });
+
+  it("cache hit makes no live call -- fast path preserved (#2246)", () => {
+    root = mkdtempSync(join(tmpdir(), "cap-live-hit-"));
+    writeConfig(root);
+    const cacheDir = join(root, ".deft-cache", "github-issue", "deftai", "directive", "99");
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(
+      join(cacheDir, "raw.json"),
+      JSON.stringify({ labels: [{ name: "bug" }] }),
+      "utf8",
+    );
+    const plan: Record<string, unknown> = {
+      status: "running",
+      references: [
+        {
+          type: "x-xbrief/github-issue",
+          uri: "https://github.com/deftai/directive/issues/99",
+        },
+      ],
+    };
+    let liveCalls = 0;
+    stampCompletionMetadata(plan, root, TS, {
+      liveLabelReader: () => {
+        liveCalls += 1;
+        return new Set(["enhancement"]);
+      },
+    });
+    expect(liveCalls).toBe(0);
+    expect((plan.metadata as Record<string, unknown>).capacityBucket).toBe("technical-debt");
+  });
+
   it("uses an injected label reader when provided", () => {
     root = mkdtempSync(join(tmpdir(), "cap-reader-"));
     writeConfig(root);

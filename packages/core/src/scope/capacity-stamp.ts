@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { cachedIssueLabels, extractIssueRef } from "../capacity/backfill.js";
 import { classifyBucket, loadBucketMatchers } from "../policy/capacity.js";
+import { restIssueView } from "../scm/gh-rest.js";
 
 /** Read the labels for an issue reference. Returns null when they cannot be resolved. */
 export type LabelReader = (repo: string, issueNumber: number) => ReadonlySet<string> | null;
@@ -14,8 +15,16 @@ export interface StampCompletionOptions {
   /**
    * Injectable reader used to resolve labels from the brief's linked issue when no
    * explicit `labels` are supplied. Defaults to a cached-issue lookup (no network).
+   * A `null` return signals a cache MISS and triggers the live fallback below.
    */
   readonly labelReader?: LabelReader;
+  /**
+   * Injectable fail-open fallback used ONLY on a cache miss (`labelReader` returned
+   * `null`). Defaults to a single REST read via the scm shim (PRs excluded, #2246).
+   * A `null` return leaves resolution on the `defaultBucket` fallback. Injected in
+   * tests so the fallback path is exercised without a network call.
+   */
+  readonly liveLabelReader?: LabelReader;
 }
 
 function normalizeLabels(labels: Iterable<string>): Set<string> {
@@ -26,6 +35,44 @@ function normalizeLabels(labels: Iterable<string>): Set<string> {
     }
   }
   return out;
+}
+
+/** Extract label name strings from a raw REST/cache `labels` array. */
+function labelsFromRaw(raw: unknown): Set<string> {
+  const out = new Set<string>();
+  if (!Array.isArray(raw)) {
+    return out;
+  }
+  for (const label of raw) {
+    if (typeof label === "string" && label.length > 0) {
+      out.add(label);
+    } else if (typeof label === "object" && label !== null && !Array.isArray(label)) {
+      const name = (label as Record<string, unknown>).name;
+      if (typeof name === "string" && name.length > 0) {
+        out.add(name);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Fail-open live label read for a cache miss: a single REST GET through the scm
+ * shim (`restIssueView`), with PRs excluded. Any error (or a PR ref) yields `null`
+ * so resolution falls through to `defaultBucket` instead of crashing (#2246).
+ */
+function liveIssueLabels(repo: string, issueNumber: number): ReadonlySet<string> | null {
+  try {
+    const issue = restIssueView(repo, issueNumber);
+    // The issues endpoint also returns PRs; a PR object carries `pull_request`.
+    // Exclude PRs from label-based bucket resolution.
+    if (issue.pull_request !== undefined) {
+      return null;
+    }
+    return labelsFromRaw(issue.labels);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -49,6 +96,12 @@ function resolveCapacityBucket(
     if (repo !== null && issueNumber !== null) {
       const reader: LabelReader = options.labelReader ?? ((r, n) => cachedIssueLabels(root, r, n));
       labels = reader(repo, issueNumber);
+      // Cache MISS (null) -- take the fail-open live fallback. A cache HIT (even an
+      // empty set) stays the fast path and makes NO network call (#2246).
+      if (labels === null) {
+        const live: LabelReader = options.liveLabelReader ?? liveIssueLabels;
+        labels = live(repo, issueNumber);
+      }
     }
   }
 

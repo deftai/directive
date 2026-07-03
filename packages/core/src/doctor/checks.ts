@@ -69,14 +69,14 @@ export function checkQuickStartResolves(
       `install root is '${installRoot}' but the file is missing. ` +
       "Run `.deft/core/run agents:refresh` (Unix) / " +
       "`.deft\\core\\run agents:refresh` (Windows) to align AGENTS.md " +
-      "with the on-disk install root, OR run `task upgrade` to " +
+      "with the on-disk install root, OR run `deft update` to " +
       "re-pull the framework if the on-disk install is missing. " +
       "See UPGRADING.md for the canonical drift-repair walkthrough.",
     data: {
       path: qsPath,
       install_root: installRoot,
       suggested_fix: ".deft/core/run agents:refresh",
-      suggested_fix_alt: "task upgrade",
+      suggested_fix_alt: "deft update",
     },
   };
 }
@@ -130,13 +130,13 @@ export function checkSkillPathsResolve(
     detail:
       `${missing.length} skill path(s) do not resolve; ${redirectStubs.length} stub redirect(s). ` +
       `${parts.join("; ")}. Run \`.deft/core/run agents:refresh\` (Unix) / ` +
-      "`.deft\\core\\run agents:refresh` (Windows) to rewrite the managed AGENTS.md block so skill paths match the on-disk framework, OR run `task upgrade` if the on-disk skills are missing entirely. See UPGRADING.md for the drift-repair walkthrough.",
+      "`.deft\\core\\run agents:refresh` (Windows) to rewrite the managed AGENTS.md block so skill paths match the on-disk framework, OR run `deft update` if the on-disk skills are missing entirely. See UPGRADING.md for the drift-repair walkthrough.",
     data: {
       referenced,
       missing,
       redirect_stubs: redirectStubs,
       suggested_fix: ".deft/core/run agents:refresh",
-      suggested_fix_alt: "task upgrade",
+      suggested_fix_alt: "deft update",
     },
   };
 }
@@ -157,7 +157,7 @@ export function checkManifestAgreement(
       return {
         name: "manifest-agreement",
         status: "fail",
-        detail: `Two install manifests disagree: .deft/core/VERSION (tag='${coreVer}') vs legacy .deft/VERSION (tag='${legacyVer}'). The canonical manifest is .deft/core/VERSION -- run \`task upgrade\` to migrate the stale .deft/VERSION (backed up as .deft/VERSION.premigrate). See UPGRADING.md for the canonical drift-repair walkthrough.`,
+        detail: `Two install manifests disagree: .deft/core/VERSION (tag='${coreVer}') vs legacy .deft/VERSION (tag='${legacyVer}'). The canonical manifest is .deft/core/VERSION -- run \`deft update\` to migrate the stale .deft/VERSION (backed up as .deft/VERSION.premigrate). See UPGRADING.md for the canonical drift-repair walkthrough.`,
         data: {
           dual_manifest_drift: true,
           core_manifest_path: coreManifest,
@@ -165,7 +165,7 @@ export function checkManifestAgreement(
           core_version: coreVer,
           legacy_version: legacyVer,
           authoritative: "manifest",
-          suggested_fix: "task upgrade",
+          suggested_fix: "deft update",
         },
       };
     }
@@ -196,13 +196,13 @@ export function checkManifestAgreement(
     return {
       name: "manifest-agreement",
       status: "fail",
-      detail: `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. Run \`task upgrade\` to write the canonical manifest (#1046 PR-B AC-4). See UPGRADING.md for the v0.27.x -> v0.28 transition walkthrough.`,
+      detail: `Bare .deft-version exists at ${barePath} but YAML manifest is missing at ${expectedManifestPath}. Run \`deft update\` to write the canonical manifest (#1046 PR-B AC-4). See UPGRADING.md for the v0.27.x -> v0.28 transition walkthrough.`,
       data: {
         manifest_path: manifestPath,
         expected_manifest_path: expectedManifestPath,
         bare_path: barePath,
         bare_value: bareText?.trim() ?? null,
-        suggested_fix: "task upgrade",
+        suggested_fix: "deft update",
       },
     };
   }
@@ -212,7 +212,7 @@ export function checkManifestAgreement(
     return {
       name: "manifest-agreement",
       status: "pass",
-      detail: `YAML manifest at ${manifestPath} present; bare .deft-version absent (derived value: '${derived}' from manifest tag). Run \`task upgrade\` to regenerate the derivative.`,
+      detail: `YAML manifest at ${manifestPath} present; bare .deft-version absent (derived value: '${derived}' from manifest tag). Run \`deft update\` to regenerate the derivative.`,
       data: {
         manifest_path: manifestPath,
         manifest,
@@ -252,14 +252,14 @@ export function checkManifestAgreement(
   return {
     name: "manifest-agreement",
     status: "fail",
-    detail: `Drift detected: YAML manifest tag='${derived}' does NOT agree with bare .deft-version='${bareValue}'. Per #1046 PR-B AC-4 the YAML manifest is the canonical source -- run \`task upgrade\` to regenerate the bare derivative from the manifest, OR manually update ${manifestPath} if the bare value is correct. See UPGRADING.md for the canonical drift-repair walkthrough.`,
+    detail: `Drift detected: YAML manifest tag='${derived}' does NOT agree with bare .deft-version='${bareValue}'. Per #1046 PR-B AC-4 the YAML manifest is the canonical source -- run \`deft update\` to regenerate the bare derivative from the manifest, OR manually update ${manifestPath} if the bare value is correct. See UPGRADING.md for the canonical drift-repair walkthrough.`,
     data: {
       manifest_path: manifestPath,
       bare_path: barePath,
       derived_version: derived,
       bare_value: bareValue,
       authoritative: "manifest",
-      suggested_fix: "task upgrade",
+      suggested_fix: "deft update",
     },
   };
 }

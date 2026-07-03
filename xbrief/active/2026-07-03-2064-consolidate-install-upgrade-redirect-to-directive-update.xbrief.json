@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2064"
+  },
+  "plan": {
+    "title": "consolidate: redirect deft install-upgrade to directive update (Option A)",
+    "status": "running",
+    "narratives": {
+      "Description": "Operators have two overlapping upgrade-adjacent verbs (deft install-upgrade and directive update). Consolidate to a single mental model by making install-upgrade a thin redirect that delegates to the update path with a one-line notice and no behavioral drift.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2064",
+      "UserStory": "As a consumer upgrading a vendored install, I want deft install-upgrade to delegate to directive update (single upgrade path: npm i -g -> deft update -> deft migrate -> deft doctor), so I do not have to reason about two upgrade-adjacent commands with overlapping semantics.",
+      "ImplementationPlan": "1. Implement Option A (redirect) -- the recommended path in the issue. Locate the current TS surfaces: the install-upgrade command (packages/cli/src/install-upgrade* / packages/core install-upgrade path) and the update command (directive update / runRefreshDeposit). 2. Make install-upgrade print a one-line deprecation/redirect notice and delegate to the SAME code path as directive update (share runRefreshDeposit or call update directly) so output + effects are identical. 3. Preserve any genuinely install-upgrade-only side effect if one exists (marker/manifest write) -- verify-first whether install-upgrade does anything update does not; if it does and it is still needed, fold it into the shared path rather than dropping it. Do NOT regress #2053 version resolution or #2055/#2056 refresh transaction. 4. Parity tests: on a vendored install fixture, install-upgrade and directive update produce identical deposit state / output; the redirect notice is emitted. 5. Update UPGRADING.md + doctor signpost prose to name the single canonical verb. 6. CHANGELOG [Unreleased] entry. 7. Run repo-root pnpm run lint (full-file lane) + task check. If verify-first reveals install-upgrade has a load-bearing behavior that CANNOT be safely folded into update (making Option A unsafe), STOP-AND-REPORT with the finding and a recommendation for Option B (documented dual surface) instead of half-redirecting.",
+      "Traces": "#2064, #2057, #2058, #2053",
+      "Overview": "See https://github.com/deftai/directive/issues/2064. Umbrella #2057 closed after behavioral fixes (#2058) + discoverability (#2062); both verbs work on vendored installs but overlap. Option A: install-upgrade -> thin redirect to directive update with parity. Option B (fallback): document dual surface. Default to A unless verify-first shows a redirect would drop a needed behavior.",
+      "GuardRails": "TS-native repo. Legacy Go installer is FROZEN (verify:go-freeze) -- do NOT modify Go installer code; fix the TS update/install-upgrade path only. Prefer Option A (redirect). Prove parity with tests on a vendored-install fixture. Preserve #2053/#2055/#2056 guarantees. If Option A is unsafe, stop and report rather than shipping a partial redirect."
+    },
+    "items": [
+      {
+        "title": "Decision implemented: install-upgrade redirects to directive update (Option A) unless verify-first proves it unsafe (then stop-and-report for Option B).",
+        "status": "proposed"
+      },
+      {
+        "title": "install-upgrade delegates to the update path with a one-line notice and no behavioral drift.",
+        "status": "proposed"
+      },
+      {
+        "title": "Parity test proves identical deposit state/output vs directive update on a vendored install.",
+        "status": "proposed"
+      },
+      {
+        "title": "No regression to #2053 version resolution or #2055/#2056 refresh transaction.",
+        "status": "proposed"
+      },
+      {
+        "title": "UPGRADING.md + doctor prose name the single canonical verb; CHANGELOG updated.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2064",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2064: consolidate install-upgrade -> directive update"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2057",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2057"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2058",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2058"
+      }
+    ],
+    "updated": "2026-07-03T13:27:18Z"
+  }
+}

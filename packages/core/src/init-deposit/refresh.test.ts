@@ -298,6 +298,72 @@ describe("runRefreshDeposit", () => {
     expect(manifest).toContain("managed_by: 'npm'");
   });
 
+  it("retires a stale legacy .deft/VERSION after the payload refresh (#2064)", async () => {
+    const project = freshRoot("refresh-legacy-manifest-");
+    const contentRoot = installFakeContentPackage(project, "0.61.0");
+    // Canonical deposit present (so the layout is not an orphan-legacy refusal)
+    // plus a stale legacy manifest directly under .deft/ at a divergent version.
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(project, ".deft", "core", "VERSION"),
+      "tag: 'v0.60.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(project, ".deft", "VERSION"),
+      "tag: 'v0.40.0'\nsha: abc\ninstall_root: '.deft'\n",
+      "utf8",
+    );
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.61.0",
+        nowIso: () => "2026-07-03T12:00:00Z",
+        gitPorcelain: () => null,
+      },
+    );
+
+    expect(existsSync(join(project, ".deft", "VERSION"))).toBe(false);
+    expect(existsSync(join(project, ".deft", "VERSION.premigrate"))).toBe(true);
+    // Canonical manifest is written at the deposited version.
+    expect(readFileSync(join(project, ".deft", "core", "VERSION"), "utf8")).toContain(
+      "tag: 'v0.61.0'",
+    );
+  });
+
+  it("leaves a legacy .deft/VERSION in place when it already agrees (#2064)", async () => {
+    const project = freshRoot("refresh-legacy-manifest-agree-");
+    const contentRoot = installFakeContentPackage(project, "0.61.0");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(project, ".deft", "core", "VERSION"),
+      "tag: 'v0.60.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(project, ".deft", "VERSION"),
+      "tag: 'v0.61.0'\nsha: abc\ninstall_root: '.deft'\n",
+      "utf8",
+    );
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.61.0",
+        nowIso: () => "2026-07-03T12:00:00Z",
+        gitPorcelain: () => null,
+      },
+    );
+
+    expect(existsSync(join(project, ".deft", "VERSION"))).toBe(true);
+    expect(existsSync(join(project, ".deft", "VERSION.premigrate"))).toBe(false);
+  });
+
   it("printUpdateComplete nudges migrate when managed_by is absent (#2059)", () => {
     const project = freshRoot("refresh-nudge-");
     const deftDir = join(project, ".deft", "core");

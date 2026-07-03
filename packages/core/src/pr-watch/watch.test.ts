@@ -1,0 +1,241 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  EXIT_CLEAN,
+  EXIT_NEW_P0_P1,
+  EXIT_TERMINAL_ERROR,
+  VERDICT_CLEAN,
+  VERDICT_CONFIG,
+  VERDICT_ERRORED,
+  VERDICT_NEW_P0_P1,
+  VERDICT_PENDING,
+  VERDICT_STALL,
+  VERDICT_TIMEOUT,
+} from "./constants.js";
+import type { MonotonicClock, SleepFn, WatchProbe } from "./types.js";
+import { formatWatchStatus, watch } from "./watch.js";
+
+const HEAD = "abcdef1234567890abcdef1234567890abcdef12";
+const STALE = "0000000000000000000000000000000000000000";
+
+function makeProbe(overrides: Partial<WatchProbe> = {}): WatchProbe {
+  return {
+    found: true,
+    headSha: HEAD,
+    lastReviewedSha: HEAD,
+    shaMatch: true,
+    confidence: 5,
+    p0Count: 0,
+    p1Count: 0,
+    hasBlocking: false,
+    errored: false,
+    ciFailures: 0,
+    terminalCheckRun: true,
+    isClean: false,
+    cleanGateHoldout: null,
+    error: null,
+    ...overrides,
+  };
+}
+
+/** Fake clock that only advances when the injected sleep is invoked. */
+class FakeClock implements MonotonicClock {
+  value = 0;
+  now(): number {
+    return this.value;
+  }
+}
+
+function makeSleep(clock: FakeClock): SleepFn {
+  return (seconds: number) => {
+    clock.value += seconds;
+  };
+}
+
+/** Injected probeFn that replays a fixed sequence of probes (last repeats). */
+function makeProbeSeq(...probes: WatchProbe[]) {
+  const seq = [...probes];
+  const calls: number[] = [];
+  const fn = (prNumber: number): WatchProbe => {
+    calls.push(prNumber);
+    return seq.length > 1 ? (seq.shift() as WatchProbe) : (seq[0] as WatchProbe);
+  };
+  return { fn, calls };
+}
+
+describe("watch verdict matrix (one-shot, single probe)", () => {
+  const runOneShot = (probe: WatchProbe) => {
+    const { fn } = makeProbeSeq(probe);
+    return watch(42, "deftai/directive", { oneShot: true, probeFn: fn });
+  };
+
+  it("CLEAN -> exit 0", () => {
+    const r = runOneShot(makeProbe({ isClean: true, cleanGateHoldout: null }));
+    expect(r.verdict).toBe(VERDICT_CLEAN);
+    expect(r.exitCode).toBe(EXIT_CLEAN);
+  });
+
+  it("NEW_P0_P1 (P0, sha-matched) -> exit 1", () => {
+    const r = runOneShot(
+      makeProbe({
+        hasBlocking: true,
+        p0Count: 1,
+        shaMatch: true,
+        cleanGateHoldout: "has_blocking",
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_NEW_P0_P1);
+    expect(r.exitCode).toBe(EXIT_NEW_P0_P1);
+  });
+
+  it("NEW_P0_P1 (P1, sha-matched) -> exit 1", () => {
+    const r = runOneShot(
+      makeProbe({
+        hasBlocking: true,
+        p1Count: 2,
+        shaMatch: true,
+        cleanGateHoldout: "has_blocking",
+      }),
+    );
+    expect(r.verdict).toBe(VERDICT_NEW_P0_P1);
+    expect(r.exitCode).toBe(EXIT_NEW_P0_P1);
+  });
+
+  it("blocking findings on a STALE sha are NOT read as NEW_P0_P1 (SHA-match gate)", () => {
+    const r = runOneShot(
+      makeProbe({
+        hasBlocking: true,
+        p1Count: 1,
+        lastReviewedSha: STALE,
+        shaMatch: false,
+        cleanGateHoldout: "sha_match",
+      }),
+    );
+    // Review present but stuck on a stale commit, single probe -> PENDING, not NEW_P0_P1.
+    expect(r.verdict).toBe(VERDICT_PENDING);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("ERRORED sentinel -> exit 2", () => {
+    const r = runOneShot(makeProbe({ errored: true, shaMatch: true, cleanGateHoldout: "errored" }));
+    expect(r.verdict).toBe(VERDICT_ERRORED);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("CONFIG error probe -> exit 2", () => {
+    const r = runOneShot(makeProbe({ error: "could not resolve repo", headSha: null }));
+    expect(r.verdict).toBe(VERDICT_CONFIG);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("no-terminal single probe -> PENDING exit 2", () => {
+    const r = runOneShot(
+      makeProbe({ found: false, lastReviewedSha: null, shaMatch: false, confidence: null }),
+    );
+    expect(r.verdict).toBe(VERDICT_PENDING);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+    expect(r.pollCount).toBe(1);
+  });
+});
+
+describe("watch blocking loop (injected clock + sleep)", () => {
+  it("polls until CLEAN, advancing the clock via injected sleep", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const pending = makeProbe({ isClean: false, cleanGateHoldout: "confidence", confidence: 2 });
+    const clean = makeProbe({ isClean: true, cleanGateHoldout: null });
+    const { fn, calls } = makeProbeSeq(pending, pending, clean);
+
+    const r = watch(7, "deftai/directive", {
+      pollSeconds: 90,
+      maxWaitMinutes: 30,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+
+    expect(r.verdict).toBe(VERDICT_CLEAN);
+    expect(r.exitCode).toBe(EXIT_CLEAN);
+    expect(r.pollCount).toBe(3);
+    expect(calls).toHaveLength(3);
+    expect(sleep).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(90);
+    expect(r.elapsedSeconds).toBe(180);
+  });
+
+  it("STALL after stallThreshold consecutive non-HEAD reviews", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const stale = makeProbe({
+      lastReviewedSha: STALE,
+      shaMatch: false,
+      hasBlocking: false,
+      isClean: false,
+      cleanGateHoldout: "sha_match",
+    });
+    const { fn } = makeProbeSeq(stale);
+
+    const r = watch(9, "deftai/directive", {
+      pollSeconds: 30,
+      maxWaitMinutes: 30,
+      stallThreshold: 3,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+
+    expect(r.verdict).toBe(VERDICT_STALL);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+    expect(r.pollCount).toBe(3);
+  });
+
+  it("TIMEOUT when the review never appears before the cap", () => {
+    const clock = new FakeClock();
+    const sleep = vi.fn(makeSleep(clock));
+    const nothing = makeProbe({
+      found: false,
+      lastReviewedSha: null,
+      shaMatch: false,
+      confidence: null,
+      isClean: false,
+      cleanGateHoldout: "sha_match",
+    });
+    const { fn } = makeProbeSeq(nothing);
+
+    const r = watch(11, "deftai/directive", {
+      pollSeconds: 1,
+      // 3s cap: poll1(elapsed0)->sleep, poll2(elapsed1)->sleep, poll3(elapsed2)+1>=3 -> TIMEOUT.
+      maxWaitMinutes: 0.05,
+      probeFn: fn,
+      clockFn: clock,
+      sleepFn: sleep,
+    });
+
+    expect(r.verdict).toBe(VERDICT_TIMEOUT);
+    expect(r.exitCode).toBe(EXIT_TERMINAL_ERROR);
+  });
+
+  it("does NOT sleep on --one-shot", () => {
+    const sleep = vi.fn();
+    const { fn } = makeProbeSeq(makeProbe({ isClean: false, cleanGateHoldout: "confidence" }));
+    const r = watch(3, "deftai/directive", { oneShot: true, probeFn: fn, sleepFn: sleep });
+    expect(r.verdict).toBe(VERDICT_PENDING);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+});
+
+describe("formatWatchStatus", () => {
+  it("renders the per-poll instrumentation line", () => {
+    const line = formatWatchStatus(2, 21, makeProbe({ p1Count: 1, hasBlocking: true }), 90);
+    expect(line).toContain("poll 2/21");
+    expect(line).toContain("head=abcdef123456");
+    expect(line).toContain("sha_match=true");
+    expect(line).toContain("p1=1");
+    expect(line).toContain("elapsed=90s");
+  });
+
+  it("renders a CONFIG-ERROR line when the probe errored", () => {
+    const line = formatWatchStatus(1, 1, makeProbe({ error: "gh CLI not found" }), 0);
+    expect(line).toContain("CONFIG-ERROR");
+    expect(line).toContain("gh CLI not found");
+  });
+});

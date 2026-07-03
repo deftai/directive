@@ -95,6 +95,7 @@ export const CLI_MODULE_VERBS = [
   "pr-monitor",
   "pr-protected-issues",
   "pr-wait-mergeable",
+  "pr-watch",
   "preflight-cache",
   "preflight-gh",
   "probe-session",

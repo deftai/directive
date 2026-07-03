@@ -461,12 +461,14 @@ tasks:
     cmds:
       - task: install:uninstall
   # User-facing upgrade entrypoint (#1061). Aliases the install:upgrade
-  # wrapper that delegates to the native deft-ts install-upgrade handler. Cited by the doctor's
-  # failure prose and docs/install-manifest.md as the canonical
-  # post-drift repair entrypoint for the AGENTS.md / manifest /
-  # .deft-version triple.
+  # wrapper. As of #2064 the native deft-ts install-upgrade handler is a thin
+  # redirect onto `directive update` -- the single canonical upgrade verb that
+  # file-swaps the vendored .deft/core payload, rewrites the install manifest,
+  # and regenerates .deft-version. Prefer `deft update` directly; this alias is
+  # retained for compatibility. Cited by the doctor's failure prose and
+  # docs/install-manifest.md as the post-drift repair entrypoint.
   upgrade:
-    desc: "Upgrade deft framework -- refresh AGENTS.md + write install manifest + regenerate .deft-version (alias for install:upgrade, #1061)"
+    desc: "Upgrade deft framework -- redirects to `deft update` (the canonical verb: refresh payload + AGENTS.md + install manifest + .deft-version; alias for install:upgrade, #1061/#2064)"
     cmds:
       - task: install:upgrade
 

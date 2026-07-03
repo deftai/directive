@@ -70,6 +70,14 @@ describe("routeArgv", () => {
     ]);
   });
 
+  it("maps pr watch to pr-watch", () => {
+    expect(routeArgv(["pr", "watch", "1056", "--one-shot"]).argv).toEqual([
+      "pr-watch",
+      "1056",
+      "--one-shot",
+    ]);
+  });
+
   it("maps verify routing to swarm-routing-verify", () => {
     expect(routeArgv(["verify", "routing"]).argv).toEqual(["swarm-routing-verify"]);
   });
