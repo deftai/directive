@@ -50,7 +50,7 @@
     ],
     "metadata": {
       "swarm": {
-        "readiness": "ready",
+        "readiness": "sequential",
         "parallel_safe": true,
         "size": "M",
         "model_tier": "medium",
@@ -62,7 +62,7 @@
         "file_scope_confidence": "unassigned",
         "verify_commands": [],
         "expected_outputs": [],
-        "notes": " file_scope/verify_commands/UserStory/ImplementationPlan pending codebase inspection before this story is swarm-ready."
+        "notes": "Blocked on #2264 (keystone); parallel_safe within its wave once A lands.  file_scope/verify_commands/UserStory/ImplementationPlan pending codebase inspection before this story is swarm-ready."
       }
     }
   }
