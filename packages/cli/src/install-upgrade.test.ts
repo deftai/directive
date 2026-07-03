@@ -147,12 +147,19 @@ describe("install-upgrade <-> directive update parity (#2064)", () => {
   }
 
   function normalizeSummary(stdout: string): Record<string, unknown> {
-    const parsed = JSON.parse(stdout) as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(stdout);
+    // JSON.parse happily returns top-level null / a scalar without throwing, so
+    // guard before any property access (which would otherwise TypeError outside
+    // the parse try/catch).
+    if (parsed === null || typeof parsed !== "object") {
+      throw new Error(`Expected a JSON object summary, got: ${stdout}`);
+    }
+    const summary = parsed as Record<string, unknown>;
     // project_dir / deft_dir are absolute fixture paths that legitimately differ
     // between the two runs; every other field must match byte-for-byte.
-    parsed.project_dir = "<project>";
-    parsed.deft_dir = "<project>/.deft/core";
-    return parsed;
+    summary.project_dir = "<project>";
+    summary.deft_dir = "<project>/.deft/core";
+    return summary;
   }
 
   it("produces identical deposit state + stdout; only install-upgrade emits the notice", async () => {
