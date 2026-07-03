@@ -205,11 +205,14 @@ describe("runInitDeposit", () => {
         skillsCreated: true,
         taskfileWired: true,
         configDir: "/home/me/.config/deft",
+        legacyLayout: false,
+        stagedPaths: ["Taskfile.yml", ".deft/core"],
       },
       { projectDir: "/proj", jsonOut: true, nonInteractive: true },
     );
     expect(summary.missing_tools).toEqual([]);
     expect(summary.dirty_files).toEqual([]);
+    expect(summary.staged_paths).toEqual(["Taskfile.yml", ".deft/core"]);
   });
 
   it("printNextSteps includes friendly wizard lines", () => {
@@ -221,6 +224,8 @@ describe("runInitDeposit", () => {
         skillsCreated: true,
         taskfileWired: true,
         configDir: "/cfg",
+        legacyLayout: false,
+        stagedPaths: [],
       },
       { printf: (text) => lines.push(text) },
     );
@@ -237,6 +242,8 @@ describe("runInitDeposit", () => {
         skillsCreated: true,
         taskfileWired: true,
         configDir: "/cfg",
+        legacyLayout: false,
+        stagedPaths: [],
       },
       { printf: (text) => lines.push(text) },
     );
@@ -253,6 +260,8 @@ describe("runInitDeposit", () => {
         skillsCreated: true,
         taskfileWired: true,
         configDir: "/cfg",
+        legacyLayout: false,
+        stagedPaths: [],
       },
       { printf: (text) => lines.push(text) },
     );
@@ -284,6 +293,8 @@ describe("runInitDeposit", () => {
         skillsCreated: false,
         taskfileWired: false,
         configDir: "/cfg",
+        legacyLayout: false,
+        stagedPaths: [],
       },
       { printf: (text) => lines.push(text) },
     );

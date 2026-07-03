@@ -14,6 +14,7 @@ import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { ensureInitGitignoreLines, reconstituteDepositFromContent } from "./gitignore.js";
+import { depositStagePaths, printCommitGuidance } from "./hygiene.js";
 import {
   buildLegacyRefusalJson,
   buildLegacyRefusalMessage,
@@ -49,6 +50,7 @@ export interface InitDepositResult {
   readonly taskfileWired: boolean;
   readonly configDir: string;
   readonly legacyLayout: boolean;
+  readonly stagedPaths: string[];
 }
 
 export interface InitDepositSeams {
@@ -147,7 +149,7 @@ export function buildInstallSummaryJson(
     strategy: "vendor",
     dirty_tree: false,
     dirty_files: [],
-    staged_paths: [],
+    staged_paths: result.stagedPaths,
     backup_path: "",
     previous_version: "",
   };
@@ -223,6 +225,9 @@ export async function runInitDeposit(
 
   const configDir = createUserConfigDir(io);
 
+  const { stagePaths, staged, stagedPaths } = depositStagePaths(projectDir);
+  printCommitGuidance(io, stagePaths, staged);
+
   return {
     projectDir,
     deftDir,
@@ -230,6 +235,7 @@ export async function runInitDeposit(
     taskfileWired,
     configDir,
     legacyLayout: false,
+    stagedPaths,
   };
 }
 

@@ -318,6 +318,8 @@ describe("runRefreshDeposit", () => {
         agentsMdUpdated: true,
         versionSkewNotice: null,
         legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: [],
       },
       { printf: (text) => lines.push(text) },
     );
@@ -344,10 +346,77 @@ describe("runRefreshDeposit", () => {
         agentsMdUpdated: true,
         versionSkewNotice: null,
         legacyLayout: false,
+        taskfileWired: false,
+        stagedPaths: [],
       },
       { printf: (text) => lines.push(text) },
     );
     expect(lines.join("")).not.toContain("directive migrate");
+  });
+
+  it("wires Taskfile.yml and stages it on upgrade (#1576)", async () => {
+    const project = freshRoot("refresh-taskfile-");
+    const contentRoot = installFakeContentPackage(project);
+    initGitRepo(project);
+
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(
+      join(project, ".deft", "core", "VERSION"),
+      "tag: 'v0.52.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      `# Operator prose\n\n<!-- deft:managed-section v2 -->\nOld body\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "Taskfile.yml"),
+      "version: '3'\ntasks:\n  build:\n    cmds: [npm run build]\n",
+      "utf8",
+    );
+    execFileSync("git", ["add", "-A"], { cwd: project });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: project });
+
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-07-03T12:00:00Z",
+      },
+    });
+
+    expect(code).toBe(0);
+    const payload = parseJsonObject(out.join(""));
+    expect(payload.taskfile_wired).toBe(true);
+    expect(payload.staged_paths).toEqual(expect.arrayContaining(["Taskfile.yml", ".deft/core"]));
+
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(porcelain).not.toMatch(/^.[M?] Taskfile\.yml$/m);
+
+    const cached = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(
+      cached
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ).toContain("Taskfile.yml");
+    expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain("build:");
+    expect(err.join("")).toContain("Commit hygiene");
   });
 
   it("throws LegacyLayoutRefusedError on a legacy layout (no refresh)", async () => {

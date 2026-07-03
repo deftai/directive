@@ -1,0 +1,119 @@
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  depositStagePaths,
+  frameworkStagePaths,
+  installerManagedGuardEre,
+  isInstallerManagedPath,
+  stageFrameworkPaths,
+} from "./hygiene.js";
+import { CANONICAL_TASKFILE_INCLUDE } from "./scaffold.js";
+
+describe("installer-managed allowlist (#1576)", () => {
+  it("treats Taskfile.yml as installer-managed", () => {
+    expect(isInstallerManagedPath("Taskfile.yml")).toBe(true);
+    expect(installerManagedGuardEre()).toContain("Taskfile\\.yml");
+  });
+
+  it("includes Taskfile.yml in framework stage paths when present", () => {
+    const root = mkdtempSync(join(tmpdir(), "hygiene-stage-"));
+    try {
+      mkdirSync(join(root, ".deft", "core"), { recursive: true });
+      writeFileSync(join(root, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+      writeFileSync(join(root, "AGENTS.md"), "# Agent\n", "utf8");
+      writeFileSync(
+        join(root, "Taskfile.yml"),
+        "version: '3'\ntasks:\n  hello:\n    cmds: [echo hi]\n",
+        "utf8",
+      );
+      const paths = frameworkStagePaths(root, join(root, ".deft", "core"));
+      expect(paths).toContain("Taskfile.yml");
+      expect(paths).toContain(".deft/core");
+      expect(paths).toContain("AGENTS.md");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("scoped staging", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  function initGitRepo(root: string): void {
+    execFileSync("git", ["init"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-m", "baseline"], { cwd: root });
+  }
+
+  it("stages Taskfile.yml after ensureTaskfile writes the deft include (#1576)", async () => {
+    const { ensureTaskfile } = await import("./scaffold.js");
+    const project = freshRoot("hygiene-taskfile-");
+
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    writeFileSync(join(project, "AGENTS.md"), "# Agent\n", "utf8");
+    mkdirSync(join(project, "src"), { recursive: true });
+    writeFileSync(join(project, "src", "app.ts"), "export const app = 1;\n", "utf8");
+    initGitRepo(project);
+
+    writeFileSync(
+      join(project, "Taskfile.yml"),
+      "version: '3'\ntasks:\n  build:\n    cmds: [npm run build]\n",
+      "utf8",
+    );
+
+    expect(ensureTaskfile(project, { printf: () => {} })).toBe(true);
+    expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain(
+      CANONICAL_TASKFILE_INCLUDE,
+    );
+    expect(readFileSync(join(project, "Taskfile.yml"), "utf8")).toContain("build:");
+
+    const { stagedPaths } = depositStagePaths(project);
+    expect(stagedPaths).toContain("Taskfile.yml");
+
+    const porcelain = execFileSync("git", ["status", "--porcelain"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(porcelain).not.toMatch(/^.[M?] Taskfile\.yml$/m);
+
+    const cached = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(
+      cached
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ).toContain("Taskfile.yml");
+    expect(cached).not.toContain("src/app.ts");
+  });
+
+  it("stageFrameworkPaths is a no-op outside git", () => {
+    const project = freshRoot("hygiene-nogit-");
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# Deft\n", "utf8");
+    const paths = frameworkStagePaths(project, join(project, ".deft", "core"));
+    const result = stageFrameworkPaths(project, paths, { gitPorcelain: () => null });
+    expect(result.staged).toBe(false);
+    expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
+  });
+});

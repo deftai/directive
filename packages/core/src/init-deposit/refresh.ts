@@ -18,6 +18,7 @@ import { readCorePackageVersion } from "../engine-version.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { DEV_FALLBACK } from "../platform/constants.js";
 import { gitPorcelain } from "../story-ready/git.js";
+import { depositStagePaths, isInstallerManagedPath, printCommitGuidance } from "./hygiene.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
 import {
   buildLegacyRefusalJson,
@@ -31,6 +32,7 @@ import { printMigrateNudgeIfNeeded } from "./migrate.js";
 import {
   CANONICAL_INSTALL_ROOT,
   depositNeutralization,
+  ensureTaskfile,
   type InitDepositIo,
   type InstallManifestFields,
   writeAgentsMd,
@@ -50,6 +52,8 @@ export interface RefreshDepositResult {
   readonly agentsMdUpdated: boolean;
   readonly versionSkewNotice: string | null;
   readonly legacyLayout: boolean;
+  readonly taskfileWired: boolean;
+  readonly stagedPaths: string[];
 }
 
 export interface RefreshDepositSeams {
@@ -61,29 +65,6 @@ export interface RefreshDepositSeams {
   gitPorcelain?: (projectRoot: string) => string | null;
   detectLegacy?: (projectDir: string) => LegacyLayoutDetection;
 }
-
-const INSTALLER_MANAGED_EXACT = new Set([
-  "AGENTS.md",
-  ".gitattributes",
-  ".gitignore",
-  "greptile.json",
-  ".github/codeql/codeql-config.yml",
-  ".github/workflows/deft-core-guard.yml",
-  "vbrief/.deft-version",
-  "vbrief/vbrief.md",
-  "vbrief/proposed/.gitkeep",
-  "vbrief/pending/.gitkeep",
-  "vbrief/active/.gitkeep",
-  "vbrief/completed/.gitkeep",
-  "vbrief/cancelled/.gitkeep",
-]);
-
-const INSTALLER_MANAGED_PREFIXES = [
-  ".agents/",
-  ".githooks/",
-  "vbrief/schemas/",
-  "vbrief/migration/",
-];
 
 function normalizeVersion(version: string): string {
   return version.trim().replace(/^v/, "");
@@ -148,11 +129,6 @@ function syncBareVersionMarker(projectDir: string, version: string): void {
   } catch {
     // best-effort, mirrors install-upgrade marker write
   }
-}
-
-function isInstallerManagedPath(path: string): boolean {
-  if (INSTALLER_MANAGED_EXACT.has(path)) return true;
-  return INSTALLER_MANAGED_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
 function unquoteGitPath(path: string): string {
@@ -261,7 +237,7 @@ export function buildUpdateSummaryJson(
     update: true,
     non_interactive: options.nonInteractive,
     upgrade: options.upgrade,
-    taskfile_wired: false,
+    taskfile_wired: result.taskfileWired,
     missing_tools: [],
     maintainer_mode: false,
     maintainer_tools: [],
@@ -272,7 +248,7 @@ export function buildUpdateSummaryJson(
     strategy: "file-swap",
     dirty_tree: false,
     dirty_files: [],
-    staged_paths: [],
+    staged_paths: result.stagedPaths,
     backup_path: "",
     previous_version: result.previousDepositVersion ?? "",
     content_version: result.contentVersion,
@@ -349,6 +325,14 @@ export async function runRefreshDeposit(
 
   await depositNeutralization(projectDir, io);
 
+  let taskfileWired = false;
+  if (args.nonInteractive) {
+    taskfileWired = ensureTaskfile(projectDir, io);
+  }
+
+  const { stagePaths, staged, stagedPaths } = depositStagePaths(projectDir);
+  printCommitGuidance(io, stagePaths, staged);
+
   const readPorcelain = seams.gitPorcelain ?? gitPorcelain;
   printRefreshSideEffects(io, frameworkRefreshSideEffects(projectDir, readPorcelain));
 
@@ -365,6 +349,8 @@ export async function runRefreshDeposit(
     agentsMdUpdated,
     versionSkewNotice,
     legacyLayout: false,
+    taskfileWired,
+    stagedPaths,
   };
 }
 
