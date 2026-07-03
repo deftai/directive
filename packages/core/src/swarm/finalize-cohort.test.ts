@@ -48,10 +48,29 @@ function writeActiveStory(project: string, storyId: string, issueNumber: number)
   return full;
 }
 
-function mockRunGh(
-  mergedPrs: Record<number, { merged: boolean; closingIssues: number[] }>,
-): RunGhFn {
+interface MockPrState {
+  readonly merged: boolean;
+  readonly closingIssues: number[];
+  readonly body?: string;
+}
+
+function mockRunGh(mergedPrs: Record<number, MockPrState>): RunGhFn {
   return (cmd) => {
+    if (cmd.includes("pr") && cmd.includes("view") && cmd.includes("closingIssuesReferences")) {
+      const viewIdx = cmd.indexOf("view");
+      const prNumber = Number(cmd[viewIdx + 1]);
+      const state = mergedPrs[prNumber];
+      if (state === undefined) {
+        return { returncode: 1, stdout: "", stderr: "not found" };
+      }
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          closingIssuesReferences: state.closingIssues.map((n) => ({ number: n })),
+        }),
+        stderr: "",
+      };
+    }
     const path = cmd.find((part) => part.startsWith("repos/") && part.includes("/pulls/"));
     if (path !== undefined) {
       const match = path.match(/\/pulls\/(\d+)$/);
@@ -60,7 +79,7 @@ function mockRunGh(
       if (state === undefined) {
         return { returncode: 1, stdout: "", stderr: "not found" };
       }
-      const body = state.closingIssues.map((n) => `Closes #${n}`).join("\n");
+      const body = state.body ?? state.closingIssues.map((n) => `Closes #${n}`).join("\n");
       return {
         returncode: 0,
         stdout: JSON.stringify({
@@ -135,6 +154,33 @@ describe("finalizeCohort", () => {
     });
     expect(result.exitCode).toBe(0);
     expect(result.result.closing_issues).toEqual([2115]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("ignores descriptive 'closed #N' prose when structured refs omit that issue", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-descriptive-"));
+    writeActiveStory(project, "story-real", 2115);
+    writeActiveStory(project, "story-unrelated", 1997);
+    const result = finalizeCohort({
+      projectRoot: project,
+      prNumbers: [2226],
+      repo: "deftai/directive",
+      noCommit: true,
+      runGh: mockRunGh({
+        2226: {
+          merged: true,
+          closingIssues: [2115],
+          body:
+            "Fixes incomplete follow-on work.\n\n" +
+            "This is the incomplete-fix follow-on to the closed #1997.\n" +
+            "Refs #1997\n\nCloses #2115",
+        },
+      }),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.result.closing_issues).toEqual([2115]);
+    expect(result.result.story_paths).toHaveLength(1);
+    expect(result.result.story_paths[0]).toContain("story-real");
     rmSync(project, { recursive: true, force: true });
   });
 

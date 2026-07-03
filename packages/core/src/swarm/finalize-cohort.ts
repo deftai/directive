@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { evaluate as evaluateBranchPolicy } from "../branch/evaluate.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
-import { defaultRunGh } from "../pr-protected-issues/gh.js";
+import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { completeCohort, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
@@ -144,41 +144,14 @@ function fetchClosingIssues(
   if (parsed === null) {
     return { issues: [], error: `invalid --repo value: ${JSON.stringify(repo)}` };
   }
-  const apiResult = runGh([
-    "gh",
-    "api",
-    `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}`,
-    "-H",
-    "Accept: application/vnd.github+json",
-  ]);
-  if (apiResult.returncode !== 0) {
+  const linked = fetchClosingIssuesReferences(prNumber, repo, runGh);
+  if (linked === null) {
     return {
       issues: [],
-      error: `gh api pulls/${prNumber} failed: ${apiResult.stderr.trim()}`,
+      error: `failed to fetch closing issue references for PR #${prNumber}`,
     };
   }
-  try {
-    const parsed = JSON.parse(apiResult.stdout) as unknown;
-    if (parsed === null || typeof parsed !== "object") {
-      return {
-        issues: [],
-        error: `unexpected gh api response for PR #${prNumber}: not a JSON object`,
-      };
-    }
-    const payload = parsed as Record<string, unknown>;
-    const body = typeof payload.body === "string" ? payload.body : "";
-    const issues = new Set<number>();
-    for (const match of body.matchAll(/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi)) {
-      const num = Number(match[1]);
-      if (Number.isInteger(num)) {
-        issues.add(num);
-      }
-    }
-    return { issues: [...issues].sort((a, b) => a - b), error: null };
-  } catch (exc: unknown) {
-    const message = exc instanceof Error ? exc.message : String(exc);
-    return { issues: [], error: `failed to parse PR #${prNumber} body: ${message}` };
-  }
+  return { issues: [...new Set(linked)].sort((a, b) => a - b), error: null };
 }
 
 function deriveLabel(
