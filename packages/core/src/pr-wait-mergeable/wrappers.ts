@@ -11,18 +11,31 @@ export interface CaptureExecResult {
   readonly stderr: string;
 }
 
+export interface CaptureExecOptions {
+  /**
+   * Stream the child's stderr straight to the parent's stderr (live) instead of
+   * capturing it. Used for long polls so the per-poll heartbeat is visible in
+   * real time rather than buffered until the subprocess exits (#2260). When set,
+   * the returned `stderr` is empty because it was not captured.
+   */
+  readonly inheritStderr?: boolean;
+  /** Environment for the child (defaults to `process.env`). */
+  readonly env?: NodeJS.ProcessEnv;
+}
+
 /** UTF-8-safe subprocess capture via spawnSync (no shell) — mirrors #1366. */
 export function captureExec(
   executable: string,
   args: readonly string[],
   timeoutMs: number,
+  options: CaptureExecOptions = {},
 ): CaptureExecResult {
   const result = spawnSync(executable, args, {
     encoding: "utf8",
     timeout: timeoutMs,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["ignore", "pipe", options.inheritStderr === true ? "inherit" : "pipe"],
     maxBuffer: SUBPROCESS_MAX_BUFFER,
-    env: process.env,
+    env: options.env ?? process.env,
   });
 
   if (result.error !== undefined) {
@@ -82,7 +95,9 @@ export function runProtectedCheck(
   if (repo) {
     cmd.push("--repo", repo);
   }
-  const result = captureExec(node, cmd, (options.timeout ?? 60) * 1000);
+  const result = captureExec(node, cmd, (options.timeout ?? 60) * 1000, {
+    env: { ...process.env, NODE_NO_WARNINGS: "1" },
+  });
   return [result.returncode, result.stdout, result.stderr];
 }
 
@@ -109,7 +124,13 @@ export function runMonitor(
     String(capMinutes),
     "--json",
   ];
-  const result = captureExec(node, cmd, timeoutSec * 1000);
+  // Stream the monitor's per-poll heartbeat live (a buffered poll looks like a
+  // hang, #2260) and suppress Node deprecation/engine warning noise so it never
+  // leaks onto the captured JSON stream or the final result line (#2240-class).
+  const result = captureExec(node, cmd, timeoutSec * 1000, {
+    inheritStderr: true,
+    env: { ...process.env, NODE_NO_WARNINGS: "1" },
+  });
   return [result.returncode, result.stdout, result.stderr];
 }
 

@@ -17,10 +17,18 @@ import {
   fetchPrHeadShaRest,
   resolveRepo,
 } from "./gh.js";
+import {
+  fetchMergeability,
+  isGithubMergeableClean,
+  type MergeabilitySignal,
+  mergeabilityToDict,
+  verdictBlockIsSoftOnly,
+  verdictShaIsStale,
+} from "./mergeability.js";
 import { emptyVerdict, parseGreptileBody } from "./parse.js";
 import type { SlizardGateOptions } from "./slizard-gate.js";
 import { evaluateSlizardGate, isSlizardCheck } from "./slizard-gate.js";
-import type { GateResult, RunGhFn } from "./types.js";
+import type { GateResult, GreptileVerdict, RunGhFn } from "./types.js";
 
 function buildGateResult(
   prNumber: number,
@@ -45,7 +53,22 @@ function buildGateResult(
   };
 }
 
-export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {}
+/** Injectable GitHub-mergeability read seam (#2260) — keeps unit tests hermetic. */
+export type FetchMergeabilityFn = (
+  prNumber: number,
+  repo: string,
+  runGh: RunGhFn,
+) => MergeabilitySignal;
+
+export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
+  /** Override the GitHub-mergeability read (defaults to the REST reader). */
+  readonly fetchMergeabilityFn?: FetchMergeabilityFn;
+  /**
+   * Disable the #2260 mergeability reconciliation (defaults to enabled). When
+   * off, an absent/stale review verdict blocks even on a GitHub-CLEAN PR.
+   */
+  readonly disableMergeabilityReconcile?: boolean;
+}
 
 interface ReviewGateOutcome {
   failures: string[];
@@ -134,6 +157,71 @@ function applyCiGateForHead(
   return { failures: outcome.failures, ci: outcome.ci, slizard: outcome.slizard };
 }
 
+/**
+ * Score the verdict gate for a resolved head SHA, then (when the review verdict
+ * is only soft-blocked -- absent or stale for the current head) reconcile
+ * against GitHub's own mergeability (#2260). Shared by primary + fallback1.
+ */
+function finalizeVerdictGate(
+  prNumber: number,
+  repo: string | null,
+  headSha: string,
+  verdict: GreptileVerdict,
+  runGh: RunGhFn,
+  options: ComputeGateOptions,
+): { failures: string[]; partialData: Record<string, unknown> } {
+  const failures = evaluateGates(prNumber, headSha, verdict);
+  const partialData: Record<string, unknown> = {};
+  const resolved = resolveRepo(repo, runGh);
+
+  if (failures.length === 0) {
+    const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
+    failures.push(...ci.failures);
+    partialData.ci = ci.ci;
+    partialData.slizard = ci.slizard;
+    return { failures, partialData };
+  }
+
+  // #2260 reconciliation: the verdict gate failed. If the block is a HARD
+  // finding (genuine P0/P1, ERRORED, low confidence on the current head), keep
+  // blocking. Only reconcile a SOFT block (verdict absent / stale head SHA).
+  if (
+    options.disableMergeabilityReconcile === true ||
+    resolved.repo === null ||
+    !verdictBlockIsSoftOnly(verdict, headSha)
+  ) {
+    return { failures, partialData };
+  }
+
+  const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
+  partialData.ci = ci.ci;
+  partialData.slizard = ci.slizard;
+
+  const fetchMergeabilityFn = options.fetchMergeabilityFn ?? fetchMergeability;
+  const signal = fetchMergeabilityFn(prNumber, resolved.repo, runGh);
+  partialData.mergeability = mergeabilityToDict(signal);
+
+  if (isGithubMergeableClean(signal)) {
+    // GitHub itself reports CLEAN + MERGEABLE: required checks are green and the
+    // branch is mergeable. Proceed even though the OPTIONAL review verdict is
+    // absent/stale for the head SHA -- exactly the manual `gh pr merge --admin`
+    // case this fix reproduces automatically (#2260).
+    partialData.verdict_override = {
+      reason: verdictShaIsStale(verdict, headSha) ? "verdict-stale-head-sha" : "verdict-absent",
+      basis:
+        "github mergeable_state=clean + mergeable=true (mergeStateStatus:CLEAN + " +
+        "mergeable:MERGEABLE); required checks green per GitHub branch protection (#2260)",
+      overridden_failures: [...failures],
+    };
+    return { failures: [], partialData };
+  }
+
+  // Not overridable (GitHub not CLEAN/MERGEABLE). Preserve the soft verdict
+  // failures and surface any CI failures so the heartbeat's blocked-on is clear.
+  failures.push(...ci.failures);
+  return { failures, partialData };
+}
+
 function computePrimary(
   prNumber: number,
   repo: string | null,
@@ -156,15 +244,14 @@ function computePrimary(
   }
 
   const verdict = parseGreptileBody(body);
-  const failures = evaluateGates(prNumber, headSha, verdict);
-  const partialData: Record<string, unknown> = {};
-  if (failures.length === 0) {
-    const resolved = resolveRepo(repo, runGh);
-    const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
-    failures.push(...ci.failures);
-    partialData.ci = ci.ci;
-    partialData.slizard = ci.slizard;
-  }
+  const { failures, partialData } = finalizeVerdictGate(
+    prNumber,
+    repo,
+    headSha,
+    verdict,
+    runGh,
+    options,
+  );
   return {
     result: {
       prNumber,
@@ -213,19 +300,14 @@ function computeFallback1(
   }
 
   const verdict = parseGreptileBody(bodyResult.body);
-  const failures = evaluateGates(prNumber, headSha, verdict);
+  const gate = finalizeVerdictGate(prNumber, resolved.repo, headSha, verdict, runGh, options);
   const partialData: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(partial)) {
     if (key !== "head_sha") {
       partialData[key] = value;
     }
   }
-  if (failures.length === 0) {
-    const ci = applyCiGateForHead(resolved.repo, headSha, runGh, options);
-    failures.push(...ci.failures);
-    partialData.ci = ci.ci;
-    partialData.slizard = ci.slizard;
-  }
+  Object.assign(partialData, gate.partialData);
 
   return {
     result: {
@@ -233,7 +315,7 @@ function computeFallback1(
       repo: resolved.repo,
       headSha,
       verdict,
-      failures,
+      failures: gate.failures,
       via: VIA_FALLBACK1,
       partialData,
       error: null,

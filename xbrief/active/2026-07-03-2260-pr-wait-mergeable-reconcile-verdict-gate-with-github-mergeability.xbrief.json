@@ -1,0 +1,60 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2260"
+  },
+  "plan": {
+    "title": "bug(cascade): pr:wait-mergeable-and-merge polls without merging a GitHub-mergeable PR (verdict gate diverges from mergeStateStatus; no heartbeat)",
+    "status": "running",
+    "narratives": {
+      "Description": "task pr:wait-mergeable-and-merge (TS pr-wait-mergeable cascade -> pr-monitor poller) can poll for many minutes without concluding merge-ready and without merging, even though GitHub reports mergeStateStatus: CLEAN, mergeable: MERGEABLE, and all required checks green. The operator is left with a live-but-idle process; a manual gh pr merge --admin merges instantly.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2260",
+      "UserStory": "As a swarm orchestrator running the merge cascade, I want pr:wait-mergeable-and-merge to promptly merge a PR that GitHub already reports as CLEAN/MERGEABLE with all required checks green (even when the optional review-bot verdict for the head SHA is missing or stale), and to emit periodic progress, so I don't kill a healthy-looking poll and hand-merge.",
+      "ImplementationPlan": "1. Root: the cascade's merge-ready decision (packages/core/src/pr-wait-mergeable/cascade.ts -> runMonitor in wrappers.ts -> pr-monitor readiness gate 'merge_ready via primary', the canonical Greptile/SLizard verdict detector) keys off the review verdict, NOT GitHub's mergeStateStatus. When the awaited verdict for the current head SHA never arrives (rebased SHA, verdict lag/absence, or a non-required check like 'Analyze (javascript-typescript)' never terminal), the monitor polls to the 60-min cap (main.ts:27 default capMinutes=60; wrappers.ts:102 subprocess timeout capMinutes*60+60). 2. Reconcile the readiness gate with GitHub mergeability: if mergeStateStatus==CLEAN AND mergeable==MERGEABLE AND all REQUIRED checks green, treat the PR as merge-ready even when the optional review-verdict signal is absent/stale for the head SHA; at minimum add a bounded 'verdict-absent-but-mergeable' grace window that then proceeds. 3. Handle rebased-SHA verdict staleness explicitly -- a verdict pinned to a prior SHA on an otherwise green+mergeable current SHA must not wait forever. 4. Emit a heartbeat: per-poll one-liner to stderr (elapsed, poll#, current mergeState, what it is blocked on) so a live poll is distinguishable from a hang even through an rg filter. 5. Clean up the #2240-class output noise (Node engines warning leaking onto the captured JSON/stream) so the final result=/outcome: line is unambiguous. 6. Preserve the three-state exit contract (0 merged / 1 timeout-or-escalation / 2 config) and the #701 protected-issue precondition ordering. 7. Regression test with injected monitor/gh seams reproducing 'GitHub-mergeable but verdict-absent/stale' and asserting a prompt merge (no wait-to-cap), plus a heartbeat-emitted assertion. 8. Run repo-root pnpm run lint (full-file lane) + task check.",
+      "Traces": "#2260, #1369, #1368, #701, #2189",
+      "Overview": "See https://github.com/deftai/directive/issues/2260. Observed on PR #2258: gh pr view reported CLEAN/MERGEABLE with no failing required checks, yet pr:wait-mergeable-and-merge polled ~17.7 min (elapsed_ms 1062844) without merging; killing it and running gh pr merge --admin merged instantly. Second sighting: #2240 surfaced a confusing timeout/error tail though result was MERGED (Node engines warning noise). Most likely to bite heavy-check-matrix PRs (Go/CodeQL/Windows/multiple Analyze legs) and rebased head SHAs.",
+      "GuardRails": "TS-native cascade (#1369). Do NOT weaken the #701 protected-issue precondition (it must still run BEFORE any merge, ahead of the wait loop). Do NOT merge a PR with a FAILING required check or a real P0/P1 review finding -- the fix is about not blocking on ABSENT/STALE optional verdicts when GitHub itself says mergeable+green, not about ignoring genuine blockers. Keep the three-state exit semantics. Route all gh through the scm shim / UTF-8-safe capture (#1366). Reuse the existing canonical detector; do not fork a second verdict detector. Make any new mergeability read injectable for hermetic tests (no live network in unit tests)."
+    },
+    "items": [
+      {
+        "title": "A PR that is mergeStateStatus:CLEAN + mergeable:MERGEABLE with all required checks green is merged promptly, even when the optional review verdict for the head SHA is absent/stale.",
+        "status": "proposed"
+      },
+      {
+        "title": "Rebased-head-SHA verdict staleness does not cause an indefinite wait on an otherwise-mergeable PR.",
+        "status": "proposed"
+      },
+      {
+        "title": "The poller emits periodic progress (elapsed / poll# / blocked-on) so a healthy long poll is visibly distinct from a hang.",
+        "status": "proposed"
+      },
+      {
+        "title": "A genuine failing required check or a real P0/P1 review finding still blocks (three-state exit + #701 precondition preserved).",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test (injected monitor/gh seam) reproduces 'GitHub-mergeable but verdict-absent/stale' and asserts a prompt merge with no wait-to-cap.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2260",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2260: pr:wait-mergeable-and-merge polls without merging a GitHub-mergeable PR"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1369",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1369 (cascade automation surface)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/701",
+        "type": "x-xbrief/refs",
+        "title": "Issue #701 (protected-issue precondition)"
+      }
+    ],
+    "updated": "2026-07-03T16:04:46Z",
+    "metadata": {}
+  }
+}

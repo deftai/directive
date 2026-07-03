@@ -23,8 +23,42 @@ function defaultSleep(seconds: number): void {
   }
 }
 
-/** One-line stderr status mirror per poll. */
-export function formatPollStatus(pollIndex: number, pollResult: PollResult): string {
+/** Pull GitHub's merge-state signal out of a readiness payload, if present. */
+export function mergeStateFromPayload(payload: Record<string, unknown>): string {
+  const partialRaw = payload.partial_data;
+  const partial =
+    partialRaw !== null && typeof partialRaw === "object" && !Array.isArray(partialRaw)
+      ? (partialRaw as Record<string, unknown>)
+      : {};
+  const mergeabilityRaw = partial.mergeability;
+  if (
+    mergeabilityRaw !== null &&
+    typeof mergeabilityRaw === "object" &&
+    !Array.isArray(mergeabilityRaw)
+  ) {
+    const state = (mergeabilityRaw as Record<string, unknown>).mergeable_state;
+    if (typeof state === "string" && state.length > 0) {
+      return state;
+    }
+  }
+  // fallback2 surfaces mergeable_state directly on partial_data.
+  const flatState = partial.mergeable_state;
+  if (typeof flatState === "string" && flatState.length > 0) {
+    return flatState;
+  }
+  return "?";
+}
+
+/**
+ * One-line stderr heartbeat per poll (#2260): elapsed, poll#, via, head,
+ * GitHub merge-state, CLEAN/BLOCKED, and what the poll is blocked on. Emitting
+ * this every poll makes a live poll visibly distinct from a hung process.
+ */
+export function formatPollStatus(
+  pollIndex: number,
+  pollResult: PollResult,
+  elapsedSeconds = 0,
+): string {
   const payload = pollResult.payload;
   const via = typeof payload.via === "string" ? payload.via : "?";
   const mergeReady = payload.merge_ready === true;
@@ -40,11 +74,13 @@ export function formatPollStatus(pollIndex: number, pollResult: PollResult): str
   const failures = Array.isArray(failuresRaw) ? failuresRaw.map(String) : [];
   const firstFailure = failures[0] ?? "";
   const label = mergeReady ? "CLEAN" : "BLOCKED";
+  const elapsed = Math.max(0, Math.round(elapsedSeconds));
+  const mergeState = mergeStateFromPayload(payload);
   let line =
-    `[monitor_pr] poll #${pollIndex} via=${via} head=${headDisplay} ` +
-    `${label} (${failures.length} failures)`;
+    `[monitor_pr] poll #${pollIndex} t=${elapsed}s via=${via} head=${headDisplay} ` +
+    `mergeState=${mergeState} ${label} (${failures.length} failures)`;
   if (firstFailure.length > 0) {
-    line += ` -- ${firstFailure.slice(0, 80)}`;
+    line += ` -- blocked-on: ${firstFailure.slice(0, 80)}`;
   }
   return line;
 }
@@ -88,7 +124,8 @@ export function monitor(
     lastPayload = pollResult.payload;
     lastExit = pollResult.exitCode;
 
-    process.stderr.write(`${formatPollStatus(pollIndex, pollResult)}\n`);
+    const elapsedAtPoll = clockFn.now() - startedAt;
+    process.stderr.write(`${formatPollStatus(pollIndex, pollResult, elapsedAtPoll)}\n`);
     if (pollResult.rawStderr.trim().length > 0) {
       process.stderr.write(pollResult.rawStderr);
     }

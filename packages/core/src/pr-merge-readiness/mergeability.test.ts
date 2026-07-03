@@ -1,0 +1,157 @@
+import { describe, expect, it } from "vitest";
+import {
+  fetchMergeability,
+  isGithubMergeableClean,
+  MERGE_STATE_CLEAN,
+  mergeabilityToDict,
+  verdictBlockIsSoftOnly,
+  verdictShaIsStale,
+} from "./mergeability.js";
+import { emptyVerdict } from "./parse.js";
+import type { GreptileVerdict, RunGhFn } from "./types.js";
+
+const HEAD = "abc1234567890def1234567890abcdef12345678";
+const OLD = "0000000000000000000000000000000000000000";
+
+function ghReturning(payload: unknown, returncode = 0, stderr = ""): RunGhFn {
+  return () => ({
+    returncode,
+    stdout: typeof payload === "string" ? payload : JSON.stringify(payload),
+    stderr,
+  });
+}
+
+describe("fetchMergeability", () => {
+  it("parses mergeable_state and mergeable from REST", () => {
+    const signal = fetchMergeability(
+      1,
+      "o/r",
+      ghReturning({ mergeable: true, mergeable_state: "clean" }),
+    );
+    expect(signal).toEqual({ mergeableState: "clean", mergeable: true, error: null });
+  });
+
+  it("returns error on non-zero gh", () => {
+    const signal = fetchMergeability(1, "o/r", ghReturning("", 1, "boom"));
+    expect(signal.mergeableState).toBeNull();
+    expect(signal.mergeable).toBeNull();
+    expect(signal.error).toContain("failed");
+  });
+
+  it("returns error on empty body", () => {
+    const signal = fetchMergeability(1, "o/r", ghReturning("   "));
+    expect(signal.error).toContain("empty body");
+  });
+
+  it("returns error on invalid JSON", () => {
+    const signal = fetchMergeability(1, "o/r", ghReturning("{not json"));
+    expect(signal.error).toContain("could not parse");
+  });
+
+  it("returns error on non-dict JSON", () => {
+    const signal = fetchMergeability(1, "o/r", ghReturning([1, 2, 3]));
+    expect(signal.error).toContain("not a dict");
+  });
+
+  it("coerces missing fields to null", () => {
+    const signal = fetchMergeability(1, "o/r", ghReturning({ state: "open" }));
+    expect(signal).toEqual({ mergeableState: null, mergeable: null, error: null });
+  });
+});
+
+describe("isGithubMergeableClean", () => {
+  it("true only when clean + mergeable", () => {
+    expect(isGithubMergeableClean({ mergeableState: "clean", mergeable: true, error: null })).toBe(
+      true,
+    );
+  });
+
+  it("false for unstable", () => {
+    expect(
+      isGithubMergeableClean({ mergeableState: "unstable", mergeable: true, error: null }),
+    ).toBe(false);
+  });
+
+  it("false when mergeable is null", () => {
+    expect(isGithubMergeableClean({ mergeableState: "clean", mergeable: null, error: null })).toBe(
+      false,
+    );
+  });
+
+  it("exposes canonical clean constant", () => {
+    expect(MERGE_STATE_CLEAN).toBe("clean");
+  });
+});
+
+describe("mergeabilityToDict", () => {
+  it("serialises snake_case envelope", () => {
+    expect(mergeabilityToDict({ mergeableState: "clean", mergeable: true, error: null })).toEqual({
+      mergeable_state: "clean",
+      mergeable: true,
+      error: null,
+    });
+  });
+});
+
+function verdict(overrides: Partial<GreptileVerdict>): GreptileVerdict {
+  return { ...emptyVerdict(), ...overrides };
+}
+
+describe("verdictShaIsStale", () => {
+  it("false when verdict absent", () => {
+    expect(verdictShaIsStale(emptyVerdict(), HEAD)).toBe(false);
+  });
+
+  it("false when SHAs match by prefix", () => {
+    expect(
+      verdictShaIsStale(verdict({ found: true, lastReviewedSha: HEAD.slice(0, 12) }), HEAD),
+    ).toBe(false);
+  });
+
+  it("true when SHAs diverge", () => {
+    expect(verdictShaIsStale(verdict({ found: true, lastReviewedSha: OLD }), HEAD)).toBe(true);
+  });
+});
+
+describe("verdictBlockIsSoftOnly", () => {
+  it("absent verdict is soft", () => {
+    expect(verdictBlockIsSoftOnly(emptyVerdict(), HEAD)).toBe(true);
+  });
+
+  it("stale head SHA is soft even with prior findings", () => {
+    expect(
+      verdictBlockIsSoftOnly(
+        verdict({ found: true, lastReviewedSha: OLD, p0Count: 3, confidence: 1 }),
+        HEAD,
+      ),
+    ).toBe(true);
+  });
+
+  it("current-head P0/P1 is a HARD block", () => {
+    expect(
+      verdictBlockIsSoftOnly(verdict({ found: true, lastReviewedSha: HEAD, p1Count: 1 }), HEAD),
+    ).toBe(false);
+  });
+
+  it("current-head errored is a HARD block", () => {
+    expect(
+      verdictBlockIsSoftOnly(verdict({ found: true, lastReviewedSha: HEAD, errored: true }), HEAD),
+    ).toBe(false);
+  });
+
+  it("current-head low confidence is a HARD block", () => {
+    expect(
+      verdictBlockIsSoftOnly(verdict({ found: true, lastReviewedSha: HEAD, confidence: 2 }), HEAD),
+    ).toBe(false);
+  });
+
+  it("informal-clean is out of scope (not soft)", () => {
+    expect(verdictBlockIsSoftOnly(verdict({ found: true, informalClean: true }), HEAD)).toBe(false);
+  });
+
+  it("present but missing canonical fields (no findings) is soft", () => {
+    expect(verdictBlockIsSoftOnly(verdict({ found: true, lastReviewedSha: HEAD }), HEAD)).toBe(
+      true,
+    );
+  });
+});

@@ -1,9 +1,18 @@
 export { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
-export { computeGateResult } from "./compute.js";
+export { type ComputeGateOptions, computeGateResult, type FetchMergeabilityFn } from "./compute.js";
 export * from "./constants.js";
 export { evaluateGates, isMergeReady } from "./evaluate.js";
 export { defaultRunGh } from "./gh.js";
 export { cmdPrMergeReadiness, parseArgs, run } from "./main.js";
+export {
+  fetchMergeability,
+  isGithubMergeableClean,
+  MERGE_STATE_CLEAN,
+  type MergeabilitySignal,
+  mergeabilityToDict,
+  verdictBlockIsSoftOnly,
+  verdictShaIsStale,
+} from "./mergeability.js";
 export { emitJson, exitCodeFor, gateResultToDict, printHuman } from "./output.js";
 export { emptyVerdict, isInformalCleanMissingCanonicalFields, parseGreptileBody } from "./parse.js";
 export type {

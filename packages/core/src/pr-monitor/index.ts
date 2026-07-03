@@ -7,7 +7,13 @@ export {
   EXIT_PR_TERMINAL,
 } from "./constants.js";
 export { cmdPrMonitor, parseMonitorArgs, runMonitor } from "./main.js";
-export { formatPollStatus, isTerminalPrState, monitor, summaryLabelForExit } from "./monitor.js";
+export {
+  formatPollStatus,
+  isTerminalPrState,
+  mergeStateFromPayload,
+  monitor,
+  summaryLabelForExit,
+} from "./monitor.js";
 export { callReadiness } from "./readiness.js";
 export type {
   CallReadinessFn,
