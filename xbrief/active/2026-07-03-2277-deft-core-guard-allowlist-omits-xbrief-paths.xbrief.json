@@ -1,0 +1,52 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2277"
+  },
+  "plan": {
+    "title": "deft-core-guard allowlist omits xbrief/ paths -- blocks framework-deposit PRs on migrated projects",
+    "status": "running",
+    "narratives": {
+      "Description": "The deft-core-guard.yml installer-managed allowlist enumerates only legacy vbrief/ paths and was never given xbrief/ equivalents when the vbrief->xbrief migration (#2034 / #2110) landed. On any migrated (xbrief/) project, a routine `deft update` framework-deposit PR fails the no-mixed-core-and-app guard because the framework-managed xbrief/.deft-version marker is classified as a non-framework file.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2277",
+      "Overview": "## Summary\n\nThe deft-core-guard.yml workflow's allowlist (the `grep -vE` that classifies 'non-framework' changes) only enumerates legacy vbrief/ paths and was never given the xbrief/ equivalents when the vbrief->xbrief migration (#2034 / #2110) landed.\n\nAs a result, on any project that has migrated to xbrief/, a normal `deft update` framework-deposit PR fails the no-mixed-core-and-app guard: the framework-managed xbrief/.deft-version marker (bumped automatically by the upgrade, and intended to travel with the .deft/core deposit) is classified as a non-framework file, so the PR appears to 'mix' framework + app changes.\n\n## Root cause\n\nThe single source of truth is `installerManagedMatchers()` in packages/core/src/init-deposit/hygiene.ts, which feeds both `installerManagedGuardEre()` (the deposited guard workflow's POSIX ERE alternation, embedded via coreGuardWorkflowContent() in scaffold.ts) and the TS classifier. It lists vbrief/.deft-version, vbrief/vbrief.md, vbrief/schemas/, vbrief/migration/, and the vbrief/<lifecycle>/.gitkeep markers -- but has NO xbrief/ counterparts. Because .deft-version now lives at xbrief/.deft-version on migrated projects, it is no longer allowlisted, and the guard trips whenever it co-occurs with .deft/core/** changes -- which is exactly every framework upgrade. The legacy Go path (cmd/deft-install/hygiene.go + deposit.go installerManagedMatchers) is the parity mirror referenced by the TS module header.\n\n## Suggested fix\n\nIn installerManagedMatchers() (hygiene.ts), mirror the vbrief/ allowlist entries for xbrief/: xbrief/.deft-version, xbrief/xbrief.md, xbrief/schemas/, xbrief/migration/, and xbrief/<lifecycle>/.gitkeep for each of proposed/pending/active/completed/cancelled. Keep the vbrief/ entries for back-compat with not-yet-migrated projects. Mirror the same additions into the Go parity source (cmd/deft-install/hygiene.go / deposit.go) so the two classifiers stay in lockstep per the module header contract.\n\n## Impact\n\n- Every migrated (xbrief/) consumer hits a red guard on routine framework upgrades.\n- Workaround forces either a hand-edit of a generated file (churn, reverted next upgrade) or dropping the version marker from the deposit.\n\nObserved on cartograph consumer, framework payload v0.68.0. Related churn/guard issues: #2148, #1672, #1478 (same class -- allowlist omitted .githooks/).",
+      "Labels": "adoption-blocker"
+    },
+    "items": [
+      {
+        "title": "installerManagedMatchers() enumerates xbrief/.deft-version, xbrief/xbrief.md, xbrief/schemas/, xbrief/migration/, and xbrief/<lifecycle>/.gitkeep alongside the existing vbrief/ entries (vbrief/ retained for back-compat).",
+        "status": "proposed"
+      },
+      {
+        "title": "The generated deft-core-guard.yml allowlist (installerManagedGuardEre()) allowlists xbrief/.deft-version so a migrated-project framework-deposit PR carrying xbrief/.deft-version + .deft/core/** passes no-mixed-core-and-app.",
+        "status": "proposed"
+      },
+      {
+        "title": "Go parity source (cmd/deft-install hygiene/deposit installerManagedMatchers) mirrors the xbrief/ additions to keep the two classifiers in lockstep.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression tests pin xbrief/.deft-version (and the xbrief/ lifecycle .gitkeep markers) as installer-managed / allowlisted, guarding against future re-omission.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "installer",
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2277",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2277: deft-core-guard allowlist omits xbrief/ paths -- blocks framework-deposit PRs on migrated projects"
+      }
+    ],
+    "updated": "2026-07-03T20:02:52Z",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}
