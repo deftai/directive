@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(tasks): task pr:watch -- deterministic PR-verdict polling surface",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add a deterministic, blocking-by-default `task pr:watch -- <N>` that polls a PR to a terminal verdict (CLEAN / new P0-P1 findings / errored-stall-timeout) using the canonical Greptile/SLizard detector, so an orchestrator that pushes and needs a verdict cannot silently stall by forgetting to poll.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1056",
@@ -54,6 +54,10 @@
         "title": "Issue #1366"
       }
     ],
-    "updated": "2026-07-03T13:27:19Z"
+    "updated": "2026-07-03T14:27:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T14:27:06Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }

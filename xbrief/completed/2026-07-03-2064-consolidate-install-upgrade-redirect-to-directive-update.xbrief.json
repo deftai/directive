@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "consolidate: redirect deft install-upgrade to directive update (Option A)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Operators have two overlapping upgrade-adjacent verbs (deft install-upgrade and directive update). Consolidate to a single mental model by making install-upgrade a thin redirect that delegates to the update path with a one-line notice and no behavioral drift.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2064",
@@ -54,6 +54,10 @@
         "title": "Issue #2058"
       }
     ],
-    "updated": "2026-07-03T13:27:18Z"
+    "updated": "2026-07-03T14:27:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T14:27:06Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

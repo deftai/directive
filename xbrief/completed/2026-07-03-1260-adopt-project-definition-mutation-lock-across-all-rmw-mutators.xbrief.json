@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage,policy): adopt PROJECT-DEFINITION mutation lock across all RMW mutators",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Multiple PROJECT-DEFINITION mutators perform unlocked read-modify-write, so two concurrent mutators (interactive ritual + scripted policy set, or two policy sets) can lose each other's updates and drift the typed override from the audit log. Route every mutator through the existing mutation lock + atomic write.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1260",
@@ -54,6 +54,10 @@
         "title": "Issue #1329"
       }
     ],
-    "updated": "2026-07-03T13:27:17Z"
+    "updated": "2026-07-03T14:27:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T14:27:06Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }

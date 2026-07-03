@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(capacity): label-aware completion stamping misses freshly-filed issues absent from the on-disk label cache",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The #2237 label-aware capacityBucket resolution reads labels only from the on-disk label cache (network-free), so a freshly-filed issue not yet in the cache misses and falls back to defaultBucket. Add a fail-open live-label fallback on cache miss.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2246",
@@ -54,6 +54,10 @@
         "title": "Issue #2245"
       }
     ],
-    "updated": "2026-07-03T13:27:16Z"
+    "updated": "2026-07-03T14:27:05Z",
+    "metadata": {
+      "completedAt": "2026-07-03T14:27:05Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }

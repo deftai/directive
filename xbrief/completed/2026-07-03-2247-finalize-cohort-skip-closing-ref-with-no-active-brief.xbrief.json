@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(swarm): finalize-cohort aborts the whole sweep on a closing ref to an already-completed/absent issue (no active brief)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "finalize-cohort hard-errors and aborts the entire sweep when a merged PR's structured closing reference points to an issue with no active brief -- even when that issue is already closed/completed and is only an incidental reference. It should skip such refs with a warning.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2247",
@@ -54,6 +54,10 @@
         "title": "Issue #2245"
       }
     ],
-    "updated": "2026-07-03T13:27:16Z"
+    "updated": "2026-07-03T14:27:06Z",
+    "metadata": {
+      "completedAt": "2026-07-03T14:27:06Z",
+      "capacityBucket": "technical-debt"
+    }
   }
 }
