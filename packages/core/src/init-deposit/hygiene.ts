@@ -9,8 +9,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { gitPorcelain } from "../story-ready/git.js";
-import { CANONICAL_INSTALL_ROOT } from "./constants.js";
-import type { InitDepositIo } from "./scaffold.js";
+import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 
 export const CODEQL_CONFIG_REL = ".github/codeql/codeql-config.yml";
 export const CORE_GUARD_WORKFLOW_REL = ".github/workflows/deft-core-guard.yml";
