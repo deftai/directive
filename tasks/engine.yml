@@ -37,7 +37,7 @@ tasks:
 
   invoke:
     internal: true
-    desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (npm consumer deposit)."
+    desc: "Run a deft-ts verb from vendored bin.js (source checkout) or global deft (npm consumer deposit). Source checkouts without a built dist fail fast (#2181) -- runtime/session tasks must not trigger engine:_ts-build / pnpm."
     # Run from the operator project root so deft verbs resolve USER_WORKING_DIR
     # correctly; without this, included engine.yml defaults cwd to tasks/ (#2022).
     dir: '{{.USER_WORKING_DIR}}'
@@ -45,8 +45,33 @@ tasks:
       - |
         set -eu
         bin="{{.DEFT_ROOT}}/packages/cli/dist/bin.js"
+        root_pkg="{{.DEFT_ROOT}}/package.json"
+        is_buildable_source=0
+        if [ -f "{{.DEFT_ROOT}}/packages/cli/package.json" ] \
+           && [ -f "$root_pkg" ] \
+           && node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.exit(j.scripts&&j.scripts.build?0:1)" "$root_pkg"; then
+          is_buildable_source=1
+        fi
         if [ -f "$bin" ]; then
+          if [ "$is_buildable_source" = 1 ] && [ -f "$root_pkg" ]; then
+            node -e "
+              const fs=require('fs');
+              const pkg=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
+              const req=pkg.engines&&pkg.engines.node;
+              if(!req) process.exit(0);
+              const major=Number(process.versions.node.split('.')[0]);
+              const m=String(req).match(/>=\\s*(\\d+)/);
+              if(m&&major<Number(m[1])){
+                console.error('deft: Node '+process.versions.node+' does not satisfy engines.node '+req+' (read from '+process.argv[1]+').');
+                process.exit(2);
+              }
+            " "$root_pkg" || exit $?
+          fi
           node "$bin" {{.ENGINE_CMD}}
+        elif [ "$is_buildable_source" = 1 ]; then
+          echo "deft: CLI artifact missing at {{.DEFT_ROOT}}/packages/cli/dist/bin.js" >&2
+          echo "  Run \`task build\` first (framework source checkout)." >&2
+          exit 2
         elif command -v deft >/dev/null 2>&1; then
           deft {{.ENGINE_CMD}}
         else

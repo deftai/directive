@@ -101,7 +101,7 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     });
   }
 
-  it("engine.yml still owns the guarded build + global-deft fallback", () => {
+  it("engine.yml still owns the guarded build + runtime invoke dispatch", () => {
     const engine = readTask(ENGINE_FILE);
     expect(engine).toMatch(/_ts-build:/);
     // Guard requires packages/cli/package.json AND a root build script (#2142)
@@ -114,6 +114,9 @@ describe("task surface routes through the guarded :engine:* pattern (#2126)", ()
     expect(engine).toMatch(/invoke:/);
     expect(engine).toMatch(/command -v deft/);
     expect(engine).toMatch(/deft \{\{\.ENGINE_CMD\}\}/);
+    // #2181: source checkout without dist fails fast instead of triggering build.
+    expect(engine).toMatch(/CLI artifact missing/);
+    expect(engine).toMatch(/process\.versions\.node/);
   });
 
   it("_ts-build guard no-ops on stray packages/ without root build script (#2142)", () => {
