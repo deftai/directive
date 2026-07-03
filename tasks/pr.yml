@@ -95,3 +95,32 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'pr-wait-mergeable {{.CLI_ARGS}}'
+
+  # pr:watch -- deterministic PR-verdict polling surface (#1056). A
+  # blocking-by-default poll that resolves to a terminal three-state verdict
+  # (exit 0 CLEAN / 1 NEW_P0_P1 / 2 ERRORED|STALL|TIMEOUT|config), so an
+  # orchestrator that promises to poll a PR review to conclusion cannot
+  # silently forget (the invocation IS the wait). --one-shot degrades to a
+  # single probe. Reuses the CANONICAL Greptile/SLizard verdict detector
+  # (packages/core/src/content-contracts/skills/greptile-detector.ts -- the
+  # same module pr:merge-ready and the swarm poller template consume); no
+  # second detector. SHA-match gating means a stale pre-push review is never
+  # read as the verdict. All gh access routes through the UTF-8-safe
+  # execFile shim (#1366). Cross-referenced from the AGENTS.md
+  # `## Multi-agent orchestration discipline (#954)` Tier-4 pointer.
+  #
+  # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+  # because user-facing flags (`--one-shot` / `--max-wait-minutes` /
+  # `--poll-seconds` / `--json` / `--repo` / `--project-root`) MUST NOT be
+  # silently swallowed by go-task's incremental-build cache.
+  #
+  # Companion module: packages/core/src/pr-watch/
+  # Companion tests:  packages/core/src/pr-watch/*.test.ts
+  watch:
+    desc: "Blocking poll of a PR to a terminal three-state verdict (0 CLEAN / 1 NEW_P0_P1 / 2 ERRORED|STALL|TIMEOUT|config); --one-shot for a single probe (#1056)"
+    deps: [":engine:_ts-build"]
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'pr-watch {{.CLI_ARGS}}'

@@ -1,0 +1,59 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1056"
+  },
+  "plan": {
+    "title": "feat(tasks): task pr:watch -- deterministic PR-verdict polling surface",
+    "status": "running",
+    "narratives": {
+      "Description": "Add a deterministic, blocking-by-default `task pr:watch -- <N>` that polls a PR to a terminal verdict (CLEAN / new P0-P1 findings / errored-stall-timeout) using the canonical Greptile/SLizard detector, so an orchestrator that pushes and needs a verdict cannot silently stall by forgetting to poll.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1056",
+      "UserStory": "As an orchestrator (or human/CI) waiting on Greptile/SLizard/CI after pushing to a PR, I want a single blocking `task pr:watch -- <N>` whose invocation IS the wait and which exits with a terminal three-state verdict, so getting the verdict cannot be forgotten and next steps (merge / dispatch) are gated on it.",
+      "ImplementationPlan": "1. VERIFY-FIRST / CURRENT-SURFACE (critical): the issue specifies Python scripts/pr_watch.py + scripts/_greptile_detector.py + tests/cli/*.py + docs/commands.md, mirroring scripts/pr_merge_readiness.py. CONFIRM the CURRENT surface before coding: is pr:merge-ready / the verdict detector still Python under scripts/ (AGENTS.md #1366 still cites scripts/pr_merge_readiness.py as the reference adopter) or has it migrated to TS? Implement pr:watch in the SAME language/shape as the current pr:merge-ready + detector, and REUSE the existing Greptile/SLizard detector (extract a shared module if it is currently duplicated) -- do NOT write a second detector. 2. pr:watch: blocking poll by default; --one-shot single probe; three-state exit (0 CLEAN / 1 NEW_P0_P1 / 2 ERRORED|STALL|TIMEOUT|config); flags --max-wait-minutes (default 30) / --poll-seconds (default 90) / --json / --project-root. Route gh calls through the safe-subprocess + scm surface (no raw gh; UTF-8 safe capture per #1366). 3. --json shape per the issue AC-4 (verdict, pr_number, head_sha, last_reviewed_sha, sha_match, confidence, p0_count, p1_count, errored, ci_failures, is_clean, clean_gate_holdout, elapsed_seconds, poll_count). SHA-match gating so a stale review before your push is not read as a verdict. 4. Add tasks/pr.yml::watch (no sources/generates per task-caching conventions). 5. Cross-reference AGENTS.md ## Multi-agent orchestration discipline (#954) with a Tier-4 pointer (rule body lives in the task, not duplicated) -- and if AGENTS.md is consumer-relevant/template-propagated, mirror into content/templates/agents-entry.md + agents:refresh (#1309). 6. Hermetic regression tests: verdict matrix (CLEAN/NEW_P0/NEW_P1/ERRORED/STALL/TIMEOUT/config), exit-code contract, --json pinning, --one-shot no-loop, blocking-loop with monkeypatched sleep + fake gh transitions. Detector-extraction must keep existing pr:merge-ready + poller-template tests passing. 7. Run repo-root pnpm run lint (full-file lane) + task check. SCOPE GUARDRAIL: this issue is large (11 ACs). If, after verify-first, delivering it as ONE clean merge-ready leaf PR is not feasible (e.g. detector extraction ripples widely), STOP-AND-REPORT with a proposed 2-PR split rather than shipping a half-done change.",
+      "Traces": "#1056, #796, #1366, #954",
+      "Overview": "See https://github.com/deftai/directive/issues/1056. Recurring failure: orchestrator pushes to a PR, says 'awaiting Greptile', sets no poller, and silently stalls (2026-05-11 three-strikes on #1051/#1054). Fix by making the wait deterministic: a task whose invocation IS the poll. Mirrors task pr:merge-ready (#796). Blocking-by-default so linear systems get it free; orchestrator wrap is an optional layer. Reuse the canonical verdict detector; no duplicate detector code.",
+      "GuardRails": "VERIFY the current language/surface of pr:merge-ready + the Greptile/SLizard detector BEFORE implementing, and match it (Python scripts/ vs TS). REUSE the existing detector (extract-and-share if duplicated); a second detector is forbidden. Route gh through the safe-subprocess/scm shim (#1366, no raw gh). Keep the task platform-agnostic (no start_agent references in the script). AGENTS.md edits require template propagation (#1309). If the scope cannot land as one clean merge-ready PR, stop-and-report a split proposal instead of a partial implementation."
+    },
+    "items": [
+      {
+        "title": "task pr:watch exists: blocking-by-default poll, --one-shot, three-state exit, documented flags, reusing the canonical verdict detector (no duplicate).",
+        "status": "proposed"
+      },
+      {
+        "title": "SHA-match gating so a pre-push stale review is not read as the verdict; --json shape per AC-4, stable.",
+        "status": "proposed"
+      },
+      {
+        "title": "Routes gh through the safe-subprocess/scm shim; platform-agnostic (no start_agent in the script).",
+        "status": "proposed"
+      },
+      {
+        "title": "AGENTS.md #954 gets a Tier-4 cross-reference (+ template propagation if consumer-relevant); rule body stays in the task.",
+        "status": "proposed"
+      },
+      {
+        "title": "Hermetic verdict-matrix + exit-code + --json + blocking-loop tests; existing pr:merge-ready + poller-template tests still pass after any detector extraction.",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1056",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1056: task pr:watch deterministic PR-verdict polling"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/796",
+        "type": "x-xbrief/refs",
+        "title": "Issue #796"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1366",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1366"
+      }
+    ],
+    "updated": "2026-07-03T13:27:19Z"
+  }
+}

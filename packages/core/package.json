@@ -110,6 +110,10 @@
       "types": "./dist/pr-wait-mergeable/index.d.ts",
       "default": "./dist/pr-wait-mergeable/index.js"
     },
+    "./pr-watch": {
+      "types": "./dist/pr-watch/index.d.ts",
+      "default": "./dist/pr-watch/index.js"
+    },
     "./vbrief-build": {
       "types": "./dist/vbrief-build/index.d.ts",
       "default": "./dist/vbrief-build/index.js"
