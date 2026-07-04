@@ -693,7 +693,21 @@ export function resolveReconciliationLine(facts: ResolutionFacts): string {
       notes.push(skew.message ?? `engine ${facts.engineVersion} ahead of pin ${facts.pinVersion}`);
     }
   }
-  const verdict = notes.length === 0 ? "current (engine/pin/content aligned)" : notes.join("; ");
+  // Without a committed pin there is nothing to reconcile against, so never
+  // claim "aligned" — that would contradict a Next command that tells the
+  // operator to init / commit a pin (Greptile #2283 display-accuracy).
+  let rawVerdict: string;
+  if (facts.pinVersion === null) {
+    rawVerdict =
+      facts.engineVersion === null && facts.deftCorePayloadVersion === null
+        ? "nothing to reconcile yet (no engine, pin, or deposited content)"
+        : "no committed package.json pin to reconcile against";
+  } else {
+    rawVerdict = notes.length === 0 ? "current (engine/pin/content aligned)" : notes.join("; ");
+  }
+  // Sanitize newlines so a data-derived version/mismatch string can't break out
+  // of the rendered bullet (CWE-116).
+  const verdict = rawVerdict.replace(/\r?\n/g, " ");
   return `engine ${engine}, content ${content}, pin ${pin} -- ${verdict}`;
 }
 
@@ -786,6 +800,10 @@ export function runResolutionDecision(
   const hasTaskfileWiring = classifyTaskfileInclude(projectRoot) === "ok";
   const nextCommand = enforceDirectiveSurface(plan.nextAction.command, hasTaskfileWiring);
   const actionRequired = plan.mode !== "proceed";
+  // Sanitize newlines on data-derived strings before they land in a rendered
+  // bullet (CWE-116); root cause / remediation can carry version substrings.
+  const rootCauseLine = plan.nextAction.rootCause.replace(/\r?\n/g, " ");
+  const remediationLine = plan.nextAction.remediation.replace(/\r?\n/g, " ");
 
   if (!jsonMode) {
     sink.raw(`Operating mode: ${operatingMode}`);
@@ -796,21 +814,21 @@ export function runResolutionDecision(
       sink.warn(
         "Primary next action (resolve this first; secondary migration advice is deferred until it clears):",
       );
-      sink.raw(`  Root cause: ${plan.nextAction.rootCause}`);
+      sink.raw(`  Root cause: ${rootCauseLine}`);
       sink.raw(
         nextCommand
           ? `Next command: ${nextCommand}`
           : "Next command: (manual -- no single command)",
       );
-      sink.raw(`  Does / why safe: ${plan.nextAction.remediation}`);
+      sink.raw(`  Does / why safe: ${remediationLine}`);
     } else {
-      sink.success(
-        "Resolution: proceed -- engine/pin/content aligned; no migration action required.",
-      );
+      // Derive the proceed line from plan() so it never over-claims "aligned"
+      // in the no-pin case (Greptile #2283).
+      sink.success(`Resolution: proceed -- ${rootCauseLine}.`);
       // Only once the primary blocker has cleared do we surface the ordered
       // secondary notes (legacy vbrief migrate, no-pin advisory, ...).
       for (const warning of plan.warnings) {
-        sink.info(`note: ${warning}`);
+        sink.info(`note: ${warning.replace(/\r?\n/g, " ")}`);
       }
     }
   }
@@ -822,13 +840,13 @@ export function runResolutionDecision(
   if (actionRequired) {
     addFinding({
       severity: "warning",
-      message: `Next command: ${nextCommand ?? "(manual)"} -- ${plan.nextAction.rootCause}`,
+      message: `Next command: ${nextCommand ?? "(manual)"} -- ${rootCauseLine}`,
       check: "resolution",
       status: plan.mode,
       mode: plan.mode,
       next_command: nextCommand,
-      root_cause: plan.nextAction.rootCause,
-      remediation: plan.nextAction.remediation,
+      root_cause: rootCauseLine,
+      remediation: remediationLine,
       operating_mode: operatingMode,
     });
   } else {

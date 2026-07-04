@@ -250,6 +250,15 @@ describe("resolveReconciliationLine (#2267)", () => {
     });
     expect(line).toContain("ahead");
   });
+
+  it("never claims aligned without a committed pin (Greptile #2283)", () => {
+    // engine present, no pin -> "no committed pin", not "aligned".
+    expect(
+      resolveReconciliationLine({ ...FACTS_BASE, engineReachable: true, engineVersion: "0.68.0" }),
+    ).toContain("no committed package.json pin");
+    // nothing present at all -> "nothing to reconcile".
+    expect(resolveReconciliationLine(FACTS_BASE)).toContain("nothing to reconcile");
+  });
 });
 
 describe("resolvePlatformSkew (#2267 cross-platform skew)", () => {
@@ -311,7 +320,11 @@ describe("runResolutionDecision state matrix (#2267)", () => {
     expect(countNextCommands(text)).toBe(0);
     expect(text).toContain("directive migrate:xbrief");
     expect(summary.warnings.some((w) => w.includes("migrate:xbrief"))).toBe(true);
-    expect(findings.filter((f) => f.check === "resolution")[0]?.severity).toBe("skip");
+    const resolutionFinding = findings.filter((f) => f.check === "resolution")[0];
+    expect(resolutionFinding?.severity).toBe("skip");
+    // Exercise the proceed-branch guard message so a regression fails the suite
+    // (SLizard #2283 validation-guard-test-gap).
+    expect(resolutionFinding?.message).toContain("proceed");
   });
 
   it("engine behind pin (mismatched env) -> one install-global directive command", () => {
@@ -379,7 +392,13 @@ describe("cmdDoctor read-only + resolution wiring (#2267)", () => {
     } finally {
       process.stdout.write = origWrite;
     }
-    const payload = JSON.parse(stdout.join("")) as {
+    const parsed: unknown = JSON.parse(stdout.join(""));
+    // JSON.parse can return a top-level null without throwing; guard before
+    // any property access so a malformed payload fails loud, not with a
+    // TypeError (SLizard #2283 P1).
+    expect(parsed).not.toBeNull();
+    expect(typeof parsed).toBe("object");
+    const payload = parsed as {
       resolution?: { mode?: string; operating_mode?: string; next_command?: string | null };
     };
     expect(payload.resolution).toBeDefined();
