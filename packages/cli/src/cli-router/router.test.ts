@@ -1,4 +1,6 @@
-import * as initDeposit from "@deftai/directive-core/init-deposit";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatch, resetHandlerCacheForTests } from "../dispatch.js";
 import {
@@ -157,16 +159,31 @@ describe("routeAndDispatch", () => {
     expect(out.join("")).toContain("@deftai/directive");
   });
 
-  it("routes init through the TS-native deposit path", async () => {
-    vi.spyOn(initDeposit, "runInitDepositCli").mockResolvedValue(0);
-    const out: string[] = [];
-    const code = await routeAndDispatch(["init"], {
-      writeOut: (text) => {
-        out.push(text);
-      },
-      writeErr: () => {},
-    });
-    expect(code).toBe(0);
+  it("routes init through the TS-native adoption dispatcher (no Go spawn)", async () => {
+    // #2265: `init` is now a classify-then-dispatch adoption dispatcher. Pin it
+    // at an empty greenfield dir (deterministic `scaffold` decision) and assert
+    // it routed to the TS-native dispatcher — it prints the `[directive init]`
+    // state summary rather than spawning the Go installer. Exit code depends on
+    // the environment's content-package resolution, so only routing is asserted.
+    const dir = mkdtempSync(join(tmpdir(), "router-init-"));
+    const err: string[] = [];
+    try {
+      const code = await routeAndDispatch(["init", "--repo-root", dir], {
+        writeOut: () => {},
+        writeErr: (text) => {
+          err.push(text);
+        },
+      });
+      // --json routes the human summary to stderr; the greenfield state label
+      // proves the dispatcher classified the temp dir and chose the scaffold
+      // path (the TS-native deposit), not a Go spawn. The exit code depends on
+      // the environment's content-package resolution, so only routing + the
+      // classified decision are asserted.
+      expect(err.join("")).toContain("State: empty directory (greenfield)");
+      expect(typeof code).toBe("number");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("routes verify branch to the same handler as verify:branch", async () => {

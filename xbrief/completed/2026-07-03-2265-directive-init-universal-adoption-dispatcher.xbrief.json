@@ -6,7 +6,7 @@
   "plan": {
     "id": "2265-directive-init",
     "title": "directive init: universal adoption dispatcher",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Make `directive init` the universal adoption entrypoint: a dispatcher that classifies the current directory via the merged keystone plan()/classify() fact-set and transparently does the right thing. Empty dirs get scaffolded, brownfield dirs get Directive support without disturbing app code, an already-current install is delegated to `update` with a disclosure line, and a legacy/pre-cutover layout is routed to `migrate` -- always printing a state summary plus exactly one next action, and single-sourcing the logic by calling the narrow verbs rather than re-implementing them.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2265",
@@ -130,8 +130,10 @@
           "Colocated vitest across empty/brownfield/already-current/stale/legacy states green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2270 (migrate:xbrief) and #2273 (cold-start docs) in wave 4 -- file_scope is disjoint (init touches init-cli + init-deposit; #2270 touches xbrief-migrate + doctor signpost.ts; #2273 touches README/agents-entry template + dispatch.ts printHelp). CHANGELOG.md intentionally omitted from file_scope to keep the concurrent overlap matrix clean (worker still adds a bullet; 3-way merge handles it). Does NOT touch dispatch.ts (init routes via cli-router). Depends on merged keystone #2264 + merged update #2266 + merged migrate --untrack-core #2269. #2268 (init --headless) shares this init spine and is SEQUENCED after this story (wave 5), NOT concurrent."
-      }
+      },
+      "completedAt": "2026-07-04T00:58:03Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-04T00:35:12Z"
+    "updated": "2026-07-04T00:58:03Z"
   }
 }

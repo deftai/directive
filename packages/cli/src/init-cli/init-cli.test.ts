@@ -5,7 +5,12 @@ import { join } from "node:path";
 import * as initDeposit from "@deftai/directive-core/init-deposit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DispatchIo } from "../dispatch.js";
-import { CANONICAL_INIT_ARGV, CANONICAL_UPDATE_ARGV } from "./constants.js";
+import {
+  CANONICAL_INIT_ARGV,
+  CANONICAL_UPDATE_ARGV,
+  INIT_DRY_RUN_FLAGS,
+  UPDATE_DRY_RUN_FLAGS,
+} from "./constants.js";
 import { runInit } from "./init.js";
 import {
   bundledBinaryCandidates,
@@ -120,37 +125,97 @@ describe("runDeftInstall delegation", () => {
   });
 });
 
-describe("runInit TS-native deposit", () => {
+describe("runInit universal adoption dispatcher (#2265)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("does not spawn bundled deft-install on the happy path", async () => {
-    const spawnSpy = vi.spyOn(spawnSync as never, "apply" as never);
-    const depositSpy = vi.spyOn(initDeposit, "runInitDepositCli").mockResolvedValue(0);
-    const { io } = captureIo();
+  // Classify seams that make ANY directory look empty/greenfield -> scaffold.
+  const emptyDirClassify = {
+    isDir: () => false,
+    isFile: () => false,
+    readText: () => null,
+    engineProbe: () => ({ reachable: false, version: null }),
+    preCutoverProbe: () => false,
+  };
 
-    const code = await runInit([], io);
+  function recordingSeams(classifySeams: typeof emptyDirClassify) {
+    const calls = { scaffold: 0, refresh: 0, migrate: 0 };
+    const scaffoldArgs: unknown[] = [];
+    return {
+      calls,
+      scaffoldArgs,
+      seams: {
+        classifySeams,
+        runScaffold: async (options: unknown) => {
+          calls.scaffold += 1;
+          scaffoldArgs.push(options);
+          return 0;
+        },
+        runRefresh: async () => {
+          calls.refresh += 1;
+          return 0;
+        },
+        runMigrate: () => {
+          calls.migrate += 1;
+          return 0;
+        },
+      },
+    };
+  }
+
+  it("dispatches an empty dir to the scaffold deposit without spawning bundled deft-install", async () => {
+    const spawnSpy = vi.spyOn(spawnSync as never, "apply" as never);
+    const { io } = captureIo();
+    const { calls, seams } = recordingSeams(emptyDirClassify);
+
+    const code = await runInit([], io, seams);
 
     expect(code).toBe(0);
-    expect(depositSpy).toHaveBeenCalledOnce();
+    expect(calls).toEqual({ scaffold: 1, refresh: 0, migrate: 0 });
     expect(spawnSpy).not.toHaveBeenCalled();
   });
 
-  it("passes canonical init argv through parseInitArgv", async () => {
-    const depositSpy = vi.spyOn(initDeposit, "runInitDepositCli").mockResolvedValue(0);
+  it("threads the canonical init argv (repo-root, --json, --yes) to the scaffold delegate", async () => {
     const { io } = captureIo();
+    const { scaffoldArgs, seams } = recordingSeams(emptyDirClassify);
 
-    await runInit(["--repo-root", "/tmp/custom"], io);
+    await runInit(["--repo-root", "/tmp/custom"], io, seams);
 
-    expect(depositSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        projectDir: "/tmp/custom",
-        jsonOut: true,
-        nonInteractive: true,
-      }),
-    );
+    expect(scaffoldArgs[0]).toMatchObject({
+      projectDir: "/tmp/custom",
+      jsonOut: true,
+      nonInteractive: true,
+    });
     expect(CANONICAL_INIT_ARGV).toContain("--yes");
+  });
+
+  it("--dry-run classifies and prints without executing any delegate", async () => {
+    const { io, out } = captureIo();
+    const { calls, seams } = recordingSeams(emptyDirClassify);
+
+    // --json keeps stdout a single JSON object; the human summary goes to stderr.
+    const code = await runInit(["--dry-run"], io, seams);
+
+    expect(code).toBe(0);
+    expect(calls).toEqual({ scaffold: 0, refresh: 0, migrate: 0 });
+    const parsed = parseJsonObject(out.join(""));
+    expect(parsed.action).toBe("init");
+    expect(parsed.dry_run).toBe(true);
+    expect(parsed.dispatch).toBe("scaffold");
+  });
+
+  it("keeps the existing runInitDepositCli barrel export wired as the default scaffold delegate", () => {
+    // Guards the single-sourcing contract: init delegates to the existing verb.
+    expect(typeof initDeposit.runInitDepositCli).toBe("function");
+    expect(typeof initDeposit.runRefreshDepositCli).toBe("function");
+    expect(typeof initDeposit.runMigrateCli).toBe("function");
+  });
+
+  it("keeps the init and update dry-run flag sets in lockstep", () => {
+    // The two verbs intentionally own separate constants for semantic clarity;
+    // this guard fails loudly if the tuples ever silently diverge.
+    expect([...INIT_DRY_RUN_FLAGS]).toEqual([...UPDATE_DRY_RUN_FLAGS]);
   });
 });
 
@@ -204,7 +269,15 @@ describe("legacy-layout refusal (end-to-end via the CLI, #1912)", () => {
 
   it("runInit refuses an orphan .deft/VERSION layout with exit 2", async () => {
     const { io, out } = captureIo();
-    const code = await runInit(["--repo-root", legacyProject()], io);
+    // Deterministic classify seams so the test never shells out and never
+    // depends on the real detectPreCutover: an orphan .deft/VERSION layout
+    // classifies as init-mode, and the scaffold deposit refuses it with exit 2.
+    const code = await runInit(["--repo-root", legacyProject()], io, {
+      classifySeams: {
+        engineProbe: () => ({ reachable: false, version: null }),
+        preCutoverProbe: () => false,
+      },
+    });
     expect(code).toBe(2);
     const parsed = parseJsonObject(out.join(""));
     expect(parsed.action).toBe("refuse");
