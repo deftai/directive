@@ -6,7 +6,7 @@
   "plan": {
     "id": "2272-cold-clone-reconstitution",
     "title": "Cold-clone reconstitution: end-to-end acceptance test",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Prove the core cold-clone reconstitution scenario end-to-end with an explicit executable acceptance test: a fresh clone of a hybrid consumer in a mismatched sandbox where both `.deft/core/` (content) and `.deft/.cli/` (engine) are gitignored and therefore absent must reach a ready-to-use state with zero manual steps. The test drives the ordered flow -- read the committed package.json pin, run the global-first ladder, run update to re-project `.deft/core/` and stamp VERSION, resolve USER.md, then run session:start + verify -- and asserts the reconstitution trace, the registry-down hard-fail message, and the matched-env short-circuit.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2272",
@@ -106,8 +106,10 @@
           "Green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. SOLO/sequential (wave 6) -- the M1-gap acceptance test that ties the whole epic together. Depends on the merged keystone #2264 (ladder + trace), merged update #2266 (re-projection), and merged user-config #2271 (USER.md resolution) -- all in completed/. Consumes them read-only via injected seams. This is the last child before the #2274 docs capstone (wave 7)."
-      }
+      },
+      "completedAt": "2026-07-04T03:10:20Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-04T03:00:02Z"
+    "updated": "2026-07-04T03:10:20Z"
   }
 }
