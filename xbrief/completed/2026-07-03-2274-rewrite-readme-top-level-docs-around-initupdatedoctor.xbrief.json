@@ -6,7 +6,7 @@
   "plan": {
     "id": "2274-readme-docs-rewrite",
     "title": "Rewrite README + top-level docs around init/update/doctor",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Rewrite the README and top-level docs (BROWNFIELD, UPGRADING) around the three-command model (init / update / doctor) now that the behavior in the epic's children has landed, routing users by situation to exactly one command. Getting Started leads with `npm i -g @deftai/directive` then `directive init`; brownfield docs start with `directive init` rather than submodule/clone/legacy-installer paths; UPGRADING points ordinary users to `directive update` while preserving advanced detail; and the README gitignore claim is reconciled with reality (ignore `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache -- NOT `package.json`).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2274",
@@ -122,8 +122,10 @@
           "Content-contract + help snapshot tests assert the agreement + gitignore claim; green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. SOLO/sequential -- the epic #2203 docs CAPSTONE, ships last after every behavior child landed (#2264-#2273 all merged to master, plus the #2272 acceptance test). Depends on all ten sibling plan.ids (all in completed/). Builds on the cold-start block #2273 already added to README rather than duplicating it. On completion this closes out epic #2203."
-      }
+      },
+      "completedAt": "2026-07-04T04:13:50Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-04T04:02:08Z"
+    "updated": "2026-07-04T04:13:50Z"
   }
 }

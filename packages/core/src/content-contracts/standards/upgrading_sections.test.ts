@@ -41,6 +41,18 @@ describe("test_upgrading_sections.py", () => {
     }
     expect(failures).toEqual([]);
   });
+  // #2274: UPGRADING orients ordinary users to the three-command model and
+  // points them at `directive update` while preserving the big-jump detail.
+  it("test_three_command_routing_points_ordinary_users_at_update", () => {
+    const text = readText("UPGRADING.md");
+    for (const cmd of ["directive update", "directive doctor", "directive init"]) {
+      expect(text, `UPGRADING missing ${cmd}`).toContain(cmd);
+    }
+    expect(text.toLowerCase()).toContain("ordinary");
+    // The big-jump / advanced detail is preserved, not replaced.
+    expect(text).toContain("Big-jump triage — multi-version upgrades");
+  });
+
   it("test_managed_section_legacy_migration_section_present", () => {
     const sections = splitSections(readText("UPGRADING.md"));
     const matching = sections.filter(

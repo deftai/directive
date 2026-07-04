@@ -5,6 +5,18 @@ function readme(): string {
   return readText("README.md");
 }
 
+/**
+ * The README "What gets tracked vs ignored" gitignore claim paragraph (#2274).
+ * Extracted so its contents can be asserted against the real init/update
+ * gitignore behavior (packages/core/src/init-deposit/gitignore.ts).
+ */
+function gitignoreClaim(): string {
+  const content = readme();
+  const m = content.match(/\*\*What gets tracked vs ignored:\*\*[\s\S]*?(?=\n\n)/);
+  expect(m, "README must carry a 'What gets tracked vs ignored' claim").not.toBeNull();
+  return m?.[0] ?? "";
+}
+
 describe("test_readme_brownfield.py", () => {
   describe("TestReadmeVbriefCentric", () => {
     it("test_setup_step_references_vbrief_project_definition", () => {
@@ -77,6 +89,69 @@ describe("test_readme_brownfield.py", () => {
     it("test_rfc2119_legend_present", () => {
       const content = readText("docs/BROWNFIELD.md");
       expect(content.includes("RFC2119") || content.includes("RFC 2119")).toBe(true);
+    });
+  });
+
+  // #2274: README/BROWNFIELD/UPGRADING + top-level help all agree on the
+  // three-command init/update/doctor model, route users by situation, and the
+  // README gitignore claim matches the real init/update behavior.
+  describe("TestThreeCommandModel", () => {
+    it("test_readme_getting_started_leads_with_npm_then_init", () => {
+      const content = readme();
+      // The install step leads with the global npm install, then `directive init`.
+      const step = content.slice(content.indexOf("### 1. Install and initialize"));
+      const npmIdx = step.indexOf("npm i -g @deftai/directive");
+      const initIdx = step.indexOf("directive init");
+      expect(npmIdx).toBeGreaterThanOrEqual(0);
+      expect(initIdx).toBeGreaterThan(npmIdx);
+    });
+
+    it("test_readme_routes_by_situation_across_three_commands", () => {
+      const content = readme();
+      for (const cmd of ["directive init", "directive update", "directive doctor"]) {
+        expect(content, `README missing ${cmd}`).toContain(cmd);
+      }
+    });
+
+    it("test_readme_brownfield_upgrading_agree_on_three_command_model", () => {
+      for (const rel of ["README.md", "docs/BROWNFIELD.md", "UPGRADING.md"]) {
+        const content = readText(rel);
+        for (const cmd of ["directive init", "directive update", "directive doctor"]) {
+          expect(content, `${rel} missing ${cmd}`).toContain(cmd);
+        }
+      }
+    });
+
+    it("test_readme_gitignore_claim_matches_reality", () => {
+      const claim = gitignoreClaim();
+      for (const tok of [
+        ".deft/core/",
+        ".deft/.cli/",
+        "ritual-state.json",
+        ".deft-cache/",
+        "package.json",
+      ]) {
+        expect(claim, `gitignore claim missing ${tok}`).toContain(tok);
+      }
+      // The committed package.json pin is the reconstitution anchor -> tracked,
+      // never ignored (packages/core/src/init-deposit/gitignore.ts NEVER_IGNORE_LINES).
+      expect(/package\.json[\s\S]*never[\s\S]*ignored/i.test(claim)).toBe(true);
+      // The claim no longer says init scaffolds vbrief/.
+      expect(claim.toLowerCase()).not.toContain("vbrief/");
+    });
+
+    it("test_brownfield_starts_with_directive_init_before_legacy_submodule", () => {
+      const content = readText("docs/BROWNFIELD.md");
+      const initIdx = content.indexOf("directive init");
+      const submoduleIdx = content.toLowerCase().indexOf("submodule");
+      expect(initIdx).toBeGreaterThanOrEqual(0);
+      expect(submoduleIdx).toBeGreaterThan(initIdx);
+    });
+
+    it("test_upgrading_points_ordinary_users_at_directive_update", () => {
+      const content = readText("UPGRADING.md");
+      expect(content).toContain("directive update");
+      expect(content.toLowerCase()).toContain("ordinary");
     });
   });
 });

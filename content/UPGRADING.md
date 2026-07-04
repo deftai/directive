@@ -12,6 +12,18 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Which command do I run? (three-command model)
+
+Directive is driven by three commands, and upgrading is one of them. Route by situation to exactly one:
+
+- **Ordinary upgrade of an existing Directive project** → `directive update` (after `npm i -g @deftai/directive@latest`). This is the one command most upgrades need; the [Canonical upgrade — npm](#canonical-upgrade--npm-v0551) section below is the full walkthrough.
+- **Not sure what state you are in, or something looks broken** → `directive doctor`. It is read-only and prints exactly one recommended next step (including "run `directive update`" when the deposit is stale).
+- **First-time adoption, or a legacy / pre-v0.20 layout** → `directive init`. It classifies the directory and either scaffolds Directive or routes you to the specific migration path.
+
+Everything below preserves the **advanced and big-jump** detail — multi-version jumps, the frozen pre-v0.20 bridge, legacy Go-installer migration, and the per-version transitions. Ordinary upgraders only need `directive update`; reach into the detailed sections when `directive doctor` or the [big-jump triage](#big-jump-triage--multi-version-upgrades-start-here) points you there.
+
+---
+
 ## Canonical upgrade — npm (v0.55.1+)
 
 From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical consumer upgrade path is:

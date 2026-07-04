@@ -103,6 +103,30 @@ describe("printHelp", () => {
     expect(modelIdx).toBeLessThan(listIdx);
     expect(listIdx).toBeLessThan(body.indexOf(`\n  ${firstVerb}\n`));
   });
+
+  // #2274: the top-level help snapshot is the source the README / BROWNFIELD /
+  // UPGRADING docs mirror. Lock the "Start here" grouping, the init->update->
+  // doctor ordering, and each command's by-situation one-liner so the docs and
+  // the CLI can never drift out of agreement on the three-command model.
+  it("routes users by situation: init sets up, update refreshes, doctor diagnoses (#2274)", () => {
+    const body = renderHelp();
+    expect(body).toContain("Start here (most projects only need these three):");
+
+    const initIdx = body.indexOf("directive init");
+    const updateIdx = body.indexOf("directive update");
+    const doctorIdx = body.indexOf("directive doctor");
+    expect(initIdx).toBeGreaterThanOrEqual(0);
+    expect(updateIdx).toBeGreaterThan(initIdx);
+    expect(doctorIdx).toBeGreaterThan(updateIdx);
+
+    for (const line of [
+      "directive init      Set up Directive in the current project (first-time setup)",
+      "directive update    Refresh an existing install and self-heal the engine",
+      "directive doctor    Diagnose the install and print the one next step",
+    ]) {
+      expect(body).toContain(line);
+    }
+  });
 });
 
 describe("dispatch", () => {

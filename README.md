@@ -45,21 +45,42 @@ Deft is a **layered set of standards files plus deterministic `task` tooling** t
 
 ## 🚀 Getting Started
 
-### 1. Install Directive
+Directive is driven by **three commands** — `init`, `update`, and `doctor`. You never have to choose between a half-dozen setup verbs; pick the single command that matches your situation:
 
-Install Directive globally with npm (Node ≥ 20 required):
+| Your situation | Run this one command | What it does |
+| --- | --- | --- |
+| New, empty project directory | `directive init` | Scaffolds a fresh Directive deposit (`.deft/core/`, the `AGENTS.md` managed section, the `xbrief/` layout, and a committed `package.json` pin). |
+| Existing codebase (app code, no Directive yet) | `directive init` | Installs Directive support beside your code without disturbing it, then points you at brownfield spec extraction. |
+| Existing Directive project (already initialized) | `directive update` | Refreshes the vendored payload and self-heals the engine. (`init` detects this state and delegates to `update` with a disclosure line — it never re-scaffolds an existing install.) |
+| Not sure, or something looks broken | `directive doctor` | Read-only diagnosis that prints exactly one recommended next step. |
+| Legacy / pre-v0.20 layout | `directive init` (or `directive doctor`) | Classifies the layout and routes you to the specific migration path (see [UPGRADING.md](./content/UPGRADING.md)). |
+
+`directive init` is the **universal entrypoint**: run it from a project directory and it classifies *that directory* and dispatches to exactly one of the paths above, always printing a state summary plus one recommended next action. `directive doctor` is the safe "where am I?" probe, and `directive update` is the refresh path — the same three-command model the CLI's own `directive` help screen leads with.
+
+### 1. Install and initialize
+
+Install the engine globally with npm (Node ≥ 20 required):
 
 ```bash
 npm i -g @deftai/directive
 ```
 
-Run `directive` (or the `deft` alias) from any project directory — for example `directive doctor`, `directive session:start`, or `npx @deftai/directive <verb>` without a global install.
+Then `cd` into your project and run the universal entrypoint:
 
-**Where your project lands:** the global install above is location-independent, but project **setup** writes `.deft/` and your project's `AGENTS.md` into the **current working directory**. Before you run setup (or ask your agent to set the project up), `cd` into the folder you want the project to live in — create it first if it doesn't exist yet.
+```bash
+directive init      # classify this directory and set up (or route) accordingly
+directive doctor    # confirm the install and print your one next step
+```
+
+`directive` (the `deft` alias also works) runs any verb; `npx @deftai/directive <verb>` runs one without a global install.
+
+**Where your project lands (honest scope):** the global install above is location-independent, but `directive init` acts on the **current working directory** — it inspects that directory and dispatches, so `cd` into the folder you want the project to live in first (create it if it doesn't exist yet). init does not reach outside the directory you run it in. When an engine is already installed, Directive reconciles it against your committed `package.json` pin: a **matched** engine (same version as the pin) proceeds; a **mismatched** engine (ahead of or behind the pin) prints the exact `npm i -g` / `directive update` step to take rather than silently running against the wrong version.
+
+**What gets tracked vs ignored:** `init` and `update` add Directive's local-only artifacts to your `.gitignore` — the reconstitutable deposit `.deft/core/`, the per-platform engine cache `.deft/.cli/`, session/ritual state such as `.deft/ritual-state.json`, and the `.deft-cache/` content cache. Your committed `package.json` pin is **never** ignored: it is the anchor that lets `directive init` / `directive update` reconstitute `.deft/core/` on a fresh clone, so it stays tracked in version control.
 
 **Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
 
-> **🔄 Upgrading?** Run `npm i -g @deftai/directive@latest`, then `deft update`, `deft migrate` (one-time, idempotent), and `deft doctor` from your project root. Read [UPGRADING.md](./content/UPGRADING.md) before proceeding if coming from a Go-installer install. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
+> **🔄 Upgrading an existing Directive project?** The ordinary path is `directive update` from your project root (after `npm i -g @deftai/directive@latest`). See [UPGRADING.md](./content/UPGRADING.md) for the canonical steps and the advanced/big-jump detail. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
 
 > **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) and UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).
 
@@ -98,7 +119,7 @@ The Go installer is a **legacy bridge**, not the first-start installer — npm i
   chmod +x install-linux-amd64 && ./install-linux-amd64
   ```
 
-The legacy Go installer deposits a tarball payload into `.deft/core/` on disk. For normal installs, use npm (`npm i -g @deftai/directive`) and then `directive init` in your project — init resolves the locally installed `@deftai/directive-content` package and copies it into gitignored `.deft/core/`, renders `AGENTS.md`, scaffolds `vbrief/`, and creates your user config directory.
+The legacy Go installer deposits a tarball payload into `.deft/core/` on disk. For normal installs, use npm (`npm i -g @deftai/directive`) and then `directive init` in your project — init resolves the locally installed `@deftai/directive-content` package and copies it into gitignored `.deft/core/`, renders `AGENTS.md`, scaffolds the `xbrief/` layout, and creates your user config directory.
 
 #### Agent / headless install
 

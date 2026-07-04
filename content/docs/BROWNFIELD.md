@@ -12,9 +12,26 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## 1. Install Deft in Your Project
 
-You have three ways to add the `deft/` framework to an existing project. Pick the one that fits your workflow:
+### Start here: `directive init`
 
-### Option A: Git submodule (recommended)
+For a project that already has code, the canonical adoption path is the **same universal entrypoint** greenfield users run — `directive init`:
+
+```bash
+npm i -g @deftai/directive     # Node >= 20
+cd your-existing-project
+directive init                 # detects app code, installs Directive beside it
+directive doctor               # confirms the install + prints your one next step
+```
+
+`directive init` classifies the directory you run it in. Because it finds existing app code (or a git repo) but no Directive deposit, it takes the **brownfield-install** path: it installs Directive support *beside* your source without disturbing it, scaffolds the `xbrief/` layout, and points you toward brownfield spec extraction. It never overwrites your files, and it ignores only Directive's local-only artifacts (`.deft/core/`, `.deft/.cli/`, `.deft/ritual-state.json`, and the `.deft-cache/` cache) while leaving your committed `package.json` pin tracked in git. If the directory turns out to hold a legacy / pre-v0.20 layout, init routes you to the specific migration path (§2) instead of scaffolding over it — and `directive doctor` is the read-only probe that tells you exactly what to run next if anything looks off.
+
+An already-initialized Directive project does not need `init` at all — run `directive update` to refresh it.
+
+### Legacy install paths (submodule / installer / clone)
+
+Before the npm-first channel, Deft was added to an existing project with one of the options below. They remain available for **offline / air-gapped** deposits or for migrating an old on-disk layout, but `directive init` above is the canonical path for new adopters — reach for these only when npm is not an option:
+
+### Option A: Git submodule (legacy)
 
 ```bash
 git submodule add https://github.com/deftai/directive.git deft
