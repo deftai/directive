@@ -235,12 +235,20 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=bd19b2663b04 refreshed=2026-07-03T12:13:39Z session=675c7001d865 -->
+<!-- deft:managed-section v3 sha=e39285c04898 refreshed=2026-07-04T00:46:47Z session=ab5a3a514dd5 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ! If any .deft/core/.agents/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read .deft/core/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
+
+## Cold-start bootstrap (#2273)
+
+! If `deft` / `directive` will not run on this machine, recover BEFORE following any instruction below. Directive runs from an npm-installed engine; the recovery ladder is payload-independent and always lives in the **Cold-start bootstrap** block at the top of the project's committed `README.md` (never gitignored, present on a fresh clone even when `.deft/core/` is absent). Read it there and follow the global-first ladder.
+
+! Global-first ladder (prose; no committed shell shim — you are the interpreter). Work top-down; stop at the first rung that yields a working `directive`, keyed off the `package.json` pin: (1) try `directive doctor`; (2) else if `.deft/.cli/<platform>` holds an intact engine at/above the pin, use it; (3) else `npm i -g @deftai/directive` (Node ≥ 20); (4) else, when the global npm prefix is not writable (sandbox), `npm install --prefix .deft/.cli/<platform> @deftai/directive@<pinned>`; (5) else install from a staged tarball / vendored payload.
+
+⊗ Point cold-start recovery at a path inside `.deft/core/` — that is the exact payload absent when recovery is needed. The reachable-on-a-fresh-clone recovery surface is `README.md`, never the vendored payload.
 
 ## Pre-Cutover Check (run before First Session / Returning Sessions)
 
@@ -431,5 +439,5 @@ Directive product commands use the `/deft:directive:*` namespace (#418 / #1670).
 
 **CLI compatibility:**
 
-The legacy Python `.deft/core/run` CLI is deprecated and is no longer a load-bearing operator path (#1933 Option 1, deprecate-by-disuse). Use the agent-driven setup skill for first-time setup and project/spec generation; if `deft` or `directive` will not run, read `.deft/core/UPGRADING.md`.
+The legacy Python `.deft/core/run` CLI is deprecated and is no longer a load-bearing operator path (#1933 Option 1, deprecate-by-disuse). Use the agent-driven setup skill for first-time setup and project/spec generation; if `deft` or `directive` will not run, follow the payload-independent recovery ladder in the `## Cold-start bootstrap (#2273)` section above (top of the project's `README.md`), not a path inside `.deft/core/`.
 <!-- /deft:managed-section -->

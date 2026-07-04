@@ -2687,9 +2687,30 @@ export function registeredVerbs(): readonly string[] {
   return [...names].sort();
 }
 
-/** Print dispatcher help listing every registered verb. */
+/**
+ * Print dispatcher help. Leads with the three-command model (init / update /
+ * doctor) + first-run guidance so a no-arg `directive` orients a newcomer before
+ * the exhaustive verb list, which stays available below for power users (#2273).
+ */
 export function printHelp(io: DispatchIo = defaultIo()): void {
-  io.writeOut("Usage: directive <verb> [args...]\n\nRegistered verbs:\n");
+  io.writeOut(
+    "directive -- the Deft Directive CLI\n" +
+      "\n" +
+      "Start here (most projects only need these three):\n" +
+      "  directive init      Set up Directive in the current project (first-time setup)\n" +
+      "  directive update    Refresh an existing install and self-heal the engine\n" +
+      "  directive doctor    Diagnose the install and print the one next step\n" +
+      "\n" +
+      "First run? From the project root:\n" +
+      "  1. npm i -g @deftai/directive   (Node >= 20)\n" +
+      "  2. directive init\n" +
+      "  3. directive doctor\n" +
+      "New clone where `directive` will not run? Read the Cold-start bootstrap block at the top of README.md.\n" +
+      "\n" +
+      "Usage: directive <verb> [args...]\n" +
+      "\n" +
+      "Registered verbs:\n",
+  );
   for (const name of registeredVerbs()) {
     io.writeOut(`  ${name}\n`);
   }

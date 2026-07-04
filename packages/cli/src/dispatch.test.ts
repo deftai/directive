@@ -60,7 +60,7 @@ describe("registeredVerbs", () => {
 });
 
 describe("printHelp", () => {
-  it("lists all registered verbs", () => {
+  function renderHelp(): string {
     const lines: string[] = [];
     printHelp({
       writeOut: (text) => {
@@ -68,12 +68,40 @@ describe("printHelp", () => {
       },
       writeErr: () => {},
     });
-    const body = lines.join("");
+    return lines.join("");
+  }
+
+  it("lists all registered verbs", () => {
+    const body = renderHelp();
     expect(body).toContain("Usage: directive <verb> [args...]");
     expect(body).toContain("Registered verbs:");
     for (const verb of registeredVerbs()) {
       expect(body).toContain(`  ${verb}\n`);
     }
+  });
+
+  // #2273: no-arg `directive` leads with the three-command model + first-run
+  // guidance, printed BEFORE the exhaustive verb list.
+  it("prints the three-command model and first-run guidance before the verb list (#2273)", () => {
+    const body = renderHelp();
+    for (const line of [
+      "directive init",
+      "directive update",
+      "directive doctor",
+      "First run?",
+      "npm i -g @deftai/directive",
+    ]) {
+      expect(body).toContain(line);
+    }
+    // Cold-start recovery pointer is payload-independent (points at README.md).
+    expect(body).toContain("README.md");
+
+    const firstVerb = registeredVerbs()[0] ?? "";
+    const modelIdx = body.indexOf("directive init");
+    const listIdx = body.indexOf("Registered verbs:");
+    expect(modelIdx).toBeGreaterThanOrEqual(0);
+    expect(modelIdx).toBeLessThan(listIdx);
+    expect(listIdx).toBeLessThan(body.indexOf(`\n  ${firstVerb}\n`));
   });
 });
 

@@ -6,13 +6,15 @@ import { readRepoFile, repoFileExists } from "./helpers.js";
 const PREAMBLE_MARKER = "<!-- DEFT-PREAMBLE-V1 -->";
 // #2022 / #1933 (Option 1, deprecate-by-disuse): canonical carriers (main.md,
 // SKILL.md) no longer mandate the frozen `deft-install gate` health probe. The
-// DEFT-PREAMBLE now carries a cold-start fallback -- recover via
-// `.deft/core/UPGRADING.md` when `deft`/`directive` will not run. Legacy
-// redirect stubs keep the pre-flip `python3 deft/run gate` form (#411).
+// DEFT-PREAMBLE carries a cold-start fallback. #2273: the recovery pointer is
+// now payload-INDEPENDENT -- it points at the Cold-start bootstrap block at the
+// top of the committed `README.md`, NOT at `.deft/core/UPGRADING.md` (the exact
+// vendored payload that is absent when recovery is needed). Legacy redirect
+// stubs keep the pre-flip `python3 deft/run gate` + `deft/UPGRADING.md` form (#411).
 const GATE_INSTRUCTION_CANONICAL = "Cold-start check";
 const GATE_INSTRUCTION_LEGACY = "python3 deft/run gate";
-const UPGRADING_REFERENCE_CANONICAL = ".deft/core/UPGRADING.md";
-const UPGRADING_REFERENCE_LEGACY = "deft/UPGRADING.md";
+const COLD_START_REFERENCE_CANONICAL = "README.md";
+const COLD_START_REFERENCE_LEGACY = "deft/UPGRADING.md";
 
 const REDIRECT_STUB_PATHS = ["skills/deft-setup/SKILL.md", "skills/deft-build/SKILL.md"] as const;
 
@@ -26,10 +28,10 @@ function expectedGateInstruction(relPath: string): string {
     : GATE_INSTRUCTION_CANONICAL;
 }
 
-function expectedUpgradingReference(relPath: string): string {
+function expectedColdStartReference(relPath: string): string {
   return REDIRECT_STUB_PATHS.includes(relPath as (typeof REDIRECT_STUB_PATHS)[number])
-    ? UPGRADING_REFERENCE_LEGACY
-    : UPGRADING_REFERENCE_CANONICAL;
+    ? COLD_START_REFERENCE_LEGACY
+    : COLD_START_REFERENCE_CANONICAL;
 }
 
 describe("test_main_md_preamble", () => {
@@ -49,10 +51,17 @@ describe("test_main_md_preamble", () => {
     expect(head).toContain(expected);
   });
 
-  it.each(REQUIRED_FILES)("preamble_references_upgrading_doc %s", (relPath) => {
+  it.each(REQUIRED_FILES)("preamble_references_cold_start_recovery %s", (relPath) => {
     const text = readRepoFile(relPath);
     const head = text.split("\n").slice(0, 12).join("\n");
-    const expected = expectedUpgradingReference(relPath);
+    const expected = expectedColdStartReference(relPath);
     expect(head).toContain(expected);
+  });
+
+  // #2273: the canonical carriers' cold-start recovery pointer must NOT depend
+  // on the vendored `.deft/core/` payload (absent exactly when recovery runs).
+  it.each(CANONICAL_PATHS)("preamble_cold_start_pointer_is_payload_independent %s", (relPath) => {
+    const head = readRepoFile(relPath).split("\n").slice(0, 12).join("\n");
+    expect(head).not.toContain(".deft/core/UPGRADING.md");
   });
 });

@@ -6,7 +6,7 @@
   "plan": {
     "id": "2273-cold-start-bootstrap",
     "title": "Cold-start bootstrap block in README + AGENTS managed section",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add an always-present cold-start bootstrap block to the top of README.md and mirror it in the AGENTS.md managed section, fixing the bug where the current cold-start recovery pointer lives inside `.deft/core/` -- the exact payload that is absent when recovery is needed. The block describes the global-first npm ladder as prose steps keyed off the package.json pin (no committed shell shim), no-arg `directive` prints the three-command init/update/doctor model before the exhaustive verb list, and the stale `read .deft/core/UPGRADING.md` pointer is replaced with a payload-independent one.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2273",
@@ -111,8 +111,10 @@
           "dispatch + content-contract snapshot tests green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2265 (init) and #2270 (migrate:xbrief) in wave 4 -- file_scope is disjoint (this owns README + main.md + agents-entry template + AGENTS.md + dispatch.ts printHelp + the two content-contract tests; init routes via cli-router NOT dispatch.ts, so no dispatch.ts contention with #2265). Worker MUST run `task agents:refresh` after editing content/templates/agents-entry.md so AGENTS.md regenerates. CHANGELOG.md omitted from file_scope (worker adds a bullet; 3-way merge handles it). Depends on merged keystone #2264 (references the global-first ladder in prose only). Full docs are the later #child J2."
-      }
+      },
+      "completedAt": "2026-07-04T00:50:04Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-04T00:35:15Z"
+    "updated": "2026-07-04T00:50:04Z"
   }
 }
