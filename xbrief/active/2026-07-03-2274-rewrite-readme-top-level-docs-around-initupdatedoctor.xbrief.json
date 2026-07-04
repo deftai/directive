@@ -1,0 +1,129 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2274; refined to swarm-ready 2026-07-03 (epic #2203 wave 7 -- the docs capstone, ships last after all behavior landed)."
+  },
+  "plan": {
+    "id": "2274-readme-docs-rewrite",
+    "title": "Rewrite README + top-level docs around init/update/doctor",
+    "status": "running",
+    "narratives": {
+      "Description": "Rewrite the README and top-level docs (BROWNFIELD, UPGRADING) around the three-command model (init / update / doctor) now that the behavior in the epic's children has landed, routing users by situation to exactly one command. Getting Started leads with `npm i -g @deftai/directive` then `directive init`; brownfield docs start with `directive init` rather than submodule/clone/legacy-installer paths; UPGRADING points ordinary users to `directive update` while preserving advanced detail; and the README gitignore claim is reconciled with reality (ignore `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache -- NOT `package.json`).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2274",
+      "Overview": "Part of epic #2203. Absorbs #2201. Ships last, after behavior lands.\n\n## Summary\n\nRewrite README and top-level docs around the three-command model (`init` / `update` / `doctor`), routing users by situation, after the behavior in #child A–I is real or staged behind the contract.\n\n## Scope\n\n- README \"Getting Started\" starts with `npm i -g @deftai/directive`, then `directive init`.\n- Route by situation: new empty project -> `init`; existing codebase -> `init`; existing Directive project -> `update`; unsure/broken -> `doctor`; legacy/pre-v0.20 -> `init`/`doctor` routes to the specific migration path.\n- BROWNFIELD docs start with `directive init`, not submodule/clone/legacy-installer paths.\n- UPGRADING preserves advanced detail but points ordinary users to `directive update`.\n- Reconcile the README gitignore claim with reality (ignore `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache; NOT `package.json`).\n\n## Acceptance criteria\n\n- README/BROWNFIELD/UPGRADING and top-level help all agree on the three-command model.\n- Gitignore claim matches actual `init`/`update` behavior.\n- Docs do not promise location-independent `init` beyond what #child A delivers (matched vs mismatched scoped honestly).\n- Snapshot tests for top-level help.\n\n## Related\n\nAbsorbs #2201. Depends on #child A–I + #child J1. Parent #2203.\n",
+      "UserStory": "As a new or returning Directive user deciding how to adopt or repair the framework, I want the README and BROWNFIELD and UPGRADING docs plus the top-level help to route me by situation through the single three-command init/update/doctor model with an honest gitignore claim, so that I always know which one command to run for my situation and the docs never promise behavior the tools do not deliver.",
+      "ImplementationPlan": "1. Rewrite the README `Getting Started` around the three-command model: lead with `npm i -g @deftai/directive` then `directive init`, and add a route-by-situation table (new empty -> init; existing codebase -> init; existing Directive project -> update; unsure/broken -> doctor; legacy/pre-v0.20 -> init/doctor routes to the specific migration path). Build on the cold-start block already added by #2273 rather than duplicating it.\n2. Rewrite `content/docs/BROWNFIELD.md` to START with `directive init` (not submodule/clone/legacy-installer paths), and update `content/UPGRADING.md` to point ordinary users at `directive update` while preserving the advanced/big-jump detail.\n3. Reconcile the README gitignore claim with reality: ignore `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, and cache -- NOT `package.json`; fix the stale `scaffolds vbrief/` phrasing to the canonical `xbrief/` layout.\n4. Scope `init` honesty: docs MUST NOT promise location-independent init beyond what the merged #2265 dispatcher delivers (matched vs mismatched described honestly). Ensure README/BROWNFIELD/UPGRADING and top-level help all agree on the three-command model.\n5. Update/extend the content-contract standards tests (`packages/core/src/content-contracts/standards/readme_brownfield.test.ts`, `upgrading_sections.test.ts`) and the top-level help snapshot in `packages/cli/src/dispatch.test.ts` so the three-command agreement + gitignore claim are asserted. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-read-docs-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2274, #2203, #2201",
+      "Labels": "enhancement, docs, adoption-blocker, area:cli, area:guidance"
+    },
+    "items": [
+      {
+        "id": "2274-a1-three-command-agreement",
+        "title": "Given README, content/docs/BROWNFIELD.md, content/UPGRADING.md, and the top-level help, when they are read, then they all agree on the three-command init/update/doctor model and route users by situation to exactly one command.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given README, content/docs/BROWNFIELD.md, content/UPGRADING.md, and the top-level help, when they are read, then they all agree on the three-command init/update/doctor model and route users by situation to exactly one command.",
+          "Traces": "#2274, #2201"
+        }
+      },
+      {
+        "id": "2274-a2-gitignore-claim-accurate",
+        "title": "Given the README gitignore claim, when compared to actual init/update behavior, then it matches reality (ignores `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache; NOT `package.json`) and no longer says vbrief/.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the README gitignore claim, when compared to actual init/update behavior, then it matches reality (ignores `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache; NOT `package.json`) and no longer says vbrief/.",
+          "Traces": "#2274, #2203"
+        }
+      },
+      {
+        "id": "2274-a3-init-honesty",
+        "title": "Given the adoption docs, when they describe `directive init`, then they do not promise location-independent init beyond what the merged #2265 dispatcher delivers (matched vs mismatched env scoped honestly).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the adoption docs, when they describe `directive init`, then they do not promise location-independent init beyond what the merged #2265 dispatcher delivers (matched vs mismatched env scoped honestly).",
+          "Traces": "#2274, #2265"
+        }
+      },
+      {
+        "id": "2274-a4-help-snapshot",
+        "title": "Given the top-level help, when the snapshot/content-contract tests run, then they assert the three-command model agreement and the corrected gitignore claim, and pass under task check:framework-source.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the top-level help, when the snapshot/content-contract tests run, then they assert the three-command model agreement and the corrected gitignore claim, and pass under task check:framework-source.",
+          "Traces": "#2274, #2273"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "docs",
+      "adoption-blocker",
+      "area:cli",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2274",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2274: Rewrite README + top-level docs around init/update/doctor"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2201",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2201"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "size": "M",
+        "model_tier": "medium",
+        "depends_on": [
+          "2264-resolution-spine",
+          "2265-directive-init",
+          "2266-directive-update",
+          "2267-directive-doctor",
+          "2268-init-headless-manifest",
+          "2269-migrate-untrack-core",
+          "2270-migrate-xbrief-cleanup",
+          "2271-user-config-resolution",
+          "2272-cold-clone-reconstitution",
+          "2273-cold-start-bootstrap"
+        ],
+        "conflict_group": "docs",
+        "file_scope": [
+          "README.md",
+          "content/docs/BROWNFIELD.md",
+          "content/UPGRADING.md",
+          "packages/core/src/content-contracts/standards/readme_brownfield.test.ts",
+          "packages/core/src/content-contracts/standards/upgrading_sections.test.ts",
+          "packages/cli/src/dispatch.test.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/content-contracts",
+          "pnpm exec vitest run packages/cli/src/dispatch.test.ts",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "README/BROWNFIELD/UPGRADING + top-level help rewritten around and agreeing on the three-command init/update/doctor model, routing users by situation.",
+          "README gitignore claim reconciled with reality (ignore .deft/core, .deft/.cli, ritual-state.json, cache; NOT package.json); stale vbrief/ phrasing corrected.",
+          "init described honestly (matched vs mismatched) with no location-independence promise beyond the merged #2265 dispatcher.",
+          "Content-contract + help snapshot tests assert the agreement + gitignore claim; green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. SOLO/sequential -- the epic #2203 docs CAPSTONE, ships last after every behavior child landed (#2264-#2273 all merged to master, plus the #2272 acceptance test). Depends on all ten sibling plan.ids (all in completed/). Builds on the cold-start block #2273 already added to README rather than duplicating it. On completion this closes out epic #2203."
+      }
+    },
+    "updated": "2026-07-04T04:02:08Z"
+  }
+}
