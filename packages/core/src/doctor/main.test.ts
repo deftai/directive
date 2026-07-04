@@ -10,6 +10,7 @@ import {
   resolveOperatingMode,
   resolvePlatformSkew,
   resolveReconciliationLine,
+  resolveTaskfileWiring,
   runResolutionDecision,
 } from "./main.js";
 import { createPlainSink } from "./output.js";
@@ -201,6 +202,46 @@ describe("enforceDirectiveSurface (#2267 no bare task)", () => {
       "npx @deftai/directive init",
     );
     expect(enforceDirectiveSurface(null, false)).toBeNull();
+  });
+});
+
+describe("resolveTaskfileWiring (#2267 seam-honoured)", () => {
+  const wiredTaskfile =
+    "version: '3'\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n";
+
+  it("reads the Taskfile through the injected readText seam (no real fs)", () => {
+    const seen: string[] = [];
+    const readText = (path: string): string | null => {
+      seen.push(path);
+      return path.endsWith("Taskfile.yml") ? wiredTaskfile : null;
+    };
+    expect(resolveTaskfileWiring("/virtual/project", { readText })).toBe(true);
+    expect(seen.some((p) => p.includes("Taskfile.yml"))).toBe(true);
+  });
+
+  it("returns false when the injected seam reports no Taskfile", () => {
+    expect(resolveTaskfileWiring("/virtual/project", { readText: () => null })).toBe(false);
+  });
+
+  it("returns false when the Taskfile lacks the deft include", () => {
+    const readText = (path: string): string | null =>
+      path.endsWith("Taskfile.yml")
+        ? "version: '3'\ntasks:\n  build:\n    cmds: [echo hi]\n"
+        : null;
+    expect(resolveTaskfileWiring("/virtual/project", { readText })).toBe(false);
+  });
+
+  it("suppresses a bare task command end-to-end when the seam reports no wiring", () => {
+    const root = makeRoot();
+    makeDeposit(root);
+    makeLegacyVbrief(root);
+    const { summary } = runDecision(root, {
+      engineProbe: engineAt("0.69.0"),
+      readText: () => null,
+    });
+    if (summary.nextCommand !== null) {
+      expect(summary.nextCommand).not.toMatch(/^\s*task\s+/);
+    }
   });
 });
 

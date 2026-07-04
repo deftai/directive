@@ -43,6 +43,7 @@ import { runLocalSignpostChecks } from "./signpost-checks.js";
 import {
   classifyTaskfileInclude,
   formatMissingIncludeSnippet,
+  includesBlockHasDeftTaskfile,
   resolveConsumerTaskfile,
 } from "./taskfile.js";
 import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
@@ -640,6 +641,32 @@ function runTaskfileIncludeCheck(
  * any `task`-prefixed command is rewritten to the `directive` surface unless the
  * project actually has the include.
  */
+/**
+ * Detect Taskfile wiring through the injected seam (#2267). Mirrors
+ * `classifyTaskfileInclude` but routes the filesystem read through
+ * `seams.readText` so the resolution decision stays deterministic + injectable
+ * in tests -- unlike a direct `classifyTaskfileInclude(projectRoot)` call, which
+ * bypasses every other seam-flowed probe in `runResolutionDecision`.
+ */
+export function resolveTaskfileWiring(projectRoot: string, seams: DoctorSeams): boolean {
+  const readText =
+    seams.readText ??
+    ((path: string): string | null => {
+      try {
+        return readFileSync(path, "utf8");
+      } catch {
+        return null;
+      }
+    });
+  for (const name of ["Taskfile.yml", "Taskfile.yaml"]) {
+    const text = readText(join(projectRoot, name));
+    if (text !== null) {
+      return includesBlockHasDeftTaskfile(text.replace(/^\uFEFF/, ""));
+    }
+  }
+  return false;
+}
+
 export function enforceDirectiveSurface(
   command: string | null,
   hasTaskfileWiring: boolean,
@@ -797,7 +824,7 @@ export function runResolutionDecision(
   const operatingMode = resolveOperatingMode(facts);
   const reconciliation = resolveReconciliationLine(facts);
   const skew = resolvePlatformSkew(projectRoot, seams);
-  const hasTaskfileWiring = classifyTaskfileInclude(projectRoot) === "ok";
+  const hasTaskfileWiring = resolveTaskfileWiring(projectRoot, seams);
   const nextCommand = enforceDirectiveSurface(plan.nextAction.command, hasTaskfileWiring);
   const actionRequired = plan.mode !== "proceed";
   // Sanitize newlines on data-derived strings before they land in a rendered
