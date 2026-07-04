@@ -13,7 +13,12 @@
  * the spine; downstream children populate it.
  */
 
-import type { PlanPolicy, ResolutionFacts, ResolutionPlan } from "@deftai/directive-types";
+import type {
+  PlanPolicy,
+  ResolutionFacts,
+  ResolutionFile,
+  ResolutionPlan,
+} from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import type { LadderDecision, LadderRung } from "./engine-ladder.js";
 import { reconcileVersions } from "./pin.js";
@@ -37,6 +42,15 @@ export interface PlanOptions {
   readonly acceptEngineJump?: boolean;
   /** Platform id, used only to render the sandbox install command. */
   readonly platform?: string;
+  /**
+   * Files a downstream consumer has already materialised for the plan to carry
+   * in {@link ResolutionPlan.files}. The keystone spine leaves `files` empty;
+   * children (the #2268 headless emitter) collect the file set out-of-band and
+   * thread it here so the emitted manifest is single-sourced from `plan()`
+   * rather than a separate "what would init produce" reimplementation. When
+   * omitted, `files` stays empty exactly as before.
+   */
+  readonly files?: readonly ResolutionFile[];
 }
 
 const RUNG_TO_MODE: Record<LadderRung, ResolutionPlan["mode"]> = {
@@ -99,11 +113,26 @@ function contentStale(facts: ResolutionFacts): boolean {
 /**
  * The single ordered precedence table. First matching row wins; each `plan()`
  * call returns exactly one recommended action.
+ *
+ * When `options.files` is supplied, the resolved plan carries that file set in
+ * {@link ResolutionPlan.files} (the #2268 headless single-sourcing seam); the
+ * precedence decision itself is unchanged. With no `files` option the array
+ * stays empty exactly as the keystone spine emitted it.
  */
 export function plan(
   facts: ResolutionFacts,
   policy: PlanPolicy = {},
   options: PlanOptions = {},
+): ResolutionPlan {
+  const resolved = resolvePlan(facts, policy, options);
+  const files = options.files ?? [];
+  return files.length === 0 ? resolved : { ...resolved, files };
+}
+
+function resolvePlan(
+  facts: ResolutionFacts,
+  policy: PlanPolicy,
+  options: PlanOptions,
 ): ResolutionPlan {
   const warnings: string[] = [];
   const legacyWarning = legacyVbriefWarning(facts);

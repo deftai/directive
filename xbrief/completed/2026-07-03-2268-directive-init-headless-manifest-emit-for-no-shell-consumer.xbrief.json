@@ -6,7 +6,7 @@
   "plan": {
     "id": "2268-init-headless-manifest",
     "title": "directive init --headless: manifest emit for no-shell consumer products",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Provide an official headless, non-interactive `directive init --headless --output=manifest.json` mode for hosted consumer products that have no shell or npm access to the end user's machine. It serializes the merged keystone plan() schema into a `{ version, files: [{ path, content, encoding }] }` manifest -- .deft/core payload, a version-consistent rendered AGENTS.md managed section, the xBRIEF scaffold, and a pinned package.json devDependency snippet -- with ALL execution side effects suppressed (no prompts, no git ops, no hook install, no writes outside the output target) and no git-repo assumption.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2268",
@@ -123,8 +123,10 @@
           "Colocated vitest across manifest-shape/empty-dir/version-consistency/registry-failure green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2271 (user-config) in wave 5 -- file_scope is disjoint (this owns init.ts/constants.ts/init-deposit.ts/headless-manifest.ts/scaffold.ts/init-deposit index + resolution/plan.ts; #2271 owns a new user-config module + session-start.ts + dispatch.ts + doctor/main.ts + core root index.ts). CHANGELOG.md omitted from file_scope (worker adds a bullet; 3-way merge handles it). Depends on merged keystone #2264 and the merged #2265 init dispatcher (this adds the --headless branch to the now-dispatcher init). Shares init spine with #2265 which is already MERGED, so no live contention."
-      }
+      },
+      "completedAt": "2026-07-04T02:19:07Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-04T02:00:03Z"
+    "updated": "2026-07-04T02:19:07Z"
   }
 }

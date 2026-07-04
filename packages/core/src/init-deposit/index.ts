@@ -1,3 +1,4 @@
+export * from "./headless-manifest.js";
 export * from "./init-deposit.js";
 export * from "./init-dispatch.js";
 export * from "./legacy-detect.js";

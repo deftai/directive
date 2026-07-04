@@ -282,6 +282,40 @@ describe("resolution/plan is the single source of truth (#2264 a2)", () => {
   });
 });
 
+describe("resolution/plan files threading (#2268 headless single-sourcing)", () => {
+  it("leaves files empty when no files option is supplied (keystone spine behavior)", () => {
+    expect(plan(facts()).files).toEqual([]);
+    expect(plan(facts({ hasDeftCore: false, hasManagedSection: false })).files).toEqual([]);
+  });
+
+  it("carries options.files into ResolutionPlan.files without altering the decision", () => {
+    const files = [
+      { path: ".deft/core/SKILL.md", content: "body", encoding: "utf-8" as const },
+      { path: "AGENTS.md", content: "managed", encoding: "utf-8" as const },
+    ];
+    const bare = plan(facts({ hasDeftCore: false, hasManagedSection: false, hasAppCode: false }));
+    const withFiles = plan(
+      facts({ hasDeftCore: false, hasManagedSection: false, hasAppCode: false }),
+      {},
+      { files },
+    );
+    // The mode/next-action decision is identical; only files[] is populated.
+    expect(withFiles.mode).toBe(bare.mode);
+    expect(withFiles.nextAction).toEqual(bare.nextAction);
+    expect(withFiles.files).toEqual(files);
+  });
+
+  it("a plan carrying files still validates against the v1 schema", () => {
+    const schema = loadSchema();
+    const p = plan(
+      facts({ hasDeftCore: false, hasManagedSection: false }),
+      {},
+      { files: [{ path: "package.json", content: "{}", encoding: "utf-8" }] },
+    );
+    expect(validateAgainstSchema(p, schema)).toEqual([]);
+  });
+});
+
 /** Minimal structural JSON-schema check (required + additionalProperties + enum). */
 function validateAgainstSchema(value: unknown, schema: Record<string, unknown>): string[] {
   const errors: string[] = [];

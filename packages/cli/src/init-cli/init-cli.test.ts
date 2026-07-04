@@ -11,7 +11,7 @@ import {
   INIT_DRY_RUN_FLAGS,
   UPDATE_DRY_RUN_FLAGS,
 } from "./constants.js";
-import { runInit } from "./init.js";
+import { isInitHeadless, parseInitOutputPath, runInit } from "./init.js";
 import {
   bundledBinaryCandidates,
   cliPackageRoot,
@@ -216,6 +216,57 @@ describe("runInit universal adoption dispatcher (#2265)", () => {
     // The two verbs intentionally own separate constants for semantic clarity;
     // this guard fails loudly if the tuples ever silently diverge.
     expect([...INIT_DRY_RUN_FLAGS]).toEqual([...UPDATE_DRY_RUN_FLAGS]);
+  });
+});
+
+describe("runInit --headless routing (#2268)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("detects the --headless flag and parses --output in both forms", () => {
+    expect(isInitHeadless(["--headless"])).toBe(true);
+    expect(isInitHeadless(["--yes"])).toBe(false);
+    expect(parseInitOutputPath(["--headless", "--output=manifest.json"])).toBe("manifest.json");
+    expect(parseInitOutputPath(["--headless", "--output", "out.json"])).toBe("out.json");
+    expect(parseInitOutputPath(["--headless"])).toBeNull();
+  });
+
+  it("short-circuits headless past the dispatch delegates and emits a JSON error gracefully", async () => {
+    const { io, out } = captureIo();
+    const calls = { scaffold: 0, refresh: 0, migrate: 0 };
+    const dispatchSeams = {
+      classifySeams: {
+        engineProbe: () => ({ reachable: false, version: null }),
+        preCutoverProbe: () => false,
+      },
+      runScaffold: async () => {
+        calls.scaffold += 1;
+        return 0;
+      },
+      runRefresh: async () => {
+        calls.refresh += 1;
+        return 0;
+      },
+      runMigrate: () => {
+        calls.migrate += 1;
+        return 0;
+      },
+    };
+
+    const code = await runInit(["--headless"], io, dispatchSeams, {
+      // A fake root (no files on disk) so the manifest build fails during
+      // content collection -> the graceful JSON-error path, no real package needed.
+      resolveContentRoot: () => Promise.resolve(join(tmpdir(), "headless-missing-root")),
+      readVersion: () => "1.2.3",
+    });
+
+    // Routing MUST have bypassed every executing dispatch delegate.
+    expect(calls).toEqual({ scaffold: 0, refresh: 0, migrate: 0 });
+    expect(code).toBe(1);
+    const parsed = parseJsonObject(out.join(""));
+    expect(parsed.success).toBe(false);
+    expect(typeof parsed.error_code).toBe("string");
   });
 });
 
