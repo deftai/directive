@@ -143,6 +143,7 @@ describe("cold-clone reconstitution end-to-end (#2272 / epic #2203 M1 gap)", () 
     expect(result.steps[0]).toContain("1 pin: 0.65.0");
     expect(result.steps[1]).toContain("2 ladder[install-sandbox]");
     expect(result.steps[2]).toContain("3 update: exit 0");
+    expect(result.steps[3]).toContain("4 user-md[");
     expect(result.steps[4]).toContain("5 gates-runnable: true");
   });
 
