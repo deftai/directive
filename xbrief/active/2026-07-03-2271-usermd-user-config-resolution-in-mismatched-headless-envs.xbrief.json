@@ -1,0 +1,125 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2271; refined to swarm-ready 2026-07-03 (epic #2203 wave 5, concurrent with #2268)."
+  },
+  "plan": {
+    "id": "2271-user-config-resolution",
+    "title": "USER.md / user-config resolution in mismatched + headless envs",
+    "status": "running",
+    "narratives": {
+      "Description": "Resolve USER.md / user-config automatically in mismatched and headless environments so session-start no longer requires a manual DEFT_USER_PATH. A new shared resolver walks an explicit first-hit-wins search order (DEFT_USER_PATH override, then a workspace-local bridged config, then the bridged platform config dir, then a sensible default with a clear diagnostic), session-start consumes it so agentic sandboxes where $HOME is not persistent still find preferences, and the resolved path is surfaced in diagnostics and doctor rather than crashing when nothing is found.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2271",
+      "Overview": "Part of epic #2203 (Decision 7).\n\n## Summary\n\nResolve USER.md / user-config automatically in mismatched and headless environments so session-start does not require a manual `DEFT_USER_PATH`. In agentic sandboxes `$HOME` is often not under a persistent mount, so the default `~/.config/deft/USER.md` is absent (reproduced in the #2124 Cowork session).\n\n## Behavior\n\nResolve USER.md across an explicit search order, first hit wins:\n\n1. `DEFT_USER_PATH` (explicit override) — unchanged, highest precedence.\n2. Workspace-local user config (a bridged, persistent location inside the workspace).\n3. Bridged platform config dir (`%APPDATA%\\deft\\USER.md` / `~/.config/deft/USER.md`) when reachable.\n4. Sensible default + a clear \"no USER.md found; using defaults\" diagnostic (never a hard failure).\n\nDiagnostics state which path was resolved, so the boundary is visible.\n\n## Acceptance criteria\n\n- Session-start resolves USER.md with zero manual `DEFT_USER_PATH` when a bridged config exists.\n- Search order honored; `DEFT_USER_PATH` still wins.\n- Missing USER.md degrades to defaults with a clear diagnostic, not a crash.\n- Resolved path surfaced in diagnostics / `doctor`.\n- Tests cover each search-order branch + the absent-everywhere fallback.\n\n## Related\n\nParent #2203. Sibling of the out-of-scope SCM/gh auth follow-up (same \"environment resource in a sandbox\" family).\n",
+      "UserStory": "As a Directive agent starting a session in a mismatched or headless sandbox where $HOME is not persistent, I want USER.md resolved automatically across an explicit first-hit-wins search order with the resolved path surfaced in diagnostics, so that session-start finds my preferences without a manual DEFT_USER_PATH and degrades to defaults with a clear message instead of crashing when none exists.",
+      "ImplementationPlan": "1. Add a new shared resolver `packages/core/src/user-config/resolve-user-md.ts` implementing the first-hit-wins search order: (1) DEFT_USER_PATH override, (2) workspace-local bridged config, (3) bridged platform config dir (%APPDATA%/deft or ~/.config/deft), (4) sensible default + a `no USER.md found; using defaults` diagnostic (never throws). Return the resolved path + which rung matched. Export it from `packages/core/src/index.ts`.\n2. Consume the resolver in `packages/core/src/session/session-start.ts` so the session-start alignment step resolves USER.md automatically (fixes the #2124 Cowork gap) and records which path was used, with zero manual DEFT_USER_PATH when a bridged config exists.\n3. Rewire the bootstrap USER.md resolution `resolveBootstrapUserMdPath()` in `packages/cli/src/dispatch.ts` to delegate to the shared resolver (single source), preserving DEFT_USER_PATH precedence.\n4. Surface the resolved path (and the using-defaults diagnostic) in `packages/core/src/doctor/main.ts` so the resolution boundary is visible in doctor output. Keep strictly to this surface: do NOT touch init-deposit.ts (its inline userConfigDir consumer swap is a deliberate follow-up, owned away from concurrent sibling #2268), init-cli, xbrief-migrate, or resolution/plan.ts.\n5. Colocated vitest in `resolve-user-md.test.ts` covering each search-order rung + the absent-everywhere fallback, plus session-start + dispatch + doctor consumption tests. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-surface-map-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2271, #2203, #2124",
+      "Labels": "enhancement, adoption-blocker, agent-experience, runtime-portability, area:cli"
+    },
+    "items": [
+      {
+        "id": "2271-a1-session-start-auto-resolve",
+        "title": "Given a bridged user config exists and DEFT_USER_PATH is unset, when session-start runs in a mismatched/headless env, then USER.md resolves automatically with zero manual DEFT_USER_PATH.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a bridged user config exists and DEFT_USER_PATH is unset, when session-start runs in a mismatched/headless env, then USER.md resolves automatically with zero manual DEFT_USER_PATH.",
+          "Traces": "#2271, #2124"
+        }
+      },
+      {
+        "id": "2271-a2-search-order-override-wins",
+        "title": "Given multiple candidate locations, when the resolver runs, then it honors the first-hit-wins search order and DEFT_USER_PATH (when set) always wins over workspace-local and platform-dir candidates.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given multiple candidate locations, when the resolver runs, then it honors the first-hit-wins search order and DEFT_USER_PATH (when set) always wins over workspace-local and platform-dir candidates.",
+          "Traces": "#2271, #2203"
+        }
+      },
+      {
+        "id": "2271-a3-missing-degrades-not-crash",
+        "title": "Given USER.md is absent everywhere, when the resolver runs, then it degrades to sensible defaults with a clear `no USER.md found; using defaults` diagnostic and never crashes.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given USER.md is absent everywhere, when the resolver runs, then it degrades to sensible defaults with a clear `no USER.md found; using defaults` diagnostic and never crashes.",
+          "Traces": "#2271, #2124"
+        }
+      },
+      {
+        "id": "2271-a4-resolved-path-in-doctor",
+        "title": "Given a resolved (or defaulted) USER.md, when doctor / diagnostics run, then the resolved path (and which search rung matched) is surfaced so the resolution boundary is visible.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a resolved (or defaulted) USER.md, when doctor / diagnostics run, then the resolved path (and which search rung matched) is surfaced so the resolution boundary is visible.",
+          "Traces": "#2271, #2203"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "runtime-portability",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2271",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2271: USER.md / user-config resolution in mismatched + headless envs"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2124",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2124"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "model_tier": "medium",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "user-config",
+        "file_scope": [
+          "packages/core/src/user-config/resolve-user-md.ts",
+          "packages/core/src/user-config/resolve-user-md.test.ts",
+          "packages/core/src/index.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start.test.ts",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/core/src/doctor/main.test.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/user-config",
+          "pnpm exec vitest run packages/core/src/session",
+          "pnpm exec vitest run packages/cli/src/dispatch.test.ts",
+          "pnpm exec vitest run packages/core/src/doctor",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "New shared user-config resolver with a first-hit-wins search order (DEFT_USER_PATH -> workspace-local -> platform dir -> default+diagnostic), consumed by session-start so USER.md resolves with zero manual DEFT_USER_PATH.",
+          "DEFT_USER_PATH precedence preserved; absent-everywhere degrades to defaults with a clear diagnostic, never a crash.",
+          "Resolved path + matched rung surfaced in doctor diagnostics; bootstrap resolver in dispatch.ts delegates to the shared resolver.",
+          "Colocated vitest across each search rung + absent fallback green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2268 (init --headless) in wave 5 -- file_scope is disjoint. DELIBERATELY scoped to NOT touch packages/core/src/init-deposit/init-deposit.ts (its inline userConfigDir is the ONLY overlap with #2268); swapping that consumer to the shared resolver is a documented follow-up so the two stories stay concurrent. dispatch.ts + doctor/main.ts are touched only by this story in wave 5. CHANGELOG.md omitted from file_scope (worker adds a bullet; 3-way merge handles it). Depends on merged keystone #2264. Unblocks #2272 (integration-test) in wave 6."
+      }
+    },
+    "updated": "2026-07-04T02:00:05Z"
+  }
+}

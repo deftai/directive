@@ -1,0 +1,130 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2268; refined to swarm-ready 2026-07-03 (epic #2203 wave 5, concurrent with #2271)."
+  },
+  "plan": {
+    "id": "2268-init-headless-manifest",
+    "title": "directive init --headless: manifest emit for no-shell consumer products",
+    "status": "running",
+    "narratives": {
+      "Description": "Provide an official headless, non-interactive `directive init --headless --output=manifest.json` mode for hosted consumer products that have no shell or npm access to the end user's machine. It serializes the merged keystone plan() schema into a `{ version, files: [{ path, content, encoding }] }` manifest -- .deft/core payload, a version-consistent rendered AGENTS.md managed section, the xBRIEF scaffold, and a pinned package.json devDependency snippet -- with ALL execution side effects suppressed (no prompts, no git ops, no hook install, no writes outside the output target) and no git-repo assumption.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2268",
+      "Overview": "Part of epic #2203. Absorbs #2253. Unblocks deftai/deftvisage#1036.\n\n## Summary\n\nProvide an official headless, non-interactive init mode for hosted consumer products with no shell/npm access to the end user's machine. It serializes the `plan()` schema (#child A) with all execution side effects suppressed.\n\n## Contract\n\n```bash\nnpx @deftai/directive@latest init --headless --output=manifest.json\n```\n\n- No interactive prompts, no git operations, no git-hook installation, no writes outside the explicit output target.\n- Runs against an empty / non-existent directory (no git-repo assumption).\n- Emits `{ version, files: [{ path, content, encoding }] }` — `.deft/core/**`, a rendered AGENTS.md managed section, xBRIEF scaffold, and a `package.json` devDependency snippet pinned to the resolved version.\n- The emitted AGENTS.md managed section is **version-consistent** with the payload in the same manifest (same sha/version).\n- Documents the version-compat contract (answers #2253's open question): given a `package.json` pin at X + pre-vendored `.deft/core/` at X, `doctor`/`init` treat it as an existing **current** install (refresh path), not a fresh scaffold or mismatch error.\n\n## Acceptance criteria\n\n- `--headless --output` produces a valid manifest with zero side effects; exit non-zero + JSON error on registry failure (caller treats as non-fatal).\n- Manifest AGENTS.md + payload versions are internally consistent.\n- Runs against an empty dir.\n- Manifest derives from the same `plan()` schema as `doctor` (#child D) — no separate \"what would init produce\" reimplementation.\n- Tests: manifest shape, empty-dir run, version-consistency, graceful registry failure.\n\n## Related\n\nAbsorbs #2253. Depends on #child A. Downstream consumer deftai/deftvisage#1036. Parent #2203.\n",
+      "UserStory": "As a hosted consumer product with no shell or npm access to the end user's machine, I want `directive init --headless --output` to serialize the plan() schema into a files manifest with all execution side effects suppressed, so that I can provision a version-consistent Directive install from my backend without running any git or hook or filesystem writes on the user's machine.",
+      "ImplementationPlan": "1. Add `--headless` and `--output=<path>` to `CANONICAL_INIT_ARGV` in `packages/cli/src/init-cli/constants.ts` and branch in `packages/cli/src/init-cli/init.ts`: when `--headless`, route to a manifest emitter instead of the executing deposit path.\n2. Add a new `packages/core/src/init-deposit/headless-manifest.ts` that derives the manifest from the merged keystone `plan()` (single source, same schema doctor/update use) and serializes `{ version, files: [{ path, content, encoding }] }`: .deft/core payload bytes (via deposit/copy-tree + resolve-content, read-only), a rendered AGENTS.md managed section that is version-consistent with the payload, the xBRIEF scaffold, and a pinned package.json devDependency snippet. Suppress ALL side effects (no git, no hooks, no writes outside --output).\n3. Populate `ResolutionPlan.files[]` in `packages/core/src/resolution/plan.ts` so the manifest is derived, not reimplemented; refactor manifest-only collectors out of `packages/core/src/init-deposit/scaffold.ts` (reuse render helpers without filesystem/git writes) and export the emitter from `packages/core/src/init-deposit/index.ts`.\n4. Runs against an empty / non-existent directory (no git-repo assumption); on registry/content-resolution failure, exit non-zero and emit a JSON error object (caller treats as non-fatal). Keep strictly to the init + manifest surface: do NOT touch dispatch.ts, doctor, session-start, user-config, or the core root index.ts (those belong to concurrent sibling #2271).\n5. Colocated vitest in `headless-manifest.test.ts` + `init-cli.test.ts` + `plan.test.ts` covering manifest shape, empty-dir run, AGENTS.md/payload version-consistency, and graceful registry failure. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-surface-map-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2268, #2203, #2253, #2264, deftai/deftvisage#1036",
+      "Labels": "enhancement, adoption-blocker, agent-experience, area:installer, area:cli"
+    },
+    "items": [
+      {
+        "id": "2268-a1-manifest-zero-side-effects",
+        "title": "Given `directive init --headless --output=<path>`, when it runs, then it produces a valid `{version, files:[{path,content,encoding}]}` manifest with ZERO side effects (no prompts, no git ops, no hook install, no writes outside the output target).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `directive init --headless --output=<path>`, when it runs, then it produces a valid `{version, files:[{path,content,encoding}]}` manifest with ZERO side effects (no prompts, no git ops, no hook install, no writes outside the output target).",
+          "Traces": "#2268, #2253"
+        }
+      },
+      {
+        "id": "2268-a2-version-consistent",
+        "title": "Given a headless manifest, when its AGENTS.md managed section and payload are inspected, then their versions/sha are internally consistent (same resolved version).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a headless manifest, when its AGENTS.md managed section and payload are inspected, then their versions/sha are internally consistent (same resolved version).",
+          "Traces": "#2268, #2253"
+        }
+      },
+      {
+        "id": "2268-a3-empty-dir-derived-from-plan",
+        "title": "Given an empty or non-existent directory (no git repo), when `init --headless` runs, then it succeeds and the manifest is derived from the same plan() schema doctor uses (no separate what-would-init-produce reimplementation).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an empty or non-existent directory (no git repo), when `init --headless` runs, then it succeeds and the manifest is derived from the same plan() schema doctor uses (no separate what-would-init-produce reimplementation).",
+          "Traces": "#2268, #2264"
+        }
+      },
+      {
+        "id": "2268-a4-graceful-registry-failure",
+        "title": "Given a registry/content-resolution failure, when `init --headless` runs, then it exits non-zero and emits a JSON error object (so the calling backend can treat it as non-fatal), not a crash or partial write.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a registry/content-resolution failure, when `init --headless` runs, then it exits non-zero and emits a JSON error object (so the calling backend can treat it as non-fatal), not a crash or partial write.",
+          "Traces": "#2268, #2253"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "area:installer",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2268",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2268: directive init --headless: manifest emit for no-shell consumer products"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1036",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1036"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2253",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2253"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "model_tier": "high",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "init-headless",
+        "file_scope": [
+          "packages/cli/src/init-cli/init.ts",
+          "packages/cli/src/init-cli/init-cli.test.ts",
+          "packages/cli/src/init-cli/constants.ts",
+          "packages/core/src/init-deposit/headless-manifest.ts",
+          "packages/core/src/init-deposit/headless-manifest.test.ts",
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/core/src/init-deposit/index.ts",
+          "packages/core/src/resolution/plan.ts",
+          "packages/core/src/resolution/plan.test.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/init-deposit",
+          "pnpm exec vitest run packages/cli/src/init-cli",
+          "pnpm exec vitest run packages/core/src/resolution/plan.test.ts",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "directive init --headless --output emits a version-consistent {version, files:[{path,content,encoding}]} manifest derived from plan(), with zero execution side effects and no git-repo assumption.",
+          "Graceful non-zero + JSON error on registry failure; runs against an empty dir.",
+          "ResolutionPlan.files[] populated so the manifest is single-sourced from plan() (no separate reimplementation).",
+          "Colocated vitest across manifest-shape/empty-dir/version-consistency/registry-failure green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2271 (user-config) in wave 5 -- file_scope is disjoint (this owns init.ts/constants.ts/init-deposit.ts/headless-manifest.ts/scaffold.ts/init-deposit index + resolution/plan.ts; #2271 owns a new user-config module + session-start.ts + dispatch.ts + doctor/main.ts + core root index.ts). CHANGELOG.md omitted from file_scope (worker adds a bullet; 3-way merge handles it). Depends on merged keystone #2264 and the merged #2265 init dispatcher (this adds the --headless branch to the now-dispatcher init). Shares init spine with #2265 which is already MERGED, so no live contention."
+      }
+    },
+    "updated": "2026-07-04T02:00:03Z"
+  }
+}
