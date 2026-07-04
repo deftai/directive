@@ -34,6 +34,11 @@ export function isEffectivelyEmptyDir(dir: string): boolean {
       }
       return false;
     }
+    // A symlink (to a file or dir) is real content: `isFile`/`isDirectory` both
+    // report false for symlink dirents, so treat it explicitly as non-empty.
+    if (entry.isSymbolicLink()) {
+      return false;
+    }
     if (entry.isDirectory() && !isEffectivelyEmptyDir(join(dir, entry.name))) {
       return false;
     }

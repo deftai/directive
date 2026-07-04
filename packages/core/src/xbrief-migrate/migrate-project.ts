@@ -245,17 +245,22 @@ export function runXbriefMigration(
     // Ambiguous dual-empty root: a fully-migrated empty legacy tree. Converge to
     // a single canonical root by removing it (or marking it when read-compat
     // retention is requested); never leave two indistinguishable empty roots.
+    // Read-compat retention is only honored when a canonical xbrief/ actually
+    // has content — marking an empty legacy root with no canonical replacement
+    // would strand the project behind a marker that claims a migration that
+    // never happened, so that case always removes the stray empty root.
     case "empty-vbrief": {
-      const action = convergeLegacyVbriefRoot(projectRoot, { retain: keepLegacy });
-      return {
-        kind: "converged",
-        action,
-        already: false,
-        message:
-          action === "removed"
-            ? `Converged layout: removed empty legacy '${LEGACY_ARTIFACT_DIR}/' — single '${MIGRATED_ARTIFACT_DIR}/' root.`
-            : `Converged layout: wrote deprecation marker to legacy '${LEGACY_ARTIFACT_DIR}/' (retained for read-compat).`,
-      };
+      const retain = keepLegacy && convergence.xbriefHasContent;
+      const action = convergeLegacyVbriefRoot(projectRoot, { retain });
+      let message: string;
+      if (action === "removed") {
+        message = convergence.xbriefHasContent
+          ? `Converged layout: removed empty legacy '${LEGACY_ARTIFACT_DIR}/' — single '${MIGRATED_ARTIFACT_DIR}/' root.`
+          : `Converged layout: removed empty legacy '${LEGACY_ARTIFACT_DIR}/' — no canonical '${MIGRATED_ARTIFACT_DIR}/' root to migrate to yet.`;
+      } else {
+        message = `Converged layout: wrote deprecation marker to legacy '${LEGACY_ARTIFACT_DIR}/' (retained for read-compat).`;
+      }
+      return { kind: "converged", action, already: false, message };
     }
 
     // Legacy content coexisting with a populated canonical xbrief/. We never

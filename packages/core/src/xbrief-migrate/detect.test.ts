@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -167,6 +167,16 @@ describe("detectXbriefConvergence (#2270)", () => {
       "utf8",
     );
     expect(detectXbriefConvergence(root).state).toBe("legacy-only");
+  });
+
+  it("does not treat a vbrief/ holding only a symlink as empty (never wipes symlinked content)", () => {
+    writeXbriefStory(root);
+    const target = join(root, "target.txt");
+    writeFileSync(target, "real content\n", "utf8");
+    mkdirSync(join(root, LEGACY_ARTIFACT_DIR), { recursive: true });
+    symlinkSync(target, join(root, LEGACY_ARTIFACT_DIR, "link.txt"));
+    // A symlink is real content, so the tree is not the empty-vbrief cleanup case.
+    expect(detectXbriefConvergence(root).state).not.toBe("empty-vbrief");
   });
 
   it("classifies content in both roots (no marker) as dual-populated", () => {

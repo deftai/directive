@@ -426,6 +426,28 @@ describe("runXbriefMigration convergence (#2270)", () => {
     );
   });
 
+  it("never marks an empty legacy root when no canonical xbrief/ exists, even with keepLegacy (no dead end)", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-nocanon-"));
+    temps.push(base);
+    const project = join(base, "consumer");
+    // Empty legacy root, and no canonical xbrief/ content to migrate to.
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+
+    const outcome = runXbriefMigration({ projectRoot: project, keepLegacy: true }, SILENT_IO);
+    expect(outcome.kind).toBe("converged");
+    if (outcome.kind === "converged") {
+      // The stray empty root is removed, not marked — a marker without a
+      // canonical replacement would permanently strand the project.
+      expect(outcome.action).toBe("removed");
+      expect(outcome.message).toContain("no canonical");
+    }
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+    // Rerun is a clean no-op, not a stuck "already converged behind a marker".
+    expect(runXbriefMigration({ projectRoot: project, keepLegacy: true }, SILENT_IO).kind).toBe(
+      "noop",
+    );
+  });
+
   it("is idempotent: rerun after a removed converge is a clean no-op [a3]", () => {
     const base = mkdtempSync(join(tmpdir(), "xbrief-converge-idem-rm-"));
     temps.push(base);
