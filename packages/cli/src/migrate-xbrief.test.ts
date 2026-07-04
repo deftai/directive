@@ -25,6 +25,13 @@ describe("migrate-xbrief CLI", () => {
     expect(args.projectRoot).toBe("/tmp/project");
     expect(args.frameworkRoot).toBe("/tmp/deft");
     expect(args.force).toBe(true);
+    expect(args.keepLegacy).toBe(false);
+  });
+
+  it("parses --keep-legacy (#2270)", () => {
+    const args = parseArgs(["--project-root", "/tmp/project", "--keep-legacy"]);
+    expect(args.error).toBeUndefined();
+    expect(args.keepLegacy).toBe(true);
   });
 
   it("returns 2 for unknown flags", () => {

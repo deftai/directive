@@ -2,8 +2,26 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { LEGACY_ARTIFACT_DIR, LEGACY_ARTIFACT_SUFFIX } from "./constants.js";
-import { detectLegacyVbriefLayout } from "./detect.js";
+import {
+  LEGACY_ARTIFACT_DIR,
+  LEGACY_ARTIFACT_SUFFIX,
+  MIGRATED_ARTIFACT_DIR,
+  VBRIEF_DEPRECATION_MARKER_BODY,
+  VBRIEF_DEPRECATION_MARKER_FILENAME,
+} from "./constants.js";
+import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
+
+function writeXbriefStory(root: string): void {
+  mkdirSync(join(root, MIGRATED_ARTIFACT_DIR, "active"), { recursive: true });
+  writeFileSync(
+    join(root, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"),
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8", description: "fixture" },
+      plan: { title: "Migrated", status: "running", items: [] },
+    }),
+    "utf8",
+  );
+}
 
 describe("detectLegacyVbriefLayout branch coverage", () => {
   let root: string;
@@ -84,5 +102,81 @@ describe("detectLegacyVbriefLayout branch coverage", () => {
     const result = detectLegacyVbriefLayout(root);
     expect(result.legacyLayout).toBe(true);
     expect(result.reasons.some((r) => r.includes("x-vbrief/"))).toBe(true);
+  });
+});
+
+describe("detectXbriefConvergence (#2270)", () => {
+  let root: string;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "xbrief-converge-"));
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("classifies a bare project as none", () => {
+    expect(detectXbriefConvergence(root).state).toBe("none");
+  });
+
+  it("classifies a canonical xbrief-only project", () => {
+    writeXbriefStory(root);
+    const conv = detectXbriefConvergence(root);
+    expect(conv.state).toBe("xbrief-only");
+    expect(conv.vbriefPresent).toBe(false);
+    expect(conv.xbriefHasContent).toBe(true);
+  });
+
+  it("classifies an ambiguous empty vbrief/ alongside a populated xbrief/ as empty-vbrief", () => {
+    writeXbriefStory(root);
+    // Empty legacy lifecycle scaffolding — the dual-empty-root ambiguity (#2270).
+    mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "pending"), { recursive: true });
+    const conv = detectXbriefConvergence(root);
+    expect(conv.state).toBe("empty-vbrief");
+    expect(conv.vbriefEmpty).toBe(true);
+  });
+
+  it("ignores .gitkeep placeholders when judging vbrief emptiness", () => {
+    writeXbriefStory(root);
+    mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(join(root, LEGACY_ARTIFACT_DIR, "active", ".gitkeep"), "", "utf8");
+    expect(detectXbriefConvergence(root).state).toBe("empty-vbrief");
+  });
+
+  it("classifies a marked legacy root as xbrief-marker", () => {
+    writeXbriefStory(root);
+    mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(root, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME),
+      VBRIEF_DEPRECATION_MARKER_BODY,
+      "utf8",
+    );
+    const conv = detectXbriefConvergence(root);
+    expect(conv.state).toBe("xbrief-marker");
+    expect(conv.vbriefHasMarker).toBe(true);
+    expect(conv.vbriefEmpty).toBe(false);
+  });
+
+  it("classifies vbrief content with no canonical xbrief as legacy-only", () => {
+    mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(root, LEGACY_ARTIFACT_DIR, "active", `story${LEGACY_ARTIFACT_SUFFIX}`),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "t", items: [] } }),
+      "utf8",
+    );
+    expect(detectXbriefConvergence(root).state).toBe("legacy-only");
+  });
+
+  it("classifies content in both roots (no marker) as dual-populated", () => {
+    writeXbriefStory(root);
+    mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(root, LEGACY_ARTIFACT_DIR, "active", `story${LEGACY_ARTIFACT_SUFFIX}`),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "t", items: [] } }),
+      "utf8",
+    );
+    expect(detectXbriefConvergence(root).state).toBe("dual-populated");
   });
 });

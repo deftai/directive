@@ -11,8 +11,16 @@ export {
   type StaleHeaderDetection,
 } from "./agents-header.js";
 export {
+  VBRIEF_DEPRECATION_MARKER_BODY,
+  VBRIEF_DEPRECATION_MARKER_FILENAME,
+  VBRIEF_DEPRECATION_MARKER_SENTINEL,
+} from "./constants.js";
+export {
   detectLegacyVbriefLayout,
+  detectXbriefConvergence,
   type LegacyVbriefLayoutDetection,
+  type XbriefConvergenceDetection,
+  type XbriefConvergenceState,
 } from "./detect.js";
 export {
   BUILTIN_ALLOW_LIST,
@@ -25,9 +33,16 @@ export {
   scanCorpusToken,
 } from "./drift-gate.js";
 export {
+  hasVbriefDeprecationMarker,
+  isDirectory,
+  isEffectivelyEmptyDir,
+} from "./fs-helpers.js";
+export {
+  convergeLegacyVbriefRoot,
   emitXbriefMigration,
   runXbriefMigration,
   runXbriefMigrationCli,
+  type VbriefConvergeAction,
   type XbriefMigrationArgs,
   type XbriefMigrationIo,
   type XbriefMigrationOutcome,

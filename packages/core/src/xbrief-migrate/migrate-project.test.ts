@@ -1,10 +1,25 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { LEGACY_ARTIFACT_DIR, MIGRATED_ARTIFACT_DIR } from "./constants.js";
 import {
+  LEGACY_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_DIR,
+  VBRIEF_DEPRECATION_MARKER_FILENAME,
+  VBRIEF_DEPRECATION_MARKER_SENTINEL,
+} from "./constants.js";
+import { detectXbriefConvergence } from "./detect.js";
+import {
+  convergeLegacyVbriefRoot,
   emitXbriefMigration,
   runXbriefMigration,
   runXbriefMigrationCli,
@@ -320,5 +335,188 @@ describe("runXbriefMigrationCli", () => {
     );
     expect(code).toBe(2);
     expect(errs.join("")).toContain("agents:refresh failed");
+  });
+});
+
+const SILENT_IO = { writeOut: () => {}, writeErr: () => {} };
+
+function scaffoldCanonicalXbrief(base: string): string {
+  const project = join(base, "consumer");
+  mkdirSync(join(project, MIGRATED_ARTIFACT_DIR, "active"), { recursive: true });
+  writeFileSync(
+    join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"),
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8", description: "fixture" },
+      plan: { title: "Migrated", status: "running", items: [] },
+    }),
+    "utf8",
+  );
+  return project;
+}
+
+function countMarkers(dir: string): number {
+  if (!existsSync(dir)) {
+    return 0;
+  }
+  return readdirSync(dir).filter((name) => name === VBRIEF_DEPRECATION_MARKER_FILENAME).length;
+}
+
+describe("runXbriefMigration convergence (#2270)", () => {
+  it("removes a fully-migrated empty vbrief/ alongside a canonical xbrief/ (no dual empty roots) [a1]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-empty-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    // The stuck dual-empty-root state: canonical xbrief/ + a stray empty vbrief/.
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "pending"), { recursive: true });
+
+    const outcome = runXbriefMigration({ projectRoot: project }, SILENT_IO);
+    expect(outcome.kind).toBe("converged");
+    if (outcome.kind === "converged") {
+      expect(outcome.action).toBe("removed");
+      expect(outcome.already).toBe(false);
+    }
+    // Single unambiguous root remains.
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"))).toBe(
+      true,
+    );
+  });
+
+  it("retains an empty vbrief/ behind a deprecation marker when --keep-legacy is set [a4]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-keep-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+
+    const outcome = runXbriefMigration({ projectRoot: project, keepLegacy: true }, SILENT_IO);
+    expect(outcome.kind).toBe("converged");
+    if (outcome.kind === "converged") {
+      expect(outcome.action).toBe("marker");
+    }
+    const marker = readFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME),
+      "utf8",
+    );
+    expect(marker).toContain(VBRIEF_DEPRECATION_MARKER_SENTINEL);
+    // The retained folder no longer looks like an active source of truth.
+    expect(detectXbriefConvergence(project).state).toBe("xbrief-marker");
+  });
+
+  it("marks a populated legacy vbrief/ deprecated when a canonical xbrief/ already has content [a4]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-dual-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+    writeFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, "active", "old.vbrief.json"),
+      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "old", items: [] } }),
+      "utf8",
+    );
+
+    const outcome = runXbriefMigration({ projectRoot: project }, SILENT_IO);
+    expect(outcome.kind).toBe("converged");
+    if (outcome.kind === "converged") {
+      expect(outcome.action).toBe("marker");
+    }
+    // Legacy content is never destructively deleted; the marker rides alongside it.
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "active", "old.vbrief.json"))).toBe(true);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
+      true,
+    );
+  });
+
+  it("is idempotent: rerun after a removed converge is a clean no-op [a3]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-idem-rm-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+
+    expect(runXbriefMigration({ projectRoot: project }, SILENT_IO).kind).toBe("converged");
+    const second = runXbriefMigration({ projectRoot: project }, SILENT_IO);
+    expect(second.kind).toBe("noop");
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR))).toBe(false);
+  });
+
+  it("is idempotent: rerun after a marker converge does not duplicate the marker [a3]", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-idem-mark-"));
+    temps.push(base);
+    const project = scaffoldCanonicalXbrief(base);
+    mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
+
+    expect(runXbriefMigration({ projectRoot: project, keepLegacy: true }, SILENT_IO).action).toBe(
+      "marker",
+    );
+    const before = readFileSync(
+      join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME),
+      "utf8",
+    );
+
+    const second = runXbriefMigration({ projectRoot: project, keepLegacy: true }, SILENT_IO);
+    expect(second.kind).toBe("converged");
+    if (second.kind === "converged") {
+      expect(second.already).toBe(true);
+    }
+    expect(countMarkers(join(project, LEGACY_ARTIFACT_DIR))).toBe(1);
+    expect(
+      readFileSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME), "utf8"),
+    ).toBe(before);
+  });
+
+  it("retains vbrief/ behind a marker on a full migration when keepLegacy is set", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-migrate-keep-"));
+    temps.push(base);
+    const project = scaffoldLegacyProject(base);
+
+    const outcome = runXbriefMigration(
+      { projectRoot: project, force: true, keepLegacy: true },
+      SILENT_IO,
+    );
+    expect(outcome.kind).toBe("migrated");
+    // The migrated content is canonical in xbrief/, and vbrief/ survives with a marker.
+    expect(existsSync(join(project, MIGRATED_ARTIFACT_DIR, "active", "story.xbrief.json"))).toBe(
+      true,
+    );
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
+      true,
+    );
+    // Rerun converges to the idempotent already-marked no-op.
+    const rerun = runXbriefMigration({ projectRoot: project, force: true }, SILENT_IO);
+    expect(rerun.kind).toBe("converged");
+  });
+});
+
+describe("convergeLegacyVbriefRoot (#2270)", () => {
+  it("returns removed when the legacy dir is already absent", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-absent-"));
+    temps.push(base);
+    expect(convergeLegacyVbriefRoot(base, { retain: false })).toBe("removed");
+  });
+
+  it("marks an empty dir when retain is requested instead of removing it", () => {
+    const base = mkdtempSync(join(tmpdir(), "xbrief-converge-retain-"));
+    temps.push(base);
+    mkdirSync(join(base, LEGACY_ARTIFACT_DIR), { recursive: true });
+    expect(convergeLegacyVbriefRoot(base, { retain: true })).toBe("marker");
+    expect(existsSync(join(base, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
+      true,
+    );
+  });
+});
+
+describe("emitXbriefMigration converged (#2270)", () => {
+  it("returns exit code 0 and writes the converge message to stdout", () => {
+    const outs: string[] = [];
+    const code = emitXbriefMigration(
+      {
+        kind: "converged",
+        action: "removed",
+        already: false,
+        message: "Converged layout: removed",
+      },
+      { writeOut: (t) => outs.push(t), writeErr: () => {} },
+    );
+    expect(code).toBe(0);
+    expect(outs.join("")).toContain("Converged layout: removed");
   });
 });

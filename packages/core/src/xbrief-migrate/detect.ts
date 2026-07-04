@@ -8,11 +8,45 @@ import {
   MIGRATED_ARTIFACT_DIR,
   VBRIEF_REFERENCE_PREFIX,
 } from "./constants.js";
+import { hasVbriefDeprecationMarker, isEffectivelyEmptyDir } from "./fs-helpers.js";
 
 /** Structured result of a legacy vbrief layout probe (#2108 / #2034). */
 export interface LegacyVbriefLayoutDetection {
   legacyLayout: boolean;
   reasons: string[];
+}
+
+/**
+ * Discriminated convergence state of the `vbrief/` + `xbrief/` lifecycle roots
+ * (#2270). Distinguishes the ambiguous dual-empty-root case that `migrate:xbrief`
+ * must converge from the states that are already unambiguous.
+ *
+ * - `none` — neither root carries content (nothing to converge).
+ * - `xbrief-only` — canonical `xbrief/` with content and no `vbrief/`.
+ * - `xbrief-marker` — `vbrief/` retained behind an explicit deprecation marker.
+ * - `empty-vbrief` — a stray, fully-migrated empty `vbrief/` (the ambiguous root
+ *   to clean up: remove it, or mark it when read-compat retention is requested).
+ * - `legacy-only` — `vbrief/` holds content and there is no canonical `xbrief/`;
+ *   a full migration is required.
+ * - `dual-populated` — both roots hold content with no marker; converge by
+ *   marking the legacy tree deprecated (never destructively merged).
+ */
+export type XbriefConvergenceState =
+  | "none"
+  | "xbrief-only"
+  | "xbrief-marker"
+  | "empty-vbrief"
+  | "legacy-only"
+  | "dual-populated";
+
+/** Structured convergence probe of the two lifecycle roots (#2270). */
+export interface XbriefConvergenceDetection {
+  state: XbriefConvergenceState;
+  vbriefPresent: boolean;
+  vbriefEmpty: boolean;
+  vbriefHasMarker: boolean;
+  xbriefPresent: boolean;
+  xbriefHasContent: boolean;
 }
 
 function isDirectory(path: string): boolean {
@@ -97,4 +131,37 @@ export function detectLegacyVbriefLayout(projectRoot: string): LegacyVbriefLayou
 
   const reasonList = [...reasons];
   return { legacyLayout: reasonList.length > 0, reasons: reasonList };
+}
+
+/**
+ * Classify the convergence state of the `vbrief/` and `xbrief/` lifecycle roots
+ * so the orchestrator can converge to a single unambiguous root (#2270). Unlike
+ * {@link detectLegacyVbriefLayout} (which only asks "is there anything legacy?"),
+ * this probe distinguishes the ambiguous dual-empty-root case from an already
+ * unambiguous layout, and never falls back to a `run migrate:xbrief` dead end
+ * for a `vbrief/` that is merely an empty leftover.
+ */
+export function detectXbriefConvergence(projectRoot: string): XbriefConvergenceDetection {
+  const legacyDir = join(projectRoot, LEGACY_ARTIFACT_DIR);
+  const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+
+  const vbriefPresent = isDirectory(legacyDir);
+  const vbriefHasMarker = vbriefPresent && hasVbriefDeprecationMarker(legacyDir);
+  const vbriefEmpty = vbriefPresent && !vbriefHasMarker && isEffectivelyEmptyDir(legacyDir);
+  const xbriefPresent = isDirectory(migratedDir);
+  const xbriefHasContent = xbriefPresent && !isEffectivelyEmptyDir(migratedDir);
+
+  let state: XbriefConvergenceState;
+  if (vbriefHasMarker) {
+    state = "xbrief-marker";
+  } else if (!vbriefPresent) {
+    state = xbriefHasContent ? "xbrief-only" : "none";
+  } else if (vbriefEmpty) {
+    state = "empty-vbrief";
+  } else {
+    // vbrief/ holds real content and carries no marker.
+    state = xbriefHasContent ? "dual-populated" : "legacy-only";
+  }
+
+  return { state, vbriefPresent, vbriefEmpty, vbriefHasMarker, xbriefPresent, xbriefHasContent };
 }

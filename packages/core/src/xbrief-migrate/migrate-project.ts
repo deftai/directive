@@ -16,9 +16,11 @@ import {
   LEGACY_ARTIFACT_SUFFIX,
   MIGRATED_ARTIFACT_DIR,
   MIGRATED_ARTIFACT_SUFFIX,
+  VBRIEF_DEPRECATION_MARKER_BODY,
+  VBRIEF_DEPRECATION_MARKER_FILENAME,
 } from "./constants.js";
-import { detectLegacyVbriefLayout } from "./detect.js";
-import { isDirectory } from "./fs-helpers.js";
+import { detectLegacyVbriefLayout, detectXbriefConvergence } from "./detect.js";
+import { hasVbriefDeprecationMarker, isDirectory, isEffectivelyEmptyDir } from "./fs-helpers.js";
 import { renderXbriefMigrationLine, xbriefMigrationGuidance } from "./signpost.js";
 import type { JsonObject } from "./transforms.js";
 import { rewriteEmbeddedTokens, transformArtifactV06ToV08Transactional } from "./transforms.js";
@@ -27,6 +29,11 @@ export interface XbriefMigrationArgs {
   readonly projectRoot: string;
   readonly frameworkRoot?: string;
   readonly force?: boolean;
+  /**
+   * Retain a fully-migrated `vbrief/` for read-compatibility behind an explicit
+   * deprecation marker instead of removing it (#2270). Default: remove.
+   */
+  readonly keepLegacy?: boolean;
 }
 
 export interface XbriefMigrationIo {
@@ -34,10 +41,19 @@ export interface XbriefMigrationIo {
   writeErr: (text: string) => void;
 }
 
+/** How the legacy `vbrief/` root was converged to an unambiguous state (#2270). */
+export type VbriefConvergeAction = "removed" | "marker";
+
 export type XbriefMigrationOutcome =
   | { readonly kind: "noop"; readonly message: string }
   | { readonly kind: "refused"; readonly message: string }
   | { readonly kind: "migrated"; readonly backupDir: string; readonly files: number }
+  | {
+      readonly kind: "converged";
+      readonly action: VbriefConvergeAction;
+      readonly already: boolean;
+      readonly message: string;
+    }
   | { readonly kind: "config"; readonly message: string };
 
 function collectFiles(root: string, acc: string[] = []): string[] {
@@ -93,6 +109,7 @@ function backupLegacyTree(projectRoot: string, legacyDir: string): string {
 function migrateLegacyTree(
   projectRoot: string,
   legacyDir: string,
+  options: { keepLegacy: boolean },
 ): { backupDir: string; files: number } {
   const migratedDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
   if (existsSync(migratedDir)) {
@@ -116,12 +133,58 @@ function migrateLegacyTree(
       writeMigratedFile(srcPath, destPath);
     }
     renameOrReplace(stagedDir, migratedDir);
-    rmSync(legacyDir, { recursive: true, force: true });
+    // Converge to a single unambiguous root: the fully-migrated legacy tree is
+    // either removed (default) or retained for read-compat behind an explicit
+    // deprecation marker so it never looks like an active source of truth (#2270).
+    if (options.keepLegacy) {
+      writeVbriefDeprecationMarker(legacyDir);
+    } else {
+      rmSync(legacyDir, { recursive: true, force: true });
+    }
     return { backupDir, files: files.length };
   } catch (err) {
     rmSync(stagedDir, { recursive: true, force: true });
     throw err;
   }
+}
+
+/** Idempotently write the legacy-root deprecation marker (#2270). */
+function writeVbriefDeprecationMarker(legacyDir: string): void {
+  mkdirSync(legacyDir, { recursive: true });
+  if (hasVbriefDeprecationMarker(legacyDir)) {
+    return;
+  }
+  writeFileSync(
+    join(legacyDir, VBRIEF_DEPRECATION_MARKER_FILENAME),
+    VBRIEF_DEPRECATION_MARKER_BODY,
+    "utf8",
+  );
+}
+
+/**
+ * Converge a leftover legacy `vbrief/` root to an unambiguous state (#2270).
+ * An effectively-empty tree is removed by default (single canonical root); a
+ * tree with real content — or an empty tree when `retain` is requested — is
+ * kept for read-compat behind an explicit deprecation marker. Idempotent: a
+ * missing dir or an already-marked dir is a no-op.
+ */
+export function convergeLegacyVbriefRoot(
+  projectRoot: string,
+  options: { retain: boolean },
+): VbriefConvergeAction {
+  const legacyDir = join(projectRoot, LEGACY_ARTIFACT_DIR);
+  if (!isDirectory(legacyDir)) {
+    return "removed";
+  }
+  if (hasVbriefDeprecationMarker(legacyDir)) {
+    return "marker";
+  }
+  if (isEffectivelyEmptyDir(legacyDir) && !options.retain) {
+    rmSync(legacyDir, { recursive: true, force: true });
+    return "removed";
+  }
+  writeVbriefDeprecationMarker(legacyDir);
+  return "marker";
 }
 
 function renameOrReplace(src: string, dest: string): void {
@@ -158,12 +221,60 @@ function runAgentsRefresh(
   return 0;
 }
 
-/** Core orchestrator for the consumer xbrief rename (#2110). */
+/** Core orchestrator for the consumer xbrief rename (#2110) + convergence (#2270). */
 export function runXbriefMigration(
   args: XbriefMigrationArgs,
   _io: XbriefMigrationIo,
 ): XbriefMigrationOutcome {
   const projectRoot = resolve(args.projectRoot);
+  const legacyDir = join(projectRoot, LEGACY_ARTIFACT_DIR);
+  const keepLegacy = args.keepLegacy ?? false;
+  const convergence = detectXbriefConvergence(projectRoot);
+
+  switch (convergence.state) {
+    // Already converged: legacy root is retained behind an explicit marker.
+    // Rerun is a pure no-op (no re-removal, no duplicate marker) — idempotent.
+    case "xbrief-marker":
+      return {
+        kind: "converged",
+        action: "marker",
+        already: true,
+        message: `Legacy '${LEGACY_ARTIFACT_DIR}/' already carries a deprecation marker — layout already converged.`,
+      };
+
+    // Ambiguous dual-empty root: a fully-migrated empty legacy tree. Converge to
+    // a single canonical root by removing it (or marking it when read-compat
+    // retention is requested); never leave two indistinguishable empty roots.
+    case "empty-vbrief": {
+      const action = convergeLegacyVbriefRoot(projectRoot, { retain: keepLegacy });
+      return {
+        kind: "converged",
+        action,
+        already: false,
+        message:
+          action === "removed"
+            ? `Converged layout: removed empty legacy '${LEGACY_ARTIFACT_DIR}/' — single '${MIGRATED_ARTIFACT_DIR}/' root.`
+            : `Converged layout: wrote deprecation marker to legacy '${LEGACY_ARTIFACT_DIR}/' (retained for read-compat).`,
+      };
+    }
+
+    // Legacy content coexisting with a populated canonical xbrief/. We never
+    // destructively merge; converge non-destructively by marking the legacy
+    // tree deprecated so it no longer looks like an active source of truth.
+    case "dual-populated": {
+      convergeLegacyVbriefRoot(projectRoot, { retain: true });
+      return {
+        kind: "converged",
+        action: "marker",
+        already: false,
+        message: `Converged layout: '${MIGRATED_ARTIFACT_DIR}/' is canonical; wrote deprecation marker to legacy '${LEGACY_ARTIFACT_DIR}/' (retained for read-compat).`,
+      };
+    }
+
+    default:
+      break;
+  }
+
   const detection = detectLegacyVbriefLayout(projectRoot);
   if (!detection.legacyLayout) {
     return {
@@ -172,7 +283,6 @@ export function runXbriefMigration(
     };
   }
 
-  const legacyDir = join(projectRoot, LEGACY_ARTIFACT_DIR);
   if (!isDirectory(legacyDir)) {
     return {
       kind: "config",
@@ -191,7 +301,7 @@ export function runXbriefMigration(
   }
 
   try {
-    const { backupDir, files } = migrateLegacyTree(projectRoot, legacyDir);
+    const { backupDir, files } = migrateLegacyTree(projectRoot, legacyDir, { keepLegacy });
     return { kind: "migrated", backupDir, files };
   } catch (err) {
     return {
@@ -228,6 +338,9 @@ export function emitXbriefMigration(
         `Migrated ${outcome.files} file(s) from ${LEGACY_ARTIFACT_DIR}/ to ${MIGRATED_ARTIFACT_DIR}/.\n` +
           `Backup written to ${outcome.backupDir}.\n`,
       );
+      return 0;
+    case "converged":
+      io.writeOut(`${outcome.message}\n`);
       return 0;
     default: {
       const _exhaustive: never = outcome;

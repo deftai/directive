@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`migrate:xbrief` now converges to a single, unambiguous lifecycle root instead of stranding an empty `vbrief/` next to `xbrief/` (#2270).** A fully-migrated empty `vbrief/` is removed (or, with the new `--keep-legacy` flag, retained for read-compatibility behind an explicit `DEPRECATED.md` marker so it never looks like an active source of truth), and a stray empty `vbrief/` alongside a canonical `xbrief/` is cleaned up rather than dead-ending on a refusal. `doctor` now reports an unambiguous `xbrief active` state (`vbrief removed` or `vbrief legacy marker`), and re-running the migration is idempotent. Closes #2270. Refs #2203.
+
 ### Removed
 
 ## [0.68.1] - 2026-07-03

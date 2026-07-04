@@ -7,6 +7,7 @@ export interface ParsedMigrateXbriefArgs {
   projectRoot: string;
   frameworkRoot: string;
   force: boolean;
+  keepLegacy: boolean;
   error?: string;
 }
 
@@ -14,11 +15,14 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
   let projectRoot = ".";
   let explicitFrameworkRoot: string | undefined;
   let force = false;
+  let keepLegacy = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
     if (arg === "--force") {
       force = true;
+    } else if (arg === "--keep-legacy") {
+      keepLegacy = true;
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -26,6 +30,7 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
           projectRoot,
           frameworkRoot: resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot),
           force,
+          keepLegacy,
           error: "argument --project-root: expected one argument",
         };
       }
@@ -40,6 +45,7 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
           projectRoot,
           frameworkRoot: resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot),
           force,
+          keepLegacy,
           error: "argument --framework-root: expected one argument",
         };
       }
@@ -52,13 +58,14 @@ export function parseArgs(argv: readonly string[]): ParsedMigrateXbriefArgs {
         projectRoot,
         frameworkRoot: resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot),
         force,
+        keepLegacy,
         error: `unrecognized argument: ${arg}`,
       };
     }
   }
 
   const frameworkRoot = resolveFrameworkRootForProject(projectRoot, explicitFrameworkRoot);
-  return { projectRoot, frameworkRoot, force };
+  return { projectRoot, frameworkRoot, force, keepLegacy };
 }
 
 export function run(argv: readonly string[]): number {
@@ -73,6 +80,7 @@ export function run(argv: readonly string[]): number {
       projectRoot: args.projectRoot,
       frameworkRoot: args.frameworkRoot,
       force: args.force,
+      keepLegacy: args.keepLegacy,
     },
     {
       writeOut: (text) => {

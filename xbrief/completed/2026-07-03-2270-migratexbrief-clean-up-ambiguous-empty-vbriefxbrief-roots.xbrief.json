@@ -6,7 +6,7 @@
   "plan": {
     "id": "2270-migrate-xbrief-cleanup",
     "title": "migrate:xbrief: clean up ambiguous empty vbrief/xbrief roots",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Make `migrate:xbrief` converge the project layout cleanly instead of leaving ambiguous empty `vbrief/` and `xbrief/` lifecycle roots after a migration. A successful migration removes a fully-migrated empty `vbrief/` or replaces it with an explicit deprecation marker so it never looks like an active source of truth, the doctor signpost reports an unambiguous single-root state, and the cleanup is idempotent across reruns.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2270",
@@ -126,8 +126,10 @@
           "Colocated vitest across empty/non-empty/already-migrated/rerun states green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2265 (init) and #2273 (cold-start docs) in wave 4 -- file_scope is disjoint (this touches xbrief-migrate/* + the thin migrate-xbrief CLI wrapper; doctor state flows through signpost.ts which doctor already consumes, so doctor/main.ts + doctor.ts are intentionally NOT in scope to avoid contention). CHANGELOG.md omitted from file_scope (worker still adds a bullet; 3-way merge handles it). No issue-level deps (migrate:xbrief is already registered); consumes nothing from the wave-4 siblings."
-      }
+      },
+      "completedAt": "2026-07-04T00:55:09Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-04T00:35:13Z"
+    "updated": "2026-07-04T00:55:09Z"
   }
 }
