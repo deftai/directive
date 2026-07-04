@@ -6,7 +6,7 @@
   "plan": {
     "id": "2271-user-config-resolution",
     "title": "USER.md / user-config resolution in mismatched + headless envs",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Resolve USER.md / user-config automatically in mismatched and headless environments so session-start no longer requires a manual DEFT_USER_PATH. A new shared resolver walks an explicit first-hit-wins search order (DEFT_USER_PATH override, then a workspace-local bridged config, then the bridged platform config dir, then a sensible default with a clear diagnostic), session-start consumes it so agentic sandboxes where $HOME is not persistent still find preferences, and the resolved path is surfaced in diagnostics and doctor rather than crashing when nothing is found.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2271",
@@ -118,8 +118,10 @@
           "Colocated vitest across each search rung + absent fallback green under task check:framework-source."
         ],
         "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2268 (init --headless) in wave 5 -- file_scope is disjoint. DELIBERATELY scoped to NOT touch packages/core/src/init-deposit/init-deposit.ts (its inline userConfigDir is the ONLY overlap with #2268); swapping that consumer to the shared resolver is a documented follow-up so the two stories stay concurrent. dispatch.ts + doctor/main.ts are touched only by this story in wave 5. CHANGELOG.md omitted from file_scope (worker adds a bullet; 3-way merge handles it). Depends on merged keystone #2264. Unblocks #2272 (integration-test) in wave 6."
-      }
+      },
+      "completedAt": "2026-07-04T02:19:21Z",
+      "capacityBucket": "new-capability"
     },
-    "updated": "2026-07-04T02:00:05Z"
+    "updated": "2026-07-04T02:19:21Z"
   }
 }

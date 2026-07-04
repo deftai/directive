@@ -4,6 +4,7 @@ import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposi
 import { disclosureLine } from "../policy/disclosure.js";
 import { resolvePolicy } from "../policy/resolve.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
+import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, worktreePath } from "./git.js";
@@ -51,6 +52,7 @@ export interface SessionStartOptions {
     options: { writeHistory: boolean; now: Date; output: (line: string) => void },
   ) => { exitCode: number };
   readonly verifyTools?: (output: (line: string) => void) => { exitCode: number };
+  readonly resolveUserMd?: (projectRoot: string) => ResolveUserMdResult;
 }
 
 function normaliseStepName(name: string): string {
@@ -260,10 +262,26 @@ export function runSessionStart(
   );
   const lines: string[] = [];
 
+  // Resolve USER.md via the shared first-hit-wins resolver so the alignment
+  // step finds preferences automatically in mismatched / headless sandboxes
+  // with zero manual DEFT_USER_PATH (#2271 / #2124). Never throws: an absent
+  // USER.md degrades to a clear diagnostic below.
+  const resolveUserMd =
+    options.resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root }));
+  const userMd = resolveUserMd(projectRoot);
+
   if (!quickSteps.alignment) {
     const message = "Deft Directive active -- AGENTS.md loaded.";
-    quickSteps.alignment = ritualStep({ ok: true, ts: instant, message });
+    const userMdLine = userMd.found
+      ? `USER.md resolved (${userMd.rung}): ${userMd.path}`
+      : userMd.diagnostic;
+    quickSteps.alignment = ritualStep({
+      ok: true,
+      ts: instant,
+      message: `${message} ${userMdLine}`,
+    });
     lines.push(message);
+    lines.push(userMdLine);
   }
 
   if (!quickSteps.branch_policy) {
@@ -359,6 +377,12 @@ export function runSessionStart(
     state_path: statePath,
     quick_steps: quickSteps,
     gated_steps: gatedSteps,
+    user_md: {
+      path: userMd.path,
+      rung: userMd.rung,
+      found: userMd.found,
+      diagnostic: userMd.diagnostic,
+    },
     message: code === 0 ? "session ritual recorded" : "session ritual failed",
   };
   return { code, payload: resultPayload, lines };

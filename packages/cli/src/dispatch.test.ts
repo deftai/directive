@@ -1656,3 +1656,78 @@ describe("directive bootstrap (#2022 Phase 4)", () => {
     expect(out.join("")).toContain(SETUP_SKILL_REL_PATH);
   });
 });
+
+describe("bootstrap USER.md resolution delegates to shared resolver (#2271)", () => {
+  let root: string;
+  let priorUserPath: string | undefined;
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "deft-bootstrap-usermd-"));
+    mkdirSync(join(root, ".deft", "core"), { recursive: true });
+    priorUserPath = process.env.DEFT_USER_PATH;
+    delete process.env.DEFT_USER_PATH;
+  });
+
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+    if (priorUserPath === undefined) {
+      delete process.env.DEFT_USER_PATH;
+    } else {
+      process.env.DEFT_USER_PATH = priorUserPath;
+    }
+  });
+
+  function captureOut(): {
+    io: { writeOut: (t: string) => void; writeErr: (t: string) => void };
+    out: string[];
+  } {
+    const out: string[] = [];
+    return {
+      io: { writeOut: (t) => out.push(t), writeErr: () => {} },
+      out,
+    };
+  }
+
+  // Only override the non-USER.md deps so the DEFAULT userMdPresent (which
+  // delegates to the shared resolver) is exercised end-to-end.
+  const stubDeps = {
+    deftCorePresent: () => true,
+    projectDefPresent: () => false,
+    runInitDeposit: async () => 0,
+  };
+
+  it("resolves a workspace-local .deft/USER.md with zero manual DEFT_USER_PATH (#2124 gap)", async () => {
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "USER.md"), "# prefs\n", "utf8");
+    const { io, out } = captureOut();
+
+    const code = await runDirectiveBootstrap(["--project-root", root], io, stubDeps);
+
+    expect(code).toBe(0);
+    // USER.md present + project definition absent -> phase 2 (project).
+    expect(out.join("")).toContain("phase: 2 (project)");
+  });
+
+  it("honors DEFT_USER_PATH precedence when the override file exists", async () => {
+    const override = join(root, "custom-USER.md");
+    writeFileSync(override, "# prefs\n", "utf8");
+    process.env.DEFT_USER_PATH = override;
+    const { io, out } = captureOut();
+
+    const code = await runDirectiveBootstrap(["--project-root", root], io, stubDeps);
+
+    expect(code).toBe(0);
+    expect(out.join("")).toContain("phase: 2 (project)");
+  });
+
+  it("treats a non-existent DEFT_USER_PATH override as absent (phase 1)", async () => {
+    process.env.DEFT_USER_PATH = join(root, "does", "not", "exist", "USER.md");
+    const { io, out } = captureOut();
+
+    const code = await runDirectiveBootstrap(["--project-root", root], io, stubDeps);
+
+    expect(code).toBe(0);
+    // Override wins as the resolved path but the file is absent -> phase 1 (user).
+    expect(out.join("")).toContain("phase: 1 (user)");
+  });
+});

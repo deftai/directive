@@ -1,6 +1,7 @@
 import type { AdvisoryEvaluateResult } from "../agents-md-advisory/evaluate.js";
 import type { EngineProbeResult } from "../resolution/classify.js";
 import type { ResolutionMode } from "../resolution/index.js";
+import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
 
 export const EXIT_CLEAN = 0;
 export const EXIT_DRIFT = 1;
@@ -127,4 +128,10 @@ export interface DoctorSeams {
    * Defaults to `["linux", "darwin", "win32"]`.
    */
   readonly resolutionPlatforms?: readonly string[];
+  /**
+   * USER.md resolver seam (#2271). Injected so the doctor USER.md-resolution
+   * surface stays deterministic + offline in tests. Defaults to the shared
+   * first-hit-wins resolver scoped to the project root.
+   */
+  readonly resolveUserMd?: (projectRoot: string) => ResolveUserMdResult;
 }

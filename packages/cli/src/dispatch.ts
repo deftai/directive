@@ -18,12 +18,8 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { engineInfo } from "@deftai/directive-core";
-import {
-  parseInitArgv,
-  runInitDepositCli,
-  userConfigDir,
-} from "@deftai/directive-core/init-deposit";
+import { engineInfo, userConfig } from "@deftai/directive-core";
+import { parseInitArgv, runInitDepositCli } from "@deftai/directive-core/init-deposit";
 import {
   appendAuditLog,
   disclosureLine,
@@ -1774,16 +1770,21 @@ function bootstrapPhaseLabel(phase: 1 | 2 | 3): BootstrapPhaseLabel {
   return "spec";
 }
 
-function resolveBootstrapUserMdPath(): string {
-  const override = process.env.DEFT_USER_PATH?.trim();
-  if (override) return resolve(override);
-  return join(userConfigDir(), "USER.md");
+/**
+ * Bootstrap USER.md path resolver (#2271). Delegates to the shared first-hit-
+ * wins resolver so the CLI bootstrap, session-start, and doctor share one
+ * source of truth. DEFT_USER_PATH precedence is preserved by the shared
+ * resolver (rung 1). `projectRoot` scopes the workspace-local rung so a bridged
+ * `<projectRoot>/.deft/USER.md` resolves without a manual DEFT_USER_PATH.
+ */
+function resolveBootstrapUserMdPath(projectRoot?: string): string {
+  return userConfig.resolveUserMdPath(projectRoot !== undefined ? { projectRoot } : {}).path;
 }
 
 function defaultBootstrapDeps(): Required<DirectiveBootstrapDeps> {
   return {
     deftCorePresent: (projectRoot) => isDirSafe(join(resolve(projectRoot), ".deft", "core")),
-    userMdPresent: () => isFileSafe(resolveBootstrapUserMdPath()),
+    userMdPresent: (projectRoot) => isFileSafe(resolveBootstrapUserMdPath(projectRoot)),
     projectDefPresent: (projectRoot) => isFileSafe(projectDefinitionPath(projectRoot)),
     runInitDeposit: async (projectRoot, io) => {
       const initArgs = parseInitArgv(["--yes", "--repo-root", projectRoot, "--json"], []);

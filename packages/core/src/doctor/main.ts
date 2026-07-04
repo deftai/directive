@@ -10,6 +10,7 @@ import {
   reconcileVersions,
   plan as resolvePlan,
 } from "../resolution/index.js";
+import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import { agentsRefreshPlan, hasV3ManagedMarker } from "./agents-md.js";
 import { runChecks } from "./checks.js";
 import {
@@ -265,6 +266,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (!jsonMode) {
     sink.blank();
   }
+  sink.info("Checking USER.md resolution...");
+  const userMd = runUserMdResolutionCheck(projectRoot, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
   sink.info("Checking optional root Taskfile.yml include...");
   runTaskfileIncludeCheck(projectRoot, fixMode, jsonMode, sink, addFinding, seams);
 
@@ -296,6 +303,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       findings,
       summary: { errors: errorCount, warnings: warningCount },
       project_root: projectRoot,
+      user_md: {
+        path: userMd.path,
+        rung: userMd.rung,
+        found: userMd.found,
+        diagnostic: userMd.diagnostic,
+      },
       ...(resolution
         ? {
             resolution: {
@@ -631,6 +644,43 @@ function runTaskfileIncludeCheck(
     check: "taskfile-include",
     file: taskfilePath,
   });
+}
+
+/**
+ * Surface the resolved USER.md path + which search rung matched (#2271) so the
+ * resolution boundary is visible in doctor output. Uses the shared first-hit-
+ * wins resolver, which never throws: an absent USER.md degrades to a `no
+ * USER.md found; using defaults` diagnostic. This check never fails the doctor
+ * — it emits a `skip`-severity finding (informational) in both states.
+ */
+function runUserMdResolutionCheck(
+  projectRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+  seams: DoctorSeams,
+): ResolveUserMdResult {
+  const resolveFn =
+    seams.resolveUserMd ?? ((root: string) => resolveUserMdPath({ projectRoot: root }));
+  const result = resolveFn(projectRoot);
+  // Sanitize newlines on the data-derived path/diagnostic before it lands in a
+  // rendered bullet (CWE-116).
+  const safePath = result.path.replace(/\r?\n/g, " ");
+  const safeDiagnostic = result.diagnostic.replace(/\r?\n/g, " ");
+  if (result.found) {
+    sink.success(`USER.md resolved (${result.rung}): ${safePath}`);
+  } else {
+    sink.info(`USER.md: ${safeDiagnostic}`);
+  }
+  addFinding({
+    severity: "skip",
+    message: result.found ? `USER.md resolved (${result.rung}): ${safePath}` : safeDiagnostic,
+    check: "user-md-resolution",
+    status: result.found ? "resolved" : "defaulted",
+    path: safePath,
+    rung: result.rung,
+    found: result.found,
+  });
+  return result;
 }
 
 /**

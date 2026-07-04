@@ -447,3 +447,77 @@ describe("cmdDoctor read-only + resolution wiring (#2267)", () => {
     expect(payload.resolution?.operating_mode).toContain("vendored");
   });
 });
+
+describe("cmdDoctor USER.md resolution surface (#2271)", () => {
+  function runJson(seams: DoctorSeams): {
+    ok: boolean;
+    exit: number;
+    payload: {
+      user_md?: { path: string; rung: string; found: boolean; diagnostic: string };
+      findings?: Array<Record<string, unknown>>;
+    };
+  } {
+    const stdout: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+      stdout.push(typeof chunk === "string" ? chunk : chunk.toString());
+      return true;
+    }) as typeof process.stdout.write;
+    let exit: number;
+    try {
+      exit = cmdDoctor(["--full", "--json"], { whichFn: () => "/usr/bin/x", ...seams });
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    return { ok: exit === 0, exit, payload: JSON.parse(stdout.join("")) };
+  }
+
+  it("surfaces the resolved USER.md path + matched rung in the --json payload", () => {
+    const { payload } = runJson({
+      resolveUserMd: () => ({
+        path: "/work/.deft/USER.md",
+        rung: "workspace-local",
+        found: true,
+        diagnostic: "USER.md resolved from workspace-local config: /work/.deft/USER.md",
+        searched: [],
+      }),
+    });
+    expect(payload.user_md).toEqual({
+      path: "/work/.deft/USER.md",
+      rung: "workspace-local",
+      found: true,
+      diagnostic: "USER.md resolved from workspace-local config: /work/.deft/USER.md",
+    });
+    const finding = payload.findings?.find((f) => f.check === "user-md-resolution");
+    expect(finding).toBeDefined();
+    expect(finding?.status).toBe("resolved");
+    expect(finding?.rung).toBe("workspace-local");
+    expect(finding?.severity).toBe("skip");
+  });
+
+  it("surfaces the using-defaults diagnostic without failing the doctor", () => {
+    const { exit, payload } = runJson({
+      resolveUserMd: () => ({
+        path: "/home/x/.config/deft/USER.md",
+        rung: "default",
+        found: false,
+        diagnostic: "no USER.md found; using defaults (searched: a, b)",
+        searched: ["a", "b"],
+      }),
+    });
+    // A defaulted USER.md is informational only; it must never fail doctor.
+    expect(exit).toBe(0);
+    expect(payload.user_md?.found).toBe(false);
+    expect(payload.user_md?.rung).toBe("default");
+    const finding = payload.findings?.find((f) => f.check === "user-md-resolution");
+    expect(finding?.status).toBe("defaulted");
+    expect(finding?.severity).toBe("skip");
+    expect(String(finding?.message)).toContain("no USER.md found; using defaults");
+  });
+
+  it("uses the shared resolver by default (no seam) without throwing", () => {
+    const { payload } = runJson({});
+    expect(payload.user_md).toBeDefined();
+    expect(typeof payload.user_md?.path).toBe("string");
+  });
+});
