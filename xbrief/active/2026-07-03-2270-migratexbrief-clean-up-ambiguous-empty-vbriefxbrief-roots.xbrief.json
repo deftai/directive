@@ -1,0 +1,133 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2270; refined to swarm-ready 2026-07-03 (epic #2203 wave 4, concurrent with #2265 + #2273)."
+  },
+  "plan": {
+    "id": "2270-migrate-xbrief-cleanup",
+    "title": "migrate:xbrief: clean up ambiguous empty vbrief/xbrief roots",
+    "status": "running",
+    "narratives": {
+      "Description": "Make `migrate:xbrief` converge the project layout cleanly instead of leaving ambiguous empty `vbrief/` and `xbrief/` lifecycle roots after a migration. A successful migration removes a fully-migrated empty `vbrief/` or replaces it with an explicit deprecation marker so it never looks like an active source of truth, the doctor signpost reports an unambiguous single-root state, and the cleanup is idempotent across reruns.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2270",
+      "Overview": "Part of epic #2203. Absorbs #2202.\n\n## Summary\n\nMake `migrate:xbrief` converge project layout cleanly instead of leaving ambiguous empty `vbrief/` and `xbrief/` roots.\n\n## Behavior\n\n- Successful `migrate:xbrief` leaves an unambiguous layout: if `vbrief/` is fully migrated and empty, remove it or replace it with an explicit deprecation marker per the compatibility contract.\n- If `vbrief/` remains for read-compatibility, it must not look like an active source-of-truth folder.\n- `doctor` (#child D) reports `xbrief active` and either `vbrief legacy marker` or `vbrief removed` — never an ambiguous dual layout.\n- Idempotent cleanup.\n\n## Acceptance criteria\n\n- Successful `migrate:xbrief` does not leave two indistinguishable empty lifecycle roots.\n- Doctor reports an unambiguous state.\n- Cleanup is idempotent.\n- Tests cover empty legacy folder, non-empty legacy folder, already-migrated layout, and rerun behavior.\n\n## Related\n\nAbsorbs #2202. Related #2034, #2110. Parent #2203.\n",
+      "UserStory": "As a Directive consumer migrating from the legacy vbrief layout, I want `migrate:xbrief` to converge to a single unambiguous lifecycle root by removing or explicitly deprecation-marking a fully-migrated empty vbrief tree, so that I am never left with two indistinguishable empty roots and the doctor signpost reports one clear xbrief-active state.",
+      "ImplementationPlan": "1. In `packages/core/src/xbrief-migrate/detect.ts`, extend detection to recognize the ambiguous dual-empty-root state (a `vbrief/` that is fully migrated and empty alongside the canonical `xbrief/`), returning a discriminated result the orchestrator can act on.\n2. In `packages/core/src/xbrief-migrate/migrate-project.ts`, after a successful migration replace the unconditional `rmSync(legacyDir)` with a converge step: remove a fully-empty migrated `vbrief/`, or write an explicit deprecation marker (per the compatibility contract in `constants.ts`) when it must remain for read-compat so it never looks like an active source of truth; make the whole cleanup idempotent (rerun is a no-op). Use `fs-helpers.ts` for empty-dir checks and add the marker constant to `constants.ts`.\n3. Update `packages/core/src/xbrief-migrate/signpost.ts::renderXbriefMigrationLine` so the doctor-facing one-liner reports an unambiguous state -- `xbrief active` plus either `vbrief legacy marker` or `vbrief removed`, never a dual-empty-root ambiguity. Export any new helper from `packages/core/src/xbrief-migrate/index.ts`.\n4. Keep the CLI wrapper `packages/cli/src/migrate-xbrief.ts` thin (arg passthrough); do NOT edit doctor/main.ts or doctor.ts (the doctor already consumes signpost.ts) or any init/dispatch files.\n5. Colocated vitest in `detect.test.ts`, `migrate-project.test.ts`, `signpost.test.ts`, and `migrate-xbrief.test.ts` covering empty-legacy, non-empty-legacy, already-migrated, and rerun/idempotency behavior. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-surface-map-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2270, #2203, #2202, #2034, #2110",
+      "Labels": "enhancement, adoption-blocker, tooling, area:installer, area:vbrief"
+    },
+    "items": [
+      {
+        "id": "2270-a1-no-dual-empty-roots",
+        "title": "Given a successful `migrate:xbrief` where `vbrief/` is fully migrated and empty, when the command completes, then the layout has no two indistinguishable empty lifecycle roots -- the empty `vbrief/` is removed or carries an explicit deprecation marker.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a successful `migrate:xbrief` where `vbrief/` is fully migrated and empty, when the command completes, then the layout has no two indistinguishable empty lifecycle roots -- the empty `vbrief/` is removed or carries an explicit deprecation marker.",
+          "Traces": "#2270, #2202"
+        }
+      },
+      {
+        "id": "2270-a2-doctor-unambiguous",
+        "title": "Given a migrated project, when the migrate signpost is rendered (as consumed by doctor), then it reports `xbrief active` plus either `vbrief legacy marker` or `vbrief removed`, never an ambiguous dual layout.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a migrated project, when the migrate signpost is rendered (as consumed by doctor), then it reports `xbrief active` plus either `vbrief legacy marker` or `vbrief removed`, never an ambiguous dual layout.",
+          "Traces": "#2270, #2203"
+        }
+      },
+      {
+        "id": "2270-a3-idempotent",
+        "title": "Given migrate:xbrief has already converged the layout, when it is rerun, then the cleanup is idempotent -- no error, no re-removal, no duplicate marker, no state change.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given migrate:xbrief has already converged the layout, when it is rerun, then the cleanup is idempotent -- no error, no re-removal, no duplicate marker, no state change.",
+          "Traces": "#2270, #2202"
+        }
+      },
+      {
+        "id": "2270-a4-read-compat-not-active",
+        "title": "Given a `vbrief/` retained for read-compatibility, when migrate:xbrief converges, then the retained folder does not look like an active source-of-truth root (explicit deprecation marker present).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a `vbrief/` retained for read-compatibility, when migrate:xbrief converges, then the retained folder does not look like an active source-of-truth root (explicit deprecation marker present).",
+          "Traces": "#2270, #2110"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "tooling",
+      "area:installer",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2270",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2270: migrate:xbrief: clean up ambiguous empty vbrief/xbrief roots"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2034",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2034"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2110",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2110"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2202",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2202"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "S",
+        "model_tier": "medium",
+        "depends_on": [],
+        "conflict_group": "migrate-xbrief",
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/detect.ts",
+          "packages/core/src/xbrief-migrate/detect.test.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.ts",
+          "packages/core/src/xbrief-migrate/migrate-project.test.ts",
+          "packages/core/src/xbrief-migrate/signpost.ts",
+          "packages/core/src/xbrief-migrate/signpost.test.ts",
+          "packages/core/src/xbrief-migrate/constants.ts",
+          "packages/core/src/xbrief-migrate/fs-helpers.ts",
+          "packages/core/src/xbrief-migrate/index.ts",
+          "packages/cli/src/migrate-xbrief.ts",
+          "packages/cli/src/migrate-xbrief.test.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/xbrief-migrate",
+          "pnpm exec vitest run packages/cli/src/migrate-xbrief.test.ts",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "migrate:xbrief converges to a single unambiguous lifecycle root: a fully-migrated empty vbrief/ is removed or gets an explicit deprecation marker; never two indistinguishable empty roots.",
+          "The migrate signpost (consumed by doctor) reports xbrief active + vbrief removed|legacy-marker, never an ambiguous dual layout.",
+          "Cleanup is idempotent across reruns; a retained read-compat vbrief/ never looks active.",
+          "Colocated vitest across empty/non-empty/already-migrated/rerun states green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2265 (init) and #2273 (cold-start docs) in wave 4 -- file_scope is disjoint (this touches xbrief-migrate/* + the thin migrate-xbrief CLI wrapper; doctor state flows through signpost.ts which doctor already consumes, so doctor/main.ts + doctor.ts are intentionally NOT in scope to avoid contention). CHANGELOG.md omitted from file_scope (worker still adds a bullet; 3-way merge handles it). No issue-level deps (migrate:xbrief is already registered); consumes nothing from the wave-4 siblings."
+      }
+    },
+    "updated": "2026-07-04T00:35:13Z"
+  }
+}

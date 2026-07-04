@@ -1,0 +1,137 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2265; refined to swarm-ready 2026-07-03 (epic #2203 wave 4, concurrent with #2270 + #2273)."
+  },
+  "plan": {
+    "id": "2265-directive-init",
+    "title": "directive init: universal adoption dispatcher",
+    "status": "running",
+    "narratives": {
+      "Description": "Make `directive init` the universal adoption entrypoint: a dispatcher that classifies the current directory via the merged keystone plan()/classify() fact-set and transparently does the right thing. Empty dirs get scaffolded, brownfield dirs get Directive support without disturbing app code, an already-current install is delegated to `update` with a disclosure line, and a legacy/pre-cutover layout is routed to `migrate` -- always printing a state summary plus exactly one next action, and single-sourcing the logic by calling the narrow verbs rather than re-implementing them.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2265",
+      "Overview": "Part of epic #2203. Absorbs #2198.\n\n## Summary\n\nMake `directive init` the **universal adoption entrypoint** — a dispatcher that classifies the directory (via the #child A fact-set) and does the right thing, so users never have to choose between `update`, `doctor`, `migrate`, or `migrate:xbrief` before their first command.\n\n## Behavior (Decision 6 — dispatcher, not hidden-update)\n\n`init` reads the fact-set/`plan()` result and **dispatches transparently**, always printing a state summary + exactly one action:\n\n- Empty dir -> scaffold Directive (`.deft/core` projection, AGENTS.md managed section, xBRIEF layout, `package.json` pin).\n- Brownfield (app code, no Directive) -> install Directive support without disturbing app code; point toward brownfield spec extraction + xBRIEF setup.\n- Already initialized + current -> **delegate to `update`** with a disclosure line (\"Existing current install detected — refreshing via `update`.\"). Never silently masquerade as update (that is the #2199 anti-pattern), never bounce the user to a second command.\n- Legacy / pre-cutover -> **route to `migrate`** (the specific migration path), one clear next action.\n\nLogic is single-sourced: init calls `update`/`migrate`; it does not re-implement them. CI/scripts that want predictability call the narrow verbs directly.\n\n## Acceptance criteria\n\n- `init` handles empty, brownfield, already-initialized, stale, and legacy-layout dirs from any cwd.\n- Prints a concise state summary + exactly one recommended next action.\n- On an initialized-current project, delegates to `update` with disclosure — does not re-scaffold and does not silently refresh under the `init` name.\n- Prefers `directive ...` over `task ...` for normal users.\n- `--dry-run` / `--plan` prints the plan without executing.\n- Idempotent.\n- Tests cover the major project-state cases including brownfield+pre-cutover.\n\n## Related\n\nAbsorbs #2198. Depends on #child A. Parent #2203.\n",
+      "UserStory": "As a first-time Directive adopter in any directory state, I want `directive init` to classify my project via the shared plan() fact-set and transparently dispatch to scaffold or update or migrate while printing one clear next action, so that I never have to choose between init or update or doctor or migrate before my first command and init never silently masquerades as update.",
+      "ImplementationPlan": "1. Add a new dispatcher module `packages/core/src/init-deposit/init-dispatch.ts` that consumes the merged keystone `classify()`/`plan()` from `packages/core/src/resolution/` (read-only) and maps the resolved mode to one of: scaffold (empty), brownfield-install, delegate-to-update (already-current), route-to-migrate (legacy/pre-cutover). Export it from `packages/core/src/init-deposit/index.ts`.\n2. Single-source delegation: the dispatcher calls the existing `runRefreshDepositCli` (update, in refresh.ts) and `runMigrateCli` (migrate.ts) by import -- it MUST NOT re-implement or edit their logic. Always print a state summary + exactly one next action, and emit the disclosure line before delegating to update.\n3. Rewire `packages/cli/src/init-cli/init.ts` so `directive init` calls the dispatcher instead of unconditionally running the greenfield deposit; keep the greenfield scaffold path for the empty/brownfield branches. Add `--dry-run`/`--plan` to `CANONICAL_INIT_ARGV` in `packages/cli/src/init-cli/constants.ts` (mirror UPDATE_DRY_RUN_FLAGS) and thread it through so the classified plan prints without executing.\n4. Keep init idempotent and confined to the init surface: do NOT touch dispatch.ts (init routes via cli-router, already registered), doctor, xbrief-migrate, or README. Consume resolution/* read-only.\n5. Colocated vitest in `init-dispatch.test.ts` + `init-cli.test.ts` + `init-deposit.test.ts` covering empty/brownfield/already-current/stale/legacy-pre-cutover from an arbitrary cwd, plus dry-run and idempotency. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-surface-map-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2265, #2203, #2198, #2199, #2264, #2266, #2269",
+      "Labels": "enhancement, adoption-blocker, agent-experience, process, area:installer, area:cli"
+    },
+    "items": [
+      {
+        "id": "2265-a1-classify-and-dispatch",
+        "title": "Given any directory state (empty, brownfield, already-initialized, stale, legacy/pre-cutover) from an arbitrary cwd, when `directive init` runs, then it classifies via the shared plan() fact-set and dispatches to the correct path, printing a concise state summary plus exactly one recommended next action.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given any directory state (empty, brownfield, already-initialized, stale, legacy/pre-cutover) from an arbitrary cwd, when `directive init` runs, then it classifies via the shared plan() fact-set and dispatches to the correct path, printing a concise state summary plus exactly one recommended next action.",
+          "Traces": "#2265, #2264"
+        }
+      },
+      {
+        "id": "2265-a2-delegate-update-with-disclosure",
+        "title": "Given an already-initialized + current project, when `directive init` runs, then it delegates to `update` with an explicit disclosure line, does NOT re-scaffold, and does NOT silently refresh under the init name (no #2199 masquerade).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an already-initialized + current project, when `directive init` runs, then it delegates to `update` with an explicit disclosure line, does NOT re-scaffold, and does NOT silently refresh under the init name (no #2199 masquerade).",
+          "Traces": "#2265, #2199"
+        }
+      },
+      {
+        "id": "2265-a3-route-to-migrate",
+        "title": "Given a legacy or pre-cutover layout, when `directive init` runs, then it routes to the specific `migrate` path with one clear next action and prefers `directive ...` over bare `task ...` for normal users.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a legacy or pre-cutover layout, when `directive init` runs, then it routes to the specific `migrate` path with one clear next action and prefers `directive ...` over bare `task ...` for normal users.",
+          "Traces": "#2265, #2203"
+        }
+      },
+      {
+        "id": "2265-a4-single-sourced-no-reimpl",
+        "title": "Given the dispatcher delegates to update/migrate, when it executes any branch, then it calls the existing verb implementations (runRefreshDepositCli / runMigrateCli) rather than re-implementing them, verified by tests that assert delegation.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the dispatcher delegates to update/migrate, when it executes any branch, then it calls the existing verb implementations (runRefreshDepositCli / runMigrateCli) rather than re-implementing them, verified by tests that assert delegation.",
+          "Traces": "#2265, #2266"
+        }
+      },
+      {
+        "id": "2265-a5-dry-run-idempotent",
+        "title": "Given `--dry-run` (or `--plan`), when `directive init` runs, then it prints the classified plan without executing, and re-running init on the same directory is idempotent (no duplicate scaffold, no state change).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `--dry-run` (or `--plan`), when `directive init` runs, then it prints the classified plan without executing, and re-running init on the same directory is idempotent (no duplicate scaffold, no state change).",
+          "Traces": "#2265, #2203"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "area:installer",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2265",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2265: directive init: universal adoption dispatcher"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2198",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2198"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2199",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2199"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "L",
+        "model_tier": "high",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "cli-verb-init",
+        "file_scope": [
+          "packages/cli/src/init-cli/init.ts",
+          "packages/cli/src/init-cli/init-cli.test.ts",
+          "packages/cli/src/init-cli/constants.ts",
+          "packages/core/src/init-deposit/init-dispatch.ts",
+          "packages/core/src/init-deposit/init-dispatch.test.ts",
+          "packages/core/src/init-deposit/init-deposit.ts",
+          "packages/core/src/init-deposit/init-deposit.test.ts",
+          "packages/core/src/init-deposit/index.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/init-deposit",
+          "pnpm exec vitest run packages/cli/src/init-cli",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "directive init made a universal adoption dispatcher: classifies via the shared keystone plan() and dispatches to scaffold / brownfield-install / delegate-to-update (with disclosure) / route-to-migrate, always printing a state summary + one next action.",
+          "Logic single-sourced -- init calls runRefreshDepositCli/runMigrateCli, never re-implements; delegation asserted by tests.",
+          "--dry-run/--plan supported and idempotent; no #2199 silent-update masquerade.",
+          "Colocated vitest across empty/brownfield/already-current/stale/legacy states green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2270 (migrate:xbrief) and #2273 (cold-start docs) in wave 4 -- file_scope is disjoint (init touches init-cli + init-deposit; #2270 touches xbrief-migrate + doctor signpost.ts; #2273 touches README/agents-entry template + dispatch.ts printHelp). CHANGELOG.md intentionally omitted from file_scope to keep the concurrent overlap matrix clean (worker still adds a bullet; 3-way merge handles it). Does NOT touch dispatch.ts (init routes via cli-router). Depends on merged keystone #2264 + merged update #2266 + merged migrate --untrack-core #2269. #2268 (init --headless) shares this init spine and is SEQUENCED after this story (wave 5), NOT concurrent."
+      }
+    },
+    "updated": "2026-07-04T00:35:12Z"
+  }
+}

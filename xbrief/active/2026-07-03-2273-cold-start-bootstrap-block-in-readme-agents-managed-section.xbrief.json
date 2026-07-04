@@ -1,0 +1,118 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2273; refined to swarm-ready 2026-07-03 (epic #2203 wave 4, concurrent with #2265 + #2270)."
+  },
+  "plan": {
+    "id": "2273-cold-start-bootstrap",
+    "title": "Cold-start bootstrap block in README + AGENTS managed section",
+    "status": "running",
+    "narratives": {
+      "Description": "Add an always-present cold-start bootstrap block to the top of README.md and mirror it in the AGENTS.md managed section, fixing the bug where the current cold-start recovery pointer lives inside `.deft/core/` -- the exact payload that is absent when recovery is needed. The block describes the global-first npm ladder as prose steps keyed off the package.json pin (no committed shell shim), no-arg `directive` prints the three-command init/update/doctor model before the exhaustive verb list, and the stale `read .deft/core/UPGRADING.md` pointer is replaced with a payload-independent one.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2273",
+      "Overview": "Part of epic #2203 (Decision 1). Ships early against the contract.\n\n## Summary\n\nAdd the always-present cold-start bootstrap block to README.md (the agent's/human's first read) and mirror it in the AGENTS.md managed section. Fixes the bug where the current cold-start recovery pointer lives inside `.deft/core/` — the exact payload that is absent when recovery is needed.\n\n## Behavior\n\n- **README.md top-of-file** carries the cold-start bootstrap: the global-first ladder as a few prose steps invoking standard npm (`deft` -> `.deft/.cli` -> `npm i -g` / `npm install --prefix .deft/.cli/<platform>` -> staged tarball), keyed off the `package.json` pin. No committed shell shim — the agent/human is the interpreter.\n- **AGENTS.md managed section** carries a minimal mirror so the block is found whether the agent opens README or AGENTS first; both are always-committed and never gitignored.\n- `directive` with no args prints the three-command model (`init` / `update` / `doctor`) + first-run guidance before exhaustive verbs.\n- Remove/replace the stale `read .deft/core/UPGRADING.md` cold-start pointer that assumes the payload is present.\n\n## Acceptance criteria\n\n- README top section + AGENTS managed-section carry the bootstrap block; both present on a fresh clone.\n- No-arg `directive` prints the three-command model.\n- Cold-start pointer no longer depends on `.deft/core/` being present.\n- Managed-section mirror is emitted by the managed-section renderer (stays in sync via `agents:refresh`).\n- Snapshot test for no-arg help + the managed-section block.\n\n## Related\n\nParent #2203. Invokes the #child A ladder. Full docs are #child J2.\n",
+      "UserStory": "As an agent or human recovering a project whose `.deft/core/` payload is missing, I want the cold-start bootstrap ladder to live at the top of README.md and be mirrored in the AGENTS.md managed section with no dependency on the vendored payload, so that I can always find the npm-based recovery steps on a fresh clone and a no-arg `directive` shows me the three-command init/update/doctor model first.",
+      "ImplementationPlan": "1. Add the cold-start bootstrap block to the top of `README.md`: the global-first ladder as prose steps (`deft` -> `.deft/.cli` -> `npm i -g` / `npm install --prefix .deft/.cli/<platform>` -> staged tarball) keyed off the package.json pin, no committed shell shim.\n2. Mirror a minimal version into the AGENTS.md managed section by editing `content/templates/agents-entry.md` (the managed-section source), then run `task agents:refresh` to regenerate the repo-root `AGENTS.md` managed section so both stay in sync.\n3. Replace the stale `read .deft/core/UPGRADING.md` cold-start pointer (payload-dependent) with a payload-independent pointer in `main.md` and the template; update the content-contract tests that currently assert the old pointer (`main_md_preamble.test.ts`, `agents_entry_contract.test.ts`).\n4. Change no-arg `directive` output: in `packages/cli/src/dispatch.ts::printHelp`, print the three-command model (`init` / `update` / `doctor`) + first-run guidance BEFORE the exhaustive verb list.\n5. Keep strictly to docs + dispatch help surface: do NOT touch init-cli/init-deposit (that is #2265), xbrief-migrate (that is #2270), or doctor. Add/adjust snapshot tests in `dispatch.test.ts` for no-arg help and in the content-contracts suite for the managed-section block. Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, `task agents:refresh`, and `task check:framework-source`.",
+      "Source": "verified:codebase-surface-map-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2273, #2203, #2264",
+      "Labels": "enhancement, docs, adoption-blocker, agent-experience, area:cli, area:guidance"
+    },
+    "items": [
+      {
+        "id": "2273-a1-readme-and-agents-block",
+        "title": "Given a fresh clone, when README.md and the AGENTS.md managed section are read, then both carry the cold-start bootstrap block (README top-of-file + managed-section mirror), present without the `.deft/core/` payload.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fresh clone, when README.md and the AGENTS.md managed section are read, then both carry the cold-start bootstrap block (README top-of-file + managed-section mirror), present without the `.deft/core/` payload.",
+          "Traces": "#2273, #2203"
+        }
+      },
+      {
+        "id": "2273-a2-no-arg-three-command",
+        "title": "Given `directive` is run with no args, when it prints help, then it shows the three-command model (init / update / doctor) + first-run guidance BEFORE the exhaustive verb list, covered by a snapshot test.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `directive` is run with no args, when it prints help, then it shows the three-command model (init / update / doctor) + first-run guidance BEFORE the exhaustive verb list, covered by a snapshot test.",
+          "Traces": "#2273, #2203"
+        }
+      },
+      {
+        "id": "2273-a3-pointer-payload-independent",
+        "title": "Given the cold-start recovery pointer, when it is followed, then it no longer depends on `.deft/core/` being present (the stale `read .deft/core/UPGRADING.md` pointer is replaced), and the content-contract tests assert the new payload-independent pointer.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the cold-start recovery pointer, when it is followed, then it no longer depends on `.deft/core/` being present (the stale `read .deft/core/UPGRADING.md` pointer is replaced), and the content-contract tests assert the new payload-independent pointer.",
+          "Traces": "#2273, #2203"
+        }
+      },
+      {
+        "id": "2273-a4-managed-section-in-sync",
+        "title": "Given the managed-section source template is edited, when `task agents:refresh` runs, then the repo-root AGENTS.md managed-section mirror is regenerated in sync (no drift), verified by the content-contract suite.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the managed-section source template is edited, when `task agents:refresh` runs, then the repo-root AGENTS.md managed-section mirror is regenerated in sync (no drift), verified by the content-contract suite.",
+          "Traces": "#2273, #2203"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "docs",
+      "adoption-blocker",
+      "agent-experience",
+      "area:cli",
+      "area:guidance"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2273",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2273: Cold-start bootstrap block in README + AGENTS managed section"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "model_tier": "medium",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "docs-bootstrap",
+        "file_scope": [
+          "README.md",
+          "main.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "packages/cli/src/dispatch.ts",
+          "packages/cli/src/dispatch.test.ts",
+          "packages/core/src/content-contracts/skills/main_md_preamble.test.ts",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/cli/src/dispatch.test.ts",
+          "pnpm exec vitest run packages/core/src/content-contracts",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "README.md top-of-file + AGENTS.md managed-section carry the payload-independent cold-start bootstrap ladder; present on a fresh clone.",
+          "No-arg `directive` prints the three-command init/update/doctor model + first-run guidance before the exhaustive verb list (snapshot-tested).",
+          "Stale `read .deft/core/UPGRADING.md` pointer replaced; managed section regenerated via task agents:refresh with no drift.",
+          "dispatch + content-contract snapshot tests green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. Runs CONCURRENTLY with #2265 (init) and #2270 (migrate:xbrief) in wave 4 -- file_scope is disjoint (this owns README + main.md + agents-entry template + AGENTS.md + dispatch.ts printHelp + the two content-contract tests; init routes via cli-router NOT dispatch.ts, so no dispatch.ts contention with #2265). Worker MUST run `task agents:refresh` after editing content/templates/agents-entry.md so AGENTS.md regenerates. CHANGELOG.md omitted from file_scope (worker adds a bullet; 3-way merge handles it). Depends on merged keystone #2264 (references the global-first ladder in prose only). Full docs are the later #child J2."
+      }
+    },
+    "updated": "2026-07-04T00:35:15Z"
+  }
+}
