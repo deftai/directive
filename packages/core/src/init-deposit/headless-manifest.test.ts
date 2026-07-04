@@ -61,6 +61,19 @@ function fileByPath(manifest: HeadlessManifest, path: string): ResolutionFile | 
   return manifest.files.find((f) => f.path === path);
 }
 
+// `JSON.parse` returns top-level `null` (not a throw) for the literal `null`, so
+// a guarded parse keeps property reads from blowing up with a TypeError outside
+// the parse boundary.
+function parseJsonObject(text: string): Record<string, unknown> {
+  const value: unknown = JSON.parse(text);
+  if (value === null || typeof value !== "object") {
+    throw new Error(
+      `expected a JSON object payload, received ${value === null ? "null" : typeof value}`,
+    );
+  }
+  return value as Record<string, unknown>;
+}
+
 function captureIo(): {
   out: string[];
   err: string[];
@@ -151,8 +164,9 @@ describe("buildHeadlessManifest (#2268 a2: version-consistency)", () => {
     expect(agents?.content).toContain(`<!-- deft:managed-section v3 sha=${CONTENT_VERSION}`);
     expect(version?.content).toContain(`sha: '${CONTENT_VERSION}'`);
     expect(version?.content).toContain(`tag: 'v${CONTENT_VERSION}'`);
-    const parsedPkg = JSON.parse(pkg?.content ?? "{}");
-    expect(parsedPkg.devDependencies["@deftai/directive"]).toBe(CONTENT_VERSION);
+    const parsedPkg = parseJsonObject(pkg?.content ?? "{}");
+    const devDeps = parsedPkg.devDependencies as Record<string, unknown>;
+    expect(devDeps["@deftai/directive"]).toBe(CONTENT_VERSION);
     expect(manifest.version).toBe(CONTENT_VERSION);
   });
 
@@ -208,7 +222,7 @@ describe("runInitHeadlessCli (#2268 a4: graceful failure + output handling)", ()
     expect(code).toBe(0);
     expect(writes).toEqual([outPath]);
     expect(existsSync(outPath)).toBe(true);
-    const parsed = JSON.parse(readFileSync(outPath, "utf8"));
+    const parsed = parseJsonObject(readFileSync(outPath, "utf8"));
     expect(parsed.version).toBe(CONTENT_VERSION);
     expect(io.out.join("")).toBe(""); // stdout stays clean when writing a file
     expect(io.err.join("")).toContain("wrote");
@@ -224,7 +238,7 @@ describe("runInitHeadlessCli (#2268 a4: graceful failure + output handling)", ()
       seams: s,
     });
     expect(code).toBe(0);
-    const parsed = JSON.parse(io.out.join(""));
+    const parsed = parseJsonObject(io.out.join(""));
     expect(parsed.version).toBe(CONTENT_VERSION);
     expect(Array.isArray(parsed.files)).toBe(true);
   });
@@ -247,7 +261,7 @@ describe("runInitHeadlessCli (#2268 a4: graceful failure + output handling)", ()
 
     expect(code).toBe(1);
     expect(writes).toEqual([]); // no partial write
-    const parsed = JSON.parse(io.out.join(""));
+    const parsed = parseJsonObject(io.out.join(""));
     expect(parsed.success).toBe(false);
     expect(parsed.error_code).toBe("content_resolution_failed");
     expect(parsed.error).toContain("registry unreachable");

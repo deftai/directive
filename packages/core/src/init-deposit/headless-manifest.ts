@@ -185,16 +185,16 @@ function collectAgentsMdFile(
   nowIso: string,
   sessionId: string,
 ): ResolutionFile {
-  const plan = agentsRefreshPlan("headless-project", {
+  const agentsResult = agentsRefreshPlan("headless-project", {
     frameworkRoot: contentRoot,
     resolveSha: () => version,
     nowIso: () => nowIso,
     newSession: () => sessionId,
     readAgents: () => null,
   });
-  const newContent = plan.new_content;
+  const newContent = agentsResult.new_content;
   if (typeof newContent !== "string") {
-    throw new Error(`AGENTS.md render produced no content (state: ${String(plan.state)})`);
+    throw new Error(`AGENTS.md render produced no content (state: ${String(agentsResult.state)})`);
   }
   return { path: "AGENTS.md", content: newContent, encoding: "utf-8" };
 }
@@ -286,7 +286,11 @@ export interface RunInitHeadlessCliOptions {
   readonly writeOut: (text: string) => void;
   readonly writeErr: (text: string) => void;
   readonly seams?: HeadlessManifestSeams;
-  /** Filesystem write seam (test-only); defaults to `writeFileSync`. */
+  /**
+   * Filesystem write seam (test-only). The default creates the parent directory
+   * and writes the file; an injected seam OWNS all filesystem contact (including
+   * directory creation), so the manifest write stays fully isolatable in tests.
+   */
   readonly writeFile?: (path: string, data: string) => void;
 }
 
@@ -301,8 +305,13 @@ export async function runInitHeadlessCli(options: RunInitHeadlessCliOptions): Pr
     const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
     if (options.outputPath) {
       const abs = resolve(options.outputPath);
-      mkdirSync(dirname(abs), { recursive: true });
-      (options.writeFile ?? writeFileSync)(abs, serialized);
+      const writeFile =
+        options.writeFile ??
+        ((path, data) => {
+          mkdirSync(dirname(path), { recursive: true });
+          writeFileSync(path, data);
+        });
+      writeFile(abs, serialized);
       options.writeErr(
         `directive init --headless: wrote ${manifest.files.length}-file manifest (v${manifest.version}) to ${abs}\n`,
       );

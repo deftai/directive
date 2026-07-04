@@ -37,7 +37,11 @@ export function parseInitOutputPath(argv: readonly string[]): string | null {
     for (const flag of flags) {
       if (arg === flag) {
         const next = argv[i + 1];
-        return next !== undefined && next.length > 0 ? next : null;
+        // A next token that is itself a flag (leading `-`) is NOT a path — treat
+        // `--output --headless` as a missing value rather than writing a file
+        // literally named `--headless`. Absolute POSIX paths (`/foo`) are kept.
+        if (next === undefined || next.length === 0 || next.startsWith("-")) return null;
+        return next;
       }
       const prefix = `${flag}=`;
       if (arg.startsWith(prefix)) {

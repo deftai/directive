@@ -230,6 +230,11 @@ describe("runInit --headless routing (#2268)", () => {
     expect(parseInitOutputPath(["--headless", "--output=manifest.json"])).toBe("manifest.json");
     expect(parseInitOutputPath(["--headless", "--output", "out.json"])).toBe("out.json");
     expect(parseInitOutputPath(["--headless"])).toBeNull();
+    // An adjacent flag is NOT consumed as the output path (space-separated form).
+    expect(parseInitOutputPath(["--output", "--headless"])).toBeNull();
+    expect(parseInitOutputPath(["--output", "-x"])).toBeNull();
+    // Absolute POSIX paths (leading `/`, not `-`) are still accepted.
+    expect(parseInitOutputPath(["--output", "/tmp/manifest.json"])).toBe("/tmp/manifest.json");
   });
 
   it("short-circuits headless past the dispatch delegates and emits a JSON error gracefully", async () => {
