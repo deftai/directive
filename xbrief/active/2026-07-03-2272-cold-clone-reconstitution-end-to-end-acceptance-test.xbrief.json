@@ -1,0 +1,113 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2272; refined to swarm-ready 2026-07-03 (epic #2203 wave 6, solo/sequential -- the M1-gap acceptance test)."
+  },
+  "plan": {
+    "id": "2272-cold-clone-reconstitution",
+    "title": "Cold-clone reconstitution: end-to-end acceptance test",
+    "status": "running",
+    "narratives": {
+      "Description": "Prove the core cold-clone reconstitution scenario end-to-end with an explicit executable acceptance test: a fresh clone of a hybrid consumer in a mismatched sandbox where both `.deft/core/` (content) and `.deft/.cli/` (engine) are gitignored and therefore absent must reach a ready-to-use state with zero manual steps. The test drives the ordered flow -- read the committed package.json pin, run the global-first ladder, run update to re-project `.deft/core/` and stamp VERSION, resolve USER.md, then run session:start + verify -- and asserts the reconstitution trace, the registry-down hard-fail message, and the matched-env short-circuit.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2272",
+      "Overview": "Part of epic #2203 (resolves the M1 gap).\n\n## Summary\n\nProve the core cold-clone reconstitution scenario end-to-end: a fresh `git clone` of a hybrid consumer in a mismatched sandbox, where both `.deft/core/` and `.deft/.cli/` are gitignored (so NEITHER content nor engine is present on clone), reaches a ready-to-use state with zero manual steps.\n\n## The ordered flow under test\n\n```text\n1. read committed pin from package.json          (always present in git)\n2. global-first ladder (#child A):\n     global engine? -> else local .deft/.cli? -> else install (npm i -g OR npm install --prefix .deft/.cli/<platform>)\n3. run `update` -> engine re-projects .deft/core/ (content), stamps VERSION\n4. USER.md resolution (#child H)\n5. proceed: framework-local gates now runnable\n```\n\nThis is the scenario the whole epic exists to make work; it must be an explicit, executable acceptance test, not an assumption.\n\n## Acceptance criteria\n\n- A simulated cold clone (both dirs absent) reconstitutes engine + content and runs `session:start` + `verify:*` with zero manual npm/PATH/`DEFT_USER_PATH` steps.\n- The reconstitution trace is emitted and asserted (ties to #child A structured trace).\n- Registry-down path hard-fails with the \"stage this\" message rather than hanging or failing open.\n- Matched-env clone (engine already global) short-circuits the ladder at step 1/2 with no reinstall.\n\n## Related\n\nParent #2203. Integration test spanning #child A, #child C, #child H.\n",
+      "UserStory": "As a Directive maintainer guarding the cold-clone adoption path, I want an executable end-to-end acceptance test that simulates a fresh clone with both .deft/core and .deft/.cli absent and drives the full reconstitution flow through the global-first ladder and update and USER.md resolution, so that the scenario the whole epic exists to make work is proven automatically instead of assumed and any regression fails CI.",
+      "ImplementationPlan": "1. Add a new acceptance test `packages/core/src/resolution/cold-clone-reconstitution.test.ts` that builds a simulated cold-clone fixture (a temp dir with a committed package.json pin but NO `.deft/core/` and NO `.deft/.cli/`) using injected seams so no real network/npm runs. If shared setup is non-trivial, factor it into a small colocated `packages/core/src/resolution/reconstitution-harness.ts` (+ its own test) that wires the fixture + seams.\n2. Drive the ordered flow against the merged spine: read the pin, run the global-first ladder (`resolution/engine-ladder.ts::resolveEngine`), run update re-projection (`init-deposit/refresh.ts::runRefreshDepositCli`) to reconstitute `.deft/core/` + stamp VERSION, resolve USER.md via the merged `user-config/resolve-user-md.ts`, then assert framework-local gates (session:start + verify) become runnable -- all with zero manual npm/PATH/DEFT_USER_PATH steps.\n3. Assert the structured reconstitution trace emitted by the keystone ladder (ties to #2264's trace); assert the registry-down seam hard-fails with the canonical `stage this` message (never hangs / fails open); assert a matched-env fixture (engine already global) short-circuits the ladder at step 1/2 with no reinstall.\n4. Consume the merged modules read-only via injected seams; do NOT modify the keystone resolution spine, refresh, or user-config production code -- this is an acceptance test that pins current behavior. If a genuine seam gap blocks the test, add the MINIMAL testability seam and note it.\n5. Run `task ts:check-lane`, `pnpm exec vitest run packages/core/src/resolution`, and `task check:framework-source`. Add a brief CHANGELOG entry.",
+      "Source": "verified:codebase-surface-map-2026-07-03; verified:umbrella-2203-current-shape",
+      "Confidence": "medium",
+      "Traces": "#2272, #2203, #2264, #2266, #2271",
+      "Labels": "enhancement, adoption-blocker, agent-experience, harness, area:installer"
+    },
+    "items": [
+      {
+        "id": "2272-a1-cold-clone-zero-manual",
+        "title": "Given a simulated cold clone with both `.deft/core/` and `.deft/.cli/` absent, when the reconstitution flow runs, then engine + content are reconstituted and `session:start` + `verify:*` run with zero manual npm/PATH/DEFT_USER_PATH steps.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a simulated cold clone with both `.deft/core/` and `.deft/.cli/` absent, when the reconstitution flow runs, then engine + content are reconstituted and `session:start` + `verify:*` run with zero manual npm/PATH/DEFT_USER_PATH steps.",
+          "Traces": "#2272, #2264"
+        }
+      },
+      {
+        "id": "2272-a2-trace-asserted",
+        "title": "Given the reconstitution flow, when it completes, then the structured reconstitution trace from the keystone ladder is emitted and asserted step-by-step.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the reconstitution flow, when it completes, then the structured reconstitution trace from the keystone ladder is emitted and asserted step-by-step.",
+          "Traces": "#2272, #2264"
+        }
+      },
+      {
+        "id": "2272-a3-registry-down-hard-fail",
+        "title": "Given a registry-down environment, when the ladder cannot install the engine, then it hard-fails with the canonical `stage this` message rather than hanging or failing open.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a registry-down environment, when the ladder cannot install the engine, then it hard-fails with the canonical `stage this` message rather than hanging or failing open.",
+          "Traces": "#2272, #2264"
+        }
+      },
+      {
+        "id": "2272-a4-matched-env-short-circuit",
+        "title": "Given a matched-env clone where the engine is already global, when the ladder runs, then it short-circuits at step 1/2 with no reinstall.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a matched-env clone where the engine is already global, when the ladder runs, then it short-circuits at step 1/2 with no reinstall.",
+          "Traces": "#2272, #2264"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "harness",
+      "area:installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2272",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2272: Cold-clone reconstitution: end-to-end acceptance test"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "size": "M",
+        "model_tier": "medium",
+        "depends_on": [
+          "2264-resolution-spine",
+          "2266-directive-update",
+          "2271-user-config-resolution"
+        ],
+        "conflict_group": "integration-test",
+        "file_scope": [
+          "packages/core/src/resolution/cold-clone-reconstitution.test.ts",
+          "packages/core/src/resolution/reconstitution-harness.ts",
+          "packages/core/src/resolution/reconstitution-harness.test.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/resolution",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "Executable end-to-end acceptance test for cold-clone reconstitution: fresh clone with .deft/core + .deft/.cli absent reaches ready state with zero manual steps.",
+          "Structured reconstitution trace asserted; registry-down hard-fails with the canonical stage-this message; matched-env short-circuits with no reinstall.",
+          "Test consumes the merged spine (ladder + update + user-config) via injected seams; no production behavior changed.",
+          "Green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-03. SOLO/sequential (wave 6) -- the M1-gap acceptance test that ties the whole epic together. Depends on the merged keystone #2264 (ladder + trace), merged update #2266 (re-projection), and merged user-config #2271 (USER.md resolution) -- all in completed/. Consumes them read-only via injected seams. This is the last child before the #2274 docs capstone (wave 7)."
+      }
+    },
+    "updated": "2026-07-04T03:00:02Z"
+  }
+}
