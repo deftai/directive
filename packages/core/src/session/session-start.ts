@@ -272,9 +272,15 @@ export function runSessionStart(
 
   if (!quickSteps.alignment) {
     const message = "Deft Directive active -- AGENTS.md loaded.";
+    // Sanitize newlines on the data-derived path/diagnostic before they land in
+    // the ritual-step message / terminal output (matches doctor's CWE-116
+    // handling); DEFT_USER_PATH is only trimmed, so an embedded newline could
+    // otherwise survive into multi-line output.
+    const safePath = userMd.path.replace(/\r?\n/g, " ");
+    const safeDiagnostic = userMd.diagnostic.replace(/\r?\n/g, " ");
     const userMdLine = userMd.found
-      ? `USER.md resolved (${userMd.rung}): ${userMd.path}`
-      : userMd.diagnostic;
+      ? `USER.md resolved (${userMd.rung}): ${safePath}`
+      : safeDiagnostic;
     quickSteps.alignment = ritualStep({
       ok: true,
       ts: instant,

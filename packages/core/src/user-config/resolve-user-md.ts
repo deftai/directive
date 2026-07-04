@@ -20,7 +20,7 @@
  *      defaults` diagnostic. This branch NEVER throws.
  */
 
-import { existsSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -42,8 +42,10 @@ export type UserMdRung = "env-override" | "workspace-local" | "platform-config" 
 
 export interface ResolveUserMdResult {
   /**
-   * The resolved USER.md path. For rungs 1-3 an existing file; for the
-   * `default` rung the sensible default location (which does not exist).
+   * The resolved USER.md path. For rungs 2-3 this is always an existing file.
+   * For rung 1 (`env-override`) it is the override path whether or not the file
+   * exists yet (check `found`). For the `default` rung it is the sensible
+   * default location (which does not exist).
    */
   readonly path: string;
   /** Which search rung matched. */
@@ -73,7 +75,10 @@ function defaultFileExists(path: string): boolean {
   try {
     return statSync(path).isFile();
   } catch {
-    return existsSync(path);
+    // Any stat error (ENOENT, permission, ...) means "not a resolvable USER.md
+    // file". Deliberately NOT falling back to existsSync, which cannot tell a
+    // directory from a file and would report a dir at this path as a found file.
+    return false;
   }
 }
 

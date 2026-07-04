@@ -86,9 +86,12 @@ describe("runSessionStart — USER.md auto-resolution (#2271)", () => {
       baseOptions(root, () => resolved),
     );
     expect(result.code).toBe(0);
-    const state = JSON.parse(readFileSync(ritualStatePath(root), "utf8")) as {
-      quick_steps: { alignment: { message: string } };
-    };
+    const parsed: unknown = JSON.parse(readFileSync(ritualStatePath(root), "utf8"));
+    // JSON.parse can return a top-level null without throwing; guard before any
+    // property access so a malformed payload fails loud, not with a TypeError.
+    expect(parsed).not.toBeNull();
+    expect(typeof parsed).toBe("object");
+    const state = parsed as { quick_steps: { alignment: { message: string } } };
     expect(state.quick_steps.alignment.message).toContain("Deft Directive active");
     expect(state.quick_steps.alignment.message).toContain("USER.md resolved (env-override)");
     expect(state.quick_steps.alignment.message).toContain("/opt/deft/USER.md");

@@ -469,7 +469,19 @@ describe("cmdDoctor USER.md resolution surface (#2271)", () => {
     } finally {
       process.stdout.write = origWrite;
     }
-    return { ok: exit === 0, exit, payload: JSON.parse(stdout.join("")) };
+    const parsed: unknown = JSON.parse(stdout.join(""));
+    // JSON.parse can return a top-level null without throwing; guard before any
+    // property access so a malformed payload fails loud, not with a TypeError.
+    expect(parsed).not.toBeNull();
+    expect(typeof parsed).toBe("object");
+    return {
+      ok: exit === 0,
+      exit,
+      payload: parsed as {
+        user_md?: { path: string; rung: string; found: boolean; diagnostic: string };
+        findings?: Array<Record<string, unknown>>;
+      },
+    };
   }
 
   it("surfaces the resolved USER.md path + matched rung in the --json payload", () => {
