@@ -28,7 +28,7 @@ describe("reconcile", () => {
     const result = reconcile(root, { repo: "deftai/directive" });
     expect(result.exitCode).toBe(0);
     expect(result.restored).toBe(2);
-    const log = readFileSync(join(root, "vbrief", ".eval", "candidates.jsonl"), "utf8");
+    const log = readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8");
     expect(log).toContain('"decision":"accept"');
     rmSync(root, { recursive: true, force: true });
   });

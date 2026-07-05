@@ -35,7 +35,7 @@ describe("undo", () => {
 
   it("refuses terminal actions", () => {
     root = mkdtempSync(join(tmpdir(), "undo-test-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const entry = {
       decision_id: newDecisionId(),
@@ -76,7 +76,7 @@ describe("undo", () => {
   it("undoes cancel back to pending using from_status", () => {
     root = mkdtempSync(join(tmpdir(), "undo-cancel-"));
     mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     writeFileSync(
       join(root, "vbrief", "cancelled", "c.vbrief.json"),
@@ -101,7 +101,7 @@ describe("undo", () => {
     root = mkdtempSync(join(tmpdir(), "undo-chain-"));
     mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
     mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const restoreId = newDecisionId();
     append(

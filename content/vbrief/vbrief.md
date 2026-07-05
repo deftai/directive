@@ -19,7 +19,7 @@ Key `task` commands for working with vBRIEF files:
 - `task issue:ingest -- <N>` / `task issue:ingest -- --all [--label L] [--status S] [--dry-run]` — Ingest GitHub issues as scope vBRIEFs in `vbrief/proposed/` (deduplicates via existing references)
 - `task vbrief:validate` — Validate schema, filenames, folder/status consistency (part of `task check`)
 - `task scope:promote|activate|complete|cancel|restore|block|unblock <file>` — Lifecycle transitions
-- `task scope:decompose -- <parent.vbrief.json> --draft vbrief/.eval/decompositions/<parent-slug>.json` — Apply an approved phase/epic to story decomposition
+- `task scope:decompose -- <parent.vbrief.json> --draft vbrief/.triage-cache/decompositions/<parent-slug>.json` — Apply an approved phase/epic to story decomposition
 - `task swarm:readiness -- vbrief/active/*.vbrief.json` — Report whether candidate stories are safe for concurrent swarm allocation
 
 For interactive creation workflows, use `run` commands (`.deft/core/run bootstrap`, `.deft/core/run spec`). See [commands.md](../commands.md) for the full command lifecycle.
@@ -40,7 +40,7 @@ vbrief/
   plan.vbrief.json                 <- session-level tactical plan (singular)
   continue.vbrief.json             <- interruption checkpoint (singular, ephemeral)
   playbook-{name}.vbrief.json      <- reusable operational patterns
-  .eval/decompositions/             <- ignored temporary decomposition proposal drafts
+  .triage-cache/decompositions/             <- ignored temporary decomposition proposal drafts
   proposed/                         <- ideas, not committed to (draft, proposed)
   pending/                          <- accepted backlog (approved, pending)
   active/                           <- in progress (running, blocked)
@@ -277,10 +277,10 @@ When a scope grows too large, the parent vBRIEF becomes an epic and children are
 
 1. Agent identifies the scope is too large (collaboratively with user)
 2. Parent vBRIEF promoted to epic
-3. Agent drafts a temporary decomposition proposal under `vbrief/.eval/decompositions/<parent-slug>.json`
+3. Agent drafts a temporary decomposition proposal under `vbrief/.triage-cache/decompositions/<parent-slug>.json`
 4. Agent presents the draft to the user and gets explicit approval
-5. `task scope:decompose -- <parent> --draft vbrief/.eval/decompositions/<parent-slug>.json --check` validates the approved draft
-6. `task scope:decompose -- <parent> --draft vbrief/.eval/decompositions/<parent-slug>.json` creates child story vBRIEFs with `planRef` back to parent
+5. `task scope:decompose -- <parent> --draft vbrief/.triage-cache/decompositions/<parent-slug>.json --check` validates the approved draft
+6. `task scope:decompose -- <parent> --draft vbrief/.triage-cache/decompositions/<parent-slug>.json` creates child story vBRIEFs with `planRef` back to parent
 7. Parent epic's `references` updated to list all child paths
 8. Update `plan.vbrief.json` (and `continue.vbrief.json` if present) `planRef` to reference child scope vBRIEFs
 9. Acceptance criteria redistributed by agent with user approval
@@ -288,7 +288,7 @@ When a scope grows too large, the parent vBRIEF becomes an epic and children are
 
 - ! Scope splitting MUST use an approved draft and `task scope:decompose` for child writes
 - ! Decomposition draft JSON is a temporary proposal artifact, not a vBRIEF
-- ! Agents SHOULD write decomposition draft proposals under `vbrief/.eval/decompositions/`
+- ! Agents SHOULD write decomposition draft proposals under `vbrief/.triage-cache/decompositions/`
 - ! Derive `<parent-slug>` from the parent vBRIEF filename by removing `.vbrief.json` and any leading `YYYY-MM-DD-` date prefix; for example, `2026-05-12-ip001-auth.vbrief.json` becomes `ip001-auth`
 - ⊗ Agents MUST NOT leave decomposition draft JSON files at the workspace root
 - ! Generated child story vBRIEFs remain lifecycle artifacts and default to `vbrief/pending/`

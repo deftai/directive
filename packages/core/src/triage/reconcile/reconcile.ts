@@ -2,7 +2,8 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { resolveEvalPath, resolveLifecycleFolder } from "../../layout/resolve.js";
+import { resolveLifecycleFolder } from "../../layout/resolve.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import { auditKey, existingAuditRefs, scanLifecycleRefs } from "./audit.js";
 import {
   BACKFILL_FOLDERS,
@@ -49,7 +50,7 @@ export function findReconcilable(
   options: FindReconcilableOptions = {},
 ): ReconcileItem[] {
   const root = resolve(projectRoot);
-  const auditPath = options.auditLogPath ?? resolveEvalPath(root, "candidates.jsonl");
+  const auditPath = options.auditLogPath ?? resolveCandidatesLogPath(root);
   const existing = existingAuditRefs(auditPath);
   const defaultRepo = options.defaultRepo ?? null;
   const items: ReconcileItem[] = [];
@@ -148,7 +149,7 @@ export function reconcile(projectRoot: string, options: ReconcileOptions = {}): 
   if (defaultRepo === null) {
     defaultRepo = inferRepoFromGit(root);
   }
-  const auditPath = options.auditLogPath ?? resolveEvalPath(root, "candidates.jsonl");
+  const auditPath = options.auditLogPath ?? resolveCandidatesLogPath(root);
   const dryRun = options.dryRun ?? false;
 
   const result: ReconcileResult = {

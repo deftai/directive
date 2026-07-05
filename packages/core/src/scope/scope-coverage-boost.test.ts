@@ -111,7 +111,7 @@ describe("scope coverage boost", () => {
   it("undo cancel with legacy cancelled_from top-level field", () => {
     root = mkdtempSync(join(tmpdir(), "boost-"));
     mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     writeFileSync(
       join(root, "vbrief", "cancelled", "x.vbrief.json"),
@@ -134,7 +134,7 @@ describe("scope coverage boost", () => {
 
   it("undo rejects unknown action", () => {
     root = mkdtempSync(join(tmpdir(), "boost-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const entry = {
       decision_id: newDecisionId(),

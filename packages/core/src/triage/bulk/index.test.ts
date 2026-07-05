@@ -362,16 +362,16 @@ describe("bulk edge paths", () => {
 
   it("createFilesystemCandidatesLogModule filters by repo", () => {
     const root = makeRepo();
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", ".eval", "candidates.jsonl"),
+      join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
       `${JSON.stringify({ repo: "a/b", issue_number: 1, decision: "defer" })}\n` +
         `${JSON.stringify({ repo: "c/d", issue_number: 2, decision: "accept" })}\n` +
         `not-json\n`,
       "utf8",
     );
     const mod = createFilesystemCandidatesLogModule(
-      join(root, "vbrief", ".eval", "candidates.jsonl"),
+      join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
     );
     expect(mod.readAll({ repo: "a/b" })).toHaveLength(1);
     expect(mod.readAll({ repo: "missing/r" })).toHaveLength(0);

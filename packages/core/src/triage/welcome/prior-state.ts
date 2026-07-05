@@ -3,10 +3,10 @@ import { join, resolve } from "node:path";
 import {
   hasArtifactSuffix,
   resolveAuditPath,
-  resolveEvalPath,
   resolveLifecycleRoot,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import {
   CACHE_DIR_NAME,
@@ -60,7 +60,7 @@ function countCacheEntries(projectRoot: string): number {
 }
 
 export function candidatesLogPath(projectRoot: string): string {
-  return resolveEvalPath(projectRoot, "candidates.jsonl");
+  return resolveCandidatesLogPath(projectRoot);
 }
 
 function countWip(projectRoot: string): number {

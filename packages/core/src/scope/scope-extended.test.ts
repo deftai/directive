@@ -188,7 +188,7 @@ describe("scope extended coverage", () => {
 
   it("covers undo cancel round-trip", () => {
     root = makeRepo();
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const cancelled = join(root, "vbrief", "cancelled", "c.vbrief.json");
     writeVbrief(cancelled, { plan: { title: "T", status: "cancelled", items: [] } });

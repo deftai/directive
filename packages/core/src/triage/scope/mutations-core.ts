@@ -9,7 +9,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { resolveEvalPath, resolveProjectDefinitionPath } from "../../layout/resolve.js";
+import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
+import { resolveTriageCachePath } from "../cache-path.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 import { SUBSCRIPTION_HISTORY_SCHEMA } from "./constants.js";
@@ -92,7 +93,7 @@ export function recordSubscriptionChange(
     extra?: Record<string, unknown>;
   },
 ): void {
-  const historyPath = resolveEvalPath(projectRoot, "subscription-history.jsonl");
+  const historyPath = resolveTriageCachePath(projectRoot, "subscription-history.jsonl");
   const record: Record<string, unknown> = {
     schema: SUBSCRIPTION_HISTORY_SCHEMA,
     change_id: randomUUID(),

@@ -21,8 +21,8 @@ function makeTmpDir(): string {
 
 function setupProjectRoot(): string {
   const root = makeTmpDir();
-  // Create vbrief/.eval/ directory
-  mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+  // Create vbrief/.triage-cache/ directory
+  mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
   return root;
 }
 

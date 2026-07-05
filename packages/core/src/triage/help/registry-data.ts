@@ -6,7 +6,7 @@ export const registryData = {
       summary: "One-line state for session-start ritual",
       refs: "(D2 / #1122)",
       description:
-        "Emit the one-line triage state consumed by the session-start ritual. Always exits 0 (status surface, not a gate); appends a JSONL record to vbrief/.eval/summary-history.jsonl for observability.",
+        "Emit the one-line triage state consumed by the session-start ritual. Always exits 0 (status surface, not a gate); appends a JSONL record to vbrief/.triage-cache/summary-history.jsonl for observability.",
       usage: "task triage:summary [-- --json] [--no-history]",
       flags: [
         ["--json", "(off)", "Emit the structured record as JSON instead of the one-liner."],
@@ -345,7 +345,7 @@ export const registryData = {
       summary: "Self-heal audit log from on-disk vBRIEFs",
       refs: "(#1468)",
       description:
-        "Idempotent repair verb: derive missing `accept` decisions for proposed/pending/active vBRIEFs that carry an x-vbrief/github-issue reference but have no entry in vbrief/.eval/candidates.jsonl. Recovers triage state after the gitignored audit log is reset/lost (#1464) without a full cache re-fetch. Never overrides an existing decision, so a re-run is a no-op.",
+        "Idempotent repair verb: derive missing `accept` decisions for proposed/pending/active vBRIEFs that carry an x-vbrief/github-issue reference but have no entry in vbrief/.triage-cache/candidates.jsonl. Recovers triage state after the gitignored audit log is reset/lost (#1464) without a full cache re-fetch. Never overrides an existing decision, so a re-run is a no-op.",
       usage: "task triage:reconcile [-- --repo owner/name] [--dry-run] [--json]",
       flags: [
         [
@@ -470,7 +470,7 @@ export const registryData = {
       summary: "Add label/milestone/issue to subscription",
       refs: "(D14 / #1133)",
       description:
-        "Subscribe to a label / milestone / issue by appending a rule to plan.policy.triageScope[]. Emits a JSONL audit record to vbrief/.eval/subscription-history.jsonl.",
+        "Subscribe to a label / milestone / issue by appending a rule to plan.policy.triageScope[]. Emits a JSONL audit record to vbrief/.triage-cache/subscription-history.jsonl.",
       usage: "task triage:subscribe -- (--label=L | --milestone=M | --issue=N)",
       flags: [
         ["--label L", "(none)", "Subscribe to a label."],
@@ -544,7 +544,7 @@ export const registryData = {
       summary: "Rotate candidates.jsonl when bounded",
       refs: "(D20, coming)",
       description:
-        "Rotate vbrief/.eval/candidates.jsonl when it exceeds the configured bound. Compacts terminal entries and preserves the open-work tail.",
+        "Rotate vbrief/.triage-cache/candidates.jsonl when it exceeds the configured bound. Compacts terminal entries and preserves the open-work tail.",
       usage: "task triage:audit-log:rotate [-- --max-lines N]",
       flags: [["--max-lines N", "(consumer default)", "Bound at which rotation fires."]],
       examples: ["task triage:audit-log:rotate -- --max-lines 10000"],
@@ -556,7 +556,7 @@ export const registryData = {
       summary: "Trend lines from summary-history.jsonl",
       refs: "(D17, coming)",
       description:
-        "Print trend lines computed from vbrief/.eval/summary-history.jsonl: decisions-per-day, defer/accept ratio, stale-defer drift, etc.",
+        "Print trend lines computed from vbrief/.triage-cache/summary-history.jsonl: decisions-per-day, defer/accept ratio, stale-defer drift, etc.",
       usage: "task triage:metrics [-- --window=7d] [--format=text|json]",
       flags: [
         ["--window WINDOW", "7d", "Time window over which to aggregate."],
@@ -591,7 +591,7 @@ export const registryData = {
       summary: "pending/ -> proposed/ (set status proposed)",
       refs: "(D1 / #1121)",
       description:
-        "Demote a vBRIEF scope from vbrief/pending/ back to vbrief/proposed/ and append a structured audit entry (including a demote_meta block) to vbrief/.eval/scope-lifecycle.jsonl. Supports single-file and --batch (cohort shrink / cap relief) modes.",
+        "Demote a vBRIEF scope from vbrief/pending/ back to vbrief/proposed/ and append a structured audit entry (including a demote_meta block) to vbrief/.triage-cache/scope-lifecycle.jsonl. Supports single-file and --batch (cohort shrink / cap relief) modes.",
       usage:
         "task scope:demote -- <file> [--reason TEXT] | task scope:demote -- --batch [--older-than-days N]",
       flags: [
@@ -752,13 +752,13 @@ export const registryData = {
         [
           "--draft PATH",
           "(required)",
-          "Approved decomposition JSON draft; prefer vbrief/.eval/decompositions/<parent-slug>.json.",
+          "Approved decomposition JSON draft; prefer vbrief/.triage-cache/decompositions/<parent-slug>.json.",
         ],
         ["--check", "(off)", "Validate only; do not write."],
         ["--date YYYY-MM-DD", "today", "Creation date for generated child filenames."],
       ],
       examples: [
-        "task scope:decompose -- vbrief/active/epic.vbrief.json --draft vbrief/.eval/decompositions/epic.json --check",
+        "task scope:decompose -- vbrief/active/epic.vbrief.json --draft vbrief/.triage-cache/decompositions/epic.json --check",
       ],
       see_also: ["task scope:promote", "skills/deft-directive-decompose/SKILL.md"],
       placeholder: false,

@@ -24,7 +24,7 @@ afterAll(() => {
 function makeRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-slice-existing-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+  mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
   mkdirSync(join(root, ".git"));
   return root;
 }
@@ -130,7 +130,7 @@ describe("runRecordExisting", () => {
 
   it("is idempotent for matching umbrella + child set", () => {
     const root = makeRoot();
-    const path = join(root, "vbrief", ".eval", "slices.jsonl");
+    const path = join(root, "vbrief", ".triage-cache", "slices.jsonl");
     writeSliceUnlocked(
       {
         slice_id: "bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee",
@@ -234,7 +234,7 @@ describe("runList", () => {
   it("lists seeded records and empty state", () => {
     const root = makeRoot();
     expect(runList({ projectRoot: root, asJson: false }).stdout).toContain("no records found");
-    const path = join(root, "vbrief", ".eval", "slices.jsonl");
+    const path = join(root, "vbrief", ".triage-cache", "slices.jsonl");
     writeSliceUnlocked(
       {
         slice_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",

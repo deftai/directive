@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveEvalPath } from "@deftai/directive-core/dist/layout/resolve.js";
+import { resolveTriageCachePath } from "@deftai/directive-core/dist/triage/cache-path.js";
 import {
   activeReferencedIssueNumbers,
   buildQueue,
@@ -181,12 +181,12 @@ export function run(argv: string[], options: RunOptions = {}): number {
   const issuesWithClosed = loadCachedIssues(repo, { projectRoot, includeClosed: true });
   const issuesByNumber = new Map(issuesWithClosed.map((row) => [row.number, row] as const));
   const auditEntries = readAuditEntries(repo, {
-    auditLogPath: args.auditLog ?? resolveEvalPath(projectRoot, "candidates.jsonl"),
+    auditLogPath: args.auditLog ?? resolveTriageCachePath(projectRoot, "candidates.jsonl"),
   });
   const rankingLabels = resolveRankingLabels(projectRoot);
   const activeRefs = activeReferencedIssueNumbers(projectRoot);
   const sliceRecords = loadSliceRecords({
-    slicesLogPath: args.slicesLog ?? resolveEvalPath(projectRoot, "slices.jsonl"),
+    slicesLogPath: args.slicesLog ?? resolveTriageCachePath(projectRoot, "slices.jsonl"),
   });
   const orphanNumbers = collectOrphanIssueNumbers(sliceRecords, issuesByNumber);
   const limit = args.limit === 0 ? null : Math.max(0, args.limit);

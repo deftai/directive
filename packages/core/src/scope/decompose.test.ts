@@ -301,8 +301,8 @@ describe("applyDecomposition", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "2026-05-12-parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft());
     const actions = applyDecomposition({
       projectRoot: proj,
@@ -323,8 +323,8 @@ describe("applyDecomposition", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "2026-05-12-parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft());
     const actions = applyDecomposition({
       projectRoot: proj,
@@ -350,8 +350,8 @@ describe("applyDecomposition", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft("vbrief/active"));
     expect(() =>
       applyDecomposition({
@@ -368,8 +368,8 @@ describe("applyDecomposition", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft(undefined, "running"));
     expect(() =>
       applyDecomposition({
@@ -386,8 +386,8 @@ describe("applyDecomposition", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     const draft = goodDraft();
     writeJson(draftPath, draft);
     applyDecomposition({
@@ -436,8 +436,8 @@ describe("decomposeMain", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft());
     expect(
       decomposeMain([
@@ -456,8 +456,8 @@ describe("decomposeMain", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, goodDraft());
     expect(
       decomposeMain([
@@ -763,8 +763,8 @@ describe("applyDecomposition error + mutation branches", () => {
   function setup(): { proj: string; parentPath: string; draftPath: string } {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     return { proj, parentPath, draftPath };
   }
 
@@ -963,8 +963,8 @@ describe("decomposeMain extra CLI branches", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     return { proj, parentPath, draftPath };
   }
 
@@ -1073,8 +1073,8 @@ describe("alternate field extraction", () => {
     const proj = tmpProject();
     const parentPath = join(proj, "vbrief", "pending", "parent.vbrief.json");
     writeJson(parentPath, goodParent());
-    const draftPath = join(proj, "vbrief", ".eval", "draft.json");
-    mkdirSync(join(proj, "vbrief", ".eval"), { recursive: true });
+    const draftPath = join(proj, "vbrief", ".triage-cache", "draft.json");
+    mkdirSync(join(proj, "vbrief", ".triage-cache"), { recursive: true });
     writeJson(draftPath, { stories: [altStory()] });
     const actions = applyDecomposition({
       projectRoot: proj,

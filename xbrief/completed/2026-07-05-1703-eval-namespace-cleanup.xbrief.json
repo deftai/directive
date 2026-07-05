@@ -6,7 +6,7 @@
   "plan": {
     "id": "1703-eval-namespace-cleanup",
     "title": "Reclaim the .eval namespace for version-eval results",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "The .eval directory was named for evaluation but became the triage working-set cache. Move the triage cache to a dedicated namespace so the version-eval results store can own .eval, de-conflicting the two concepts.",
       "ImplementationPlan": "- Update the triage cache path resolver module to write to a dedicated triage-cache directory instead of .eval.\n- Add a migration for existing cache files and tests asserting triage loads and writes resolve to the new path.",
@@ -17,7 +17,7 @@
       {
         "id": "1703-eval-namespace-cleanup-a1",
         "title": "Resolver points to new path",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The triage cache resolver returns the dedicated triage-cache path instead of the .eval directory."
         }
@@ -25,7 +25,7 @@
       {
         "id": "1703-eval-namespace-cleanup-a2",
         "title": "Existing cache migrated",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When triage runs after migration, it loads candidates from the new cache path."
         }
@@ -33,7 +33,7 @@
       {
         "id": "1703-eval-namespace-cleanup-a3",
         "title": "Namespace de-conflicted",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The results store persists to .eval and no longer collides with the triage cache."
         }
@@ -60,7 +60,9 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-05T18:42:27Z",
+      "capacityBucket": "cognitive-debt"
     },
     "references": [
       {
@@ -75,6 +77,7 @@
         "title": "Issue #1703: .eval namespace cleanup",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T18:42:27Z"
   }
 }

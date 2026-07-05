@@ -36,7 +36,7 @@ Convert approved specification/phase/epic scope xBRIEFs into swarm-ready child s
 
 - ! Draft a decomposition JSON proposal with child stories only; do not write child xBRIEFs yet.
 - ! Treat the draft JSON as a temporary proposal artifact, not a xBRIEF.
-- ! Write draft proposals under `xbrief/.eval/decompositions/`, using a parent-derived slug such as `xbrief/.eval/decompositions/ip001-auth.json`.
+- ! Write draft proposals under `xbrief/.triage-cache/decompositions/`, using a parent-derived slug such as `xbrief/.triage-cache/decompositions/ip001-auth.json`.
 - ! Derive `<parent-slug>` from the parent xBRIEF filename by removing `.xbrief.json` and any leading `YYYY-MM-DD-` date prefix; for example, `xbrief/pending/2026-05-12-ip001-auth.xbrief.json` uses `ip001-auth`, while `xbrief/pending/feature-xyz.xbrief.json` uses `feature-xyz`.
 - ⊗ Agents MUST NOT leave decomposition draft JSON files at the workspace root.
 - ! Each story MUST include `id`, `title`, `Description`, `ImplementationPlan`, `UserStory`, executable `items` or `acceptance`, `traces` or explicit trace justification, `swarm.file_scope`, `swarm.verify_commands`, `swarm.expected_outputs`, `swarm.depends_on`, `swarm.conflict_group`, `swarm.size`, `swarm.file_scope_confidence`, and `swarm.model_tier`.
@@ -67,13 +67,13 @@ Convert approved specification/phase/epic scope xBRIEFs into swarm-ready child s
 - ! Validate the approved draft first:
 
 ```bash
-task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.xbrief.json --draft xbrief/.eval/decompositions/ip001-auth.json --check
+task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.xbrief.json --draft xbrief/.triage-cache/decompositions/ip001-auth.json --check
 ```
 
 - ! Apply the approved draft:
 
 ```bash
-task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.xbrief.json --draft xbrief/.eval/decompositions/ip001-auth.json
+task scope:decompose -- xbrief/pending/2026-05-12-ip001-auth.xbrief.json --draft xbrief/.triage-cache/decompositions/ip001-auth.json
 ```
 
 The command creates generated child story xBRIEFs as lifecycle artifacts, defaulting to `xbrief/pending/`. It preserves origin/provenance references, sets each child `planRef` to the parent, updates parent references to include the children, rejects dependency cycles, and rejects ready stories missing executable acceptance, user-story shape, concrete acceptance, narrow file scope, focused verify commands, or traces.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveEvalPath } from "@deftai/directive-core/dist/layout/resolve.js";
+import { resolveTriageCachePath } from "@deftai/directive-core/dist/triage/cache-path.js";
 import {
   appendHistory,
   computeSummary,
@@ -81,7 +81,7 @@ export function run(argv: string[]): number {
   }
 
   if (!args.noHistory) {
-    const historyPath = resolveEvalPath(projectRoot, "summary-history.jsonl");
+    const historyPath = resolveTriageCachePath(projectRoot, "summary-history.jsonl");
     appendHistory(historyPath, result, line, { emittedAt });
   }
 

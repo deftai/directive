@@ -9,7 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { resolveEvalPath } from "../layout/resolve.js";
+import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { pythonJsonStringify } from "./json.js";
 import { withAppendLock } from "./lock.js";
 import { validateRecord } from "./validate.js";
@@ -49,7 +49,7 @@ const defaultDeps: Required<RecordModuleDeps> = {
 };
 
 function resolvePath(path: string | undefined): string {
-  return path !== undefined ? resolve(path) : resolveEvalPath(process.cwd(), "slices.jsonl");
+  return path !== undefined ? resolve(path) : resolveTriageCachePath(process.cwd(), "slices.jsonl");
 }
 
 export function newSliceId(): string {
@@ -197,5 +197,5 @@ export function findByUmbrella(
 }
 
 export function slicesPath(projectRoot: string): string {
-  return resolveEvalPath(projectRoot, "slices.jsonl");
+  return resolveTriageCachePath(projectRoot, "slices.jsonl");
 }

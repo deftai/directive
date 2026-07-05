@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { resolveEvalPath } from "../../layout/resolve.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import {
   createDefaultDeps,
   accept as nativeAccept,
@@ -515,7 +515,7 @@ export function createFilesystemCacheModule(): CacheModule {
 }
 
 export function createFilesystemCandidatesLogModule(
-  logPath: string = resolveEvalPath(process.cwd(), "candidates.jsonl"),
+  logPath: string = resolveCandidatesLogPath(process.cwd()),
 ): CandidatesLogModule {
   return {
     readAll(options: { repo: string }) {

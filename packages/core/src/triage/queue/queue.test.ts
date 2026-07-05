@@ -348,7 +348,7 @@ describe("resolveAuditLogPath", () => {
   it("uses frameworkRoot when no override is provided", () => {
     const root = makeTempRoot();
     expect(resolveAuditLogPath({ frameworkRoot: root })).toBe(
-      join(root, "vbrief", ".eval", "candidates.jsonl"),
+      join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
     );
   });
 
@@ -356,7 +356,7 @@ describe("resolveAuditLogPath", () => {
     const root = makeTempRoot();
     const previous = process.env.DEFT_ROOT;
     process.env.DEFT_ROOT = root;
-    expect(resolveAuditLogPath({})).toBe(join(root, "vbrief", ".eval", "candidates.jsonl"));
+    expect(resolveAuditLogPath({})).toBe(join(root, "vbrief", ".triage-cache", "candidates.jsonl"));
     process.env.DEFT_ROOT = previous;
   });
 });
@@ -364,7 +364,7 @@ describe("resolveAuditLogPath", () => {
 describe("readAuditEntries", () => {
   it("reads repo-filtered audit rows", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief", ".eval");
+    const dir = join(root, "vbrief", ".triage-cache");
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       join(dir, "candidates.jsonl"),
@@ -387,7 +387,7 @@ describe("readAuditEntries", () => {
 
   it("skips malformed audit lines", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief", ".eval");
+    const dir = join(root, "vbrief", ".triage-cache");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "candidates.jsonl"), "not-json\n", { encoding: "utf8" });
     expect(readAuditEntries(REPO, { auditLogPath: join(dir, "candidates.jsonl") })).toEqual([]);
@@ -558,7 +558,7 @@ describe("orphan helpers", () => {
 
   it("loads slice records from jsonl", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief", ".eval");
+    const dir = join(root, "vbrief", ".triage-cache");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "slices.jsonl"), `${JSON.stringify({ slice_id: "s1" })}\n`, {
       encoding: "utf8",
@@ -569,7 +569,7 @@ describe("orphan helpers", () => {
   it("resolveSlicesLogPath uses frameworkRoot by default", () => {
     const root = makeTempRoot();
     expect(resolveSlicesLogPath({ frameworkRoot: root })).toBe(
-      join(root, "vbrief", ".eval", "slices.jsonl"),
+      join(root, "vbrief", ".triage-cache", "slices.jsonl"),
     );
   });
 });

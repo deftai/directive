@@ -90,7 +90,7 @@ describe("scope main and context branches", () => {
 
   it("undoBatch returns empty message when no members", () => {
     root = mkdtempSync(join(tmpdir(), "undo-batch-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(canonicalLogPath(root), "", "utf8");
     const [count, , skipped] = undoBatch(newDecisionId(), root);
     expect(count).toBe(0);

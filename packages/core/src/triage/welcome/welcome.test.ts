@@ -27,8 +27,8 @@ describe("welcome prior state", () => {
 
   it("fully set up is silent after summary", () => {
     const root = mkdtempSync(join(tmpdir(), "welcome-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
-    writeFileSync(join(root, "vbrief", ".eval", "candidates.jsonl"), "");
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "");
     writeFileSync(
       join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
       JSON.stringify({
@@ -45,8 +45,8 @@ describe("welcome prior state", () => {
 
   it("default mode incomplete nudge", () => {
     const root = mkdtempSync(join(tmpdir(), "welcome-inc-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
-    writeFileSync(join(root, "vbrief", ".eval", "candidates.jsonl"), "");
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "");
     const lines: string[] = [];
     runDefaultMode(root, { output: (l) => lines.push(l), writeHistory: false });
     expect(lines.some((l) => l.includes("Onboarding incomplete"))).toBe(true);

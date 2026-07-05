@@ -211,7 +211,7 @@ describe("undoMain", () => {
   it("undoes latest demote entry", () => {
     root = mkdtempSync(join(tmpdir(), "undo-latest-"));
     mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const pending = join(root, "vbrief", "pending", "u.vbrief.json");
     writeFileSync(
       pending,

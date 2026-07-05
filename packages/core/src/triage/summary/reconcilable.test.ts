@@ -45,7 +45,7 @@ describe("countReconcilable", () => {
   it("excludes issues with existing audit entries", () => {
     const root = mkRoot();
     writeVbrief(root, "pending", "story", "https://github.com/deftai/directive/issues/99");
-    const logDir = join(root, "vbrief", ".eval");
+    const logDir = join(root, "vbrief", ".triage-cache");
     mkdirSync(logDir, { recursive: true });
     writeFileSync(
       join(logDir, "candidates.jsonl"),

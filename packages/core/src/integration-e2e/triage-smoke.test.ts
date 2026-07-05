@@ -11,7 +11,7 @@ import {
 import { makeTempRoot, populateCacheLayout, REPO } from "./helpers.js";
 
 function readCandidateAudit(root: string): Array<{ issue_number: number; decision: string }> {
-  const auditLog = join(root, "vbrief", ".eval", "candidates.jsonl");
+  const auditLog = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
   try {
     return readFileSync(auditLog, "utf8")
       .split("\n")
@@ -40,7 +40,7 @@ describe("integration-e2e triage smoke (mirrors test_triage_smoke.py)", () => {
       cacheRoot,
       cacheModule: createFilesystemCacheModule(),
       candidatesLogModule: createFilesystemCandidatesLogModule(
-        join(root, "vbrief", ".eval", "candidates.jsonl"),
+        join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
       ),
       actionsModule: actions,
       issuesProvider: undefined,
@@ -69,7 +69,7 @@ describe("integration-e2e triage smoke (mirrors test_triage_smoke.py)", () => {
       cacheRoot,
       cacheModule: createFilesystemCacheModule(),
       candidatesLogModule: createFilesystemCandidatesLogModule(
-        join(root, "vbrief", ".eval", "candidates.jsonl"),
+        join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
       ),
       actionsModule: actions,
       out: { write: () => {} },
@@ -98,7 +98,7 @@ describe("integration-e2e triage smoke (mirrors test_triage_smoke.py)", () => {
           cacheRoot: join(root, ".deft-cache"),
           cacheModule: createFilesystemCacheModule(),
           candidatesLogModule: createFilesystemCandidatesLogModule(
-            join(root, "vbrief", ".eval", "candidates.jsonl"),
+            join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
           ),
           actionsModule: {
             accept: () => {},

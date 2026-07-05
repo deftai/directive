@@ -1442,8 +1442,8 @@ describe("test_standards.py", () => {
   it("tools/telemetry.md no deprecated user path", () => {
     expect(readText("tools/telemetry.md").toLowerCase()).not.toContain("core/user.md");
   });
-  it("xbrief/.eval/README.md no deprecated user path", () => {
-    expect(readText("xbrief/.eval/README.md").toLowerCase()).not.toContain("core/user.md");
+  it("xbrief/.triage-cache/README.md no deprecated user path", () => {
+    expect(readText("xbrief/.triage-cache/README.md").toLowerCase()).not.toContain("core/user.md");
   });
   it("xbrief/.eval/_tmp_976_body_after.md no deprecated user path", () => {
     expect(readText("xbrief/.eval/_tmp_976_body_after.md").toLowerCase()).not.toContain(
@@ -2649,8 +2649,8 @@ describe("test_standards.py", () => {
   it("tools/telemetry.md no warping", () => {
     expect(readText("tools/telemetry.md").toLowerCase()).not.toContain("warping");
   });
-  it("xbrief/.eval/README.md no warping", () => {
-    expect(readText("xbrief/.eval/README.md").toLowerCase()).not.toContain("warping");
+  it("xbrief/.triage-cache/README.md no warping", () => {
+    expect(readText("xbrief/.triage-cache/README.md").toLowerCase()).not.toContain("warping");
   });
   it("xbrief/.eval/_tmp_976_body_after.md no warping", () => {
     expect(readText("xbrief/.eval/_tmp_976_body_after.md").toLowerCase()).not.toContain("warping");

@@ -32,7 +32,7 @@ export function validateNoRootDecompositionDrafts(vbriefDir: string): string[] {
     if (looksLikeDecompositionDraft(data)) {
       errors.push(
         `${path}: decomposition draft JSON must not live at workspace root; ` +
-          "write temporary proposals under vbrief/.eval/decompositions/",
+          "write temporary proposals under vbrief/.triage-cache/decompositions/",
       );
     }
   }

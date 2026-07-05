@@ -41,7 +41,7 @@ describe("scope exhaustive branches", () => {
 
   it("undo inverse for undo-of-demote and missing metadata", () => {
     root = mkdtempSync(join(tmpdir(), "ex-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const demoteId = newDecisionId();
     append(
@@ -96,7 +96,7 @@ describe("scope exhaustive branches", () => {
 
   it("undoMain latest finds nothing when log empty", () => {
     root = mkdtempSync(join(tmpdir(), "ex-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(canonicalLogPath(root), "", "utf8");
     expect(undoMain(["--latest", "--project-root", root])).toBe(1);
   });

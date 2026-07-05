@@ -15,9 +15,9 @@ describe("summary decision branches", () => {
   it("counts reject defer and reset as untriaged variants", () => {
     const root = mkdtempSync(join(tmpdir(), "sum-dec-"));
     for (const n of [1, 2, 3, 4]) writeCache(root, n);
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", ".eval", "candidates.jsonl"),
+      join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
       [
         { repo: "deftai/directive", issue_number: 1, decision: "reject" },
         { repo: "deftai/directive", issue_number: 2, decision: "defer" },

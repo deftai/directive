@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { resolveEvalPath } from "../layout/resolve.js";
+import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { CLEAN_WINDOW_HOURS, DIRTY_WINDOW_HOURS, ENV_STATE_PATH } from "./constants.js";
 import type { DoctorState, ThrottleDecision } from "./types.js";
 
@@ -13,7 +13,7 @@ export function statePath(projectRoot: string): string {
       ? join(process.env.HOME ?? projectRoot, override.slice(1))
       : override;
   }
-  return resolveEvalPath(projectRoot, STATE_FILENAME);
+  return resolveTriageCachePath(projectRoot, STATE_FILENAME);
 }
 
 function parseIso(ts: unknown): Date | null {
