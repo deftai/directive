@@ -5,10 +5,7 @@ import {
   resolveValueFeedback,
   type ValueFeedbackResolved,
 } from "../policy/value-feedback.js";
-import {
-  ATTRIBUTION_EVENT_NAMES,
-  type AttributionEventName,
-} from "./attribution-constants.js";
+import { ATTRIBUTION_EVENT_NAMES, type AttributionEventName } from "./attribution-constants.js";
 
 export {
   ALL_ATTRIBUTION_EVENT_NAMES,
