@@ -7,6 +7,12 @@ export {
   type WelcomeOutcome,
 } from "./default-mode.js";
 export {
+  DEFAULT_ONBOARD_PRESET,
+  type OnboardOptions,
+  type OnboardOutcome,
+  runOnboardMode,
+} from "./onboard.js";
+export {
   candidatesLogPath,
   classifyOnboarding,
   detectPriorState,
