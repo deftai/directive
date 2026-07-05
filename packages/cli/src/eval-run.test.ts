@@ -17,4 +17,9 @@ describe("eval-run CLI", () => {
       err.mockRestore();
     }
   });
+
+  it("rejects non-numeric seed values", () => {
+    const result = parseArgs(["--model", "composer", "--seed", "foo"]);
+    expect(result.error).toContain("expected an integer");
+  });
 });

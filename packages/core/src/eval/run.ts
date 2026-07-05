@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
 import { resolveEvalPath } from "../layout/resolve.js";
@@ -107,7 +108,7 @@ export interface RunGoldenEvalResult {
 function passRate(results: readonly GoldenTaskResult[], holdout: boolean): number {
   const subset = results.filter((r) => r.holdout === holdout);
   if (subset.length === 0) {
-    return 1;
+    return 0;
   }
   return subset.filter((r) => r.passed).length / subset.length;
 }
@@ -323,9 +324,8 @@ export function selectRotatingHoldoutTask(
   return holdouts[holdoutRotationIndex(directiveVersion, model, holdouts.length)] ?? null;
 }
 
-function seedTempDir(projectRoot: string, taskId: string, seed: number): string {
-  const base = join(projectRoot, ".golden-eval-scratch", `${taskId}-seed-${seed}`);
-  mkdirSync(base, { recursive: true });
+function seedTempDir(taskId: string, seed: number): string {
+  const base = mkdtempSync(join(tmpdir(), `deft-golden-${taskId}-seed-${seed}-`));
   mkdirSync(join(base, "xbrief"), { recursive: true });
   return base;
 }
@@ -369,9 +369,11 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
   }
 
   const results: GoldenTaskResult[] = [];
+  const scratchDirs: string[] = [];
   for (const task of tasksToRun) {
     for (const seed of seeds) {
-      const tempDir = seedTempDir(projectRoot, task.id, seed);
+      const tempDir = seedTempDir(task.id, seed);
+      scratchDirs.push(tempDir);
       const grade = task.grade({
         tempDir,
         seed,
@@ -386,6 +388,10 @@ export function runGoldenEval(options: RunGoldenEvalOptions): RunGoldenEvalResul
         metrics: grade.metrics,
       });
     }
+  }
+
+  for (const dir of scratchDirs) {
+    rmSync(dir, { recursive: true, force: true });
   }
 
   const summary = summarizeResults(results);

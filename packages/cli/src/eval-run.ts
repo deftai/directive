@@ -43,10 +43,19 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (value === undefined) {
         return { ...parsed, error: "argument --seed: expected one argument" };
       }
-      parsed.seeds.push(Number(value));
+      const seedNum = Number(value);
+      if (!Number.isFinite(seedNum)) {
+        return { ...parsed, error: `argument --seed: expected an integer, got: ${value}` };
+      }
+      parsed.seeds.push(seedNum);
       i += 1;
     } else if (arg?.startsWith("--seed=")) {
-      parsed.seeds.push(Number(arg.slice("--seed=".length)));
+      const rawSeed = arg.slice("--seed=".length);
+      const seedNum = Number(rawSeed);
+      if (!Number.isFinite(seedNum)) {
+        return { ...parsed, error: `argument --seed: expected an integer, got: ${rawSeed}` };
+      }
+      parsed.seeds.push(seedNum);
     } else if (arg === "--directive-version") {
       const value = argv[i + 1];
       if (value === undefined) {

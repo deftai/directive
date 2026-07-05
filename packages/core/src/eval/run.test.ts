@@ -3,17 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  evaluateHoldoutTripwire,
-  findLatestGoldenRun,
-  reportGoldenEval,
-  twoProportionZTest,
-} from "./report.js";
-import {
   GOLDEN_CORPUS,
-  type GoldenRunRecord,
   goldenRunsHistoryPath,
   holdoutRotationIndex,
-  persistGoldenRun,
   runGoldenEval,
   selectRotatingHoldoutTask,
 } from "./run.js";
