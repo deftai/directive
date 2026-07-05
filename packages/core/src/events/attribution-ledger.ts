@@ -1,17 +1,11 @@
 import { resolve } from "node:path";
-import {
-  type BehavioralEventRecord,
-  DEFAULT_EVENT_LOG,
-  emit,
-  readEvents,
-} from "../lifecycle/events.js";
+import { type BehavioralEventRecord, DEFAULT_EVENT_LOG, emit } from "../lifecycle/events.js";
 import {
   isValueFeedbackPathAllowed,
   resolveValueFeedback,
   type ValueFeedbackResolved,
 } from "../policy/value-feedback.js";
 import {
-  ALL_ATTRIBUTION_EVENT_NAMES,
   ATTRIBUTION_EVENT_NAMES,
   type AttributionEventName,
 } from "./attribution-constants.js";
@@ -25,8 +19,6 @@ export {
 
 /** Four value-attribution signal classes (#1709 RFC). */
 export type SignalClass = "value" | "bypass" | "adoption" | "friction";
-
-const ALL_ATTRIBUTION_NAMES = new Set<string>(ALL_ATTRIBUTION_EVENT_NAMES);
 
 export interface EmitAttributionOptions {
   readonly projectRoot: string;
@@ -59,13 +51,13 @@ export function emitAttributionSignal(
   payload: Record<string, unknown>,
   options: EmitAttributionOptions,
 ): BehavioralEventRecord | null {
-  const policy = options.policyOverride ?? resolveValueFeedback(options.projectRoot);
-  if (!isValueFeedbackPathAllowed("emitEvents", policy)) {
-    return null;
-  }
-  const signalClass = signalClassForEvent(name);
-  const logPath = resolveLedgerLogPath(options.projectRoot, options.logPath);
   try {
+    const policy = options.policyOverride ?? resolveValueFeedback(options.projectRoot);
+    if (!isValueFeedbackPathAllowed("emitEvents", policy)) {
+      return null;
+    }
+    const signalClass = signalClassForEvent(name);
+    const logPath = resolveLedgerLogPath(options.projectRoot, options.logPath);
     return emit(
       name,
       {
@@ -75,7 +67,7 @@ export function emitAttributionSignal(
       { logPath },
     );
   } catch {
-    // Telemetry is best-effort; disk failures must not interrupt gate callers (#1709).
+    // Telemetry is best-effort; any failure must not interrupt gate callers (#1709).
     return null;
   }
 }
@@ -148,18 +140,4 @@ export function recordFrictionSignal(
     { source, detail },
     { projectRoot, ...options },
   );
-}
-
-/** Read attribution ledger entries from the project events log. */
-export function readAttributionLedger(
-  projectRoot: string,
-  options: { logPath?: string | null } = {},
-): BehavioralEventRecord[] {
-  const logPath = resolveLedgerLogPath(projectRoot, options.logPath);
-  return readEvents(logPath).filter((record) => ALL_ATTRIBUTION_NAMES.has(record.event));
-}
-
-/** True when the event name belongs to the attribution ledger taxonomy. */
-export function isAttributionEventName(name: string): name is AttributionEventName {
-  return ALL_ATTRIBUTION_NAMES.has(name);
 }

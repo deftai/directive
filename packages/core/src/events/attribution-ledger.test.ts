@@ -3,19 +3,24 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { evaluate as evaluateBranch } from "../branch/evaluate.js";
-import { clearRegistryCache } from "../lifecycle/events.js";
+import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import { evaluate as evaluateWipCap } from "../wip-cap/evaluate.js";
+import { ALL_ATTRIBUTION_EVENT_NAMES, ATTRIBUTION_EVENT_NAMES } from "./attribution-constants.js";
 import {
-  ATTRIBUTION_EVENT_NAMES,
   emitAttributionSignal,
-  isAttributionEventName,
-  readAttributionLedger,
   recordAdoptionSignal,
   recordBypassSignal,
   recordFrictionSignal,
   recordGateCatch,
   recordWipCapProtect,
 } from "./attribution-ledger.js";
+
+const ATTRIBUTION_NAME_SET = new Set<string>(ALL_ATTRIBUTION_EVENT_NAMES);
+
+function readAttributionInTest(root: string, log?: string) {
+  const path = log ?? join(root, DEFAULT_EVENT_LOG);
+  return readEvents(path).filter((record) => ATTRIBUTION_NAME_SET.has(record.event));
+}
 
 const temps: string[] = [];
 
@@ -92,7 +97,7 @@ describe("attribution ledger policy gate", () => {
     const root = makeRepo({ valueFeedback: { enabled: true, emitEvents: true } });
     writeFileSync(join(root, ".deft-cache"), "not-a-directory", "utf8");
     expect(() => recordGateCatch(root, "verify:branch", "blocked")).not.toThrow();
-    expect(readAttributionLedger(root)).toHaveLength(0);
+    expect(readAttributionInTest(root)).toHaveLength(0);
   });
 });
 
@@ -108,12 +113,12 @@ describe("four signal classes", () => {
     recordAdoptionSignal(root, "decompose", "large diff unused", { logPath: log });
     recordFrictionSignal(root, "skill-router", "no skill matched", { logPath: log });
 
-    const entries = readAttributionLedger(root, { logPath: log });
+    const entries = readAttributionInTest(root, log);
     expect(entries).toHaveLength(4);
     const classes = entries.map((e) => e.payload.signal_class).sort();
     expect(classes).toEqual(["adoption", "bypass", "friction", "value"]);
     for (const entry of entries) {
-      expect(isAttributionEventName(entry.event)).toBe(true);
+      expect(ATTRIBUTION_NAME_SET.has(entry.event)).toBe(true);
     }
   });
 
@@ -134,7 +139,7 @@ describe("wired gate sources", () => {
     const log = logPath(root);
     const result = evaluateBranch(root, { branchOverride: { branch: "master", detached: false } });
     expect(result.exitCode).toBe(1);
-    const entries = readAttributionLedger(root, { logPath: log });
+    const entries = readAttributionInTest(root, log);
     expect(entries).toHaveLength(1);
     expect(entries[0]?.event).toBe("value:gate-catch");
     expect(entries[0]?.payload.source).toBe("verify:branch");
@@ -145,7 +150,7 @@ describe("wired gate sources", () => {
     writeFileSync(join(root, ".deft-cache"), "not-a-directory", "utf8");
     const result = evaluateBranch(root, { branchOverride: { branch: "master", detached: false } });
     expect(result.exitCode).toBe(1);
-    expect(readAttributionLedger(root)).toHaveLength(0);
+    expect(readAttributionInTest(root)).toHaveLength(0);
   });
 
   it("wip-cap gate records value:wip-cap-protect when over cap", () => {
@@ -173,7 +178,7 @@ describe("wired gate sources", () => {
     const log = logPath(root);
     const result = evaluateWipCap(root);
     expect(result.code).toBe(1);
-    const entries = readAttributionLedger(root, { logPath: log });
+    const entries = readAttributionInTest(root, log);
     expect(entries).toHaveLength(1);
     expect(entries[0]?.event).toBe("value:wip-cap-protect");
     expect(entries[0]?.payload.count).toBe(2);
@@ -196,22 +201,22 @@ describe("wired gate sources", () => {
     const log = logPath(root);
     evaluateBranch(root, { branchOverride: { branch: "master", detached: false } });
     evaluateWipCap(root);
-    expect(readAttributionLedger(root, { logPath: log })).toHaveLength(0);
+    expect(readAttributionInTest(root, log)).toHaveLength(0);
   });
 });
 
 describe("ledger persistence", () => {
-  it("appends entries that survive readAttributionLedger across calls", () => {
+  it("appends entries that survive reads across calls", () => {
     const root = makeRepo({ valueFeedback: { enabled: true, emitEvents: true } });
     const log = logPath(root);
     recordWipCapProtect(root, 3, 2, { logPath: log });
     recordGateCatch(root, "verify:branch", "second", { logPath: log });
 
-    const firstRead = readAttributionLedger(root, { logPath: log });
+    const firstRead = readAttributionInTest(root, log);
     expect(firstRead).toHaveLength(2);
 
     const raw = readFileSync(log, "utf8").trim().split("\n");
     expect(raw).toHaveLength(2);
-    expect(readAttributionLedger(root, { logPath: log })).toEqual(firstRead);
+    expect(readAttributionInTest(root, log)).toEqual(firstRead);
   });
 });
