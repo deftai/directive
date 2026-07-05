@@ -365,10 +365,14 @@ export function runSessionStart(
     lines.push(MIGRATE_COMPLETION_NUDGE);
   }
 
-  emitSessionValueReadback(projectRoot, {
-    output: (line) => lines.push(line),
-    writeHistory: true,
-  });
+  try {
+    emitSessionValueReadback(projectRoot, {
+      output: (line) => lines.push(line),
+      writeHistory: options.writeHistory !== false,
+    });
+  } catch {
+    // observability only — session start must not abort on transient readback I/O
+  }
 
   const payload = newRitualStatePayload({
     sessionId: (options.newSessionId ?? randomUUID)(),

@@ -19,6 +19,18 @@ import {
 
 const temps: string[] = [];
 
+// `JSON.parse` returns top-level `null` (not a throw) for the literal `null`,
+// so a guarded parse keeps property reads from blowing up with a TypeError.
+function parseJsonObject(text: string): Record<string, unknown> {
+  const value: unknown = JSON.parse(text);
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      `expected a JSON object payload, received ${value === null ? "null" : typeof value}`,
+    );
+  }
+  return value as Record<string, unknown>;
+}
+
 afterAll(() => {
   for (const t of temps) {
     rmSync(t, { recursive: true, force: true });
@@ -279,12 +291,8 @@ describe("debounce history persistence", () => {
     renderSessionReadback(root, { now: new Date("2026-07-05T10:00:00Z") });
     const hist = join(root, VALUE_READBACK_HISTORY_REL);
     expect(existsSync(hist)).toBe(true);
-    const raw = JSON.parse(readFileSync(hist, "utf8").trim()) as unknown;
-    expect(typeof raw).toBe("object");
-    expect(raw).not.toBeNull();
-    expect(Array.isArray(raw)).toBe(false);
-    const parsed = raw as { event_id: string; line: string };
+    const parsed = parseJsonObject(readFileSync(hist, "utf8").trim());
     expect(parsed.event_id).toBe("evt-0");
-    expect(parsed.line.length).toBeGreaterThan(0);
+    expect(String(parsed.line).length).toBeGreaterThan(0);
   });
 });

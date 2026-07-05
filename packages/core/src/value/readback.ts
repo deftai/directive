@@ -87,6 +87,9 @@ export function readAttributionEvents(options: ReadAttributionOptions): Behavior
       if (typeof record?.event !== "string" || !ATTRIBUTION_NAME_SET.has(record.event)) {
         return false;
       }
+      if (!isRecordPayload(record.payload)) {
+        return false;
+      }
       if (since === null) {
         return true;
       }
@@ -99,9 +102,12 @@ export function readAttributionEvents(options: ReadAttributionOptions): Behavior
 }
 
 function signalClassOf(record: BehavioralEventRecord): SignalClass | null {
-  const raw = record.payload.signal_class;
-  if (raw === "value" || raw === "bypass" || raw === "adoption" || raw === "friction") {
-    return raw;
+  const payload = record.payload;
+  if (isRecordPayload(payload)) {
+    const raw = payload.signal_class;
+    if (raw === "value" || raw === "bypass" || raw === "adoption" || raw === "friction") {
+      return raw;
+    }
   }
   const prefix = record.event.split(":")[0];
   if (prefix === "value" || prefix === "bypass" || prefix === "adoption" || prefix === "friction") {
@@ -142,7 +148,7 @@ function payloadString(payload: Record<string, unknown>, key: string): string {
 /** Format one attributed session line from a concrete ledger event (#1709 attributed-only). */
 export function formatAttributedSessionLine(record: BehavioralEventRecord): string {
   const cls = signalClassOf(record) ?? "value";
-  const payload = record.payload;
+  const payload = isRecordPayload(record.payload) ? record.payload : {};
   const source = payloadString(payload, "source");
   const detail = payloadString(payload, "detail");
   const capability = payloadString(payload, "capability");
@@ -194,6 +200,22 @@ export function selectSessionAttribution(
   return sorted[0] ?? null;
 }
 
+function parseJsonObjectOrNull(text: string): Record<string, unknown> | null {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // malformed history line
+  }
+  return null;
+}
+
+function isRecordPayload(payload: unknown): payload is Record<string, unknown> {
+  return payload !== null && typeof payload === "object" && !Array.isArray(payload);
+}
+
 function historyPath(projectRoot: string): string {
   return resolve(projectRoot, VALUE_READBACK_HISTORY_REL);
 }
@@ -216,15 +238,7 @@ function readLastHistoryRecord(path: string): Record<string, unknown> | null {
   if (last === undefined) {
     return null;
   }
-  try {
-    const parsed = JSON.parse(last) as unknown;
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    return null;
-  }
-  return null;
+  return parseJsonObjectOrNull(last);
 }
 
 function parseHistoryEmittedAt(record: Record<string, unknown>): Date | null {
