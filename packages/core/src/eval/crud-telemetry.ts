@@ -39,28 +39,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Edit distance between two UTF-8 strings (Levenshtein). */
+/** Edit distance between two UTF-8 strings (Levenshtein, two-row). */
 function levenshteinDistance(before: string, after: string): number {
-  const rows = before.length + 1;
-  const cols = after.length + 1;
-  const matrix: number[][] = Array.from({ length: rows }, (_, row) =>
-    Array.from({ length: cols }, (_, col) => (row === 0 ? col : col === 0 ? row : 0)),
-  );
-  for (let row = 1; row < rows; row += 1) {
-    for (let col = 1; col < cols; col += 1) {
-      const cost = before[row - 1] === after[col - 1] ? 0 : 1;
-      const prevRow = matrix[row - 1];
-      const currRow = matrix[row];
-      if (prevRow === undefined || currRow === undefined) {
-        continue;
-      }
-      const up = prevRow[col] ?? 0;
-      const left = currRow[col - 1] ?? 0;
-      const diag = prevRow[col - 1] ?? 0;
-      currRow[col] = Math.min(up + 1, left + 1, diag + cost);
-    }
+  if (before === after) {
+    return 0;
   }
-  return matrix[before.length]?.[after.length] ?? 0;
+  if (before.length === 0) {
+    return after.length;
+  }
+  if (after.length === 0) {
+    return before.length;
+  }
+
+  let prev = Array.from({ length: after.length + 1 }, (_, index) => index);
+  let curr = new Array<number>(after.length + 1).fill(0);
+
+  for (let row = 1; row <= before.length; row += 1) {
+    curr[0] = row;
+    for (let col = 1; col <= after.length; col += 1) {
+      const cost = before[row - 1] === after[col - 1] ? 0 : 1;
+      const up = prev[col] ?? 0;
+      const left = curr[col - 1] ?? 0;
+      const diag = prev[col - 1] ?? 0;
+      curr[col] = Math.min(up + 1, left + 1, diag + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+
+  return prev[after.length] ?? 0;
 }
 
 /** Ratio of edit distance to the longer string length. */
@@ -238,7 +244,7 @@ export class InstrumentedVbriefCrud {
     return { ok: true, content };
   }
 
-  update(path: string, content: string): CrudResult {
+  update(path: string, content: string, options: { trustedWrite?: boolean } = {}): CrudResult {
     const previousBytes = existsSync(path) ? readFileSync(path, "utf8") : null;
 
     let parsed: unknown;
@@ -277,7 +283,7 @@ export class InstrumentedVbriefCrud {
       byteDiffChangedRatio,
     });
 
-    if (!assessment.schemaValid) {
+    if (!assessment.schemaValid && !options.trustedWrite) {
       return { ok: false, error: assessment.schemaErrors.join("; ") };
     }
 
@@ -315,7 +321,8 @@ export class InstrumentedVbriefCrud {
         byteDiffMinimality: null,
         byteDiffChangedRatio: null,
       });
-      return { ok: false, error: message };
+      unlinkSync(path);
+      return { ok: true };
     }
 
     const assessment = assessDocument(path, parsed);

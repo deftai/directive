@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -162,6 +162,17 @@ describe("InstrumentedVbriefCrud", () => {
     expect(metric?.schemaValid).toBe(true);
     expect(metric?.fieldInventionCount).toBe(1);
     expect(metric?.inventedKeys).toContain("agentInventedField");
+  });
+
+  it("deletes corrupt JSON files for cleanup", () => {
+    const { crud, filePath } = makeCrud();
+
+    writeFileSync(filePath, "{not-json", "utf8");
+    expect(crud.delete(filePath).ok).toBe(true);
+    expect(existsSync(filePath)).toBe(false);
+
+    const metric = crud.getMetrics()[0];
+    expect(metric?.schemaValid).toBe(false);
   });
 
   it("persists byte-diff minimality distinguishing surgical updates from whole-file rewrites", () => {

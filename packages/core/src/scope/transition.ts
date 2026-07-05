@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { InstrumentedVbriefCrud } from "../eval/crud-telemetry.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
@@ -116,7 +117,12 @@ export function runTransition(
     stampCompletionMetadata(planObj, projectRoot, nowIso);
   }
 
-  writeFileSync(resolvedPath, formatVbriefJson(data), "utf8");
+  const formatted = formatVbriefJson(data);
+  const crud = new InstrumentedVbriefCrud({ now: () => now });
+  const writeResult = crud.update(resolvedPath, formatted, { trustedWrite: true });
+  if (!writeResult.ok) {
+    return { ok: false, message: writeResult.error ?? `CRUD update failed for ${resolvedPath}` };
+  }
 
   if (targetFolder !== null) {
     const vbriefRoot = dirname(dirname(resolvedPath));
