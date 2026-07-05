@@ -248,6 +248,12 @@ includes:
   triage-smoketest:
     taskfile: ./tasks/triage-smoketest.yml
     optional: true
+  # D17 (#1709): `task triage:metrics` trend readout from summary-history.jsonl.
+  # Inner task `metrics` is exposed as the user-facing alias `task triage:metrics`
+  # in the alias block below.
+  triage-metrics:
+    taskfile: ./tasks/triage-metrics.yml
+    optional: true
   # Windows maintainer onboarding fragment (#902). Exposes the inner task
   # `toolchain` as `task setup:toolchain`. Note: the root-level `setup` task
   # below (git-hooks bootstrap) coexists with `setup:toolchain` because
@@ -304,6 +310,11 @@ includes:
   # confirmation-gated, deduped framework-gap issues for consumer projects.
   feedback:
     taskfile: ./tasks/feedback.yml
+    optional: true
+  # Pull-based value-awareness readbacks (#1709). Inner task `show` is exposed as
+  # `task value:show` via the include namespace key.
+  value:
+    taskfile: ./tasks/value.yml
     optional: true
   # Pack-slicing surface (#1283 design, #1294 pilot, ADR-001 Layer B). Exposes
   # `task packs:slice` (named-slice API), `task packs:render` (regenerate the
@@ -861,6 +872,13 @@ tasks:
     desc: "Emit the one-line triage state for the session-start ritual (D2 / #1122). Always exits 0; appends a JSONL record to vbrief/.eval/summary-history.jsonl. -- task triage:summary -- [--json] [--no-history]"
     cmds:
       - task: triage-summary:summary
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:metrics:
+    desc: "Trend lines from summary-history.jsonl (#1709 / D17). -- task triage:metrics -- [--window=7d|30d] [--format=text|json]"
+    cmds:
+      - task: triage-metrics:metrics
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 

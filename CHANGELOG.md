@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Maintainer `task` aliases for value feedback: `task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` now resolve through the Taskfile instead of failing with "task not found", matching the documented AGENTS.md surface. Refs #2337.
+
 ### Added
 
 - Budgeted value-awareness readbacks: when value feedback is enabled, session start can show one attributed line from the local ledger (silent when empty), and `task value:show` reports attribution trends on demand — also available as `task triage:metrics`. Refs #1709.

@@ -52,6 +52,16 @@ tasks:
         vars:
           ENGINE_CMD: 'policy allow-direct-commits --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  enable-value-feedback:
+    desc: "Opt in to value-feedback surfaces (#1709). Requires --confirm after the capability-cost disclosure prints. -- task policy:enable-value-feedback -- [--confirm] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy enable-value-feedback --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   wip-cap:
     desc: "Set plan.policy.wipCap=N (#1124 / D4 of #1119). Requires --set N --confirm. Default cap is 20 (#2319; raised from the original 10 per umbrella #1119 Current Shape v3)."
     dir: '{{.USER_WORKING_DIR}}'

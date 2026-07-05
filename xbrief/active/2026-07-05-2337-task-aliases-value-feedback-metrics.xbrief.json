@@ -1,0 +1,48 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2337 — missing Taskfile aliases for value-feedback / metrics commands."
+  },
+  "plan": {
+    "id": "2337-task-aliases",
+    "title": "Add Taskfile aliases for policy:enable-value-feedback, value:show, triage:metrics",
+    "status": "running",
+    "narratives": {
+      "Description": "Several documented value-feedback commands exist on the deft CLI but lack tasks/*.yml wrappers, so `task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` fail with task not found. Add the missing Taskfile entries forwarding {{.CLI_ARGS}} to the engine and a contract test guarding the value/metrics surface.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2337",
+      "UserStory": "As a directive maintainer following AGENTS.md, I want documented `task` forms for value-feedback commands to resolve, so printed instructions work without switching to the deft binary.",
+      "ImplementationPlan": "1. Add `enable-value-feedback` to tasks/policy.yml. 2. Add tasks/value.yml with `show`. 3. Add tasks/triage-metrics.yml plus root `triage:metrics` alias in Taskfile.yml. 4. Add deterministic contract test for documented value/metrics task names. 5. CHANGELOG [Unreleased] entry; run task check.",
+      "Traces": "#2337, #1709"
+    },
+    "items": [
+      {
+        "id": "2337-a1-aliases",
+        "title": "Taskfile aliases resolve for all three commands",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "`task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` are listed by go-task and forward CLI_ARGS to the engine."
+        }
+      },
+      {
+        "id": "2337-a2-contract",
+        "title": "Contract test guards value/metrics task surface",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A deterministic test fails when any documented value-feedback `task` name from AGENTS.md / templates is missing from the Taskfile surface."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2337",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2337: Missing Taskfile aliases for policy:enable-value-feedback / value:show / triage:metrics"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "agentic-debt"
+    },
+    "updated": "2026-07-05T23:13:28Z"
+  }
+}
