@@ -1,6 +1,10 @@
 import { readPlanPolicy } from "./plan-extensions.js";
 import { coerceLegacyNarrative, LEGACY_NARRATIVE_KEY, loadProjectDefinition } from "./resolve.js";
-import { inspectValueFeedback } from "./value-feedback.js";
+import {
+  FIELD_VALUE_FEEDBACK,
+  FIELD_VALUE_FEEDBACK_CLI_ALIAS,
+  inspectValueFeedback,
+} from "./value-feedback.js";
 import { DEFAULT_WIP_CAP } from "./wip.js";
 
 export * from "./agents-md-advisory.js";
@@ -294,10 +298,14 @@ export function inspectAllPolicies(projectRoot: string): PolicyField[] {
   return REGISTERED_POLICIES.map((inspect) => inspect(data));
 }
 
-/** Look up a single registered field by canonical dotted-path name. */
+/** Look up a single registered field by canonical dotted-path name (or CLI alias). */
 export function inspectOnePolicy(name: string, projectRoot: string): PolicyField | null {
+  const normalized =
+    name === FIELD_VALUE_FEEDBACK_CLI_ALIAS || name === "valueFeedback"
+      ? FIELD_VALUE_FEEDBACK
+      : name;
   for (const field of inspectAllPolicies(projectRoot)) {
-    if (field.name === name) return field;
+    if (field.name === normalized) return field;
   }
   return null;
 }

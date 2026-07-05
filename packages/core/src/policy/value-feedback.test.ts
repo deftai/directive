@@ -7,6 +7,7 @@ import {
   DEFAULT_VALUE_FEEDBACK_ENABLED,
   enableValueFeedback,
   FIELD_VALUE_FEEDBACK,
+  FIELD_VALUE_FEEDBACK_CLI_ALIAS,
   inspectValueFeedback,
   isValueFeedbackPathAllowed,
   resolveValueFeedback,
@@ -218,7 +219,7 @@ describe("policy:show --field=valueFeedback reader", () => {
         },
       },
     });
-    const field = inspectOnePolicy(FIELD_VALUE_FEEDBACK, root);
+    const field = inspectOnePolicy(FIELD_VALUE_FEEDBACK_CLI_ALIAS, root);
     expect(field).not.toBeNull();
     expect(field?.name).toBe(FIELD_VALUE_FEEDBACK);
     expect(field?.current).toEqual({

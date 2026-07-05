@@ -6,11 +6,11 @@ import {
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
 
-/** Canonical `policy:show --field=` name (#1709). */
-export const FIELD_VALUE_FEEDBACK = "valueFeedback";
+/** Canonical registered policy field name (matches other FIELD_* dotted paths). */
+export const FIELD_VALUE_FEEDBACK = "plan.policy.valueFeedback";
 
-/** Dotted path for documentation and validation messages. */
-export const FIELD_VALUE_FEEDBACK_DOTTED = "plan.policy.valueFeedback";
+/** Short alias accepted by `policy:show --field=valueFeedback` (#1709). */
+export const FIELD_VALUE_FEEDBACK_CLI_ALIAS = "valueFeedback";
 
 export const DEFAULT_VALUE_FEEDBACK_ENABLED = false;
 
@@ -45,7 +45,8 @@ export const VALUE_FEEDBACK_CAPABILITY_COST_DISCLOSURE =
   "  \u2022 A budgeted session one-liner may appear when concrete attributed value exists.\n" +
   "  \u2022 Upstream gap-escalation prompts stay OFF unless you explicitly enable " +
   "`upstreamPrompt` (GitHub attention + token cost).\n" +
-  "  \u2022 Inspect or disable anytime: `task policy:show --field=valueFeedback`.\n" +
+  "  \u2022 Inspect current state: `task policy:show --field=valueFeedback`.\n" +
+  "  \u2022 Reversible: set `enabled: false` under the typed policy block in PROJECT-DEFINITION.\n" +
   "  \u2022 Changes are recorded to meta/policy-changes.log for auditability.";
 
 function defaultResolved(
@@ -82,13 +83,13 @@ export function validateValueFeedback(value: unknown): string[] {
     return [];
   }
   if (typeof value !== "object" || Array.isArray(value)) {
-    return [`${FIELD_VALUE_FEEDBACK_DOTTED} must be an object; got ${typeof value}`];
+    return [`${FIELD_VALUE_FEEDBACK} must be an object; got ${typeof value}`];
   }
   const rec = value as Record<string, unknown>;
   const errors: string[] = [];
   for (const key of ["enabled", "emitEvents", "sessionLine", "upstreamPrompt"] as const) {
     if (key in rec && typeof rec[key] !== "boolean") {
-      errors.push(`${FIELD_VALUE_FEEDBACK_DOTTED}.${key} must be a boolean`);
+      errors.push(`${FIELD_VALUE_FEEDBACK}.${key} must be a boolean`);
     }
   }
   return errors;
@@ -331,7 +332,7 @@ export function enableValueFeedback(
 
     const resolved = resolveValueFeedback(projectRoot);
     const lines = [
-      `\u2713 ${FIELD_VALUE_FEEDBACK_DOTTED}.enabled=true (value-feedback ON).`,
+      `\u2713 ${FIELD_VALUE_FEEDBACK}.enabled=true (value-feedback ON).`,
       changed
         ? "  audit: meta/policy-changes.log updated."
         : "  no-op: value already matched (audit entry still appended for trail).",
