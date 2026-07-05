@@ -12,3 +12,21 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'eval:health --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  run:
+    desc: "Tier 2 golden corpus champion-challenger eval (#1703). -- task eval:run -- --model MODEL [--seed N] [--directive-version V] [--harness NAME] [--json] [--no-persist] [--project-root PATH]"
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'eval:run --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  report:
+    desc: "Tier 2 version-diff report with significance (#1703). -- task eval:report -- --champion V --challenger V --model MODEL [--json] [--project-root PATH]"
+    deps:
+      - task: :engine:_ts-build
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'eval:report --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

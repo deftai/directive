@@ -6,7 +6,7 @@
   "plan": {
     "id": "1703-tier2-golden-eval",
     "title": "Tier 2 synthetic golden-task champion-challenger eval",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Build a fixed corpus of spec-to-expected-outcome tasks with automated graders, run as champion-challenger with pinned model and harness across N seeds and pre-registered thresholds. This gates releases rather than commits, and never trusts stored baselines across model changes.",
       "ImplementationPlan": "- Add an eval:run module that executes the golden corpus per model and seed and writes results to the versioned .eval results ledger.\n- Add an eval:report command diffing two versions with significance and tests using a small fixture corpus and a rotating holdout.",
@@ -64,7 +64,9 @@
         "size": "XL",
         "file_scope_confidence": "medium",
         "model_tier": "deep"
-      }
+      },
+      "completedAt": "2026-07-05T20:57:40Z",
+      "capacityBucket": "cognitive-debt"
     },
     "references": [
       {
@@ -79,6 +81,7 @@
         "title": "Issue #1703 Tier 2: synthetic golden-task eval",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T20:57:40Z"
   }
 }

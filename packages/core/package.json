@@ -90,6 +90,14 @@
       "types": "./dist/events/attribution-ledger.d.ts",
       "default": "./dist/events/attribution-ledger.js"
     },
+    "./eval/run": {
+      "types": "./dist/eval/run.d.ts",
+      "default": "./dist/eval/run.js"
+    },
+    "./eval/report": {
+      "types": "./dist/eval/report.d.ts",
+      "default": "./dist/eval/report.js"
+    },
     "./triage": {
       "types": "./dist/triage/index.d.ts",
       "default": "./dist/triage/index.js"

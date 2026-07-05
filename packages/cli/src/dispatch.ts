@@ -152,6 +152,8 @@ export const CLI_MODULE_VERBS = [
   "verify-agents-md-budget",
   "verify-agents-md-advisory",
   "eval-health",
+  "eval-run",
+  "eval-report",
 ] as const;
 
 /** Core-only CLI entrypoints without a packages/cli wrapper. */
@@ -272,6 +274,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   doctor: "doctor",
   "eval:health": "eval-health",
   "feedback:file": "feedback-file",
+  "eval:run": "eval-run",
+  "eval:report": "eval-report",
   build: "framework-commands",
   "setup:ghx": "setup-ghx",
 };
