@@ -1,0 +1,42 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #2302 item 3: make triage:welcome --onboard / --preset / --wip-cap discoverable in --help / usage",
+    "updated": "2026-07-05T15:18:28Z"
+  },
+  "plan": {
+    "title": "#2302 item 3: triage:welcome onboarding flags discoverable in help/usage",
+    "status": "running",
+    "narratives": {
+      "Overview": "The final remaining slice of #2302 (items 1 & 2 shipped in PR #2304). The --onboard / --preset / --wip-cap flags implemented by PR #2300 are not discoverable in --help / usage listings. Surface them in the triage help registry (source scripts/triage_help.py, regenerated into packages/core/src/triage/help/registry-data.ts) and the triage-welcome CLI usage text. Closing #2302 lets the #2295 tracker close (its other child #2301 is already closed).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2302"
+    },
+    "items": [
+      {
+        "title": "Add --onboard / --preset / --wip-cap flags to the triage:welcome help registry entry (scripts/triage_help.py) and regenerate registry-data.ts",
+        "status": "proposed"
+      },
+      {
+        "title": "Surface the onboarding flags in the triage-welcome CLI --help / usage text",
+        "status": "proposed"
+      },
+      {
+        "title": "After PR merges, close #2302; verify #2295 tracker closes",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2302",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2302: bug(triage,docs): triage:welcome papercuts"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2295",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2295: triage:welcome --onboard tracker (P1 done, P3 remaining)"
+      }
+    ],
+    "updated": "2026-07-05T15:18:26Z"
+  }
+}
