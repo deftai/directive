@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The frozen pre-v0.20 migration path is now durable-by-documentation. `deft doctor` / `task migrate:preflight` guidance and UPGRADING.md now anchor recovery on the permanent `v0.59.0` git tag (GitHub serves a source tarball for any tag, so recovery no longer hinges on an uploaded release asset), spell out the two-hop migration chain (pre-v0.20 flat → vBRIEF v0.6 → xBRIEF), and add a manual `directive init` fresh-start fallback for when the frozen payload is unreachable. Closes #2297.
+
 ### Fixed
 
 ### Removed

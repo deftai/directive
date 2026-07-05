@@ -1,0 +1,75 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2297: make the frozen pre-v0.20 migration path durable and self-documenting (git-tag anchor, best-effort horizon, two-hop chain, manual fresh-start fallback) without vendoring the migrator bundle.",
+    "created": "2026-07-05T12:30:00Z",
+    "updated": "2026-07-05T12:30:00Z"
+  },
+  "plan": {
+    "id": "2297-durable-prev020-migration",
+    "title": "Durable, self-documenting frozen pre-v0.20 migration path (cheap-durable variant)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2297",
+    "narratives": {
+      "Description": "The pre-v0.20 document-model migrator (`migrate_vbrief.py`) was removed from current npm deposits; the only way to run it is to pin framework v0.59.0. The real permanence dependency is the v0.59.0 git tag (GitHub generates source tarballs from tags on demand), not any uploaded release asset. Rather than vendor a heavyweight migrator bundle (dropped Option 1), make the path durable-by-documentation: frame support as best-effort, anchor on the git tag, spell out the two-hop chain (pre-v0.20 flat -> vBRIEF v0.6 -> xBRIEF v0.8), and give operators a manual fresh-start fallback (`directive init`) for when the frozen payload is unavailable. The one code change extends the shared frozen-migration guidance string so `task migrate:preflight` and `deft doctor` both surface the fresh-start fallback.",
+      "ImplementationPlan": "1. Extend `frozenPreCutoverMigrationGuidance()` in packages/core/src/vbrief-validate/precutover.ts to frame the path as best-effort, cite the git-tag anchor, mention the two-hop chain, and add the manual fresh-start fallback (`directive init`) as the last resort. Keep the existing v0.59.0 + #2068 citations. 2. Update precutover.test.ts to assert the new guidance content (fresh-start fallback + two-hop). 3. Rewrite content/UPGRADING.md 'Frozen pre-v0.20 document-model migration (#2068)' section: add a durability/support-horizon note anchored on the git tag, prefer the source-tag/clone deposit method, document the two-hop chain, and add a 'Fresh-start fallback' subsection. Tag protection (protecting the v0.59.0 tag) is an operator/repo-admin action called out in the PR, not a code change.",
+      "UserStory": "As a maintainer of a very old (pre-v0.20) directive project, I want the frozen migration path to be durable and to tell me exactly what to do if the frozen payload is ever unavailable, so that I am never stranded with an unmigratable project.",
+      "Traces": "#2297, #2068, #2022, #1912"
+    },
+    "items": [
+      {
+        "id": "2297-a1",
+        "title": "Given a pre-cutover project, when preflight/doctor emit frozen guidance, then it names a manual fresh-start fallback",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the shared frozen-migration guidance, when rendered by `task migrate:preflight` or `deft doctor`, then it frames support as best-effort, cites the v0.59.0 git tag, and points at a manual `directive init` fresh-start fallback when the frozen payload is unavailable."
+        }
+      },
+      {
+        "id": "2297-a2",
+        "title": "Given UPGRADING.md, when a reader reaches the frozen section, then durability, the two-hop chain, and the fresh-start fallback are documented",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given content/UPGRADING.md, when a reader reaches the Frozen pre-v0.20 section, then it explains the git-tag durability anchor + best-effort horizon, the two-hop migration chain, and a fresh-start fallback subsection."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2297"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-validate/precutover.ts",
+          "packages/core/src/vbrief-validate/precutover.test.ts",
+          "content/UPGRADING.md"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core vitest run src/vbrief-validate/ src/migrate-preflight/",
+          "task check"
+        ],
+        "expected_outputs": [
+          "frozen-migration guidance surfaces a fresh-start fallback; UPGRADING.md documents durability, two-hop chain, and fresh-start"
+        ],
+        "depends_on": [],
+        "conflict_group": "prev020-migration-docs",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-05T12:29:40Z",
+      "capacityBucket": "technical-debt"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2297",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2297: durable pre-v0.20 migrator path"
+      }
+    ],
+    "updated": "2026-07-05T12:29:40Z"
+  }
+}
