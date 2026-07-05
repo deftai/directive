@@ -14,7 +14,7 @@ data-file-convention check follow-up
 
 - `registry.json` — single source of truth for every event name, category,
   payload contract, detector / emission pointer, and consumer pointers.
-  Lists 5 `detection-bound` events and 4 `behavioral` events (9 total).
+  Lists 5 `detection-bound` events and 9 `behavioral` events (14 total).
 - `registry.schema.json` — schema validating the registry's shape, including
   the required `category` enum (`detection-bound` | `behavioral`).
 - `event-record.schema.json` — schema for individual emitted event records.

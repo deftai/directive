@@ -161,6 +161,83 @@
         "scripts/migrate_vbrief.py -- wires the emitter into all three _emit_legacy_artifacts call sites (SPECIFICATION / PROJECT / PRD captures)",
         "(deferred -- no downstream handler in this PR; future migrate:vbrief audit reporting and consumer-facing legacy-handling skills will subscribe by name)"
       ]
+    },
+    {
+      "name": "value:gate-catch",
+      "category": "behavioral",
+      "description": "A detection-bound gate refused an action (branch protection, session ritual, encoding, etc.) while value feedback is enabled. Powers attributed value readbacks (#1709).",
+      "trigger": "packages/core/src/events/attribution-ledger.ts::recordGateCatch when verify:branch (or other wired gate) returns a blocking exit and plan.policy.valueFeedback.emitEvents is allowed.",
+      "payload": {
+        "signal_class": "string enum -- always `value` for this event name",
+        "source": "string -- canonical gate id (e.g. verify:branch)",
+        "detail": "string -- one-line human context for the catch"
+      },
+      "consumers": [
+        "packages/core/src/events/attribution-ledger.ts -- emit helper gated on valueFeedback",
+        "(deferred) skills/deft-directive-sync -- budgeted session readback (#1709 child 4)"
+      ]
+    },
+    {
+      "name": "value:wip-cap-protect",
+      "category": "behavioral",
+      "description": "verify:wip-cap refused a merge/promote because pending+active count exceeds plan.policy.wipCap (#1124).",
+      "trigger": "packages/core/src/wip-cap/evaluate.ts when count >= cap without --allow-over-cap and valueFeedback emitEvents is allowed.",
+      "payload": {
+        "signal_class": "string enum -- always `value`",
+        "source": "string -- verify:wip-cap",
+        "count": "integer -- in-flight scope count",
+        "cap": "integer -- resolved wipCap"
+      },
+      "consumers": [
+        "packages/core/src/events/attribution-ledger.ts::recordWipCapProtect",
+        "(deferred) task deft:value:show trend readout (#1709 child 4)"
+      ]
+    },
+    {
+      "name": "bypass:off-flow",
+      "category": "behavioral",
+      "description": "Consumer went off-flow (skipped checks, wrote code without active vBRIEF, skipped pre-PR, etc.) while value feedback is enabled.",
+      "trigger": "packages/core/src/events/attribution-ledger.ts::recordBypassSignal from wired bypass detectors (initial taxonomy entry; sources land in follow-up stories).",
+      "payload": {
+        "signal_class": "string enum -- always `bypass`",
+        "source": "string -- detector id",
+        "detail": "string -- one-line context"
+      },
+      "consumers": [
+        "packages/core/src/events/attribution-ledger.ts",
+        "(deferred) boundary-awareness readback (#1709 child 4)"
+      ]
+    },
+    {
+      "name": "adoption:unused-capability",
+      "category": "behavioral",
+      "description": "Directive capability was applicable to the current work but unused (decompose, cost, pre-PR, etc.).",
+      "trigger": "packages/core/src/events/attribution-ledger.ts::recordAdoptionSignal and future adoption-registry module (#1709 child 3).",
+      "payload": {
+        "signal_class": "string enum -- always `adoption`",
+        "source": "string -- registry module id",
+        "capability": "string -- capability slug (e.g. decompose, pre-pr)",
+        "detail": "string -- one-line applicability context"
+      },
+      "consumers": [
+        "packages/core/src/events/attribution-ledger.ts",
+        "(deferred) packages/core/src/value/adoption-registry.ts (#1709 child 3)"
+      ]
+    },
+    {
+      "name": "friction:directive-gap",
+      "category": "behavioral",
+      "description": "Directive fell short (improvised workflow, gate false-positive, ambiguous rule) and may warrant upstream feedback.",
+      "trigger": "packages/core/src/events/attribution-ledger.ts::recordFrictionSignal from friction detectors and gap-escalation skill (#1709 child 5).",
+      "payload": {
+        "signal_class": "string enum -- always `friction`",
+        "source": "string -- detector id",
+        "detail": "string -- one-line gap description"
+      },
+      "consumers": [
+        "packages/core/src/events/attribution-ledger.ts",
+        "(deferred) task deft:feedback:file / deft-directive-feedback skill (#1709 child 5)"
+      ]
     }
   ]
 }

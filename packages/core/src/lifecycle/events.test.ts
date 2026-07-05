@@ -18,6 +18,11 @@ const EXPECTED_BEHAVIORAL_NAMES = new Set([
   "session:resumed",
   "plan:approved",
   "legacy:detected",
+  "value:gate-catch",
+  "value:wip-cap-protect",
+  "bypass:off-flow",
+  "adoption:unused-capability",
+  "friction:directive-gap",
 ]);
 
 afterEach(() => {
@@ -54,7 +59,7 @@ describe("behavioral events registry", () => {
   it("lazy proxies expose registry helpers", () => {
     expect(KNOWN_EVENTS.has("session:interrupted")).toBe(true);
     expect(KNOWN_EVENTS.has("not-real")).toBe(false);
-    expect(KNOWN_EVENTS.size).toBe(4);
+    expect(KNOWN_EVENTS.size).toBe(9);
     expect(KNOWN_EVENTS.equals(EXPECTED_BEHAVIORAL_NAMES)).toBe(true);
     expect(KNOWN_EVENTS.equals(new Set(["session:interrupted"]))).toBe(false);
     expect(KNOWN_EVENTS.equals("not-a-set")).toBe(false);
@@ -63,11 +68,11 @@ describe("behavioral events registry", () => {
     expect(REQUIRED_PAYLOAD.has(42)).toBe(false);
     expect(REQUIRED_PAYLOAD.get("missing-event")).toEqual([]);
     expect(REQUIRED_PAYLOAD.keys()).toContain("legacy:detected");
-    expect(REQUIRED_PAYLOAD.values().length).toBe(4);
-    expect(REQUIRED_PAYLOAD.entries().length).toBe(4);
-    expect(REQUIRED_PAYLOAD.size).toBe(4);
+    expect(REQUIRED_PAYLOAD.values().length).toBe(9);
+    expect(REQUIRED_PAYLOAD.entries().length).toBe(9);
+    expect(REQUIRED_PAYLOAD.size).toBe(9);
     clearRegistryCache();
-    expect([...KNOWN_EVENTS]).toHaveLength(4);
+    expect([...KNOWN_EVENTS]).toHaveLength(9);
   });
 });
 

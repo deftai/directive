@@ -1,3 +1,4 @@
+import { recordGateCatch } from "../events/attribution-ledger.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { ENV_BYPASS, type PolicyResult, resolvePolicy } from "../policy/resolve.js";
 import { type BranchState, currentBranch, GitNotFoundError } from "./git.js";
@@ -172,6 +173,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     };
   }
 
+  recordGateCatch(projectRoot, "verify:branch", `blocked commit on default branch '${branch}'`);
   return {
     exitCode: 1,
     message: buildBlockMessage(branch, result),

@@ -6,7 +6,7 @@
   "plan": {
     "id": "1709-attribution-ledger",
     "title": "Attribution ledger for the four value signal classes",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Record value, bypass, adoption, and friction signal classes on directive's existing emit-only events infrastructure, each entry flag-gated by the value-feedback policy. Wire a few high-signal sources first so the ledger is credible rather than noisy.",
       "ImplementationPlan": "- Extend the events registry and emit helper module to accept the four signal-class event types behind the policy gate.\n- Wire initial gate-catch and WIP-cap-protect sources and add tests asserting entries reach the events ledger only when enabled.",
@@ -17,7 +17,7 @@
       {
         "id": "1709-attribution-ledger-a1",
         "title": "Four signal classes recorded",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The ledger records value, bypass, adoption, and friction events each tagged with a signal class."
         }
@@ -25,7 +25,7 @@
       {
         "id": "1709-attribution-ledger-a2",
         "title": "Gated on the policy flag",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When the policy flag is off, no ledger entries are emitted for any wired source."
         }
@@ -33,7 +33,7 @@
       {
         "id": "1709-attribution-ledger-a3",
         "title": "Initial sources wired",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Each wired gate-catch and WIP-cap source records ledger entries that persist across the session."
         }
@@ -62,7 +62,9 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-05T20:55:24Z",
+      "capacityBucket": "agentic-debt"
     },
     "references": [
       {
@@ -77,6 +79,7 @@
         "title": "Issue #1709 child 2: attribution ledger",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T20:55:24Z"
   }
 }

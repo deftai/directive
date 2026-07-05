@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { recordWipCapProtect } from "../events/attribution-ledger.js";
 import { countVbriefWip, resolveWipCap } from "../policy/wip.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
@@ -78,6 +79,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
     };
   }
 
+  recordWipCapProtect(root, count, cap);
   return {
     code: 1,
     message: formatRefusal(count, cap, root),

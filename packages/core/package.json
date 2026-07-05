@@ -86,6 +86,10 @@
       "types": "./dist/value/feedback-file.d.ts",
       "default": "./dist/value/feedback-file.js"
     },
+    "./events": {
+      "types": "./dist/events/attribution-ledger.d.ts",
+      "default": "./dist/events/attribution-ledger.js"
+    },
     "./triage": {
       "types": "./dist/triage/index.d.ts",
       "default": "./dist/triage/index.js"

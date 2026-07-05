@@ -20,6 +20,7 @@ export * as doctor from "./doctor/index.js";
 export * from "./encoding/index.js";
 export * as evalCrud from "./eval/crud-telemetry.js";
 export * as evalHealth from "./eval/health.js";
+export * as events from "./events/attribution-ledger.js";
 export * from "./forward-coverage/evaluate.js";
 export * as intake from "./intake/index.js";
 export * as layout from "./layout/index.js";

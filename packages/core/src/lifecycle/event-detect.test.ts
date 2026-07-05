@@ -35,6 +35,11 @@ const EXPECTED_EVENT_NAMES = new Set([
   "session:resumed",
   "plan:approved",
   "legacy:detected",
+  "value:gate-catch",
+  "value:wip-cap-protect",
+  "bypass:off-flow",
+  "adoption:unused-capability",
+  "friction:directive-gap",
 ]);
 
 const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;

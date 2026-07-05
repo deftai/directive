@@ -9,7 +9,10 @@ export const DEFAULT_EVENT_LOG = join(".deft-cache", "events.jsonl");
 
 const BEHAVIORAL_CATEGORY = "behavioral";
 
+import { ATTRIBUTION_REQUIRED_PAYLOAD } from "../events/attribution-constants.js";
+
 const REQUIRED_BEHAVIORAL_PAYLOAD: Readonly<Record<string, readonly string[]>> = {
+  ...ATTRIBUTION_REQUIRED_PAYLOAD,
   "session:interrupted": ["session_id", "reason"],
   "session:resumed": ["session_id", "interrupted_id"],
   "plan:approved": ["plan_ref", "approver"],
