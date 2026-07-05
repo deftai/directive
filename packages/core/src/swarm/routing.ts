@@ -263,10 +263,7 @@ export function writeModelDecision(
   // validation guard above regresses. CodeQL's js/prototype-polluting-assignment
   // barrier does not track the interprocedural `assertSafeRoutingKey` guard, so
   // this structural sink is what closes alert #52.
-  const file: RoutingFile = Object.assign(
-    Object.create(null) as RoutingFile,
-    data ?? {},
-  );
+  const file: RoutingFile = Object.assign(Object.create(null) as RoutingFile, data ?? {});
   const existing = providerBlockOf(file, provider);
   const block: Record<string, RouteDecision> = Object.assign(
     Object.create(null) as Record<string, RouteDecision>,
