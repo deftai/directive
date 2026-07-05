@@ -8,8 +8,8 @@ import {
   resolveCandidatesLogPath,
   resolveTriageCacheDir,
   resolveTriageCachePath,
-  triageCacheRelPath,
   TRIAGE_CACHE_DIR_NAME,
+  triageCacheRelPath,
 } from "./cache-path.js";
 
 describe("triage cache-path (#1703)", () => {

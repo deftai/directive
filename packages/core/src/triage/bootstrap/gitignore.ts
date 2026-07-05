@@ -402,15 +402,10 @@ function ensureGitattributesMergeUnion(
       );
     }
     if (gitattributesHasEvalMergeUnion(existing, glob)) {
-      return stepOutcome(
-        stepName,
-        true,
-        `${glob} merge=union already in .gitattributes (no-op)`,
-        {
-          gitattributes_appended: false,
-          gitattributes_already_present: true,
-        },
-      );
+      return stepOutcome(stepName, true, `${glob} merge=union already in .gitattributes (no-op)`, {
+        gitattributes_appended: false,
+        gitattributes_already_present: true,
+      });
     }
     const suffix = existing.endsWith("\n") || existing === "" ? "" : "\n";
     const newContent = `${existing + suffix + GITATTRIBUTES_EVAL_RATIONALE + ruleLine}\n`;
@@ -425,12 +420,10 @@ function ensureGitattributesMergeUnion(
         String(exc),
       );
     }
-    return stepOutcome(
-      stepName,
-      true,
-      `appended ${glob} merge=union to .gitattributes`,
-      { gitattributes_appended: true, gitattributes_created: false },
-    );
+    return stepOutcome(stepName, true, `appended ${glob} merge=union to .gitattributes`, {
+      gitattributes_appended: true,
+      gitattributes_created: false,
+    });
   }
 
   const newContent = `${GITATTRIBUTES_EVAL_RATIONALE + ruleLine}\n`;
@@ -445,12 +438,10 @@ function ensureGitattributesMergeUnion(
       String(exc),
     );
   }
-  return stepOutcome(
-    stepName,
-    true,
-    `created .gitattributes with ${glob} merge=union`,
-    { gitattributes_appended: true, gitattributes_created: true },
-  );
+  return stepOutcome(stepName, true, `created .gitattributes with ${glob} merge=union`, {
+    gitattributes_appended: true,
+    gitattributes_created: true,
+  });
 }
 
 function ensureEvalReadme(readmePath: string, readmeRel: string, stepName: string): StepOutcome {

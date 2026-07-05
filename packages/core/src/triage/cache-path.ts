@@ -6,7 +6,7 @@
  */
 
 import { existsSync, mkdirSync, renameSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { join, relative } from "node:path";
 import { resolveEvalDir, resolveLifecycleLayout, resolveLifecycleRoot } from "../layout/resolve.js";
 
 /** Directory name for the triage working-set cache (not version-eval results). */
@@ -50,9 +50,7 @@ export function triageCacheRelPath(projectRoot: string, ...segments: string[]): 
  * Idempotently move triage working-set artefacts from legacy `.eval/` into
  * `.triage-cache/` when the new location is absent.
  */
-export function migrateLegacyTriageCacheFromEval(
-  projectRoot: string,
-): TriageCacheMigrationResult {
+export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCacheMigrationResult {
   const legacyDir = resolveEvalDir(projectRoot);
   const targetDir = resolveTriageCacheDir(projectRoot);
   const migratedFiles: string[] = [];
