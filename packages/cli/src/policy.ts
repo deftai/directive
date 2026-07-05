@@ -10,8 +10,12 @@ import {
   describeShadowedPlanExtension,
   detectShadowedPlanExtensions,
   disclosureLine,
+  enableValueFeedback,
+  FIELD_VALUE_FEEDBACK,
+  FIELD_VALUE_FEEDBACK_CLI_ALIAS,
   inspectAllPolicies,
   inspectOnePolicy,
+  isValueFeedbackPathAllowed,
   loadProjectDefinition,
   projectDefinitionPath,
   pythonListRepr,
@@ -20,6 +24,7 @@ import {
   renderJson,
   renderText,
   resolvePolicy,
+  resolveValueFeedback,
   setPolicy,
 } from "@deftai/directive-core/policy";
 
@@ -44,7 +49,7 @@ interface ShowArgs {
 }
 
 interface SetArgs {
-  cmd: "show" | "enforce-branches" | "allow-direct-commits" | "resolve";
+  cmd: "show" | "enforce-branches" | "allow-direct-commits" | "enable-value-feedback" | "resolve";
   confirm: boolean;
   actor: string;
   note: string;
@@ -144,7 +149,9 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 /** Parse argv for the policy CLI (show + set subcommands). */
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
-    return makeSetError("usage: policy [show|enforce-branches|allow-direct-commits|resolve] ...");
+    return makeSetError(
+      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|resolve] ...",
+    );
   }
 
   const cmd = argv[0];
@@ -178,12 +185,18 @@ export function parseArgs(argv: string[]): SetArgs {
     };
   }
 
-  if (cmd === "enforce-branches" || cmd === "allow-direct-commits") {
+  if (
+    cmd === "enforce-branches" ||
+    cmd === "allow-direct-commits" ||
+    cmd === "enable-value-feedback"
+  ) {
     let confirm = false;
     let actor =
       cmd === "enforce-branches"
         ? "task policy:enforce-branches"
-        : "task policy:allow-direct-commits";
+        : cmd === "allow-direct-commits"
+          ? "task policy:allow-direct-commits"
+          : "task policy:enable-value-feedback";
     let note = "";
     let projectRoot = ".";
     for (let i = 1; i < argv.length; i += 1) {
@@ -244,6 +257,16 @@ function emitPlanExtensionShadowWarnings(projectRoot: string): void {
   }
 }
 
+function valueFeedbackGateSummary(projectRoot: string): string {
+  const resolved = resolveValueFeedback(projectRoot);
+  return (
+    `[policy] valueFeedback path gates (master enabled=${String(resolved.enabled)})\n` +
+    `  emitEvents allowed: ${String(isValueFeedbackPathAllowed("emitEvents", resolved))}\n` +
+    `  sessionLine allowed: ${String(isValueFeedbackPathAllowed("sessionLine", resolved))}\n` +
+    `  upstreamPrompt allowed: ${String(isValueFeedbackPathAllowed("upstreamPrompt", resolved))}`
+  );
+}
+
 function runShow(args: ShowArgs): number {
   const projectRoot = pathResolve(args.projectRoot);
   // Layout-aware (#2302): name the resolved PROJECT-DEFINITION path (xbrief on a
@@ -271,6 +294,9 @@ function runShow(args: ShowArgs): number {
       process.stdout.write(`${renderJson([field])}\n`);
     } else {
       process.stdout.write(`${renderText([field])}\n`);
+      if (field.name === FIELD_VALUE_FEEDBACK || args.field === FIELD_VALUE_FEEDBACK_CLI_ALIAS) {
+        process.stdout.write(`\n${valueFeedbackGateSummary(projectRoot)}\n`);
+      }
     }
     return 0;
   }
@@ -301,6 +327,16 @@ function runResolve(projectRoot: string): number {
   }
   process.stdout.write(`${disclosureLine(result)}\n`);
   return 0;
+}
+
+function runEnableValueFeedback(args: SetArgs): number {
+  const result = enableValueFeedback(pathResolve(args.projectRoot), {
+    confirm: args.confirm,
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
 }
 
 function runSet(args: SetArgs): number {
@@ -367,6 +403,9 @@ export function run(argv: string[]): number {
   }
   if (args.cmd === "enforce-branches" || args.cmd === "allow-direct-commits") {
     return runSet(args);
+  }
+  if (args.cmd === "enable-value-feedback") {
+    return runEnableValueFeedback(args);
   }
   return 2;
 }

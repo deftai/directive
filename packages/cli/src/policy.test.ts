@@ -271,6 +271,20 @@ describe("run show + set integration", () => {
     expect(out).toContain("branch-protection OFF");
   });
 
+  it("runs enable-value-feedback with confirm", () => {
+    const r = project();
+    const { code, out } = captureRun([
+      "enable-value-feedback",
+      "--confirm",
+      "--project-root",
+      r,
+      "--actor",
+      "test",
+    ]);
+    expect(code).toBe(0);
+    expect(out).toContain("value-feedback ON");
+  });
+
   it("returns config error when setting on missing project def", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-missing-"));
     roots.push(r);

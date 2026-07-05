@@ -79,6 +79,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "policy:show": ["policy", "show"],
   "policy:enforce-branches": ["policy", "enforce-branches"],
   "policy:allow-direct-commits": ["policy", "allow-direct-commits"],
+  "policy:enable-value-feedback": ["policy", "enable-value-feedback"],
   "vbrief:reconcile-graph": ["vbrief-reconcile", "graph"],
   "vbrief:reconcile-labels": ["vbrief-reconcile", "labels"],
   "vbrief:reconcile-umbrellas": ["vbrief-reconcile", "umbrellas"],

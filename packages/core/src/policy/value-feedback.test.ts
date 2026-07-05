@@ -144,9 +144,12 @@ describe("enableValueFeedback disclosure gate", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toContain(VALUE_FEEDBACK_CAPABILITY_COST_DISCLOSURE);
     expect(result.changed).toBe(false);
-    const onDisk = JSON.parse(
+    const raw = JSON.parse(
       readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
-    ) as { plan: { policy?: { valueFeedback?: unknown } } };
+    );
+    expect(raw).not.toBeNull();
+    expect(typeof raw).toBe("object");
+    const onDisk = raw as { plan: { policy?: { valueFeedback?: unknown } } };
     expect(onDisk.plan.policy?.valueFeedback).toBeUndefined();
   });
 

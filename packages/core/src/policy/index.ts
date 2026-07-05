@@ -300,10 +300,7 @@ export function inspectAllPolicies(projectRoot: string): PolicyField[] {
 
 /** Look up a single registered field by canonical dotted-path name (or CLI alias). */
 export function inspectOnePolicy(name: string, projectRoot: string): PolicyField | null {
-  const normalized =
-    name === FIELD_VALUE_FEEDBACK_CLI_ALIAS || name === "valueFeedback"
-      ? FIELD_VALUE_FEEDBACK
-      : name;
+  const normalized = name === FIELD_VALUE_FEEDBACK_CLI_ALIAS ? FIELD_VALUE_FEEDBACK : name;
   for (const field of inspectAllPolicies(projectRoot)) {
     if (field.name === normalized) return field;
   }
