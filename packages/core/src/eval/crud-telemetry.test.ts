@@ -223,7 +223,10 @@ describe("InstrumentedVbriefCrud", () => {
     expect(existsSync(ledgerPath)).toBe(true);
     const lines = readFileSync(ledgerPath, "utf8").trim().split("\n");
     expect(lines).toHaveLength(1);
-    const persisted = JSON.parse(lines[0] ?? "{}") as { directiveVersion?: string };
+    const parsed: unknown = JSON.parse(lines[0] ?? "{}");
+    expect(parsed).not.toBeNull();
+    expect(typeof parsed).toBe("object");
+    const persisted = parsed as { directiveVersion?: string };
     expect(persisted.directiveVersion).toBe("ledger-test");
   });
 });
