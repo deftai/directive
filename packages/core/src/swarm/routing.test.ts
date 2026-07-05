@@ -206,7 +206,7 @@ describe("writeModelDecision", () => {
     writeModelDecision(path, "cursor", "orchestrator", { model: "gpt-5.5-medium" });
     const data = loadRoutingFile(path).data;
     expect(data?.cursor?.["leaf-implementation"]?.model).toBe("composer-2.5-fast");
-    expect(data?.cursor?.["orchestrator"]?.model).toBe("gpt-5.5-medium");
+    expect(data?.cursor?.orchestrator?.model).toBe("gpt-5.5-medium");
     expect(readFileSync(path, "utf8").endsWith("\n")).toBe(true);
   });
 
