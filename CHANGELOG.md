@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `deft doctor` now surfaces an actionable advisory when a project's `VERSION` manifest carries no semver tag/ref and only a short commit sha — the unpinned state legacy `deft-install` produces without a release pin. Previously the framework version was silently unreportable; the doctor now names the sha-only manifest and points at `directive update` to obtain a pinned npm-managed manifest, without changing the doctor exit code. Closes #2294.
+
 ### Removed
 
 ## [0.69.0] - 2026-07-05
