@@ -27,6 +27,7 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/slice": sub("core", "slice"),
   "@deftai/directive-core/cache": sub("core", "cache"),
   "@deftai/directive-core/doctor": sub("core", "doctor"),
+  "@deftai/directive-core/eval": resolve(import.meta.dirname, "packages/core/src/eval/health.ts"),
   "@deftai/directive-core/eval/health": resolve(
     import.meta.dirname,
     "packages/core/src/eval/health.ts",

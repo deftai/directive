@@ -70,6 +70,10 @@
       "types": "./dist/doctor/index.d.ts",
       "default": "./dist/doctor/index.js"
     },
+    "./eval": {
+      "types": "./dist/eval/health.d.ts",
+      "default": "./dist/eval/health.js"
+    },
     "./eval/health": {
       "types": "./dist/eval/health.d.ts",
       "default": "./dist/eval/health.js"

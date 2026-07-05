@@ -4,3 +4,10 @@
 # without manual conflict surgery. Note: merge=union does NOT dedupe; see
 # vbrief/.triage-cache/README.md for the operator-facing semantics.
 vbrief/.triage-cache/*.jsonl  merge=union
+
+# Append-only JSON-lines logs under vbrief/.triage-cache/ use the union merge driver
+# (#1144, N4 of #1119). Both branches' appended lines are concatenated on
+# auto-merge so single-operator rebases of two append branches resolve
+# without manual conflict surgery. Note: merge=union does NOT dedupe; see
+# vbrief/.triage-cache/README.md for the operator-facing semantics.
+xbrief/.triage-cache/*.jsonl  merge=union
