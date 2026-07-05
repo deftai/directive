@@ -65,14 +65,19 @@ export function emitAttributionSignal(
   }
   const signalClass = signalClassForEvent(name);
   const logPath = resolveLedgerLogPath(options.projectRoot, options.logPath);
-  return emit(
-    name,
-    {
-      signal_class: signalClass,
-      ...payload,
-    },
-    { logPath },
-  );
+  try {
+    return emit(
+      name,
+      {
+        signal_class: signalClass,
+        ...payload,
+      },
+      { logPath },
+    );
+  } catch {
+    // Telemetry is best-effort; disk failures must not interrupt gate callers (#1709).
+    return null;
+  }
 }
 
 /** Record a detection-bound gate catch (value class). */

@@ -87,6 +87,13 @@ describe("attribution ledger policy gate", () => {
     expect(record?.payload.signal_class).toBe("value");
     expect(record?.payload.source).toBe("verify:branch");
   });
+
+  it("returns null without throwing when the default log path is not writable", () => {
+    const root = makeRepo({ valueFeedback: { enabled: true, emitEvents: true } });
+    writeFileSync(join(root, ".deft-cache"), "not-a-directory", "utf8");
+    expect(() => recordGateCatch(root, "verify:branch", "blocked")).not.toThrow();
+    expect(readAttributionLedger(root)).toHaveLength(0);
+  });
 });
 
 describe("four signal classes", () => {
@@ -131,6 +138,14 @@ describe("wired gate sources", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]?.event).toBe("value:gate-catch");
     expect(entries[0]?.payload.source).toBe("verify:branch");
+  });
+
+  it("branch gate still blocks when telemetry write fails", () => {
+    const root = makeRepo({ valueFeedback: { enabled: true, emitEvents: true } });
+    writeFileSync(join(root, ".deft-cache"), "not-a-directory", "utf8");
+    const result = evaluateBranch(root, { branchOverride: { branch: "master", detached: false } });
+    expect(result.exitCode).toBe(1);
+    expect(readAttributionLedger(root)).toHaveLength(0);
   });
 
   it("wip-cap gate records value:wip-cap-protect when over cap", () => {
