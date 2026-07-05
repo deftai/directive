@@ -34,7 +34,7 @@ const VALID_VBRIEF = `{
   }
 }`;
 
-const VALID_VBRIEF_SURGICAL_UPDATE = VALID_VBRIEF.replace('"pending"', '"running"', 1);
+const VALID_VBRIEF_SURGICAL_UPDATE = VALID_VBRIEF.replace('"pending"', '"running"');
 
 const VALID_VBRIEF_MINIFIED = JSON.stringify(JSON.parse(VALID_VBRIEF));
 
@@ -79,6 +79,13 @@ describe("computeChangedByteRatio", () => {
 describe("classifyByteDiffMinimality", () => {
   it("labels localized edits as surgical", () => {
     const result = classifyByteDiffMinimality(VALID_VBRIEF, VALID_VBRIEF_SURGICAL_UPDATE);
+    expect(result.kind).toBe("surgical");
+    expect(result.changedRatio).toBeLessThan(BYTE_DIFF_WHOLE_FILE_THRESHOLD);
+  });
+
+  it("treats a prefix insertion as surgical rather than a whole-file rewrite", () => {
+    const inserted = `{"x":1,${VALID_VBRIEF_MINIFIED.slice(1)}`;
+    const result = classifyByteDiffMinimality(VALID_VBRIEF_MINIFIED, inserted);
     expect(result.kind).toBe("surgical");
     expect(result.changedRatio).toBeLessThan(BYTE_DIFF_WHOLE_FILE_THRESHOLD);
   });
@@ -159,7 +166,7 @@ describe("InstrumentedVbriefCrud", () => {
 
   it("persists byte-diff minimality distinguishing surgical updates from whole-file rewrites", () => {
     const { crud, filePath } = makeCrud();
-    const minifiedRunning = VALID_VBRIEF_MINIFIED.replace('"pending"', '"running"', 1);
+    const minifiedRunning = VALID_VBRIEF_MINIFIED.replace('"pending"', '"running"');
 
     expect(crud.create(filePath, VALID_VBRIEF_MINIFIED).ok).toBe(true);
     crud.clearMetrics();

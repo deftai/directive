@@ -39,20 +39,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Count differing bytes between two UTF-8 strings (positional, padded to max length). */
+/** Edit distance between two UTF-8 strings (Levenshtein). */
+function levenshteinDistance(before: string, after: string): number {
+  const rows = before.length + 1;
+  const cols = after.length + 1;
+  const matrix: number[][] = Array.from({ length: rows }, (_, row) =>
+    Array.from({ length: cols }, (_, col) => (row === 0 ? col : col === 0 ? row : 0)),
+  );
+  for (let row = 1; row < rows; row += 1) {
+    for (let col = 1; col < cols; col += 1) {
+      const cost = before[row - 1] === after[col - 1] ? 0 : 1;
+      const prevRow = matrix[row - 1];
+      const currRow = matrix[row];
+      if (prevRow === undefined || currRow === undefined) {
+        continue;
+      }
+      const up = prevRow[col] ?? 0;
+      const left = currRow[col - 1] ?? 0;
+      const diag = prevRow[col - 1] ?? 0;
+      currRow[col] = Math.min(up + 1, left + 1, diag + cost);
+    }
+  }
+  return matrix[before.length]?.[after.length] ?? 0;
+}
+
+/** Ratio of edit distance to the longer string length. */
 export function computeChangedByteRatio(before: string, after: string): number {
   const maxLen = Math.max(before.length, after.length);
   if (maxLen === 0) {
     return 0;
   }
-  let diff = Math.abs(before.length - after.length);
-  const minLen = Math.min(before.length, after.length);
-  for (let index = 0; index < minLen; index += 1) {
-    if (before[index] !== after[index]) {
-      diff += 1;
-    }
-  }
-  return diff / maxLen;
+  return levenshteinDistance(before, after) / maxLen;
 }
 
 /** Classify whether an update preserved bytes (surgical) or rewrote the file. */
@@ -101,6 +118,10 @@ function assessDocument(
   };
 }
 
+function sanitizeInlineMessage(message: string): string {
+  return message.replace(/\r?\n/g, " ");
+}
+
 function ensureParentDir(path: string): void {
   mkdirSync(dirname(path), { recursive: true });
 }
@@ -109,6 +130,7 @@ function ensureParentDir(path: string): void {
  * Instrumented vBRIEF/xBRIEF CRUD chokepoint (#1703 Tier 1).
  * Every operation emits a version-tagged metric covering schema validity,
  * field invention, and (for updates) byte-diff minimality.
+ * Delete intentionally succeeds on schema-invalid files so corrupt artifacts can be removed.
  */
 export class InstrumentedVbriefCrud {
   private readonly directiveVersion: string;
@@ -133,7 +155,7 @@ export class InstrumentedVbriefCrud {
     try {
       parsed = JSON.parse(content);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = sanitizeInlineMessage(err instanceof Error ? err.message : String(err));
       this.recordMetric({
         operation: "create",
         path,
@@ -185,7 +207,7 @@ export class InstrumentedVbriefCrud {
     try {
       parsed = JSON.parse(content);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = sanitizeInlineMessage(err instanceof Error ? err.message : String(err));
       this.recordMetric({
         operation: "read",
         path,
@@ -223,7 +245,7 @@ export class InstrumentedVbriefCrud {
     try {
       parsed = JSON.parse(content);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = sanitizeInlineMessage(err instanceof Error ? err.message : String(err));
       this.recordMetric({
         operation: "update",
         path,
@@ -283,7 +305,7 @@ export class InstrumentedVbriefCrud {
     try {
       parsed = JSON.parse(content);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = sanitizeInlineMessage(err instanceof Error ? err.message : String(err));
       this.recordMetric({
         operation: "delete",
         path,
