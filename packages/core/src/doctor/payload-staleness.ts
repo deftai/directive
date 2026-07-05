@@ -227,12 +227,8 @@ export function runPayloadStalenessCheck(
   }
 
   const manifest = parseInstallManifest(text);
-  const upgradeCommand = resolveUpgradeCommand(
-    projectRoot,
-    manifest,
-    isFile,
-    seams.packageManager ?? "npm",
-  );
+  const activePm: PackageManager = seams.packageManager ?? "npm";
+  const upgradeCommand = resolveUpgradeCommand(projectRoot, manifest, isFile, activePm);
   const installedSha = (manifest.sha ?? "").trim();
   const ref = (manifest.ref ?? manifest.tag ?? "").trim();
   const tag = (manifest.tag ?? "").trim();
