@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`task eval:health` aggregates static self-consistency into a versioned framework health score (#1703 Tier 0).** Maintainers can run one cheap, model-free command to probe encoding, link integrity, vBRIEF conformance, AGENTS.md freshness, and (on the framework source tree) content-manifest drift, plus a contradictory-gate detector that surfaces unsatisfiable nudges such as the #1694 wipCap case. Each run appends to a versioned ledger under `.eval/results/` so health can be trended across releases. Refs #1703.
+
 ### Changed
 
 ### Fixed
