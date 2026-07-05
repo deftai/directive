@@ -13,9 +13,9 @@ import {
   enableValueFeedback,
   FIELD_VALUE_FEEDBACK,
   FIELD_VALUE_FEEDBACK_CLI_ALIAS,
+  formatValueFeedbackStatusLine,
   inspectAllPolicies,
   inspectOnePolicy,
-  isValueFeedbackPathAllowed,
   loadProjectDefinition,
   projectDefinitionPath,
   pythonListRepr,
@@ -149,9 +149,7 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 /** Parse argv for the policy CLI (show + set subcommands). */
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
-    return makeSetError(
-      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|resolve] ...",
-    );
+    return makeSetError("usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|resolve] ...");
   }
 
   const cmd = argv[0];
@@ -258,13 +256,7 @@ function emitPlanExtensionShadowWarnings(projectRoot: string): void {
 }
 
 function valueFeedbackGateSummary(projectRoot: string): string {
-  const resolved = resolveValueFeedback(projectRoot);
-  return (
-    `[policy] valueFeedback path gates (master enabled=${String(resolved.enabled)})\n` +
-    `  emitEvents allowed: ${String(isValueFeedbackPathAllowed("emitEvents", resolved))}\n` +
-    `  sessionLine allowed: ${String(isValueFeedbackPathAllowed("sessionLine", resolved))}\n` +
-    `  upstreamPrompt allowed: ${String(isValueFeedbackPathAllowed("upstreamPrompt", resolved))}`
-  );
+  return formatValueFeedbackStatusLine(resolveValueFeedback(projectRoot));
 }
 
 function runShow(args: ShowArgs): number {

@@ -155,6 +155,28 @@ export function isValueFeedbackPathAllowed(
   return policy[path];
 }
 
+/** Resolved per-path gate booleans for policy:show and enable status output. */
+export function valueFeedbackPathGates(
+  policy: ValueFeedbackResolved,
+): Record<ValueFeedbackSubFlag, boolean> {
+  return {
+    emitEvents: isValueFeedbackPathAllowed("emitEvents", policy),
+    sessionLine: isValueFeedbackPathAllowed("sessionLine", policy),
+    upstreamPrompt: isValueFeedbackPathAllowed("upstreamPrompt", policy),
+  };
+}
+
+/** Human-readable status line for CLI enable/show surfaces. */
+export function formatValueFeedbackStatusLine(policy: ValueFeedbackResolved): string {
+  const gates = valueFeedbackPathGates(policy);
+  return (
+    `[deft policy] valueFeedback enabled=${String(policy.enabled)} ` +
+    `emitEvents=${String(policy.emitEvents)} (path=${String(gates.emitEvents)}) ` +
+    `sessionLine=${String(policy.sessionLine)} (path=${String(gates.sessionLine)}) ` +
+    `upstreamPrompt=${String(policy.upstreamPrompt)} (path=${String(gates.upstreamPrompt)}).`
+  );
+}
+
 export interface ValueFeedbackPolicyField {
   readonly name: typeof FIELD_VALUE_FEEDBACK;
   readonly current: ValueFeedbackConfig;
@@ -336,10 +358,7 @@ export function enableValueFeedback(
       changed
         ? "  audit: meta/policy-changes.log updated."
         : "  no-op: value already matched (audit entry still appended for trail).",
-      `[deft policy] valueFeedback enabled=${String(resolved.enabled)} ` +
-        `emitEvents=${String(resolved.emitEvents)} ` +
-        `sessionLine=${String(resolved.sessionLine)} ` +
-        `upstreamPrompt=${String(resolved.upstreamPrompt)}.`,
+      formatValueFeedbackStatusLine(resolved),
     ];
     return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };
   } catch (err: unknown) {
