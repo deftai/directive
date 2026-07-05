@@ -149,7 +149,9 @@ export function parseShowArgs(argv: string[]): ShowArgs {
 /** Parse argv for the policy CLI (show + set subcommands). */
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
-    return makeSetError("usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|resolve] ...");
+    return makeSetError(
+      "usage: policy [show|enforce-branches|allow-direct-commits|enable-value-feedback|resolve] ...",
+    );
   }
 
   const cmd = argv[0];
