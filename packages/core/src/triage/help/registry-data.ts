@@ -562,10 +562,7 @@ export const registryData = {
         ["--window WINDOW", "7d", "Time window (e.g. 7d, 30d, 24h)."],
         ["--format text|json", "text", "Output shape (json emits the full trend object)."],
       ],
-      examples: [
-        "task triage:metrics",
-        "task triage:metrics -- --window=30d --format=json",
-      ],
+      examples: ["task triage:metrics", "task triage:metrics -- --window=30d --format=json"],
       see_also: [
         "task policy:show --field=valueFeedback",
         "task policy:enable-value-feedback -- --confirm",
