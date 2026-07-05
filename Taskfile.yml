@@ -300,6 +300,11 @@ includes:
   eval:
     taskfile: ./tasks/eval.yml
     optional: true
+  # Gap escalation upstream filing (#1709 child 5). Exposes `task feedback:file` --
+  # confirmation-gated, deduped framework-gap issues for consumer projects.
+  feedback:
+    taskfile: ./tasks/feedback.yml
+    optional: true
   # Pack-slicing surface (#1283 design, #1294 pilot, ADR-001 Layer B). Exposes
   # `task packs:slice` (named-slice API), `task packs:render` (regenerate the
   # meta/lessons.md projection), and `task packs:verify-drift` (the drift gate,

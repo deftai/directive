@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Value feedback opt-in gate: operators can enable value-attribution surfaces via a new typed policy block (default OFF), with per-feature sub-flags and a capability-cost disclosure printed before any change is persisted. Refs #1709.
+- **Gap escalation for directive consumers (#1709).** When value-feedback upstream prompts are enabled, `task feedback:file` drafts a deduped framework-gap issue for deftai/directive and files it only after explicit `--confirm`; the path no-ops inside the maintainer repo. Refs #1709.
 - **`task eval:health` aggregates static self-consistency into a versioned framework health score (#1703 Tier 0).** Maintainers can run one cheap, model-free command to probe encoding, link integrity, vBRIEF conformance, AGENTS.md freshness, and (on the framework source tree) content-manifest drift, plus a contradictory-gate detector that surfaces unsatisfiable nudges such as the #1694 wipCap case. Each run appends to a versioned ledger under `.eval/results/` so health can be trended across releases. Refs #1703.
 - **Version-eval operation telemetry (#1703).** vBRIEF file operations now emit per-operation metrics tagged with the directive version, covering schema validity, detection of non-spec keys added by agents, and whether an update rewrote the whole file or made a targeted change. Refs #1703.
 

@@ -6,7 +6,7 @@
   "plan": {
     "id": "1709-gap-escalation",
     "title": "Gap escalation to upstream feedback (feedback:file + skill)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Add a feedback:file command that drafts and dedups a framework-gap issue against deftai/directive, gated behind a confirmation prompt and consumer-only guards. Add a deft-directive-feedback skill for the conversational batched session-end flow.",
       "ImplementationPlan": "- Add a feedback module that builds the gap template, dedups against existing upstream issues via the scm shim, and files only after explicit confirmation.\n- Guard against filing inside the maintainer repo and add tests asserting no issue is created without confirmation.",
@@ -63,7 +63,9 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-05T20:56:36Z",
+      "capacityBucket": "agentic-debt"
     },
     "references": [
       {
@@ -78,6 +80,7 @@
         "title": "Issue #1709 child 5: gap escalation to upstream",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T20:56:36Z"
   }
 }

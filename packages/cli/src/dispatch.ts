@@ -192,6 +192,7 @@ export const CORE_MODULE_VERBS = [
   "scope-decompose",
   "changelog-resolve-unreleased",
   "architecture-preflight-sor",
+  "feedback-file",
 ] as const;
 
 /** Colon aliases for triage-actions (mirrors cli-router SUBCOMMAND_ROUTES). */
@@ -270,6 +271,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "project:export-spec": "export-spec",
   doctor: "doctor",
   "eval:health": "eval-health",
+  "feedback:file": "feedback-file",
   build: "framework-commands",
   "setup:ghx": "setup-ghx",
 };
@@ -2641,6 +2643,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
         "@deftai/directive-core/dist/architecture/sor-preflight.js"
       );
       return architecturePreflightSorMain;
+    }
+    case "feedback-file": {
+      const { mainEntry } = await import("@deftai/directive-core/dist/value/feedback-file.js");
+      return mainEntry;
     }
     default:
       throw new Error(`unknown core verb: ${verb}`);

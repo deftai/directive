@@ -82,6 +82,10 @@
       "types": "./dist/eval/crud-telemetry.d.ts",
       "default": "./dist/eval/crud-telemetry.js"
     },
+    "./value/feedback-file": {
+      "types": "./dist/value/feedback-file.d.ts",
+      "default": "./dist/value/feedback-file.js"
+    },
     "./triage": {
       "types": "./dist/triage/index.d.ts",
       "default": "./dist/triage/index.js"
