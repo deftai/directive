@@ -6,7 +6,7 @@
   "plan": {
     "id": "1709-optin-gate",
     "title": "Opt-in typed policy gate for value feedback (default OFF)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Introduce a typed plan.policy.valueFeedback policy block that defaults to OFF and gates the entire value-attribution feature. Add granular sub-flags for event emission, session line, and upstream prompt, plus a capability-cost disclosure printed when a consumer enables it.",
       "ImplementationPlan": "- Add the typed valueFeedback schema to the policy module and a policy:show --field=valueFeedback reader.\n- Print a capability-cost disclosure at enable time and add tests asserting the master flag short-circuits every downstream code path.",
@@ -60,7 +60,9 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-05T18:33:34Z",
+      "capacityBucket": "agentic-debt"
     },
     "references": [
       {
@@ -75,6 +77,7 @@
         "title": "Issue #1709 child 1: opt-in & token-cost gate",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T18:33:34Z"
   }
 }

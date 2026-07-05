@@ -1,0 +1,340 @@
+import { readFileSync } from "node:fs";
+import {
+  atomicWriteProjectDefinition,
+  projectDefinitionMutationLock,
+} from "../vbrief-build/project-definition-io.js";
+import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
+import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
+
+/** Canonical `policy:show --field=` name (#1709). */
+export const FIELD_VALUE_FEEDBACK = "valueFeedback";
+
+/** Dotted path for documentation and validation messages. */
+export const FIELD_VALUE_FEEDBACK_DOTTED = "plan.policy.valueFeedback";
+
+export const DEFAULT_VALUE_FEEDBACK_ENABLED = false;
+
+/** Sub-flag defaults applied when the master flag is enabled (#1709 tiered-cost decision). */
+export const VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED = {
+  emitEvents: true,
+  sessionLine: true,
+  upstreamPrompt: false,
+} as const;
+
+export type ValueFeedbackSubFlag = keyof typeof VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED;
+
+export interface ValueFeedbackConfig {
+  readonly enabled: boolean;
+  readonly emitEvents: boolean;
+  readonly sessionLine: boolean;
+  readonly upstreamPrompt: boolean;
+}
+
+export type ValueFeedbackSource = "typed" | "default" | "default-on-error";
+
+export interface ValueFeedbackResolved extends ValueFeedbackConfig {
+  readonly source: ValueFeedbackSource;
+  readonly error: string | null;
+}
+
+export const VALUE_FEEDBACK_CAPABILITY_COST_DISCLOSURE =
+  "\u26a0 Capability-cost disclosure -- enabling value feedback opts into " +
+  "attributed awareness surfaces that may consume session context and nudge budget.\n" +
+  "  \u2022 Local emit-only ledger writes to the gitignored `.deft-cache/events.jsonl` " +
+  "(no network by default).\n" +
+  "  \u2022 A budgeted session one-liner may appear when concrete attributed value exists.\n" +
+  "  \u2022 Upstream gap-escalation prompts stay OFF unless you explicitly enable " +
+  "`upstreamPrompt` (GitHub attention + token cost).\n" +
+  "  \u2022 Inspect or disable anytime: `task policy:show --field=valueFeedback`.\n" +
+  "  \u2022 Changes are recorded to meta/policy-changes.log for auditability.";
+
+function defaultResolved(
+  source: ValueFeedbackSource,
+  error: string | null = null,
+): ValueFeedbackResolved {
+  return {
+    enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
+    emitEvents: false,
+    sessionLine: false,
+    upstreamPrompt: false,
+    source,
+    error,
+  };
+}
+
+function readSubFlag(
+  block: Record<string, unknown>,
+  key: ValueFeedbackSubFlag,
+  masterEnabled: boolean,
+): boolean {
+  if (!masterEnabled) {
+    return false;
+  }
+  if (key in block && typeof block[key] === "boolean") {
+    return block[key] as boolean;
+  }
+  return VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED[key];
+}
+
+/** Validate a `plan.policy.valueFeedback` payload. */
+export function validateValueFeedback(value: unknown): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return [`${FIELD_VALUE_FEEDBACK_DOTTED} must be an object; got ${typeof value}`];
+  }
+  const rec = value as Record<string, unknown>;
+  const errors: string[] = [];
+  for (const key of ["enabled", "emitEvents", "sessionLine", "upstreamPrompt"] as const) {
+    if (key in rec && typeof rec[key] !== "boolean") {
+      errors.push(`${FIELD_VALUE_FEEDBACK_DOTTED}.${key} must be a boolean`);
+    }
+  }
+  return errors;
+}
+
+function resolveFromPolicyBlock(raw: unknown): ValueFeedbackResolved {
+  const errors = validateValueFeedback(raw);
+  if (errors.length > 0) {
+    return defaultResolved("default-on-error", errors[0] ?? "invalid valueFeedback block");
+  }
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return defaultResolved("default");
+  }
+  const block = raw as Record<string, unknown>;
+  const enabled =
+    typeof block.enabled === "boolean" ? block.enabled : DEFAULT_VALUE_FEEDBACK_ENABLED;
+  if (!enabled) {
+    return {
+      enabled: false,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+      source: "typed",
+      error: null,
+    };
+  }
+  return {
+    enabled: true,
+    emitEvents: readSubFlag(block, "emitEvents", true),
+    sessionLine: readSubFlag(block, "sessionLine", true),
+    upstreamPrompt: readSubFlag(block, "upstreamPrompt", true),
+    source: "typed",
+    error: null,
+  };
+}
+
+/** Resolve `plan.policy.valueFeedback` from PROJECT-DEFINITION (#1709). */
+export function resolveValueFeedback(projectRoot: string): ValueFeedbackResolved {
+  const [data, err] = loadProjectDefinition(projectRoot);
+  if (data === null) {
+    return defaultResolved("default-on-error", err);
+  }
+  const policyBlock = readPlanPolicy(data.plan);
+  if (
+    typeof policyBlock !== "object" ||
+    policyBlock === null ||
+    Array.isArray(policyBlock) ||
+    !("valueFeedback" in (policyBlock as Record<string, unknown>))
+  ) {
+    return defaultResolved("default");
+  }
+  return resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);
+}
+
+/** Master gate: when `enabled` is false, every downstream path is rejected. */
+export function isValueFeedbackPathAllowed(
+  path: ValueFeedbackSubFlag,
+  policy: ValueFeedbackResolved,
+): boolean {
+  if (!policy.enabled) {
+    return false;
+  }
+  return policy[path];
+}
+
+export interface ValueFeedbackPolicyField {
+  readonly name: typeof FIELD_VALUE_FEEDBACK;
+  readonly current: ValueFeedbackConfig;
+  readonly default: ValueFeedbackConfig;
+  readonly source: string;
+}
+
+/** Inspector row for `policy:show --field=valueFeedback`. */
+export function inspectValueFeedback(
+  data: Record<string, unknown> | null,
+): ValueFeedbackPolicyField {
+  if (data === null) {
+    const defaults = defaultResolved("default");
+    return {
+      name: FIELD_VALUE_FEEDBACK,
+      current: {
+        enabled: defaults.enabled,
+        emitEvents: defaults.emitEvents,
+        sessionLine: defaults.sessionLine,
+        upstreamPrompt: defaults.upstreamPrompt,
+      },
+      default: {
+        enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
+        emitEvents: false,
+        sessionLine: false,
+        upstreamPrompt: false,
+      },
+      source: "default",
+    };
+  }
+
+  const policyBlock = readPlanPolicy(data.plan);
+  if (
+    typeof policyBlock !== "object" ||
+    policyBlock === null ||
+    Array.isArray(policyBlock) ||
+    !("valueFeedback" in (policyBlock as Record<string, unknown>))
+  ) {
+    const defaults = defaultResolved("default");
+    return {
+      name: FIELD_VALUE_FEEDBACK,
+      current: {
+        enabled: defaults.enabled,
+        emitEvents: defaults.emitEvents,
+        sessionLine: defaults.sessionLine,
+        upstreamPrompt: defaults.upstreamPrompt,
+      },
+      default: {
+        enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
+        emitEvents: false,
+        sessionLine: false,
+        upstreamPrompt: false,
+      },
+      source: "default",
+    };
+  }
+
+  const resolved = resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);
+  return {
+    name: FIELD_VALUE_FEEDBACK,
+    current: {
+      enabled: resolved.enabled,
+      emitEvents: resolved.emitEvents,
+      sessionLine: resolved.sessionLine,
+      upstreamPrompt: resolved.upstreamPrompt,
+    },
+    default: {
+      enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    },
+    source: resolved.source === "default-on-error" ? "default-on-error" : resolved.source,
+  };
+}
+
+export interface EnableValueFeedbackOptions {
+  readonly confirm: boolean;
+  readonly actor?: string;
+  readonly note?: string;
+  readonly subFlags?: Partial<Record<ValueFeedbackSubFlag, boolean>>;
+}
+
+export interface EnableValueFeedbackResult {
+  readonly exitCode: 0 | 1 | 2;
+  readonly stdout: string;
+  readonly changed: boolean;
+}
+
+/** Persist `valueFeedback.enabled=true` after capability-cost disclosure (#1709). */
+export function enableValueFeedback(
+  projectRoot: string,
+  options: EnableValueFeedbackOptions,
+): EnableValueFeedbackResult {
+  if (!options.confirm) {
+    return {
+      exitCode: 1,
+      stdout:
+        `${VALUE_FEEDBACK_CAPABILITY_COST_DISCLOSURE}\n\n` +
+        "Re-run with --confirm to apply: task policy:enable-value-feedback -- --confirm\n",
+      changed: false,
+    };
+  }
+
+  const path = projectDefinitionPath(projectRoot);
+  try {
+    const { changed } = projectDefinitionMutationLock(projectRoot, () => {
+      const parsed: unknown = JSON.parse(readFileSync(path, { encoding: "utf8" }));
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error(`PROJECT-DEFINITION at ${path} top-level value is not a JSON object`);
+      }
+      const data = parsed as Record<string, unknown>;
+      if (typeof data.plan !== "object" || data.plan === null || Array.isArray(data.plan)) {
+        if (data.plan === undefined) {
+          data.plan = {};
+        } else {
+          throw new Error("PROJECT-DEFINITION 'plan' is not an object");
+        }
+      }
+      const plan = data.plan as Record<string, unknown>;
+      migrateLegacyPolicyKey(plan);
+      const existingPolicy = plan[PLAN_POLICY_KEY];
+      if (
+        typeof existingPolicy !== "object" ||
+        existingPolicy === null ||
+        Array.isArray(existingPolicy)
+      ) {
+        if (existingPolicy === undefined) {
+          plan[PLAN_POLICY_KEY] = {};
+        } else {
+          throw new Error("plan.policy is not an object");
+        }
+      }
+      const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
+      const previous = policyBlock.valueFeedback;
+      const sub = options.subFlags ?? {};
+      const nextBlock = {
+        enabled: true,
+        emitEvents: sub.emitEvents ?? VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.emitEvents,
+        sessionLine: sub.sessionLine ?? VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.sessionLine,
+        upstreamPrompt:
+          sub.upstreamPrompt ?? VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.upstreamPrompt,
+      };
+      policyBlock.valueFeedback = nextBlock;
+      atomicWriteProjectDefinition(path, data);
+
+      const changedFlag = JSON.stringify(previous) !== JSON.stringify(nextBlock);
+      const actor = options.actor ?? "task policy:enable-value-feedback";
+      const note = options.note ?? "";
+      const parts = [
+        `actor=${actor}`,
+        "valueFeedback.enabled=true",
+        `emitEvents=${String(nextBlock.emitEvents)}`,
+        `sessionLine=${String(nextBlock.sessionLine)}`,
+        `upstreamPrompt=${String(nextBlock.upstreamPrompt)}`,
+        `previous=${JSON.stringify(previous ?? null)}`,
+      ];
+      if (note) {
+        parts.push(`note=${note.replace(/\n/g, " ").replace(/\r/g, " ")}`);
+      }
+      appendAuditLog(projectRoot, parts.join(" "));
+      return { changed: changedFlag };
+    });
+
+    const resolved = resolveValueFeedback(projectRoot);
+    const lines = [
+      `\u2713 ${FIELD_VALUE_FEEDBACK_DOTTED}.enabled=true (value-feedback ON).`,
+      changed
+        ? "  audit: meta/policy-changes.log updated."
+        : "  no-op: value already matched (audit entry still appended for trail).",
+      `[deft policy] valueFeedback enabled=${String(resolved.enabled)} ` +
+        `emitEvents=${String(resolved.emitEvents)} ` +
+        `sessionLine=${String(resolved.sessionLine)} ` +
+        `upstreamPrompt=${String(resolved.upstreamPrompt)}.`,
+    ];
+    return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("PROJECT-DEFINITION not found")) {
+      return { exitCode: 2, stdout: `\u274c ${message}\n`, changed: false };
+    }
+    return { exitCode: 2, stdout: `\u274c Config error: ${message}\n`, changed: false };
+  }
+}
