@@ -7,7 +7,6 @@
     "id": "1703-eval-namespace-cleanup",
     "title": "Reclaim the .eval namespace for version-eval results",
     "status": "pending",
-    "planRef": "pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json",
     "narratives": {
       "Description": "The .eval directory was named for evaluation but became the triage working-set cache. Move the triage cache to a dedicated namespace so the version-eval results store can own .eval, de-conflicting the two concepts.",
       "ImplementationPlan": "- Update the triage cache path resolver module to write to a dedicated triage-cache directory instead of .eval.\n- Add a migration for existing cache files and tests asserting triage loads and writes resolve to the new path.",

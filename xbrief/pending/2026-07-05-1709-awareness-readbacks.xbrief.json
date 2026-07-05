@@ -7,7 +7,6 @@
     "id": "1709-awareness-readbacks",
     "title": "Budgeted awareness readbacks (session line + value:show)",
     "status": "pending",
-    "planRef": "pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json",
     "narratives": {
       "Description": "Add a budgeted one-line session readback that surfaces in-flow value, boundary, and adoption signals, staying silent when nothing is attributed. Add a pull-based value:show trend readout that fills the currently-stubbed metrics slot.",
       "ImplementationPlan": "- Add a readback module that queries the ledger and registry and renders at most one session line within the existing nudge budget.\n- Implement the value:show command with a trend report and add tests asserting silence when the ledger is empty.",

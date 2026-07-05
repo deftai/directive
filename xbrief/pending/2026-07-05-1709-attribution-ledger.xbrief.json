@@ -7,7 +7,6 @@
     "id": "1709-attribution-ledger",
     "title": "Attribution ledger for the four value signal classes",
     "status": "pending",
-    "planRef": "pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json",
     "narratives": {
       "Description": "Record value, bypass, adoption, and friction signal classes on directive's existing emit-only events infrastructure, each entry flag-gated by the value-feedback policy. Wire a few high-signal sources first so the ledger is credible rather than noisy.",
       "ImplementationPlan": "- Extend the events registry and emit helper module to accept the four signal-class event types behind the policy gate.\n- Wire initial gate-catch and WIP-cap-protect sources and add tests asserting entries reach the events ledger only when enabled.",

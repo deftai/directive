@@ -7,7 +7,6 @@
     "id": "1703-tier0-health",
     "title": "Tier 0 static self-consistency aggregation (eval:health)",
     "status": "pending",
-    "planRef": "pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json",
     "narratives": {
       "Description": "Aggregate directive's existing static gates such as render-staleness, dead cross-refs, conformance, encoding, and template propagation drift, plus a new contradictory-gate detector, into a single per-version framework health score. This tier is the cheapest, model-free, highest-ROI signal and is trended over time.",
       "ImplementationPlan": "- Add an eval:health module that runs the existing static verifiers and aggregates their results into a versioned score.\n- Add the contradictory-gate detector and tests asserting the wipCap-class unsatisfiable-nudge is reported as evidence.",
