@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Typed `plan.policy.valueFeedback` opt-in gate (default OFF) with granular sub-flags for emit, session line, and upstream prompt, plus capability-cost disclosure on enable and `policy:show --field=valueFeedback` reader. Refs #1709.
+- Value feedback opt-in gate: operators can enable value-attribution surfaces via a new typed policy block (default OFF), with per-feature sub-flags and a capability-cost disclosure printed before any change is persisted. Refs #1709.
 
 ### Changed
 

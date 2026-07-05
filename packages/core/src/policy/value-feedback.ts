@@ -161,28 +161,36 @@ export interface ValueFeedbackPolicyField {
   readonly source: string;
 }
 
+function defaultInspectorConfig(): ValueFeedbackConfig {
+  const defaults = defaultResolved("default");
+  return {
+    enabled: defaults.enabled,
+    emitEvents: defaults.emitEvents,
+    sessionLine: defaults.sessionLine,
+    upstreamPrompt: defaults.upstreamPrompt,
+  };
+}
+
+function buildDefaultInspectorField(): ValueFeedbackPolicyField {
+  return {
+    name: FIELD_VALUE_FEEDBACK,
+    current: defaultInspectorConfig(),
+    default: {
+      enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: false,
+    },
+    source: "default",
+  };
+}
+
 /** Inspector row for `policy:show --field=valueFeedback`. */
 export function inspectValueFeedback(
   data: Record<string, unknown> | null,
 ): ValueFeedbackPolicyField {
   if (data === null) {
-    const defaults = defaultResolved("default");
-    return {
-      name: FIELD_VALUE_FEEDBACK,
-      current: {
-        enabled: defaults.enabled,
-        emitEvents: defaults.emitEvents,
-        sessionLine: defaults.sessionLine,
-        upstreamPrompt: defaults.upstreamPrompt,
-      },
-      default: {
-        enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
-        emitEvents: false,
-        sessionLine: false,
-        upstreamPrompt: false,
-      },
-      source: "default",
-    };
+    return buildDefaultInspectorField();
   }
 
   const policyBlock = readPlanPolicy(data.plan);
@@ -192,23 +200,7 @@ export function inspectValueFeedback(
     Array.isArray(policyBlock) ||
     !("valueFeedback" in (policyBlock as Record<string, unknown>))
   ) {
-    const defaults = defaultResolved("default");
-    return {
-      name: FIELD_VALUE_FEEDBACK,
-      current: {
-        enabled: defaults.enabled,
-        emitEvents: defaults.emitEvents,
-        sessionLine: defaults.sessionLine,
-        upstreamPrompt: defaults.upstreamPrompt,
-      },
-      default: {
-        enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
-        emitEvents: false,
-        sessionLine: false,
-        upstreamPrompt: false,
-      },
-      source: "default",
-    };
+    return buildDefaultInspectorField();
   }
 
   const resolved = resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);
@@ -297,10 +289,12 @@ export function enableValueFeedback(
         upstreamPrompt:
           sub.upstreamPrompt ?? VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.upstreamPrompt,
       };
-      policyBlock.valueFeedback = nextBlock;
-      atomicWriteProjectDefinition(path, data);
-
       const changedFlag = JSON.stringify(previous) !== JSON.stringify(nextBlock);
+      policyBlock.valueFeedback = nextBlock;
+      if (changedFlag) {
+        atomicWriteProjectDefinition(path, data);
+      }
+
       const actor = options.actor ?? "task policy:enable-value-feedback";
       const note = options.note ?? "";
       const parts = [
