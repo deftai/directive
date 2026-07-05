@@ -144,6 +144,9 @@ function verdict(applicable: boolean, reason: string): ApplicabilityVerdict {
 
 const APPLICABILITY_RULES: Record<CapabilityId, ApplicabilityRule> = {
   planning(ctx) {
+    if (ctx.isPrOpening) {
+      return verdict(false, "at PR-open boundary — planning phase is past");
+    }
     if (ctx.filesTouched < ADOPTION_THRESHOLDS.planningMinFiles) {
       return verdict(false, "scope below planning threshold");
     }
@@ -225,15 +228,6 @@ export function evaluateApplicability(id: CapabilityId, ctx: WorkContext): Appli
     return verdict(false, "small work — adoption nudges suppressed");
   }
   return APPLICABILITY_RULES[id](ctx);
-}
-
-/** Whether the caller reported the capability as already used. */
-export function isCapabilityUsed(
-  id: CapabilityId,
-  ctx: WorkContext,
-  used?: ReadonlySet<CapabilityId>,
-): boolean {
-  return (used ?? usedSet(ctx)).has(id);
 }
 
 function buildAdoptionSignal(

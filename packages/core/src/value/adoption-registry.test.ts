@@ -7,7 +7,6 @@ import {
   detectApplicableButUnusedGated,
   evaluateApplicability,
   formatAdoptionEventName,
-  isCapabilityUsed,
   isWorkTooSmallForAdoptionNudges,
   type WorkContext,
 } from "./adoption-registry.js";
@@ -24,36 +23,46 @@ const ALL_CAPABILITY_IDS: CapabilityId[] = [
 ];
 
 function applicableContext(id: CapabilityId): WorkContext {
+  const base = { usedCapabilities: [] as const };
   switch (id) {
     case "planning":
-      return { filesTouched: ADOPTION_THRESHOLDS.planningMinFiles, distinctModuleGlobs: 1 };
+      return {
+        ...base,
+        filesTouched: ADOPTION_THRESHOLDS.planningMinFiles,
+        distinctModuleGlobs: 1,
+      };
     case "cost":
       return {
+        ...base,
         filesTouched: ADOPTION_THRESHOLDS.costMinFiles,
         distinctModuleGlobs: 1,
         isBuildIntent: true,
       };
     case "decompose":
       return {
+        ...base,
         filesTouched: ADOPTION_THRESHOLDS.largeMultiFileMinFiles,
         distinctModuleGlobs: ADOPTION_THRESHOLDS.largeMultiFileMinModules,
       };
     case "swarm":
       return {
+        ...base,
         filesTouched: ADOPTION_THRESHOLDS.swarmMinFiles,
         distinctModuleGlobs: ADOPTION_THRESHOLDS.swarmMinModules,
       };
     case "pre-pr":
-      return { filesTouched: 3, distinctModuleGlobs: 1, isPrOpening: true };
+      return { ...base, filesTouched: 3, distinctModuleGlobs: 1, isPrOpening: true };
     case "debug":
-      return { filesTouched: 10, distinctModuleGlobs: 3 };
+      return { ...base, filesTouched: 10, distinctModuleGlobs: 3 };
     case "glossary":
       return {
+        ...base,
         filesTouched: ADOPTION_THRESHOLDS.glossaryMinFiles,
         distinctModuleGlobs: 2,
       };
     case "lessons":
       return {
+        ...base,
         filesTouched: ADOPTION_THRESHOLDS.lessonsMinFiles,
         distinctModuleGlobs: 2,
       };
@@ -202,13 +211,34 @@ describe("conservative false-positive guard (#1709-adoption-registry-a3)", () =>
       ).applicable,
     ).toBe(false);
   });
+  it("suppresses planning nudges at the PR-open boundary", () => {
+    expect(
+      detectApplicableButUnused(
+        ctx({
+          filesTouched: 8,
+          distinctModuleGlobs: 2,
+          isPrOpening: true,
+        }),
+      ).some((signal) => signal.capabilityId === "planning"),
+    ).toBe(false);
+    expect(
+      detectApplicableButUnused(
+        ctx({
+          filesTouched: 8,
+          distinctModuleGlobs: 2,
+          isPrOpening: true,
+        }),
+      ).some((signal) => signal.capabilityId === "pre-pr"),
+    ).toBe(true);
+  });
 });
 
-describe("isCapabilityUsed", () => {
-  it("reflects the usedCapabilities list", () => {
-    const work = ctx({ filesTouched: 1, usedCapabilities: ["planning", "lessons"] });
-    expect(isCapabilityUsed("planning", work)).toBe(true);
-    expect(isCapabilityUsed("decompose", work)).toBe(false);
+describe("used capability suppression", () => {
+  it("reflects the usedCapabilities list via detection output", () => {
+    const work = ctx({ filesTouched: 6, distinctModuleGlobs: 2, usedCapabilities: ["decompose"] });
+    expect(
+      detectApplicableButUnused(work).some((signal) => signal.capabilityId === "decompose"),
+    ).toBe(false);
   });
 });
 
