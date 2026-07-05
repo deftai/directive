@@ -1,9 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { detectCanonicalVendoredManifest, isNpmManaged } from "../init-deposit/migrate.js";
+import type { PackageManager } from "../resolution/package-manager.js";
 import {
   CANONICAL_UPGRADE_COMMAND,
   NPM_PACKAGE_NAME,
+  upgradeCommandFor,
   VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND,
 } from "./constants.js";
 import { locateManifest, parseInstallManifest } from "./manifest.js";
@@ -17,6 +19,13 @@ export interface PayloadStalenessSeams {
   readonly frameworkRoot?: string;
   readonly runGitLsRemote?: (deftDir: string, ref: string) => { ok: boolean; stdout: string };
   readonly runNpmViewVersion?: () => { ok: boolean; version: string };
+  /**
+   * Active package manager for rendering the upgrade recommendation (#2197).
+   * Defaults to npm so existing behaviour/tests are unchanged; the doctor entry
+   * detects the manager and threads it here so a pnpm consumer sees the pnpm
+   * upgrade one-liner (`pnpm add -g @deftai/directive@latest`).
+   */
+  readonly packageManager?: PackageManager;
 }
 
 function isDeftFrameworkRepo(projectRoot: string, readText = readTextSafe): boolean {
@@ -121,12 +130,16 @@ function resolveUpgradeCommand(
   projectRoot: string,
   manifest: Record<string, string>,
   isFile: (path: string) => boolean,
+  pm: PackageManager = "npm",
 ): string {
-  const vendoredManifest = detectCanonicalVendoredManifest(projectRoot, isFile);
-  if (vendoredManifest !== null && isNpmManaged(manifest)) {
-    return VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND;
+  const vendored =
+    detectCanonicalVendoredManifest(projectRoot, isFile) !== null && isNpmManaged(manifest);
+  if (pm === "pnpm") {
+    // Same registry, same tarball -- only the command form differs (#2197).
+    const upgrade = upgradeCommandFor("pnpm");
+    return vendored ? `${upgrade} && deft update` : upgrade;
   }
-  return CANONICAL_UPGRADE_COMMAND;
+  return vendored ? VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND : CANONICAL_UPGRADE_COMMAND;
 }
 
 function emitStale(
@@ -214,7 +227,12 @@ export function runPayloadStalenessCheck(
   }
 
   const manifest = parseInstallManifest(text);
-  const upgradeCommand = resolveUpgradeCommand(projectRoot, manifest, isFile);
+  const upgradeCommand = resolveUpgradeCommand(
+    projectRoot,
+    manifest,
+    isFile,
+    seams.packageManager ?? "npm",
+  );
   const installedSha = (manifest.sha ?? "").trim();
   const ref = (manifest.ref ?? manifest.tag ?? "").trim();
   const tag = (manifest.tag ?? "").trim();

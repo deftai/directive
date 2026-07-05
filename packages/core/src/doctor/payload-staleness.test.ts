@@ -32,6 +32,25 @@ describe("payload-staleness (#2003 / #2004)", () => {
     }
   });
 
+  it("emits the pnpm upgrade command when packageManager is pnpm (#2197)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
+    try {
+      seedManifest(root, "1".repeat(40));
+      const findings: Finding[] = [];
+      const sink = createPlainSink();
+      runPayloadStalenessCheck(root, sink, (f) => findings.push(f), {
+        isFile: (p) => p.endsWith("VERSION") || p.endsWith("AGENTS.md"),
+        readText: (p) => (p.endsWith("VERSION") ? `sha: ${"1".repeat(40)}\nref: v0.56.0\n` : null),
+        runGitLsRemote: () => ({ ok: true, stdout: `${"2".repeat(40)}\trefs/tags/v0.56.0\n` }),
+        packageManager: "pnpm",
+      });
+      const stale = findings.find((f) => f.status === "stale");
+      expect(stale?.suggestion).toBe("pnpm add -g @deftai/directive@latest");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("falls back to npm view when ls-remote yields no sha", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ps-"));
     try {

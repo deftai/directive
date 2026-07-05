@@ -5,6 +5,7 @@ import { contentRoot } from "../content-root.js";
 import {
   checkLocalEngineIntegrity,
   classify,
+  detectPackageManager,
   evaluateSkew,
   type ResolutionFacts,
   reconcileVersions,
@@ -199,12 +200,24 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   if (flags.network) {
     sink.info(NETWORK_DISCLOSURE_LINE);
     sink.info("Checking payload staleness from install manifest...");
+    // Detect the package manager for the upgrade recommendation from signals
+    // that are meaningful for a globally-installed CLI: the explicit
+    // DEFT_PACKAGE_MANAGER override and the project's pnpm-lock.yaml. We
+    // deliberately do NOT consult the ambient npm_config_user_agent here (it is
+    // set by whatever shell/script spawned the process, not by the consumer's
+    // project) so the recommendation is a stable property of the project (#2197).
+    const isFileForPm = seams.isFile ?? ((p: string) => existsSync(p));
+    const packageManager = detectPackageManager({
+      env: { DEFT_PACKAGE_MANAGER: process.env.DEFT_PACKAGE_MANAGER },
+      pnpmLockPresent: isFileForPm(join(projectRoot, "pnpm-lock.yaml")),
+    });
     runPayloadStalenessCheck(projectRoot, sink, addFinding, {
       frameworkRoot,
       readText: seams.readText,
       isFile: seams.isFile,
       runGitLsRemote: seams.runGitLsRemote,
       runNpmViewVersion: seams.runNpmViewVersion,
+      packageManager,
     });
   } else {
     sink.info(`payload-staleness: ${PAYLOAD_STALENESS_OFFLINE_SKIP_MESSAGE}`);
