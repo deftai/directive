@@ -79,6 +79,12 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 - ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
 - ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
 
+## Eval and framework health (#1703)
+
+- ! Three tiers: **Tier 0** `task eval:health` (static gate score + contradictory-gate detector; ledger: `.eval/results/health-history.jsonl`). **Tier 1** CRUD telemetry on scope transitions (`.eval/results/crud-metrics.jsonl`, automatic). **Tier 2** `task eval:run` / `task eval:report` (golden corpus champion–challenger + holdout tripwire).
+- ! Run `task eval:health` when orienting, after gate/policy/doc changes, or when session start emits a budgeted `[eval]` nudge (score drop or contradictory gate; 4-hour debounce, parity #1279/#1709). Tier 2 is for maintainer release eval (`eval:run -- --model M`; `eval:report -- --champion V --challenger V --model M`).
+- ⊗ Discover eval only via CHANGELOG/`task --list` — AGENTS.md and `task triage:help` are canonical. ⊗ Treat Tier 1 telemetry as operator-invoked.
+
 ## Cache-as-authoritative work selection (#1149)
 
 Same `!` / `⊗` rules as the managed section below; in this repo substitute `task` for `deft` (`task triage:queue --limit=10`, D11 / #1128).

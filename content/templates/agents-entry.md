@@ -149,6 +149,12 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 - ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
 - ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
 
+## Eval and framework health (#1703)
+
+- ! Three tiers: **Tier 0** `deft eval:health` (static gate score + contradictory-gate detector; ledger: `.eval/results/health-history.jsonl`). **Tier 1** CRUD telemetry on scope transitions (`.eval/results/crud-metrics.jsonl`, automatic). **Tier 2** `deft eval:run` / `deft eval:report` (golden corpus champion–challenger + holdout tripwire).
+- ! Run `deft eval:health` when orienting, after gate/policy/doc changes, or when session start emits a budgeted `[eval]` nudge (score drop or contradictory gate; 4-hour debounce, parity #1279/#1709). Tier 2 is for maintainer release eval (`eval:run -- --model M`; `eval:report -- --champion V --challenger V --model M`).
+- ⊗ Discover eval only via CHANGELOG/`deft --list` — AGENTS.md and `deft triage:help` are canonical. ⊗ Treat Tier 1 telemetry as operator-invoked.
+
 ## Branch policy & branch verification
 
 Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):

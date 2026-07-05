@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { EVAL_READBACK_SUPPRESSION_HOURS } from "../../eval/readback.js";
 import { VALUE_READBACK_SUPPRESSION_HOURS } from "../../value/readback.js";
 import { readRepoFile } from "./helpers.js";
 
@@ -32,6 +33,9 @@ const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft policy:enable-value-feedback", "task policy:enable-value-feedback"],
   ["deft policy:show --field=valueFeedback", "task policy:show --field=valueFeedback"],
   ["deft value:show", "task value:show"],
+  ["deft eval:health", "task eval:health"],
+  ["deft eval:run", "task eval:run"],
+  ["deft eval:report", "task eval:report"],
   ["deft feedback:file", "task feedback:file"],
   ["deft migrate:xbrief", "deft migrate:xbrief"],
   ["xbrief/PROJECT-DEFINITION.xbrief.json", "xbrief/PROJECT-DEFINITION.xbrief.json"],
@@ -168,6 +172,21 @@ const VALUE_FEEDBACK_MARKERS = [
   "without operator confirmation",
 ] as const;
 
+// #1703: tiered eval framework discoverability MUST mirror across maintainer
+// AGENTS.md and the consumer template (#2336 / #1309).
+const EVAL_FRAMEWORK_MARKERS = [
+  "## Eval and framework health (#1703)",
+  "eval:health",
+  "eval:run",
+  "eval:report",
+  "crud-metrics.jsonl",
+  "health-history.jsonl",
+  "contradictory gate",
+  "4-hour window",
+  "Tier 1",
+  "Tier 2",
+] as const;
+
 function normalizeWhitespace(text: string): string {
   return text
     .replace(/\u00a0/g, " ")
@@ -272,8 +291,17 @@ describe("test_agents_entry_contract", () => {
     expect(missingMarkers(agents, VALUE_FEEDBACK_MARKERS)).toEqual([]);
   });
 
+  it("propagation_eval_framework_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, EVAL_FRAMEWORK_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, EVAL_FRAMEWORK_MARKERS)).toEqual([]);
+  });
+
   it("value_readback_suppression_window_is_four_hours", () => {
     expect(VALUE_READBACK_SUPPRESSION_HOURS).toBe(4);
+  });
+
+  it("eval_readback_suppression_window_is_four_hours", () => {
+    expect(EVAL_READBACK_SUPPRESSION_HOURS).toBe(4);
   });
 
   it("content_packs_note_references_discovery_commands", () => {

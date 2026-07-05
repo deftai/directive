@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Eval framework discoverability (#1703).** Agents now learn the tiered eval surface from AGENTS.md: Tier 0 `task eval:health`, automatic Tier 1 CRUD telemetry, and Tier 2 `eval:run` / `eval:report`. Session start emits a budgeted `[eval]` advisory when health degrades or a contradictory gate fires, and `task triage:help` documents all three eval verbs. Closes #2336.
+
 ### Fixed
 
 - Maintainer `task` aliases for value feedback: `task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` now resolve through the Taskfile instead of failing with "task not found", matching the documented AGENTS.md surface. Refs #2337.

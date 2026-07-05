@@ -50,6 +50,21 @@ describe("renderVerbHelp", () => {
     expect(out).toContain("valueFeedback");
     expect(out).toContain("--window");
   });
+
+  it("documents eval:health tier-0 behavior (#2336)", () => {
+    const out = renderVerbHelp("task eval:health");
+    expect(out).not.toContain("not yet implemented");
+    expect(out).toContain("health-history.jsonl");
+    expect(out).toContain("--json");
+  });
+
+  it("lists eval verbs in triage category catalog (#2336)", () => {
+    const out = renderCategoryList("triage");
+    expect(out).toContain("Framework eval (#1703)");
+    expect(out).toContain("task eval:health");
+    expect(out).toContain("task eval:run");
+    expect(out).toContain("task eval:report");
+  });
 });
 
 describe("interceptHelp", () => {

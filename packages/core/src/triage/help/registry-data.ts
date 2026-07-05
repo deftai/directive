@@ -570,6 +570,77 @@ export const registryData = {
       ],
       placeholder: false,
     },
+    "task eval:health": {
+      name: "task eval:health",
+      summary: "Tier 0 static framework health score",
+      refs: "(#1703)",
+      description:
+        "Aggregate static self-consistency gates (encoding, links, vBRIEF conformance, AGENTS.md freshness; content-manifest on framework-source trees) into a versioned 0–100 score. Detects contradictory / unsatisfiable gate pairs (#1694). Appends each run to .eval/results/health-history.jsonl. Session start may emit a budgeted [eval] advisory when health degrades.",
+      usage: "task eval:health [-- --json] [--no-persist] [--project-root PATH]",
+      flags: [
+        ["--json", "(off)", "Emit the structured HealthReport instead of the human summary."],
+        ["--no-persist", "(off)", "Run probes without appending to the health history ledger."],
+        [
+          "--project-root PATH",
+          "(cwd)",
+          "Project root override (Taskfile threads USER_WORKING_DIR).",
+        ],
+      ],
+      examples: ["task eval:health", "task eval:health -- --json"],
+      see_also: ["task eval:run", "task eval:report", "#1703"],
+      placeholder: false,
+    },
+    "task eval:run": {
+      name: "task eval:run",
+      summary: "Tier 2 golden corpus eval for a model",
+      refs: "(#1703)",
+      description:
+        "Execute the fixed golden corpus with objective graders (CRUD schema/invention, surgical update, health fixture, rotating holdout tasks). Persists results to .eval/results/golden-runs.jsonl for champion–challenger diffs.",
+      usage:
+        "task eval:run -- --model MODEL [--seed N] [--directive-version V] [--harness NAME] [--json] [--no-persist]",
+      flags: [
+        ["--model MODEL", "(required)", "Model identifier for the run record."],
+        ["--seed N", "(1,2,3)", "Repeatable seed(s); pass multiple --seed flags."],
+        ["--directive-version V", "(engine version)", "Pin the directive version label."],
+        ["--harness NAME", "deterministic-fixture", "Harness label stored on the run record."],
+        ["--json", "(off)", "Emit the GoldenRunRecord JSON."],
+        ["--no-persist", "(off)", "Run without appending to golden-runs.jsonl."],
+        [
+          "--project-root PATH",
+          "(cwd)",
+          "Project root override (Taskfile threads USER_WORKING_DIR).",
+        ],
+      ],
+      examples: [
+        "task eval:run -- --model gpt-5",
+        "task eval:run -- --model claude-sonnet --seed 1 --seed 2 --json",
+      ],
+      see_also: ["task eval:report", "task eval:health", "#1703"],
+      placeholder: false,
+    },
+    "task eval:report": {
+      name: "task eval:report",
+      summary: "Tier 2 champion–challenger diff with significance",
+      refs: "(#1703)",
+      description:
+        "Diff two directive versions' latest golden runs for a model: primary/holdout/overall pass-rate deltas with two-proportion significance and a holdout tripwire when primary gains do not generalize (#1703 Goodhart guard).",
+      usage:
+        "task eval:report -- --champion V --challenger V --model MODEL [--json] [--project-root PATH]",
+      flags: [
+        ["--champion V", "(required)", "Baseline directive version."],
+        ["--challenger V", "(required)", "Candidate directive version."],
+        ["--model MODEL", "(required)", "Model identifier shared by both runs."],
+        ["--json", "(off)", "Emit the GoldenEvalReport JSON."],
+        [
+          "--project-root PATH",
+          "(cwd)",
+          "Project root override (Taskfile threads USER_WORKING_DIR).",
+        ],
+      ],
+      examples: ["task eval:report -- --champion 0.58.0 --challenger 0.59.0 --model gpt-5"],
+      see_also: ["task eval:run", "task eval:health", "#1703"],
+      placeholder: false,
+    },
     "task scope:promote": {
       name: "task scope:promote",
       summary: "proposed/ -> pending/ (set status pending)",
@@ -817,6 +888,7 @@ export const registryData = {
         "task triage:metrics",
       ],
     ],
+    ["Framework eval (#1703)", ["task eval:health", "task eval:run", "task eval:report"]],
   ],
   categoriesScope: [
     ["Promote / demote", ["task scope:promote", "task scope:demote"]],

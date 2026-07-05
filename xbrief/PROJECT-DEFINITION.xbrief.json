@@ -16783,7 +16783,7 @@
       "allowDirectCommitsToMaster": false,
       "agentsMdBudget": {
         "managedMaxLines": 225,
-        "unmanagedMaxLines": 256
+        "unmanagedMaxLines": 264
       }
     },
     "updated": "2026-07-02T14:32:31Z"

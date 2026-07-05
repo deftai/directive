@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
+import { emitSessionEvalReadback } from "../eval/readback.js";
 import { MIGRATE_COMPLETION_NUDGE, shouldEmitMigrateNudge } from "../init-deposit/migrate.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { resolvePolicy } from "../policy/resolve.js";
@@ -372,6 +373,15 @@ export function runSessionStart(
     });
   } catch {
     // observability only — session start must not abort on transient readback I/O
+  }
+
+  try {
+    emitSessionEvalReadback(projectRoot, {
+      output: (line) => lines.push(line),
+      writeHistory: options.writeHistory !== false,
+    });
+  } catch {
+    // observability only — session start must not abort on transient eval readback I/O
   }
 
   const payload = newRitualStatePayload({
