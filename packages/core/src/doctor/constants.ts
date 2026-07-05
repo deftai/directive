@@ -84,13 +84,12 @@ export const EXPECTED_CONTENT_DIRS = ["languages", "strategies", "skills", "temp
 /** Post-freeze canonical upgrade path (#1997 / #2003 / #1912). */
 export const CANONICAL_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest";
 
-/** First-class pnpm upgrade one-liner (#2197). Same registry, same tarball. */
-export const PNPM_UPGRADE_COMMAND = "pnpm add -g @deftai/directive@latest";
-
 /**
  * Render the canonical upgrade one-liner for the active package manager (#2197).
  * Defaults to npm (`CANONICAL_UPGRADE_COMMAND`) so existing callers are
- * unchanged; pass `pnpm` to emit the pnpm form.
+ * unchanged; pass `pnpm` to emit the pnpm form
+ * (`pnpm add -g @deftai/directive@latest`). Consumed by the doctor
+ * payload-staleness recommendation (`payload-staleness.ts`).
  */
 export function upgradeCommandFor(pm: PackageManager = "npm"): string {
   return renderGlobalInstall(pm, `${ENGINE_PACKAGE}@latest`);

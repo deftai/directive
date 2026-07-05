@@ -35,6 +35,7 @@ import { pythonJsonDump } from "./json.js";
 import { parseInstallRootFromAgentsMd } from "./manifest.js";
 import { createPlainSink } from "./output.js";
 import {
+  readTextSafe,
   resolveDefaultFrameworkRoot,
   resolvePath,
   resolveVersion,
@@ -52,6 +53,29 @@ import type { DoctorSeams, Finding, ResolutionSummary } from "./types.js";
 import { defaultWhich } from "./which.js";
 
 const DEFAULT_RESOLUTION_PLATFORMS = ["linux", "darwin", "win32"] as const;
+
+/**
+ * Read the `packageManager` field (Corepack) from a project package.json, or
+ * null when absent/unreadable. Lets the doctor detect a pnpm project that has
+ * no `pnpm-lock.yaml` yet (fresh Corepack clone) for the #2197 upgrade hint.
+ */
+function readPackageManagerField(
+  packageJsonPath: string,
+  readTextFn: (path: string) => string | null,
+): string | null {
+  const raw = readTextFn(packageJsonPath);
+  if (raw === null) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const field = (parsed as Record<string, unknown>).packageManager;
+      return typeof field === "string" ? field : null;
+    }
+  } catch {
+    // Malformed package.json -- fall through to null (npm default).
+  }
+  return null;
+}
 
 export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): number {
   const flags = parseDoctorFlags(args);
@@ -202,13 +226,19 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
     sink.info("Checking payload staleness from install manifest...");
     // Detect the package manager for the upgrade recommendation from signals
     // that are meaningful for a globally-installed CLI: the explicit
-    // DEFT_PACKAGE_MANAGER override and the project's pnpm-lock.yaml. We
-    // deliberately do NOT consult the ambient npm_config_user_agent here (it is
-    // set by whatever shell/script spawned the process, not by the consumer's
-    // project) so the recommendation is a stable property of the project (#2197).
+    // DEFT_PACKAGE_MANAGER override, the project's `packageManager` field
+    // (Corepack), and the project's pnpm-lock.yaml. We deliberately do NOT
+    // consult the ambient npm_config_user_agent here (it is set by whatever
+    // shell/script spawned the process, not by the consumer's project) so the
+    // recommendation is a stable property of the project (#2197).
+    const readTextForPm = seams.readText ?? readTextSafe;
     const isFileForPm = seams.isFile ?? ((p: string) => existsSync(p));
     const packageManager = detectPackageManager({
       env: { DEFT_PACKAGE_MANAGER: process.env.DEFT_PACKAGE_MANAGER },
+      packageManagerField: readPackageManagerField(
+        join(projectRoot, "package.json"),
+        readTextForPm,
+      ),
       pnpmLockPresent: isFileForPm(join(projectRoot, "pnpm-lock.yaml")),
     });
     runPayloadStalenessCheck(projectRoot, sink, addFinding, {
