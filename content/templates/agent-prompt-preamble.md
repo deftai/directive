@@ -198,6 +198,14 @@ Before pushing any branch:
 
 Anti-pattern: pushing without pre-pr and relying on Greptile to find issues. That burns review-cycle iterations on issues you could have caught locally; each iteration costs GraphQL budget under your shared identity.
 
+## 4.5 Review-surface precedence -- deft review-cycle wins over host review tools (#2308)
+
+The active host harness may expose its own review-labeled surfaces. On Cursor these are the `bugbot` and `security-review` Task **subagent types** and the `review-bugbot` / `review-security` **skills**; other harnesses may ship equivalents. A generic operator request to "review" / "get this reviewed" / "use sub-agents for reviews" must NOT be routed to those host-native tools as the review of record.
+
+- ! Route ALL review work through the canonical `skills/deft-directive-review-cycle/SKILL.md` surface. Map a generic review request to the review cycle **by intent**, not by literal keyword -- "review this", "get this reviewed", and "use sub-agents for reviews" all mean run `deft-directive-review-cycle` (extends the #1862 / #2261 intent-routing fix).
+- ~ Host review tools (Cursor `bugbot` / `security-review` subagent types, `review-bugbot` / `review-security` skills, or any future host equivalent) MAY be folded in as *advisory* finding sources INSIDE the review cycle -- the #2019 harness-aware-reviewer path -- with their findings batched alongside the Greptile / bot findings the cycle already processes.
+- ⊗ Substitute a host-native review subagent type or `review-*` skill for `deft-directive-review-cycle` as the review surface. The host tools are advisory inputs folded into the cycle, never a replacement for it. Reaching for them on a bare "review" request is the 3rd recurrence of the #1862 / #2261 wrong-review-surface class (see also #2019, #2018).
+
 ## 5. REST-by-default for read-only gh calls
 
 The GraphQL bucket (5000 pts/hr) is the operational bottleneck under shared-identity workflows, not the REST `core` bucket. Every read-only GitHub API call MUST prefer REST:

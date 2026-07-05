@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "orchestrator reaches for Cursor bugbot/security-review subagents instead of deft-directive-review-cycle (review-surface precedence)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "When Directive runs inside a host harness (Cursor) that exposes its own review-labeled surfaces -- the `bugbot` and `security-review` Task subagent types and the `review-bugbot` / `review-security` skills -- a generic operator request to \"review\" or \"use sub-agents for reviews\" makes the orchestrator reach for those host-native review tools instead of the deft canonical review surface `deft-directive-review-cycle`. Add an explicit review-surface precedence rule (deft review-cycle wins; host reviewers are advisory-only inputs folded into the cycle per the #2019 harness-aware-reviewer path), broaden intent-routing so a generic review request maps by intent (not literal keyword), and consider a deterministic guardrail. Third recurrence of the #1862 / #2261 intent-routing / wrong-review-surface class.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2308",
@@ -69,11 +69,12 @@
         "title": "Issue #2018: Plan-adherence & review quality (umbrella)"
       }
     ],
-    "updated": "2026-07-05T16:27:23Z",
+    "updated": "2026-07-05T16:38:26Z",
     "metadata": {
       "kind": "story",
       "capacityBucket": "technical-debt",
-      "capacityBucketSource": "match"
+      "capacityBucketSource": "match",
+      "completedAt": "2026-07-05T16:38:26Z"
     }
   }
 }

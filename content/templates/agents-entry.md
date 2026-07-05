@@ -130,6 +130,14 @@ Deft ships versioned content packs (e.g. lessons learned from prior work) under 
 
 Skill routing (which skill answers which trigger) is not a table in this policy section. To pick a skill, scan the **Skills Index** (Level-0) in `.deft/core/REFERENCES.md` — it lists every skill under `.deft/core/.agents/skills/` with a one-sentence description and trigger keywords, unified with the framework doc routing so you consult one place to decide what to load. Read a `SKILL.md` (Level-1) only when the index indicates a match. Before improvising a multi-step workflow, scan the skills catalog first — skills are versioned and tested. The `welcome` / `onboard triage` trigger invokes `deft triage:welcome --onboard` (N3 / #1143); for `lessons` / `prior art`, discover packs with `deft packs:slice --list-packs` then load the relevant slice (see Content packs above).
 
+## Review-surface precedence (#2308)
+
+! When the active host harness exposes its own review-labeled surfaces -- Cursor's `bugbot` / `security-review` Task **subagent types**, the `review-bugbot` / `review-security` **skills**, or any future host equivalent -- the orchestrator MUST route review work through the canonical `deft-directive-review-cycle` skill. A generic "review this" / "get this reviewed" / "use sub-agents for reviews" request maps to `deft-directive-review-cycle` by intent, not literal keyword (extends #1862 / #2261).
+
+~ Host review tools MAY be folded in as *advisory* finding sources inside the review cycle (the #2019 harness-aware-reviewer path) -- their findings are batched alongside Greptile / bot findings, never treated as the review of record.
+
+⊗ Substitute a host-native review subagent type or `review-*` skill for `deft-directive-review-cycle` as the review surface -- the host review tools are advisory inputs, not a replacement. This is the 3rd recurrence of the #1862 / #2261 intent-routing / wrong-review-surface class (see also #2019, #2018).
+
 ## Branch policy & branch verification
 
 Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):

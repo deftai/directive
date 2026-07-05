@@ -129,6 +129,22 @@ const UNMANAGED_HEADER_MARKERS = [
   "Session orientation",
 ] as const;
 
+// #2308: the review-surface precedence rule (deft-directive-review-cycle wins
+// over host-provided review tooling; host reviewers are advisory-only inputs)
+// MUST be mirrored across the maintainer AGENTS.md and the consumer template.
+const REVIEW_SURFACE_PRECEDENCE_MARKERS = [
+  "## Review-surface precedence (#2308)",
+  "deft-directive-review-cycle",
+  "bugbot",
+  "security-review",
+  "review-bugbot",
+  "review-security",
+  "or any future host equivalent",
+  "advisory",
+  "harness-aware-reviewer path",
+  "wrong-review-surface class",
+] as const;
+
 function normalizeWhitespace(text: string): string {
   return text
     .replace(/\u00a0/g, " ")
@@ -221,6 +237,11 @@ describe("test_agents_entry_contract", () => {
   it("unmanaged_header_contract_markers_present_in_both_files", () => {
     expect(missingMarkers(template, UNMANAGED_HEADER_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, UNMANAGED_HEADER_MARKERS)).toEqual([]);
+  });
+
+  it("propagation_review_surface_precedence_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, REVIEW_SURFACE_PRECEDENCE_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, REVIEW_SURFACE_PRECEDENCE_MARKERS)).toEqual([]);
   });
 
   it("content_packs_note_references_discovery_commands", () => {
