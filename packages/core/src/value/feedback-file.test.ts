@@ -230,4 +230,70 @@ describe("feedback-file CLI", () => {
   it("returns config error when summary missing", () => {
     expect(feedbackFileMain([])).toBe(2);
   });
+
+  it("returns error-network when duplicate search fails", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary: "Network gap",
+        projectRoot: root,
+        confirm: false,
+        seams: {
+          runGhApiFn: () => ({
+            returncode: 1,
+            stdout: "",
+            stderr: "rate limit",
+          }),
+        },
+      });
+      expect(result.outcome).toBe("error-network");
+      expect(result.exitCode).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("returns error-network when filing fails after confirm", () => {
+    const root = makeConsumerProject();
+    try {
+      const result = runFeedbackFile({
+        summary: "Filing gap",
+        projectRoot: root,
+        confirm: true,
+        seams: {
+          runGhApiFn: (args: readonly string[]) => {
+            if (args.includes("POST")) {
+              return { returncode: 1, stdout: "", stderr: "forbidden" };
+            }
+            return { returncode: 0, stdout: "[]", stderr: "" };
+          },
+        },
+      });
+      expect(result.outcome).toBe("error-network");
+      expect(result.exitCode).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("runs duplicate detection during dry-run preview", () => {
+    const root = makeConsumerProject();
+    const listCalls = vi.fn(() => ({
+      returncode: 0,
+      stdout: JSON.stringify([]),
+      stderr: "",
+    }));
+    try {
+      runFeedbackFile({
+        summary: "Dry preview",
+        projectRoot: root,
+        dryRun: true,
+        confirm: false,
+        seams: { runGhApiFn: listCalls },
+      });
+      expect(listCalls).toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

@@ -2,7 +2,12 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { isFrameworkRepoRoot } from "../check/orchestrator.js";
 import { isValueFeedbackPathAllowed, resolveValueFeedback } from "../policy/value-feedback.js";
-import { type GhRestSeams, restCreateIssue, restIssueListPaginated } from "../scm/gh-rest.js";
+import {
+  GhRestError,
+  type GhRestSeams,
+  restCreateIssue,
+  restIssueListPaginated,
+} from "../scm/gh-rest.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 
 export const DEFAULT_UPSTREAM_REPO = "deftai/directive";
@@ -14,7 +19,10 @@ export type FeedbackFileOutcome =
   | "skipped-maintainer"
   | "blocked-policy"
   | "blocked-duplicate"
-  | "blocked-no-confirm";
+  | "blocked-no-confirm"
+  | "error-bad-args"
+  | "error-config"
+  | "error-network";
 
 export interface FeedbackGapInput {
   readonly summary: string;
@@ -145,8 +153,13 @@ function resolveRepo(options: FeedbackFileOptions): string {
   return explicit && explicit.length > 0 ? explicit : DEFAULT_UPSTREAM_REPO;
 }
 
-function isNoNetwork(dryRun: boolean): boolean {
-  return dryRun || process.env.DEFT_NO_NETWORK === "1";
+function isOffline(): boolean {
+  return process.env.DEFT_NO_NETWORK === "1";
+}
+
+function networkErrorMessage(prefix: string, err: unknown): string {
+  const detail = err instanceof GhRestError ? err.message : String(err);
+  return `[deft feedback] ${prefix}: ${detail}\n`;
 }
 
 function buildConfirmationPrompt(title: string, body: string): string {
@@ -163,7 +176,7 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
   const summary = sanitizeOneLine(options.summary);
   if (summary.length === 0) {
     return {
-      outcome: "blocked-no-confirm",
+      outcome: "error-bad-args",
       exitCode: 2,
       title: "",
       body: "",
@@ -175,7 +188,7 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
   const projectRootRaw = resolveProjectRoot(options.projectRoot ?? undefined);
   if (projectRootRaw === null) {
     return {
-      outcome: "blocked-no-confirm",
+      outcome: "error-config",
       exitCode: 2,
       title: buildFrameworkGapTitle(summary),
       body: buildFrameworkGapBody(options),
@@ -217,24 +230,39 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
     };
   }
 
-  const noNetwork = isNoNetwork(options.dryRun ?? false);
+  const offline = isOffline();
+  const dryRun = options.dryRun ?? false;
   const seams = options.seams ?? {};
+  let dedupSkippedNote = "";
 
-  if (!noNetwork) {
-    const duplicate = findDuplicateIssue(repo, title, seams);
-    if (duplicate !== null) {
+  if (!offline) {
+    try {
+      const duplicate = findDuplicateIssue(repo, title, seams);
+      if (duplicate !== null) {
+        return {
+          outcome: "blocked-duplicate",
+          exitCode: 1,
+          title,
+          body,
+          repo,
+          duplicateUrl: duplicate.url,
+          message:
+            `[deft feedback] Duplicate detected: open issue ${duplicate.url} ` +
+            `("${duplicate.title}") matches this report.\n`,
+        };
+      }
+    } catch (err: unknown) {
       return {
-        outcome: "blocked-duplicate",
-        exitCode: 1,
+        outcome: "error-network",
+        exitCode: 2,
         title,
         body,
         repo,
-        duplicateUrl: duplicate.url,
-        message:
-          `[deft feedback] Duplicate detected: open issue ${duplicate.url} ` +
-          `("${duplicate.title}") matches this report.\n`,
+        message: networkErrorMessage("Duplicate search failed", err),
       };
     }
+  } else {
+    dedupSkippedNote = "[deft feedback] Note: duplicate detection skipped (DEFT_NO_NETWORK=1).\n\n";
   }
 
   if (!options.confirm) {
@@ -244,40 +272,54 @@ export function runFeedbackFile(options: FeedbackFileOptions): FeedbackFileResul
       title,
       body,
       repo,
-      message: buildConfirmationPrompt(title, body),
+      message: `${dedupSkippedNote}${buildConfirmationPrompt(title, body)}`,
     };
   }
 
-  if (noNetwork) {
+  if (dryRun || offline) {
     return {
       outcome: "draft",
       exitCode: 0,
       title,
       body,
       repo,
-      message: `[deft feedback] Dry run: would file upstream issue in ${repo}.\n${buildConfirmationPrompt(title, body)}`,
+      message:
+        `${dedupSkippedNote}[deft feedback] Dry run: would file upstream issue in ${repo}.\n` +
+        `${buildConfirmationPrompt(title, body)}`,
     };
   }
 
-  const created = restCreateIssue(repo, title, body, [], seams);
-  const issueUrl =
-    typeof created.html_url === "string" && created.html_url.length > 0 ? created.html_url : null;
-  const number = created.number;
-  const urlLine =
-    issueUrl ?? (typeof number === "number" ? `https://github.com/${repo}/issues/${number}` : null);
+  try {
+    const created = restCreateIssue(repo, title, body, [], seams);
+    const issueUrl =
+      typeof created.html_url === "string" && created.html_url.length > 0 ? created.html_url : null;
+    const number = created.number;
+    const urlLine =
+      issueUrl ??
+      (typeof number === "number" ? `https://github.com/${repo}/issues/${number}` : null);
 
-  return {
-    outcome: "filed",
-    exitCode: 0,
-    title,
-    body,
-    repo,
-    issueUrl: urlLine,
-    message:
-      urlLine !== null
-        ? `[deft feedback] Filed upstream issue: ${urlLine}\n`
-        : "[deft feedback] Issue filed upstream (URL unavailable in API response).\n",
-  };
+    return {
+      outcome: "filed",
+      exitCode: 0,
+      title,
+      body,
+      repo,
+      issueUrl: urlLine,
+      message:
+        urlLine !== null
+          ? `[deft feedback] Filed upstream issue: ${urlLine}\n`
+          : "[deft feedback] Issue filed upstream (URL unavailable in API response).\n",
+    };
+  } catch (err: unknown) {
+    return {
+      outcome: "error-network",
+      exitCode: 2,
+      title,
+      body,
+      repo,
+      message: networkErrorMessage("Upstream filing failed", err),
+    };
+  }
 }
 
 export interface FeedbackFileCliArgs {
