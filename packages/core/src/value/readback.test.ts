@@ -1,0 +1,282 @@
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { clearRegistryCache } from "../lifecycle/events.js";
+import {
+  computeValueShowTrend,
+  emitSessionValueReadback,
+  formatAttributedSessionLine,
+  parseWindowMs,
+  readAttributionEvents,
+  renderSessionReadback,
+  runValueShow,
+  selectSessionAttribution,
+  shouldSuppressSessionReadback,
+  VALUE_READBACK_HISTORY_REL,
+} from "./readback.js";
+
+const temps: string[] = [];
+
+afterAll(() => {
+  for (const t of temps) {
+    rmSync(t, { recursive: true, force: true });
+  }
+});
+
+afterEach(() => {
+  clearRegistryCache();
+});
+
+function makeRepo(options: {
+  valueFeedback?: Record<string, unknown>;
+  events?: Array<{ event: string; payload: Record<string, unknown>; detected_at?: string }>;
+}): string {
+  const root = mkdtempSync(join(tmpdir(), "deft-readback-"));
+  temps.push(root);
+  mkdirSync(join(root, "vbrief"), { recursive: true });
+  const policy =
+    options.valueFeedback !== undefined ? { valueFeedback: options.valueFeedback } : {};
+  writeFileSync(
+    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    JSON.stringify({
+      vBRIEFInfo: { version: "0.6" },
+      plan: { title: "T", status: "running", items: [], policy },
+    }),
+    "utf8",
+  );
+  if (options.events !== undefined && options.events.length > 0) {
+    mkdirSync(join(root, ".deft-cache"), { recursive: true });
+    const lines = options.events.map((entry, index) =>
+      JSON.stringify({
+        event: entry.event,
+        id: `evt-${index}`,
+        detected_at: entry.detected_at ?? "2026-07-01T12:00:00Z",
+        payload: { signal_class: entry.event.split(":")[0], ...entry.payload },
+      }),
+    );
+    writeFileSync(join(root, ".deft-cache", "events.jsonl"), `${lines.join("\n")}\n`, "utf8");
+  }
+  return root;
+}
+
+describe("readAttributionEvents", () => {
+  it("returns empty when the ledger file is absent", () => {
+    const root = makeRepo({});
+    expect(readAttributionEvents({ projectRoot: root })).toEqual([]);
+  });
+
+  it("filters to attribution event names only", () => {
+    const root = makeRepo({
+      events: [
+        { event: "value:gate-catch", payload: { source: "verify:branch", detail: "blocked" } },
+        { event: "session:interrupted", payload: { session_id: "s", reason: "r" } } as never,
+      ],
+    });
+    expect(readAttributionEvents({ projectRoot: root })).toHaveLength(1);
+  });
+});
+
+describe("session readback silence and budget", () => {
+  it("emits no session line when the ledger is empty", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, sessionLine: true, emitEvents: true },
+    });
+    const result = renderSessionReadback(root);
+    expect(result.line).toBeNull();
+    expect(result.gated).toBe(false);
+  });
+
+  it("stays gated when sessionLine path is OFF", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, sessionLine: false, emitEvents: true },
+      events: [{ event: "value:gate-catch", payload: { source: "verify:branch", detail: "x" } }],
+    });
+    expect(renderSessionReadback(root).line).toBeNull();
+    expect(renderSessionReadback(root).gated).toBe(true);
+  });
+
+  it("renders at most one attributed line within the char budget", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, sessionLine: true, emitEvents: true },
+      events: [
+        {
+          event: "adoption:unused-capability",
+          payload: { source: "a", capability: "swarm", detail: "hint" },
+        },
+        {
+          event: "value:gate-catch",
+          payload: { source: "verify:branch", detail: "blocked default branch" },
+        },
+      ],
+    });
+    const result = renderSessionReadback(root, { writeHistory: false });
+    expect(result.line).toMatch(/^\[value\]/);
+    expect(result.line?.length ?? 0).toBeLessThanOrEqual(120);
+  });
+
+  it("prefers value signals over adoption for the single session slot", () => {
+    const events = [
+      {
+        event: "adoption:unused-capability",
+        payload: { source: "a", capability: "cost", detail: "run capacity" },
+      },
+      { event: "bypass:off-flow", payload: { source: "hook", detail: "skipped pre-commit" } },
+      { event: "value:wip-cap-protect", payload: { source: "verify:wip-cap", count: 3, cap: 2 } },
+    ];
+    const selected = selectSessionAttribution(
+      readAttributionEvents({
+        projectRoot: makeRepo({ events }),
+      }),
+    );
+    expect(selected?.event).toBe("value:wip-cap-protect");
+  });
+
+  it("suppresses repeat emission within the 4h debounce window", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, sessionLine: true, emitEvents: true },
+      events: [
+        { event: "value:gate-catch", payload: { source: "verify:branch", detail: "blocked" } },
+      ],
+    });
+    const first = renderSessionReadback(root, { now: new Date("2026-07-05T10:00:00Z") });
+    expect(first.line).not.toBeNull();
+
+    const hist = join(root, VALUE_READBACK_HISTORY_REL);
+    expect(existsSync(hist)).toBe(true);
+
+    const second = renderSessionReadback(root, { now: new Date("2026-07-05T11:00:00Z") });
+    expect(second.line).toBeNull();
+    expect(second.suppressed).toBe(true);
+  });
+
+  it("emitSessionValueReadback writes nothing when empty", () => {
+    const root = makeRepo({ valueFeedback: { enabled: true, sessionLine: true } });
+    const lines: string[] = [];
+    expect(
+      emitSessionValueReadback(root, { output: (l) => lines.push(l), writeHistory: false }),
+    ).toBeNull();
+    expect(lines).toEqual([]);
+  });
+});
+
+describe("formatAttributedSessionLine", () => {
+  it("formats concrete gate-catch attribution", () => {
+    const line = formatAttributedSessionLine({
+      event: "value:gate-catch",
+      id: "1",
+      detected_at: "2026-07-01T00:00:00Z",
+      payload: { signal_class: "value", source: "verify:branch", detail: "default branch block" },
+    });
+    expect(line).toContain("verify:branch");
+    expect(line).toContain("default branch block");
+  });
+});
+
+describe("value:show trend readout", () => {
+  it("reports empty ledger for the window", () => {
+    const root = makeRepo({ valueFeedback: { enabled: true } });
+    const result = runValueShow({ projectRoot: root, window: "7d" });
+    expect(result.exitCode).toBe(0);
+    expect(result.empty).toBe(true);
+    expect(result.text).toContain("ledger empty");
+  });
+
+  it("returns class and event counts for recent attribution", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, emitEvents: true },
+      events: [
+        {
+          event: "value:gate-catch",
+          payload: { source: "verify:branch", detail: "a" },
+          detected_at: "2026-07-04T10:00:00Z",
+        },
+        {
+          event: "value:gate-catch",
+          payload: { source: "verify:branch", detail: "b" },
+          detected_at: "2026-07-04T11:00:00Z",
+        },
+        {
+          event: "bypass:off-flow",
+          payload: { source: "hook", detail: "skip" },
+          detected_at: "2026-07-04T12:00:00Z",
+        },
+      ],
+    });
+    const trend = computeValueShowTrend(root, {
+      windowMs: 7 * 86_400_000,
+      now: new Date("2026-07-05T12:00:00Z"),
+    });
+    expect(trend.total).toBe(3);
+    expect(trend.byClass.value).toBe(2);
+    expect(trend.byClass.bypass).toBe(1);
+
+    const result = runValueShow({
+      projectRoot: root,
+      window: "7d",
+      policyOverride: {
+        enabled: true,
+        emitEvents: true,
+        sessionLine: true,
+        upstreamPrompt: false,
+        source: "typed",
+        error: null,
+      },
+    });
+    expect(result.text).toContain("value=2");
+    expect(result.text).toContain("bypass=1");
+  });
+
+  it("supports json output", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true },
+      events: [{ event: "value:gate-catch", payload: { source: "s", detail: "d" } }],
+    });
+    const result = runValueShow({ projectRoot: root, format: "json" });
+    expect(result.text.trim().startsWith("{")).toBe(true);
+    expect(JSON.parse(result.text)).toHaveProperty("total", 1);
+  });
+
+  it("blocks when valueFeedback master flag is OFF", () => {
+    const root = makeRepo({ valueFeedback: { enabled: false } });
+    const result = runValueShow({ projectRoot: root });
+    expect(result.exitCode).toBe(1);
+    expect(result.gated).toBe(true);
+  });
+});
+
+describe("parseWindowMs", () => {
+  it("parses day and hour windows", () => {
+    expect(parseWindowMs("7d")).toBe(7 * 86_400_000);
+    expect(parseWindowMs("24h")).toBe(24 * 3_600_000);
+  });
+});
+
+describe("shouldSuppressSessionReadback", () => {
+  it("returns false when history is missing", () => {
+    const root = makeRepo({});
+    expect(
+      shouldSuppressSessionReadback("evt-0", join(root, VALUE_READBACK_HISTORY_REL), {
+        now: new Date("2026-07-05T12:00:00Z"),
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("debounce history persistence", () => {
+  it("records emitted session lines for suppression checks", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, sessionLine: true },
+      events: [{ event: "value:gate-catch", payload: { source: "verify:branch", detail: "x" } }],
+    });
+    renderSessionReadback(root, { now: new Date("2026-07-05T10:00:00Z") });
+    const hist = join(root, VALUE_READBACK_HISTORY_REL);
+    expect(existsSync(hist)).toBe(true);
+    const parsed = JSON.parse(readFileSync(hist, "utf8").trim()) as {
+      event_id: string;
+      line: string;
+    };
+    expect(parsed.event_id).toBe("evt-0");
+    expect(parsed.line.length).toBeGreaterThan(0);
+  });
+});

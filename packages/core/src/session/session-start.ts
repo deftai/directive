@@ -5,6 +5,7 @@ import { disclosureLine } from "../policy/disclosure.js";
 import { resolvePolicy } from "../policy/resolve.js";
 import { runDefaultMode } from "../triage/welcome/default-mode.js";
 import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
+import { emitSessionValueReadback } from "../value/readback.js";
 import { verifyRequiredTools } from "../verify-env/verify-tools.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, worktreePath } from "./git.js";
@@ -363,6 +364,11 @@ export function runSessionStart(
   if (!runningInsideDeftRepo(projectRoot) && shouldEmitMigrateNudge(projectRoot)) {
     lines.push(MIGRATE_COMPLETION_NUDGE);
   }
+
+  emitSessionValueReadback(projectRoot, {
+    output: (line) => lines.push(line),
+    writeHistory: true,
+  });
 
   const payload = newRitualStatePayload({
     sessionId: (options.newSessionId ?? randomUUID)(),

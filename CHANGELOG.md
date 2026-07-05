@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Budgeted value-awareness readbacks: when value feedback is enabled, session start can show one attributed line from the local ledger (silent when empty), and `task value:show` reports attribution trends on demand — also available as `task triage:metrics`. Refs #1709.
 - Capability adoption registry: directive can now detect when relevant capabilities (planning, cost, decompose, swarm, pre-PR, and others) were applicable but unused, using conservative heuristics that suppress nudges for small or non-parallelizable work. Signals are gated on the value-feedback opt-in policy. Refs #1709.
 - Value feedback opt-in gate: operators can enable value-attribution surfaces via a new typed policy block (default OFF), with per-feature sub-flags and a capability-cost disclosure printed before any change is persisted. Refs #1709.
 - **Attribution ledger for value feedback (#1709).** When value feedback is enabled, directive records value, bypass, adoption, and friction signals to the local events ledger, with branch and WIP-cap gates wired as the first high-signal sources. Refs #1709.

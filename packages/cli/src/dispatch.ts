@@ -195,6 +195,7 @@ export const CORE_MODULE_VERBS = [
   "changelog-resolve-unreleased",
   "architecture-preflight-sor",
   "feedback-file",
+  "value-readback",
 ] as const;
 
 /** Colon aliases for triage-actions (mirrors cli-router SUBCOMMAND_ROUTES). */
@@ -274,6 +275,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   doctor: "doctor",
   "eval:health": "eval-health",
   "feedback:file": "feedback-file",
+  "value:show": "value-readback",
+  "triage:metrics": "value-readback",
   "eval:run": "eval-run",
   "eval:report": "eval-report",
   build: "framework-commands",
@@ -2650,6 +2653,10 @@ async function loadCoreModuleHandler(verb: string, io: DispatchIo): Promise<Comm
     }
     case "feedback-file": {
       const { mainEntry } = await import("@deftai/directive-core/dist/value/feedback-file.js");
+      return mainEntry;
+    }
+    case "value-readback": {
+      const { mainEntry } = await import("@deftai/directive-core/dist/value/readback.js");
       return mainEntry;
     }
     default:
