@@ -42,7 +42,7 @@ describe("capability catalog (#1709-adoption-registry-a1)", () => {
     for (const entry of catalog) {
       expect(entry.label.length).toBeGreaterThan(0);
       expect(entry.description.length).toBeGreaterThan(0);
-      expect(entry.usageSignal.length).toBeGreaterThan(0);
+      expect(entry.usageSignals.length).toBeGreaterThan(0);
       expect(entry.nudgeHint.length).toBeGreaterThan(0);
       expect(getCapability(entry.id)).toEqual(entry);
     }

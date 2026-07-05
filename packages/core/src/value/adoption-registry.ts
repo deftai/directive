@@ -30,7 +30,7 @@ export interface CapabilityRecord {
   readonly id: CapabilityId;
   readonly label: string;
   readonly description: string;
-  readonly usageSignal: UsageSignalSource;
+  readonly usageSignals: readonly UsageSignalSource[];
   readonly nudgeHint: string;
 }
 
@@ -77,56 +77,57 @@ const CAPABILITY_CATALOG: readonly CapabilityRecord[] = [
     id: "planning",
     label: "Planning",
     description: "Structured spec interview or speckit planning before implementation.",
-    usageSignal: "command:/deft:directive:run:speckit",
-    nudgeHint: "Consider `/deft:directive:run:speckit` before a multi-file build.",
+    usageSignals: ["command:/deft:directive:run:interview", "command:/deft:directive:run:speckit"],
+    nudgeHint:
+      "Consider `/deft:directive:run:interview` or `/deft:directive:run:speckit` before a multi-file build.",
   },
   {
     id: "cost",
     label: "Cost awareness",
     description: "Capacity/cost phase before committing to a build.",
-    usageSignal: "command:task capacity:show",
+    usageSignals: ["command:task capacity:show"],
     nudgeHint: "Run `task capacity:show` before a build to surface allocation targets.",
   },
   {
     id: "decompose",
     label: "Decompose",
     description: "Split large multi-file work into reviewable PRs.",
-    usageSignal: "command:split-to-prs",
+    usageSignals: ["command:split-to-prs"],
     nudgeHint: "Large multi-file work may benefit from split-to-prs decomposition.",
   },
   {
     id: "swarm",
     label: "Swarm",
     description: "Parallel agent dispatch for disjoint multi-story cohorts.",
-    usageSignal: "command:task swarm:launch",
+    usageSignals: ["command:task swarm:launch"],
     nudgeHint: "Disjoint multi-story work may benefit from `task swarm:launch`.",
   },
   {
     id: "pre-pr",
     label: "Pre-PR loop",
     description: "Iterative pre-PR quality loop before opening a pull request.",
-    usageSignal: "skill:deft-directive-pre-pr",
+    usageSignals: ["skill:deft-directive-pre-pr"],
     nudgeHint: "Run the deft-directive-pre-pr skill before opening a PR.",
   },
   {
     id: "debug",
     label: "Debug mode",
     description: "Systematic debug workflow for failures and regressions.",
-    usageSignal: "skill:debug-mode",
+    usageSignals: ["skill:debug-mode"],
     nudgeHint: "Switch to debug mode when chasing a failure systematically.",
   },
   {
     id: "glossary",
     label: "Glossary",
     description: "Project glossary for unfamiliar domain terms.",
-    usageSignal: "command:/deft:glossary",
+    usageSignals: ["command:/deft:glossary"],
     nudgeHint: "Consult `/deft:glossary` when domain terms are ambiguous.",
   },
   {
     id: "lessons",
     label: "Lessons packs",
     description: "Prior-art slices from directive content packs.",
-    usageSignal: "command:deft packs:slice",
+    usageSignals: ["command:deft packs:slice"],
     nudgeHint: "Load a lessons pack slice before improvising on a novel problem.",
   },
 ] as const;
@@ -227,15 +228,23 @@ export function evaluateApplicability(id: CapabilityId, ctx: WorkContext): Appli
 }
 
 /** Whether the caller reported the capability as already used. */
-export function isCapabilityUsed(id: CapabilityId, ctx: WorkContext): boolean {
-  return usedSet(ctx).has(id);
+export function isCapabilityUsed(
+  id: CapabilityId,
+  ctx: WorkContext,
+  used?: ReadonlySet<CapabilityId>,
+): boolean {
+  return (used ?? usedSet(ctx)).has(id);
 }
 
 function buildAdoptionSignal(
-  record: CapabilityRecord,
+  id: CapabilityId,
   ctx: WorkContext,
   applicability: ApplicabilityVerdict,
-): AdoptionSignal {
+): AdoptionSignal | null {
+  const record = getCapability(id);
+  if (record === undefined) {
+    return null;
+  }
   return {
     signalClass: ADOPTION_SIGNAL_CLASS,
     event: formatAdoptionEventName(record.id),
@@ -244,7 +253,7 @@ function buildAdoptionSignal(
     evidence: {
       filesTouched: ctx.filesTouched,
       distinctModuleGlobs: ctx.distinctModuleGlobs,
-      usageSignal: record.usageSignal,
+      usageSignals: record.usageSignals,
       applicabilityReason: applicability.reason,
     },
   };
@@ -259,16 +268,20 @@ export function detectApplicableButUnused(ctx: WorkContext): AdoptionSignal[] {
     return [];
   }
 
+  const used = usedSet(ctx);
   const signals: AdoptionSignal[] = [];
-  for (const record of CAPABILITY_CATALOG) {
-    if (isCapabilityUsed(record.id, ctx)) {
+  for (const record of listCapabilities()) {
+    if (used.has(record.id)) {
       continue;
     }
     const applicability = evaluateApplicability(record.id, ctx);
     if (!applicability.applicable) {
       continue;
     }
-    signals.push(buildAdoptionSignal(record, ctx, applicability));
+    const signal = buildAdoptionSignal(record.id, ctx, applicability);
+    if (signal !== null) {
+      signals.push(signal);
+    }
   }
   return signals;
 }
