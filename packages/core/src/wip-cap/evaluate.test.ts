@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { DEFAULT_WIP_CAP } from "../policy/wip.js";
 import { evaluate } from "./evaluate.js";
 
 const temps: string[] = [];
@@ -69,11 +70,13 @@ describe("evaluate", () => {
   });
 
   it("uses default cap and source when PROJECT-DEFINITION is absent", () => {
+    // Framework default WIP cap is 20 (#2319, raised from 10).
+    expect(DEFAULT_WIP_CAP).toBe(20);
     const root = makeRepo({});
     const result = evaluate(root);
     expect(result.code).toBe(0);
     expect(result.message).toContain("(within cap; source=default).");
-    expect(result.message).toContain("0/10");
+    expect(result.message).toContain(`0/${DEFAULT_WIP_CAP}`);
   });
 
   it("returns exit 1 with refusal text when over cap", () => {

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The framework default WIP cap is now 20, up from 10 (#2319).** The WIP cap limits how many scope xBRIEFs can be in flight at once (`pending/` + `active/`) before `scope:promote` refuses. Decomposing an epic into its swarm-ready story cohort routinely produces 6-10 child stories, so a default of 10 blocked staging even one or two epics for a swarm. Consumers can still set any cap per-project via the typed `plan.policy.wipCap`; this only moves the framework default. Closes #2319.
 - The frozen pre-v0.20 migration path is now durable-by-documentation. `deft doctor` / `task migrate:preflight` guidance now anchors recovery on the permanent `v0.59.0` git tag (GitHub serves a source tarball for any tag, so recovery no longer hinges on an uploaded release asset), spells out the two-hop migration chain (pre-v0.20 flat → vBRIEF v0.6 → xBRIEF), and adds a manual `directive init` fresh-start fallback for when the frozen payload is unreachable. Closes #2297.
 
 ### Fixed

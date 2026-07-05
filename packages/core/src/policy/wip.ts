@@ -4,8 +4,8 @@ import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import { loadProjectDefinition } from "./resolve.js";
 
-/** Framework default WIP cap (#1124 / umbrella #1119). */
-export const DEFAULT_WIP_CAP = 10;
+/** Framework default WIP cap (#2319; raised from 10 per #1124 / umbrella #1119). */
+export const DEFAULT_WIP_CAP = 20;
 
 /** vBRIEF lifecycle folders that count toward the WIP set. */
 export const WIP_LIFECYCLE_DIRS = ["pending", "active"] as const;

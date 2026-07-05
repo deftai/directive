@@ -243,7 +243,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=9581935f834e refreshed=2026-07-05T16:36:34Z session=7180526234e7 -->
+<!-- deft:managed-section v3 sha=600d273e1499 refreshed=2026-07-05T17:40:31Z session=dd898d09acb8 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -321,7 +321,7 @@ Check what exists before doing anything else:
 
 ## WIP cap
 
-The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbrief/pending/` + `xbrief/active/`). The framework default is 10 (per umbrella #1119 Current Shape v3). When the cap is reached, `deft scope:promote` refuses with a relief hint pointing at `deft scope:demote --batch --older-than-days 30` (D1 / #1121). Operators can override the cap from the consumer side via `deft triage:welcome --onboard` (the Phase 4 wipCap prompt) or by inspecting / editing the typed field via `deft policy:show --field=wipCap`.
+The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbrief/pending/` + `xbrief/active/`). The framework default is 20 (#2319; raised from the original 10 per umbrella #1119 Current Shape v3). When the cap is reached, `deft scope:promote` refuses with a relief hint pointing at `deft scope:demote --batch --older-than-days 30` (D1 / #1121). Operators can override the cap from the consumer side via `deft triage:welcome --onboard` (the Phase 4 wipCap prompt) or by inspecting / editing the typed field via `deft policy:show --field=wipCap`.
 
 ## xBRIEF layout (#2034 / #2110)
 

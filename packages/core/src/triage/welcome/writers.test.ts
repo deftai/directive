@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { DEFAULT_WIP_CAP } from "./constants.js";
 import {
   appendAuditEntry,
   previewWipRelief,
@@ -37,7 +38,7 @@ describe("welcome writers", () => {
   it("default wip cap confirm does not materialize field", () => {
     const root = mkdtempSync(join(tmpdir(), "writers-"));
     seedPd(root);
-    const [changed] = writeWipCap(root, 10);
+    const [changed] = writeWipCap(root, DEFAULT_WIP_CAP);
     expect(changed).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
@@ -60,7 +61,7 @@ describe("welcome writers", () => {
     const root = mkdtempSync(join(tmpdir(), "writers2-"));
     seedPd(root);
     writeWipCap(root, 8);
-    const [changed, entry] = writeWipCap(root, 10);
+    const [changed, entry] = writeWipCap(root, DEFAULT_WIP_CAP);
     expect(changed).toBe(true);
     expect(entry).toContain("cleared-to-default");
     rmSync(root, { recursive: true, force: true });

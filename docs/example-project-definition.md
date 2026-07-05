@@ -11,7 +11,7 @@ Every field below is consumer-agnostic. Omit a field entirely to accept the fram
       "triageRankingLabels": [],
       "triageAutoClassify": [],
       "triageScopeIgnores": [],
-      "wipCap": 10
+      "wipCap": 20
     }
   }
 }
@@ -21,7 +21,7 @@ Framework defaults when each field is unset:
 - `triageRankingLabels[]` -- defaults to empty; queue ordering is `updated_at` descending within group. D11 / #1128.
 - `triageAutoClassify[]` -- defaults to empty; only the four hardcoded framework universal rules fire (hold-marker / closed-never-triaged / dormant-thin-body / vbrief-referenced). D10 / #1129 Decision 1+2.
 - `triageScopeIgnores[]` -- defaults to empty; every drift signal surfaces until the operator opts out. D14 / #1133.
-- `wipCap` -- defaults to 10 (the framework constant `DEFAULT_WIP_CAP`). D4 / #1124.
+- `wipCap` -- defaults to 20 (the framework constant `DEFAULT_WIP_CAP`; raised from 10 per #2319). D4 / #1124.
 ## 2. Deft's filled-in version
 The values below are what deft itself ships on `vbrief/PROJECT-DEFINITION.vbrief.json` after this PR lands. They reflect deft's actual label vocabulary and operator preferences; substitute with your own when adopting.
 ```json path=null start=null
@@ -88,7 +88,7 @@ The values below are what deft itself ships on `vbrief/PROJECT-DEFINITION.vbrief
   }
 }
 ```
-Note on `wipCap`: deft accepts the framework default 10, so the field is omitted from deft's PROJECT-DEFINITION entirely. Set it explicitly only when your consumer wants a different cap.
+Note on `wipCap`: deft accepts the framework default 20, so the field is omitted from deft's PROJECT-DEFINITION entirely. Set it explicitly only when your consumer wants a different cap.
 Note on the `triageScopeIgnores` shape: D14c / #1182 supports two ignore-entry shapes -- the single-key form `{label: <name>}` or `{milestone: <name>}` and the rule-shaped form `{rule: "author", any-of: [...]}` for author-based ignores. Per-label ignores use one entry per label (no compact `{rule: "labels", any-of: [...]}` shape exists today; that would require a framework extension).
 ## 3. Side-by-side annotation column
 For each non-empty value, this column explains whether it is deft-specific (your repo would substitute its own) or a common convention (works for most repos that follow the umbrella).
@@ -129,5 +129,5 @@ To adapt this example to your repo:
 6. Run `task triage:bootstrap` against your real label set; walk the resulting cache via `task triage:queue --limit=10` and `task triage:audit` to sanity-check that the rules fire as expected.
 Cross-references:
 - Umbrella: [#1119](https://github.com/deftai/directive/issues/1119) (Current Shape v3 section 12 framework-vs-consumer boundary)
-- Framework primitives consumed: [#1129](https://github.com/deftai/directive/issues/1129) (D10 auto-classify), [#1128](https://github.com/deftai/directive/issues/1128) (D11 ranking labels), [#1131](https://github.com/deftai/directive/issues/1131) (D12 subscription scope), [#1182](https://github.com/deftai/directive/issues/1182) (D14c ignore-list + author rule), [#1133](https://github.com/deftai/directive/issues/1133) (D14 ignore-list foundation), [#1124](https://github.com/deftai/directive/issues/1124) (D4 wipCap; deft accepts framework default 10)
+- Framework primitives consumed: [#1129](https://github.com/deftai/directive/issues/1129) (D10 auto-classify), [#1128](https://github.com/deftai/directive/issues/1128) (D11 ranking labels), [#1131](https://github.com/deftai/directive/issues/1131) (D12 subscription scope), [#1182](https://github.com/deftai/directive/issues/1182) (D14c ignore-list + author rule), [#1133](https://github.com/deftai/directive/issues/1133) (D14 ignore-list foundation), [#1124](https://github.com/deftai/directive/issues/1124) (D4 wipCap; deft accepts framework default 20)
 - Consumer-example child: [#1186](https://github.com/deftai/directive/issues/1186)

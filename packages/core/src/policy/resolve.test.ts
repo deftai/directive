@@ -22,7 +22,7 @@ import {
   resolvePolicy,
   setPolicy,
 } from "./resolve.js";
-import { countVbriefWip, resolveWipCap } from "./wip.js";
+import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "./wip.js";
 
 function writeProjectDef(root: string, plan: Record<string, unknown>): void {
   const dir = join(root, "vbrief");
@@ -282,10 +282,12 @@ describe("wip cap", () => {
   });
 
   it("defaults when missing", () => {
+    // Framework default WIP cap is 20 (#2319, raised from 10).
+    expect(DEFAULT_WIP_CAP).toBe(20);
     const r = mkdtempSync(join(tmpdir(), "deft-wip-"));
     roots.push(r);
     mkdirSync(join(r, "vbrief"), { recursive: true });
-    expect(resolveWipCap(r).cap).toBe(10);
+    expect(resolveWipCap(r).cap).toBe(DEFAULT_WIP_CAP);
     expect(resolveWipCap(r).source).toBe("default");
   });
 

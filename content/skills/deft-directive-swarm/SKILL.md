@@ -84,7 +84,7 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 - ! Run `task triage:summary` to emit the current triage-cache one-liner (`[triage] N untriaged ... WIP X/Y [⚠]`). The monitor uses the result to:
   - confirm the cache is fresh enough to act on (the D5 / #1127 `task verify:cache-fresh` warning is silent on a fresh cache; D2's one-liner is the human-readable parallel for the operator);
-  - read the current `pending/ + active/` count against the configured `wipCap` (default 10 per umbrella #1119 Current Shape v3, exposed via `plan.policy.wipCap`).
+  - read the current `pending/ + active/` count against the configured `wipCap` (default 20 per #2319, raised from the original 10 per umbrella #1119 Current Shape v3, exposed via `plan.policy.wipCap`).
 - ! If the summary reports an empty cache (no candidates ever ingested), surface the bootstrap remediation (`task triage:bootstrap` or the N3 / #1143 onboarding ritual `task triage:welcome`) and HALT Phase 0 -- there is no queue to drive cohort selection from.
 
 ```pwsh path=null start=null
@@ -235,7 +235,7 @@ Cross-references:
 - ! **Large/complex stories** get dedicated agents — a story with broad file scope or high acceptance criteria count should not share an agent
 - ! **Dependency-aware grouping** — xBRIEFs that share `planRef` to the same epic or have `edges` between them should be assigned to the same agent when possible, OR sequenced with clear ordering
 - ! The monitor decides allocation dynamically — no hardcoded 1:1 rule
-- ! **WIP cap awareness (#1124 / D4 of #1119)** — the cohort + any bridge-promoted candidates (Step 0.5) MUST fit within `plan.policy.wipCap` (default 10 per umbrella #1119 Current Shape v3). When `pending/ + active/` count is at-or-above the cap, `task scope:promote` refuses with an error message naming `task scope:demote <existing>` and `task scope:demote --batch --older-than-days 30` as the relief valves. The monitor MUST drain the WIP set via `task scope:demote` (D1 / #1121) before promoting more candidates, OR open a per-promote `task scope:promote <file> --force` (audit-logged as `wip_cap_override` in `xbrief/.eval/scope-lifecycle.jsonl`) for the genuinely time-critical case. `task triage:summary` (D2 / #1122) surfaces the cap as `WIP X/Y` with a warning glyph when at-or-above cap.
+- ! **WIP cap awareness (#1124 / D4 of #1119)** — the cohort + any bridge-promoted candidates (Step 0.5) MUST fit within `plan.policy.wipCap` (default 20 per #2319, raised from the original 10 per umbrella #1119 Current Shape v3). When `pending/ + active/` count is at-or-above the cap, `task scope:promote` refuses with an error message naming `task scope:demote <existing>` and `task scope:demote --batch --older-than-days 30` as the relief valves. The monitor MUST drain the WIP set via `task scope:demote` (D1 / #1121) before promoting more candidates, OR open a per-promote `task scope:promote <file> --force` (audit-logged as `wip_cap_override` in `xbrief/.eval/scope-lifecycle.jsonl`) for the genuinely time-critical case. `task triage:summary` (D2 / #1122) surfaces the cap as `WIP X/Y` with a warning glyph when at-or-above cap.
 
 ### Step 4: Present Analysis
 

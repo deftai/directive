@@ -203,6 +203,14 @@ describe("scope branch coverage", () => {
     for (let i = 0; i < 10; i += 1) {
       writeVbrief(join(root, "vbrief", "pending"), `p${i}.vbrief.json`, "pending");
     }
+    // Pin a typed wipCap so the refusal is deterministic regardless of the
+    // framework DEFAULT_WIP_CAP (#2319 raised the default from 10 to 20).
+    writeFileSync(
+      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      formatVbriefJson({
+        plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
+      }),
+    );
     writeVbrief(join(root, "vbrief", "proposed"), "new.vbrief.json", "proposed");
     const file = join(root, "vbrief", "proposed", "new.vbrief.json");
     expect(lifecycleMain(["promote", file, "--project-root", root])).toBe(1);

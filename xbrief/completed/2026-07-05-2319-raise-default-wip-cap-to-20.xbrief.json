@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #2319: raise framework DEFAULT_WIP_CAP from 10 to 20",
+    "updated": "2026-07-05T17:30:00Z"
+  },
+  "plan": {
+    "title": "Raise framework default WIP cap from 10 to 20",
+    "status": "completed",
+    "narratives": {
+      "Overview": "The framework default WIP cap counts in-flight scope xBRIEFs (pending/ + active/) and is enforced at scope:promote. Decomposing a single epic into its swarm-ready story cohort routinely produces 6-10 child stories, so staging even one or two epics for a swarm blows past 10 in-flight and refuses every further promote. Raise the framework default from 10 to 20. Consumers can still override per-project via the typed plan.policy.wipCap; this only moves the framework default. Both DEFAULT_WIP_CAP definitions (packages/core/src/policy/wip.ts and packages/core/src/triage/welcome/constants.ts) move together because writers.ts couples them via a wipCap === DEFAULT_WIP_CAP equality check, and the auto-generated projections (AGENTS.md managed section from content/templates/agents-entry.md, rendered SKILL.md files from content/packs/skills/skills-pack-0.1.json) are regenerated so the documented default matches behavior.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2319 ; surfaced by the WIP-cap review finding on PR #2317."
+    },
+    "items": [
+      {
+        "title": "#2319 raise DEFAULT_WIP_CAP from 10 to 20 in policy/wip.ts and triage/welcome/constants.ts; update agents-entry.md + skills-pack prose; regenerate AGENTS.md + SKILL.md projections; assert DEFAULT_WIP_CAP === 20; CHANGELOG entry",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2319",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2319: feat(policy): raise framework DEFAULT_WIP_CAP from 10 to 20"
+      }
+    ],
+    "updated": "2026-07-05T17:44:03Z",
+    "metadata": {
+      "completedAt": "2026-07-05T17:44:03Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

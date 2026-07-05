@@ -76,7 +76,7 @@ Check what exists before doing anything else:
 
 ## WIP cap
 
-The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbrief/pending/` + `xbrief/active/`). The framework default is 10 (per umbrella #1119 Current Shape v3). When the cap is reached, `deft scope:promote` refuses with a relief hint pointing at `deft scope:demote --batch --older-than-days 30` (D1 / #1121). Operators can override the cap from the consumer side via `deft triage:welcome --onboard` (the Phase 4 wipCap prompt) or by inspecting / editing the typed field via `deft policy:show --field=wipCap`.
+The `plan.policy.wipCap` field caps the number of in-flight scope xBRIEFs (`xbrief/pending/` + `xbrief/active/`). The framework default is 20 (#2319; raised from the original 10 per umbrella #1119 Current Shape v3). When the cap is reached, `deft scope:promote` refuses with a relief hint pointing at `deft scope:demote --batch --older-than-days 30` (D1 / #1121). Operators can override the cap from the consumer side via `deft triage:welcome --onboard` (the Phase 4 wipCap prompt) or by inspecting / editing the typed field via `deft policy:show --field=wipCap`.
 
 ## xBRIEF layout (#2034 / #2110)
 
