@@ -111,9 +111,10 @@ export function runOnboardMode(projectRoot: string, options: OnboardOptions = {}
       const demote = formatWelcomeCommand(
         ["scope:demote", "--batch", "--older-than-days", String(relief.olderThanDays)],
         options.taskPrefix,
-      );
+      ).replace(/\r?\n/g, " ");
+      const eligibleCount = String(relief.eligibleCount).replace(/\r?\n/g, " ");
       out(
-        `[welcome] WIP ${state.wipCount}/${state.wipCap} at/over cap -- ${relief.eligibleCount} pending scope(s) ` +
+        `[welcome] WIP ${state.wipCount}/${state.wipCap} at/over cap -- ${eligibleCount} pending scope(s) ` +
           `older than ${relief.olderThanDays}d are demote-eligible. Relieve with \`${demote}\`.`,
       );
     }

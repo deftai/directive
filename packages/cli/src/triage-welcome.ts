@@ -35,7 +35,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.preset = value;
       i += 1;
     } else if (arg?.startsWith("--preset=")) {
-      parsed.preset = arg.slice("--preset=".length);
+      const value = arg.slice("--preset=".length);
+      if (value === "") return { ...parsed, error: "argument --preset: expected one argument" };
+      parsed.preset = value;
     } else if (arg === "--wip-cap") {
       const value = argv[i + 1];
       if (value === undefined)

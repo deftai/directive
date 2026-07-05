@@ -29,6 +29,12 @@ describe("triage:welcome CLI arg parsing (#2295)", () => {
     expect(args.error).toContain("--preset");
   });
 
+  it("errors on the empty equals form --preset= (no silent default)", () => {
+    const args = parseArgs(["--onboard", "--preset="]);
+    expect(args.error).toContain("--preset");
+    expect(args.preset).toBeNull();
+  });
+
   it("errors when --wip-cap is not an integer", () => {
     const args = parseArgs(["--wip-cap", "lots"]);
     expect(args.error).toContain("--wip-cap");
