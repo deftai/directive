@@ -1,0 +1,136 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2197; refined to swarm-ready 2026-07-04 with locked decisions recorded on the issue (#2197 comment)."
+  },
+  "plan": {
+    "id": "2197-pnpm-support",
+    "title": "First-class pnpm support for the install/upgrade path",
+    "status": "running",
+    "narratives": {
+      "Description": "Give pnpm users a first-class install/upgrade path that today assumes npm-only. This is a pure consumption-side gap: pnpm resolves from the same npm registry, so no republish or additional registry is required. Introduce a package-manager abstraction (npm | pnpm) that detects the active PM and renders the four command forms (global install, project-local install, ephemeral run, upgrade one-liner), thread it through the resolution plan, the engine ladder, and the doctor remediation, and document the pnpm path (pnpm add -g / pnpm dlx) with the PNPM_HOME PATH caveat. The internal .deft/.cli/<platform> sandbox vendoring stays on npm (locked non-goal).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2197",
+      "Overview": "Standalone follow-up to the resolution spine (#2264/#2203). The documented distribution path assumes `npm i -g @deftai/directive@latest`; pnpm-managed setups have no supported install/upgrade flow and mixing an npm global into a pnpm environment breaks PATH/shim/store consistency.\n\n## Locked decisions (see #2197 scoping comment)\n\n1. **No additional registry, no republish.** pnpm reads from `registry.npmjs.org` by default; the published `@deftai/directive` tarball is unchanged. `pnpm add -g`, `pnpm dlx`, and `pnpm add -D` all pull the same artifact.\n2. **Sandbox stays on npm.** The ladder's sandbox rung (`npm install --prefix .deft/.cli/<platform>`) produces an npm-shaped `node_modules/.bin` tree that `resolution/integrity.ts` validates; that dir is gitignored and PM-invisible. Vary only the global / project-local / ephemeral / upgrade command forms by PM. pnpm-shaped sandbox vendoring is an explicit non-goal (deferred).\n3. **Additive rendering.** Keep npm as the default so existing content-contract assertions (`contains npm i -g ...`) stay green; ADD the pnpm forms alongside rather than replacing.\n\n## Why smaller than it looks\n\nThe ladder's engine DETECTION (rungs 1-2) is already PM-agnostic -- it PATH-probes for a reachable `deft`/`directive` binary, so a `pnpm add -g` install just works for detection. Only the emitted install/upgrade command STRINGS are npm-shaped.\n\n## Acceptance criteria\n\n- A `PackageManager` seam detects the active PM (env override -> corepack/packageManager -> pnpm-lock.yaml -> npm_config_user_agent -> npm default) and renders pnpm commands when pnpm is active.\n- Default (no pnpm signal) still emits the existing npm forms unchanged; existing tests stay green.\n- The sandbox rung stays on `npm install --prefix` regardless of detected PM (boundary test).\n- README / UPGRADING / BROWNFIELD document the pnpm install + upgrade path plus the PNPM_HOME / `pnpm setup` PATH caveat.\n- No emitted command carries a custom `--registry` flag; update/migrate/doctor work identically against the shared npm registry.\n\n## Related\n\nBuilds on #2264 (resolution spine). Parent context #2203 (merged). Issue #2197.\n",
+      "UserStory": "As a pnpm-managed Directive consumer, I want a first-class pnpm install and upgrade path that the resolution plan and doctor emit as pnpm commands while keeping the internal sandbox vendoring on npm, so that I can install and upgrade the CLI and run update, migrate, and doctor without being pushed into npm-global workarounds that break my pnpm PATH and store.",
+      "ImplementationPlan": "1. New module `packages/core/src/resolution/package-manager.ts`: a `PackageManager` type (`npm` | `pnpm`), a pure `detectPackageManager(env, cwd)` (order: `DEFT_PACKAGE_MANAGER` env -> `packageManager` field / corepack -> `pnpm-lock.yaml` present -> `npm_config_user_agent` -> default `npm`), and a pure `renderPackageManagerCommands(pm, pkg, pin)` returning `{ globalInstall, projectInstall, ephemeral, upgradeOneLiner }` (npm: `npm i -g`, `npx`; pnpm: `pnpm add -g`, `pnpm dlx`). No `--registry` flag is ever emitted. Colocated `package-manager.test.ts` covers the detection ladder + both render matrices.\n2. Thread an optional `packageManager` through `packages/core/src/resolution/plan.ts` (PlanOptions) and `engine-ladder.ts` (LadderFacts/options), defaulting to `npm` so all existing behaviour and tests are unchanged; the install-global / ephemeral-update `nextAction.command` strings render via the helper. The sandbox (`install-sandbox`) rung stays hard-wired to `npm install --prefix` regardless of PM -- add a boundary test.\n3. `packages/core/src/doctor/constants.ts`: keep `CANONICAL_UPGRADE_COMMAND` (npm) as the default constant and add a PM-aware renderer/variant so doctor emits the pnpm one-liner when pnpm is detected.\n4. Update remediation strings in `packages/core/src/init-deposit/refresh.ts` and `packages/cli/src/dispatch.ts` printHelp to surface the pnpm alternative alongside npm (additive).\n5. Docs: add the pnpm install/upgrade variant (`pnpm add -g @deftai/directive@latest`, `pnpm dlx @deftai/directive ...`) plus the `pnpm setup` / `PNPM_HOME` PATH caveat to `README.md`, `content/UPGRADING.md`, and `content/docs/BROWNFIELD.md`.\n6. Tests: new colocated vitest for detection + rendering + sandbox-boundary; extend the relevant content-contract tests to also assert the pnpm form is present (keep npm assertions). Add a brief CHANGELOG entry. Run `task ts:check-lane`, targeted vitest, and `task check:framework-source`.",
+      "Source": "verified:codebase-read-resolution-2026-07-04; verified:issue-2197-body; scoping-comment:#2197",
+      "Confidence": "medium",
+      "Traces": "#2197, #2203, #2264",
+      "Labels": "enhancement, adoption-blocker, tooling, area:installer, area:cli, area:docs"
+    },
+    "items": [
+      {
+        "id": "2197-a1-pnpm-detection-and-render",
+        "title": "Given pnpm is the active package manager (env override, packageManager/corepack, pnpm-lock.yaml, or npm_config_user_agent), when the resolution plan or doctor renders an install/upgrade remediation, then the emitted command uses pnpm forms (`pnpm add -g @deftai/directive@<pin>`, `pnpm dlx`) rather than npm.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given pnpm is the active package manager (env override, packageManager/corepack, pnpm-lock.yaml, or npm_config_user_agent), when the resolution plan or doctor renders an install/upgrade remediation, then the emitted command uses pnpm forms (`pnpm add -g @deftai/directive@<pin>`, `pnpm dlx`) rather than npm.",
+          "Traces": "#2197, #2264"
+        }
+      },
+      {
+        "id": "2197-a2-npm-default-unchanged",
+        "title": "Given no pnpm signal, when install/upgrade commands render, then they emit the existing npm forms (`npm i -g`, `npx @deftai/directive update`) unchanged and all existing content-contract tests stay green.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given no pnpm signal, when install/upgrade commands render, then they emit the existing npm forms (`npm i -g`, `npx @deftai/directive update`) unchanged and all existing content-contract tests stay green.",
+          "Traces": "#2197"
+        }
+      },
+      {
+        "id": "2197-a3-sandbox-stays-npm",
+        "title": "Given the sandbox rung (`.deft/.cli/<platform>`), when the ladder emits its install command, then it stays on `npm install --prefix` regardless of the detected package manager (locked non-goal), verified by a boundary test.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the sandbox rung (`.deft/.cli/<platform>`), when the ladder emits its install command, then it stays on `npm install --prefix` regardless of the detected package manager (locked non-goal), verified by a boundary test.",
+          "Traces": "#2197, #2264"
+        }
+      },
+      {
+        "id": "2197-a4-docs-pnpm-path",
+        "title": "Given the README / UPGRADING / BROWNFIELD docs, when a pnpm user reads the install/upgrade path, then a first-class pnpm variant (`pnpm add -g @deftai/directive@latest`, `pnpm dlx`) and the `pnpm setup` / `PNPM_HOME` PATH caveat are documented alongside npm.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the README / UPGRADING / BROWNFIELD docs, when a pnpm user reads the install/upgrade path, then a first-class pnpm variant (`pnpm add -g @deftai/directive@latest`, `pnpm dlx`) and the `pnpm setup` / `PNPM_HOME` PATH caveat are documented alongside npm.",
+          "Traces": "#2197"
+        }
+      },
+      {
+        "id": "2197-a5-no-extra-registry",
+        "title": "Given the published package, when installed/upgraded via pnpm, then no emitted command carries a custom `--registry` flag and update/migrate/doctor operate identically against the shared npm registry (no additional registry config).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the published package, when installed/upgraded via pnpm, then no emitted command carries a custom `--registry` flag and update/migrate/doctor operate identically against the shared npm registry (no additional registry config).",
+          "Traces": "#2197"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "tooling",
+      "area:installer",
+      "area:cli",
+      "area:docs"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2197",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2197: Upgrade/install path assumes npm; add first-class pnpm support"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2203",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2203 (resolution/adoption epic, merged)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2264",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2264 (resolution spine keystone)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "M",
+        "model_tier": "high",
+        "depends_on": [
+          "2264-resolution-spine"
+        ],
+        "conflict_group": "resolution-package-manager",
+        "file_scope": [
+          "packages/core/src/resolution/package-manager.ts",
+          "packages/core/src/resolution/package-manager.test.ts",
+          "packages/core/src/resolution/engine-ladder.ts",
+          "packages/core/src/resolution/plan.ts",
+          "packages/core/src/doctor/constants.ts",
+          "packages/core/src/init-deposit/refresh.ts",
+          "packages/cli/src/dispatch.ts",
+          "README.md",
+          "content/UPGRADING.md",
+          "content/docs/BROWNFIELD.md"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "task ts:check-lane",
+          "pnpm exec vitest run packages/core/src/resolution",
+          "pnpm exec vitest run packages/core/src/doctor",
+          "task check:framework-source"
+        ],
+        "expected_outputs": [
+          "New resolution/package-manager.ts: pure detectPackageManager() (env -> corepack -> pnpm-lock.yaml -> npm_config_user_agent -> npm) + renderPackageManagerCommands() rendering npm and pnpm forms with no --registry flag.",
+          "plan.ts + engine-ladder.ts thread an optional packageManager (default npm) so install-global/ephemeral commands render per-PM; existing npm tests stay green.",
+          "Sandbox install-sandbox rung stays on npm --prefix regardless of PM, asserted by a boundary test.",
+          "doctor emits the pnpm upgrade one-liner when pnpm detected; README/UPGRADING/BROWNFIELD document the pnpm path + PNPM_HOME/pnpm setup caveat.",
+          "Colocated vitest + extended content-contract assertions green under task check:framework-source."
+        ],
+        "notes": "Refined swarm-ready 2026-07-04. Solo story (no concurrent cohort). Locked decisions recorded on issue #2197 scoping comment: (1) no additional registry / no republish -- pnpm uses registry.npmjs.org; (2) internal .deft/.cli/<platform> sandbox vendoring STAYS on npm (pnpm-shaped sandbox layout is a deferred non-goal); (3) additive rendering keeps npm default so existing content-contract 'contains npm i -g' assertions stay green. Depends on merged keystone #2264 (plan/engine-ladder/resolution). CHANGELOG.md intentionally omitted from file_scope; the worker still adds a brief CHANGELOG entry."
+      },
+      "capacityBucket": "new-capability"
+    },
+    "updated": "2026-07-05T00:55:39Z"
+  }
+}
