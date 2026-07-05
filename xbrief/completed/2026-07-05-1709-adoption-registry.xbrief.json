@@ -6,7 +6,7 @@
   "plan": {
     "id": "1709-adoption-registry",
     "title": "Capability adoption registry with applicability heuristics",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Catalog directive capabilities such as planning, cost, decompose, swarm, pre-PR, debug, glossary, and lessons, each with a conservative applicability heuristic and a usage signal. This registry powers underutilization nudges that only fire on genuinely relevant work.",
       "ImplementationPlan": "- Add a registry module describing each capability, its applicability heuristic, and its usage-signal source.\n- Emit adoption events when applicable-but-unused work is detected and add tests with fixtures covering conservative false-positive avoidance.",
@@ -62,7 +62,9 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-05T20:54:45Z",
+      "capacityBucket": "agentic-debt"
     },
     "references": [
       {
@@ -77,6 +79,7 @@
         "title": "Issue #1709 child 3: capability adoption registry",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T20:54:45Z"
   }
 }
