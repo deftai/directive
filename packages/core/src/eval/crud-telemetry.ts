@@ -1,8 +1,18 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import { readCorePackageVersion } from "../engine-version.js";
+import { resolveEvalPath } from "../layout/resolve.js";
 import { scanVbrief } from "../vbrief-validate/conformance.js";
 import { validateVbriefSchema } from "../vbrief-validate/schema.js";
+
+export const CRUD_METRICS_HISTORY_REL = "results/crud-metrics.jsonl";
 
 export type CrudOperation = "create" | "read" | "update" | "delete";
 
@@ -132,6 +142,26 @@ function ensureParentDir(path: string): void {
   mkdirSync(dirname(path), { recursive: true });
 }
 
+/** Absolute path to the versioned CRUD metrics ledger (#1703 Tier 1). */
+export function crudMetricsHistoryPath(projectRoot: string): string {
+  return resolveEvalPath(projectRoot, CRUD_METRICS_HISTORY_REL);
+}
+
+/** Append CRUD operation metrics to the versioned ledger (#1703 Tier 1). */
+export function persistCrudMetrics(
+  projectRoot: string,
+  metrics: readonly CrudOperationMetric[],
+): void {
+  if (metrics.length === 0) {
+    return;
+  }
+  const path = crudMetricsHistoryPath(projectRoot);
+  mkdirSync(dirname(path), { recursive: true });
+  for (const metric of metrics) {
+    appendFileSync(path, `${JSON.stringify(metric)}\n`, "utf8");
+  }
+}
+
 /**
  * Instrumented vBRIEF/xBRIEF CRUD chokepoint (#1703 Tier 1).
  * Every operation emits a version-tagged metric covering schema validity,
@@ -245,7 +275,8 @@ export class InstrumentedVbriefCrud {
   }
 
   update(path: string, content: string, options: { trustedWrite?: boolean } = {}): CrudResult {
-    const previousBytes = existsSync(path) ? readFileSync(path, "utf8") : null;
+    const previousBytes =
+      options.trustedWrite || !existsSync(path) ? null : readFileSync(path, "utf8");
 
     let parsed: unknown;
     try {

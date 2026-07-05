@@ -1,12 +1,14 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   BYTE_DIFF_WHOLE_FILE_THRESHOLD,
   classifyByteDiffMinimality,
   computeChangedByteRatio,
+  crudMetricsHistoryPath,
   InstrumentedVbriefCrud,
+  persistCrudMetrics,
 } from "./crud-telemetry.js";
 
 const VALID_VBRIEF = `{
@@ -192,5 +194,36 @@ describe("InstrumentedVbriefCrud", () => {
     const rewriteMetric = crud.getMetrics()[1];
     expect(rewriteMetric?.byteDiffMinimality).toBe("whole-file-rewrite");
     expect(rewriteMetric?.byteDiffChangedRatio).not.toBeNull();
+  });
+
+  it("skips byte-diff computation for trusted lifecycle writes", () => {
+    const { crud, filePath } = makeCrud();
+
+    expect(crud.create(filePath, VALID_VBRIEF).ok).toBe(true);
+    crud.clearMetrics();
+
+    expect(crud.update(filePath, VALID_VBRIEF_WHOLE_FILE_REWRITE, { trustedWrite: true }).ok).toBe(
+      true,
+    );
+    const metric = crud.getMetrics()[0];
+    expect(metric?.byteDiffMinimality).toBeNull();
+    expect(metric?.byteDiffChangedRatio).toBeNull();
+  });
+
+  it("appends metrics to the versioned CRUD ledger", () => {
+    tempDir = mkdtempSync(join(tmpdir(), "crud-telemetry-"));
+    const filePath = join(tempDir, "xbrief", "active", "fixture.vbrief.json");
+    mkdirSync(dirname(filePath), { recursive: true });
+    const crud = new InstrumentedVbriefCrud({ directiveVersion: "ledger-test" });
+
+    expect(crud.create(filePath, VALID_VBRIEF).ok).toBe(true);
+    persistCrudMetrics(tempDir, crud.getMetrics());
+
+    const ledgerPath = crudMetricsHistoryPath(tempDir);
+    expect(existsSync(ledgerPath)).toBe(true);
+    const lines = readFileSync(ledgerPath, "utf8").trim().split("\n");
+    expect(lines).toHaveLength(1);
+    const persisted = JSON.parse(lines[0] ?? "{}") as { directiveVersion?: string };
+    expect(persisted.directiveVersion).toBe("ledger-test");
   });
 });
