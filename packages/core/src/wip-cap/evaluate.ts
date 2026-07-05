@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { recordWipCapProtect } from "../events/attribution-ledger.js";
+import { recordBypassSignal, recordWipCapProtect } from "../events/attribution-ledger.js";
 import { countVbriefWip, resolveWipCap } from "../policy/wip.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
@@ -64,6 +64,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   }
 
   if (allowOverCap) {
+    recordBypassSignal(
+      root,
+      "verify:wip-cap",
+      `--allow-over-cap passed (${count}/${cap} in pending/+active/)`,
+    );
     if (quiet) {
       return { code: 0, message: "", stream: "none" };
     }

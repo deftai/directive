@@ -1,0 +1,55 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Wire adoption/bypass/friction attribution detectors (#2339) — production emitters gated on valueFeedback.emitEvents.",
+    "created": "2026-07-05T23:15:00Z",
+    "updated": "2026-07-05T23:15:00Z"
+  },
+  "plan": {
+    "id": "2339-wire-attribution-detectors",
+    "title": "Wire adoption/bypass/friction attribution detectors (#2339)",
+    "status": "running",
+    "narratives": {
+      "Problem": "The #1709 attribution ledger defines four signal classes but only value-class emitters are wired in branch and wip-cap gates. Adoption, bypass, and friction classes exist as API only.",
+      "Overview": "Wire production detectors for bypass (gate overrides), adoption (registry at session boundary), and friction (contradictory gates), all gated on plan.policy.valueFeedback.emitEvents.",
+      "Outcome": "Each remaining signal class has at least one production caller with tests; CHANGELOG entry; PR closes #2339.",
+      "Action": "Implement in branch/evaluate.ts, wip-cap/evaluate.ts, value/adoption-emit.ts, value/friction-emit.ts, and session readback integration."
+    },
+    "items": [
+      {
+        "id": "bypass-detectors",
+        "title": "Emit bypass:off-flow on env-bypass and --allow-over-cap paths",
+        "status": "pending"
+      },
+      {
+        "id": "adoption-detector",
+        "title": "Invoke adoption registry at session readback boundary",
+        "status": "pending"
+      },
+      {
+        "id": "friction-detector",
+        "title": "Emit friction:directive-gap from contradictory-gate detection",
+        "status": "pending"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "github_issue": "#2339",
+        "parent_refs": [
+          "#1709",
+          "#2331",
+          "#2330",
+          "#2332"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2339",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2339: Wire adoption/bypass/friction attribution detectors"
+      }
+    ],
+    "updated": "2026-07-05T23:15:11Z"
+  }
+}

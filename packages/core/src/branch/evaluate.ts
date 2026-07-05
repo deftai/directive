@@ -1,4 +1,4 @@
-import { recordGateCatch } from "../events/attribution-ledger.js";
+import { recordBypassSignal, recordGateCatch } from "../events/attribution-ledger.js";
 import { disclosureLine } from "../policy/disclosure.js";
 import { ENV_BYPASS, type PolicyResult, resolvePolicy } from "../policy/resolve.js";
 import { type BranchState, currentBranch, GitNotFoundError } from "./git.js";
@@ -76,6 +76,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
   const allowMissingProjectDefinition = options.allowMissingProjectDefinition ?? false;
 
   if (setupExemptionActive()) {
+    recordBypassSignal(
+      projectRoot,
+      "verify:branch",
+      `${ENV_SETUP_EXEMPTION}=1 setup-interview exemption`,
+    );
     return {
       exitCode: 0,
       message:
@@ -137,6 +142,13 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
 
   const result = resolvePolicy(projectRoot);
   if (result.allowDirectCommits) {
+    if (result.source === "env-bypass") {
+      recordBypassSignal(
+        projectRoot,
+        "verify:branch",
+        `${ENV_BYPASS}=1 on default branch '${branch}'`,
+      );
+    }
     return {
       exitCode: 0,
       message:
@@ -147,6 +159,11 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
 
   if (result.source === "default-fail-closed" && result.error !== null) {
     if (allowMissingProjectDefinition && result.error.includes("not found")) {
+      recordBypassSignal(
+        projectRoot,
+        "verify:branch",
+        "--allow-missing-project-definition bootstrap on default branch",
+      );
       return {
         exitCode: 0,
         message:

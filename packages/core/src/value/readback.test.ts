@@ -49,7 +49,9 @@ function makeRepo(options: {
   temps.push(root);
   mkdirSync(join(root, "vbrief"), { recursive: true });
   const policy =
-    options.valueFeedback !== undefined ? { valueFeedback: options.valueFeedback } : {};
+    options.valueFeedback !== undefined
+      ? { wipCap: 20, valueFeedback: options.valueFeedback }
+      : { wipCap: 20 };
   writeFileSync(
     join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
     JSON.stringify({
@@ -164,12 +166,53 @@ describe("session readback silence and budget", () => {
   });
 
   it("emitSessionValueReadback writes nothing when empty", () => {
-    const root = makeRepo({ valueFeedback: { enabled: true, sessionLine: true } });
+    const root = makeRepo({
+      valueFeedback: { enabled: true, sessionLine: true, emitEvents: true },
+    });
     const lines: string[] = [];
     expect(
       emitSessionValueReadback(root, { output: (l) => lines.push(l), writeHistory: false }),
     ).toBeNull();
     expect(lines).toEqual([]);
+  });
+
+  it("probes adoption and friction at the session boundary when emitEvents is allowed (#2339)", () => {
+    const enabledPolicy = {
+      enabled: true,
+      emitEvents: true,
+      sessionLine: true,
+      upstreamPrompt: false,
+      source: "typed" as const,
+      error: null,
+    };
+    const root = mkdtempSync(join(tmpdir(), "deft-readback-probe-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.6" },
+        plan: {
+          title: "T",
+          status: "running",
+          items: [],
+          "x-directive/policy": { triageScope: [{ rule: "all-open" }] },
+        },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", ".eval"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".eval", "candidates.jsonl"), '{"issue":1}\n', "utf8");
+
+    renderSessionReadback(root, { writeHistory: false, policyOverride: enabledPolicy });
+    const events = readAttributionEvents({ projectRoot: root });
+    expect(events.some((entry) => entry.event === "friction:directive-gap")).toBe(true);
+
+    const lineResult = renderSessionReadback(root, {
+      writeHistory: false,
+      policyOverride: enabledPolicy,
+    });
+    expect(lineResult.line).toMatch(/^\[friction\]/);
   });
 });
 

@@ -3,9 +3,23 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import { ENV_BYPASS } from "../policy/resolve.js";
 import { DEFAULT_BRANCHES, ENV_SETUP_EXEMPTION, evaluate } from "./evaluate.js";
 import { currentBranch } from "./git.js";
+
+const ATTRIBUTION_EVENTS = new Set([
+  "value:gate-catch",
+  "bypass:off-flow",
+  "adoption:unused-capability",
+  "friction:directive-gap",
+  "value:wip-cap-protect",
+]);
+
+function readAttribution(root: string, log = join(root, DEFAULT_EVENT_LOG)) {
+  clearRegistryCache();
+  return readEvents(log).filter((record) => ATTRIBUTION_EVENTS.has(record.event));
+}
 
 function writeProjectDef(root: string, plan: Record<string, unknown>): void {
   const dir = join(root, "vbrief");
@@ -83,6 +97,22 @@ describe("evaluate", () => {
     const result = evaluate(r, { branchOverride: { branch: "master", detached: false } });
     expect(result.exitCode).toBe(0);
     expect(result.message).toContain("policy allows it");
+  });
+
+  it("records bypass:off-flow when env bypass allows default-branch commit (#2339)", () => {
+    const r = root();
+    writeProjectDef(r, {
+      policy: {
+        allowDirectCommitsToMaster: false,
+        valueFeedback: { enabled: true, emitEvents: true },
+      },
+    });
+    process.env[ENV_BYPASS] = "1";
+    evaluate(r, { branchOverride: { branch: "master", detached: false } });
+    const entries = readAttribution(r);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.event).toBe("bypass:off-flow");
+    expect(entries[0]?.payload.source).toBe("verify:branch");
   });
 
   it("passes with setup-interview exemption without policy lookup", () => {

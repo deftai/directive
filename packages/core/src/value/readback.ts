@@ -10,6 +10,8 @@ import {
 } from "../policy/value-feedback.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { MAX_LINE_CHARS } from "../triage/welcome/constants.js";
+import { probeAdoptionAtWorkBoundary } from "./adoption-emit.js";
+import { probeFrictionAtWorkBoundary } from "./friction-emit.js";
 
 /** Repeat-suppression window for the budgeted session readback (#1709 / #1279 parity). */
 export const VALUE_READBACK_SUPPRESSION_HOURS = 4;
@@ -322,6 +324,16 @@ export function renderSessionReadback(
     }
 
     const policy = options.policyOverride ?? resolveValueFeedback(root);
+    if (isValueFeedbackPathAllowed("emitEvents", policy)) {
+      probeAdoptionAtWorkBoundary(root, {
+        logPath: options.logPath,
+        policyOverride: policy,
+      });
+      probeFrictionAtWorkBoundary(root, {
+        logPath: options.logPath,
+        policyOverride: policy,
+      });
+    }
     if (!isValueFeedbackPathAllowed("sessionLine", policy)) {
       return { line: null, suppressed: false, gated: true };
     }

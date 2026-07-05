@@ -2,8 +2,22 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { clearRegistryCache, DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
 import { DEFAULT_WIP_CAP } from "../policy/wip.js";
 import { evaluate } from "./evaluate.js";
+
+const ATTRIBUTION_EVENTS = new Set([
+  "value:gate-catch",
+  "bypass:off-flow",
+  "adoption:unused-capability",
+  "friction:directive-gap",
+  "value:wip-cap-protect",
+]);
+
+function readAttribution(root: string, log = join(root, DEFAULT_EVENT_LOG)) {
+  clearRegistryCache();
+  return readEvents(log).filter((record) => ATTRIBUTION_EVENTS.has(record.event));
+}
 
 const temps: string[] = [];
 afterAll(() => {
@@ -103,6 +117,23 @@ describe("evaluate", () => {
     expect(result.stream).toBe("stderr");
     expect(result.message).toContain("⚠ verify:wip-cap: 2/1");
     expect(result.message).toContain("--allow-over-cap was passed");
+  });
+
+  it("records bypass:off-flow when --allow-over-cap overrides the cap (#2339)", () => {
+    const root = makeRepo({
+      plan: {
+        policy: {
+          wipCap: 1,
+          valueFeedback: { enabled: true, emitEvents: true },
+        },
+      },
+      pendingFiles: 2,
+    });
+    evaluate(root, { allowOverCap: true });
+    const entries = readAttribution(root);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.event).toBe("bypass:off-flow");
+    expect(entries[0]?.payload.source).toBe("verify:wip-cap");
   });
 
   it("returns exit 2 for malformed wipCap", () => {

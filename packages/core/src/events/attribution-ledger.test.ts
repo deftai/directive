@@ -203,6 +203,53 @@ describe("wired gate sources", () => {
     evaluateWipCap(root);
     expect(readAttributionInTest(root, log)).toHaveLength(0);
   });
+
+  it("branch env-bypass records bypass:off-flow when value feedback is enabled", () => {
+    const root = makeRepo({ valueFeedback: { enabled: true, emitEvents: true } });
+    const log = logPath(root);
+    const prev = process.env.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT;
+    process.env.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT = "1";
+    try {
+      const result = evaluateBranch(root, {
+        branchOverride: { branch: "master", detached: false },
+      });
+      expect(result.exitCode).toBe(0);
+      const entries = readAttributionInTest(root, log);
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.event).toBe("bypass:off-flow");
+    } finally {
+      if (prev === undefined) {
+        delete process.env.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT;
+      } else {
+        process.env.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT = prev;
+      }
+    }
+  });
+
+  it("wip-cap --allow-over-cap records bypass:off-flow when over cap", () => {
+    const root = makeRepo({
+      valueFeedback: { enabled: true, emitEvents: true },
+      policy: { wipCap: 1 },
+    });
+    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    for (const name of ["a.vbrief.json", "b.vbrief.json"]) {
+      writeFileSync(
+        join(root, "vbrief", "pending", name),
+        JSON.stringify({
+          vBRIEFInfo: { version: "0.6" },
+          plan: { status: "approved", title: name, items: [] },
+        }),
+        "utf8",
+      );
+    }
+    const log = logPath(root);
+    const result = evaluateWipCap(root, { allowOverCap: true });
+    expect(result.code).toBe(0);
+    const entries = readAttributionInTest(root, log);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.event).toBe("bypass:off-flow");
+    expect(entries[0]?.payload.source).toBe("verify:wip-cap");
+  });
 });
 
 describe("ledger persistence", () => {
