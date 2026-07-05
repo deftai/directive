@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json"
+  },
+  "plan": {
+    "id": "1703-eval-namespace-cleanup",
+    "title": "Reclaim the .eval namespace for version-eval results",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json",
+    "narratives": {
+      "Description": "The .eval directory was named for evaluation but became the triage working-set cache. Move the triage cache to a dedicated namespace so the version-eval results store can own .eval, de-conflicting the two concepts.",
+      "ImplementationPlan": "- Update the triage cache path resolver module to write to a dedicated triage-cache directory instead of .eval.\n- Add a migration for existing cache files and tests asserting triage loads and writes resolve to the new path.",
+      "UserStory": "As a directive maintainer, I want the triage cache moved off .eval, so that the version-eval results store can own that namespace without collision.",
+      "Traces": "#1703 namespace cleanup; .eval currently holds candidates.jsonl and summary-history.jsonl."
+    },
+    "items": [
+      {
+        "id": "1703-eval-namespace-cleanup-a1",
+        "title": "Resolver points to new path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The triage cache resolver returns the dedicated triage-cache path instead of the .eval directory."
+        }
+      },
+      {
+        "id": "1703-eval-namespace-cleanup-a2",
+        "title": "Existing cache migrated",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When triage runs after migration, it loads candidates from the new cache path."
+        }
+      },
+      {
+        "id": "1703-eval-namespace-cleanup-a3",
+        "title": "Namespace de-conflicted",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The results store persists to .eval and no longer collides with the triage cache."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/cache-path.ts",
+          "packages/core/src/triage/cache-path.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test cache-path"
+        ],
+        "expected_outputs": [
+          "Triage cache relocated off .eval to a dedicated namespace",
+          "Migration for existing triage cache files"
+        ],
+        "depends_on": [],
+        "conflict_group": "eval-namespace",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703: RFC: measuring directive version-over-version performance -- tiered framework-eval model",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703: .eval namespace cleanup",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

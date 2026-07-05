@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
+  },
+  "plan": {
+    "id": "1709-gap-escalation",
+    "title": "Gap escalation to upstream feedback (feedback:file + skill)",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json",
+    "narratives": {
+      "Description": "Add a feedback:file command that drafts and dedups a framework-gap issue against deftai/directive, gated behind a confirmation prompt and consumer-only guards. Add a deft-directive-feedback skill for the conversational batched session-end flow.",
+      "ImplementationPlan": "- Add a feedback module that builds the gap template, dedups against existing upstream issues via the scm shim, and files only after explicit confirmation.\n- Guard against filing inside the maintainer repo and add tests asserting no issue is created without confirmation.",
+      "UserStory": "As a directive consumer, I want to file a deduped framework-gap issue after confirming, so that directive's shortfalls reach maintainers instead of dying in my session.",
+      "Traces": "#1709 gap escalation (child 5); mirrors article-review confirmation gate."
+    },
+    "items": [
+      {
+        "id": "1709-gap-escalation-a1",
+        "title": "Confirmation-gated filing",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The command drafts a framework-gap issue and rejects filing until the user explicitly confirms."
+        }
+      },
+      {
+        "id": "1709-gap-escalation-a2",
+        "title": "Consumer-only guard",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When run inside the maintainer repo, the feedback path emits no upstream issue."
+        }
+      },
+      {
+        "id": "1709-gap-escalation-a3",
+        "title": "Duplicate detection",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Duplicate detection rejects filing when a matching upstream issue already exists."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/value/feedback-file.ts",
+          "packages/core/src/value/feedback-file.test.ts",
+          "content/skills/deft-directive-feedback/SKILL.md"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test feedback-file"
+        ],
+        "expected_outputs": [
+          "feedback:file command with dedup, confirmation gate, and consumer-only guard",
+          "deft-directive-feedback skill for the batched conversational flow"
+        ],
+        "depends_on": [
+          "1709-optin-gate"
+        ],
+        "conflict_group": "value-feedback-file",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709: Epic: Directive value attribution & adoption loop (RFC)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709 child 5: gap escalation to upstream",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

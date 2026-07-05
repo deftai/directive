@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
+  },
+  "plan": {
+    "id": "1709-adoption-registry",
+    "title": "Capability adoption registry with applicability heuristics",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json",
+    "narratives": {
+      "Description": "Catalog directive capabilities such as planning, cost, decompose, swarm, pre-PR, debug, glossary, and lessons, each with a conservative applicability heuristic and a usage signal. This registry powers underutilization nudges that only fire on genuinely relevant work.",
+      "ImplementationPlan": "- Add a registry module describing each capability, its applicability heuristic, and its usage-signal source.\n- Emit adoption events when applicable-but-unused work is detected and add tests with fixtures covering conservative false-positive avoidance.",
+      "UserStory": "As a directive consumer, I want relevant unused capabilities surfaced conservatively, so that I discover planning, cost, or decompose value I am leaving on the table.",
+      "Traces": "#1709 capability adoption registry (child 3)."
+    },
+    "items": [
+      {
+        "id": "1709-adoption-registry-a1",
+        "title": "Capability catalog with heuristics",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The registry records each capability with an applicability heuristic and a usage-signal source."
+        }
+      },
+      {
+        "id": "1709-adoption-registry-a2",
+        "title": "Applicable-but-unused detection",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When large multi-file work runs without decompose, the registry emits an adoption signal."
+        }
+      },
+      {
+        "id": "1709-adoption-registry-a3",
+        "title": "Conservative false-positive guard",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The registry rejects adoption nudges for small or non-parallelizable work to avoid false positives."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/value/adoption-registry.ts",
+          "packages/core/src/value/adoption-registry.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test adoption-registry"
+        ],
+        "expected_outputs": [
+          "Capability catalog with applicability heuristics and usage signals",
+          "adoption events emitted for applicable-but-unused capabilities"
+        ],
+        "depends_on": [
+          "1709-optin-gate"
+        ],
+        "conflict_group": "value-adoption",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709: Epic: Directive value attribution & adoption loop (RFC)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709 child 3: capability adoption registry",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

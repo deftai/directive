@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
+  },
+  "plan": {
+    "id": "1709-optin-gate",
+    "title": "Opt-in typed policy gate for value feedback (default OFF)",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json",
+    "narratives": {
+      "Description": "Introduce a typed plan.policy.valueFeedback policy block that defaults to OFF and gates the entire value-attribution feature. Add granular sub-flags for event emission, session line, and upstream prompt, plus a capability-cost disclosure printed when a consumer enables it.",
+      "ImplementationPlan": "- Add the typed valueFeedback schema to the policy module and a policy:show --field=valueFeedback reader.\n- Print a capability-cost disclosure at enable time and add tests asserting the master flag short-circuits every downstream code path.",
+      "UserStory": "As a directive consumer, I want a default-off typed policy flag, so that no value-feedback behavior or token cost occurs until I explicitly opt in.",
+      "Traces": "#1709 opt-in / token model; foundational child 1."
+    },
+    "items": [
+      {
+        "id": "1709-optin-gate-a1",
+        "title": "Master flag gates all downstream code paths",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When valueFeedback.enabled is false, the gate rejects all emit, session-line, and upstream-prompt code paths."
+        }
+      },
+      {
+        "id": "1709-optin-gate-a2",
+        "title": "Capability-cost disclosure on enable",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Enabling the flag persists the typed policy value only after it shows a capability-cost disclosure."
+        }
+      },
+      {
+        "id": "1709-optin-gate-a3",
+        "title": "Policy reader surface",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "policy:show --field=valueFeedback returns the resolved enabled state and every sub-flag value."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy/value-feedback.ts",
+          "packages/core/src/policy/value-feedback.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test value-feedback"
+        ],
+        "expected_outputs": [
+          "Typed valueFeedback policy block defaulting OFF with granular sub-flags",
+          "Capability-cost disclosure printed at enable time"
+        ],
+        "depends_on": [],
+        "conflict_group": "policy-value-feedback",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709: Epic: Directive value attribution & adoption loop (RFC)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709 child 1: opt-in & token-cost gate",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

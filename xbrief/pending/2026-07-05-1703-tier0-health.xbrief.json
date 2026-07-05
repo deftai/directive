@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json"
+  },
+  "plan": {
+    "id": "1703-tier0-health",
+    "title": "Tier 0 static self-consistency aggregation (eval:health)",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json",
+    "narratives": {
+      "Description": "Aggregate directive's existing static gates such as render-staleness, dead cross-refs, conformance, encoding, and template propagation drift, plus a new contradictory-gate detector, into a single per-version framework health score. This tier is the cheapest, model-free, highest-ROI signal and is trended over time.",
+      "ImplementationPlan": "- Add an eval:health module that runs the existing static verifiers and aggregates their results into a versioned score.\n- Add the contradictory-gate detector and tests asserting the wipCap-class unsatisfiable-nudge is reported as evidence.",
+      "UserStory": "As a directive maintainer, I want a versioned framework health score, so that I can trend static self-consistency across releases without running any agent.",
+      "Traces": "#1703 Tier 0; #1694 wipCap self-contradiction is the canonical detector case."
+    },
+    "items": [
+      {
+        "id": "1703-tier0-health-a1",
+        "title": "Versioned health score",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task eval:health emits a versioned framework health score aggregated from the existing static gates."
+        }
+      },
+      {
+        "id": "1703-tier0-health-a2",
+        "title": "Contradictory-gate detector",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When a gate contradicts another gate, the detector records the unsatisfiable-nudge contradiction."
+        }
+      },
+      {
+        "id": "1703-tier0-health-a3",
+        "title": "Trended over time",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The health run persists each score to a versioned store so runs can be trended across releases."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/eval/health.ts",
+          "packages/core/src/eval/health.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test eval-health"
+        ],
+        "expected_outputs": [
+          "task eval:health versioned framework health score",
+          "Contradictory-gate / unsatisfiable-nudge detector"
+        ],
+        "depends_on": [],
+        "conflict_group": "eval-tier0",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703: RFC: measuring directive version-over-version performance -- tiered framework-eval model",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703 Tier 0: static self-consistency aggregation",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

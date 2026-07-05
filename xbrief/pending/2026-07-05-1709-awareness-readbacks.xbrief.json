@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
+  },
+  "plan": {
+    "id": "1709-awareness-readbacks",
+    "title": "Budgeted awareness readbacks (session line + value:show)",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json",
+    "narratives": {
+      "Description": "Add a budgeted one-line session readback that surfaces in-flow value, boundary, and adoption signals, staying silent when nothing is attributed. Add a pull-based value:show trend readout that fills the currently-stubbed metrics slot.",
+      "ImplementationPlan": "- Add a readback module that queries the ledger and registry and renders at most one session line within the existing nudge budget.\n- Implement the value:show command with a trend report and add tests asserting silence when the ledger is empty.",
+      "UserStory": "As a directive consumer, I want a budgeted session line and an on-demand value report, so that directive's caught value is visible without nagging me.",
+      "Traces": "#1709 awareness readbacks (child 4); fills stubbed triage:metrics slot."
+    },
+    "items": [
+      {
+        "id": "1709-awareness-readbacks-a1",
+        "title": "Budgeted session line",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The session readback renders at most one line and stays silent when nothing is attributed."
+        }
+      },
+      {
+        "id": "1709-awareness-readbacks-a2",
+        "title": "Pull-based value:show",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The value:show command returns a trend readout of attributed value over recent sessions."
+        }
+      },
+      {
+        "id": "1709-awareness-readbacks-a3",
+        "title": "Silence when empty",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the ledger is empty, the readback emits no session line at all."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/value/readback.ts",
+          "packages/core/src/value/readback.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test value-readback"
+        ],
+        "expected_outputs": [
+          "Budgeted session one-liner respecting the nudge budget",
+          "Pull-based value:show trend readout"
+        ],
+        "depends_on": [
+          "1709-attribution-ledger",
+          "1709-adoption-registry"
+        ],
+        "conflict_group": "value-readback",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709: Epic: Directive value attribution & adoption loop (RFC)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709 child 4: awareness readbacks",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

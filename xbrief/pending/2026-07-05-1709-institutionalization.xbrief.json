@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json"
+  },
+  "plan": {
+    "id": "1709-institutionalization",
+    "title": "Institutionalization and propagation of value-feedback rules",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1709-value-attribution-adoption-loop.xbrief.json",
+    "narratives": {
+      "Description": "Mirror the RFC2119 value-feedback rules across AGENTS.md, the agents-entry template, and the agent-prompt-preamble, and lock them with contract-test markers. Add skill-routing triggers and reconcile the documented-but-unimplemented 4h summary debounce the readback relies on.",
+      "ImplementationPlan": "- Add the mirrored rule blocks to the AGENTS.md maintainer file and the content template source, then run agents refresh so the consumer projection inherits them.\n- Extend the agents-entry contract test markers and add tests verifying the debounce is implemented rather than only documented.",
+      "UserStory": "As a directive maintainer, I want the value-feedback rules mirrored and contract-locked, so that the consumer AGENTS.md inherits them and they cannot silently drift.",
+      "Traces": "#1709 institutionalization (child 6); #1309 template propagation discipline."
+    },
+    "items": [
+      {
+        "id": "1709-institutionalization-a1",
+        "title": "Contract-locked markers",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The agents-entry contract test rejects a diff that drops any mirrored value-feedback marker."
+        }
+      },
+      {
+        "id": "1709-institutionalization-a2",
+        "title": "Consumer projection inherits rules",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Running agents refresh updates the consumer AGENTS.md with the mirrored value-feedback rule blocks."
+        }
+      },
+      {
+        "id": "1709-institutionalization-a3",
+        "title": "Debounce reconciled",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A test validates the 4h summary debounce suppression window that the readback relies on."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test agents_entry_contract"
+        ],
+        "expected_outputs": [
+          "Mirrored value-feedback rules across AGENTS.md and templates",
+          "Contract-test markers plus an implemented summary debounce"
+        ],
+        "depends_on": [
+          "1709-optin-gate",
+          "1709-attribution-ledger",
+          "1709-adoption-registry",
+          "1709-awareness-readbacks",
+          "1709-gap-escalation"
+        ],
+        "conflict_group": "agents-md-propagation",
+        "size": "M",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709: Epic: Directive value attribution & adoption loop (RFC)",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709 child 6: institutionalization / propagation",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

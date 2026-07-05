@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json"
+  },
+  "plan": {
+    "id": "1703-tier1-crud-telemetry",
+    "title": "Tier 1 instrumented CRUD chokepoint telemetry",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json",
+    "narratives": {
+      "Description": "Route structured vBRIEF mutations through one instrumented CRUD tool so real dogfooding emits per-operation metrics tagged with the directive version. Metrics include schema-validity, field-invention, byte-diff minimality, and workflow-level gate-pass-first-try and turns-per-workflow counters.",
+      "ImplementationPlan": "- Add an instrumented CRUD module that wraps vBRIEF create, read, update, and delete and records per-operation metrics tagged with the version.\n- Emit schema-validity and byte-diff-minimality metrics and add tests with fixtures covering valid and field-invention mutations.",
+      "UserStory": "As a directive maintainer, I want per-operation mutation telemetry tagged by version, so that I can measure whether a new version is easier for agents to use correctly.",
+      "Traces": "#1703 Tier 1; #742 CRUD instrumentation (the unbuilt scripts/vbrief_crud.py artifact)."
+    },
+    "items": [
+      {
+        "id": "1703-tier1-crud-telemetry-a1",
+        "title": "Per-operation metrics tagged by version",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The CRUD chokepoint records per-operation metrics each tagged with the directive version."
+        }
+      },
+      {
+        "id": "1703-tier1-crud-telemetry-a2",
+        "title": "Field-invention detection",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When an agent invents a non-spec key, the tool records a field-invention metric."
+        }
+      },
+      {
+        "id": "1703-tier1-crud-telemetry-a3",
+        "title": "Byte-diff minimality",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "The tool persists a byte-diff minimality metric distinguishing whole-file rewrites from surgical patches."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/eval/crud-telemetry.ts",
+          "packages/core/src/eval/crud-telemetry.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test crud-telemetry"
+        ],
+        "expected_outputs": [
+          "Instrumented CRUD chokepoint emitting per-version metrics",
+          "schema-validity, field-invention, and byte-diff metrics"
+        ],
+        "depends_on": [],
+        "conflict_group": "eval-tier1",
+        "size": "L",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703: RFC: measuring directive version-over-version performance -- tiered framework-eval model",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703 Tier 1: instrumented CRUD telemetry",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}

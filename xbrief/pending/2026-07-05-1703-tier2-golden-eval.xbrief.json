@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json"
+  },
+  "plan": {
+    "id": "1703-tier2-golden-eval",
+    "title": "Tier 2 synthetic golden-task champion-challenger eval",
+    "status": "pending",
+    "planRef": "pending/2026-07-05-1703-version-eval-tiered-framework.xbrief.json",
+    "narratives": {
+      "Description": "Build a fixed corpus of spec-to-expected-outcome tasks with automated graders, run as champion-challenger with pinned model and harness across N seeds and pre-registered thresholds. This gates releases rather than commits, and never trusts stored baselines across model changes.",
+      "ImplementationPlan": "- Add an eval:run module that executes the golden corpus per model and seed and writes results to the versioned .eval results ledger.\n- Add an eval:report command diffing two versions with significance and tests using a small fixture corpus and a rotating holdout.",
+      "UserStory": "As a directive maintainer, I want a champion-challenger golden-task eval with graders, so that I can gate releases on measured version deltas rather than intuition.",
+      "Traces": "#1703 Tier 2; #896 benchmark integrity; depends on Tier 1 grounding and the .eval namespace."
+    },
+    "items": [
+      {
+        "id": "1703-tier2-golden-eval-a1",
+        "title": "Corpus run per model and seed",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task eval:run executes the golden corpus per model and seed and stores versioned results."
+        }
+      },
+      {
+        "id": "1703-tier2-golden-eval-a2",
+        "title": "Version-diff report",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task eval:report returns metric deltas and significance between two directive versions."
+        }
+      },
+      {
+        "id": "1703-tier2-golden-eval-a3",
+        "title": "Rotating holdout guard",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A rotating holdout set validates that gated metrics stay tripwires rather than tuning targets."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/eval/run.ts",
+          "packages/core/src/eval/report.ts",
+          "packages/core/src/eval/run.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm --filter @deftai/directive-core test eval-run"
+        ],
+        "expected_outputs": [
+          "task eval:run golden corpus by model and seed with a results ledger",
+          "task eval:report version-diff with significance"
+        ],
+        "depends_on": [
+          "1703-tier1-crud-telemetry",
+          "1703-eval-namespace-cleanup"
+        ],
+        "conflict_group": "eval-tier2",
+        "size": "XL",
+        "file_scope_confidence": "medium",
+        "model_tier": "deep"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703: RFC: measuring directive version-over-version performance -- tiered framework-eval model",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1703 Tier 2: synthetic golden-task eval",
+        "TrustLevel": "external"
+      }
+    ]
+  }
+}
