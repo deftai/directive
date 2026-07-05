@@ -77,7 +77,9 @@ describe("triage-summary CLI", () => {
     mkdirSync(cache, { recursive: true });
     writeFileSync(join(cache, "meta.json"), "{}", "utf8");
     silentRun(["--project-root", root]);
-    expect(existsSync(join(root, "vbrief", ".eval", "summary-history.jsonl"))).toBe(true);
+    expect(existsSync(join(root, "vbrief", ".triage-cache", "summary-history.jsonl"))).toBe(
+      true,
+    );
   });
 
   it("parses equals-form flags", () => {
