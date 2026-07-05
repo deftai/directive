@@ -200,12 +200,12 @@ const APPLICABILITY_RULES: Record<CapabilityId, ApplicabilityRule> = {
 };
 
 /** Return the full capability catalog (#1709-adoption-registry-a1). */
-export function listCapabilities(): readonly CapabilityRecord[] {
+function listCapabilities(): readonly CapabilityRecord[] {
   return CAPABILITY_CATALOG;
 }
 
 /** Lookup a single catalog entry by id. */
-export function getCapability(id: CapabilityId): CapabilityRecord | undefined {
+function getCapability(id: CapabilityId): CapabilityRecord | undefined {
   return CAPABILITY_CATALOG.find((entry) => entry.id === id);
 }
 

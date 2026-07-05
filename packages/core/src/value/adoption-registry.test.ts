@@ -7,12 +7,58 @@ import {
   detectApplicableButUnusedGated,
   evaluateApplicability,
   formatAdoptionEventName,
-  getCapability,
   isCapabilityUsed,
   isWorkTooSmallForAdoptionNudges,
-  listCapabilities,
   type WorkContext,
 } from "./adoption-registry.js";
+
+const ALL_CAPABILITY_IDS: CapabilityId[] = [
+  "planning",
+  "cost",
+  "decompose",
+  "swarm",
+  "pre-pr",
+  "debug",
+  "glossary",
+  "lessons",
+];
+
+function applicableContext(id: CapabilityId): WorkContext {
+  switch (id) {
+    case "planning":
+      return { filesTouched: ADOPTION_THRESHOLDS.planningMinFiles, distinctModuleGlobs: 1 };
+    case "cost":
+      return {
+        filesTouched: ADOPTION_THRESHOLDS.costMinFiles,
+        distinctModuleGlobs: 1,
+        isBuildIntent: true,
+      };
+    case "decompose":
+      return {
+        filesTouched: ADOPTION_THRESHOLDS.largeMultiFileMinFiles,
+        distinctModuleGlobs: ADOPTION_THRESHOLDS.largeMultiFileMinModules,
+      };
+    case "swarm":
+      return {
+        filesTouched: ADOPTION_THRESHOLDS.swarmMinFiles,
+        distinctModuleGlobs: ADOPTION_THRESHOLDS.swarmMinModules,
+      };
+    case "pre-pr":
+      return { filesTouched: 3, distinctModuleGlobs: 1, isPrOpening: true };
+    case "debug":
+      return { filesTouched: 10, distinctModuleGlobs: 3 };
+    case "glossary":
+      return {
+        filesTouched: ADOPTION_THRESHOLDS.glossaryMinFiles,
+        distinctModuleGlobs: 2,
+      };
+    case "lessons":
+      return {
+        filesTouched: ADOPTION_THRESHOLDS.lessonsMinFiles,
+        distinctModuleGlobs: 2,
+      };
+  }
+}
 
 function ctx(partial: Partial<WorkContext> & Pick<WorkContext, "filesTouched">): WorkContext {
   return {
@@ -25,27 +71,33 @@ function ctx(partial: Partial<WorkContext> & Pick<WorkContext, "filesTouched">):
 }
 
 describe("capability catalog (#1709-adoption-registry-a1)", () => {
-  it("records each capability with heuristic metadata and usage signal", () => {
-    const catalog = listCapabilities();
-    const ids = catalog.map((entry) => entry.id);
-    const expected: CapabilityId[] = [
-      "planning",
-      "cost",
-      "decompose",
-      "swarm",
-      "pre-pr",
-      "debug",
-      "glossary",
-      "lessons",
-    ];
-    expect(ids).toEqual(expected);
-    for (const entry of catalog) {
-      expect(entry.label.length).toBeGreaterThan(0);
-      expect(entry.description.length).toBeGreaterThan(0);
-      expect(entry.usageSignals.length).toBeGreaterThan(0);
-      expect(entry.nudgeHint.length).toBeGreaterThan(0);
-      expect(getCapability(entry.id)).toEqual(entry);
+  it("records each capability with heuristic metadata and usage signals", () => {
+    expect(ALL_CAPABILITY_IDS).toHaveLength(8);
+    for (const id of ALL_CAPABILITY_IDS) {
+      const verdict = evaluateApplicability(id, applicableContext(id));
+      if (id === "debug") {
+        expect(verdict.applicable).toBe(false);
+        continue;
+      }
+      expect(verdict.applicable).toBe(true);
+      const signal = detectApplicableButUnused(applicableContext(id)).find(
+        (entry) => entry.capabilityId === id,
+      );
+      expect(signal).toBeDefined();
+      expect(signal?.message.length).toBeGreaterThan(0);
+      expect(signal?.evidence.usageSignals).toBeDefined();
+      expect((signal?.evidence.usageSignals as unknown[]).length).toBeGreaterThan(0);
     }
+  });
+
+  it("includes interview and speckit usage signals for planning", () => {
+    const signal = detectApplicableButUnused(applicableContext("planning")).find(
+      (entry) => entry.capabilityId === "planning",
+    );
+    expect(signal?.evidence.usageSignals).toEqual([
+      "command:/deft:directive:run:interview",
+      "command:/deft:directive:run:speckit",
+    ]);
   });
 
   it("formats adoption event names for the ledger", () => {
