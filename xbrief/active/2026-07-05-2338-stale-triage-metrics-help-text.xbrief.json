@@ -1,0 +1,44 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #2338: update stale triage:metrics help registry entry"
+  },
+  "plan": {
+    "title": "#2338: Fix stale triage:metrics help text",
+    "status": "running",
+    "narratives": {
+      "Overview": "The triage:metrics help registry entry still describes the old summary-history.jsonl placeholder. Update packages/core/src/triage/help/registry-data.ts so help accurately documents the shipped value-feedback attribution-ledger behavior (alias of value:show / #1709 readback handler).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2338"
+    },
+    "items": [
+      {
+        "title": "Rewrite triage:metrics help entry to describe attribution-ledger trend reporting",
+        "status": "proposed"
+      },
+      {
+        "title": "Update help registry test expectations for triage:metrics",
+        "status": "proposed"
+      },
+      {
+        "title": "Add CHANGELOG [Unreleased] entry and open PR closing #2338",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2338",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2338: Stale triage:metrics help text"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709: Value feedback attribution"
+      }
+    ],
+    "metadata": {
+      "capacityBucket": "maintenance"
+    },
+    "updated": "2026-07-05T23:13:39Z"
+  }
+}

@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`task triage:metrics` help now matches the shipped command.** The help registry no longer describes the old summary-history.jsonl placeholder; it documents the value-feedback attribution-ledger trend (per-class and per-event counts over a window, gated on the opt-in policy). Refs #2338.
 - **chore(triage): move triage working-set cache off `.eval` to `.triage-cache/` (#1703)** — Triage append-only logs and decomposition scratch now resolve under a dedicated `.triage-cache/` namespace with an idempotent migration from legacy `.eval/` paths, reclaiming `.eval/` for the version-eval results store. Refs #1703.
 
 ### Fixed

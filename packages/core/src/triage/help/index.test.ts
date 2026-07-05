@@ -43,9 +43,12 @@ describe("renderVerbHelp", () => {
     expect(out).toContain("See also:");
   });
 
-  it("marks placeholder verbs", () => {
+  it("documents triage:metrics attribution-ledger behavior (#2338)", () => {
     const out = renderVerbHelp("task triage:metrics");
-    expect(out).toContain("not yet implemented");
+    expect(out).not.toContain("not yet implemented");
+    expect(out).toContain("events.jsonl");
+    expect(out).toContain("valueFeedback");
+    expect(out).toContain("--window");
   });
 });
 

@@ -553,18 +553,25 @@ export const registryData = {
     },
     "task triage:metrics": {
       name: "task triage:metrics",
-      summary: "Trend lines from summary-history.jsonl",
-      refs: "(D17, coming)",
+      summary: "Attributed-value trend from the events ledger",
+      refs: "(#1709)",
       description:
-        "Print trend lines computed from vbrief/.triage-cache/summary-history.jsonl: decisions-per-day, defer/accept ratio, stale-defer drift, etc.",
+        "Report value-feedback attribution trends from .deft-cache/events.jsonl: total signal count plus per-class (value, bypass, adoption, friction) and per-event breakdowns over a time window. Alias of the value:show handler. Requires plan.policy.valueFeedback.enabled (default OFF) — exits blocked when disabled; an empty ledger prints a no-signals message. In the maintainer repo, skipped unless DEFT_VALUE_SELF_DOGFOOD=1.",
       usage: "task triage:metrics [-- --window=7d] [--format=text|json]",
       flags: [
-        ["--window WINDOW", "7d", "Time window over which to aggregate."],
-        ["--format text|json", "text", "Output shape."],
+        ["--window WINDOW", "7d", "Time window (e.g. 7d, 30d, 24h)."],
+        ["--format text|json", "text", "Output shape (json emits the full trend object)."],
       ],
-      examples: ["task triage:metrics -- --window 30d"],
-      see_also: ["task triage:summary", "#1119 / D17"],
-      placeholder: true,
+      examples: [
+        "task triage:metrics",
+        "task triage:metrics -- --window=30d --format=json",
+      ],
+      see_also: [
+        "task policy:show --field=valueFeedback",
+        "task policy:enable-value-feedback -- --confirm",
+        "#1709",
+      ],
+      placeholder: false,
     },
     "task scope:promote": {
       name: "task scope:promote",
