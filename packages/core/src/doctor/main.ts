@@ -761,7 +761,9 @@ function runPlanExtensionShadowCheck(
   try {
     const shadows = detect(projectRoot);
     if (shadows.length === 0) {
-      sink.success(`${checkName}: no shadowed bare plan keys`);
+      const cleanMessage = `${checkName}: no shadowed bare plan keys`;
+      sink.success(cleanMessage);
+      addFinding({ severity: "skip", message: cleanMessage, check: checkName, status: "clean" });
       return;
     }
     for (const shadow of shadows) {

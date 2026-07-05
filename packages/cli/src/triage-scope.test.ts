@@ -50,10 +50,14 @@ describe("triage-scope CLI", () => {
     // is trusted and must report success (not fail the hand-edit validator).
     const result = runCliCapture(["--project-root", root, "--set-preset=mega"]);
     expect(result.code).toBe(0);
-    const written = JSON.parse(
+    const written: unknown = JSON.parse(
       readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
     );
-    const scope = written.plan["x-directive/policy"].triageScope as Array<Record<string, unknown>>;
+    if (written === null || typeof written !== "object") {
+      throw new Error("expected PROJECT-DEFINITION to parse to an object");
+    }
+    const plan = (written as { plan: Record<string, Record<string, unknown>> }).plan;
+    const scope = (plan["x-directive/policy"].triageScope as Array<Record<string, unknown>>) ?? [];
     expect(scope.map((r) => r.rule)).toContain("explicit-watch");
     expect(scope.map((r) => r.rule)).toContain("referenced-by-vbrief");
   });

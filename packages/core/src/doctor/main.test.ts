@@ -101,7 +101,12 @@ describe("cmdDoctor", () => {
         detectPlanExtensionShadows: () => [],
       });
       expect(exit).toBe(0);
-      expect(stdout.join("")).not.toContain('"status": "shadowed"');
+      const payload = stdout.join("");
+      expect(payload).not.toContain('"status": "shadowed"');
+      // Clean case still emits a per-check skip finding so JSON consumers see an
+      // entry for every check (parity with runUserMdResolutionCheck).
+      expect(payload).toContain('"check": "plan-extension-shadow"');
+      expect(payload).toContain('"status": "clean"');
     } finally {
       process.stdout.write = origWrite;
     }
