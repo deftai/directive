@@ -102,6 +102,19 @@ describe("interceptHelp", () => {
     expect(rc).toBe(0);
     expect(lines.join("")).toContain("triage:smoketest");
   });
+
+  it("surfaces welcome onboarding flags for triage_welcome --help (#2302 item 3)", () => {
+    const lines: string[] = [];
+    const rc = interceptHelp("triage_welcome", ["--help"], {
+      write: (t) => lines.push(t),
+    });
+    expect(rc).toBe(0);
+    const out = lines.join("");
+    expect(out).toContain("task triage:welcome");
+    expect(out).toContain("--onboard");
+    expect(out).toContain("--preset");
+    expect(out).toContain("--wip-cap");
+  });
 });
 
 describe("runHelp CLI", () => {

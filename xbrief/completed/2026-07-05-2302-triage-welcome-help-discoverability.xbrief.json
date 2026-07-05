@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "#2302 item 3: triage:welcome onboarding flags discoverable in help/usage",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "The final remaining slice of #2302 (items 1 & 2 shipped in PR #2304). The --onboard / --preset / --wip-cap flags implemented by PR #2300 are not discoverable in --help / usage listings. Surface them in the triage help registry (source scripts/triage_help.py, regenerated into packages/core/src/triage/help/registry-data.ts) and the triage-welcome CLI usage text. Closing #2302 lets the #2295 tracker close (its other child #2301 is already closed).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2302"
@@ -37,6 +37,10 @@
         "title": "Issue #2295: triage:welcome --onboard tracker (P1 done, P3 remaining)"
       }
     ],
-    "updated": "2026-07-05T15:18:26Z"
+    "updated": "2026-07-05T15:29:32Z",
+    "metadata": {
+      "completedAt": "2026-07-05T15:29:32Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }

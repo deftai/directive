@@ -317,12 +317,26 @@ export const registryData = {
     "task triage:welcome": {
       name: "task triage:welcome",
       summary: "Single-entry-point upgrade ritual",
-      refs: "(N3 / #1143)",
+      refs: "(N3 / #1143, #2295)",
       description:
-        "6-phase onboarding ritual: detect prior state, prompt for subscription scope, run triage:bootstrap, prompt for wipCap, offer WIP relief, print triage:summary. Idempotent on re-run; safe entrypoint for fresh consumers.",
-      usage: "task triage:welcome [-- --no-subprocess]",
-      flags: [["--no-subprocess", "(off)", "Dry-mode: don't shell out to sibling tasks."]],
-      examples: ["task triage:welcome"],
+        "6-phase onboarding ritual: detect prior state, prompt for subscription scope, run triage:bootstrap, prompt for wipCap, offer WIP relief, print triage:summary. Idempotent on re-run; safe entrypoint for fresh consumers. Pass --onboard for the non-interactive path that applies a triage-scope preset (and optional --wip-cap) without prompting -- the form agents/CI use.",
+      usage:
+        "task triage:welcome [-- --onboard [--preset small|mid|mega] [--wip-cap N]] [--no-subprocess]",
+      flags: [
+        [
+          "--onboard",
+          "(off)",
+          "Non-interactive onboarding: apply a triage-scope preset (and optional WIP cap) without prompting.",
+        ],
+        ["--preset small|mid|mega", "small", "Subscription-scope preset applied by --onboard."],
+        [
+          "--wip-cap N",
+          "(policy default)",
+          "Persist an explicit in-flight scope cap during --onboard (positive integer).",
+        ],
+        ["--no-subprocess", "(off)", "Dry-mode: don't shell out to sibling tasks."],
+      ],
+      examples: ["task triage:welcome", "task triage:welcome -- --onboard --preset small"],
       see_also: ["task triage:bootstrap", "task triage:summary", "#1119 / N3"],
       placeholder: false,
     },

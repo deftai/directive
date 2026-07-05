@@ -2,6 +2,7 @@
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { interceptHelp } from "@deftai/directive-core/dist/triage/help/index.js";
 import { runDefaultMode } from "@deftai/directive-core/dist/triage/welcome/default-mode.js";
 import { runOnboardMode } from "@deftai/directive-core/dist/triage/welcome/onboard.js";
 
@@ -79,6 +80,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export function run(argv: string[]): number {
+  const helpRc = interceptHelp("triage_welcome", argv);
+  if (helpRc !== null) {
+    return helpRc;
+  }
+
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`triage:welcome: ${args.error}\n`);

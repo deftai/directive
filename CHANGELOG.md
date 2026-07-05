@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`triage:welcome`'s onboarding flags are now discoverable in `--help` (#2302).** Running `deft triage:welcome --help` (or `task triage:welcome -- --help`) now lists `--onboard`, `--preset small|mid|mega`, and `--wip-cap N` with descriptions and an onboarding example, so the non-interactive onboarding surface shipped for #2295 is visible from the CLI instead of only in source. Refs #2302, #2295.
 - **`triage:scope --set-preset small|mid|mega` sets your whole triage subscription in one command (#2301).** Instead of adding labels and milestones one at a time, you can now apply a named subscription preset — the same `small` / `mid` / `mega` presets the onboarding flow offers — directly from `triage:scope`. It writes through the shared preset writer (so the namespaced `x-directive/policy` key, audit trail, and lock all behave identically to onboarding) and is mutually exclusive with the other mutation flags. Closes #2301. Refs #2295.
 
 ### Changed
