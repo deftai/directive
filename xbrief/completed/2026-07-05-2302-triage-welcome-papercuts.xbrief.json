@@ -1,0 +1,107 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2302 (P3 papercuts split from #2295). Leaf-implementation slice built on origin/master, swarm-cohort with #2301."
+  },
+  "plan": {
+    "id": "2302-triage-welcome-papercuts",
+    "title": "triage:welcome papercuts -- layout-aware not-found warnings, cache passthrough guard, help text",
+    "status": "completed",
+    "narratives": {
+      "Description": "Fix the grouped triage-onboarding papercuts from #2302. Item 1 (layout-aware not-found path): the `policy:show` warning and the vbrief-build project-definition loader build the PROJECT-DEFINITION path from the hardcoded `vbrief/PROJECT-DEFINITION.vbrief.json` constant instead of the layout-aware resolver, so an xbrief-layout project sees a misleading `vbrief/` path in a not-found warning even though the typed value resolves fine. Route both through the layout-aware `projectDefinitionPath` / `resolveProjectDefinitionPath` so the message reflects the resolved layout (xbrief vs vbrief). Item 2 (cache:fetch-all passthrough): reproduce the go-task arg passthrough; verified NOT reproducible on master (flag order + values preserved across space/equals/reversed forms via `task --dry`), so add a deterministic regression guard for the engine:invoke era instead of fabricating a fix. Item 3 (help text for --onboard/--preset/--wip-cap) is coupled to PR #2300 (still open; owns packages/cli/src/triage-welcome.ts and adds --preset/--wip-cap) and is deferred to avoid fabricating non-existent flags and conflicting with #2300.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2302",
+      "Overview": "P3 low-severity papercuts split from #2295 while shipping the P1 fix (PR #2300). Each item independently shippable. This slice ships items 1 and 2 on origin/master; item 3 defers to PR #2300 (which owns the CLI flags it must document).",
+      "UserStory": "As an operator on an xbrief-layout project, I want triage/policy not-found warnings to name the actually-resolved PROJECT-DEFINITION path (xbrief, not vbrief) so the signal is not confusing; and I want the `task cache:fetch-all` arg passthrough to be regression-guarded so recovery flags are never silently dropped or reordered.",
+      "ImplementationPlan": "1. Item 1a: in packages/cli/src/policy.ts::runShow, replace `join(projectRoot, PROJECT_DEFINITION_REL_PATH)` with the layout-aware `projectDefinitionPath(projectRoot)` (already exported from @deftai/directive-core/policy); drop the now-unused `PROJECT_DEFINITION_REL_PATH` and `join` imports. 2. Item 1b: in packages/core/src/vbrief-build/project-definition-io.ts, make `projectDefinitionPath` layout-aware via `resolveProjectDefinitionPath(resolve(projectRoot))` (aligns with the already-layout-aware mutation lock), and drop the unused hardcoded-constant import. 3. Item 1c: remove the unused hardcoded `PROJECT_DEFINITION_REL_PATH` export from packages/core/src/triage/welcome/constants.ts (dead latent trap named by the issue). 4. Item 2: add a deterministic regression test asserting every {{.CLI_ARGS}}-forwarding task in tasks/cache.yml declares no `sources:`/`generates:` and no double-quoted CLI_ARGS (closes the guard gap the existing uv-run-python-only caching test leaves after the engine:invoke migration). 5. Tests: extend packages/cli/src/policy.test.ts (xbrief-layout not-found warning names the xbrief path) and packages/core/src/vbrief-build/project-definition-io.test.ts (projectDefinitionPath resolves xbrief on a migrated tree, vbrief otherwise). 6. Run `TMPDIR=$(mktemp -d) task check`; add a CHANGELOG [Unreleased] entry (Refs #2295, #2302).",
+      "Source": "verified:codebase-surface-map-2026-07-05; verified:pr-2300-open-owns-triage-welcome-cli",
+      "Confidence": "high",
+      "Traces": "#2302, #2295, #2300, #2301",
+      "Labels": "bug, triage, docs, agent-experience, area:cli"
+    },
+    "items": [
+      {
+        "id": "2302-item1-layout-aware-not-found",
+        "title": "Given an xbrief-layout project with no PROJECT-DEFINITION, when a not-found warning is emitted (policy:show, vbrief-build loader), then the message names the resolved xbrief path, not the hardcoded vbrief path.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an xbrief-layout project with no PROJECT-DEFINITION, when a not-found warning is emitted (policy:show, vbrief-build loader), then the message names the resolved xbrief path, not the hardcoded vbrief path; a vbrief-layout project is unchanged (fallback).",
+          "Traces": "#2302, #2295"
+        }
+      },
+      {
+        "id": "2302-item2-cache-passthrough-guard",
+        "title": "Given the go-task cache:fetch-all arg passthrough, when investigated, then it is confirmed to preserve flag order and values (not reproducible), and a deterministic regression guard prevents sources/generates short-circuit or double-quoted CLI_ARGS from dropping flags.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given the go-task cache:fetch-all arg passthrough, when investigated, then it is confirmed to preserve flag order and values (not reproducible), and a deterministic regression guard prevents sources/generates short-circuit or double-quoted CLI_ARGS from dropping flags.",
+          "Traces": "#2302, #2295"
+        }
+      },
+      {
+        "id": "2302-item3-help-text-deferred",
+        "title": "Given help/usage for --onboard/--preset/--wip-cap depends on PR #2300 (open, owns triage-welcome.ts and defines those flags), when this slice ships on origin/master, then item 3 is deferred with documented rationale (no fabricated flags, no conflict with #2300).",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Item 3 is documented as deferred/coupled to PR #2300 in the PR body and final report; not attempted on master where the flags do not exist.",
+          "Traces": "#2302, #2300"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "triage",
+      "docs",
+      "agent-experience",
+      "area:cli"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2302",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2302: triage:welcome papercuts -- vbrief/ path warning on xbrief projects, cache task passthrough, help/usage text"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2295",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2295"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/2300",
+        "type": "x-xbrief/refs",
+        "title": "PR #2300 (P1; owns triage-welcome CLI flags for item 3)"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "S",
+        "model_tier": "medium",
+        "depends_on": [],
+        "conflict_group": "triage-welcome-papercuts",
+        "file_scope": [
+          "packages/cli/src/policy.ts",
+          "packages/cli/src/policy.test.ts",
+          "packages/core/src/vbrief-build/project-definition-io.ts",
+          "packages/core/src/vbrief-build/project-definition-io.test.ts",
+          "packages/core/src/triage/welcome/constants.ts",
+          "packages/core/src/content-contracts/standards/taskfile_cli_args_passthrough.test.ts"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "task check"
+        ],
+        "expected_outputs": [
+          "policy:show and the vbrief-build loader name the resolved layout path in not-found warnings.",
+          "cache:fetch-all passthrough regression guard passes; documented as not-reproducible.",
+          "item 3 deferred to PR #2300 with rationale."
+        ],
+        "notes": "Swarm cohort with #2301 (P2). File scope disjoint from #2301 (scope writer) and from PR #2300 (triage-welcome.ts / onboard.ts). Built on origin/master. Item 3 intentionally deferred: PR #2300 is open and owns packages/cli/src/triage-welcome.ts plus the --preset/--wip-cap flags item 3 must document; doing it on master would fabricate flags and conflict with #2300."
+      },
+      "capacityBucket": "bug-fix",
+      "completedAt": "2026-07-05T14:20:55Z"
+    },
+    "updated": "2026-07-05T14:20:55Z"
+  }
+}

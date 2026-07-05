@@ -41,6 +41,32 @@ describe("projectDefinitionIO", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("resolves the xbrief path on a migrated tree, vbrief otherwise (#2302)", () => {
+    const legacyRoot = mkdtempSync(join(tmpdir(), "vb-pd-legacy-"));
+    expect(
+      projectDefinitionPath(legacyRoot).endsWith("vbrief/PROJECT-DEFINITION.vbrief.json"),
+    ).toBe(true);
+    rmSync(legacyRoot, { recursive: true, force: true });
+
+    const migratedRoot = mkdtempSync(join(tmpdir(), "vb-pd-migrated-"));
+    mkdirSync(join(migratedRoot, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(migratedRoot, "xbrief", "active", "some.xbrief.json"), "{}", "utf8");
+    expect(
+      projectDefinitionPath(migratedRoot).endsWith("xbrief/PROJECT-DEFINITION.xbrief.json"),
+    ).toBe(true);
+    rmSync(migratedRoot, { recursive: true, force: true });
+  });
+
+  it("names the resolved xbrief path in the not-found error on a migrated tree (#2302)", () => {
+    const root = mkdtempSync(join(tmpdir(), "vb-pd-migrated-miss-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "some.xbrief.json"), "{}", "utf8");
+    expect(() => loadProjectDefinitionForMutation(root)).toThrow(
+      /xbrief\/PROJECT-DEFINITION\.xbrief\.json/,
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("raises on invalid JSON and non-object payloads", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-badjson-"));
     const path = projectDefinitionPath(root);

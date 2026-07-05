@@ -1,0 +1,87 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2295 (P1 slice): implement `deft triage:welcome --onboard` in the TypeScript CLI so the command every welcome nudge points at actually completes onboarding instead of exiting 2. P2 (set-preset writer + stray-plan.policy warn) and P3 (papercuts) are deferred to separate stories.",
+    "created": "2026-07-05T13:00:00Z",
+    "updated": "2026-07-05T13:00:00Z"
+  },
+  "plan": {
+    "id": "2295-triage-welcome-onboard",
+    "title": "Implement triage:welcome --onboard in the TS CLI (kill the dead-end nudge loop)",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2295",
+    "narratives": {
+      "Description": "Every welcome nudge (FIRST_TIME_NUDGE / INCOMPLETE_NUDGE_TEMPLATE) tells the user to run `deft triage:welcome --onboard`, but the CLI handler is a hard stub that writes 'not implemented' and returns 2 -- a guaranteed dead-end loop for every fresh consumer. The underlying core writers already exist and are tested (`subscriptionPreset`, `writeTriageScope`, `writeWipCap`, `previewWipRelief`), so the fix is orchestration, not new subsystem logic. Add a non-interactive `runOnboardMode` in core that self-heals the cache, writes the chosen triage-scope preset and wipCap into the project definition (via the existing writers, which already target the canonical `x-directive/policy` key and migrate any legacy bare block), previews WIP relief when over cap, and prints a clear summary plus next-step guidance. Wire the CLI `--onboard` flag (plus `--preset` and `--wip-cap`) to it. Non-interactive by design: agents/CI pass flags; sensible defaults apply otherwise. P2/P3 items from #2295 are out of scope for this story.",
+      "ImplementationPlan": "1. Add packages/core/src/triage/welcome/onboard.ts exporting `runOnboardMode(projectRoot, options)` that: self-heals cache, resolves preset (default 'small', validated against SUBSCRIPTION_PRESETS), writes triageScope via subscriptionPreset+writeTriageScope, writes wipCap via writeWipCap when provided, previews WIP relief when wipCount>=cap, emits the triage one-liner + an 'onboarding complete' summary with next-step guidance, and returns an OnboardOutcome {exitCode, presetApplied, wipCapApplied, ...}. Missing PROJECT-DEFINITION -> friendly error + exit 2. 2. Export it from the welcome barrel index.ts. 3. Wire packages/cli/src/triage-welcome.ts: parse --preset <key> and --wip-cap <n>, replace the `return 2` stub with a call to runOnboardMode. 4. Add onboard.test.ts (core) covering default preset, explicit preset, wipCap write, invalid preset, missing project definition; update the CLI test to assert --onboard now succeeds and writes the preset.",
+      "UserStory": "As a new directive user who is nudged to run `deft triage:welcome --onboard`, I want that command to actually set up my triage scope and WIP cap and confirm completion, so that onboarding finishes instead of dead-ending on a 'not implemented' error.",
+      "Traces": "#2295"
+    },
+    "items": [
+      {
+        "id": "2295-a1",
+        "title": "Given the onboard command, when run in a project, then it writes a triage-scope preset and exits 0",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project with a PROJECT-DEFINITION, when `deft triage:welcome --onboard` runs (default or explicit --preset), then triageScope is written under the canonical policy key and the command exits 0 with a completion summary -- never the old 'not implemented' exit 2."
+        }
+      },
+      {
+        "id": "2295-a2",
+        "title": "Given --wip-cap N, when onboard runs, then the WIP cap is persisted",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `--wip-cap N` (non-default positive int), when onboard runs, then wipCap is persisted via the existing writer and reflected in the summary."
+        }
+      },
+      {
+        "id": "2295-a3",
+        "title": "Given a bad preset or missing project definition, when onboard runs, then it fails cleanly with guidance",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an unknown --preset value or a project with no PROJECT-DEFINITION, when onboard runs, then it prints an actionable error and exits 2 without partial writes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2295",
+        "slice": "P1 of #2295 (onboard wiring); P2 set-preset+warn and P3 papercuts deferred"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/welcome/onboard.ts",
+          "packages/core/src/triage/welcome/onboard.test.ts",
+          "packages/core/src/triage/welcome/index.ts",
+          "packages/cli/src/triage-welcome.ts",
+          "packages/cli/src/triage-welcome.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core vitest run src/triage/welcome/",
+          "pnpm -C packages/cli vitest run src/triage-welcome.test.ts",
+          "task check"
+        ],
+        "expected_outputs": [
+          "`deft triage:welcome --onboard` completes onboarding (writes preset + wipCap) and exits 0 instead of returning the not-implemented stub"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-welcome-onboard",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-05T13:33:26Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2295",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2295: triage:welcome --onboard unimplemented in TS CLI"
+      }
+    ],
+    "updated": "2026-07-05T13:33:26Z"
+  }
+}

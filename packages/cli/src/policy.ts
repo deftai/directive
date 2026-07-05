@@ -4,7 +4,7 @@
  * mirroring scripts/_policy_show_cli.py and scripts/policy_set.py.
  */
 import { existsSync } from "node:fs";
-import { join, resolve as pathResolve } from "node:path";
+import { resolve as pathResolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   describeShadowedPlanExtension,
@@ -13,7 +13,7 @@ import {
   inspectAllPolicies,
   inspectOnePolicy,
   loadProjectDefinition,
-  PROJECT_DEFINITION_REL_PATH,
+  projectDefinitionPath,
   pythonListRepr,
   pythonStringRepr,
   registeredPolicyNames,
@@ -246,7 +246,9 @@ function emitPlanExtensionShadowWarnings(projectRoot: string): void {
 
 function runShow(args: ShowArgs): number {
   const projectRoot = pathResolve(args.projectRoot);
-  const pdPath = join(projectRoot, PROJECT_DEFINITION_REL_PATH);
+  // Layout-aware (#2302): name the resolved PROJECT-DEFINITION path (xbrief on a
+  // migrated tree, else vbrief) instead of the hardcoded vbrief/ literal.
+  const pdPath = projectDefinitionPath(projectRoot);
   if (!existsSync(pdPath)) {
     process.stderr.write(
       `[policy:show] PROJECT-DEFINITION not found at ${pdPath}; ` +
@@ -336,9 +338,8 @@ function runSet(args: SetArgs): number {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes("PROJECT-DEFINITION not found")) {
       process.stderr.write(`\u274c ${message}\n`);
-      process.stderr.write(
-        "  Recovery: run `task setup` to generate vbrief/PROJECT-DEFINITION.vbrief.json.\n",
-      );
+      const pdRel = relative(projectRoot, projectDefinitionPath(projectRoot));
+      process.stderr.write(`  Recovery: run \`task setup\` to generate ${pdRel}.\n`);
       return 2;
     }
     process.stderr.write(`\u274c Config error: ${message}\n`);

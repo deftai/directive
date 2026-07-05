@@ -131,9 +131,13 @@ export const FROZEN_PRECUTOVER_MIGRATION_TAG = "v0.59.0";
 
 export function frozenPreCutoverMigrationGuidance(): string {
   return (
-    `Current npm releases no longer ship in-product \`task migrate:vbrief\`. Pin framework ${FROZEN_PRECUTOVER_MIGRATION_TAG} ` +
-    `(frozen Go installer or git tag), install Python 3.11+ and uv, run \`task migrate:vbrief\` once from that payload, ` +
-    `then upgrade to current npm. See UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).`
+    `Current npm releases no longer ship in-product \`task migrate:vbrief\`. Best-effort path (anchored on the ` +
+    `${FROZEN_PRECUTOVER_MIGRATION_TAG} git tag, from which GitHub serves a source tarball on demand): pin framework ` +
+    `${FROZEN_PRECUTOVER_MIGRATION_TAG}, install Python 3.11+ and uv, run \`task migrate:vbrief\` once from that payload, ` +
+    `then upgrade to current npm. This is a two-hop chain: pre-v0.20 flat model -> vBRIEF v0.6 (on ${FROZEN_PRECUTOVER_MIGRATION_TAG}) ` +
+    `-> xBRIEF via \`deft migrate:xbrief\` on current npm. If the ${FROZEN_PRECUTOVER_MIGRATION_TAG} payload is unavailable, ` +
+    `fall back to a manual fresh start: \`directive init\` a new project on current npm and hand-port your spec content. ` +
+    `See UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).`
   );
 }
 

@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #2294: make the doctor report an actionable signal when the install manifest carries an empty tag/ref (sha only), instead of leaving the framework version silently unreportable.",
+    "created": "2026-07-05T12:00:00Z",
+    "updated": "2026-07-05T12:00:00Z"
+  },
+  "plan": {
+    "id": "2294-doctor-version-reportable",
+    "title": "Doctor-harden version reporting when VERSION manifest tag/ref is empty",
+    "status": "completed",
+    "planRef": "https://github.com/deftai/directive/issues/2294",
+    "narratives": {
+      "Description": "Legacy `deft-install` without an explicit release pin writes `.deft/core/VERSION` with empty `ref`/`tag` and only a short sha, so version-reporting tooling shows nothing. Because the Go installer is a frozen legacy bridge (#1912) and the Python/Go rails are retired (#1933/#2022/#2068), the fix lives on the doctor side: surface an actionable finding when the located manifest resolves no semver tag/ref but does carry a sha, pointing the operator at `directive update` to obtain a pinned npm-managed manifest. This converts a silent unreportable state into a visible, remediable one without fabricating a semver or extending the frozen installer.",
+      "ImplementationPlan": "1. Add a pure `manifestReportableVersion(manifest)` helper in packages/core/src/doctor/manifest.ts that returns the semver from tag/ref (reusing manifestTagToVersion) plus the recorded sha, so callers can distinguish 'pinned', 'sha-only', and 'no-provenance'. 2. Add a `checkManifestVersionReportable` check in packages/core/src/doctor/checks.ts: pass when a semver tag/ref resolves; advisory-fail (exit-code-exempt, mirroring canonical-vendored-npm-signpost) when only a sha is present, with a `directive update` remediation; skip when no manifest or no provenance at all. 3. Register the check in runChecksImpl (both AGENTS.md-present and -absent branches) and exempt its name in deriveExitCode so it never fails `deft check`. 4. Add unit tests in checks.test.ts and manifest coverage tests for the new helper covering pinned / sha-only / no-provenance / no-manifest cases.",
+      "UserStory": "As a consumer whose project was installed via the frozen Go installer without a release pin, I want `deft doctor` to tell me my framework version is unpinned and how to fix it, so that an empty VERSION tag is a visible, actionable signal instead of a silent blank.",
+      "Traces": "#2294, #1912, #2068"
+    },
+    "items": [
+      {
+        "id": "2294-a1",
+        "title": "Given a manifest with empty tag/ref but a sha, when doctor runs, then it emits an advisory finding recommending `directive update`",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given `.deft/core/VERSION` with empty `ref`/`tag` and a non-empty `sha`, when the doctor runs, then a `manifest-version-reportable` finding reports the sha-only state and recommends `directive update`, and the finding does NOT change the doctor exit code."
+        }
+      },
+      {
+        "id": "2294-a2",
+        "title": "Given a manifest with a semver tag, when doctor runs, then the reportable-version check passes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a manifest whose tag/ref resolves to a semver, when the doctor runs, then `manifest-version-reportable` passes and reports the resolved version."
+        }
+      },
+      {
+        "id": "2294-a3",
+        "title": "Given no manifest or no provenance, when doctor runs, then the check skips cleanly",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given no install manifest (or a manifest with neither semver nor sha), when the doctor runs, then `manifest-version-reportable` returns skip and never fails."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2294"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/doctor/manifest.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "packages/core/src/doctor/coverage-final.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core vitest run src/doctor/",
+          "task check"
+        ],
+        "expected_outputs": [
+          "doctor emits an actionable advisory when VERSION tag/ref is empty but a sha is present; exit code unchanged"
+        ],
+        "depends_on": [],
+        "conflict_group": "doctor-version",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "completedAt": "2026-07-05T12:25:02Z",
+      "capacityBucket": "new-capability"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2294",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2294: deft-install writes empty tag/ref in VERSION when no release is pinned"
+      }
+    ],
+    "updated": "2026-07-05T12:25:02Z"
+  }
+}

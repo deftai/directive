@@ -1,4 +1,3 @@
-export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
 export const CACHE_DIR_NAME = ".deft-cache";
 export const CACHE_SOURCE = "github-issue";
 export const CANDIDATES_RELPATH = ["vbrief", ".eval", "candidates.jsonl"] as const;

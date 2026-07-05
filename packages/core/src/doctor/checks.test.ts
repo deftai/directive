@@ -6,6 +6,7 @@ import {
   checkInstallPathConsistency,
   checkLegacyLayout,
   checkManifestAgreement,
+  checkManifestVersionReportable,
   checkQuickStartResolves,
   checkSkillPathsResolve,
   deriveExitCode,
@@ -209,5 +210,61 @@ describe("checks", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("checkManifestVersionReportable (#2294)", () => {
+  const seamsFor = (text: string | null) => ({
+    isFile: (p: string) => p.endsWith("VERSION") && text !== null,
+    readText: (p: string) => (p.endsWith("VERSION") ? text : null),
+  });
+
+  it("passes when a semver tag resolves", () => {
+    const result = checkManifestVersionReportable(
+      "/proj",
+      ".deft/core",
+      seamsFor("ref: 'v0.68.1'\nsha: 'abcdef1'\ntag: 'v0.68.1'\n"),
+    );
+    expect(result.status).toBe("pass");
+    expect(result.data?.version).toBe("0.68.1");
+    expect(result.data?.source).toBe("tag");
+  });
+
+  it("advisory-fails (sha only) when tag/ref are empty but a sha is present", () => {
+    const result = checkManifestVersionReportable(
+      "/proj",
+      ".deft/core",
+      seamsFor("ref: ''\nsha: '06329f3'\ntag: ''\ninstall_root: '.deft/core'\n"),
+    );
+    expect(result.status).toBe("fail");
+    expect(result.data?.version).toBeNull();
+    expect(result.data?.sha).toBe("06329f3");
+    expect(result.detail).toContain("directive update");
+    expect(result.detail).toContain("#2294");
+  });
+
+  it("does NOT change the doctor exit code (advisory only)", () => {
+    const shaOnly = checkManifestVersionReportable(
+      "/proj",
+      ".deft/core",
+      seamsFor("ref: ''\nsha: '06329f3'\ntag: ''\n"),
+    );
+    expect(deriveExitCode([shaOnly], [])).toBe(0);
+  });
+
+  it("skips when no manifest is present", () => {
+    const result = checkManifestVersionReportable("/proj", ".deft/core", seamsFor(null));
+    expect(result.status).toBe("skip");
+    expect(result.data?.manifest_path).toBeNull();
+  });
+
+  it("skips when the manifest carries neither semver nor sha", () => {
+    const result = checkManifestVersionReportable(
+      "/proj",
+      ".deft/core",
+      seamsFor("ref: ''\nsha: ''\ntag: ''\ninstall_root: '.deft/core'\n"),
+    );
+    expect(result.status).toBe("skip");
+    expect(result.detail).toContain("no provenance");
   });
 });

@@ -137,16 +137,21 @@ These commands are unrelated — do not confuse them:
 
 Current `@deftai/directive` npm releases no longer ship `task migrate:vbrief` or `scripts/migrate_vbrief.py` on the consumer deposit path (#2022 Phase 3). If your project still uses the pre-v0.20 flat document model (authoritative root `SPECIFICATION.md` / `PROJECT.md` without vBRIEF lifecycle folders), migrate **once** on a pinned release that still bundles the Python migrator, then join the normal npm upgrade path.
 
+> **Durability & support horizon (#2297).** This is a **best-effort** path for a document model that predates v0.20. The permanence anchor is the **`v0.59.0` git tag** — GitHub serves a source tarball for any tag on demand (`https://github.com/deftai/directive/archive/refs/tags/v0.59.0.tar.gz`), so recovery does **not** depend on any uploaded release asset staying attached. As long as the tag exists, the migrator is reachable. If you cannot reach the frozen payload at all, use the **[Fresh-start fallback](#fresh-start-fallback-2297)** below.
+
 **Applies when:** `deft doctor` reports `Pre-cutover: migration needed`, or `task migrate:preflight` exits non-zero with a `document-model` FAIL line.
 
-**Pinned release:** `v0.59.0` (last release before the Python-free npm deposit; includes `scripts/migrate_vbrief.py`).
+**Pinned tag:** `v0.59.0` — the last release before the Python-free npm deposit; the tagged tree includes `scripts/migrate_vbrief.py`.
+
+**This is a two-hop chain.** The pre-v0.20 flat model does not migrate straight to the current layout: hop 1 is `task migrate:vbrief` on **v0.59.0** (flat → vBRIEF v0.6); hop 2 is `deft migrate:xbrief` on **current npm** (vBRIEF v0.6 → xBRIEF v0.8). Steps 5–6 below cover hop 2.
 
 **Steps:**
 
 1. Install **Python 3.11+** and **[uv](https://docs.astral.sh/uv/)** on the migration machine.
-2. Deposit framework **v0.59.0** using one of:
-   - **Frozen Go installer** at [GitHub Releases tag v0.59.0](https://github.com/deftai/directive/releases/tag/v0.59.0) (layout migration + full source tarball under `.deft/core/`), or
-   - **Git submodule / clone:** `git checkout v0.59.0` in your framework checkout.
+2. Deposit framework **v0.59.0** using one of (git-tag methods first — they survive even if release assets are removed):
+   - **Source tarball from the tag:** `curl -fsSL https://github.com/deftai/directive/archive/refs/tags/v0.59.0.tar.gz | tar xz` (full source tree including the migrator), or
+   - **Git clone / submodule:** `git checkout v0.59.0` in your framework checkout, or
+   - **Frozen Go installer** at [GitHub Releases tag v0.59.0](https://github.com/deftai/directive/releases/tag/v0.59.0) (legacy bridge; relies on the uploaded asset, so prefer a git-tag method above for durability).
 3. From the project root, preview then apply:
    ```bash
    task migrate:preflight
@@ -159,6 +164,16 @@ Current `@deftai/directive` npm releases no longer ship `task migrate:vbrief` or
 6. Start a **new agent session** so refreshed AGENTS.md and skills load from a clean context.
 
 ⊗ Run `npm i -g @deftai/directive@latest` / `deft update` on a project that still has authoritative pre-v0.20 root docs — the current deposit cannot run the migrator; follow the frozen path first.
+
+#### Fresh-start fallback (#2297)
+
+The automated migrator is a convenience, not the only route. If the `v0.59.0` payload is genuinely unreachable (tag deleted, no network, Python/uv unavailable, or the migrator errors on an unusual legacy shape), you are **not** stranded — port forward manually:
+
+1. On **current npm**, scaffold a clean project beside the old one: `directive init` (or `npx @deftai/directive init`). This produces the current xBRIEF layout directly, skipping both hops.
+2. Hand-port your content: copy the substance of the old `SPECIFICATION.md` / `PROJECT.md` into the new project definition and scope xBRIEFs the setup flow creates. Your prose is the source of truth; only the container format changed.
+3. Keep the old tree read-only for reference until the new project's `deft doctor` is green, then archive it.
+
+This is lossless for content (you re-author the container, not the substance) and depends on nothing but current npm — so it is the guaranteed floor under the best-effort automated path.
 
 See [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for what migration produces and how content is preserved.
 

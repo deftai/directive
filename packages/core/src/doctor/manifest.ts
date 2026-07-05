@@ -47,6 +47,42 @@ export function manifestTagToVersion(manifest: Record<string, string>): string |
   return null;
 }
 
+/** Reportability classes for an install manifest's version provenance (#2294). */
+export type ManifestVersionSource = "tag" | "ref" | "sha" | "none";
+
+export interface ReportableVersion {
+  /** Semver derived from `tag`/`ref` (leading `v` stripped), else null. */
+  readonly version: string | null;
+  /** Recorded commit `sha`, trimmed, else null. */
+  readonly sha: string | null;
+  /** Where a reportable identity was found. */
+  readonly source: ManifestVersionSource;
+}
+
+/**
+ * Classify what a manifest can report as its version (#2294). A legacy
+ * `deft-install` deposit made without a release pin writes empty `tag`/`ref`
+ * and only a short `sha`; `manifestTagToVersion` then returns null and the
+ * version is silently unreportable. This helper distinguishes a pinned
+ * semver (`tag`/`ref`) from a sha-only deposit from a manifest with no
+ * provenance at all, so callers can surface an actionable signal instead of a
+ * blank.
+ */
+export function manifestReportableVersion(manifest: Record<string, string>): ReportableVersion {
+  const version = manifestTagToVersion(manifest);
+  if (version !== null) {
+    const tag = typeof manifest.tag === "string" ? manifest.tag.trim() : "";
+    return { version, sha: readSha(manifest), source: tag ? "tag" : "ref" };
+  }
+  const sha = readSha(manifest);
+  return { version: null, sha, source: sha !== null ? "sha" : "none" };
+}
+
+function readSha(manifest: Record<string, string>): string | null {
+  const raw = typeof manifest.sha === "string" ? manifest.sha.trim() : "";
+  return raw || null;
+}
+
 export function manifestCandidatePaths(projectRoot: string, installRoot: string | null): string[] {
   const raw: string[] = [];
   if (installRoot) {
