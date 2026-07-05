@@ -316,6 +316,52 @@ describe("resolution/plan files threading (#2268 headless single-sourcing)", () 
   });
 });
 
+describe("resolution/plan package-manager rendering (#2197)", () => {
+  it("defaults to npm command forms when no packageManager is supplied", () => {
+    expect(plan(facts({ engineVersion: "0.63.0" })).nextAction.command).toContain(
+      "npm i -g @deftai/directive@0.65.0",
+    );
+    expect(
+      plan(facts({ hasDeftCore: false, hasManagedSection: false })).nextAction.command,
+    ).toContain("npx @deftai/directive init");
+  });
+
+  it("renders pnpm install-global when packageManager is pnpm", () => {
+    const p = plan(facts({ engineVersion: "0.63.0" }), {}, { packageManager: "pnpm" });
+    expect(p.mode).toBe("install-global");
+    expect(p.nextAction.command).toBe("pnpm add -g @deftai/directive@0.65.0");
+  });
+
+  it("renders pnpm ephemeral init / update when packageManager is pnpm", () => {
+    const initPlan = plan(
+      facts({ hasDeftCore: false, hasManagedSection: false }),
+      {},
+      { packageManager: "pnpm" },
+    );
+    expect(initPlan.nextAction.command).toBe("pnpm dlx @deftai/directive init");
+
+    const updatePlan = plan(
+      facts({ engineVersion: "0.67.0", deftCorePayloadVersion: "0.67.0" }),
+      { engineSkewWindow: 3 },
+      { packageManager: "pnpm" },
+    );
+    expect(updatePlan.mode).toBe("update");
+    expect(updatePlan.nextAction.command).toBe("pnpm dlx @deftai/directive update");
+  });
+
+  it("keeps the sandbox rung on npm --prefix even when packageManager is pnpm (locked non-goal)", () => {
+    const engineResolution = decideEngineLadder(ladderFacts({ globalPrefixWritable: false }));
+    const p = plan(
+      facts({ engineReachable: false, engineVersion: null }),
+      {},
+      { engineResolution, platform: "linux", packageManager: "pnpm" },
+    );
+    expect(p.mode).toBe("install-sandbox");
+    expect(p.nextAction.command).toContain("npm install --prefix .deft/.cli/linux");
+    expect(p.nextAction.command).not.toContain("pnpm");
+  });
+});
+
 /** Minimal structural JSON-schema check (required + additionalProperties + enum). */
 function validateAgainstSchema(value: unknown, schema: Record<string, unknown>): string[] {
   const errors: string[] = [];

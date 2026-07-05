@@ -48,6 +48,19 @@ export {
   localEnginePlatformDir,
 } from "./integrity.js";
 export {
+  DEFAULT_PACKAGE_MANAGER,
+  type DetectPackageManagerInput,
+  detectPackageManager,
+  ENGINE_PACKAGE,
+  PACKAGE_MANAGERS,
+  type PackageManager,
+  type PackageManagerCommands,
+  renderEphemeral,
+  renderGlobalInstall,
+  renderPackageManagerCommands,
+  renderProjectInstall,
+} from "./package-manager.js";
+export {
   compareSemver,
   isExactPin,
   PIN_DEPENDENCY_NAME,

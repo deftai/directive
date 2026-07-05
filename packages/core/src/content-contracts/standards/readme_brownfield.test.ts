@@ -154,4 +154,26 @@ describe("test_readme_brownfield.py", () => {
       expect(content.toLowerCase()).toContain("ordinary");
     });
   });
+
+  // #2197: README / UPGRADING / BROWNFIELD document a first-class pnpm
+  // install/upgrade path (same npm registry) plus the PNPM_HOME PATH caveat.
+  describe("TestPnpmSupport", () => {
+    it("test_readme_documents_pnpm_install_and_path_caveat", () => {
+      const content = readme();
+      expect(content).toContain("pnpm add -g @deftai/directive");
+      expect(content).toContain("PNPM_HOME");
+      // Ephemeral pnpm dlx form documented alongside npx.
+      expect(content).toContain("pnpm dlx @deftai/directive");
+    });
+
+    it("test_upgrading_documents_pnpm_upgrade_one_liner", () => {
+      const content = readText("UPGRADING.md");
+      expect(content).toContain("pnpm add -g @deftai/directive@latest");
+    });
+
+    it("test_brownfield_documents_pnpm_install", () => {
+      const content = readText("docs/BROWNFIELD.md");
+      expect(content).toContain("pnpm add -g @deftai/directive");
+    });
+  });
 });

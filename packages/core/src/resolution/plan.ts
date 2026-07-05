@@ -21,6 +21,12 @@ import type {
 } from "@deftai/directive-types";
 import { RESOLUTION_PLAN_SCHEMA_VERSION } from "@deftai/directive-types";
 import type { LadderDecision, LadderRung } from "./engine-ladder.js";
+import {
+  ENGINE_PACKAGE,
+  type PackageManager,
+  renderEphemeral,
+  renderGlobalInstall,
+} from "./package-manager.js";
 import { reconcileVersions } from "./pin.js";
 import { evaluateSkew, type SkewResult } from "./skew-policy.js";
 
@@ -51,6 +57,15 @@ export interface PlanOptions {
    * omitted, `files` stays empty exactly as before.
    */
   readonly files?: readonly ResolutionFile[];
+  /**
+   * Active package manager for rendering install/upgrade command strings
+   * (#2197). Defaults to npm so existing behaviour and tests are unchanged;
+   * callers detect the manager via `detectPackageManager()` and thread it here.
+   * The sandbox (`install-sandbox`) rung stays on npm regardless of this value
+   * -- the `.deft/.cli/<platform>` layout is npm-shaped and package-manager
+   * invisible (locked non-goal, issue #2197).
+   */
+  readonly packageManager?: PackageManager;
 }
 
 const RUNG_TO_MODE: Record<LadderRung, ResolutionPlan["mode"]> = {
@@ -135,6 +150,7 @@ function resolvePlan(
   options: PlanOptions,
 ): ResolutionPlan {
   const warnings: string[] = [];
+  const pm: PackageManager = options.packageManager ?? "npm";
   const legacyWarning = legacyVbriefWarning(facts);
   if (legacyWarning) warnings.push(legacyWarning);
 
@@ -162,7 +178,7 @@ function resolvePlan(
     return makePlan(
       "init",
       {
-        command: "npx @deftai/directive init",
+        command: renderEphemeral(pm, "init"),
         rootCause,
         remediation: "Deposit (or reconstitute) the .deft/core/ payload with `directive init`.",
       },
@@ -228,7 +244,7 @@ function resolvePlan(
       return makePlan(
         "install-global",
         {
-          command: `npm i -g @deftai/directive${pinSuffix(facts.pinVersion)}`,
+          command: renderGlobalInstall(pm, `${ENGINE_PACKAGE}${pinSuffix(facts.pinVersion)}`),
           rootCause: `engine ${effectiveEngine} is behind pin ${facts.pinVersion}`,
           remediation: "Install the pinned engine (or fall through the ladder to a local install).",
         },
@@ -262,7 +278,7 @@ function resolvePlan(
         return makePlan(
           "update",
           {
-            command: "npx @deftai/directive update",
+            command: renderEphemeral(pm, "update"),
             rootCause: skew.requiresUpdateFirst
               ? `engine ${effectiveEngine} is ahead of pin ${facts.pinVersion} within the skew window`
               : `deposited content is behind pin ${facts.pinVersion}`,
@@ -292,6 +308,7 @@ function planForInstallRung(
   warnings: readonly string[],
 ): ResolutionPlan {
   const platform = options.platform ?? "<platform>";
+  const pm: PackageManager = options.packageManager ?? "npm";
   const pinnedSuffix = pinSuffix(facts.pinVersion);
   const withTrace = [...warnings, `ladder: ${engineResolution.trace}`];
   switch (mode) {
@@ -299,13 +316,19 @@ function planForInstallRung(
       return makePlan(
         "install-global",
         {
-          command: `npm i -g @deftai/directive${pinnedSuffix}`,
+          command: renderGlobalInstall(pm, `${ENGINE_PACKAGE}${pinnedSuffix}`),
           rootCause: engineResolution.reason,
-          remediation: "Install the pinned engine into the global npm prefix.",
+          remediation:
+            pm === "pnpm"
+              ? "Install the pinned engine into the pnpm global bin (ensure PNPM_HOME is on PATH; run `pnpm setup` if needed)."
+              : "Install the pinned engine into the global npm prefix.",
         },
         withTrace,
       );
     case "install-sandbox":
+      // Locked non-goal (#2197): the .deft/.cli/<platform> sandbox stays on npm
+      // regardless of the caller's package manager -- its node_modules/.bin
+      // layout is npm-shaped and validated by integrity.ts.
       return makePlan(
         "install-sandbox",
         {

@@ -23,6 +23,8 @@ directive init                 # detects app code, installs Directive beside it
 directive doctor               # confirms the install + prints your one next step
 ```
 
+**pnpm-managed project?** Swap the first line for `pnpm add -g @deftai/directive` (same package, same npm registry — no extra registry needed) and make sure `PNPM_HOME` is on your `PATH` (`pnpm setup`). Everything after installs and runs identically.
+
 `directive init` classifies the directory you run it in. Because it finds existing app code (or a git repo) but no Directive deposit, it takes the **brownfield-install** path: it installs Directive support *beside* your source without disturbing it, scaffolds the `xbrief/` layout, and points you toward brownfield spec extraction. It never overwrites your files, and it ignores only Directive's local-only artifacts (`.deft/core/`, `.deft/.cli/`, `.deft/ritual-state.json`, and the `.deft-cache/` cache) while leaving your committed `package.json` pin tracked in git. If the directory turns out to hold a legacy / pre-v0.20 layout, init routes you to the specific migration path (§2) instead of scaffolding over it — and `directive doctor` is the read-only probe that tells you exactly what to run next if anything looks off.
 
 An already-initialized Directive project does not need `init` at all — run `directive update` to refresh it.

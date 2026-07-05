@@ -6,7 +6,7 @@
   "plan": {
     "id": "2197-pnpm-support",
     "title": "First-class pnpm support for the install/upgrade path",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Give pnpm users a first-class install/upgrade path that today assumes npm-only. This is a pure consumption-side gap: pnpm resolves from the same npm registry, so no republish or additional registry is required. Introduce a package-manager abstraction (npm | pnpm) that detects the active PM and renders the four command forms (global install, project-local install, ephemeral run, upgrade one-liner), thread it through the resolution plan, the engine ladder, and the doctor remediation, and document the pnpm path (pnpm add -g / pnpm dlx) with the PNPM_HOME PATH caveat. The internal .deft/.cli/<platform> sandbox vendoring stays on npm (locked non-goal).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2197",
@@ -129,8 +129,9 @@
         ],
         "notes": "Refined swarm-ready 2026-07-04. Solo story (no concurrent cohort). Locked decisions recorded on issue #2197 scoping comment: (1) no additional registry / no republish -- pnpm uses registry.npmjs.org; (2) internal .deft/.cli/<platform> sandbox vendoring STAYS on npm (pnpm-shaped sandbox layout is a deferred non-goal); (3) additive rendering keeps npm default so existing content-contract 'contains npm i -g' assertions stay green. Depends on merged keystone #2264 (plan/engine-ladder/resolution). CHANGELOG.md intentionally omitted from file_scope; the worker still adds a brief CHANGELOG entry."
       },
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completedAt": "2026-07-05T01:06:29Z"
     },
-    "updated": "2026-07-05T00:55:39Z"
+    "updated": "2026-07-05T01:06:29Z"
   }
 }

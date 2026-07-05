@@ -5,8 +5,8 @@
 >
 > 1. **Already installed?** Run `directive doctor` (or the `deft` alias). If it runs, you're bootstrapped — skip the rest and follow its `Next command:`.
 > 2. **Local engine.** If `.deft/.cli/<platform>` holds an intact engine at or above the `package.json` pin, use it.
-> 3. **Global install (canonical).** `npm i -g @deftai/directive` (Node ≥ 20), then re-run `directive doctor`.
-> 4. **Sandbox install.** If the global npm prefix isn't writable (sandboxed environment), install into the project instead: `npm install --prefix .deft/.cli/<platform> @deftai/directive@<pinned>`.
+> 3. **Global install (canonical).** `npm i -g @deftai/directive` (Node ≥ 20), then re-run `directive doctor`. Using pnpm? `pnpm add -g @deftai/directive` (same package, same registry) — make sure `PNPM_HOME` is on your `PATH` (`pnpm setup` if not).
+> 4. **Sandbox install.** If the global npm prefix isn't writable (sandboxed environment), install into the project instead: `npm install --prefix .deft/.cli/<platform> @deftai/directive@<pinned>`. (This internal `.deft/.cli/` layout is always npm-shaped, regardless of your project's package manager.)
 > 5. **Offline.** If the npm registry is unreachable, install from a staged tarball / vendored payload. If none exists, stage one — recovery cannot proceed without a payload.
 >
 > This block is always committed (never gitignored) and does **not** depend on the `.deft/core/` payload being present, so it is reachable on a fresh clone even when the vendored framework is missing. Once `directive` runs, continue with the guidance below and in `AGENTS.md`.
@@ -65,6 +65,14 @@ Install the engine globally with npm (Node ≥ 20 required):
 npm i -g @deftai/directive
 ```
 
+**Using pnpm?** pnpm resolves the same package from the same npm registry — no extra registry or configuration is required:
+
+```bash
+pnpm add -g @deftai/directive
+```
+
+Make sure pnpm's global bin directory is on your `PATH` (run `pnpm setup` once to configure `PNPM_HOME`). If you prefer not to install globally, a project-local `pnpm add -D @deftai/directive` plus `pnpm exec directive <verb>` works too. Deft detects your package manager (via `DEFT_PACKAGE_MANAGER`, the `packageManager` field, a `pnpm-lock.yaml`, or `npm_config_user_agent`) and prints install/upgrade hints in the matching form.
+
 Then `cd` into your project and run the universal entrypoint:
 
 ```bash
@@ -72,7 +80,7 @@ directive init      # classify this directory and set up (or route) accordingly
 directive doctor    # confirm the install and print your one next step
 ```
 
-`directive` (the `deft` alias also works) runs any verb; `npx @deftai/directive <verb>` runs one without a global install.
+`directive` (the `deft` alias also works) runs any verb; `npx @deftai/directive <verb>` (npm) or `pnpm dlx @deftai/directive <verb>` (pnpm) runs one without a global install.
 
 **Where your project lands (honest scope):** the global install above is location-independent, but `directive init` acts on the **current working directory** — it inspects that directory and dispatches, so `cd` into the folder you want the project to live in first (create it if it doesn't exist yet). init does not reach outside the directory you run it in. When an engine is already installed, Directive reconciles it against your committed `package.json` pin: a **matched** engine (same version as the pin) proceeds; a **mismatched** engine (ahead of or behind the pin) prints the exact `npm i -g` / `directive update` step to take rather than silently running against the wrong version.
 
@@ -80,7 +88,7 @@ directive doctor    # confirm the install and print your one next step
 
 **Node runtime (required):** Live deft gates run through the TypeScript engine. Install **Node 20+** (see `.nvmrc` in the framework payload) and **pnpm** (`corepack enable && corepack prepare pnpm@latest --activate`). Run `task toolchain:check` to confirm Node, pnpm, Python (`uv`), git, and gh are on PATH. See [UPGRADING.md § Node runtime](./content/UPGRADING.md#node-runtime-1828--1530) for details.
 
-> **🔄 Upgrading an existing Directive project?** The ordinary path is `directive update` from your project root (after `npm i -g @deftai/directive@latest`). See [UPGRADING.md](./content/UPGRADING.md) for the canonical steps and the advanced/big-jump detail. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
+> **🔄 Upgrading an existing Directive project?** The ordinary path is `directive update` from your project root (after `npm i -g @deftai/directive@latest`, or `pnpm add -g @deftai/directive@latest` on pnpm). See [UPGRADING.md](./content/UPGRADING.md) for the canonical steps and the advanced/big-jump detail. **Agents:** ! Read [UPGRADING.md](./content/UPGRADING.md) on the first session after a framework update.
 
 > **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./content/docs/BROWNFIELD.md) and UPGRADING.md § Frozen pre-v0.20 document-model migration (#2068).
 

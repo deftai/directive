@@ -2704,6 +2704,7 @@ export function printHelp(io: DispatchIo = defaultIo()): void {
       "\n" +
       "First run? From the project root:\n" +
       "  1. npm i -g @deftai/directive   (Node >= 20)\n" +
+      "     (pnpm: pnpm add -g @deftai/directive -- ensure PNPM_HOME is on PATH, run `pnpm setup` if needed)\n" +
       "  2. directive init\n" +
       "  3. directive doctor\n" +
       "New clone where `directive` will not run? Read the Cold-start bootstrap block at the top of README.md.\n" +

@@ -23,11 +23,13 @@ import {
   type ClassifySeams,
   checkLocalEngineIntegrity,
   classify,
+  ENGINE_PACKAGE,
   type EngineInstallRunner,
   type EngineResolution,
   type LadderFacts,
   plan,
   type ReprojectRunner,
+  renderGlobalInstall,
   resolveEngine,
 } from "../resolution/index.js";
 import { gitPorcelain } from "../story-ready/git.js";
@@ -198,7 +200,9 @@ export function selfHealEngine(
     io.printf(`[deft update] ${resolution.decision.reason}\n`);
     if (resolution.decision.rung === "install-global") {
       const suffix = facts.pinVersion ? `@${facts.pinVersion}` : "";
-      io.printf(`  Remediation: npm i -g @deftai/directive${suffix}\n`);
+      const spec = `${ENGINE_PACKAGE}${suffix}`;
+      io.printf(`  Remediation: ${renderGlobalInstall("npm", spec)}\n`);
+      io.printf(`               (pnpm: ${renderGlobalInstall("pnpm", spec)})\n`);
     }
   }
   return resolution;

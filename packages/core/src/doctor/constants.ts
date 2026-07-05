@@ -1,3 +1,9 @@
+import {
+  ENGINE_PACKAGE,
+  type PackageManager,
+  renderGlobalInstall,
+} from "../resolution/package-manager.js";
+
 export const UV_INSTALL_URL = "https://docs.astral.sh/uv/";
 
 // Stable, version-neutral upgrade signposts (#1912). Core principle: never bake
@@ -77,6 +83,18 @@ export const EXPECTED_CONTENT_DIRS = ["languages", "strategies", "skills", "temp
 
 /** Post-freeze canonical upgrade path (#1997 / #2003 / #1912). */
 export const CANONICAL_UPGRADE_COMMAND = "npm i -g @deftai/directive@latest";
+
+/** First-class pnpm upgrade one-liner (#2197). Same registry, same tarball. */
+export const PNPM_UPGRADE_COMMAND = "pnpm add -g @deftai/directive@latest";
+
+/**
+ * Render the canonical upgrade one-liner for the active package manager (#2197).
+ * Defaults to npm (`CANONICAL_UPGRADE_COMMAND`) so existing callers are
+ * unchanged; pass `pnpm` to emit the pnpm form.
+ */
+export function upgradeCommandFor(pm: PackageManager = "npm"): string {
+  return renderGlobalInstall(pm, `${ENGINE_PACKAGE}@latest`);
+}
 
 /** Vendored npm-managed deposit: global bump plus in-place `.deft/core/` refresh (#2115). */
 export const VENDORED_NPM_DEPOSIT_UPGRADE_COMMAND = `${CANONICAL_UPGRADE_COMMAND} && deft update`;

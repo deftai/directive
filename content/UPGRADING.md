@@ -34,6 +34,14 @@ From v0.55.1 onwards `@deftai/directive` is published on npm. The canonical cons
    npm i -g @deftai/directive@latest
    ```
 
+   **Using pnpm?** pnpm installs the same package from the same npm registry — no extra registry or config:
+
+   ```bash
+   pnpm add -g @deftai/directive@latest
+   ```
+
+   Ensure pnpm's global bin directory is on your `PATH` (`pnpm setup` configures `PNPM_HOME`). A project-local `pnpm add -D @deftai/directive@latest` (run via `pnpm exec directive …`) is equivalent for pnpm-managed repos that avoid global installs. `deft update` / `deft migrate` / `deft doctor` all work identically regardless of which package manager installed the engine.
+
 2. **Refresh the project deposit** from your project root:
 
    ```bash
