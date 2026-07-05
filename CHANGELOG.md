@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `deft triage:welcome --onboard` now actually runs onboarding instead of exiting with "not implemented". Every first-time/incomplete welcome nudge points at this command, so it was a guaranteed dead-end loop for new users; it now writes your triage-scope preset (`--preset small|mid|mega`, default `small`) and optional WIP cap (`--wip-cap N`) into the project's canonical policy, previews WIP relief when you're at/over cap, and prints a completion summary with next steps. Closes #2295.
+
 ### Removed
 
 ## [0.69.0] - 2026-07-05
