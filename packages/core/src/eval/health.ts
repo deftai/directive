@@ -56,18 +56,14 @@ export interface EvaluateHealthResult {
   readonly message: string;
 }
 
+function sanitizeOneLine(value: string): string {
+  return value.replace(/\r?\n/g, " ");
+}
+
 function isFrameworkSourceCheckout(projectRoot: string): boolean {
-  const rootPkg = resolve(projectRoot, "package.json");
+  const manifest = resolve(projectRoot, "conventions/content-manifest.json");
   const cliPkg = resolve(projectRoot, "packages/cli/package.json");
-  if (!existsSync(rootPkg) || !existsSync(cliPkg)) {
-    return false;
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(rootPkg, "utf8")) as { scripts?: { build?: unknown } };
-    return typeof parsed.scripts?.build === "string";
-  } catch {
-    return false;
-  }
+  return existsSync(manifest) && existsSync(cliPkg);
 }
 
 function loadPlan(projectRoot: string): { plan: unknown; filepath: string } | null {
@@ -76,8 +72,11 @@ function loadPlan(projectRoot: string): { plan: unknown; filepath: string } | nu
     return null;
   }
   try {
-    const data = JSON.parse(readFileSync(filepath, "utf8")) as { plan?: unknown };
-    return { plan: data.plan, filepath };
+    const data: unknown = JSON.parse(readFileSync(filepath, "utf8"));
+    if (data === null || typeof data !== "object" || Array.isArray(data)) {
+      return null;
+    }
+    return { plan: (data as { plan?: unknown }).plan, filepath };
   } catch {
     return null;
   }
@@ -248,14 +247,18 @@ function formatHumanReport(report: HealthReport): string {
     `eval:health v${report.version} score=${report.score}/100 (${report.recordedAt})`,
     ...report.gates.map((g) => {
       const status = g.skipped ? "SKIP" : g.pass ? "PASS" : "FAIL";
-      const suffix = g.skipped ? ` (${g.skipReason})` : g.detail ? ` -- ${g.detail}` : "";
+      const suffix = g.skipped
+        ? ` (${sanitizeOneLine(g.skipReason ?? "")})`
+        : g.detail
+          ? ` -- ${sanitizeOneLine(g.detail)}`
+          : "";
       return `  [${status}] ${g.title}${suffix}`;
     }),
   ];
   if (report.contradictions.length > 0) {
     lines.push("  Contradictory gates:");
     for (const c of report.contradictions) {
-      lines.push(`    - ${c.id}: ${c.summary}`);
+      lines.push(`    - ${c.id}: ${sanitizeOneLine(c.summary)}`);
     }
   }
   return lines.join("\n");
@@ -286,10 +289,12 @@ export function evaluateHealth(options: EvaluateHealthOptions = {}): EvaluateHea
     try {
       persistHealthRun(projectRoot, report);
     } catch (err: unknown) {
+      const persistError = `eval:health: failed to persist health history: ${String(err)}`;
+      const healthy = score === 100 && contradictions.length === 0;
       return {
-        code: 2,
-        report: null,
-        message: `eval:health: failed to persist health history: ${String(err)}`,
+        code: healthy ? 0 : 1,
+        report,
+        message: `${formatHumanReport(report)}\n${persistError}`,
       };
     }
   }

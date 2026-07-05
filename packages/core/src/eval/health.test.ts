@@ -93,7 +93,11 @@ describe("detectWipCapUnsatisfiableNudge", () => {
   it("returns null when wipCap is materialized", () => {
     const root = seedRepo();
     const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
-    const data = JSON.parse(readFileSync(pdPath, "utf8")) as Record<string, unknown>;
+    const raw: unknown = JSON.parse(readFileSync(pdPath, "utf8"));
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error("fixture PROJECT-DEFINITION must be an object");
+    }
+    const data = raw as Record<string, unknown>;
     (data.plan as Record<string, unknown>)["x-directive/policy"] = {
       triageScope: [{ rule: "all-open" }],
       wipCap: 8,
@@ -140,5 +144,24 @@ describe("evaluateHealth", () => {
     expect(result.report?.recordedAt).toBe("2026-07-05T18:00:00Z");
     expect(existsSync(healthHistoryPath(root))).toBe(true);
     expect(result.message).toContain("score=");
+  });
+
+  it("still returns the computed report when persistence fails", () => {
+    const root = seedRepo();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      "<!-- deft:managed-section v3 -->\n<!-- /deft:managed-section -->\n",
+      "utf8",
+    );
+    rmSync(join(root, "xbrief", ".eval"), { recursive: true, force: true });
+    writeFileSync(join(root, "xbrief", ".eval"), "not-a-directory", "utf8");
+    const result = evaluateHealth({
+      projectRoot: root,
+      frameworkSource: false,
+      now: () => new Date("2026-07-05T18:00:00Z"),
+    });
+    expect(result.report).not.toBeNull();
+    expect(result.message).toContain("score=");
+    expect(result.message).toContain("failed to persist health history");
   });
 });
