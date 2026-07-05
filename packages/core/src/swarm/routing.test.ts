@@ -219,6 +219,19 @@ describe("writeModelDecision", () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     expect(Object.prototype).not.toHaveProperty("polluted");
   });
+
+  it("does not pollute via a hostile on-disk __proto__ key on a later write (CodeQL #52)", () => {
+    mkdirSync(join(dir, ".deft"), { recursive: true });
+    // JSON.parse creates an own "__proto__" property (it does not pollute the
+    // prototype), so a hostile routing file on disk can carry one. A later
+    // legitimate write must land on the null-prototype targets, never reach
+    // Object.prototype, and must preserve the real providers.
+    writeFileSync(path, JSON.stringify({ __proto__: { polluted: true }, cursor: {} }), "utf8");
+    writeModelDecision(path, "cursor", "leaf-implementation", { model: "composer-2.5-fast" });
+    expect(Object.prototype).not.toHaveProperty("polluted");
+    const data = loadRoutingFile(path).data;
+    expect(data?.cursor?.["leaf-implementation"]?.model).toBe("composer-2.5-fast");
+  });
 });
 
 describe("SWARM_WORKER_ROLES", () => {

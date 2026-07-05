@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **Closed four Medium findings from the app-sec review that let untrusted repo/issue content influence Deft.** Bulk triage (`triage:bulk-*`) now runs entirely in-process and no longer executes a project-local `scripts/triage_actions.py`, so a planted script — even via `DEFT_ROOT` — can't run arbitrary code. `directive init`/`update` now refuse when `.deft`/`.deft/core` (or a parent) is a symlink escaping the project tree, so a deposit can never be written outside the repo you're in. `issue:ingest` now runs GitHub bodies and comment threads through the quarantine scanner before saving them and fails closed on credential-shaped content, and `umbrella:current-shape` now trusts only maintainer-authored comments and quarantine-scans the selected comment before printing it — failing closed (nothing printed, non-zero exit) on credential-shaped content, consistent with `issue:ingest` — defeating forged "authoritative state" from third parties. Refs #2279, #2305, #2306, #2307.
+- **Hardened swarm model-routing writes against prototype pollution.** `swarm:routing-set` / `writeModelDecision` now write provider and role decisions into null-prototype objects, a structural backstop layered on top of the existing key-validation guard. This closes CodeQL alert `js/prototype-polluting-assignment` (#52) as defense-in-depth; there is no behavior change for legitimate routing names. Refs #2311.
 
 ### Removed
 

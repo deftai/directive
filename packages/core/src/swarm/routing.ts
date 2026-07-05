@@ -232,7 +232,9 @@ export function resolveDispatchProvider(environ: NodeJS.ProcessEnv = process.env
  * Keys that would mutate the prototype chain rather than set an own property
  * if used as a computed object key. Rejected for provider/role names so a
  * malicious routing input cannot pollute `Object.prototype` (CodeQL
- * js/prototype-polluting-assignment).
+ * js/prototype-polluting-assignment). This validation guard produces the
+ * caller-facing error; the null-prototype write targets in
+ * `writeModelDecision` are the structural backstop CodeQL recognizes.
  */
 const FORBIDDEN_ROUTING_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -256,9 +258,20 @@ export function writeModelDecision(
   assertSafeRoutingKey("provider", provider);
   assertSafeRoutingKey("role", role);
   const { data } = loadRoutingFile(path);
-  const file: RoutingFile = data ?? {};
+  // Null-prototype write targets so a computed provider/role key can only ever
+  // set an own property and can never reach `Object.prototype`, even if the
+  // validation guard above regresses. CodeQL's js/prototype-polluting-assignment
+  // barrier does not track the interprocedural `assertSafeRoutingKey` guard, so
+  // this structural sink is what closes alert #52.
+  const file: RoutingFile = Object.assign(
+    Object.create(null) as RoutingFile,
+    data ?? {},
+  );
   const existing = providerBlockOf(file, provider);
-  const block: Record<string, RouteDecision> = existing ?? {};
+  const block: Record<string, RouteDecision> = Object.assign(
+    Object.create(null) as Record<string, RouteDecision>,
+    existing ?? {},
+  );
   block[role] = {
     model: decision.model,
     mode:
