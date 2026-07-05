@@ -218,7 +218,7 @@ export function inspectValueFeedback(
       sessionLine: false,
       upstreamPrompt: false,
     },
-    source: resolved.source === "default-on-error" ? "default-on-error" : resolved.source,
+    source: resolved.source,
   };
 }
 
@@ -285,13 +285,12 @@ export function enableValueFeedback(
         typeof previous === "object" && previous !== null && !Array.isArray(previous)
           ? (previous as Record<string, unknown>)
           : {};
-      const hadEnabled = prevObj.enabled === true;
       const sub = options.subFlags ?? {};
       const readPersistedSubFlag = (key: ValueFeedbackSubFlag): boolean => {
         if (key in sub && typeof sub[key] === "boolean") {
           return sub[key] as boolean;
         }
-        if (hadEnabled && key in prevObj && typeof prevObj[key] === "boolean") {
+        if (key in prevObj && typeof prevObj[key] === "boolean") {
           return prevObj[key] as boolean;
         }
         return VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED[key];

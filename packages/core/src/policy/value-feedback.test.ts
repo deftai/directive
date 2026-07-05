@@ -175,12 +175,33 @@ describe("enableValueFeedback disclosure gate", () => {
     const result = enableValueFeedback(root, { confirm: true, actor: "test" });
     expect(result.exitCode).toBe(0);
     expect(result.changed).toBe(false);
-    const resolved = resolveValueFeedback(root);
-    expect(resolved).toMatchObject({
+    expect(resolveValueFeedback(root)).toMatchObject({
       enabled: true,
       emitEvents: false,
       sessionLine: true,
       upstreamPrompt: false,
+    });
+  });
+
+  it("preserves pre-configured sub-flags when enabling from disabled", () => {
+    const root = makeRepo({
+      policy: {
+        valueFeedback: {
+          enabled: false,
+          emitEvents: false,
+          sessionLine: false,
+          upstreamPrompt: true,
+        },
+      },
+    });
+    const result = enableValueFeedback(root, { confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    expect(result.changed).toBe(true);
+    expect(resolveValueFeedback(root)).toMatchObject({
+      enabled: true,
+      emitEvents: false,
+      sessionLine: false,
+      upstreamPrompt: true,
     });
   });
 });
