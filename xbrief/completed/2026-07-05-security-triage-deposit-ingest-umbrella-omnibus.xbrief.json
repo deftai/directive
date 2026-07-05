@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Security omnibus: close four Medium findings from the 2026-07-03 app-sec review",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "Group the four Medium-severity findings from the scheduled application-security review (commit 6449c04e) into a single coherent security PR. All four are independent, disjoint-file trust-boundary fixes that share the scan() quarantine primitive and the same review provenance, so they land together for a single security review pass.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2279 , #2305, #2306, #2307"
@@ -51,6 +51,10 @@
         "title": "Issue #2307: fix(security): umbrella:current-shape emits attacker-controlled issue comments as authoritative agent state"
       }
     ],
-    "updated": "2026-07-05T15:18:25Z"
+    "updated": "2026-07-05T17:33:20Z",
+    "metadata": {
+      "completedAt": "2026-07-05T17:33:20Z",
+      "capacityBucket": "new-capability"
+    }
   }
 }
