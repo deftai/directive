@@ -1,0 +1,56 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for the 2026-07-03 application-security review omnibus (#2279 / #2305 / #2306 / #2307)",
+    "updated": "2026-07-05T15:18:27Z"
+  },
+  "plan": {
+    "title": "Security omnibus: close four Medium findings from the 2026-07-03 app-sec review",
+    "status": "running",
+    "narratives": {
+      "Overview": "Group the four Medium-severity findings from the scheduled application-security review (commit 6449c04e) into a single coherent security PR. All four are independent, disjoint-file trust-boundary fixes that share the scan() quarantine primitive and the same review provenance, so they land together for a single security review pass.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2279 , #2305, #2306, #2307"
+    },
+    "items": [
+      {
+        "title": "#2279 triage:bulk-* defaults to project-local Python bridge (arbitrary code execution): route bulk actions through the native TS triage/actions module; drop DEFT_ROOT/project scripts/ resolution from the bulk path",
+        "status": "proposed"
+      },
+      {
+        "title": "#2305 directive init/update deposit copy follows a .deft/.deft/core symlink (arbitrary-location write): add shared assertDepositContained guard (lstat/realpath, path-segment containment) before any copy in init-deposit.ts + refresh.ts; copy-tree lstat not stat; UPGRADING.md trust-the-repo note",
+        "status": "proposed"
+      },
+      {
+        "title": "#2306 issue:ingest writes untrusted bodies/comments verbatim into plan.narratives.Overview: run scan() over overviewSource in buildIssueVbrief, fail closed on credential hard-fail, make cache path consume scanned content",
+        "status": "proposed"
+      },
+      {
+        "title": "#2307 umbrella:current-shape emits attacker-controlled comments as authoritative state: carry author_association, restrict selection to maintainer-authored, scan emitted body, gate --strict on provenance",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2279",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2279: fix(security): triage:bulk can execute attacker-supplied project Python code"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2305",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2305: fix(security): directive init/update deposit copy follows escaping .deft symlink"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2306",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2306: fix(security,triage): issue:ingest writes untrusted issue bodies/comments verbatim, bypassing quarantine scanner"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2307",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2307: fix(security): umbrella:current-shape emits attacker-controlled issue comments as authoritative agent state"
+      }
+    ],
+    "updated": "2026-07-05T15:18:25Z"
+  }
+}
