@@ -8,10 +8,10 @@
  */
 
 export * as actions from "./actions/index.js";
-export * as cachePath from "./cache-path.js";
-export * from "./cache-path.js";
 export * as bootstrap from "./bootstrap/index.js";
 export * as bulk from "./bulk/index.js";
+export * as cachePath from "./cache-path.js";
+export * from "./cache-path.js";
 export * as classify from "./classify/index.js";
 export * as help from "./help/index.js";
 export * as queue from "./queue/index.js";

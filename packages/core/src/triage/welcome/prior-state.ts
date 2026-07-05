@@ -6,8 +6,8 @@ import {
   resolveLifecycleRoot,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
-import { resolveCandidatesLogPath } from "../cache-path.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import {
   CACHE_DIR_NAME,
   CACHE_SOURCE,

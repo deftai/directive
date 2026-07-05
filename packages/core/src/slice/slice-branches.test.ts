@@ -123,7 +123,9 @@ describe("slice branch coverage", () => {
       { newSliceId: () => "cccccccc-bbbb-cccc-dddd-eeeeeeeeeeee" },
     );
     expect(forced.exitCode).toBe(0);
-    expect(readAll({ path: join(root, "vbrief", ".triage-cache", "slices.jsonl") })).toHaveLength(2);
+    expect(readAll({ path: join(root, "vbrief", ".triage-cache", "slices.jsonl") })).toHaveLength(
+      2,
+    );
 
     expect(
       runRecordExisting(

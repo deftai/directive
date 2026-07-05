@@ -10,9 +10,9 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
-import { resolveTriageCachePath } from "../cache-path.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
+import { resolveTriageCachePath } from "../cache-path.js";
 import { SUBSCRIPTION_HISTORY_SCHEMA } from "./constants.js";
 import { pyStrRepr } from "./python-repr.js";
 import { utcIso } from "./time.js";

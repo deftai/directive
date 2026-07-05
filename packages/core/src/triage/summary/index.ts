@@ -6,11 +6,11 @@ import {
   resolveLifecycleFolder,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
-import { resolveCandidatesLogPath } from "../cache-path.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { loadProjectDefinition, PROJECT_DEFINITION_REL_PATH } from "../../policy/resolve.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
 import { AUDIT_LOG_REL_PATH, latestDecisions, readAuditLog } from "../actions/candidates-log.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import { countReconcilable } from "./reconcilable.js";
 import { computeScopeDriftTotal } from "./scope-drift.js";
 

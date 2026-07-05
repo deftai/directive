@@ -10,9 +10,9 @@ import {
 } from "node:fs";
 import { basename, join } from "node:path";
 import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
-import { resolveTriageCachePath } from "../cache-path.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
+import { resolveTriageCachePath } from "../cache-path.js";
 
 export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.triage-cache/subscription-history.jsonl";
 export const SUBSCRIPTION_HISTORY_SCHEMA = "deft.triage.subscription-change.v1";

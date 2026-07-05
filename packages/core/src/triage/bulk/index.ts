@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { resolveCandidatesLogPath } from "../cache-path.js";
 import {
   createDefaultDeps,
   accept as nativeAccept,
@@ -9,6 +8,7 @@ import {
   needsAc as nativeNeedsAc,
   reject as nativeReject,
 } from "../actions/index.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 
 export const ACTION_FN_NAMES: Readonly<Record<string, string>> = {
   accept: "accept",

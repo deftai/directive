@@ -16,9 +16,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
-import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage/actions/candidates-log.js";
+import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 
 // ---------------------------------------------------------------------------
 // Public constants (mirror preflight_cache.py)

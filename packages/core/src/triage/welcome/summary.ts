@@ -5,9 +5,9 @@ import {
   resolveLifecycleFolder,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
-import { resolveCandidatesLogPath, resolveTriageCachePath } from "../cache-path.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
-import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
+import { countVbriefWip, resolveWipCap } from "../../policy/wip.js";
+import { resolveCandidatesLogPath, resolveTriageCachePath } from "../cache-path.js";
 import { countReconcilable } from "../reconcile/reconcile.js";
 import { computeDrift } from "../scope-drift/compute.js";
 import { shouldSuppressD2Emission } from "../summary/index.js";

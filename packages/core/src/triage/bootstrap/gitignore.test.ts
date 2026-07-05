@@ -26,7 +26,9 @@ function makeRoot(): string {
 
 describe("stripGitignoreInlineComment", () => {
   it("strips inline comments for forbidden-blanket detection", () => {
-    expect(stripGitignoreInlineComment("vbrief/.triage-cache/  # legacy")).toBe("vbrief/.triage-cache/");
+    expect(stripGitignoreInlineComment("vbrief/.triage-cache/  # legacy")).toBe(
+      "vbrief/.triage-cache/",
+    );
   });
 });
 
@@ -98,7 +100,11 @@ describe("stepEnsureGitignoreEvalEntries", () => {
       `${readFileSync(gi, "utf8")}\nvbrief/.triage-cache/candidates.jsonl\nvbrief/.triage-cache/summary-history.jsonl\nvbrief/.triage-cache/scope-lifecycle.jsonl\nvbrief/.triage-cache/decompositions/\nvbrief/.triage-cache/doctor-state.json\n`,
       "utf8",
     );
-    writeFileSync(join(root, ".gitattributes"), "vbrief/.triage-cache/*.jsonl  merge=union\n", "utf8");
+    writeFileSync(
+      join(root, ".gitattributes"),
+      "vbrief/.triage-cache/*.jsonl  merge=union\n",
+      "utf8",
+    );
     mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(join(root, "vbrief", ".triage-cache", "README.md"), "pre-existing", "utf8");
     const before = readFileSync(gi, "utf8");

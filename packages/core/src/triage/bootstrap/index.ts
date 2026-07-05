@@ -4,8 +4,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../../layout/resolve.js";
-import { resolveCandidatesLogPath } from "../cache-path.js";
 import { SUBPROCESS_MAX_BUFFER } from "../../subprocess/max-buffer.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import {
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,

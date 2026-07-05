@@ -226,7 +226,9 @@ describe("runBootstrap", () => {
       "seed_candidates_log",
     ]);
     expect(result.exitCode).toBe(0);
-    expect(readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8")).toBe("");
+    expect(readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8")).toBe(
+      "",
+    );
   });
 
   it("threads inferred repo to backfill (#1237)", async () => {

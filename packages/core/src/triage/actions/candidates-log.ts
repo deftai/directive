@@ -1,10 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  TRIAGE_CANDIDATES_LOG_REL_PATH,
-  resolveCandidatesLogPath,
-} from "../cache-path.js";
+import { resolveCandidatesLogPath, TRIAGE_CANDIDATES_LOG_REL_PATH } from "../cache-path.js";
 import { CandidatesLogError } from "./errors.js";
 import type { AuditEntry, CandidatesLog } from "./types.js";
 

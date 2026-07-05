@@ -51,7 +51,9 @@ describe("reconcile write failures", () => {
     scopeVbrief(join(root, "vbrief", "proposed"), "d", 20);
     const result = reconcile(root, { repo: "deftai/directive", dryRun: true });
     expect(result.restored).toBe(1);
-    expect(() => readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8")).toThrow();
+    expect(() =>
+      readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8"),
+    ).toThrow();
     rmSync(root, { recursive: true, force: true });
   });
 });
