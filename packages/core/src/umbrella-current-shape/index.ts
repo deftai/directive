@@ -1,7 +1,26 @@
 import { spawnSync } from "node:child_process";
+import { scan } from "../cache/scanner.js";
 import { resolveBinary } from "../scm/binary.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { resolveRepo } from "../triage/queue/repo.js";
+
+/**
+ * #2307: only comments authored by a repo maintainer may be treated as the
+ * authoritative current-shape state. GitHub's `author_association` on an issue
+ * comment is the trust signal; anything outside this set (CONTRIBUTOR, NONE,
+ * FIRST_TIME_CONTRIBUTOR, ...) is an untrusted third party and cannot forge a
+ * higher-pass current-shape comment.
+ */
+export const MAINTAINER_ASSOCIATIONS: ReadonlySet<string> = new Set([
+  "OWNER",
+  "MEMBER",
+  "COLLABORATOR",
+]);
+
+/** True when a comment's author_association marks it as maintainer-authored (#2307). */
+export function isMaintainerAuthored(association: string): boolean {
+  return MAINTAINER_ASSOCIATIONS.has(association.toUpperCase());
+}
 
 /** Matches `## Current shape (as of pass-N)` — same pattern as vbrief-reconcile/umbrellas.ts. */
 export const CURRENT_SHAPE_HEADER_RE = /^## Current shape \(as of pass-(\d+)\)/m;
@@ -39,6 +58,8 @@ export interface IssueComment {
   readonly body: string;
   readonly htmlUrl: string;
   readonly updatedAt: string;
+  readonly authorLogin: string;
+  readonly authorAssociation: string;
 }
 
 export interface CurrentShapeComment extends IssueComment {
@@ -59,6 +80,8 @@ export interface CurrentShapeResult {
   readonly htmlUrl: string;
   readonly pass: number;
   readonly body: string;
+  readonly authorLogin: string;
+  readonly authorAssociation: string;
   readonly sections: SectionPresence;
 }
 
@@ -83,11 +106,17 @@ function mapCommentEntry(entry: unknown): IssueComment | null {
   if (typeof rec.id !== "number" || typeof rec.body !== "string") {
     return null;
   }
+  const user =
+    typeof rec.user === "object" && rec.user !== null
+      ? (rec.user as Record<string, unknown>)
+      : null;
   return {
     id: rec.id,
     body: rec.body,
     htmlUrl: typeof rec.html_url === "string" ? rec.html_url : "",
     updatedAt: typeof rec.updated_at === "string" ? rec.updated_at : "",
+    authorLogin: user !== null && typeof user.login === "string" ? user.login : "",
+    authorAssociation: typeof rec.author_association === "string" ? rec.author_association : "",
   };
 }
 
@@ -189,12 +218,23 @@ export function extractPassFromBody(body: string): number | null {
   return Number.isFinite(pass) ? pass : null;
 }
 
-/** Pick the canonical comment — highest pass-N; tie-break by comment id (latest). */
+/**
+ * Pick the canonical comment — highest pass-N; tie-break by comment id (latest).
+ *
+ * #2307: only MAINTAINER-authored comments (author_association in
+ * {OWNER, MEMBER, COLLABORATOR}) are eligible. A non-maintainer higher-pass
+ * comment is ignored, which defeats the forged-higher-pass primitive: an
+ * attacker cannot inject authoritative state by simply commenting with a bigger
+ * pass number.
+ */
 export function selectCurrentShapeComment(
   comments: readonly IssueComment[],
 ): CurrentShapeComment | null {
   let best: CurrentShapeComment | null = null;
   for (const comment of comments) {
+    if (!isMaintainerAuthored(comment.authorAssociation)) {
+      continue;
+    }
     const pass = extractPassFromBody(comment.body);
     if (pass === null) {
       continue;
@@ -277,6 +317,8 @@ export function fetchCurrentShape(options: {
       htmlUrl: selected.htmlUrl,
       pass: selected.pass,
       body: selected.body,
+      authorLogin: selected.authorLogin,
+      authorAssociation: selected.authorAssociation,
       sections,
     },
   };
@@ -286,6 +328,12 @@ export function emitCurrentShape(
   result: CurrentShapeResult,
   options: { jsonMode: boolean; writeOut: (text: string) => void },
 ): number {
+  // #2307: the selected comment body is still attacker-influencable text (a
+  // maintainer can quote/paste untrusted content). Run it through the same
+  // quarantine scanner used for cache content and emit the fenced transform so
+  // injection-shaped sections are quarantined, never rendered as authoritative
+  // instructions.
+  const scanned = scan(result.body);
   if (options.jsonMode) {
     const payload = {
       issueNumber: result.issueNumber,
@@ -293,14 +341,17 @@ export function emitCurrentShape(
       commentId: result.commentId,
       htmlUrl: result.htmlUrl,
       pass: result.pass,
-      body: result.body,
+      body: scanned.transformed_content,
+      authorLogin: result.authorLogin,
+      authorAssociation: result.authorAssociation,
+      scannerPassed: scanned.passed,
       sections: sectionsRecord(result.sections),
       missingSections: result.sections.missing,
       missingOptionalSections: result.sections.optionalMissing,
     };
     options.writeOut(`${JSON.stringify(payload)}\n`);
   } else {
-    options.writeOut(`${result.body}\n`);
+    options.writeOut(`${scanned.transformed_content}\n`);
   }
   return 0;
 }

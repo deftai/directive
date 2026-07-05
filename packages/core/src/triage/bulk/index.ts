@@ -2,6 +2,13 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { resolveEvalPath } from "../../layout/resolve.js";
+import {
+  createDefaultDeps,
+  accept as nativeAccept,
+  deferAction as nativeDefer,
+  needsAc as nativeNeedsAc,
+  reject as nativeReject,
+} from "../actions/index.js";
 
 export const ACTION_FN_NAMES: Readonly<Record<string, string>> = {
   accept: "accept",
@@ -535,6 +542,40 @@ export function createFilesystemCandidatesLogModule(
   };
 }
 
+/**
+ * Native TypeScript bulk actions module (#2279).
+ *
+ * The bulk path defaults to this factory instead of {@link createPythonActionsModule}
+ * so `triage:bulk-*` never spawns a project-local `scripts/triage_actions.py`
+ * (an arbitrary-code-execution trust boundary a malicious checkout could plant).
+ * Each verb delegates to the already-native per-issue triage actions
+ * (`@deftai/directive-core/triage/actions`, #1725) bound to `createDefaultDeps(projectRoot)`.
+ */
+export function createNativeActionsModule(projectRoot: string): TriageActionsModule {
+  const deps = createDefaultDeps(projectRoot);
+  return {
+    accept(n, repo) {
+      nativeAccept(n, repo, deps, { projectRoot });
+    },
+    reject(n, repo, ...args: unknown[]) {
+      let reason = "";
+      const first = args[0];
+      if (typeof first === "object" && first !== null && "reason" in (first as object)) {
+        reason = String((first as { reason: unknown }).reason);
+      } else if (typeof first === "string") {
+        reason = first;
+      }
+      nativeReject(n, repo, reason, deps, { projectRoot });
+    },
+    defer(n, repo) {
+      nativeDefer(n, repo, "bulk defer", deps, { projectRoot });
+    },
+    needs_ac(n, repo) {
+      nativeNeedsAc(n, repo, deps, { projectRoot });
+    },
+  };
+}
+
 export function createPythonActionsModule(scriptsDir: string): TriageActionsModule {
   const runAction = (cmd: string, issueNumber: number, repo: string, extra: string[] = []) => {
     const result = spawnSync(
@@ -583,8 +624,7 @@ export function createPythonActionsModule(scriptsDir: string): TriageActionsModu
 export interface DefaultBulkDepsOptions {
   readonly cacheRoot?: string;
   readonly candidatesLogPath?: string;
-  readonly scriptsDir?: string;
-  readonly deftRoot?: string;
+  readonly projectRoot?: string;
 }
 
 export function bulkActionWithDefaults(
@@ -592,14 +632,16 @@ export function bulkActionWithDefaults(
   repo: string,
   options: BulkActionOptions & DefaultBulkDepsOptions = {},
 ): number {
-  const deftRoot = options.deftRoot ?? process.cwd();
-  const scriptsDir = options.scriptsDir ?? join(deftRoot, "scripts");
+  // #2279: the bulk path no longer resolves a `scripts/` dir from DEFT_ROOT /
+  // the project cwd. It defaults to the native TypeScript actions module so a
+  // malicious project-local `scripts/triage_actions.py` can never be executed.
+  const projectRoot = options.projectRoot ?? process.cwd();
   return bulkAction(actionKey, repo, {
     ...options,
-    cacheRoot: options.cacheRoot ?? join(deftRoot, ".deft-cache"),
+    cacheRoot: options.cacheRoot ?? join(projectRoot, ".deft-cache"),
     cacheModule: options.cacheModule ?? createFilesystemCacheModule(),
     candidatesLogModule:
       options.candidatesLogModule ?? createFilesystemCandidatesLogModule(options.candidatesLogPath),
-    actionsModule: options.actionsModule ?? createPythonActionsModule(scriptsDir),
+    actionsModule: options.actionsModule ?? createNativeActionsModule(projectRoot),
   });
 }

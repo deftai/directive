@@ -30,7 +30,10 @@ describe("defaultFetchComments gh integration", () => {
   it("passes --paginate to gh api and succeeds", () => {
     vi.mocked(spawnSync).mockReturnValue({
       status: 0,
-      stdout: JSON.stringify([{ id: 1, body: SAMPLE_BODY }]),
+      // #2307: the selected comment must be maintainer-authored to be trusted.
+      stdout: JSON.stringify([
+        { id: 1, body: SAMPLE_BODY, user: { login: "maint" }, author_association: "MEMBER" },
+      ]),
       stderr: "",
       pid: 1,
       output: [null, "", ""],

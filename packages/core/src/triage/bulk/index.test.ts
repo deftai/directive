@@ -1,13 +1,14 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import {
   bulkAction,
   bulkActionWithDefaults,
   CacheEmptyError,
   createFilesystemCacheModule,
   createFilesystemCandidatesLogModule,
+  createNativeActionsModule,
   excludeLogged,
   filterIssues,
   iterCacheKeys,
@@ -241,7 +242,7 @@ describe("filesystem cache integration", () => {
     writeFileSync(join(base, "meta.json"), JSON.stringify({ ok: true }), "utf8");
     const lines: string[] = [];
     const count = bulkActionWithDefaults("defer", "deftai/parity", {
-      deftRoot: root,
+      projectRoot: root,
       cacheRoot: join(root, ".deft-cache"),
       label: "missing-label",
       actionsModule: { accept: () => {}, reject: () => {}, defer: () => {}, needs_ac: () => {} },
@@ -417,6 +418,14 @@ describe("bulk edge paths", () => {
     expect(lines.join("")).toContain("unreadable raw.json");
   });
 
+  it("createNativeActionsModule exposes the four bulk verbs", () => {
+    const mod = createNativeActionsModule(makeRepo());
+    expect(typeof mod.accept).toBe("function");
+    expect(typeof mod.reject).toBe("function");
+    expect(typeof mod.defer).toBe("function");
+    expect(typeof mod.needs_ac).toBe("function");
+  });
+
   it("bulkAction reject with null reason calls reject without kwargs", () => {
     const calls: unknown[] = [];
     const rejectFn = (n: number, repo: string, ...args: unknown[]) => {
@@ -435,5 +444,74 @@ describe("bulk edge paths", () => {
       out: { write: () => {} },
     });
     expect(calls).toEqual([[9, "deftai/directive"]]);
+  });
+});
+
+describe("#2279 bulk path never executes project-local scripts/triage_actions.py", () => {
+  const prevDeftRoot = process.env.DEFT_ROOT;
+  afterEach(() => {
+    if (prevDeftRoot === undefined) {
+      delete process.env.DEFT_ROOT;
+    } else {
+      process.env.DEFT_ROOT = prevDeftRoot;
+    }
+  });
+
+  function plantMaliciousScripts(root: string, sentinel: string): void {
+    const scriptsDir = join(root, "scripts");
+    mkdirSync(scriptsDir, { recursive: true });
+    // A script that would create a sentinel file if the Python bridge ran it.
+    writeFileSync(
+      join(scriptsDir, "triage_actions.py"),
+      `import pathlib, sys\npathlib.Path(${JSON.stringify(sentinel)}).write_text("pwned")\n`,
+      "utf8",
+    );
+  }
+
+  function seedCacheIssue(cacheRoot: string, repo: string, n: number): void {
+    const [owner, name] = repo.split("/");
+    const base = join(cacheRoot, "github-issue", owner as string, name as string, String(n));
+    mkdirSync(base, { recursive: true });
+    writeFileSync(join(base, "raw.json"), JSON.stringify({ number: n, labels: [] }), "utf8");
+    writeFileSync(join(base, "meta.json"), JSON.stringify({ ok: true }), "utf8");
+  }
+
+  it("defaults to the native module; a planted triage_actions.py is never invoked", () => {
+    const projectRoot = makeRepo();
+    const sentinel = join(projectRoot, "PWNED");
+    plantMaliciousScripts(projectRoot, sentinel);
+    const cacheRoot = join(projectRoot, ".deft-cache");
+    seedCacheIssue(cacheRoot, "deftai/directive", 4242);
+
+    // defer routes through the native TS action (no subprocess), so nothing in
+    // scripts/ is ever spawned.
+    const count = bulkActionWithDefaults("defer", "deftai/directive", {
+      projectRoot,
+      cacheRoot,
+      out: { write: () => {} },
+    });
+
+    expect(count).toBe(1);
+    expect(existsSync(sentinel)).toBe(false);
+  });
+
+  it("DEFT_ROOT cannot redirect bulk script resolution to an attacker tree", () => {
+    const projectRoot = makeRepo();
+    const attackerRoot = makeRepo();
+    const sentinel = join(attackerRoot, "PWNED");
+    plantMaliciousScripts(attackerRoot, sentinel);
+    process.env.DEFT_ROOT = attackerRoot;
+
+    const cacheRoot = join(projectRoot, ".deft-cache");
+    seedCacheIssue(cacheRoot, "deftai/directive", 4243);
+
+    const count = bulkActionWithDefaults("defer", "deftai/directive", {
+      projectRoot,
+      cacheRoot,
+      out: { write: () => {} },
+    });
+
+    expect(count).toBe(1);
+    expect(existsSync(sentinel)).toBe(false);
   });
 });

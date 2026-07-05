@@ -1,10 +1,12 @@
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -48,6 +50,24 @@ describe("copyTree (#1477 mode-preserving recursive copy)", () => {
       "#!/bin/sh\necho hook\n",
     );
     expect(statSync(join(dst, "nested", "bin", "hook")).mode & 0o777).toBe(0o755);
+  });
+
+  it("#2305: skips symlinked entries instead of following them", async () => {
+    const workspace = freshRoot("copy-tree-symlink-");
+    const src = join(workspace, "src");
+    const outside = join(workspace, "outside");
+    mkdirSync(src, { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    writeFileSync(join(src, "real.txt"), "real", "utf-8");
+    writeFileSync(join(outside, "secret.txt"), "secret", "utf-8");
+    symlinkSync(outside, join(src, "escape"), "dir");
+
+    const dst = join(workspace, "dst");
+    await copyTree(src, dst);
+
+    expect(readFileSync(join(dst, "real.txt"), "utf-8")).toBe("real");
+    // The symlinked entry is not dereferenced/copied.
+    expect(existsSync(join(dst, "escape"))).toBe(false);
   });
 
   it("rejects a non-directory source", async () => {

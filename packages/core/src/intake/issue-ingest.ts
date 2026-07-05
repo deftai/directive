@@ -1,6 +1,7 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { cacheGet } from "../cache/operations.js";
+import { type ScanFlag, scan } from "../cache/scanner.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
@@ -36,6 +37,31 @@ import {
 
 export const INGEST_STATUSES = ["proposed", "pending", "active"] as const;
 export type IngestStatus = (typeof INGEST_STATUSES)[number];
+
+/**
+ * Thrown when the quarantine scanner hard-fails (credential-shaped content) on
+ * an ingested issue body/comment thread (#2306). Ingest MUST fail closed: emit
+ * nothing and propagate a non-zero exit rather than persisting the xBRIEF.
+ */
+export class ScannerHardFailError extends Error {
+  readonly issueNumber: number;
+  readonly flags: readonly ScanFlag[];
+
+  constructor(issueNumber: number, flags: readonly ScanFlag[]) {
+    const details = flags
+      .filter((f) => f.severity === "hard-fail")
+      .map((f) => f.detail)
+      .join("; ");
+    super(
+      `issue:ingest refused #${issueNumber}: quarantine scanner hard-fail` +
+        (details.length > 0 ? ` (${details})` : "") +
+        " -- nothing written.",
+    );
+    this.name = "ScannerHardFailError";
+    this.issueNumber = issueNumber;
+    this.flags = flags;
+  }
+}
 
 /** GitHub issue comment thread entry (REST `repos/.../issues/N/comments`). */
 export interface IssueComment {
@@ -410,7 +436,14 @@ export function buildIssueVbrief(
   };
   if (overviewSource.length > 0) {
     warnBodyControlCharacters(number, overviewSource);
-    narratives.Overview = overviewSource;
+    // #2306: quarantine-scan untrusted body + comment-thread content before it
+    // is persisted as agent-facing scope authority. Fail closed on a credential
+    // hard-fail; otherwise persist the fenced/quarantined transform.
+    const scanResult = scan(overviewSource);
+    if (!scanResult.passed) {
+      throw new ScannerHardFailError(number, scanResult.flags);
+    }
+    narratives.Overview = scanResult.transformed_content;
   }
   if (labelNames.length > 0) {
     narratives.Labels = labelNames.join(", ");
@@ -488,6 +521,18 @@ export function fetchFromCache(
     const issue = JSON.parse(readFileSync(rawPath, "utf8")) as Record<string, unknown>;
     if (typeof issue.html_url === "string" && issue.html_url.length > 0) {
       issue.url = issue.html_url;
+    }
+    // #2306: consume the cache entry's SCANNED content.md (fenced/quarantined at
+    // cache-put) rather than the raw body, so the cache read path cannot bypass
+    // the quarantine transform. When content.md is absent (e.g. a credential
+    // hard-fail deleted it), the raw body falls through and is re-scanned in
+    // buildIssueVbrief.
+    if (result.contentPath !== null) {
+      try {
+        issue.body = readFileSync(result.contentPath, "utf8");
+      } catch {
+        // fall back to the raw body (re-scanned downstream)
+      }
     }
     return issue;
   } catch {
@@ -688,10 +733,25 @@ export function ingestBulk(
     created: [],
     duplicate: [],
     dryrun: [],
+    failed: [],
   };
 
   for (const issue of filtered) {
-    const [result, path, _msg] = ingestOne(issue, { ...options, existingRefs: refs });
+    let ingested: [IngestResult, string | null, string];
+    try {
+      ingested = ingestOne(issue, { ...options, existingRefs: refs });
+    } catch (exc) {
+      // #2306: a per-issue quarantine hard-fail must not sink the whole batch;
+      // record it, emit nothing for that issue, and surface a non-zero exit
+      // upstream via the `failed` bucket.
+      if (exc instanceof ScannerHardFailError) {
+        (summary.failed as string[]).push(`#${exc.issueNumber}`);
+        process.stderr.write(`${exc.message}\n`);
+        continue;
+      }
+      throw exc;
+    }
+    const [result, path, _msg] = ingested;
     const rel = path !== null ? path.replace(`${options.vbriefDir}/`, "").replace(/\\/g, "/") : "";
     (summary[result] as string[]).push(rel);
     if (result === "created" && path !== null) {
@@ -773,8 +833,9 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     const created = summary.created as string[];
     const duplicate = summary.duplicate as string[];
     const dryrun = summary.dryrun as string[];
+    const failed = (summary.failed as string[] | undefined) ?? [];
     process.stdout.write(
-      `issue:ingest bulk summary: ${created.length} created, ${duplicate.length} duplicate, ${dryrun.length} dry-run (total considered: ${summary.total})\n`,
+      `issue:ingest bulk summary: ${created.length} created, ${duplicate.length} duplicate, ${dryrun.length} dry-run, ${failed.length} refused (total considered: ${summary.total})\n`,
     );
     for (const entry of created) {
       process.stdout.write(`  CREATED ${entry}\n`);
@@ -785,20 +846,35 @@ export function issueIngestMain(args: IssueIngestCliArgs): number {
     for (const entry of duplicate) {
       process.stdout.write(`  SKIP    ${entry} (already has scope vBRIEF)\n`);
     }
-    return 0;
+    for (const entry of failed) {
+      process.stdout.write(`  REFUSED ${entry} (quarantine scanner hard-fail; nothing written)\n`);
+    }
+    // #2306: fail closed on any quarantine hard-fail in the batch.
+    return failed.length > 0 ? 2 : 0;
   }
 
   const issue = fetchIssue(repo, args.number as number, { cwd: projectRoot });
   if (issue === null) {
     return 2;
   }
-  const [result, _path, msg] = ingestOne(issue, {
-    vbriefDir,
-    status,
-    repoUrl,
-    dryRun: args.dryRun,
-    cwd: projectRoot,
-  });
+  let result: IngestResult;
+  let msg: string;
+  try {
+    [result, , msg] = ingestOne(issue, {
+      vbriefDir,
+      status,
+      repoUrl,
+      dryRun: args.dryRun,
+      cwd: projectRoot,
+    });
+  } catch (exc) {
+    // #2306: fail closed -- emit nothing, non-zero exit on a quarantine hard-fail.
+    if (exc instanceof ScannerHardFailError) {
+      process.stderr.write(`${exc.message}\n`);
+      return 2;
+    }
+    throw exc;
+  }
   process.stdout.write(`${msg}\n`);
   return result === "duplicate" ? 1 : 0;
 }

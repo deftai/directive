@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`policy:show` and PROJECT-DEFINITION loaders now name the path that actually applies to your project layout (#2302).** On a migrated `xbrief/` project, the "PROJECT-DEFINITION not found" warning and its recovery hint previously pointed at the legacy `vbrief/PROJECT-DEFINITION.vbrief.json` even though the value resolved fine, which was confusing; they now report the resolved `xbrief/` path (unmigrated projects are unchanged). A regression guard also closes a coverage gap so any `task cache:fetch-all`-style command that forwards flags can never silently drop or reorder them via task caching. Closes #2302. Refs #2295.
 - **A stray bare `plan.policy` block no longer silently swallows your edits (#2301).** When a hand-added bare `plan.policy` (e.g. `triageScope` / `wipCap`) coexists with the namespaced `x-directive/policy`, the bare block is ignored on read — previously with no warning, so edits appeared to do nothing. `policy show` and `doctor` now emit a loud, specific diagnostic naming the shadowed fields and telling you to fold them into `x-directive/policy`. Closes #2301. Refs #2295.
 
+### Security
+
+- **Closed four Medium findings from the app-sec review that let untrusted repo/issue content influence Deft.** Bulk triage (`triage:bulk-*`) now runs entirely in-process and no longer executes a project-local `scripts/triage_actions.py`, so a planted script — even via `DEFT_ROOT` — can't run arbitrary code. `directive init`/`update` now refuse when `.deft`/`.deft/core` (or a parent) is a symlink escaping the project tree, so a deposit can never be written outside the repo you're in. `issue:ingest` now runs GitHub bodies and comment threads through the quarantine scanner before saving them and fails closed on credential-shaped content, and `umbrella:current-shape` now trusts only maintainer-authored comments and quarantine-scans the selected comment before printing it, defeating forged "authoritative state" from third parties. Refs #2279, #2305, #2306, #2307.
+
 ### Removed
 
 ## [0.69.0] - 2026-07-05

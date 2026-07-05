@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   bulkActionWithDefaults,
@@ -129,8 +128,10 @@ export function run(argv: string[]): number {
     return 2;
   }
 
+  // #2279: the bulk path defaults to native TypeScript actions. It no longer
+  // resolves a project/DEFT_ROOT `scripts/` dir, so an attacker-planted
+  // `scripts/triage_actions.py` can never be executed. Pass only projectRoot.
   const projectRoot = process.cwd();
-  const frameworkRoot = resolve(process.env.DEFT_ROOT ?? projectRoot);
 
   try {
     bulkActionWithDefaults(args.action, args.repo, {
@@ -140,8 +141,7 @@ export function run(argv: string[]): number {
       cluster: args.cluster,
       reason: args.reason,
       reAction: args.reAction,
-      deftRoot: projectRoot,
-      scriptsDir: join(frameworkRoot, "scripts"),
+      projectRoot,
     });
   } catch (exc: unknown) {
     if (exc instanceof CacheEmptyError) {

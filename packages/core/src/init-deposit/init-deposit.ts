@@ -9,6 +9,7 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join, resolve } from "node:path";
+import { assertDepositContained } from "../deposit/contain.js";
 import { copyTree } from "../deposit/copy-tree.js";
 import { prunePythonArtifactsFromDeposit } from "../deposit/python-free.js";
 import { resolveInstalledContentRoot } from "../deposit/resolve-content.js";
@@ -188,6 +189,12 @@ export async function runInitDeposit(
   if (legacy.legacy) {
     throw new LegacyLayoutRefusedError(legacy);
   }
+
+  // #2305: refuse a symlink-escaping deposit boundary BEFORE the first
+  // copy/reconstitute/mkdir, so a malicious `.deft`/`.deft/core` symlink cannot
+  // redirect the deposit outside the resolved project tree. Deposits nothing on
+  // refusal.
+  assertDepositContained(projectDir, deftDir);
 
   const resolveContent = seams.resolveContentRoot ?? resolveInstalledContentRoot;
   const copyContent = seams.copyContent ?? copyTree;

@@ -190,6 +190,8 @@ If your current install uses the frozen Go installer (`deft-install`), migrate o
 
 The frozen Go installer remains available at [GitHub Releases](https://github.com/deftai/directive/releases) as a legacy / offline bridge but receives no further updates (#1912); Node ≥ 20 is still required to run Deft afterward. After this one-time step, the four-step npm path above is all you need for every future upgrade.
 
+> **Security (#2305): only run the migration bridge against a repository you trust.** A malicious repo can commit `.deft` / `.deft/core` (or a parent) as a symlink that escapes the tree, causing the deposit to write framework content outside the project directory under your account. The canonical npm CLI now refuses a symlink-escaping deposit boundary, but the **frozen Go installer** (`cmd/deft-install/upgrade.go`) is **not** patched — it is explicitly won't-fix / risk-accepted (no further Go releases, #1912). Run it only on repositories you control or trust.
+
 ---
 
 ## Legacy layout refused by the npm CLI (#1912)
@@ -200,6 +202,8 @@ uses a **legacy on-disk layout**, the npm CLI **refuses** and exits non-zero
 legacy layout; the frozen final Go installer is the one-and-only migration
 bridge. This is the run-from-npm, use-time gate that backs the one-time
 migration above.
+
+> **Security (#2305): trust the repo before running the frozen migration bridge.** The npm CLI refuses a deposit whose `.deft` / `.deft/core` (or a parent) is a symlink escaping the resolved project tree, so a malicious repo cannot redirect the deposit to an arbitrary location under your account. The one residual exposure the npm gate cannot cover is running the **frozen Go bridge** against an untrusted repo during legacy migration (the Go binary acts before npm ever runs); it is explicitly won't-fix / risk-accepted (#1912). Only run the migration bridge against a repository you trust.
 
 **Legacy layouts the npm CLI refuses:**
 

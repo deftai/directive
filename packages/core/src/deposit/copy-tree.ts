@@ -9,7 +9,7 @@
  */
 
 import { createReadStream, createWriteStream } from "node:fs";
-import { chmod, mkdir, readdir, stat } from "node:fs/promises";
+import { chmod, lstat, mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { pipeline } from "node:stream/promises";
 
@@ -38,7 +38,13 @@ async function copyDirContents(src: string, dst: string): Promise<void> {
   for (const entry of entries) {
     const srcPath = join(src, entry.name);
     const dstPath = join(dst, entry.name);
-    const srcStat = await stat(srcPath);
+    // #2305: lstat (not stat) so a symlinked entry is NOT followed silently.
+    // The deposit copies regular files/dirs only; a symlink in the (trusted)
+    // payload is skipped rather than dereferenced.
+    const srcStat = await lstat(srcPath);
+    if (srcStat.isSymbolicLink()) {
+      continue;
+    }
     if (srcStat.isDirectory()) {
       await copyDirContents(srcPath, dstPath);
     } else {
