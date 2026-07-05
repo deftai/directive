@@ -1,0 +1,79 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2308",
+    "updated": "2026-07-05T16:30:00Z"
+  },
+  "plan": {
+    "title": "orchestrator reaches for Cursor bugbot/security-review subagents instead of deft-directive-review-cycle (review-surface precedence)",
+    "status": "running",
+    "narratives": {
+      "Description": "When Directive runs inside a host harness (Cursor) that exposes its own review-labeled surfaces -- the `bugbot` and `security-review` Task subagent types and the `review-bugbot` / `review-security` skills -- a generic operator request to \"review\" or \"use sub-agents for reviews\" makes the orchestrator reach for those host-native review tools instead of the deft canonical review surface `deft-directive-review-cycle`. Add an explicit review-surface precedence rule (deft review-cycle wins; host reviewers are advisory-only inputs folded into the cycle per the #2019 harness-aware-reviewer path), broaden intent-routing so a generic review request maps by intent (not literal keyword), and consider a deterministic guardrail. Third recurrence of the #1862 / #2261 intent-routing / wrong-review-surface class.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2308",
+      "Overview": "## Root cause\n\n1. No precedence rule binds the review surface. The framework mandates `deft-directive-review-cycle` for workers (agent-prompt-preamble.md, swarm Phase 3/5->6), and AGENTS.md has a general \"Before Improvising -- scan content/skills/ first\" rule, but nothing tells an ORCHESTRATOR that when a host harness provides overlapping review tooling (subagent types OR skills), the deft review skill wins.\n2. Keyword-vs-intent routing (inherited from #1862): \"use sub agents for reviews\" contains none of the literal review-cycle triggers, so the router never fired.\n3. Namespace collision generalizes beyond #2261 (which named only the babysit case) to the review subagent types (`bugbot`, `security-review`) and `review-*` skills.\n\n## Remediation\n\n1. Add a review-surface precedence rule to AGENTS.md (maintainer) + mirror into content/templates/agents-entry.md (consumer, then `task agents:refresh`) + content/templates/agent-prompt-preamble.md: when the active harness exposes review-labeled skills or subagent types (Cursor `bugbot` / `security-review` / `review-bugbot` / `review-security`, or any future host equivalent), route review work through `deft-directive-review-cycle`; host review tools MAY only be folded in as advisory finding sources (the #2019 path), never as a replacement.\n2. Broaden the intent-routing fix from #1862/#2261: a generic \"review / get this reviewed / use sub-agents for reviews\" request maps to `deft-directive-review-cycle` by intent, not literal keyword. Extend the Skills Index trigger vocabulary in REFERENCES.md accordingly.\n3. Consider a deterministic guardrail (mirroring verify:* gates): flag an orchestrator dispatch whose envelope names a host review subagent/skill as the review surface without referencing `deft-directive-review-cycle`. If added as a new script, it needs tests (forward-coverage) and wiring into `task check`.\n\n## Template propagation discipline (#1309)\n\nThis is a consumer-relevant rule (skill routing / review-cycle), so the SAME PR MUST update content/templates/agents-entry.md to mirror the AGENTS.md rule, then run `task agents:refresh`. Extend the marker list in tests/content/test_agents_entry_contract.py so the deterministic containment gate covers the new rule.\n\n## Acceptance\n\n- AGENTS.md (+ mirrored agents-entry.md) and agent-prompt-preamble.md carry a review-surface precedence rule: deft review-cycle wins over host-provided review tools; host reviewers are advisory-only inputs folded into the cycle.\n- The rule explicitly names the Cursor `bugbot` / `security-review` subagent types and `review-*` skills as covered host surfaces (with \"or future host equivalent\" generalization).\n- Intent-routing coverage: a generic \"use sub-agents for reviews\" / \"get this reviewed\" request routes to `deft-directive-review-cycle` without literal trigger words (extends #1862).\n- Cross-referenced with #1862, #2261, #2019, #2018.\n- `task agents:refresh` run; agents-entry contract test extended and green; `task check` green.\n\nRefs #2308, #1862, #2261, #2019, #2018.",
+      "Labels": "bug, skills, determinism, review-cycle, harness"
+    },
+    "items": [
+      {
+        "title": "Add a review-surface precedence rule to the maintainer AGENTS.md (deft-directive-review-cycle wins over host-provided review tooling; host reviewers are advisory-only inputs folded into the cycle per #2019).",
+        "status": "proposed"
+      },
+      {
+        "title": "Mirror the rule into content/templates/agents-entry.md (consumer template) and run `task agents:refresh` so the consumer-rendered AGENTS.md inherits it (#1309 propagation discipline).",
+        "status": "proposed"
+      },
+      {
+        "title": "Add the precedence rule to content/templates/agent-prompt-preamble.md so orchestrator dispatch envelopes bind it; name the Cursor bugbot / security-review subagent types and review-* skills explicitly (with 'or future host equivalent').",
+        "status": "proposed"
+      },
+      {
+        "title": "Broaden intent-routing: extend REFERENCES.md Skills Index trigger vocabulary so a generic 'review / get this reviewed / use sub-agents for reviews' request maps to deft-directive-review-cycle by intent, not literal keyword (extends #1862/#2261).",
+        "status": "proposed"
+      },
+      {
+        "title": "Extend the marker list in tests/content/test_agents_entry_contract.py to cover the new review-surface precedence rule so the deterministic containment gate enforces template->consumer propagation; keep `task check` green.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "skills",
+      "determinism",
+      "review-cycle",
+      "harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2308",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2308: orchestrator reaches for Cursor bugbot/security-review subagents instead of deft-directive-review-cycle"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1862",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1862: intent-shaped PR-shepherding bypasses skill routing (root class)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2261",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2261: babysit-pull-request-in-cloud uses Cursor global skill instead of review-cycle (second recurrence)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2019",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2019: harness-aware reviewers -- add Bugbot to the review cycle in Cursor (advisory-fold path)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2018",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2018: Plan-adherence & review quality (umbrella)"
+      }
+    ],
+    "updated": "2026-07-05T16:27:23Z",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match"
+    }
+  }
+}
