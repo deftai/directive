@@ -1,0 +1,336 @@
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { readCorePackageVersion } from "../engine-version.js";
+import { scanVbrief } from "../vbrief-validate/conformance.js";
+import { validateVbriefSchema } from "../vbrief-validate/schema.js";
+
+export type CrudOperation = "create" | "read" | "update" | "delete";
+
+export type ByteDiffMinimality = "surgical" | "whole-file-rewrite";
+
+export interface CrudOperationMetric {
+  readonly directiveVersion: string;
+  readonly operation: CrudOperation;
+  readonly path: string;
+  readonly schemaValid: boolean;
+  readonly schemaErrors: readonly string[];
+  readonly fieldInventionCount: number;
+  readonly inventedKeys: readonly string[];
+  readonly byteDiffMinimality: ByteDiffMinimality | null;
+  readonly byteDiffChangedRatio: number | null;
+  readonly recordedAt: string;
+}
+
+export interface CrudResult {
+  readonly ok: boolean;
+  readonly content?: string;
+  readonly error?: string;
+}
+
+export interface InstrumentedVbriefCrudOptions {
+  readonly directiveVersion?: string;
+  readonly now?: () => Date;
+}
+
+/** Whole-file rewrites change at least half of the bytes or re-serialize with high drift. */
+export const BYTE_DIFF_WHOLE_FILE_THRESHOLD = 0.5;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Count differing bytes between two UTF-8 strings (positional, padded to max length). */
+export function computeChangedByteRatio(before: string, after: string): number {
+  const maxLen = Math.max(before.length, after.length);
+  if (maxLen === 0) {
+    return 0;
+  }
+  let diff = Math.abs(before.length - after.length);
+  const minLen = Math.min(before.length, after.length);
+  for (let index = 0; index < minLen; index += 1) {
+    if (before[index] !== after[index]) {
+      diff += 1;
+    }
+  }
+  return diff / maxLen;
+}
+
+/** Classify whether an update preserved bytes (surgical) or rewrote the file. */
+export function classifyByteDiffMinimality(
+  before: string,
+  after: string,
+): { readonly kind: ByteDiffMinimality; readonly changedRatio: number } {
+  const changedRatio = computeChangedByteRatio(before, after);
+  try {
+    const oldParsed: unknown = JSON.parse(before);
+    const newParsed: unknown = JSON.parse(after);
+    if (JSON.stringify(oldParsed) === JSON.stringify(newParsed) && changedRatio > 0) {
+      return { kind: "whole-file-rewrite", changedRatio };
+    }
+  } catch {
+    // Fall through to byte-ratio classification.
+  }
+  if (changedRatio >= BYTE_DIFF_WHOLE_FILE_THRESHOLD) {
+    return { kind: "whole-file-rewrite", changedRatio };
+  }
+  return { kind: "surgical", changedRatio };
+}
+
+function assessDocument(
+  path: string,
+  parsed: unknown,
+): {
+  schemaValid: boolean;
+  schemaErrors: string[];
+  inventedKeys: string[];
+} {
+  if (!isRecord(parsed)) {
+    return {
+      schemaValid: false,
+      schemaErrors: [`${path}: document must be a JSON object`],
+      inventedKeys: [],
+    };
+  }
+  const schemaErrors = validateVbriefSchema(parsed, path);
+  const findings = scanVbrief(path, parsed);
+  const inventedKeys = findings.map((finding) => finding.key);
+  return {
+    schemaValid: schemaErrors.length === 0,
+    schemaErrors,
+    inventedKeys,
+  };
+}
+
+function ensureParentDir(path: string): void {
+  mkdirSync(dirname(path), { recursive: true });
+}
+
+/**
+ * Instrumented vBRIEF/xBRIEF CRUD chokepoint (#1703 Tier 1).
+ * Every operation emits a version-tagged metric covering schema validity,
+ * field invention, and (for updates) byte-diff minimality.
+ */
+export class InstrumentedVbriefCrud {
+  private readonly directiveVersion: string;
+  private readonly now: () => Date;
+  private readonly metrics: CrudOperationMetric[] = [];
+
+  constructor(options: InstrumentedVbriefCrudOptions = {}) {
+    this.directiveVersion = options.directiveVersion ?? readCorePackageVersion();
+    this.now = options.now ?? (() => new Date());
+  }
+
+  getMetrics(): readonly CrudOperationMetric[] {
+    return this.metrics;
+  }
+
+  clearMetrics(): void {
+    this.metrics.length = 0;
+  }
+
+  create(path: string, content: string): CrudResult {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.recordMetric({
+        operation: "create",
+        path,
+        schemaValid: false,
+        schemaErrors: [`${path}: invalid JSON -- ${message}`],
+        inventedKeys: [],
+        byteDiffMinimality: null,
+        byteDiffChangedRatio: null,
+      });
+      return { ok: false, error: message };
+    }
+
+    const assessment = assessDocument(path, parsed);
+    this.recordMetric({
+      operation: "create",
+      path,
+      schemaValid: assessment.schemaValid,
+      schemaErrors: assessment.schemaErrors,
+      inventedKeys: assessment.inventedKeys,
+      byteDiffMinimality: null,
+      byteDiffChangedRatio: null,
+    });
+
+    if (!assessment.schemaValid) {
+      return { ok: false, error: assessment.schemaErrors.join("; ") };
+    }
+
+    ensureParentDir(path);
+    writeFileSync(path, content, "utf8");
+    return { ok: true };
+  }
+
+  read(path: string): CrudResult {
+    if (!existsSync(path)) {
+      this.recordMetric({
+        operation: "read",
+        path,
+        schemaValid: false,
+        schemaErrors: [`${path}: file not found`],
+        inventedKeys: [],
+        byteDiffMinimality: null,
+        byteDiffChangedRatio: null,
+      });
+      return { ok: false, error: "ENOENT" };
+    }
+
+    const content = readFileSync(path, "utf8");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.recordMetric({
+        operation: "read",
+        path,
+        schemaValid: false,
+        schemaErrors: [`${path}: invalid JSON -- ${message}`],
+        inventedKeys: [],
+        byteDiffMinimality: null,
+        byteDiffChangedRatio: null,
+      });
+      return { ok: false, error: message };
+    }
+
+    const assessment = assessDocument(path, parsed);
+    this.recordMetric({
+      operation: "read",
+      path,
+      schemaValid: assessment.schemaValid,
+      schemaErrors: assessment.schemaErrors,
+      inventedKeys: assessment.inventedKeys,
+      byteDiffMinimality: null,
+      byteDiffChangedRatio: null,
+    });
+
+    if (!assessment.schemaValid) {
+      return { ok: false, error: assessment.schemaErrors.join("; ") };
+    }
+
+    return { ok: true, content };
+  }
+
+  update(path: string, content: string): CrudResult {
+    const previousBytes = existsSync(path) ? readFileSync(path, "utf8") : null;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.recordMetric({
+        operation: "update",
+        path,
+        schemaValid: false,
+        schemaErrors: [`${path}: invalid JSON -- ${message}`],
+        inventedKeys: [],
+        byteDiffMinimality: null,
+        byteDiffChangedRatio: null,
+      });
+      return { ok: false, error: message };
+    }
+
+    const assessment = assessDocument(path, parsed);
+    let byteDiffMinimality: ByteDiffMinimality | null = null;
+    let byteDiffChangedRatio: number | null = null;
+    if (previousBytes !== null) {
+      const diff = classifyByteDiffMinimality(previousBytes, content);
+      byteDiffMinimality = diff.kind;
+      byteDiffChangedRatio = diff.changedRatio;
+    }
+
+    this.recordMetric({
+      operation: "update",
+      path,
+      schemaValid: assessment.schemaValid,
+      schemaErrors: assessment.schemaErrors,
+      inventedKeys: assessment.inventedKeys,
+      byteDiffMinimality,
+      byteDiffChangedRatio,
+    });
+
+    if (!assessment.schemaValid) {
+      return { ok: false, error: assessment.schemaErrors.join("; ") };
+    }
+
+    ensureParentDir(path);
+    writeFileSync(path, content, "utf8");
+    return { ok: true };
+  }
+
+  delete(path: string): CrudResult {
+    if (!existsSync(path)) {
+      this.recordMetric({
+        operation: "delete",
+        path,
+        schemaValid: false,
+        schemaErrors: [`${path}: file not found`],
+        inventedKeys: [],
+        byteDiffMinimality: null,
+        byteDiffChangedRatio: null,
+      });
+      return { ok: false, error: "ENOENT" };
+    }
+
+    const content = readFileSync(path, "utf8");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.recordMetric({
+        operation: "delete",
+        path,
+        schemaValid: false,
+        schemaErrors: [`${path}: invalid JSON -- ${message}`],
+        inventedKeys: [],
+        byteDiffMinimality: null,
+        byteDiffChangedRatio: null,
+      });
+      return { ok: false, error: message };
+    }
+
+    const assessment = assessDocument(path, parsed);
+    this.recordMetric({
+      operation: "delete",
+      path,
+      schemaValid: assessment.schemaValid,
+      schemaErrors: assessment.schemaErrors,
+      inventedKeys: assessment.inventedKeys,
+      byteDiffMinimality: null,
+      byteDiffChangedRatio: null,
+    });
+
+    unlinkSync(path);
+    return { ok: true };
+  }
+
+  private recordMetric(input: {
+    operation: CrudOperation;
+    path: string;
+    schemaValid: boolean;
+    schemaErrors: readonly string[];
+    inventedKeys: readonly string[];
+    byteDiffMinimality: ByteDiffMinimality | null;
+    byteDiffChangedRatio: number | null;
+  }): void {
+    this.metrics.push({
+      directiveVersion: this.directiveVersion,
+      operation: input.operation,
+      path: input.path,
+      schemaValid: input.schemaValid,
+      schemaErrors: input.schemaErrors,
+      fieldInventionCount: input.inventedKeys.length,
+      inventedKeys: input.inventedKeys,
+      byteDiffMinimality: input.byteDiffMinimality,
+      byteDiffChangedRatio: input.byteDiffChangedRatio,
+      recordedAt: this.now().toISOString(),
+    });
+  }
+}

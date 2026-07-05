@@ -14,15 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **chore(triage): move triage working-set cache off `.eval` to `.triage-cache/` (#1703)** — Triage append-only logs and decomposition scratch now resolve under a dedicated `.triage-cache/` namespace with an idempotent migration from legacy `.eval/` paths, reclaiming `.eval/` for the version-eval results store. Refs #1703.
-
 ### Added
 
 - **`task eval:health` aggregates static self-consistency into a versioned framework health score (#1703 Tier 0).** Maintainers can run one cheap, model-free command to probe encoding, link integrity, vBRIEF conformance, AGENTS.md freshness, and (on the framework source tree) content-manifest drift, plus a contradictory-gate detector that surfaces unsatisfiable nudges such as the #1694 wipCap case. Each run appends to a versioned ledger under `.eval/results/` so health can be trended across releases. Refs #1703.
+- **Version-eval operation telemetry (#1703).** vBRIEF file operations now emit per-operation metrics tagged with the directive version, covering schema validity, detection of non-spec keys added by agents, and whether an update rewrote the whole file or made a targeted change. Refs #1703.
 
 ### Changed
+
+- **chore(triage): move triage working-set cache off `.eval` to `.triage-cache/` (#1703)** — Triage append-only logs and decomposition scratch now resolve under a dedicated `.triage-cache/` namespace with an idempotent migration from legacy `.eval/` paths, reclaiming `.eval/` for the version-eval results store. Refs #1703.
 
 ### Fixed
 
