@@ -52,7 +52,7 @@ describe("resolveSlicesLogPath branches", () => {
     const prev = process.env.DEFT_ROOT;
     process.env.DEFT_ROOT = root;
     expect(resolveSlicesLogPath({ frameworkRoot: null })).toBe(
-      join(root, "vbrief", ".eval", "slices.jsonl"),
+      join(root, "vbrief", ".triage-cache", "slices.jsonl"),
     );
     process.env.DEFT_ROOT = prev;
   });

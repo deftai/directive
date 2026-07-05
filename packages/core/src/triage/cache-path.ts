@@ -1,0 +1,121 @@
+/**
+ * Layout-aware triage working-set cache paths (#1703 namespace cleanup).
+ *
+ * Triage append-only logs and scratch dirs live under `.triage-cache/` so the
+ * `.eval/` namespace can be reclaimed for version-eval results (#1703 Tier 2).
+ */
+
+import { existsSync, mkdirSync, renameSync } from "node:fs";
+import { join, relative } from "node:path";
+import { resolveEvalDir, resolveLifecycleLayout, resolveLifecycleRoot } from "../layout/resolve.js";
+
+/** Directory name for the triage working-set cache (not version-eval results). */
+export const TRIAGE_CACHE_DIR_NAME = ".triage-cache";
+
+/** Legacy directory that previously held triage cache files before #1703. */
+export const LEGACY_TRIAGE_EVAL_DIR_NAME = ".eval";
+
+/** Known triage-cache file basenames migrated off the legacy `.eval/` tree. */
+export const TRIAGE_CACHE_FILE_NAMES = [
+  "candidates.jsonl",
+  "summary-history.jsonl",
+  "scope-lifecycle.jsonl",
+  "subscription-history.jsonl",
+  "slices.jsonl",
+  "doctor-state.json",
+  "README.md",
+] as const;
+
+/** Known triage-cache directory names migrated off the legacy `.eval/` tree. */
+export const TRIAGE_CACHE_DIR_NAMES = ["decompositions"] as const;
+
+export interface TriageCacheMigrationResult {
+  readonly migratedFiles: readonly string[];
+  readonly skippedFiles: readonly string[];
+  readonly migratedDirs: readonly string[];
+}
+
+/** Absolute path to the layout-aware `.triage-cache/` directory. */
+export function resolveTriageCacheDir(projectRoot: string): string {
+  return join(resolveLifecycleRoot(projectRoot), TRIAGE_CACHE_DIR_NAME);
+}
+
+/** POSIX-style path relative to project root (e.g. `xbrief/.triage-cache/foo`). */
+export function triageCacheRelPath(projectRoot: string, ...segments: string[]): string {
+  const layout = resolveLifecycleLayout(projectRoot);
+  return [layout.artifactDir, TRIAGE_CACHE_DIR_NAME, ...segments].join("/");
+}
+
+/**
+ * Idempotently move triage working-set artefacts from legacy `.eval/` into
+ * `.triage-cache/` when the new location is absent.
+ */
+export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCacheMigrationResult {
+  const legacyDir = resolveEvalDir(projectRoot);
+  const targetDir = resolveTriageCacheDir(projectRoot);
+  const migratedFiles: string[] = [];
+  const skippedFiles: string[] = [];
+  const migratedDirs: string[] = [];
+
+  if (!existsSync(legacyDir)) {
+    return { migratedFiles, skippedFiles, migratedDirs };
+  }
+
+  mkdirSync(targetDir, { recursive: true });
+
+  for (const name of TRIAGE_CACHE_FILE_NAMES) {
+    const legacyPath = join(legacyDir, name);
+    const targetPath = join(targetDir, name);
+    if (!existsSync(legacyPath)) {
+      continue;
+    }
+    if (existsSync(targetPath)) {
+      skippedFiles.push(name);
+      continue;
+    }
+    renameSync(legacyPath, targetPath);
+    migratedFiles.push(name);
+  }
+
+  for (const name of TRIAGE_CACHE_DIR_NAMES) {
+    const legacyPath = join(legacyDir, name);
+    const targetPath = join(targetDir, name);
+    if (!existsSync(legacyPath)) {
+      continue;
+    }
+    if (existsSync(targetPath)) {
+      skippedFiles.push(`${name}/`);
+      continue;
+    }
+    renameSync(legacyPath, targetPath);
+    migratedDirs.push(name);
+  }
+
+  return { migratedFiles, skippedFiles, migratedDirs };
+}
+
+/** Resolve a path under `.triage-cache/`, migrating legacy `.eval/` files first. */
+export function resolveTriageCachePath(projectRoot: string, ...segments: string[]): string {
+  migrateLegacyTriageCacheFromEval(projectRoot);
+  return join(resolveTriageCacheDir(projectRoot), ...segments);
+}
+
+/** Display helper: project-root-relative POSIX path for logs and gitignore copy. */
+export function triageCacheDisplayPath(projectRoot: string, absPath: string): string {
+  return relative(projectRoot, absPath).split(/[\\/]/).join("/");
+}
+
+/** Back-compat display constant; resolution flows through `resolveTriageCachePath`. */
+export const TRIAGE_CANDIDATES_LOG_REL_PATH = "vbrief/.triage-cache/candidates.jsonl";
+
+/** Layout-aware candidates audit-log path. */
+export function resolveCandidatesLogPath(projectRoot: string): string {
+  return resolveTriageCachePath(projectRoot, "candidates.jsonl");
+}
+
+/** Ensure the triage cache directory exists (post-migration). */
+export function ensureTriageCacheDir(projectRoot: string): string {
+  const dir = resolveTriageCacheDir(projectRoot);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}

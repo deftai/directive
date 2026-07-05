@@ -10,7 +10,7 @@ import {
   writeSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { resolveEvalPath } from "../layout/resolve.js";
+import { resolveTriageCachePath } from "../triage/cache-path.js";
 import { utcNowIso } from "./vbrief-json.js";
 
 export class ScopeAuditLogError extends Error {
@@ -133,8 +133,8 @@ export function newDecisionId(): string {
 }
 
 export function canonicalLogPath(projectRoot: string): string {
-  // Layout-aware (#2109 part 2a): xbrief/.eval when migrated, else vbrief/.eval.
-  return resolveEvalPath(resolve(projectRoot), "scope-lifecycle.jsonl");
+  // Layout-aware (#1703): triage working-set under `.triage-cache/`.
+  return resolveTriageCachePath(resolve(projectRoot), "scope-lifecycle.jsonl");
 }
 
 function withAppendLock(logPath: string, fn: () => void): void {

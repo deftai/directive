@@ -70,6 +70,18 @@
       "types": "./dist/doctor/index.d.ts",
       "default": "./dist/doctor/index.js"
     },
+    "./eval": {
+      "types": "./dist/eval/health.d.ts",
+      "default": "./dist/eval/health.js"
+    },
+    "./eval/health": {
+      "types": "./dist/eval/health.d.ts",
+      "default": "./dist/eval/health.js"
+    },
+    "./eval/crud-telemetry": {
+      "types": "./dist/eval/crud-telemetry.d.ts",
+      "default": "./dist/eval/crud-telemetry.js"
+    },
     "./triage": {
       "types": "./dist/triage/index.d.ts",
       "default": "./dist/triage/index.js"

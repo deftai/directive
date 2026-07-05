@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { resolveEvalPath } from "../../layout/resolve.js";
+import { resolveTriageCachePath } from "../cache-path.js";
 import { extractAuthor, extractMilestone } from "../scope-drift/cache-walker.js";
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "./constants.js";
 import {
@@ -33,7 +33,7 @@ export function resolveSlicesLogPath(
       : envRoot.length > 0
         ? resolve(envRoot)
         : process.cwd();
-  return resolveEvalPath(root, "slices.jsonl");
+  return resolveTriageCachePath(root, "slices.jsonl");
 }
 
 /** Read slices.jsonl records. */

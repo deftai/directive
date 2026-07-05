@@ -24,7 +24,7 @@ describe("scope branch coverage", () => {
     expect(undoMain(["--latest", "--decision-id", "x", "--project-root", "/tmp"])).toBe(2);
     expect(undoMain(["a", "--decision-id", "b", "--project-root", "/tmp"])).toBe(2);
     root = mkdtempSync(join(tmpdir(), "scope-br-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(canonicalLogPath(root), "{}\n", "utf8");
     expect(undoMain(["--batch-id", newDecisionId(), "--project-root", root])).toBe(1);
   });
@@ -53,7 +53,7 @@ describe("scope branch coverage", () => {
 
   it("undo restore and nested undo branches", () => {
     root = mkdtempSync(join(tmpdir(), "scope-br-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const proposed = join(root, "vbrief", "proposed", "r.vbrief.json");

@@ -54,7 +54,7 @@ function makeCachedIssue(
 }
 
 function writeAuditLog(root: string, entries: Record<string, unknown>[]): void {
-  const dir = join(root, "vbrief", ".eval");
+  const dir = join(root, "vbrief", ".triage-cache");
   mkdirSync(dir, { recursive: true });
   const body = entries.map((e) => JSON.stringify(e)).join("\n");
   writeFileSync(join(dir, "candidates.jsonl"), body.length > 0 ? `${body}\n` : "", "utf8");
@@ -428,8 +428,8 @@ describe("helpers", () => {
 
   it("readAuditLog tolerates malformed lines", () => {
     const root = mkRoot();
-    const log = join(root, "vbrief", ".eval", "candidates.jsonl");
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    const log = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
       log,
       `{bad json\n${JSON.stringify(auditEntry("deftai/directive", 1, "accept", "a"))}\n`,
@@ -450,7 +450,7 @@ describe("helpers", () => {
 
   it("appendHistory writes jsonl", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
     appendHistory(
       history,
       baseResult({ untriaged: 4, inFlight: 2, wipCount: 3 }),
@@ -543,7 +543,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("does not suppress when discrepancy line would flip within 4h", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
     const prior = baseResult({
       untriaged: 5,
       inFlight: 2,
@@ -566,7 +566,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("suppresses when key unchanged within 4h", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
     const result = baseResult({
       untriaged: 5,
       inFlight: 2,
@@ -584,7 +584,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("does not suppress after 4h window", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
     const result = baseResult({
       untriaged: 5,
       inFlight: 2,
@@ -602,7 +602,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("readLastHistoryRecord returns latest jsonl entry", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
     appendHistory(history, baseResult({ untriaged: 1 }), "[triage] one", {
       emittedAt: "2026-06-29T10:00:00Z",
     });

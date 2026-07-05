@@ -1,13 +1,13 @@
 export const CACHE_DIR_NAME = ".deft-cache";
 export const CACHE_SOURCE = "github-issue";
-export const CANDIDATES_RELPATH = ["vbrief", ".eval", "candidates.jsonl"] as const;
+export const CANDIDATES_RELPATH = ["vbrief", ".triage-cache", "candidates.jsonl"] as const;
 export const WIP_LIFECYCLE_DIRS = ["pending", "active"] as const;
 export const AUDIT_LOG_REL_PATH = "meta/policy-changes.log";
 export const DEFAULT_WIP_CAP = 20;
 export const DEFAULT_RELIEF_AGE_DAYS = 30;
 export const TRIAGE_SKILL_PATH = "skills/deft-directive-triage/SKILL.md";
 export const WELCOME_AUDIT_TAG = "triage-welcome";
-export const SUMMARY_HISTORY_REL_PATH = "vbrief/.eval/summary-history.jsonl";
+export const SUMMARY_HISTORY_REL_PATH = "vbrief/.triage-cache/summary-history.jsonl";
 export const SUMMARY_HISTORY_SCHEMA = "deft.triage.summary.v1";
 export const EMPTY_CACHE_LINE = "[triage] cache empty -- run task triage:bootstrap";
 export const MAX_LINE_CHARS = 120;

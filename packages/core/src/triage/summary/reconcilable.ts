@@ -1,8 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { hasArtifactSuffix, resolveEvalPath, resolveLifecycleRoot } from "../../layout/resolve.js";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { AUDIT_LOG_REL_PATH, readAuditLog } from "../actions/candidates-log.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 
 /** Lifecycle folders scanned for reconcilable vBRIEFs (#1468). */
 export const BACKFILL_FOLDERS = ["proposed", "pending", "active"] as const;
@@ -77,7 +78,7 @@ export function countReconcilable(
   } = {},
 ): number {
   try {
-    const auditPath = options.auditLogPath ?? resolveEvalPath(projectRoot, "candidates.jsonl");
+    const auditPath = options.auditLogPath ?? resolveCandidatesLogPath(projectRoot);
     const existing = existingAuditRefs(auditPath);
     const defaultRepo = options.defaultRepo ?? null;
     const keys = new Set<string>();

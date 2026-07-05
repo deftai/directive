@@ -26,7 +26,9 @@ function makeRoot(): string {
 
 describe("stripGitignoreInlineComment", () => {
   it("strips inline comments for forbidden-blanket detection", () => {
-    expect(stripGitignoreInlineComment("vbrief/.eval/  # legacy")).toBe("vbrief/.eval/");
+    expect(stripGitignoreInlineComment("vbrief/.triage-cache/  # legacy")).toBe(
+      "vbrief/.triage-cache/",
+    );
   });
 });
 
@@ -95,12 +97,16 @@ describe("stepEnsureGitignoreEvalEntries", () => {
     const gi = join(root, ".gitignore");
     writeFileSync(
       gi,
-      `${readFileSync(gi, "utf8")}\nvbrief/.eval/candidates.jsonl\nvbrief/.eval/summary-history.jsonl\nvbrief/.eval/scope-lifecycle.jsonl\nvbrief/.eval/decompositions/\nvbrief/.eval/doctor-state.json\n`,
+      `${readFileSync(gi, "utf8")}\nvbrief/.triage-cache/candidates.jsonl\nvbrief/.triage-cache/summary-history.jsonl\nvbrief/.triage-cache/scope-lifecycle.jsonl\nvbrief/.triage-cache/decompositions/\nvbrief/.triage-cache/doctor-state.json\n`,
       "utf8",
     );
-    writeFileSync(join(root, ".gitattributes"), "vbrief/.eval/*.jsonl  merge=union\n", "utf8");
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
-    writeFileSync(join(root, "vbrief", ".eval", "README.md"), "pre-existing", "utf8");
+    writeFileSync(
+      join(root, ".gitattributes"),
+      "vbrief/.triage-cache/*.jsonl  merge=union\n",
+      "utf8",
+    );
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "vbrief", ".triage-cache", "README.md"), "pre-existing", "utf8");
     const before = readFileSync(gi, "utf8");
     const outcome = stepEnsureGitignoreEvalEntries(root);
     expect(outcome.ok).toBe(true);
@@ -125,14 +131,14 @@ describe("stepEnsureGitignoreEvalEntries", () => {
     stepEnsureGitignoreEvalEntries(root);
     const gi = join(root, ".gitignore");
     const withoutSummary = readFileSync(gi, "utf8").replace(
-      "vbrief/.eval/summary-history.jsonl\n",
+      "vbrief/.triage-cache/summary-history.jsonl\n",
       "",
     );
     writeFileSync(gi, withoutSummary, "utf8");
     const outcome = stepEnsureGitignoreEvalEntries(root);
     expect(outcome.ok).toBe(true);
     expect(outcome.details.rationale_already_present).toBe(true);
-    expect(readFileSync(gi, "utf8")).toContain("vbrief/.eval/summary-history.jsonl");
+    expect(readFileSync(gi, "utf8")).toContain("vbrief/.triage-cache/summary-history.jsonl");
   });
 });
 
@@ -142,13 +148,13 @@ describe("stepSeedCandidatesLog", () => {
     const outcome = stepSeedCandidatesLog(root);
     expect(outcome.ok).toBe(true);
     expect(outcome.details.created).toBe(true);
-    const audit = join(root, "vbrief", ".eval", "candidates.jsonl");
+    const audit = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
     expect(readFileSync(audit, "utf8")).toBe("");
   });
 
   it("is idempotent when present", () => {
     const root = makeRoot();
-    const auditDir = join(root, "vbrief", ".eval");
+    const auditDir = join(root, "vbrief", ".triage-cache");
     mkdirSync(auditDir, { recursive: true });
     const audit = join(auditDir, "candidates.jsonl");
     writeFileSync(audit, '{"decision":"accept"}\n', "utf8");

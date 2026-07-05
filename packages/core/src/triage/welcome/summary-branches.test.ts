@@ -68,7 +68,7 @@ describe("summary extra branches", () => {
 
   it("appendHistory writes jsonl", () => {
     const root = mkdtempSync(join(tmpdir(), "sum-hist-"));
-    const hist = join(root, "vbrief", ".eval", "summary-history.jsonl");
+    const hist = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
     appendHistory(
       hist,
       {

@@ -79,9 +79,9 @@ describe("ensureInitGitignoreLines", () => {
     expect(first.split(GITIGNORE_DEFT_CORE_LINE).length - 1).toBe(1);
   });
 
-  it("heals a forbidden blanket vbrief/.eval/ line while adding canonical entries", () => {
+  it("heals a forbidden blanket vbrief/.triage-cache/ line while adding canonical entries", () => {
     const root = freshRoot("gitignore-heal-");
-    writeFileSync(join(root, ".gitignore"), "node_modules/\nvbrief/.eval/\n", "utf8");
+    writeFileSync(join(root, ".gitignore"), "node_modules/\nvbrief/.triage-cache/\n", "utf8");
 
     ensureInitGitignoreLines(root, { printf: () => {} });
 

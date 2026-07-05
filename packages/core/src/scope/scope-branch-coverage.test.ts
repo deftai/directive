@@ -192,7 +192,7 @@ describe("scope branch coverage", () => {
       count: 11,
       source: "typed",
     });
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     expect(readAll(canonicalLogPath(root)).length).toBeGreaterThanOrEqual(0);
   });
 
@@ -246,7 +246,7 @@ describe("scope branch coverage", () => {
 
   it("undo covers restore, cancel meta, terminal refusal, dry-run, batch", () => {
     root = mkdtempSync(join(tmpdir(), "undo-br-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
 
     expect(undoOne({ action: "complete", decision_id: "x" }, root, { logPath }).ok).toBe(false);
@@ -386,7 +386,7 @@ describe("scope branch coverage", () => {
 
   it("undoBatch records failures in skipped", () => {
     root = mkdtempSync(join(tmpdir(), "undo-fail-"));
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const batchId = newDecisionId();
     append(
@@ -418,7 +418,7 @@ describe("scope branch coverage", () => {
     mkdirSync(join(root, "vbrief"), { recursive: true });
     expect(undoMain(["--latest", "--project-root", root])).toBe(1);
 
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     writeFileSync(logPath, "", "utf8");
     const demoteId = newDecisionId();

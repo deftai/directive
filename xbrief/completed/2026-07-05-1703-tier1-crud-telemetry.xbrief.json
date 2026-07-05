@@ -6,7 +6,7 @@
   "plan": {
     "id": "1703-tier1-crud-telemetry",
     "title": "Tier 1 instrumented CRUD chokepoint telemetry",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Route structured vBRIEF mutations through one instrumented CRUD tool so real dogfooding emits per-operation metrics tagged with the directive version. Metrics include schema-validity, field-invention, byte-diff minimality, and workflow-level gate-pass-first-try and turns-per-workflow counters.",
       "ImplementationPlan": "- Add an instrumented CRUD module that wraps vBRIEF create, read, update, and delete and records per-operation metrics tagged with the version.\n- Emit schema-validity and byte-diff-minimality metrics and add tests with fixtures covering valid and field-invention mutations.",
@@ -60,7 +60,9 @@
         "size": "L",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-05T18:34:54Z",
+      "capacityBucket": "cognitive-debt"
     },
     "references": [
       {
@@ -75,6 +77,7 @@
         "title": "Issue #1703 Tier 1: instrumented CRUD telemetry",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T18:34:54Z"
   }
 }

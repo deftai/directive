@@ -295,6 +295,11 @@ includes:
   capacity:
     taskfile: ./tasks/capacity.yml
     optional: true
+  # Tier 0 framework-eval surface (#1703). Exposes `task eval:health` --
+  # aggregates static self-consistency gates into a versioned health score.
+  eval:
+    taskfile: ./tasks/eval.yml
+    optional: true
   # Pack-slicing surface (#1283 design, #1294 pilot, ADR-001 Layer B). Exposes
   # `task packs:slice` (named-slice API), `task packs:render` (regenerate the
   # meta/lessons.md projection), and `task packs:verify-drift` (the drift gate,

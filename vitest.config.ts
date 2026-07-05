@@ -27,6 +27,15 @@ const subpathAliases: Record<string, string> = {
   "@deftai/directive-core/slice": sub("core", "slice"),
   "@deftai/directive-core/cache": sub("core", "cache"),
   "@deftai/directive-core/doctor": sub("core", "doctor"),
+  "@deftai/directive-core/eval": resolve(import.meta.dirname, "packages/core/src/eval/health.ts"),
+  "@deftai/directive-core/eval/health": resolve(
+    import.meta.dirname,
+    "packages/core/src/eval/health.ts",
+  ),
+  "@deftai/directive-core/eval/crud-telemetry": resolve(
+    import.meta.dirname,
+    "packages/core/src/eval/crud-telemetry.ts",
+  ),
   "@deftai/directive-core/triage": sub("core", "triage"),
   "@deftai/directive-core/release": sub("core", "release"),
   "@deftai/directive-core/release-publish": sub("core", "release-publish"),

@@ -26,9 +26,9 @@ describe("doctor coverage final", () => {
   it("readState rejects invalid last_run_at types", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-state-"));
     try {
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       writeFileSync(
-        join(root, "vbrief", ".eval", "doctor-state.json"),
+        join(root, "vbrief", ".triage-cache", "doctor-state.json"),
         JSON.stringify({
           last_run_at: 123,
           last_exit_code: 0,

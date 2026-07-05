@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { hasArtifactSuffix, resolveEvalPath, resolveLifecycleRoot } from "../../layout/resolve.js";
+import { hasArtifactSuffix, resolveLifecycleRoot } from "../../layout/resolve.js";
 import { SUBPROCESS_MAX_BUFFER } from "../../subprocess/max-buffer.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import {
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
@@ -25,7 +26,7 @@ export * from "./gitignore.js";
 export * from "./types.js";
 
 export const CACHE_DIR_NAME = ".deft-cache";
-export const AUDIT_LOG_RELPATH = "vbrief/.eval/candidates.jsonl";
+export const AUDIT_LOG_RELPATH = "vbrief/.triage-cache/candidates.jsonl";
 export const BACKFILL_FOLDERS = ["proposed", "pending", "active"] as const;
 export const BOOTSTRAP_ACTOR = "agent:bootstrap";
 export const DEFAULT_FETCH_TIMEOUT_S = 3600;
@@ -497,7 +498,7 @@ export function stepBackfillAuditLog(
     );
   }
 
-  const auditPath = resolveEvalPath(projectRoot, "candidates.jsonl");
+  const auditPath = resolveCandidatesLogPath(projectRoot);
   const alreadyLogged = existingAuditIssueNumbers(auditPath);
   const nowIso = options.nowIso ?? nowIsoDefault;
   const appendEntry = options.appendAuditEntry ?? appendAuditEntryDefault;

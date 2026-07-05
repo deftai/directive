@@ -9,11 +9,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, join } from "node:path";
-import { resolveEvalPath, resolveProjectDefinitionPath } from "../../layout/resolve.js";
+import { resolveProjectDefinitionPath } from "../../layout/resolve.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-extensions.js";
 import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
+import { resolveTriageCachePath } from "../cache-path.js";
 
-export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.eval/subscription-history.jsonl";
+export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.triage-cache/subscription-history.jsonl";
 export const SUBSCRIPTION_HISTORY_SCHEMA = "deft.triage.subscription-change.v1";
 export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
 
@@ -128,7 +129,7 @@ export function recordSubscriptionChange(
     extra?: Record<string, unknown> | null;
   },
 ): void {
-  const historyPath = resolveEvalPath(projectRoot, "subscription-history.jsonl");
+  const historyPath = resolveTriageCachePath(projectRoot, "subscription-history.jsonl");
   const record: Record<string, unknown> = {
     schema: SUBSCRIPTION_HISTORY_SCHEMA,
     change_id: randomUUID(),

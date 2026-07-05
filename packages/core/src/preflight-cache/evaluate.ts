@@ -15,9 +15,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { type CacheDriftProbeResult, probeCacheDrift } from "../cache/fetch.js";
-import { resolveEvalPath, resolveProjectDefinitionPath } from "../layout/resolve.js";
+import { resolveProjectDefinitionPath } from "../layout/resolve.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage/actions/candidates-log.js";
+import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 
 // ---------------------------------------------------------------------------
 // Public constants (mirror preflight_cache.py)
@@ -25,7 +26,7 @@ import { latestDecisionForIssue as auditLatestDecisionForIssue } from "../triage
 
 export const CACHE_DIR_NAME = ".deft-cache";
 export const DEFAULT_SOURCE = "github-issue";
-export const CANDIDATES_RELPATH = join("vbrief", ".eval", "candidates.jsonl");
+export const CANDIDATES_RELPATH = join("vbrief", ".triage-cache", "candidates.jsonl");
 export const DEFAULT_MAX_AGE_HOURS = 24;
 export const ENV_MAX_AGE_HOURS = "DEFT_CACHE_MAX_AGE_HOURS";
 export const ENV_TRIAGE_REPO = "DEFT_TRIAGE_REPO";
@@ -385,7 +386,7 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ga
 
   const cacheRoot = join(projectRoot, CACHE_DIR_NAME);
   // Layout-aware (#2109 part 2a): resolve under xbrief/.eval when migrated.
-  const candidatesPath = resolveEvalPath(projectRoot, "candidates.jsonl");
+  const candidatesPath = resolveCandidatesLogPath(projectRoot);
 
   // Step 1: Resolve repo slug
   const resolvedRepo = resolveRepo(projectRoot, cacheRoot, source, options.repo ?? null);

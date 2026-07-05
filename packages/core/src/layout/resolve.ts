@@ -139,12 +139,12 @@ export function resolveLifecycleFolder(projectRoot: string, folder: string): str
   return join(resolveLifecycleRoot(projectRoot), folder);
 }
 
-/** Absolute path to the resolved lifecycle `.eval` cache directory (#2109 part 2a). */
+/** Absolute path to the layout-aware `.eval/` directory for version-eval results (#1703). */
 export function resolveEvalDir(projectRoot: string): string {
   return join(resolveLifecycleRoot(projectRoot), ".eval");
 }
 
-/** Absolute path to a file or subpath under the resolved `.eval` cache directory. */
+/** Absolute path under `.eval/` for version-eval artefacts (not triage working-set). */
 export function resolveEvalPath(projectRoot: string, ...segments: string[]): string {
   return join(resolveEvalDir(projectRoot), ...segments);
 }

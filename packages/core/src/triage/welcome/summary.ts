@@ -2,12 +2,12 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from
 import { join, resolve } from "node:path";
 import {
   hasArtifactSuffix,
-  resolveEvalPath,
   resolveLifecycleFolder,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
 import { readPlanPolicy } from "../../policy/plan-extensions.js";
-import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
+import { countVbriefWip, resolveWipCap } from "../../policy/wip.js";
+import { resolveCandidatesLogPath, resolveTriageCachePath } from "../cache-path.js";
 import { countReconcilable } from "../reconcile/reconcile.js";
 import { computeDrift } from "../scope-drift/compute.js";
 import { shouldSuppressD2Emission } from "../summary/index.js";
@@ -150,7 +150,7 @@ function utcIso(): string {
 export function computeSummary(projectRoot: string): SummaryResult {
   const root = resolve(projectRoot);
   const cacheRoot = join(root, CACHE_DIR_NAME);
-  const logPath = resolveEvalPath(root, "candidates.jsonl");
+  const logPath = resolveCandidatesLogPath(root);
   const cached = iterCachedIssues(cacheRoot);
   const repos = [...new Set(cached.map(([r]) => r))].sort().slice(0, 8);
   const wipCapResult = resolveWipCap(root);
@@ -327,7 +327,7 @@ export function emitOneliner(
 ): string {
   const result = computeSummary(projectRoot);
   const line = formatSummary(result);
-  const historyPath = resolveEvalPath(projectRoot, "summary-history.jsonl");
+  const historyPath = resolveTriageCachePath(projectRoot, "summary-history.jsonl");
   const applySuppression = options.applyD2Suppression !== false;
   if (applySuppression && shouldSuppressD2Emission(result, historyPath, { now: options.now })) {
     return line;

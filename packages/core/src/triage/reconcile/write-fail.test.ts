@@ -27,9 +27,9 @@ describe("reconcile write failures", () => {
   it("returns exit 1 when audit append fails", () => {
     const root = mkdtempSync(join(tmpdir(), "reconcile-fail-"));
     scopeVbrief(join(root, "vbrief", "proposed"), "x", 12);
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
-    writeFileSync(join(root, "vbrief", ".eval", "candidates.jsonl"), "", "utf8");
-    const auditPath = join(root, "vbrief", ".eval", "candidates.jsonl");
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "", "utf8");
+    const auditPath = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
     chmodSync(auditPath, 0o444);
     const result = reconcile(root, { repo: "deftai/directive", auditLogPath: auditPath });
     expect(result.exitCode).toBe(1);
@@ -51,7 +51,9 @@ describe("reconcile write failures", () => {
     scopeVbrief(join(root, "vbrief", "proposed"), "d", 20);
     const result = reconcile(root, { repo: "deftai/directive", dryRun: true });
     expect(result.restored).toBe(1);
-    expect(() => readFileSync(join(root, "vbrief", ".eval", "candidates.jsonl"), "utf8")).toThrow();
+    expect(() =>
+      readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8"),
+    ).toThrow();
     rmSync(root, { recursive: true, force: true });
   });
 });

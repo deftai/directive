@@ -62,9 +62,9 @@ describe("welcome summary", () => {
   it("includes stale defer segment", () => {
     const root = mkdtempSync(join(tmpdir(), "sum6-"));
     writeCache(root, "deftai/directive", 3);
-    mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", ".eval", "candidates.jsonl"),
+      join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
       `${JSON.stringify({ repo: "deftai/directive", issue_number: 3, decision: "resume-eligible" })}\n`,
       "utf8",
     );

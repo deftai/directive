@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
@@ -110,16 +111,26 @@ export function runTransition(
   planObj.status = targetStatus;
   planObj.updated = nowIso;
 
+  const vbriefRoot = dirname(dirname(resolvedPath));
+  const projectRoot = dirname(vbriefRoot);
+
   if (act === "complete") {
-    const vbriefRoot = dirname(dirname(resolvedPath));
-    const projectRoot = dirname(vbriefRoot);
     stampCompletionMetadata(planObj, projectRoot, nowIso);
   }
 
-  writeFileSync(resolvedPath, formatVbriefJson(data), "utf8");
+  const formatted = formatVbriefJson(data);
+  const crud = new InstrumentedVbriefCrud({ now: () => now });
+  const writeResult = crud.update(resolvedPath, formatted, { trustedWrite: true });
+  if (!writeResult.ok) {
+    return { ok: false, message: writeResult.error ?? `CRUD update failed for ${resolvedPath}` };
+  }
+  try {
+    persistCrudMetrics(projectRoot, crud.getMetrics());
+  } catch {
+    /* best-effort telemetry persistence */
+  }
 
   if (targetFolder !== null) {
-    const vbriefRoot = dirname(dirname(resolvedPath));
     const destDir = join(vbriefRoot, targetFolder);
     mkdirSync(destDir, { recursive: true });
     const destPath = join(destDir, basename);

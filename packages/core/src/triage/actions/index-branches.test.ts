@@ -22,7 +22,7 @@ afterEach(() => {
 function makeRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "actions-br-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+  mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
   return root;
 }
 

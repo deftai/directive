@@ -13,7 +13,7 @@ describe("test_decomposition_readiness", () => {
     const text = readRepoFile("strategies/speckit.md");
     expect(text).toContain("## Phase 4.5: Story Decomposition / Swarm Readiness");
     expect(text).toContain("task scope:decompose");
-    expect(text).toContain("vbrief/.eval/decompositions/ip001-auth.json");
+    expect(text).toContain("vbrief/.triage-cache/decompositions/ip001-auth.json");
     expect(text).toContain("temporary proposal artifact, not a vBRIEF");
     expect(text).toContain(
       "Agents MUST NOT leave decomposition draft JSON files at the workspace root",
@@ -40,7 +40,7 @@ describe("test_decomposition_readiness", () => {
       "As a <role>, I want <capability>, so that <outcome>.",
       "2-5 concrete acceptance criteria",
       'readiness = "sequential"',
-      "vbrief/.eval/decompositions/",
+      "vbrief/.triage-cache/decompositions/",
       "temporary proposal artifact, not a vBRIEF",
       "MUST NOT leave decomposition draft JSON files at the workspace root",
       "Derive `<parent-slug>` from the parent vBRIEF filename",
@@ -70,7 +70,7 @@ describe("test_decomposition_readiness", () => {
     expect(text).toContain("2-5 concrete acceptance criteria");
     expect(text).toContain("to refine from parent scope");
     expect(text).toContain("temporary proposal artifact, not a xBRIEF");
-    expect(text).toContain("xbrief/.eval/decompositions/ip001-auth.json");
+    expect(text).toContain("xbrief/.triage-cache/decompositions/ip001-auth.json");
     expect(text).toContain("Derive `<parent-slug>` from the parent xBRIEF filename");
     expect(text).toContain(
       "Agents MUST NOT leave decomposition draft JSON files at the workspace root",

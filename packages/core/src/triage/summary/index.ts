@@ -3,7 +3,6 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from
 import { join, resolve as pathResolve } from "node:path";
 import {
   hasArtifactSuffix,
-  resolveEvalPath,
   resolveLifecycleFolder,
   resolveProjectDefinitionPath,
 } from "../../layout/resolve.js";
@@ -11,6 +10,7 @@ import { readPlanPolicy } from "../../policy/plan-extensions.js";
 import { loadProjectDefinition, PROJECT_DEFINITION_REL_PATH } from "../../policy/resolve.js";
 import { countVbriefWip, DEFAULT_WIP_CAP, resolveWipCap } from "../../policy/wip.js";
 import { AUDIT_LOG_REL_PATH, latestDecisions, readAuditLog } from "../actions/candidates-log.js";
+import { resolveCandidatesLogPath } from "../cache-path.js";
 import { countReconcilable } from "./reconcilable.js";
 import { computeScopeDriftTotal } from "./scope-drift.js";
 
@@ -24,7 +24,7 @@ export const CACHE_DIR_NAME = ".deft-cache";
 export const CACHE_SOURCE = "github-issue";
 export const CANDIDATES_LOG_REL_PATH = AUDIT_LOG_REL_PATH;
 export { latestDecisions, readAuditLog } from "../actions/candidates-log.js";
-export const SUMMARY_HISTORY_REL_PATH = "vbrief/.eval/summary-history.jsonl";
+export const SUMMARY_HISTORY_REL_PATH = "vbrief/.triage-cache/summary-history.jsonl";
 export const SUMMARY_HISTORY_SCHEMA = "deft.triage.summary.v1";
 /** D2 repeat-suppression window for session-start triage one-liner (#1122 / #1279). */
 export const D2_SUPPRESSION_WINDOW_HOURS = 4;
@@ -248,7 +248,7 @@ export function computeSummary(
 ): SummaryResult {
   const root = pathResolve(projectRoot);
   const resolvedCacheRoot = options.cacheRoot ?? join(root, CACHE_DIR_NAME);
-  const resolvedLogPath = options.auditLogPath ?? resolveEvalPath(root, "candidates.jsonl");
+  const resolvedLogPath = options.auditLogPath ?? resolveCandidatesLogPath(root);
 
   const cached = iterCachedIssues(resolvedCacheRoot);
   const repos = [...new Set(cached.map(([repo]) => repo))].sort();

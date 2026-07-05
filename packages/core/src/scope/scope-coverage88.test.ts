@@ -149,7 +149,7 @@ describe("scope coverage ≥88% buffer", () => {
     it("records original promotion decision id when promote exists in log", () => {
       root = mkdtempSync(join(tmpdir(), "demote-promo-"));
       mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const promoteId = newDecisionId();
       append(
@@ -230,7 +230,7 @@ describe("scope coverage ≥88% buffer", () => {
       mkdirSync(join(root, "vbrief"), { recursive: true });
       expect(undoMain(["--latest", "--project-root", root])).toBe(1);
 
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       writeFileSync(canonicalLogPath(root), "", "utf8");
       const id = newDecisionId();
       append(
@@ -260,7 +260,7 @@ describe("scope coverage ≥88% buffer", () => {
       root = mkdtempSync(join(tmpdir(), "undo-latest88-"));
       mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
       mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       for (const name of ["first.vbrief.json", "second.vbrief.json"]) {
         const pending = join(root, "vbrief", "pending", name);
         writeFileSync(
@@ -276,7 +276,7 @@ describe("scope coverage ≥88% buffer", () => {
 
     it("undoMain single undo failure writes error", () => {
       root = mkdtempSync(join(tmpdir(), "undo-fail-main-"));
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const id = newDecisionId();
       append(
@@ -296,7 +296,7 @@ describe("scope coverage ≥88% buffer", () => {
 
     it("undoMain --latest rejects empty decision_id candidate", () => {
       root = mkdtempSync(join(tmpdir(), "undo-empty-id-"));
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       writeFileSync(
         logPath,
@@ -318,7 +318,7 @@ describe("scope coverage ≥88% buffer", () => {
   describe("undo inversePlan branches", () => {
     it("undoes cancel from varied cancelled_from statuses", () => {
       root = mkdtempSync(join(tmpdir(), "undo-cancel88-"));
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const cases = [
         { folder: "active", status: "running", from: "running" },
@@ -352,7 +352,7 @@ describe("scope coverage ≥88% buffer", () => {
       root = mkdtempSync(join(tmpdir(), "undo-batch-prev-"));
       mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
       mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const batchId = newDecisionId();
       const entry = {
@@ -386,7 +386,7 @@ describe("scope coverage ≥88% buffer", () => {
 
     it("refuses undo when inverse metadata is missing", () => {
       root = mkdtempSync(join(tmpdir(), "undo-meta88-"));
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       expect(
         undoOne(
@@ -417,7 +417,7 @@ describe("scope coverage ≥88% buffer", () => {
       root = mkdtempSync(join(tmpdir(), "undo-chain88-"));
       mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
       mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const restoreId = newDecisionId();
       append(
@@ -476,7 +476,7 @@ describe("scope coverage ≥88% buffer", () => {
 
     it("findByBatchId resolves batch_id nested in demote_meta", () => {
       root = mkdtempSync(join(tmpdir(), "undo-meta-batch-"));
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const batchId = newDecisionId();
       append(
@@ -505,7 +505,7 @@ describe("scope coverage ≥88% buffer", () => {
     it("undo cancel uses folder and status map fallbacks for unknown folders", () => {
       root = mkdtempSync(join(tmpdir(), "undo-fallback-"));
       mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const name = "orphan.vbrief.json";
       writeFileSync(
@@ -533,7 +533,7 @@ describe("scope coverage ≥88% buffer", () => {
     it("undoBatch skips idempotent already-undone members", () => {
       root = mkdtempSync(join(tmpdir(), "undo-batch-skip-"));
       mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const batchId = newDecisionId();
       const memberId = newDecisionId();
@@ -581,7 +581,7 @@ describe("scope coverage ≥88% buffer", () => {
     it("undoOne rejects invalid JSON at move time", () => {
       root = mkdtempSync(join(tmpdir(), "undo-bad-json-"));
       mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
       const logPath = canonicalLogPath(root);
       const id = newDecisionId();
       writeFileSync(join(root, "vbrief", "proposed", "bad.vbrief.json"), "{", "utf8");
@@ -622,8 +622,8 @@ describe("scope coverage ≥88% buffer", () => {
 
     it("recordWipCapOverride is best-effort when audit append fails", () => {
       root = mkdtempSync(join(tmpdir(), "wip-audit-fail-"));
-      mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
-      chmodSync(join(root, "vbrief", ".eval"), 0o444);
+      mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+      chmodSync(join(root, "vbrief", ".triage-cache"), 0o444);
       recordWipCapOverride(join(root, "vbrief/pending/x.vbrief.json"), root, {
         allowed: true,
         forceOverride: true,
@@ -631,7 +631,7 @@ describe("scope coverage ≥88% buffer", () => {
         count: 11,
         source: "typed",
       });
-      chmodSync(join(root, "vbrief", ".eval"), 0o755);
+      chmodSync(join(root, "vbrief", ".triage-cache"), 0o755);
       expect(readAll(canonicalLogPath(root))).toEqual([]);
     });
 

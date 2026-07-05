@@ -197,7 +197,7 @@ describe("stepBackfillAuditLog", () => {
       nowIso: () => "2026-06-18T12:00:00Z",
     });
     expect(outcome.ok).toBe(true);
-    const audit = join(root, "vbrief", ".eval", "candidates.jsonl");
+    const audit = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
     const lines = readFileSync(audit, "utf8")
       .split("\n")
       .filter((line) => line.trim().length > 0)
@@ -226,7 +226,9 @@ describe("runBootstrap", () => {
       "seed_candidates_log",
     ]);
     expect(result.exitCode).toBe(0);
-    expect(readFileSync(join(root, "vbrief", ".eval", "candidates.jsonl"), "utf8")).toBe("");
+    expect(readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8")).toBe(
+      "",
+    );
   });
 
   it("threads inferred repo to backfill (#1237)", async () => {

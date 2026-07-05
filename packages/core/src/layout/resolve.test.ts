@@ -160,8 +160,8 @@ describe("layout-aware path helpers (#2109 part 2a)", () => {
     seedVbrief();
     expect(resolveLifecycleFolder(root, "pending")).toBe(join(root, "vbrief", "pending"));
     expect(resolveEvalDir(root)).toBe(join(root, "vbrief", ".eval"));
-    expect(resolveEvalPath(root, "candidates.jsonl")).toBe(
-      join(root, "vbrief", ".eval", "candidates.jsonl"),
+    expect(resolveEvalPath(root, "results", "ledger.json")).toBe(
+      join(root, "vbrief", ".eval", "results", "ledger.json"),
     );
     expect(resolveAuditDir(root)).toBe(join(root, "vbrief", ".audit"));
     expect(resolveAuditPath(root, "pending-human-decisions.jsonl")).toBe(
@@ -177,8 +177,8 @@ describe("layout-aware path helpers (#2109 part 2a)", () => {
   it("resolves the same helpers under xbrief once the migrated tree exists", () => {
     seedXbrief();
     expect(resolveLifecycleFolder(root, "pending")).toBe(join(root, "xbrief", "pending"));
-    expect(resolveEvalPath(root, "candidates.jsonl")).toBe(
-      join(root, "xbrief", ".eval", "candidates.jsonl"),
+    expect(resolveEvalPath(root, "results", "ledger.json")).toBe(
+      join(root, "xbrief", ".eval", "results", "ledger.json"),
     );
     expect(resolveAuditPath(root, "pending-human-decisions.jsonl")).toBe(
       join(root, "xbrief", ".audit", "pending-human-decisions.jsonl"),

@@ -1,17 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { resolveEvalPath } from "../../layout/resolve.js";
+import { resolveCandidatesLogPath, TRIAGE_CANDIDATES_LOG_REL_PATH } from "../cache-path.js";
 import { CandidatesLogError } from "./errors.js";
 import type { AuditEntry, CandidatesLog } from "./types.js";
 
-/** Display/back-compat constant; resolution flows through resolveEvalPath (#2109). */
-export const AUDIT_LOG_REL_PATH = "vbrief/.eval/candidates.jsonl";
+/** Display/back-compat constant; resolution flows through resolveTriageCachePath (#1703). */
+export const AUDIT_LOG_REL_PATH = TRIAGE_CANDIDATES_LOG_REL_PATH;
 
-/** Layout-aware candidates audit-log path (xbrief when migrated, else vbrief). */
-export function resolveCandidatesLogPath(projectRoot: string): string {
-  return resolveEvalPath(projectRoot, "candidates.jsonl");
-}
+export { resolveCandidatesLogPath };
 
 const VALID_DECISIONS = new Set([
   "accept",

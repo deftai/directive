@@ -73,7 +73,7 @@ xbrief/*.premigrate.*
 # scripts/triage_cache.py for the layout (.deft-cache/issues/<owner>-<repo>/).
 .deft-cache/
 
-# vbrief/.eval/ tracking governance (#1144, N4 of #1119).
+# vbrief/.triage-cache/ tracking governance (#1144, N4 of #1119).
 # Hybrid policy from the Current Shape comment on #1144:
 #   - candidates.jsonl       -> gitignored (operator-private triage decisions;
 #                               re-derive via `task triage:bootstrap` on a
@@ -94,21 +94,21 @@ xbrief/*.premigrate.*
 #                               `task doctor` per #1308 to gate the 24h/4h
 #                               re-probe window. Local to each clone; never
 #                               committed).
-# See xbrief/.eval/README.md for the full policy + merge=union rebase note.
+# See xbrief/.triage-cache/README.md for the full policy + merge=union rebase note.
 # Canonical xbrief/ layout (#2109) -- same governance as the legacy vbrief/ block below.
-xbrief/.eval/candidates.jsonl
-xbrief/.eval/summary-history.jsonl
-xbrief/.eval/scope-lifecycle.jsonl
-xbrief/.eval/decompositions/
-xbrief/.eval/doctor-state.json
-xbrief/.eval/*.lock
+xbrief/.triage-cache/candidates.jsonl
+xbrief/.triage-cache/summary-history.jsonl
+xbrief/.triage-cache/scope-lifecycle.jsonl
+xbrief/.triage-cache/decompositions/
+xbrief/.triage-cache/doctor-state.json
+xbrief/.triage-cache/*.lock
 # Legacy vbrief/ layout (back-compat read window; removed by #2112).
-vbrief/.eval/candidates.jsonl
-vbrief/.eval/summary-history.jsonl
-vbrief/.eval/scope-lifecycle.jsonl
-vbrief/.eval/decompositions/
-vbrief/.eval/doctor-state.json
-vbrief/.eval/*.lock
+vbrief/.triage-cache/candidates.jsonl
+vbrief/.triage-cache/summary-history.jsonl
+vbrief/.triage-cache/scope-lifecycle.jsonl
+vbrief/.triage-cache/decompositions/
+vbrief/.triage-cache/doctor-state.json
+vbrief/.triage-cache/*.lock
 
 # N6 (#1146) triage:smoketest assert log -- runtime artefact, never committed.
 # The fixture itself (tests/fixtures/triage_smoketest/{issues.json,

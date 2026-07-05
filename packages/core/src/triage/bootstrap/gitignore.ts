@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
-import { resolveEvalPath } from "../../layout/resolve.js";
+import { resolveLifecycleLayout } from "../../layout/resolve.js";
+import {
+  resolveCandidatesLogPath,
+  resolveTriageCachePath,
+  TRIAGE_CACHE_DIR_NAME,
+  triageCacheRelPath,
+} from "../cache-path.js";
 import type { StepOutcome } from "./types.js";
 
 /** POSIX-style display path for `absPath` relative to `projectRoot` (#2109). */
@@ -15,19 +21,40 @@ export const GITIGNORE_DEFT_RUNTIME_SENTINELS: readonly string[] = [
   ".deft/last-session.json",
 ];
 
+/** Legacy static vbrief paths kept for tests referencing the pre-#1703 constant shape. */
 export const GITIGNORE_EVAL_ENTRIES: readonly string[] = [
-  "vbrief/.eval/candidates.jsonl",
-  "vbrief/.eval/summary-history.jsonl",
-  "vbrief/.eval/scope-lifecycle.jsonl",
-  "vbrief/.eval/decompositions/",
-  "vbrief/.eval/doctor-state.json",
+  "vbrief/.triage-cache/candidates.jsonl",
+  "vbrief/.triage-cache/summary-history.jsonl",
+  "vbrief/.triage-cache/scope-lifecycle.jsonl",
+  "vbrief/.triage-cache/decompositions/",
+  "vbrief/.triage-cache/doctor-state.json",
 ];
 
-export const GITATTRIBUTES_EVAL_RULE = "vbrief/.eval/*.jsonl  merge=union";
+/** Layout-aware gitignore lines for triage working-set files (#1703). */
+export function gitignoreTriageCacheEntries(projectRoot: string): readonly string[] {
+  const decomp = triageCacheRelPath(projectRoot, "decompositions");
+  return [
+    triageCacheRelPath(projectRoot, "candidates.jsonl"),
+    triageCacheRelPath(projectRoot, "summary-history.jsonl"),
+    triageCacheRelPath(projectRoot, "scope-lifecycle.jsonl"),
+    decomp.endsWith("/") ? decomp : `${decomp}/`,
+    triageCacheRelPath(projectRoot, "doctor-state.json"),
+  ];
+}
 
-export const FORBIDDEN_BLANKET_EVAL_LINES: readonly string[] = ["vbrief/.eval/", "vbrief/.eval"];
+export function gitattributesTriageCacheGlob(projectRoot: string): string {
+  const layout = resolveLifecycleLayout(projectRoot);
+  return `${layout.artifactDir}/${TRIAGE_CACHE_DIR_NAME}/*.jsonl`;
+}
 
-const GITATTRIBUTES_EVAL_GLOB = "vbrief/.eval/*.jsonl";
+export const GITATTRIBUTES_EVAL_RULE = "vbrief/.triage-cache/*.jsonl  merge=union";
+
+export const FORBIDDEN_BLANKET_EVAL_LINES: readonly string[] = [
+  "vbrief/.triage-cache/",
+  "vbrief/.triage-cache",
+  "vbrief/.triage-cache/",
+  "vbrief/.eval",
+];
 
 const DEFT_CACHE_RATIONALE =
   "\n# Triage v1 local content cache (#845, #883). Mirrors upstream\n" +
@@ -36,7 +63,7 @@ const DEFT_CACHE_RATIONALE =
   "# contract. Comment this line out to opt in to committing the cache.\n";
 
 const EVAL_ENTRIES_RATIONALE =
-  "\n# vbrief/.eval/ tracking governance (#1144, N4 of #1119).\n" +
+  "\n# vbrief/.triage-cache/ tracking governance (#1144, N4 of #1119).\n" +
   "# Hybrid policy from the Current Shape comment on #1144:\n" +
   "#   - candidates.jsonl       -> gitignored (operator-private triage\n" +
   "#                               decisions; re-derive via\n" +
@@ -62,19 +89,20 @@ const EVAL_ENTRIES_RATIONALE =
   "#   - slices.jsonl           -> TRACKED (team-shared cohort records\n" +
   "#                               produced by slicing skills; see\n" +
   "#                               #1132 / D13).\n" +
-  "# See vbrief/.eval/README.md for the full policy + merge=union\n" +
+  "# See vbrief/.triage-cache/README.md for the full policy + merge=union\n" +
   "# rebase note.\n";
 
 const GITATTRIBUTES_EVAL_RATIONALE =
-  "\n# Append-only JSON-lines logs under vbrief/.eval/ use the union merge driver\n" +
+  "\n# Append-only JSON-lines logs under vbrief/.triage-cache/ use the union merge driver\n" +
   "# (#1144, N4 of #1119). Both branches' appended lines are concatenated on\n" +
   "# auto-merge so single-operator rebases of two append branches resolve\n" +
   "# without manual conflict surgery. Note: merge=union does NOT dedupe; see\n" +
-  "# vbrief/.eval/README.md for the operator-facing semantics.\n";
+  "# vbrief/.triage-cache/README.md for the operator-facing semantics.\n";
 
-const EVAL_ENTRIES_RATIONALE_SENTINEL = "# vbrief/.eval/ tracking governance (#1144, N4 of #1119).";
+const EVAL_ENTRIES_RATIONALE_SENTINEL =
+  "# vbrief/.triage-cache/ tracking governance (#1144, N4 of #1119).";
 
-export const EVAL_README_BODY = `# \`vbrief/.eval/\` -- triage + slicing evaluation artefacts
+export const EVAL_README_BODY = `# \`vbrief/.triage-cache/\` -- triage working-set artefacts
 
 This directory holds the append-only JSON-lines logs that the triage and
 slicing skills emit. The framework governs which files in here are tracked
@@ -91,9 +119,9 @@ by git versus gitignored using a **hybrid policy** (#1144, child of #1119).
 | \`decompositions/\` | No -- **gitignored** | Temporary story-decomposition proposal drafts. These JSON drafts are local scratch artifacts, not vBRIEFs; generated child story vBRIEFs are created by \`task scope:decompose\` in lifecycle folders, defaulting to \`vbrief/pending/\`. |
 | \`doctor-state.json\` | No -- **gitignored** | Per-machine \`task doctor\` throttle state (last exit code + timestamps) persisted to gate the 24h/4h re-probe window (#1308 / #1464). Local to each clone; never committed. |
 
-The gitignore lines live in the repo-root \`.gitignore\` (\`vbrief/.eval/candidates.jsonl\`,
-\`vbrief/.eval/summary-history.jsonl\`, \`vbrief/.eval/scope-lifecycle.jsonl\`,
-\`vbrief/.eval/decompositions/\`, and \`vbrief/.eval/doctor-state.json\`). All paths
+The gitignore lines live in the repo-root \`.gitignore\` (\`vbrief/.triage-cache/candidates.jsonl\`,
+\`vbrief/.triage-cache/summary-history.jsonl\`, \`vbrief/.triage-cache/scope-lifecycle.jsonl\`,
+\`vbrief/.triage-cache/decompositions/\`, and \`vbrief/.triage-cache/doctor-state.json\`). All paths
 not listed above remain committed by default.
 
 ## Fresh-clone regeneration
@@ -106,7 +134,7 @@ task triage:bootstrap
 \`\`\`
 
 The bootstrap path detects the missing file, runs the auto-classifier, and
-writes a fresh \`vbrief/.eval/candidates.jsonl\`. It does NOT touch the tracked
+writes a fresh \`vbrief/.triage-cache/candidates.jsonl\`. It does NOT touch the tracked
 \`slices.jsonl\`; cohort records remain a team-shared resource.
 
 ## \`merge=union\` policy for \`*.jsonl\`
@@ -114,7 +142,7 @@ writes a fresh \`vbrief/.eval/candidates.jsonl\`. It does NOT touch the tracked
 The repo-root \`.gitattributes\` declares:
 
 \`\`\`
-vbrief/.eval/*.jsonl  merge=union
+vbrief/.triage-cache/*.jsonl  merge=union
 \`\`\`
 
 The \`union\` merge driver concatenates both sides' appended lines on
@@ -263,24 +291,28 @@ export function stepEnsureGitignoreEntry(projectRoot: string): StepOutcome {
 function formatBlanketWarning(blanketPresent: boolean): string {
   if (!blanketPresent) return "";
   return (
-    " WARNING: stale blanket vbrief/.eval/ line detected in .gitignore -- " +
+    " WARNING: stale blanket vbrief/.triage-cache/ line detected in .gitignore -- " +
     "remove it manually (it hides tracked slices.jsonl from git per #1251)"
   );
 }
 
-function gitattributesHasEvalMergeUnion(body: string): boolean {
+function gitattributesHasEvalMergeUnion(body: string, glob: string): boolean {
   for (const raw of body.split("\n")) {
     const stripped = raw.trim();
     if (stripped.length === 0 || stripped.startsWith("#")) continue;
     const parts = stripped.split(/\s+/);
     if (parts.length === 0) continue;
-    if (parts[0] !== GITATTRIBUTES_EVAL_GLOB) continue;
+    if (parts[0] !== glob) continue;
     if (parts.slice(1).includes("merge=union")) return true;
   }
   return false;
 }
 
-function ensureGitignoreSelectiveEntries(gitignorePath: string, stepName: string): StepOutcome {
+function ensureGitignoreSelectiveEntries(
+  gitignorePath: string,
+  stepName: string,
+  entries: readonly string[],
+): StepOutcome {
   let existing: string;
   try {
     existing = readFileSync(gitignorePath, { encoding: "utf8" });
@@ -304,7 +336,7 @@ function ensureGitignoreSelectiveEntries(gitignorePath: string, stepName: string
     existingLines.has(forbidden),
   );
   const rationaleAlreadyPresent = existing.includes(EVAL_ENTRIES_RATIONALE_SENTINEL);
-  const missing = GITIGNORE_EVAL_ENTRIES.filter((entry) => !existingLines.has(entry));
+  const missing = entries.filter((entry) => !existingLines.has(entry));
   const blanketWarning = formatBlanketWarning(blanketPresent);
 
   if (missing.length === 0) {
@@ -350,7 +382,12 @@ function ensureGitignoreSelectiveEntries(gitignorePath: string, stepName: string
   );
 }
 
-function ensureGitattributesMergeUnion(gitattributesPath: string, stepName: string): StepOutcome {
+function ensureGitattributesMergeUnion(
+  gitattributesPath: string,
+  stepName: string,
+  glob: string,
+  ruleLine: string,
+): StepOutcome {
   if (existsSync(gitattributesPath)) {
     let existing: string;
     try {
@@ -364,19 +401,14 @@ function ensureGitattributesMergeUnion(gitattributesPath: string, stepName: stri
         String(exc),
       );
     }
-    if (gitattributesHasEvalMergeUnion(existing)) {
-      return stepOutcome(
-        stepName,
-        true,
-        "vbrief/.eval/*.jsonl merge=union already in .gitattributes (no-op)",
-        {
-          gitattributes_appended: false,
-          gitattributes_already_present: true,
-        },
-      );
+    if (gitattributesHasEvalMergeUnion(existing, glob)) {
+      return stepOutcome(stepName, true, `${glob} merge=union already in .gitattributes (no-op)`, {
+        gitattributes_appended: false,
+        gitattributes_already_present: true,
+      });
     }
     const suffix = existing.endsWith("\n") || existing === "" ? "" : "\n";
-    const newContent = `${existing + suffix + GITATTRIBUTES_EVAL_RATIONALE + GITATTRIBUTES_EVAL_RULE}\n`;
+    const newContent = `${existing + suffix + GITATTRIBUTES_EVAL_RATIONALE + ruleLine}\n`;
     try {
       writeFileSync(gitattributesPath, newContent, { encoding: "utf8" });
     } catch (exc) {
@@ -388,15 +420,13 @@ function ensureGitattributesMergeUnion(gitattributesPath: string, stepName: stri
         String(exc),
       );
     }
-    return stepOutcome(
-      stepName,
-      true,
-      "appended vbrief/.eval/*.jsonl merge=union to .gitattributes",
-      { gitattributes_appended: true, gitattributes_created: false },
-    );
+    return stepOutcome(stepName, true, `appended ${glob} merge=union to .gitattributes`, {
+      gitattributes_appended: true,
+      gitattributes_created: false,
+    });
   }
 
-  const newContent = `${GITATTRIBUTES_EVAL_RATIONALE + GITATTRIBUTES_EVAL_RULE}\n`;
+  const newContent = `${GITATTRIBUTES_EVAL_RATIONALE + ruleLine}\n`;
   try {
     writeFileSync(gitattributesPath, newContent, { encoding: "utf8" });
   } catch (exc) {
@@ -408,12 +438,10 @@ function ensureGitattributesMergeUnion(gitattributesPath: string, stepName: stri
       String(exc),
     );
   }
-  return stepOutcome(
-    stepName,
-    true,
-    "created .gitattributes with vbrief/.eval/*.jsonl merge=union",
-    { gitattributes_appended: true, gitattributes_created: true },
-  );
+  return stepOutcome(stepName, true, `created .gitattributes with ${glob} merge=union`, {
+    gitattributes_appended: true,
+    gitattributes_created: true,
+  });
 }
 
 function ensureEvalReadme(readmePath: string, readmeRel: string, stepName: string): StepOutcome {
@@ -450,19 +478,22 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
   const gitattributesPath = `${projectRoot}/.gitattributes`;
   // Layout-aware (#2109): resolve the README under the active lifecycle `.eval`
   // dir (xbrief/ when migrated, else vbrief/) instead of a hardcoded vbrief/ path.
-  const readmePath = resolveEvalPath(projectRoot, "README.md");
+  const readmePath = resolveTriageCachePath(projectRoot, "README.md");
   const readmeRel = evalRelDisplay(projectRoot, readmePath);
+  const entries = gitignoreTriageCacheEntries(projectRoot);
+  const glob = gitattributesTriageCacheGlob(projectRoot);
+  const ruleLine = `${glob}  merge=union`;
   const stepName = "ensure_gitignore_eval_entries";
   const details: Record<string, unknown> = {};
 
-  const giResult = ensureGitignoreSelectiveEntries(gitignorePath, stepName);
+  const giResult = ensureGitignoreSelectiveEntries(gitignorePath, stepName, entries);
   if (!giResult.ok) {
     Object.assign(details, giResult.details);
     return stepOutcome(stepName, false, giResult.message, details, giResult.error ?? null);
   }
   Object.assign(details, giResult.details);
 
-  const gaResult = ensureGitattributesMergeUnion(gitattributesPath, stepName);
+  const gaResult = ensureGitattributesMergeUnion(gitattributesPath, stepName, glob, ruleLine);
   if (!gaResult.ok) {
     Object.assign(details, gaResult.details);
     return stepOutcome(stepName, false, gaResult.message, details, gaResult.error ?? null);
@@ -499,11 +530,11 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
   return stepOutcome(stepName, true, message, details);
 }
 
-/** Ensure `vbrief/.eval/candidates.jsonl` exists (#1240 option A). */
+/** Ensure `vbrief/.triage-cache/candidates.jsonl` exists (#1240 option A). */
 export function stepSeedCandidatesLog(projectRoot: string): StepOutcome {
   // Layout-aware (#2109): seed under the active lifecycle `.eval` dir (xbrief/
   // when migrated, else vbrief/) instead of a hardcoded vbrief/ path.
-  const auditPath = resolveEvalPath(projectRoot, "candidates.jsonl");
+  const auditPath = resolveCandidatesLogPath(projectRoot);
   const auditRel = evalRelDisplay(projectRoot, auditPath);
   const auditDir = dirname(auditPath);
   try {

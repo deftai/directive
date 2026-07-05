@@ -148,7 +148,7 @@ describe("unsubscribe", () => {
   it("writes subscription history on change", () => {
     const root = makeRepo();
     subscribe(root, { label: "tracked", actor: "agent:test" });
-    const historyPath = join(root, "vbrief", ".eval", "subscription-history.jsonl");
+    const historyPath = join(root, "vbrief", ".triage-cache", "subscription-history.jsonl");
     expect(existsSync(historyPath)).toBe(true);
   });
 
