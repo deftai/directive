@@ -189,6 +189,30 @@ describe("run show + set integration", () => {
     expect(err).toContain("PROJECT-DEFINITION not found");
   });
 
+  it("names the xbrief path in the not-found warning on a migrated tree (#2302)", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-policy-xbrief-"));
+    roots.push(r);
+    // A migrated tree: xbrief/ exists and holds at least one .xbrief.json
+    // artifact, but PROJECT-DEFINITION.xbrief.json is absent.
+    mkdirSync(join(r, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(r, "xbrief", "active", "some.xbrief.json"), "{}", { encoding: "utf8" });
+    const { code, err } = captureRun(["show", "--project-root", r]);
+    expect(code).toBe(0);
+    expect(err).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(err).not.toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
+  });
+
+  it("recovery hint names the xbrief path on a migrated tree (#2302)", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-policy-xbrief-set-"));
+    roots.push(r);
+    mkdirSync(join(r, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(r, "xbrief", "active", "some.xbrief.json"), "{}", { encoding: "utf8" });
+    const { code, err } = captureRun(["enforce-branches", "--project-root", r]);
+    expect(code).toBe(2);
+    expect(err).toContain("xbrief/PROJECT-DEFINITION.xbrief.json");
+    expect(err).not.toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
+  });
+
   it("runs allow-direct-commits with confirm", () => {
     const r = project();
     const { code, out } = captureRun([

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `deft doctor` now surfaces an actionable advisory when a project's `VERSION` manifest carries no semver tag/ref and only a short commit sha — the unpinned state legacy `deft-install` produces without a release pin. Previously the framework version was silently unreportable; the doctor now names the sha-only manifest and points at `directive update` to obtain a pinned npm-managed manifest, without changing the doctor exit code. Closes #2294.
+- **`policy:show` and PROJECT-DEFINITION loaders now name the path that actually applies to your project layout (#2302).** On a migrated `xbrief/` project, the "PROJECT-DEFINITION not found" warning and its recovery hint previously pointed at the legacy `vbrief/PROJECT-DEFINITION.vbrief.json` even though the value resolved fine, which was confusing; they now report the resolved `xbrief/` path (unmigrated projects are unchanged). A regression guard also closes a coverage gap so any `task cache:fetch-all`-style command that forwards flags can never silently drop or reorder them via task caching. Closes #2302. Refs #2295.
 
 ### Removed
 

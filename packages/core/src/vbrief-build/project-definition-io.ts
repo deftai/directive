@@ -12,15 +12,20 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { resolveProjectDefinitionPath } from "../layout/resolve.js";
-import { PROJECT_DEFINITION_REL_PATH } from "./constants.js";
 import { pythonJsonPretty } from "./json.js";
 import type { JsonObject } from "./types.js";
 import { ProjectDefinitionIOError } from "./types.js";
 
 const mutationThreadLock = { held: false };
 
+/**
+ * Absolute path to the PROJECT-DEFINITION artifact. Layout-aware (#2302):
+ * resolves `xbrief/PROJECT-DEFINITION.xbrief.json` on a migrated tree, else the
+ * legacy `vbrief/PROJECT-DEFINITION.vbrief.json`, so loader not-found messages
+ * name the path that actually applies to the project's layout.
+ */
 export function projectDefinitionPath(projectRoot: string): string {
-  return join(projectRoot, PROJECT_DEFINITION_REL_PATH);
+  return resolveProjectDefinitionPath(resolve(projectRoot));
 }
 
 function defaultSleep(ms: number): void {
