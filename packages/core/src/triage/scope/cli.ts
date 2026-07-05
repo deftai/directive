@@ -9,6 +9,7 @@ import {
   computeDiffFromUpstream,
   fetchUpstreamLabelsAndMilestones,
   renderDiffReport,
+  setScopePreset,
 } from "./mutations.js";
 import { subscriptionHash } from "./normalize.js";
 import { pyListRepr } from "./python-repr.js";
@@ -30,6 +31,7 @@ export interface ParsedCliArgs {
   addLabel: string | undefined;
   addMilestone: string | undefined;
   ignoreLabel: string | undefined;
+  setPreset: string | undefined;
   diffFromUpstream: boolean;
   source: string;
   cacheRoot: string | undefined;
@@ -45,6 +47,7 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
     addLabel: undefined,
     addMilestone: undefined,
     ignoreLabel: undefined,
+    setPreset: undefined,
     diffFromUpstream: false,
     source: "github-issue",
     cacheRoot: undefined,
@@ -79,6 +82,11 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
       i += 1;
     } else if (arg?.startsWith("--ignore-label="))
       parsed.ignoreLabel = arg.slice("--ignore-label=".length);
+    else if (arg === "--set-preset") {
+      parsed.setPreset = argv[i + 1];
+      i += 1;
+    } else if (arg?.startsWith("--set-preset="))
+      parsed.setPreset = arg.slice("--set-preset=".length);
     else if (arg === "--source") {
       parsed.source = argv[i + 1] ?? "github-issue";
       i += 1;
@@ -102,16 +110,19 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
 export const CLI_HELP = `usage: triage_scope.py [-h] [--project-root PROJECT_ROOT] [--list]
                        [--refresh-denominator] [--repo REPO]
                        [--add-label ADD_LABEL] [--add-milestone ADD_MILESTONE]
-                       [--ignore-label IGNORE_LABEL] [--diff-from-upstream]
+                       [--ignore-label IGNORE_LABEL] [--set-preset PRESET]
+                       [--diff-from-upstream]
                        [--source SOURCE] [--cache-root CACHE_ROOT]
                        [--count COUNT]
 
 Inspect, mutate, and diff the typed plan.policy.triageScope[] subscription +
 plan.policy.triageScopeIgnores[] (#1131 / D12, #1133 / D14, #1182 / D14c).
 Read paths never trigger a recompute; use --refresh-denominator to update the
-coverage cache. Mutation flags --add-label / --add-milestone / --ignore-label
-are idempotent and atomic; every mutation appends a subscription-change audit
-entry to vbrief/.eval/subscription-history.jsonl.
+coverage cache. Mutation flags --add-label / --add-milestone / --ignore-label /
+--set-preset are idempotent and atomic; every mutation appends a
+subscription-change audit entry to vbrief/.eval/subscription-history.jsonl.
+--set-preset small|mid|mega overwrites plan.policy.triageScope[] with a named
+subscription preset via the same writer that backs triage:welcome --onboard (#2301).
 `;
 
 interface CliOutput {
@@ -137,6 +148,9 @@ function handleMutation(
     } else if (args.ignoreLabel !== undefined) {
       [changed, message] = addLabelToIgnores(projectRoot, args.ignoreLabel);
       verb = "ignore-label";
+    } else if (args.setPreset !== undefined) {
+      [changed, message] = setScopePreset(projectRoot, args.setPreset);
+      verb = "set-preset";
     } else {
       throw new Error("internal: mutation flag set but no handler matched");
     }
@@ -170,6 +184,7 @@ export function runCliCapture(argv: string[]): { code: number; stdout: string; s
     args.addLabel !== undefined ? "--add-label" : null,
     args.addMilestone !== undefined ? "--add-milestone" : null,
     args.ignoreLabel !== undefined ? "--ignore-label" : null,
+    args.setPreset !== undefined ? "--set-preset" : null,
   ].filter((f): f is string => f !== null);
 
   if (mutationFlags.length > 1) {
@@ -177,7 +192,7 @@ export function runCliCapture(argv: string[]): { code: number; stdout: string; s
       code: 2,
       stdout: "",
       stderr:
-        "triage:scope: --add-label / --add-milestone / --ignore-label " +
+        "triage:scope: --add-label / --add-milestone / --ignore-label / --set-preset " +
         `are mutually exclusive (got ${pyListRepr(mutationFlags)}).\n`,
     };
   }
@@ -198,6 +213,15 @@ export function runCliCapture(argv: string[]): { code: number; stdout: string; s
     stdout.push(...mutation.out.stdout);
     if (mutation.code !== 0) {
       return { code: mutation.code, stdout: stdout.join(""), stderr: stderr.join("") };
+    }
+    // A preset write comes from the trusted SUBSCRIPTION_PRESETS constant (the
+    // same source the onboard path writes). The `mega` preset intentionally
+    // ships an `explicit-watch` scaffold with an empty `issues` list for the
+    // operator to fill in, which the strict hand-edit validator below flags.
+    // Bypass that re-validation for a preset write so `--set-preset` reports the
+    // successful, persisted mutation instead of a spurious exit 1 (#2301).
+    if (args.setPreset !== undefined) {
+      return { code: 0, stdout: stdout.join(""), stderr: stderr.join("") };
     }
   }
 

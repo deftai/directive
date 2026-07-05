@@ -7,9 +7,12 @@ import { existsSync } from "node:fs";
 import { join, resolve as pathResolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  describeShadowedPlanExtension,
+  detectShadowedPlanExtensions,
   disclosureLine,
   inspectAllPolicies,
   inspectOnePolicy,
+  loadProjectDefinition,
   PROJECT_DEFINITION_REL_PATH,
   pythonListRepr,
   pythonStringRepr,
@@ -227,6 +230,20 @@ export function parseArgs(argv: string[]): SetArgs {
   return makeSetError(`unknown subcommand: ${cmd}`);
 }
 
+/**
+ * Emit a loud warning to stderr for every plan-extension key whose bare block
+ * silently shadows the namespaced form (#2301). Never fails / throws: a missing
+ * or malformed PROJECT-DEFINITION simply yields no warnings.
+ */
+function emitPlanExtensionShadowWarnings(projectRoot: string): void {
+  const [data] = loadProjectDefinition(projectRoot);
+  if (data === null) return;
+  const shadows = detectShadowedPlanExtensions(data.plan);
+  for (const shadow of shadows) {
+    process.stderr.write(`[policy:show] WARNING: ${describeShadowedPlanExtension(shadow)}\n`);
+  }
+}
+
 function runShow(args: ShowArgs): number {
   const projectRoot = pathResolve(args.projectRoot);
   const pdPath = join(projectRoot, PROJECT_DEFINITION_REL_PATH);
@@ -236,6 +253,7 @@ function runShow(args: ShowArgs): number {
         "rendering framework defaults.\n",
     );
   }
+  emitPlanExtensionShadowWarnings(projectRoot);
 
   if (args.field !== null) {
     const field = inspectOnePolicy(args.field, projectRoot);

@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { SUBPROCESS_MAX_BUFFER } from "../../subprocess/max-buffer.js";
+import { SUBSCRIPTION_PRESETS } from "../welcome/constants.js";
+import { subscriptionPreset, writeTriageScope } from "../welcome/writers.js";
 import { collectMilestoneSubscribedNames, rulesRequestIsOpen } from "./milestone.js";
 import { addIgnore, subscribe } from "./mutations-core.js";
 import { resolveScopeIgnores, resolveScopeRules } from "./resolve.js";
@@ -248,4 +250,28 @@ export function addLabelToIgnores(projectRoot: string, label: string): [boolean,
   if (!label.trim())
     throw new Error(`label must be a non-empty string; got ${JSON.stringify(label)}`);
   return addIgnore(projectRoot, label);
+}
+
+/** Valid subscription preset keys for `triage:scope --set-preset` (#2301). */
+export function scopePresetKeys(): string[] {
+  return Object.keys(SUBSCRIPTION_PRESETS);
+}
+
+/**
+ * Overwrite plan.policy.triageScope with a named subscription preset (#2301).
+ * Reuses the shared `subscriptionPreset` + `writeTriageScope` helper that backs
+ * `triage:welcome --onboard`, so the write path (namespaced key, legacy-key
+ * migration, audit trail, mutation lock) stays identical across surfaces rather
+ * than being duplicated here.
+ */
+export function setScopePreset(projectRoot: string, presetKey: string): [boolean, string] {
+  const key = presetKey.trim();
+  const validKeys = scopePresetKeys();
+  if (!validKeys.includes(key)) {
+    throw new Error(
+      `unknown preset ${JSON.stringify(presetKey)}; valid presets: ${validKeys.join(", ")}`,
+    );
+  }
+  const rules = subscriptionPreset(key);
+  return writeTriageScope(projectRoot, rules, { presetLabel: key });
 }

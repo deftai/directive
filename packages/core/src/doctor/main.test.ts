@@ -66,6 +66,46 @@ describe("cmdDoctor", () => {
       }),
     ).toBe(0);
   });
+
+  it("emits a warning finding when a bare plan.policy shadows the namespaced form (#2301)", () => {
+    const stdout: string[] = [];
+    const write = (t: string) => stdout.push(t);
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = write as typeof process.stdout.write;
+    try {
+      const exit = cmdDoctor(["--full", "--json"], {
+        whichFn: () => "/usr/bin/x",
+        detectPlanExtensionShadows: () => [
+          { namespacedKey: "x-directive/policy", legacyKey: "policy", shadowedSubKeys: ["wipCap"] },
+        ],
+      });
+      // Shadow is a warning, not an error -- doctor stays green.
+      expect(exit).toBe(0);
+      const payload = stdout.join("");
+      expect(payload).toContain('"check": "plan-extension-shadow"');
+      expect(payload).toContain('"status": "shadowed"');
+      expect(payload).toContain("plan.policy.wipCap");
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
+
+  it("reports a clean plan-extension-shadow check when no shadow is present (#2301)", () => {
+    const stdout: string[] = [];
+    const write = (t: string) => stdout.push(t);
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = write as typeof process.stdout.write;
+    try {
+      const exit = cmdDoctor(["--full", "--json"], {
+        whichFn: () => "/usr/bin/x",
+        detectPlanExtensionShadows: () => [],
+      });
+      expect(exit).toBe(0);
+      expect(stdout.join("")).not.toContain('"status": "shadowed"');
+    } finally {
+      process.stdout.write = origWrite;
+    }
+  });
 });
 
 describe("parseDoctorFlags", () => {

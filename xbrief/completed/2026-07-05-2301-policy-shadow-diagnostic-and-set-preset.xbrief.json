@@ -1,0 +1,63 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #2301",
+    "updated": "2026-07-05T14:04:57Z"
+  },
+  "plan": {
+    "title": "stray bare plan.policy silently ignored when x-directive/policy exists (triageScope not applied, no warning)",
+    "status": "completed",
+    "narratives": {
+      "Description": "readPlanExtension is namespace-first: once an x-directive/policy object exists, a hand-added bare plan.policy.triageScope / wipCap is never read and there is no warning -- the exact silent-ignore trap behind #2295. Two parts: (1) add a triage:scope --set-preset small|mid|mega writer that reuses the existing subscriptionPreset + writeTriageScope helper shared with triage:welcome --onboard; (2) emit a loud diagnostic when a bare plan.policy coexists with x-directive/policy so the silent no-op becomes visible.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2301",
+      "Overview": "## Problem\n\n`readPlanExtension` in packages/core/src/policy/plan-extensions.ts reads the namespaced `x-directive/policy` key first and only falls back to bare `plan.policy` when the namespaced key is absent. Once `x-directive/policy` exists (after migrate or any policy CLI write), a hand-added bare `plan.policy.triageScope` / `wipCap` is silently ignored with no diagnostic.\n\n## Two parts\n\n1. **triage:scope --set-preset small|mid|mega writer.** triage:scope currently wires only --add-label / --add-milestone / --ignore-label. The preset primitive already exists (subscriptionPreset + writeTriageScope, also used by triage:welcome --onboard); wrap it as a shared writer path rather than duplicating.\n2. **Loud shadow diagnostic.** When a bare plan.policy coexists with x-directive/policy, emit a visible warning (never a silent no-op). Surfaces: doctor and policy show.\n\n## Acceptance\n\n- A hand-added bare plan.policy alongside x-directive/policy produces a visible warning (never a silent no-op).\n- triage:scope --set-preset <key> persists the preset via the shared writer.\n\nRefs #2295.",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "Add `triage:scope --set-preset small|mid|mega` flag (CLI parse + mutation) that persists the preset via the shared subscriptionPreset + writeTriageScope helper (no duplication of the onboard path).",
+        "status": "proposed"
+      },
+      {
+        "title": "--set-preset is mutually exclusive with --add-label / --add-milestone / --ignore-label; unknown preset keys produce a helpful error listing valid keys.",
+        "status": "proposed"
+      },
+      {
+        "title": "Add a shadow-detection primitive in plan-extensions.ts that flags every plan-extension key (policy, completedNote) where the bare and namespaced forms coexist, plus a message formatter.",
+        "status": "proposed"
+      },
+      {
+        "title": "Surface the shadow diagnostic as a visible warning in `policy show` (stderr) and as a `deft doctor` warning finding.",
+        "status": "proposed"
+      },
+      {
+        "title": "Unit tests cover the --set-preset writer path, the shadow detector, and both surfacing sites (forward-coverage).",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "policy",
+      "triage"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2301",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2301: stray bare plan.policy silently ignored when x-directive/policy exists"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2295",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2295: parent -- onboarding shows incomplete with no hint why"
+      }
+    ],
+    "updated": "2026-07-05T14:12:28Z",
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "technical-debt",
+      "capacityBucketSource": "match",
+      "completedAt": "2026-07-05T14:12:28Z"
+    }
+  }
+}

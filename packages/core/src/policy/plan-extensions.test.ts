@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  describeShadowedPlanExtension,
+  detectShadowedPlanExtensions,
   LEGACY_PLAN_COMPLETED_NOTE_KEY,
   LEGACY_PLAN_POLICY_KEY,
   migrateLegacyPolicyKey,
@@ -7,6 +9,7 @@ import {
   PLAN_POLICY_KEY,
   readPlanCompletedNote,
   readPlanPolicy,
+  SHADOWABLE_PLAN_EXTENSIONS,
 } from "./plan-extensions.js";
 
 describe("plan-extensions namespaced accessors (#1650)", () => {
@@ -70,5 +73,78 @@ describe("plan-extensions namespaced accessors (#1650)", () => {
     migrateLegacyPolicyKey(plan);
     expect(PLAN_POLICY_KEY in plan).toBe(false);
     expect(LEGACY_PLAN_POLICY_KEY in plan).toBe(false);
+  });
+});
+
+describe("plan-extension shadow detection (#2301)", () => {
+  it("covers both the policy and completedNote key pairs", () => {
+    const pairs = SHADOWABLE_PLAN_EXTENSIONS.map((p) => [p.namespacedKey, p.legacyKey]);
+    expect(pairs).toContainEqual([PLAN_POLICY_KEY, LEGACY_PLAN_POLICY_KEY]);
+    expect(pairs).toContainEqual([PLAN_COMPLETED_NOTE_KEY, LEGACY_PLAN_COMPLETED_NOTE_KEY]);
+  });
+
+  it("returns [] when only the namespaced key exists", () => {
+    expect(detectShadowedPlanExtensions({ [PLAN_POLICY_KEY]: { wipCap: 8 } })).toEqual([]);
+  });
+
+  it("returns [] when only the legacy bare key exists (un-migrated is fine)", () => {
+    expect(detectShadowedPlanExtensions({ policy: { wipCap: 3 } })).toEqual([]);
+  });
+
+  it("detects a bare plan.policy shadowed by the namespaced form and lists sub-keys", () => {
+    const shadows = detectShadowedPlanExtensions({
+      [PLAN_POLICY_KEY]: { wipCap: 9 },
+      policy: { triageScope: [], wipCap: 1 },
+    });
+    expect(shadows).toHaveLength(1);
+    expect(shadows[0]?.namespacedKey).toBe(PLAN_POLICY_KEY);
+    expect(shadows[0]?.legacyKey).toBe(LEGACY_PLAN_POLICY_KEY);
+    expect(shadows[0]?.shadowedSubKeys).toEqual(["triageScope", "wipCap"]);
+  });
+
+  it("detects multiple shadowed keys at once", () => {
+    const shadows = detectShadowedPlanExtensions({
+      [PLAN_POLICY_KEY]: {},
+      policy: {},
+      [PLAN_COMPLETED_NOTE_KEY]: "n",
+      completedNote: "legacy",
+    });
+    expect(shadows.map((s) => s.legacyKey).sort()).toEqual(
+      [LEGACY_PLAN_COMPLETED_NOTE_KEY, LEGACY_PLAN_POLICY_KEY].sort(),
+    );
+  });
+
+  it("reports no sub-keys when the shadowed bare value is not an object", () => {
+    const shadows = detectShadowedPlanExtensions({
+      [PLAN_COMPLETED_NOTE_KEY]: "current",
+      completedNote: "legacy string",
+    });
+    expect(shadows).toHaveLength(1);
+    expect(shadows[0]?.shadowedSubKeys).toEqual([]);
+  });
+
+  it("returns [] for non-object plans", () => {
+    expect(detectShadowedPlanExtensions(null)).toEqual([]);
+    expect(detectShadowedPlanExtensions([1, 2])).toEqual([]);
+    expect(detectShadowedPlanExtensions("nope")).toEqual([]);
+  });
+
+  it("describes the shadow with a fold/delete remediation and sub-key list", () => {
+    const [shadow] = detectShadowedPlanExtensions({
+      [PLAN_POLICY_KEY]: {},
+      policy: { triageScope: [] },
+    });
+    const message = describeShadowedPlanExtension(
+      shadow ?? {
+        namespacedKey: PLAN_POLICY_KEY,
+        legacyKey: LEGACY_PLAN_POLICY_KEY,
+        shadowedSubKeys: [],
+      },
+    );
+    expect(message).toContain("bare `plan.policy`");
+    expect(message).toContain("x-directive/policy");
+    expect(message).toContain("IGNORED");
+    expect(message).toContain("plan.policy.triageScope");
+    expect(message).toContain("Fold");
   });
 });

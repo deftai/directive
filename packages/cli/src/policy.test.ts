@@ -158,6 +158,50 @@ describe("run show + set integration", () => {
     expect(out).toContain('"generated_at"');
   });
 
+  it("warns to stderr when a bare plan.policy shadows the namespaced form (#2301)", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-policy-shadow-"));
+    roots.push(r);
+    mkdirSync(join(r, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(r, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: {
+          title: "T",
+          status: "running",
+          items: [],
+          "x-directive/policy": { wipCap: 8 },
+          policy: { triageScope: [{ rule: "all-open" }] },
+        },
+      }),
+      { encoding: "utf8" },
+    );
+    const { code, out, err } = captureRun(["show", "--project-root", r]);
+    expect(code).toBe(0);
+    expect(err).toContain("[policy:show] WARNING:");
+    expect(err).toContain("bare `plan.policy`");
+    expect(err).toContain("plan.policy.triageScope");
+    // stdout stays clean (JSON/text render is not polluted by the warning).
+    expect(out).toContain("plan.policy.wipCap");
+  });
+
+  it("does not warn when only the namespaced policy exists", () => {
+    const r = mkdtempSync(join(tmpdir(), "deft-policy-noshadow-"));
+    roots.push(r);
+    mkdirSync(join(r, "vbrief"), { recursive: true });
+    writeFileSync(
+      join(r, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      JSON.stringify({
+        vBRIEFInfo: { version: "0.6" },
+        plan: { title: "T", status: "running", items: [], "x-directive/policy": { wipCap: 8 } },
+      }),
+      { encoding: "utf8" },
+    );
+    const { code, err } = captureRun(["show", "--project-root", r]);
+    expect(code).toBe(0);
+    expect(err).not.toContain("WARNING:");
+  });
+
   it("runs resolve subcommand", () => {
     const r = project();
     const { code, out } = captureRun(["resolve", "--project-root", r]);

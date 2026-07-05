@@ -16,9 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`triage:scope --set-preset small|mid|mega` sets your whole triage subscription in one command (#2301).** Instead of adding labels and milestones one at a time, you can now apply a named subscription preset — the same `small` / `mid` / `mega` presets the onboarding flow offers — directly from `triage:scope`. It writes through the shared preset writer (so the namespaced `x-directive/policy` key, audit trail, and lock all behave identically to onboarding) and is mutually exclusive with the other mutation flags. Closes #2301. Refs #2295.
+
 ### Changed
 
 ### Fixed
+
+- **A stray bare `plan.policy` block no longer silently swallows your edits (#2301).** When a hand-added bare `plan.policy` (e.g. `triageScope` / `wipCap`) coexists with the namespaced `x-directive/policy`, the bare block is ignored on read — previously with no warning, so edits appeared to do nothing. `policy show` and `doctor` now emit a loud, specific diagnostic naming the shadowed fields and telling you to fold them into `x-directive/policy`. Closes #2301. Refs #2295.
 
 ### Removed
 

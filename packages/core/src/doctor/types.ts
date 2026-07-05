@@ -1,4 +1,5 @@
 import type { AdvisoryEvaluateResult } from "../agents-md-advisory/evaluate.js";
+import type { ShadowedPlanExtension } from "../policy/plan-extensions.js";
 import type { EngineProbeResult } from "../resolution/classify.js";
 import type { ResolutionMode } from "../resolution/index.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
@@ -134,4 +135,11 @@ export interface DoctorSeams {
    * first-hit-wins resolver scoped to the project root.
    */
   readonly resolveUserMd?: (projectRoot: string) => ResolveUserMdResult;
+  /**
+   * Plan-extension shadow detector seam (#2301). Injected so the doctor
+   * shadow-diagnostic surface stays deterministic + offline in tests. Defaults
+   * to loading PROJECT-DEFINITION and running `detectShadowedPlanExtensions` on
+   * its `plan` object; returns [] when no project definition is present.
+   */
+  readonly detectPlanExtensionShadows?: (projectRoot: string) => readonly ShadowedPlanExtension[];
 }

@@ -3,6 +3,11 @@ import { join, resolve } from "node:path";
 import { evaluate as evaluateAgentsMdAdvisory } from "../agents-md-advisory/evaluate.js";
 import { contentRoot } from "../content-root.js";
 import {
+  describeShadowedPlanExtension,
+  detectShadowedPlanExtensions,
+} from "../policy/plan-extensions.js";
+import { loadProjectDefinition } from "../policy/resolve.js";
+import {
   checkLocalEngineIntegrity,
   classify,
   detectPackageManager,
@@ -311,6 +316,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
   sink.info("Checking USER.md resolution...");
   const userMd = runUserMdResolutionCheck(projectRoot, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking plan.policy namespacing (shadowed bare keys)...");
+  runPlanExtensionShadowCheck(projectRoot, sink, addFinding, seams);
 
   if (!jsonMode) {
     sink.blank();
@@ -724,6 +735,57 @@ function runUserMdResolutionCheck(
     found: result.found,
   });
   return result;
+}
+
+/**
+ * Loud shadow diagnostic (#2301): flag every plan-extension key whose bare form
+ * (e.g. `plan.policy`) coexists with the namespaced form (`plan.x-directive/policy`).
+ * Because the reader is namespace-first, the bare block is silently ignored --
+ * the exact "edit takes no effect, no warning" trap behind #2295. Emits a
+ * `warning` finding per shadowed key; never an `error`, so `deft doctor` stays
+ * green on a merely-legibility issue. A clean project reports a `skip` finding.
+ */
+function runPlanExtensionShadowCheck(
+  projectRoot: string,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+  seams: DoctorSeams,
+): void {
+  const checkName = "plan-extension-shadow";
+  const detect =
+    seams.detectPlanExtensionShadows ??
+    ((root: string) => {
+      const [data] = loadProjectDefinition(root);
+      return data === null ? [] : detectShadowedPlanExtensions(data.plan);
+    });
+  try {
+    const shadows = detect(projectRoot);
+    if (shadows.length === 0) {
+      sink.success(`${checkName}: no shadowed bare plan keys`);
+      return;
+    }
+    for (const shadow of shadows) {
+      const message = `plan.policy shadow -- ${describeShadowedPlanExtension(shadow)}`.replace(
+        /\r?\n/g,
+        " ",
+      );
+      sink.warn(message);
+      addFinding({
+        severity: "warning",
+        message,
+        check: checkName,
+        status: "shadowed",
+        namespaced_key: shadow.namespacedKey,
+        legacy_key: shadow.legacyKey,
+        shadowed_sub_keys: [...shadow.shadowedSubKeys],
+      });
+    }
+  } catch (exc) {
+    const detail = `${exc instanceof Error ? exc.name : "Error"}: ${exc}`.replace(/\r?\n/g, " ");
+    const message = `${checkName}: probe failed -- ${detail}`;
+    sink.warn(message);
+    addFinding({ severity: "warning", message, check: checkName });
+  }
 }
 
 /**

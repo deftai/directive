@@ -63,3 +63,71 @@ export function migrateLegacyPolicyKey(plan: Record<string, unknown>): void {
     delete plan[LEGACY_PLAN_POLICY_KEY];
   }
 }
+
+/** The namespaced/legacy key pairs a bare block can silently shadow (#2301). */
+export const SHADOWABLE_PLAN_EXTENSIONS: ReadonlyArray<{
+  readonly namespacedKey: string;
+  readonly legacyKey: string;
+}> = [
+  { namespacedKey: PLAN_POLICY_KEY, legacyKey: LEGACY_PLAN_POLICY_KEY },
+  { namespacedKey: PLAN_COMPLETED_NOTE_KEY, legacyKey: LEGACY_PLAN_COMPLETED_NOTE_KEY },
+];
+
+/** A plan-extension key whose bare form is silently shadowed by the namespaced form. */
+export interface ShadowedPlanExtension {
+  /** The namespaced key that wins the read (e.g. `x-directive/policy`). */
+  readonly namespacedKey: string;
+  /** The bare legacy key that is silently ignored (e.g. `policy`). */
+  readonly legacyKey: string;
+  /**
+   * Best-effort list of sub-keys present in the shadowed bare object (e.g.
+   * `["triageScope", "wipCap"]`). Empty when the bare value is not an object.
+   */
+  readonly shadowedSubKeys: readonly string[];
+}
+
+/**
+ * Detect every plan-extension key where a bare (legacy) block coexists with the
+ * namespaced form (#2301). Because `readPlanExtension` is namespace-first, the
+ * bare block is never read once the namespaced key exists -- edits to it take no
+ * effect. Detecting the coexistence lets callers emit a loud diagnostic instead
+ * of the silent no-op that the #2295 onboarding trap exhibited.
+ */
+export function detectShadowedPlanExtensions(plan: unknown): ShadowedPlanExtension[] {
+  const planObj = asPlanObject(plan);
+  if (planObj === null) {
+    return [];
+  }
+  const shadows: ShadowedPlanExtension[] = [];
+  for (const { namespacedKey, legacyKey } of SHADOWABLE_PLAN_EXTENSIONS) {
+    if (planObj[namespacedKey] === undefined || planObj[legacyKey] === undefined) {
+      continue;
+    }
+    const legacyValue = planObj[legacyKey];
+    const shadowedSubKeys =
+      typeof legacyValue === "object" && legacyValue !== null && !Array.isArray(legacyValue)
+        ? Object.keys(legacyValue as Record<string, unknown>)
+        : [];
+    shadows.push({ namespacedKey, legacyKey, shadowedSubKeys });
+  }
+  return shadows;
+}
+
+/**
+ * Render a human-readable, loud diagnostic for a single shadowed plan-extension
+ * key. The message is surface-agnostic (no leading tag) so each caller can
+ * prefix it (`[policy:show]`, a doctor finding, ...).
+ */
+export function describeShadowedPlanExtension(shadow: ShadowedPlanExtension): string {
+  const subKeys =
+    shadow.shadowedSubKeys.length > 0
+      ? ` Shadowed field(s): ${shadow.shadowedSubKeys
+          .map((k) => `plan.${shadow.legacyKey}.${k}`)
+          .join(", ")}.`
+      : "";
+  return (
+    `bare \`plan.${shadow.legacyKey}\` coexists with namespaced \`plan.${shadow.namespacedKey}\`; ` +
+    `the bare block is IGNORED (namespaced-first read) so edits to it silently take no effect.${subKeys} ` +
+    `Fold its values into \`plan.${shadow.namespacedKey}\` and delete \`plan.${shadow.legacyKey}\`.`
+  );
+}
