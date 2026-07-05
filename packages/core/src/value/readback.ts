@@ -80,18 +80,22 @@ function parseDetectedAt(record: BehavioralEventRecord): Date | null {
 
 /** Read attribution ledger entries in emission order (#1709). */
 export function readAttributionEvents(options: ReadAttributionOptions): BehavioralEventRecord[] {
-  const logPath = resolveLedgerPath(options.projectRoot, options.logPath);
-  const since = options.since ?? null;
-  return readEvents(logPath).filter((record) => {
-    if (!ATTRIBUTION_NAME_SET.has(record.event)) {
-      return false;
-    }
-    if (since === null) {
-      return true;
-    }
-    const at = parseDetectedAt(record);
-    return at !== null && at.getTime() >= since.getTime();
-  });
+  try {
+    const logPath = resolveLedgerPath(options.projectRoot, options.logPath);
+    const since = options.since ?? null;
+    return readEvents(logPath).filter((record) => {
+      if (typeof record?.event !== "string" || !ATTRIBUTION_NAME_SET.has(record.event)) {
+        return false;
+      }
+      if (since === null) {
+        return true;
+      }
+      const at = parseDetectedAt(record);
+      return at !== null && at.getTime() >= since.getTime();
+    });
+  } catch {
+    return [];
+  }
 }
 
 function signalClassOf(record: BehavioralEventRecord): SignalClass | null {
@@ -297,37 +301,41 @@ export function renderSessionReadback(
     writeHistory?: boolean;
   } = {},
 ): SessionReadbackResult {
-  const root = resolve(projectRoot);
-  if (maintainerReadbackDisabled(root)) {
-    return { line: null, suppressed: false, gated: true };
-  }
+  try {
+    const root = resolve(projectRoot);
+    if (maintainerReadbackDisabled(root)) {
+      return { line: null, suppressed: false, gated: true };
+    }
 
-  const policy = options.policyOverride ?? resolveValueFeedback(root);
-  if (!isValueFeedbackPathAllowed("sessionLine", policy)) {
-    return { line: null, suppressed: false, gated: true };
-  }
+    const policy = options.policyOverride ?? resolveValueFeedback(root);
+    if (!isValueFeedbackPathAllowed("sessionLine", policy)) {
+      return { line: null, suppressed: false, gated: true };
+    }
 
-  const events = readAttributionEvents({ projectRoot: root, logPath: options.logPath });
-  if (events.length === 0) {
+    const events = readAttributionEvents({ projectRoot: root, logPath: options.logPath });
+    if (events.length === 0) {
+      return { line: null, suppressed: false, gated: false };
+    }
+
+    const selected = selectSessionAttribution(events);
+    if (selected === null) {
+      return { line: null, suppressed: false, gated: false };
+    }
+
+    const hist = historyPath(root);
+    if (shouldSuppressSessionReadback(selected.id, hist, { now: options.now })) {
+      return { line: null, suppressed: true, gated: false };
+    }
+
+    const maxChars = options.maxChars ?? MAX_LINE_CHARS;
+    const line = truncate(formatAttributedSessionLine(selected), maxChars);
+    if (options.writeHistory !== false) {
+      appendReadbackHistory(root, selected.id, line, { now: options.now });
+    }
+    return { line, suppressed: false, gated: false };
+  } catch {
     return { line: null, suppressed: false, gated: false };
   }
-
-  const selected = selectSessionAttribution(events);
-  if (selected === null) {
-    return { line: null, suppressed: false, gated: false };
-  }
-
-  const hist = historyPath(root);
-  if (shouldSuppressSessionReadback(selected.id, hist, { now: options.now })) {
-    return { line: null, suppressed: true, gated: false };
-  }
-
-  const maxChars = options.maxChars ?? MAX_LINE_CHARS;
-  const line = truncate(formatAttributedSessionLine(selected), maxChars);
-  if (options.writeHistory !== false) {
-    appendReadbackHistory(root, selected.id, line, { now: options.now });
-  }
-  return { line, suppressed: false, gated: false };
 }
 
 /** Emit the session readback line to stdout when present. Returns the line or null. */
@@ -542,11 +550,19 @@ export function parseValueShowArgs(argv: readonly string[]): ValueShowCliArgs {
         return { ...out, error: `--format expects text|json, got ${JSON.stringify(raw)}` };
       }
     } else if (arg === "--window") {
-      out.window = argv[++i];
+      const raw = argv[++i];
+      if (raw === undefined) {
+        return { ...out, error: "--window requires a value (e.g. --window=7d)" };
+      }
+      out.window = raw;
     } else if (arg?.startsWith("--window=")) {
       out.window = arg.slice("--window=".length);
     } else if (arg === "--project-root") {
-      out.projectRoot = argv[++i];
+      const raw = argv[++i];
+      if (raw === undefined) {
+        return { ...out, error: "--project-root requires a path" };
+      }
+      out.projectRoot = raw;
     } else if (arg?.startsWith("--project-root=")) {
       out.projectRoot = arg.slice("--project-root=".length);
     } else if (arg.startsWith("-")) {

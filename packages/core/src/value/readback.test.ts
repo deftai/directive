@@ -7,6 +7,7 @@ import {
   computeValueShowTrend,
   emitSessionValueReadback,
   formatAttributedSessionLine,
+  parseValueShowArgs,
   parseWindowMs,
   readAttributionEvents,
   renderSessionReadback,
@@ -252,6 +253,12 @@ describe("parseWindowMs", () => {
   });
 });
 
+describe("parseValueShowArgs", () => {
+  it("errors when --window is missing its value", () => {
+    expect(parseValueShowArgs(["--window"]).error).toContain("--window requires");
+  });
+});
+
 describe("shouldSuppressSessionReadback", () => {
   it("returns false when history is missing", () => {
     const root = makeRepo({});
@@ -272,10 +279,11 @@ describe("debounce history persistence", () => {
     renderSessionReadback(root, { now: new Date("2026-07-05T10:00:00Z") });
     const hist = join(root, VALUE_READBACK_HISTORY_REL);
     expect(existsSync(hist)).toBe(true);
-    const parsed = JSON.parse(readFileSync(hist, "utf8").trim()) as {
-      event_id: string;
-      line: string;
-    };
+    const raw = JSON.parse(readFileSync(hist, "utf8").trim()) as unknown;
+    expect(typeof raw).toBe("object");
+    expect(raw).not.toBeNull();
+    expect(Array.isArray(raw)).toBe(false);
+    const parsed = raw as { event_id: string; line: string };
     expect(parsed.event_id).toBe("evt-0");
     expect(parsed.line.length).toBeGreaterThan(0);
   });
