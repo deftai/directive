@@ -197,4 +197,11 @@ describe("precutover helpers", () => {
     expect(guidance).toContain("v0.59.0");
     expect(guidance).toContain("#2068");
   });
+
+  it("frozenPreCutoverMigrationGuidance names the fresh-start fallback and two-hop chain (#2297)", () => {
+    const guidance = frozenPreCutoverMigrationGuidance();
+    expect(guidance).toContain("directive init");
+    expect(guidance).toContain("two-hop");
+    expect(guidance).toContain("git tag");
+  });
 });

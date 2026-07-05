@@ -18,8 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The frozen pre-v0.20 migration path is now durable-by-documentation. `deft doctor` / `task migrate:preflight` guidance now anchors recovery on the permanent `v0.59.0` git tag (GitHub serves a source tarball for any tag, so recovery no longer hinges on an uploaded release asset), spells out the two-hop migration chain (pre-v0.20 flat → vBRIEF v0.6 → xBRIEF), and adds a manual `directive init` fresh-start fallback for when the frozen payload is unreachable. Closes #2297.
+
 ### Fixed
 
+- `deft doctor` now surfaces an actionable advisory when a project's `VERSION` manifest carries no semver tag/ref and only a short commit sha — the unpinned state legacy `deft-install` produces without a release pin. Previously the framework version was silently unreportable; the doctor now names the sha-only manifest and points at `directive update` to obtain a pinned npm-managed manifest, without changing the doctor exit code. Closes #2294.
 - `deft triage:welcome --onboard` now actually runs onboarding instead of exiting with "not implemented". Every first-time/incomplete welcome nudge points at this command, so it was a guaranteed dead-end loop for new users; it now writes your triage-scope preset (`--preset small|mid|mega`, default `small`) and optional WIP cap (`--wip-cap N`) into the project's canonical policy, previews WIP relief when you're at/over cap, and prints a completion summary with next steps. Closes #2295.
 
 ### Removed

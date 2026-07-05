@@ -437,7 +437,9 @@ function runInstallIntegrityChecks(
         continue;
       }
       if (
-        (name === "legacy-layout" || name === "canonical-vendored-npm-signpost") &&
+        (name === "legacy-layout" ||
+          name === "canonical-vendored-npm-signpost" ||
+          name === "manifest-version-reportable") &&
         status === "fail"
       ) {
         sink.warn(`${name}: ${detail}`);

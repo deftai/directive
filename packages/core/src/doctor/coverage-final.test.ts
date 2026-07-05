@@ -7,7 +7,7 @@ import * as checks from "./checks.js";
 import { checkInstallPathConsistency, runChecksImpl } from "./checks.js";
 import { decideThrottle, readState, statePath } from "./doctor-state.js";
 import { cmdDoctor } from "./main.js";
-import { manifestTagToVersion, parseManifest } from "./manifest.js";
+import { manifestReportableVersion, manifestTagToVersion, parseManifest } from "./manifest.js";
 import { createPlainSink } from "./output.js";
 import { resolveDefaultFrameworkRoot, resolvePath, runningInsideDeftRepo } from "./paths.js";
 import { runPayloadStalenessCheck } from "./payload-staleness.js";
@@ -153,6 +153,29 @@ describe("doctor coverage final", () => {
   it("manifest parse skips bad lines", () => {
     expect(parseManifest("# comment\nbadline\nkey: val\n").key).toBe("val");
     expect(manifestTagToVersion({ ref: "  v1.2.3  " })).toBe("1.2.3");
+  });
+
+  it("manifestReportableVersion classifies tag / ref / sha / none (#2294)", () => {
+    expect(manifestReportableVersion({ tag: "v0.68.1", ref: "v0.68.1", sha: "abc" })).toEqual({
+      version: "0.68.1",
+      sha: "abc",
+      source: "tag",
+    });
+    expect(manifestReportableVersion({ tag: "", ref: "v0.2.0", sha: "abc" })).toEqual({
+      version: "0.2.0",
+      sha: "abc",
+      source: "ref",
+    });
+    expect(manifestReportableVersion({ tag: "", ref: "", sha: "06329f3" })).toEqual({
+      version: null,
+      sha: "06329f3",
+      source: "sha",
+    });
+    expect(manifestReportableVersion({ tag: "", ref: "", sha: "" })).toEqual({
+      version: null,
+      sha: null,
+      source: "none",
+    });
   });
 
   it("install path manifest fallback note", () => {

@@ -21,6 +21,7 @@ import {
   isDeprecationRedirectStub,
   locateManifest,
   manifestCandidatePaths,
+  manifestReportableVersion,
   manifestTagToVersion,
   parseInstallManifest,
   parseInstallRootFromAgentsMd,
@@ -426,11 +427,88 @@ export function checkCanonicalVendoredNpmSignpost(
   };
 }
 
+/**
+ * #2294: report whether the located install manifest can surface a version.
+ * A legacy `deft-install` deposit made without a release pin writes empty
+ * `tag`/`ref` and only a short `sha`, leaving the framework version silently
+ * unreportable. Since the Go installer is a frozen legacy bridge (#1912) and
+ * the Python/Go rails are retired (#1933/#2022/#2068), the fix is doctor-side:
+ * turn the silent blank into a visible, actionable finding. Advisory only --
+ * exit-code-exempt like `canonical-vendored-npm-signpost` -- because a sha-only
+ * deposit is still a working install, just an unpinned one.
+ */
+export function checkManifestVersionReportable(
+  projectRoot: string,
+  installRoot: string | null,
+  seams: CheckSeams = {},
+): CheckResult {
+  const isFile = seams.isFile ?? ((p) => readText(p, seams) !== null);
+  const manifestPath = locateManifest(projectRoot, installRoot, isFile);
+  if (manifestPath === null) {
+    return {
+      name: "manifest-version-reportable",
+      status: "skip",
+      detail: "No install manifest found; no framework version to report.",
+      data: { manifest_path: null },
+    };
+  }
+  const text = readText(manifestPath, seams);
+  if (text === null) {
+    return {
+      name: "manifest-version-reportable",
+      status: "skip",
+      detail: `Install manifest at ${manifestPath} is unreadable.`,
+      data: { manifest_path: manifestPath },
+    };
+  }
+  const manifest = parseInstallManifest(text);
+  const reportable = manifestReportableVersion(manifest);
+  if (reportable.version !== null) {
+    return {
+      name: "manifest-version-reportable",
+      status: "pass",
+      detail: `Framework version resolves to ${reportable.version} (from manifest ${reportable.source}) at ${manifestPath}.`,
+      data: {
+        manifest_path: manifestPath,
+        version: reportable.version,
+        source: reportable.source,
+      },
+    };
+  }
+  if (reportable.sha !== null) {
+    const shortSha = reportable.sha.slice(0, 8);
+    return {
+      name: "manifest-version-reportable",
+      status: "fail",
+      detail:
+        `Install manifest at ${manifestPath} carries no semver tag/ref (sha ${shortSha} only), ` +
+        "so the framework version is unreportable. This happens on legacy `deft-install` deposits " +
+        `made without a release pin (#2294). Run \`${CANONICAL_UPGRADE_COMMAND}\` then \`directive update\` ` +
+        `to obtain a pinned npm-managed manifest. See ${UPGRADING_DOC_URL}.`,
+      data: {
+        manifest_path: manifestPath,
+        version: null,
+        source: reportable.source,
+        sha: reportable.sha,
+        upgrade_command: CANONICAL_UPGRADE_COMMAND,
+        upgrading_doc_url: UPGRADING_DOC_URL,
+      },
+    };
+  }
+  return {
+    name: "manifest-version-reportable",
+    status: "skip",
+    detail: `Install manifest at ${manifestPath} has neither a semver tag/ref nor a sha; no provenance to report.`,
+    data: { manifest_path: manifestPath, version: null, sha: null, source: reportable.source },
+  };
+}
+
 export function deriveExitCode(checks: readonly CheckResult[], errors: readonly string[]): number {
+  const exitExempt = new Set(["canonical-vendored-npm-signpost", "manifest-version-reportable"]);
   if (errors.length > 0 || checks.some((c) => c.status === "error")) {
     return 2;
   }
-  if (checks.some((c) => c.status === "fail" && c.name !== "canonical-vendored-npm-signpost")) {
+  if (checks.some((c) => c.status === "fail" && !exitExempt.has(c.name))) {
     return 1;
   }
   return 0;
@@ -467,6 +545,7 @@ export function runChecksImpl(
       data: { agents_md_path: agentsMdPath },
     });
     checks.push(checkManifestAgreement(projectRoot, null, seams));
+    checks.push(checkManifestVersionReportable(projectRoot, null, seams));
     checks.push(checkLegacyLayout(projectRoot, seams));
     checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
     return {
@@ -480,6 +559,7 @@ export function runChecksImpl(
   checks.push(checkQuickStartResolves(projectRoot, installRoot, seams));
   checks.push(checkSkillPathsResolve(projectRoot, agentsMdText, seams));
   checks.push(checkManifestAgreement(projectRoot, installRoot, seams));
+  checks.push(checkManifestVersionReportable(projectRoot, installRoot, seams));
   checks.push(checkInstallPathConsistency(projectRoot, installRoot, seams));
   checks.push(checkLegacyLayout(projectRoot, seams));
   checks.push(checkCanonicalVendoredNpmSignpost(projectRoot, seams));
