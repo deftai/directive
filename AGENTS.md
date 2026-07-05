@@ -68,6 +68,17 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 
 ⊗ Substitute a host-native review subagent type or `review-*` skill for `deft-directive-review-cycle` as the review surface -- the host review tools are advisory inputs, not a replacement. This is the 3rd recurrence of the #1862 / #2261 intent-routing / wrong-review-surface class (see also #2019, #2018).
 
+## Value feedback and attribution (#1709)
+
+- ! `plan.policy.valueFeedback.enabled` defaults OFF -- while false, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in ONLY via `task policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `task policy:show --field=valueFeedback`.
+- ! Value claims MUST be attributed-only -- point to concrete logged events ("encoding gate caught 2 corruptions"), never vague quality claims. Silence when the ledger has nothing attributable for the session slot.
+- ! Budgeted awareness -- at most one session readback line when `sessionLine` is allowed; repeat suppression uses a 4-hour window per attribution event id (parity with #1279 triage welcome debounce). Pull-based detail is `task value:show`, not pushed.
+- ! Gap escalation to `deftai/directive` is confirmation-gated -- route conversational filing through `deft-directive-feedback`; the agent drafts + dedups; the operator approves before `task feedback:file -- --confirm`. Use `Refs #1709` in upstream bodies, not `Closes`.
+- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`.
+- ⊗ Enable value-feedback surfaces without explicit operator confirmation on the typed policy flag.
+- ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
+- ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
+
 ## Cache-as-authoritative work selection (#1149)
 
 Same `!` / `⊗` rules as the managed section below; in this repo substitute `task` for `deft` (`task triage:queue --limit=10`, D11 / #1128).
@@ -243,7 +254,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=600d273e1499 refreshed=2026-07-05T17:40:31Z session=dd898d09acb8 -->
+<!-- deft:managed-section v3 sha=778e0ce4410c refreshed=2026-07-05T22:26:31Z session=45036c1f70aa -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -382,6 +393,17 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 ~ Host review tools MAY be folded in as *advisory* finding sources inside the review cycle (the #2019 harness-aware-reviewer path) -- their findings are batched alongside Greptile / bot findings, never treated as the review of record.
 
 ⊗ Substitute a host-native review subagent type or `review-*` skill for `deft-directive-review-cycle` as the review surface -- the host review tools are advisory inputs, not a replacement. This is the 3rd recurrence of the #1862 / #2261 intent-routing / wrong-review-surface class (see also #2019, #2018).
+
+## Value feedback and attribution (#1709)
+
+- ! `plan.policy.valueFeedback.enabled` defaults OFF -- while false, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in ONLY via `deft policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `deft policy:show --field=valueFeedback`.
+- ! Value claims MUST be attributed-only -- point to concrete logged events ("encoding gate caught 2 corruptions"), never vague quality claims. Silence when the ledger has nothing attributable for the session slot.
+- ! Budgeted awareness -- at most one session readback line when `sessionLine` is allowed; repeat suppression uses a 4-hour window per attribution event id (parity with #1279 triage welcome debounce). Pull-based detail is `deft value:show`, not pushed.
+- ! Gap escalation to `deftai/directive` is confirmation-gated -- route conversational filing through `deft-directive-feedback`; the agent drafts + dedups; the operator approves before `deft feedback:file -- --confirm`. Use `Refs #1709` in upstream bodies, not `Closes`.
+- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`.
+- ⊗ Enable value-feedback surfaces without explicit operator confirmation on the typed policy flag.
+- ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
+- ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
 
 ## Branch policy & branch verification
 

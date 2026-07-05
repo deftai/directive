@@ -6,7 +6,7 @@
   "plan": {
     "id": "1709-institutionalization",
     "title": "Institutionalization and propagation of value-feedback rules",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "Mirror the RFC2119 value-feedback rules across AGENTS.md, the agents-entry template, and the agent-prompt-preamble, and lock them with contract-test markers. Add skill-routing triggers and reconcile the documented-but-unimplemented 4h summary debounce the readback relies on.",
       "ImplementationPlan": "- Add the mirrored rule blocks to the AGENTS.md maintainer file and the content template source, then run agents refresh so the consumer projection inherits them.\n- Extend the agents-entry contract test markers and add tests verifying the debounce is implemented rather than only documented.",
@@ -67,7 +67,9 @@
         "size": "M",
         "file_scope_confidence": "medium",
         "model_tier": "standard"
-      }
+      },
+      "completedAt": "2026-07-05T22:28:26Z",
+      "capacityBucket": "agentic-debt"
     },
     "references": [
       {
@@ -82,6 +84,7 @@
         "title": "Issue #1709 child 6: institutionalization / propagation",
         "TrustLevel": "external"
       }
-    ]
+    ],
+    "updated": "2026-07-05T22:28:26Z"
   }
 }

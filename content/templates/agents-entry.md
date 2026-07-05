@@ -138,6 +138,17 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 
 ⊗ Substitute a host-native review subagent type or `review-*` skill for `deft-directive-review-cycle` as the review surface -- the host review tools are advisory inputs, not a replacement. This is the 3rd recurrence of the #1862 / #2261 intent-routing / wrong-review-surface class (see also #2019, #2018).
 
+## Value feedback and attribution (#1709)
+
+- ! `plan.policy.valueFeedback.enabled` defaults OFF -- while false, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in ONLY via `deft policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `deft policy:show --field=valueFeedback`.
+- ! Value claims MUST be attributed-only -- point to concrete logged events ("encoding gate caught 2 corruptions"), never vague quality claims. Silence when the ledger has nothing attributable for the session slot.
+- ! Budgeted awareness -- at most one session readback line when `sessionLine` is allowed; repeat suppression uses a 4-hour window per attribution event id (parity with #1279 triage welcome debounce). Pull-based detail is `deft value:show`, not pushed.
+- ! Gap escalation to `deftai/directive` is confirmation-gated -- route conversational filing through `deft-directive-feedback`; the agent drafts + dedups; the operator approves before `deft feedback:file -- --confirm`. Use `Refs #1709` in upstream bodies, not `Closes`.
+- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`.
+- ⊗ Enable value-feedback surfaces without explicit operator confirmation on the typed policy flag.
+- ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
+- ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
+
 ## Branch policy & branch verification
 
 Three consumer-facing surfaces enforce the branch-policy contract (#746 / #747):

@@ -258,6 +258,19 @@ Anti-pattern: reading only the issue body and building a dispatch envelope from 
 
 Reference: AGENTS.md `## Issue body→comments reading (#2143)`, `## Umbrella current-shape convention (#1152)`, issue #2143.
 
+## 5.7 Value feedback opt-in and gap escalation (#1709)
+
+Value attribution, budgeted session readbacks, and upstream gap escalation are gated on `plan.policy.valueFeedback` (default OFF). Workers MUST NOT emit value claims, session readback lines, or file upstream framework-gap issues unless the relevant sub-flag is ON and the operator has confirmed enablement where required.
+
+- ! While `valueFeedback.enabled` is false, treat every value-feedback path as a no-op -- no ledger writes, no session lines, no upstream prompts, no token spend.
+- ! Value claims MUST cite concrete attributed ledger events; silence when nothing is attributable.
+- ! Session readback repeats suppress for 4 hours per attribution event id (same debounce class as #1279 triage welcome). Pull-based detail uses `task value:show` / `deft value:show`, not ambient pushes.
+- ! Upstream gap filing is confirmation-gated -- route through `deft-directive-feedback`; draft + dedup with `task feedback:file` / `deft feedback:file`, then re-run with `--confirm` only after explicit operator approval. Consumer projects only; maintainer repo no-ops unless `DEFT_VALUE_SELF_DOGFOOD=1`.
+- ⊗ File upstream issues without operator confirmation or past duplicate detection.
+- ⊗ Use `Closes`/`Fixes`/`Resolves` on upstream gap bodies -- use `Refs #1709` only.
+
+Reference: AGENTS.md `## Value feedback and attribution (#1709)`, issue #1709.
+
 ## 6. No Draft re-toggling within a single review cycle
 
 Once a PR transitions Draft -> Ready, keep it Ready unless a P0 finding requires re-Draft. Repeated Draft<->Ready toggles cost GraphQL mutations and trigger stale CheckRun states downstream (Greptile re-runs, branch-protection re-evaluations).

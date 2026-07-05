@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { VALUE_READBACK_SUPPRESSION_HOURS } from "../../value/readback.js";
 import { readRepoFile } from "./helpers.js";
 
 /** Port of tests/content/test_agents_entry_contract.py (#768, #1309, #2111). */
@@ -28,6 +29,10 @@ const PROPAGATION_COMMAND_MARKERS: ReadonlyArray<readonly [string, string]> = [
   ["deft scope:complete -- <active-story-path>", "task scope:complete -- <active-story-path>"],
   ["deft umbrella:current-shape", "task umbrella:current-shape"],
   ["deft xbrief:preflight", "task xbrief:preflight"],
+  ["deft policy:enable-value-feedback", "task policy:enable-value-feedback"],
+  ["deft policy:show --field=valueFeedback", "task policy:show --field=valueFeedback"],
+  ["deft value:show", "task value:show"],
+  ["deft feedback:file", "task feedback:file"],
   ["deft migrate:xbrief", "deft migrate:xbrief"],
   ["xbrief/PROJECT-DEFINITION.xbrief.json", "xbrief/PROJECT-DEFINITION.xbrief.json"],
   ["xbrief/active/", "xbrief/active/"],
@@ -50,6 +55,9 @@ const CONSUMER_FORBIDDEN_BARE_TASK_MARKERS = [
   "task policy:show",
   "task policy:enforce-branches",
   "task policy:allow-direct-commits",
+  "task policy:enable-value-feedback",
+  "task value:show",
+  "task feedback:file",
   "task scope:promote",
   "task scope:activate",
   "task scope:complete",
@@ -66,6 +74,7 @@ const PROPAGATION_POLICY_KEY_MARKERS = [
   "plan.policy.wipCap",
   "plan.policy.allowDirectCommitsToMaster",
   "plan.policy.sessionRitualStalenessHours",
+  "plan.policy.valueFeedback",
 ] as const;
 
 const PROPAGATION_HEADER_MARKERS = [
@@ -115,6 +124,7 @@ const INDEXED_SKILL_IDS = [
   "deft-directive-release",
   "deft-directive-write-skill",
   "deft-directive-article-review",
+  "deft-directive-feedback",
 ] as const;
 
 const PROPAGATION_UMBRELLA_STATUS_MARKERS = [
@@ -143,6 +153,19 @@ const REVIEW_SURFACE_PRECEDENCE_MARKERS = [
   "advisory",
   "harness-aware-reviewer path",
   "wrong-review-surface class",
+] as const;
+
+// #1709: value-feedback opt-in, attributed readbacks, and confirmation-gated gap
+// escalation MUST be mirrored across maintainer AGENTS.md and the consumer template.
+const VALUE_FEEDBACK_MARKERS = [
+  "## Value feedback and attribution (#1709)",
+  "plan.policy.valueFeedback.enabled",
+  "attributed-only",
+  "4-hour window",
+  "deft-directive-feedback",
+  "Refs #1709",
+  "DEFT_VALUE_SELF_DOGFOOD",
+  "without operator confirmation",
 ] as const;
 
 function normalizeWhitespace(text: string): string {
@@ -242,6 +265,15 @@ describe("test_agents_entry_contract", () => {
   it("propagation_review_surface_precedence_markers_present_in_both_files", () => {
     expect(missingMarkers(template, REVIEW_SURFACE_PRECEDENCE_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, REVIEW_SURFACE_PRECEDENCE_MARKERS)).toEqual([]);
+  });
+
+  it("propagation_value_feedback_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, VALUE_FEEDBACK_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, VALUE_FEEDBACK_MARKERS)).toEqual([]);
+  });
+
+  it("value_readback_suppression_window_is_four_hours", () => {
+    expect(VALUE_READBACK_SUPPRESSION_HOURS).toBe(4);
   });
 
   it("content_packs_note_references_discovery_commands", () => {
