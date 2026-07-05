@@ -281,15 +281,33 @@ export function enableValueFeedback(
       }
       const policyBlock = plan[PLAN_POLICY_KEY] as Record<string, unknown>;
       const previous = policyBlock.valueFeedback;
+      const prevObj =
+        typeof previous === "object" && previous !== null && !Array.isArray(previous)
+          ? (previous as Record<string, unknown>)
+          : {};
+      const hadEnabled = prevObj.enabled === true;
       const sub = options.subFlags ?? {};
+      const readPersistedSubFlag = (key: ValueFeedbackSubFlag): boolean => {
+        if (key in sub && typeof sub[key] === "boolean") {
+          return sub[key] as boolean;
+        }
+        if (hadEnabled && key in prevObj && typeof prevObj[key] === "boolean") {
+          return prevObj[key] as boolean;
+        }
+        return VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED[key];
+      };
       const nextBlock = {
         enabled: true,
-        emitEvents: sub.emitEvents ?? VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.emitEvents,
-        sessionLine: sub.sessionLine ?? VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.sessionLine,
-        upstreamPrompt:
-          sub.upstreamPrompt ?? VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.upstreamPrompt,
+        emitEvents: readPersistedSubFlag("emitEvents"),
+        sessionLine: readPersistedSubFlag("sessionLine"),
+        upstreamPrompt: readPersistedSubFlag("upstreamPrompt"),
       };
-      const changedFlag = JSON.stringify(previous) !== JSON.stringify(nextBlock);
+      const previousNormalized = resolveFromPolicyBlock(previous);
+      const changedFlag =
+        previousNormalized.enabled !== nextBlock.enabled ||
+        previousNormalized.emitEvents !== nextBlock.emitEvents ||
+        previousNormalized.sessionLine !== nextBlock.sessionLine ||
+        previousNormalized.upstreamPrompt !== nextBlock.upstreamPrompt;
       policyBlock.valueFeedback = nextBlock;
       if (changedFlag) {
         atomicWriteProjectDefinition(path, data);
