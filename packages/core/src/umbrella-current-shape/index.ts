@@ -291,6 +291,18 @@ export const NO_CURRENT_SHAPE_MESSAGE =
   "Create one per AGENTS.md ## Umbrella current-shape convention (#1152) — " +
   "do not fall back to the issue body (stale by design).";
 
+// #2307 (Greptile review): a structurally valid current-shape comment authored
+// by a non-maintainer is filtered out for provenance and would otherwise be
+// reported with the generic "not found" message above -- indistinguishable from
+// genuine absence, which makes --strict especially confusing to debug. This
+// message names the provenance filter explicitly so the caller knows the
+// comment exists but was ignored, not that it is missing.
+export const NON_MAINTAINER_CURRENT_SHAPE_MESSAGE =
+  "A ## Current shape (as of pass-N) comment exists but was authored by a " +
+  "non-maintainer (author_association not in OWNER/MEMBER/COLLABORATOR) and is " +
+  "ignored per AGENTS.md ## Umbrella current-shape convention (#1152 / #2307). " +
+  "A maintainer must (re-)post the current-shape comment for it to be authoritative.";
+
 export function fetchCurrentShape(options: {
   repo: string;
   issueNumber: number;
@@ -305,7 +317,17 @@ export function fetchCurrentShape(options: {
   }
   const selected = selectCurrentShapeComment(fetched);
   if (selected === null) {
-    return { ok: false, error: NO_CURRENT_SHAPE_MESSAGE, kind: "not-found" };
+    // Distinguish provenance-filtered absence from genuine absence (#2307).
+    const hadNonMaintainerShape = fetched.some(
+      (c) => extractPassFromBody(c.body) !== null && !isMaintainerAuthored(c.authorAssociation),
+    );
+    return {
+      ok: false,
+      error: hadNonMaintainerShape
+        ? NON_MAINTAINER_CURRENT_SHAPE_MESSAGE
+        : NO_CURRENT_SHAPE_MESSAGE,
+      kind: "not-found",
+    };
   }
   const sections = detectSections(selected.body);
   return {
@@ -326,7 +348,11 @@ export function fetchCurrentShape(options: {
 
 export function emitCurrentShape(
   result: CurrentShapeResult,
-  options: { jsonMode: boolean; writeOut: (text: string) => void },
+  options: {
+    jsonMode: boolean;
+    writeOut: (text: string) => void;
+    writeErr?: (text: string) => void;
+  },
 ): number {
   // #2307: the selected comment body is still attacker-influencable text (a
   // maintainer can quote/paste untrusted content). Run it through the same
@@ -334,6 +360,25 @@ export function emitCurrentShape(
   // injection-shaped sections are quarantined, never rendered as authoritative
   // instructions.
   const scanned = scan(result.body);
+  // #2307 fail-closed (Greptile review): a scanner hard-fail (e.g. a credential
+  // pattern) is only FLAGGED by scan() -- detectCredentials sets passed=false
+  // but does NOT redact the secret from transformed_content. Emitting the
+  // transform regardless would forward the raw credential to stdout / CI logs /
+  // JSON consumers. Mirror buildIssueVbrief (#2306, issue:ingest), which throws
+  // ScannerHardFailError and writes nothing: refuse to emit and return non-zero.
+  if (!scanned.passed) {
+    const details = scanned.flags
+      .filter((f) => f.severity === "hard-fail")
+      .map((f) => f.detail)
+      .join("; ");
+    const writeErr = options.writeErr ?? ((text: string) => process.stderr.write(text));
+    writeErr(
+      `umbrella:current-shape: refused issue #${result.issueNumber}: quarantine scanner hard-fail` +
+        (details.length > 0 ? ` (${details})` : "") +
+        " -- nothing written.\n",
+    );
+    return 1;
+  }
   if (options.jsonMode) {
     const payload = {
       issueNumber: result.issueNumber,
@@ -394,6 +439,7 @@ export function runCurrentShape(options: RunCurrentShapeOptions): number {
   return emitCurrentShape(fetched.result, {
     jsonMode: options.jsonMode ?? false,
     writeOut,
+    writeErr,
   });
 }
 
