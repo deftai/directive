@@ -1,0 +1,49 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1470"
+  },
+  "plan": {
+    "title": "discussion: ALL deterministic questioning MUST carry a stop-and-discuss (Discuss + Back) escape -- enforce #767 contract on the agent-runtime surface",
+    "status": "running",
+    "narratives": {
+      "Description": "discussion: ALL deterministic questioning MUST carry a stop-and-discuss (Discuss + Back) escape -- enforce #767 contract on the agent-runtime surface",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1470",
+      "Overview": "> Scope note: this is an enforcement/scope gap on an existing contract, not a request for a new rule. The rule already exists — see `contracts/deterministic-questions.md` (#767, closed).\r\n\r\n## The invariant\r\nALL deterministic questioning MUST carry a \"stop and discuss\" escape (and a `Back`). This is already the canonical rule:\r\n\r\n- `contracts/deterministic-questions.md` (landed by #767): \"Every structured `ask_user_question` prompt (single-select OR multi-select) and every numbered-menu prompt rendered in skill prose MUST include `Discuss` and `Back` as the final two numbered options, in that order.\"\r\n- The contract also defines the verbatim Discuss-pause semantic: on `Discuss`, the agent MUST pause immediately, halt the in-progress sequence, prompt `What would you like to discuss?`, and resume ONLY on an explicit resume signal.\r\n- `skills/deft-directive-interview/SKILL.md` Rule 10 (slot-0 \"Discuss with agent\") and Rule 2 Click-Commit Rendering already require the escape on every interview question.\r\n\r\n## The gap\r\nThe contract's *rule text* covers \"every structured `ask_user_question` prompt,\" but the *only enforcement* — `tests/content/test_deterministic_questions.py` — **scans skill prose for documented numbered menus**. It cannot observe an agent calling the host `ask_user_question` tool at runtime. So the invariant holds for skill-authored menus and is silently unenforced for **agent-initiated, ad-hoc questioning** (an orchestrator asking the user a structured question outside any interview loop).\r\n\r\nThe result: deterministic questioning that originates from the agent runtime — not from skill prose — routinely omits `Discuss`/`Back`, leaving the user with no first-class \"stop and discuss\" exit. The contract is honored by convention on exactly the surface (agent ad-hoc prompts) where convention is least reliable.\r\n\r\n## Reproduction (observed live)\r\nDuring a 2026-06-03 session, the agent (orchestrator, not inside the interview skill) issued four structured `ask_user_question` prompts to walk the #212 discussion decisions. None of the four carried a `Discuss` or `Back` option. The user had to break out by typing \"do in conversational mode\" — i.e. they manually re-created the missing escape hatch. This is precisely the pre-#767 failure mode (\"users typed `discuss (user-provided)` to break out … honored by convention only\") re-appearing on the agent-runtime surface that the prose-scanning test does not cover.\r\n\r\n## Why it matters\r\n- **Consistency / determinism**: the invariant is supposed to be universal (\"Render `Discuss` or `Back` only in some skills — the rule is universal\"). A runtime carve-out makes it non-universal in practice.\r\n- **Agent-experience**: the escape hatch is the user's guaranteed way to stop a rigid Q&A and talk. Without it on agent-initiated prompts, the user is forced into a multiple-choice frame for decisions that need discussion.\r\n- **Per main.md Rule Authority [AXIOM]** (deterministic > Taskfile > vBRIEF > RFC2119 > prose), an invariant this load-bearing should not rest on prose + a prose-only test for its highest-traffic surface.\r\n\r\n## Proposed direction (discussion — not prescribing implementation)\r\n1. **Make the runtime obligation explicit and always-loaded.** Add a managed-section directive in `AGENTS.md` (mirrored into `templates/agents-entry.md` per the Template propagation discipline) stating that ANY agent-initiated structured/numbered question — inside or outside a skill — MUST include `Discuss` and `Back` as the final two options and obey the `contracts/deterministic-questions.md` Discuss-pause semantic. This puts the rule in front of the orchestrator, not only inside skills.\r\n2. **Tighten the contract's scope language** so \"agent-initiated ad-hoc `ask_user_question` prompts\" are named as in-scope alongside skill-prose menus, removing the implicit \"skill prose only\" reading.\r\n3. **Close the enforcement gap.** Prose-scanning cannot see runtime tool calls; options to discuss:\r\n   - a lightweight pre-flight/self-check the agent runs before emitting any `ask_user_question` (behavioral, like the session-start ritual);\r\n   - extending the canonical orchestrator preamble (`templates/agent-prompt-preamble.md`) so dispatched sub-agents inherit the obligation;\r\n   - if/when host tooling allows, a structural default that injects `Discuss`/`Back` into every `ask_user_question` render.\r\n\r\n## Acceptance criteria (draft)\r\n- The \"every deterministic question carries Discuss + Back\" invariant is stated for the agent-runtime surface in an always-loaded location (AGENTS.md managed section + template mirror).\r\n- `contracts/deterministic-questions.md` scope text explicitly names agent-initiated `ask_user_question` prompts.\r\n- There is a named enforcement or self-check mechanism for the runtime surface (not only the prose-scanning test).\r\n- The #212-style reproduction no longer occurs: an orchestrator walking decisions presents `Discuss` and `Back` on every structured prompt.\r\n\r\n## Related\r\n- #767 — the contract this extends/enforces (closed)\r\n- #477, #478 — click-commit rendering + always-structured rendering in the interview skill (closed)\r\n- #431 — deterministic-questions RC2 (confirm step, back nav, escape-hatch-distinct-from-Other) (closed prior art)\r\n- Contract: `contracts/deterministic-questions.md`; test: `tests/content/test_deterministic_questions.py`\r\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-07-06T12:42:08Z)\n\n## Fresh recurrence (2026-07-06) — orchestrator swarm-dispatch approval\n\nAnother live instance on the exact agent-runtime surface this issue names. During a maintainer session (AGENTS.md loaded, `session:start` ritual run), the orchestrator posed a **swarm-cohort dispatch approval** via the host structured-question tool (Cursor `AskQuestion`) — three sub-questions: worker concurrency, a scope confirmation, and model routing. **None of the three carried a `Discuss` / `Back` option.**\n\nThe host UI's automatic free-text \"Other\" affordance was present, but per `contracts/deterministic-questions.md` that is explicitly NOT the escape hatch (line 16: \"MUST NOT combine `Discuss` and `Other` … `Other` widens the question's answer space; `Discuss` exits the question entirely\"). So the user had no first-class stop-and-discuss exit and broke out by typing the discussion inline (\"you are supposed to have a discuss item on every multiple choice question\"). This is the same pre-#767 failure mode re-appearing — identical in shape to the #212-walkthrough reproduction already in the body.\n\n### Why this instance is notable\n- It happened **outside any deterministic skill flow** — an ad-hoc orchestration approval — which is exactly the uncovered surface the prose-scanning test (`tests/content/test_deterministic_questions.py`) cannot observe.\n- It happened **with AGENTS.md fully loaded**. The Discuss/Back MUST lives in `contracts/deterministic-questions.md` + per-skill `!` cross-references, but is **not** in the always-loaded managed section — so the orchestrator never had the rule in front of it. This is direct evidence for **Proposed direction #1** (always-loaded AGENTS.md managed-section directive + `templates/agents-entry.md` mirror per Template propagation discipline #1309).\n\n### Net\nReinforces all three proposed directions; #1 (always-loaded runtime obligation) would have prevented this specific recurrence. No new issue filed — logging here to keep the recurrence trail on the canonical root-cause issue.",
+      "Labels": "enhancement, design, skills, determinism, agent-experience"
+    },
+    "items": [
+      {
+        "title": "The \"every deterministic question carries Discuss + Back\" invariant is stated for the agent-runtime surface in an always-loaded location (AGENTS.md managed section + template mirror).",
+        "status": "proposed"
+      },
+      {
+        "title": "`contracts/deterministic-questions.md` scope text explicitly names agent-initiated `ask_user_question` prompts.",
+        "status": "proposed"
+      },
+      {
+        "title": "There is a named enforcement or self-check mechanism for the runtime surface (not only the prose-scanning test).",
+        "status": "proposed"
+      },
+      {
+        "title": "The #212-style reproduction no longer occurs: an orchestrator walking decisions presents `Discuss` and `Back` on every structured prompt.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design",
+      "skills",
+      "determinism",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1470",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1470: discussion: ALL deterministic questioning MUST carry a stop-and-discuss (Discuss + Back) escape -- enforce #767 contract on the agent-runtime surface"
+      }
+    ],
+    "updated": "2026-07-06T13:36:28Z"
+  }
+}
