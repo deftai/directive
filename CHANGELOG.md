@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The subagent monitor now rejects a non-numeric `--threshold-minutes` value (e.g. a typo) with a clear error and non-zero exit, instead of silently accepting `NaN` and running with an invalid staleness threshold. (#2357)
 - `deft triage:accept` no longer fails with `ModuleNotFoundError: No module named 'issue_ingest'`. It now authors the scope brief through the native TypeScript intake path instead of shelling out to a legacy Python script that was removed during the Python-surface deprecation, so accepting an issue (and the `verify:cache-fresh` dispatch gate that depends on it) works again. (#2350)
 
 ### Removed

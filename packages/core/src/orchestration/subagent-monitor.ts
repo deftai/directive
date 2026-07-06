@@ -449,9 +449,9 @@ export function cmdSubagentMonitor(argv: string[], cwd: string = process.cwd()):
     return EXIT_EXTERNAL_ERROR;
   }
 
-  if (args.thresholdMinutes <= 0) {
+  if (Number.isNaN(args.thresholdMinutes) || args.thresholdMinutes <= 0) {
     process.stderr.write(
-      `Error: --threshold-minutes must be positive, got ${args.thresholdMinutes}\n`,
+      `Error: --threshold-minutes must be a positive number, got ${args.thresholdMinutes}\n`,
     );
     return EXIT_EXTERNAL_ERROR;
   }
