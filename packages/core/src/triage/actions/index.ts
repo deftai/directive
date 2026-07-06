@@ -1,8 +1,7 @@
-import { spawnSync } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { CacheNotFoundError } from "../../cache/errors.js";
 import { cacheGet } from "../../cache/operations.js";
+import { ingestSingleForAccept as ingestSingleForAcceptTs } from "../../intake/issue-ingest.js";
 import { call } from "../../scm/call.js";
 import { ScmStubError } from "../../scm/errors.js";
 import {
@@ -61,13 +60,6 @@ const DEFAULT_NEEDS_AC_COMMENT =
   "This issue lacks acceptance criteria. Please add a Test/Acceptance " +
   "narrative before this can be triaged. (deft #845)";
 
-function resolveDeftRoot(): string {
-  if (process.env.DEFT_ROOT !== undefined && process.env.DEFT_ROOT.length > 0) {
-    return resolve(process.env.DEFT_ROOT);
-  }
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "..");
-}
-
 function defaultNowIso(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 }
@@ -106,40 +98,23 @@ function defaultScmRunner(): ScmRunner {
   };
 }
 
-function defaultIssueIngest(deftRoot: string): IssueIngest {
+function defaultIssueIngest(): IssueIngest {
   return {
     ingestSingleForAccept(issueNumber, repo, options = {}) {
       const projectRoot = options.projectRoot ?? process.cwd();
-      const script = [
-        "import sys",
-        "from pathlib import Path",
-        `sys.path.insert(0, ${JSON.stringify(join(deftRoot, "scripts"))})`,
-        "import issue_ingest",
-        "issue_ingest.ingest_single_for_accept(",
-        `${issueNumber},`,
-        `${JSON.stringify(repo)},`,
-        `project_root=Path(${JSON.stringify(projectRoot)}),`,
-        ")",
-      ].join("\n");
-      const result = spawnSync("uv", ["run", "python", "-c", script], {
-        cwd: deftRoot,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      if (result.status !== 0) {
-        const stderr = (result.stderr ?? "").trim();
-        throw new Error(stderr || "issue:ingest delegation failed");
-      }
+      // Delegate to the native TS intake path (#2350). The legacy Python
+      // `scripts/issue_ingest.py` shell-out was orphaned when #1933 removed the
+      // Python surface, leaving `triage:accept` raising ModuleNotFoundError.
+      ingestSingleForAcceptTs(issueNumber, repo, { projectRoot });
     },
   };
 }
 
 /** Default dependency bundle for production CLI use. */
 export function createDefaultDeps(projectRoot: string): TriageActionsDeps {
-  const deftRoot = resolveDeftRoot();
   const deps: TriageActionsDeps = {
     candidatesLog: createCandidatesLog(projectRoot),
-    issueIngest: defaultIssueIngest(deftRoot),
+    issueIngest: defaultIssueIngest(),
     scm: defaultScmRunner(),
     nowIso: defaultNowIso,
     stderr: (message) => process.stderr.write(`${message}\n`),

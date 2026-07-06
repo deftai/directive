@@ -1,0 +1,31 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2350"
+  },
+  "plan": {
+    "title": "bug(triage): deft triage:accept broken — delegates to removed legacy Python issue_ingest (ModuleNotFoundError), blocks verify:cache-fresh dispatch gate",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(triage): deft triage:accept broken — delegates to removed legacy Python issue_ingest (ModuleNotFoundError), blocks verify:cache-fresh dispatch gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2350",
+      "Overview": "## Summary\n\n`deft triage:accept` / `task triage:accept -- --repo <owner>/<repo> --issue <N>` fails on the npm/TS engine with:\n\n```\nModuleNotFoundError: No module named 'issue_ingest'\n```\n\nThe TS accept path still delegates vBRIEF authoring to a **legacy Python** `scripts/issue_ingest.py` module that no longer exists (the entire `scripts/*.py` surface was removed in the legacy-Python deprecation, #1933).\n\n## Root cause\n\n`packages/core/src/triage/actions/index.ts` `defaultIssueIngest()` shells out to Python:\n\n```ts\n// packages/core/src/triage/actions/index.ts ~L109-134\nfunction defaultIssueIngest(deftRoot: string): IssueIngest {\n  return {\n    ingestSingleForAccept(issueNumber, repo, options = {}) {\n      const script = [\n        \"import sys\",\n        \"from pathlib import Path\",\n        `sys.path.insert(0, ${JSON.stringify(join(deftRoot, \"scripts\"))})`,\n        \"import issue_ingest\",                       // <-- module removed in #1933\n        \"issue_ingest.ingest_single_for_accept(\",\n        ...\n      ].join(\"\\n\");\n      const result = spawnSync(\"uv\", [\"run\", \"python\", \"-c\", script], { cwd: deftRoot, ... });\n      ...\n    },\n  };\n}\n```\n\n`ls scripts/*.py` returns nothing — there are no Python scripts in the repo anymore. So every `triage:accept` invocation raises `ModuleNotFoundError: No module named 'issue_ingest'` and exits non-zero.\n\nA native TS ingest path already exists at `packages/core/src/intake/issue-ingest.ts` (it is what powers the working `task issue:ingest <N>` and is the subject of #2314). The accept path should delegate to that TS surface instead of a `uv run python` shell-out to a deleted module.\n\n## Impact\n\nThis is a workflow blocker, not a cosmetic defect:\n\n- `triage:accept` is the **documented recovery path** for the `verify:cache-fresh` decision gate (gate-stack step 3 in AGENTS.md). When an issue is untriaged, `deft verify:cache-fresh -- --for-issue <N>` exits 1 with `Recovery: deft triage:accept -- --repo <owner>/<repo> --issue <N>` — which itself then fails.\n- That makes the canonical **pre-`start_agent` gate stack** unclearable for any untriaged issue: you cannot record the `accept` decision the gate requires, so you cannot dispatch an implementation agent through the sanctioned path.\n- Surfaced live while dispatching a swarm cohort on deftai/directive (2026-07-06): cache refresh cleared the staleness half of the gate, but `triage:accept` could not record the decision half.\n\n## Repro\n\n```bash\ntask triage:accept -- --repo deftai/directive --issue 2318\n# ModuleNotFoundError: No module named 'issue_ingest'\n# task: Failed to run task \"triage:accept\" ... exit status 1\n```\n\n## Suggested fix\n\n1. Replace the `uv run python -c \"import issue_ingest\"` delegation in `defaultIssueIngest()` with a direct call into the native TS `intake/issue-ingest` surface (`ingestSingleForAccept` equivalent), removing the Python shell-out entirely.\n2. Add a regression test asserting `triage:accept` records an `accept` audit entry AND authors/updates the scope xBRIEF without spawning Python.\n3. Grep the engine for any other residual `uv run python` / `scripts/*.py` delegations left behind by #1933 and file/fix as needed (this may not be the only stranded shim).\n\n## Related\n\n- #1933 (legacy Python `run` CLI deprecation — the change that removed `scripts/*.py`)\n- #2314 (native TS `intake/issue-ingest` cache-hit vs live-fetch drift — same TS module the fix should delegate to)\n- AGENTS.md `### Implementation Intent Gate` / pre-`start_agent` gate stack (the workflow this blocks)",
+      "Labels": "bug, triage, urgent, ts-migration"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "triage",
+      "urgent",
+      "ts-migration"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2350",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2350: bug(triage): deft triage:accept broken — delegates to removed legacy Python issue_ingest (ModuleNotFoundError), blocks verify:cache-fresh dispatch gate"
+      }
+    ],
+    "updated": "2026-07-06T13:00:18Z"
+  }
+}
