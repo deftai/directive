@@ -182,7 +182,7 @@ const EVAL_FRAMEWORK_MARKERS = [
   "crud-metrics.jsonl",
   "health-history.jsonl",
   "contradictory gate",
-  "4-hour window",
+  "4-hour debounce",
   "Tier 1",
   "Tier 2",
 ] as const;
