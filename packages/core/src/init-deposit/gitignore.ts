@@ -39,6 +39,16 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   "vbrief/.triage-cache/scope-lifecycle.jsonl",
   "vbrief/.triage-cache/decompositions/",
   "vbrief/.triage-cache/doctor-state.json",
+  // Symmetric `xbrief/` layout entries (#2348). On the migrated `xbrief/` tree
+  // the engine writes operator-private triage-cache files to
+  // `xbrief/.triage-cache/`; without these the paths are trackable, violating
+  // the #1144 hybrid policy. Both layouts are emitted (harmless extra lines on
+  // the layout not in use) to match the both-layout `.eval/` treatment.
+  "xbrief/.triage-cache/candidates.jsonl",
+  "xbrief/.triage-cache/summary-history.jsonl",
+  "xbrief/.triage-cache/scope-lifecycle.jsonl",
+  "xbrief/.triage-cache/decompositions/",
+  "xbrief/.triage-cache/doctor-state.json",
   "vbrief/*.lock",
   ".deft/core.bak-*/",
   ".deft/*.bak-*",
