@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Every structured or numbered agent question now carries an always-loaded Discuss/Back escape: AGENTS.md and the consumer template state the runtime obligation, the orchestrator preamble adds a pre-prompt self-check, and contract tests verify propagation. Closes #1470. Refs #767.
+
 ### Changed
 
 - **Upgrade guide documents triage-cache relocation (#2349).** UPGRADING.md now explains the v0.71.0 move of the triage working-set from `.eval/` to `.triage-cache/`, the lazy automatic migration, and the canonical-wins conflict policy; stale operator-facing docs and task descriptions now cite `.triage-cache/` instead of legacy `.eval/` triage paths. Refs #1703. Closes #2349.

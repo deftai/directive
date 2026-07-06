@@ -85,6 +85,7 @@ const PROPAGATION_HEADER_MARKERS = [
   "## Session-start ritual (#1149)",
   "## Unmanaged project header (#2065)",
   "## Cache-as-authoritative work selection (#1149)",
+  "## Deterministic questions runtime obligation (#1470)",
   "## Skills",
   "## WIP cap",
   "## Codebase MAP Projection (#1595 / #1498)",
@@ -185,6 +186,20 @@ const EVAL_FRAMEWORK_MARKERS = [
   "4-hour debounce",
   "Tier 1",
   "Tier 2",
+] as const;
+
+// #1470: Discuss/Back runtime obligation MUST mirror across maintainer AGENTS.md,
+// consumer template, contract scope text, and orchestrator preamble self-check.
+const DETERMINISTIC_QUESTIONS_RUNTIME_MARKERS = [
+  "## Deterministic questions runtime obligation (#1470)",
+  "agent-initiated",
+  "ask_user_question",
+  "Discuss",
+  "Back",
+  "final two options",
+  "Discuss-pause semantic",
+  "contracts/deterministic-questions.md",
+  "NOT substitutes for `Discuss`",
 ] as const;
 
 function normalizeWhitespace(text: string): string {
@@ -294,6 +309,11 @@ describe("test_agents_entry_contract", () => {
   it("propagation_eval_framework_markers_present_in_both_files", () => {
     expect(missingMarkers(template, EVAL_FRAMEWORK_MARKERS)).toEqual([]);
     expect(missingMarkers(agents, EVAL_FRAMEWORK_MARKERS)).toEqual([]);
+  });
+
+  it("propagation_deterministic_questions_runtime_markers_present_in_both_files", () => {
+    expect(missingMarkers(template, DETERMINISTIC_QUESTIONS_RUNTIME_MARKERS)).toEqual([]);
+    expect(missingMarkers(agents, DETERMINISTIC_QUESTIONS_RUNTIME_MARKERS)).toEqual([]);
   });
 
   it("value_readback_suppression_window_is_four_hours", () => {

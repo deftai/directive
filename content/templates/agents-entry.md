@@ -99,6 +99,15 @@ Rationale + cross-references: `.deft/core/docs/analysis/2026-07-02-agents-md-inc
 - ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
+## Deterministic questions runtime obligation (#1470)
+
+Rationale + cross-references: `.deft/core/content/contracts/deterministic-questions.md` (#767); closes the agent-runtime enforcement gap on issue #1470.
+
+- ! ANY agent-initiated structured question — whether via host `ask_user_question` / `AskQuestion` tooling or a numbered menu rendered in chat — inside OR outside any skill flow MUST include `Discuss` and `Back` as the final two options, in that order, and MUST obey the Discuss-pause semantic documented verbatim in `.deft/core/content/contracts/deterministic-questions.md`.
+- ! Before emitting any structured or numbered question, self-check: confirm `Discuss` and `Back` are present as the final two options; if not, add them before calling the tool or rendering the menu. Host-native `Other` / free-text affordances are NOT substitutes for `Discuss` (#767 / #431).
+- ⊗ Emit a structured or numbered question without `Discuss` and `Back` as the final two options — including ad-hoc orchestration approvals, dispatch confirmations, and decision walkthroughs outside interview/setup/refinement skills.
+- ⊗ Treat the host UI's automatic `Other` option as the stop-and-discuss escape hatch — `Other` widens the answer space; `Discuss` exits the deterministic flow entirely (see contract).
+
 ## Issue body→comments reading (#2143)
 
 Rationale + cross-references: `.deft/core/docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Issue body→comments reading (#2143); preamble § 5.6 in `.deft/core/content/templates/agent-prompt-preamble.md`.

@@ -271,6 +271,17 @@ Value attribution, budgeted session readbacks, and upstream gap escalation are g
 
 Reference: AGENTS.md `## Value feedback and attribution (#1709)`, issue #1709.
 
+## 5.8 Deterministic questions runtime self-check (#1470)
+
+The #767 contract applies to skill prose AND to agent-initiated structured questions at runtime. Prose-scanning tests cannot observe host `ask_user_question` tool calls — workers and orchestrators MUST self-enforce before every structured prompt.
+
+- ! Before calling any host structured-question tool (`ask_user_question`, Cursor `AskQuestion`, or equivalent) OR rendering any numbered decision menu in chat — inside or outside a skill — verify the final two options are `Discuss` then `Back`, in that order.
+- ! On `Discuss` selection, halt immediately per the verbatim Discuss-pause semantic in `content/contracts/deterministic-questions.md`: no further tool calls beyond acknowledging the pause; prompt `What would you like to discuss?`; resume only on an explicit user signal (re-asking the original question, saying `resume`/`continue`, or re-issuing the prior selection).
+- ⊗ Rely on the host UI's `Other` affordance as the Discuss escape — it widens the answer space; `Discuss` exits the deterministic flow entirely (#767).
+- ⊗ Omit `Discuss`/`Back` on ad-hoc orchestration prompts (swarm approval, routing decisions, scope confirmations) — the highest-traffic runtime surface (#1470 recurrence).
+
+Reference: AGENTS.md `## Deterministic questions runtime obligation (#1470)`, `content/contracts/deterministic-questions.md`, issue #1470. Refs #767.
+
 ## 6. No Draft re-toggling within a single review cycle
 
 Once a PR transitions Draft -> Ready, keep it Ready unless a P0 finding requires re-Draft. Repeated Draft<->Ready toggles cost GraphQL mutations and trigger stale CheckRun states downstream (Greptile re-runs, branch-protection re-evaluations).

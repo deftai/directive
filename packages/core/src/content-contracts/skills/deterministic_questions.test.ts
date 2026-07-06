@@ -29,6 +29,19 @@ describe("test_deterministic_questions", () => {
     expect(text).toContain("final two numbered options");
     expect(text).toContain("in that order");
   });
+  it("contract_scope_names_agent_initiated_ad_hoc_prompts", () => {
+    const text = readRepoFile("contracts/deterministic-questions.md");
+    expect(text).toContain("agent-initiated ad-hoc");
+    expect(text).toContain("ask_user_question");
+    expect(text).toContain("outside any skill");
+  });
+  it("runtime_obligation_surfaces_present", () => {
+    const template = readRepoFile("templates/agents-entry.md");
+    const preamble = readRepoFile("templates/agent-prompt-preamble.md");
+    expect(template).toContain("Deterministic questions runtime obligation");
+    expect(preamble).toContain("Deterministic questions runtime self-check");
+    expect(preamble).toContain("final two options are `Discuss` then `Back`");
+  });
   it("contract_discuss_pause_semantic_verbatim", () => {
     const text = readRepoFile("contracts/deterministic-questions.md");
     expect(text).toContain("the agent MUST pause IMMEDIATELY");

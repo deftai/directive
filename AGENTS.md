@@ -60,6 +60,10 @@ Projects on the legacy `vbrief/` tree are still read-accepted; run `deft migrate
 - ! Before designing a multi-step workflow from scratch, scan `content/skills/` for an existing skill that covers the task — skills are versioned, tested, and encode lessons from prior runs
 - ⊗ Improvise a multi-step workflow without first checking `content/skills/` for coverage
 
+## Deterministic questions runtime obligation (#1470)
+
+Same `!` / `⊗` rules as the managed `## Deterministic questions runtime obligation (#1470)` below; in this repo the contract path is `content/contracts/deterministic-questions.md` (#767). ANY agent-initiated structured or numbered question — inside or outside a skill — MUST carry `Discuss` and `Back` as the final two options and obey the Discuss-pause semantic. Self-check before every `ask_user_question` / numbered menu; host `Other` is NOT a substitute for `Discuss`.
+
 ## Review-surface precedence (#2308)
 
 ! When the active host harness exposes its own review-labeled surfaces -- Cursor's `bugbot` / `security-review` Task **subagent types**, the `review-bugbot` / `review-security` **skills**, or any future host equivalent -- the orchestrator MUST route review work through the canonical `deft-directive-review-cycle` skill. A generic "review this" / "get this reviewed" / "use sub-agents for reviews" request maps to `deft-directive-review-cycle` by intent, not literal keyword (extends #1862 / #2261).
@@ -260,7 +264,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=778e0ce4410c refreshed=2026-07-05T22:26:31Z session=45036c1f70aa -->
+<!-- deft:managed-section v3 sha=2d77bc08b976 refreshed=2026-07-06T13:42:56Z session=8b0b6e7136b1 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -361,6 +365,15 @@ Rationale + cross-references: `.deft/core/docs/analysis/2026-07-02-agents-md-inc
 - ! Fetch issue comments via REST (`gh api repos/<owner>/<repo>/issues/<N>/comments`), read the `## Current shape (as of pass-N)` comment, and any linked context or `LockedDecisions` xBRIEF referenced there — following the reading order body -> current-shape comment -> amendment comments (claim-cites-state-surface, #2066). Prefer the deterministic read path: `deft umbrella:current-shape <N>` (or `task umbrella:current-shape <N>`) — it locates the canonical comment, validates #1152 sections, and never falls back to the issue body.
 - ⊗ Conclude umbrella or epic status from the issue body alone. Any "X is done" / "X is the blocker" assertion about an umbrella MUST cite the current-shape comment or another state artifact, not the body.
 
+## Deterministic questions runtime obligation (#1470)
+
+Rationale + cross-references: `.deft/core/content/contracts/deterministic-questions.md` (#767); closes the agent-runtime enforcement gap on issue #1470.
+
+- ! ANY agent-initiated structured question — whether via host `ask_user_question` / `AskQuestion` tooling or a numbered menu rendered in chat — inside OR outside any skill flow MUST include `Discuss` and `Back` as the final two options, in that order, and MUST obey the Discuss-pause semantic documented verbatim in `.deft/core/content/contracts/deterministic-questions.md`.
+- ! Before emitting any structured or numbered question, self-check: confirm `Discuss` and `Back` are present as the final two options; if not, add them before calling the tool or rendering the menu. Host-native `Other` / free-text affordances are NOT substitutes for `Discuss` (#767 / #431).
+- ⊗ Emit a structured or numbered question without `Discuss` and `Back` as the final two options — including ad-hoc orchestration approvals, dispatch confirmations, and decision walkthroughs outside interview/setup/refinement skills.
+- ⊗ Treat the host UI's automatic `Other` option as the stop-and-discuss escape hatch — `Other` widens the answer space; `Discuss` exits the deterministic flow entirely (see contract).
+
 ## Issue body→comments reading (#2143)
 
 Rationale + cross-references: `.deft/core/docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Issue body→comments reading (#2143); preamble § 5.6 in `.deft/core/content/templates/agent-prompt-preamble.md`.
@@ -410,6 +423,12 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 - ⊗ Enable value-feedback surfaces without explicit operator confirmation on the typed policy flag.
 - ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
 - ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
+
+## Eval and framework health (#1703)
+
+- ! Three tiers: **Tier 0** `deft eval:health` (static gate score + contradictory-gate detector; ledger: `.eval/results/health-history.jsonl`). **Tier 1** CRUD telemetry on scope transitions (`.eval/results/crud-metrics.jsonl`, automatic). **Tier 2** `deft eval:run` / `deft eval:report` (golden corpus champion–challenger + holdout tripwire).
+- ! Run `deft eval:health` when orienting, after gate/policy/doc changes, or when session start emits a budgeted `[eval]` nudge (score drop or contradictory gate; 4-hour debounce, parity #1279/#1709). Tier 2 is for maintainer release eval (`eval:run -- --model M`; `eval:report -- --champion V --challenger V --model M`).
+- ⊗ Discover eval only via CHANGELOG/`deft --list` — AGENTS.md and `deft triage:help` are canonical. ⊗ Treat Tier 1 telemetry as operator-invoked.
 
 ## Branch policy & branch verification
 
