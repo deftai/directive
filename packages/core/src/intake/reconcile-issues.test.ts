@@ -210,7 +210,9 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
     expect(failures).toEqual([]);
 
     const movedPath = join(xbrief, "completed", name);
-    const data = JSON.parse(readFileSync(movedPath, "utf8")) as Record<string, unknown>;
+    const parsed = JSON.parse(readFileSync(movedPath, "utf8")) as unknown;
+    expect(typeof parsed === "object" && parsed !== null).toBe(true);
+    const data = parsed as Record<string, unknown>;
     // The `updated` stamp lands on the existing xBRIEFInfo envelope...
     const xInfo = data.xBRIEFInfo as Record<string, unknown>;
     expect(xInfo.version).toBe("0.8");
