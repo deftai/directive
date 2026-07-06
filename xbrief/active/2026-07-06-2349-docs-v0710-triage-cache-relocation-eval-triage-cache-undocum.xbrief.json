@@ -1,0 +1,34 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2349"
+  },
+  "plan": {
+    "title": "docs: v0.71.0 triage-cache relocation (.eval/ -> .triage-cache/) undocumented in UPGRADING.md + stale .eval/ paths across docs (#1703)",
+    "status": "running",
+    "narratives": {
+      "Description": "docs: v0.71.0 triage-cache relocation (.eval/ -> .triage-cache/) undocumented in UPGRADING.md + stale .eval/ paths across docs (#1703)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2349",
+      "Overview": "## Summary\n\nThe v0.71.0 / #1703 split of the `.eval/` namespace is only documented in `CHANGELOG.md`. Consumers upgrading to the latest version get **no operator-facing guidance** that their triage working-set cache moved, and several docs + task descriptions still cite the old `.eval/` paths. This is a documentation/adoption gap, distinct from the gitignore gaps tracked in #2344 and #2348.\n\n## Background\n\n#1703 (shipped v0.71.0) split what used to live under `<lifecycle-root>/.eval/` into two namespaces:\n\n- **Triage working-set** (`candidates.jsonl`, `slices.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`, `subscription-history.jsonl`, `doctor-state.json`, `decompositions/`, `README.md`) moved to `<lifecycle-root>/.triage-cache/`.\n- `.eval/` was reclaimed for the **new** framework-eval results store at `.eval/results/` (health/golden/crud ledgers) — a store with no prior home.\n\nThe relocation of the triage working-set is handled by `migrateLegacyTriageCacheFromEval()` in `packages/core/src/triage/cache-path.ts`, which `renameSync`s each known legacy file/dir from `.eval/` -> `.triage-cache/` **lazily**, the first time any triage path is resolved after upgrade. It is idempotent and canonical-wins on conflict.\n\nCrucially, this migration is **not** triggered by `deft update`, `deft migrate`, or `deft migrate:xbrief` (the last copies `vbrief/.eval/` -> `xbrief/.eval/` as-is). It only fires on a triage/scope/doctor path resolve (e.g. `deft triage:summary`, `deft triage:bootstrap`, `deft doctor`). There is no dedicated `migrate:triage-cache` verb.\n\n## Gaps\n\n### 1. UPGRADING.md has no #1703 / v0.71.0 section\n\n`UPGRADING.md` still documents the older v0.25 -> v0.26 (#883) `vbrief/.eval/candidates.jsonl` shape and has **no** section describing:\n\n- that the triage cache moved from `.eval/` to `.triage-cache/`,\n- that migration is automatic-but-lazy (run any triage command after upgrading; nothing to do manually otherwise),\n- the conflict policy (if both a legacy `.eval/` copy and a canonical `.triage-cache/` copy exist, the legacy one is skipped),\n- that `.eval/` is now the framework-eval results store.\n\nA consumer reading UPGRADING.md would not know their cache moved or how to trigger the move.\n\n### 2. Stale `.eval/` triage-path references across docs + task descriptions\n\nThe engine has moved but operator-facing surfaces still cite the old paths. Known stale references (verify + sweep during the fix):\n\n- `README.md` (e.g. `vbrief/.eval/slices.jsonl` around line 223)\n- `docs/CONCEPTS.md`, `docs/ARCHITECTURE.md`, `docs/FILES.md` — describe `.eval/` as the triage audit store\n- `tasks/slice.yml`, `tasks/triage-summary.yml` — task descriptions referencing `.eval/` triage paths\n\n## Proposed fix\n\n- Add a v0.71.0 / #1703 section to `UPGRADING.md` covering the relocation, the automatic-lazy migration behavior, the \"run any triage command to trigger it\" note, the conflict policy, and the `.eval/` -> `.eval/results/` reclaim.\n- Sweep the stale `.eval/` triage-path references in the docs + task descriptions above to `.triage-cache/` (leaving `.eval/results/` references intact where they correctly refer to the framework-eval store).\n\n## Related\n\n- #1703 (the relocation itself)\n- #2344 (stray artifacts + gitignore gap in reclaimed `.eval/`)\n- #2348 (`deft update` omits `xbrief/.triage-cache/*` gitignore entries)\n\nRefs #1703\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n```quarantined\n### Comment by @MScottAdams (2026-07-06T12:35:43Z)\n\nAdditional sweep item for Gap 2: the **generated/relocated per-project `<lifecycle-root>/.triage-cache/README.md`** also keeps stale `.eval/` content after upgrade.\r\n\r\nThe lazy `migrateLegacyTriageCacheFromEval()` does a bare `renameSync` of `.eval/README.md` -> `.triage-cache/README.md`, so the moved file retains its old body — it still titles and documents `.eval/`, references the `.eval` gitignore paths, and claims those paths are gitignored (which, per #2348, they aren't on the xbrief layout).\r\n\r\nRepro (consumer on xbrief layout, post-0.71.0 upgrade + any triage command):\r\n\r\n- `xbrief/.triage-cache/README.md` exists (relocated by the lazy migration) but its content describes `xbrief/.eval/`.\r\n\r\nThis is distinct from the framework's own docs listed in Gap 2 (root `README.md`, `docs/*`, task descriptions) — it's the deposited artifact that lands in every consumer repo. Fixing it likely means regenerating the README body during/after relocation rather than a plain `renameSync`, so the moved file reflects `.triage-cache/` (and the correct gitignore state once #2348 lands).\n```",
+      "Labels": "documentation, area:vbrief"
+    },
+    "items": [],
+    "tags": [
+      "documentation",
+      "area:vbrief"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2349",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2349: docs: v0.71.0 triage-cache relocation (.eval/ -> .triage-cache/) undocumented in UPGRADING.md + stale .eval/ paths across docs (#1703)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1703",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1703"
+      }
+    ],
+    "updated": "2026-07-06T13:36:23Z"
+  }
+}
