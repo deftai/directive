@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   GITIGNORE_EVAL_ENTRIES,
   GITIGNORE_LINE,
+  generateTriageCacheReadmeBody,
   stepEnsureGitignoreEntry,
   stepEnsureGitignoreEvalEntries,
   stepSeedCandidatesLog,
@@ -163,5 +164,20 @@ describe("stepSeedCandidatesLog", () => {
     expect(outcome.ok).toBe(true);
     expect(outcome.details.already_present).toBe(true);
     expect(readFileSync(audit, "utf8")).toBe(before);
+  });
+});
+
+describe("generateTriageCacheReadmeBody", () => {
+  it("substitutes xbrief/.triage-cache for the active migrated layout", () => {
+    const root = makeRoot();
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "s.xbrief.json"),
+      JSON.stringify({ plan: { id: "s", status: "running", items: [] } }),
+      "utf8",
+    );
+    const body = generateTriageCacheReadmeBody(root);
+    expect(body).toContain("xbrief/.triage-cache/");
+    expect(body).not.toContain("vbrief/.triage-cache/");
   });
 });

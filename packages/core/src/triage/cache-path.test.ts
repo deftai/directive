@@ -2,6 +2,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { writeState } from "../doctor/doctor-state.js";
+import { append } from "../intake/candidates-log.js";
 import { resolveEvalDir } from "../layout/resolve.js";
 import {
   migrateLegacyTriageCacheFromEval,
@@ -74,7 +76,7 @@ describe("triage cache-path (#1703)", () => {
     expect(existsSync(join(legacyDir, "candidates.jsonl"))).toBe(false);
   });
 
-  it("migrateLegacyTriageCacheFromEval is idempotent and skips when target already exists", () => {
+  it("migrateLegacyTriageCacheFromEval is idempotent and removes orphaned legacy copies when target already exists", () => {
     seedVbrief();
     const legacyDir = resolveEvalDir(root);
     const targetDir = resolveTriageCacheDir(root);
@@ -84,8 +86,9 @@ describe("triage cache-path (#1703)", () => {
     writeFileSync(join(targetDir, "candidates.jsonl"), "canonical\n", "utf8");
 
     const first = migrateLegacyTriageCacheFromEval(root);
-    expect(first.skippedFiles).toContain("candidates.jsonl");
+    expect(first.removedLegacyFiles).toContain("candidates.jsonl");
     expect(readFileSync(join(targetDir, "candidates.jsonl"), "utf8")).toBe("canonical\n");
+    expect(existsSync(join(legacyDir, "candidates.jsonl"))).toBe(false);
 
     writeFileSync(join(legacyDir, "summary-history.jsonl"), "history\n", "utf8");
     const second = migrateLegacyTriageCacheFromEval(root);
@@ -121,5 +124,87 @@ describe("triage cache-path (#1703)", () => {
     expect(existsSync(join(legacyDir, "candidates.jsonl"))).toBe(false);
     expect(existsSync(join(legacyDir, "results", "v0.1.json"))).toBe(true);
     expect(existsSync(join(resolveTriageCacheDir(root), "candidates.jsonl"))).toBe(true);
+  });
+
+  it("regenerates README.md with layout-aware .triage-cache paths instead of renaming stale .eval content", () => {
+    seedXbrief();
+    const legacyDir = resolveEvalDir(root);
+    mkdirSync(legacyDir, { recursive: true });
+    writeFileSync(
+      join(legacyDir, "README.md"),
+      "# legacy `.eval/` readme -- do not keep\n",
+      "utf8",
+    );
+
+    const result = migrateLegacyTriageCacheFromEval(root);
+    expect(result.regeneratedFiles).toContain("README.md");
+    expect(existsSync(join(legacyDir, "README.md"))).toBe(false);
+
+    const readme = readFileSync(join(resolveTriageCacheDir(root), "README.md"), "utf8");
+    expect(readme).toContain("xbrief/.triage-cache/");
+    expect(readme).not.toContain("`.eval/`");
+    expect(readme).not.toContain("legacy `.eval/` readme");
+  });
+
+  it("removes orphaned legacy triage-cache files when the canonical .triage-cache copy already exists", () => {
+    seedXbrief();
+    const legacyDir = resolveEvalDir(root);
+    const targetDir = resolveTriageCacheDir(root);
+    mkdirSync(legacyDir, { recursive: true });
+    mkdirSync(targetDir, { recursive: true });
+    writeFileSync(join(legacyDir, "doctor-state.json"), '{"stale":true}\n', "utf8");
+    writeFileSync(join(targetDir, "doctor-state.json"), '{"canonical":true}\n', "utf8");
+
+    const result = migrateLegacyTriageCacheFromEval(root);
+    expect(result.removedLegacyFiles).toContain("doctor-state.json");
+    expect(existsSync(join(legacyDir, "doctor-state.json"))).toBe(false);
+    expect(readFileSync(join(targetDir, "doctor-state.json"), "utf8")).toContain("canonical");
+  });
+
+  it("writeState persists under .triage-cache on migrated xbrief trees, not legacy .eval", () => {
+    seedXbrief();
+    const legacyDir = resolveEvalDir(root);
+    mkdirSync(legacyDir, { recursive: true });
+    writeFileSync(join(legacyDir, "doctor-state.json"), '{"legacy":true}\n', "utf8");
+
+    const path = writeState(root, {
+      exitCode: 0,
+      findingCount: 0,
+      errorCount: 0,
+      now: new Date("2026-07-06T00:00:00Z"),
+    });
+
+    expect(path).not.toBeNull();
+    if (path === null) {
+      throw new Error("expected writeState to return a path");
+    }
+    expect(path).toBe(join(root, "xbrief", TRIAGE_CACHE_DIR_NAME, "doctor-state.json"));
+    expect(existsSync(path)).toBe(true);
+    expect(existsSync(join(legacyDir, "doctor-state.json"))).toBe(false);
+  });
+
+  it("intake candidates-log append defaults to .triage-cache, not legacy .eval", () => {
+    seedXbrief();
+    const legacyDir = resolveEvalDir(root);
+    mkdirSync(legacyDir, { recursive: true });
+
+    const prev = process.cwd();
+    try {
+      process.chdir(root);
+      append({
+        decision_id: "00000000-0000-4000-8000-000000000001",
+        timestamp: "2026-07-06T00:00:00Z",
+        repo: "deftai/directive",
+        issue_number: 2344,
+        decision: "accept",
+        actor: "agent:test",
+      });
+    } finally {
+      process.chdir(prev);
+    }
+
+    const canonical = join(root, "xbrief", TRIAGE_CACHE_DIR_NAME, "candidates.jsonl");
+    expect(existsSync(canonical)).toBe(true);
+    expect(existsSync(join(legacyDir, "candidates.jsonl"))).toBe(false);
   });
 });

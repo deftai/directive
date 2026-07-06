@@ -5,9 +5,10 @@
  * `.eval/` namespace can be reclaimed for version-eval results (#1703 Tier 2).
  */
 
-import { existsSync, mkdirSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { resolveEvalDir, resolveLifecycleLayout, resolveLifecycleRoot } from "../layout/resolve.js";
+import { generateTriageCacheReadmeBody } from "./bootstrap/gitignore.js";
 
 /** Directory name for the triage working-set cache (not version-eval results). */
 export const TRIAGE_CACHE_DIR_NAME = ".triage-cache";
@@ -33,6 +34,8 @@ export interface TriageCacheMigrationResult {
   readonly migratedFiles: readonly string[];
   readonly skippedFiles: readonly string[];
   readonly migratedDirs: readonly string[];
+  readonly regeneratedFiles: readonly string[];
+  readonly removedLegacyFiles: readonly string[];
 }
 
 /** Absolute path to the layout-aware `.triage-cache/` directory. */
@@ -56,9 +59,11 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
   const migratedFiles: string[] = [];
   const skippedFiles: string[] = [];
   const migratedDirs: string[] = [];
+  const regeneratedFiles: string[] = [];
+  const removedLegacyFiles: string[] = [];
 
   if (!existsSync(legacyDir)) {
-    return { migratedFiles, skippedFiles, migratedDirs };
+    return { migratedFiles, skippedFiles, migratedDirs, regeneratedFiles, removedLegacyFiles };
   }
 
   mkdirSync(targetDir, { recursive: true });
@@ -69,8 +74,15 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
     if (!existsSync(legacyPath)) {
       continue;
     }
+    if (name === "README.md") {
+      writeFileSync(targetPath, generateTriageCacheReadmeBody(projectRoot), "utf8");
+      unlinkSync(legacyPath);
+      regeneratedFiles.push(name);
+      continue;
+    }
     if (existsSync(targetPath)) {
-      skippedFiles.push(name);
+      unlinkSync(legacyPath);
+      removedLegacyFiles.push(name);
       continue;
     }
     renameSync(legacyPath, targetPath);
@@ -91,7 +103,7 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
     migratedDirs.push(name);
   }
 
-  return { migratedFiles, skippedFiles, migratedDirs };
+  return { migratedFiles, skippedFiles, migratedDirs, regeneratedFiles, removedLegacyFiles };
 }
 
 /** Resolve a path under `.triage-cache/`, migrating legacy `.eval/` files first. */
@@ -115,6 +127,7 @@ export function resolveCandidatesLogPath(projectRoot: string): string {
 
 /** Ensure the triage cache directory exists (post-migration). */
 export function ensureTriageCacheDir(projectRoot: string): string {
+  migrateLegacyTriageCacheFromEval(projectRoot);
   const dir = resolveTriageCacheDir(projectRoot);
   mkdirSync(dir, { recursive: true });
   return dir;

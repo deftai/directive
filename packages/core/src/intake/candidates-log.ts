@@ -11,17 +11,11 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { pyRepr } from "../scm/py-format.js";
+import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 
-export const DEFAULT_LOG_PATH = resolve(
-  import.meta.dirname,
-  "..",
-  "..",
-  "..",
-  "..",
-  "vbrief",
-  ".eval",
-  "candidates.jsonl",
-);
+function defaultLogPath(): string {
+  return resolveCandidatesLogPath(process.cwd());
+}
 
 const VALID_DECISIONS = new Set<string>([
   "accept",
@@ -163,7 +157,7 @@ function validateEntry(entry: unknown): void {
 }
 
 function resolvePath(path: string | null | undefined): string {
-  return path !== undefined && path !== null ? resolve(path) : DEFAULT_LOG_PATH;
+  return path !== undefined && path !== null ? resolve(path) : defaultLogPath();
 }
 
 function acquireAppendLock(logPath: string): () => void {
