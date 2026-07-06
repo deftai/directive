@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Maintainer `task` aliases for value feedback: `task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` now resolve through the Taskfile instead of failing with "task not found", matching the documented AGENTS.md surface. Refs #2337.
+- Stopped versioning operator-private cache stragglers in the reclaimed `.eval/` namespace: removed accidentally committed scratch dumps and taught `.gitignore` to ignore the loose legacy triage-cache basenames (`candidates.jsonl`, `summary-history.jsonl`, `doctor-state.json`, etc.) and `_tmp_*` files under `xbrief/.eval/` / `vbrief/.eval/`, while keeping the tracked `.eval/results/` ledger. Refs #2344.
 
 ### Added
 

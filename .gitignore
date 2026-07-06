@@ -110,6 +110,28 @@ vbrief/.triage-cache/decompositions/
 vbrief/.triage-cache/doctor-state.json
 vbrief/.triage-cache/*.lock
 
+# .eval/ namespace (#1703 Tier 2). `.eval/results/` holds team-shared, TRACKED
+# version-eval records (health-history.jsonl, golden-runs.jsonl). The loose
+# operator-private basenames below are legacy triage-cache stragglers that
+# `triage/cache-path.ts` migrates into `.triage-cache/`; ignore them in place so
+# they can never be re-committed to `.eval/`, and never blanket-ignore `.eval/`
+# itself (that would drop the tracked results/ ledger; #1464). Scratch `_tmp_*`
+# issue-body dumps are runtime artefacts, never versioned.
+xbrief/.eval/candidates.jsonl
+xbrief/.eval/summary-history.jsonl
+xbrief/.eval/scope-lifecycle.jsonl
+xbrief/.eval/decompositions/
+xbrief/.eval/doctor-state.json
+xbrief/.eval/*.lock
+xbrief/.eval/_tmp_*
+vbrief/.eval/candidates.jsonl
+vbrief/.eval/summary-history.jsonl
+vbrief/.eval/scope-lifecycle.jsonl
+vbrief/.eval/decompositions/
+vbrief/.eval/doctor-state.json
+vbrief/.eval/*.lock
+vbrief/.eval/_tmp_*
+
 # N6 (#1146) triage:smoketest assert log -- runtime artefact, never committed.
 # The fixture itself (tests/fixtures/triage_smoketest/{issues.json,
 # PROJECT-DEFINITION.vbrief.json, vbrief/, README.md}) IS committed; only the

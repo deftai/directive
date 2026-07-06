@@ -1445,36 +1445,6 @@ describe("test_standards.py", () => {
   it("xbrief/.triage-cache/README.md no deprecated user path", () => {
     expect(readText("xbrief/.triage-cache/README.md").toLowerCase()).not.toContain("core/user.md");
   });
-  it("xbrief/.eval/_tmp_976_body_after.md no deprecated user path", () => {
-    expect(readText("xbrief/.eval/_tmp_976_body_after.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
-  it("xbrief/.eval/_tmp_976_body_before.md no deprecated user path", () => {
-    expect(readText("xbrief/.eval/_tmp_976_body_before.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
-  it("xbrief/.eval/_tmp_985_body_after_pairing.md no deprecated user path", () => {
-    expect(readText("xbrief/.eval/_tmp_985_body_after_pairing.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
-  it("xbrief/.eval/_tmp_985_body_before_pairing.md no deprecated user path", () => {
-    expect(readText("xbrief/.eval/_tmp_985_body_before_pairing.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
-  it("xbrief/.eval/_tmp_988_body_after_pairing.md no deprecated user path", () => {
-    expect(readText("xbrief/.eval/_tmp_988_body_after_pairing.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
-  it("xbrief/.eval/_tmp_988_body_before_pairing.md no deprecated user path", () => {
-    expect(readText("xbrief/.eval/_tmp_988_body_before_pairing.md").toLowerCase()).not.toContain(
-      "core/user.md",
-    );
-  });
   it("vbrief/vbrief.md no deprecated user path", () => {
     expect(readText("vbrief/vbrief.md").toLowerCase()).not.toContain("core/user.md");
   });
@@ -2651,32 +2621,6 @@ describe("test_standards.py", () => {
   });
   it("xbrief/.triage-cache/README.md no warping", () => {
     expect(readText("xbrief/.triage-cache/README.md").toLowerCase()).not.toContain("warping");
-  });
-  it("xbrief/.eval/_tmp_976_body_after.md no warping", () => {
-    expect(readText("xbrief/.eval/_tmp_976_body_after.md").toLowerCase()).not.toContain("warping");
-  });
-  it("xbrief/.eval/_tmp_976_body_before.md no warping", () => {
-    expect(readText("xbrief/.eval/_tmp_976_body_before.md").toLowerCase()).not.toContain("warping");
-  });
-  it("xbrief/.eval/_tmp_985_body_after_pairing.md no warping", () => {
-    expect(readText("xbrief/.eval/_tmp_985_body_after_pairing.md").toLowerCase()).not.toContain(
-      "warping",
-    );
-  });
-  it("xbrief/.eval/_tmp_985_body_before_pairing.md no warping", () => {
-    expect(readText("xbrief/.eval/_tmp_985_body_before_pairing.md").toLowerCase()).not.toContain(
-      "warping",
-    );
-  });
-  it("xbrief/.eval/_tmp_988_body_after_pairing.md no warping", () => {
-    expect(readText("xbrief/.eval/_tmp_988_body_after_pairing.md").toLowerCase()).not.toContain(
-      "warping",
-    );
-  });
-  it("xbrief/.eval/_tmp_988_body_before_pairing.md no warping", () => {
-    expect(readText("xbrief/.eval/_tmp_988_body_before_pairing.md").toLowerCase()).not.toContain(
-      "warping",
-    );
   });
   it("vbrief/vbrief.md no warping", () => {
     expect(readText("vbrief/vbrief.md").toLowerCase()).not.toContain("warping");
