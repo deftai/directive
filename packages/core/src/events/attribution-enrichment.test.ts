@@ -69,4 +69,19 @@ describe("buildAttributionEnrichment", () => {
     const enrichment = buildAttributionEnrichment(root, { repoResolver: () => null });
     expect(enrichment.repo).toBeNull();
   });
+
+  it("memoizes per projectRoot with the default resolver to stay off the hot path (#2377)", () => {
+    const root = makeTemp();
+    const first = buildAttributionEnrichment(root);
+    const second = buildAttributionEnrichment(root);
+    expect(second).toBe(first);
+  });
+
+  it("a custom resolver bypasses the cache for deterministic tests (#2377)", () => {
+    const root = makeTemp();
+    const a = buildAttributionEnrichment(root, { repoResolver: () => "deftai/a" });
+    const b = buildAttributionEnrichment(root, { repoResolver: () => "deftai/b" });
+    expect(a.repo).toBe("deftai/a");
+    expect(b.repo).toBe("deftai/b");
+  });
 });

@@ -246,10 +246,13 @@ function inspectSwarmSubagentBackend(data: Record<string, unknown> | null): Poli
   };
 }
 
-type Inspector = (data: Record<string, unknown> | null) => PolicyField;
+type Inspector = (data: Record<string, unknown> | null, projectRoot?: string) => PolicyField;
 
-function inspectValueFeedbackField(data: Record<string, unknown> | null): PolicyField {
-  const field = inspectValueFeedback(data);
+function inspectValueFeedbackField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectValueFeedback(data, projectRoot);
   return {
     name: field.name,
     current: field.current,
@@ -295,7 +298,7 @@ const REGISTERED_POLICIES: readonly Inspector[] = [
 /** Walk registered inspectors and return one row per field (#1148). */
 export function inspectAllPolicies(projectRoot: string): PolicyField[] {
   const [data] = loadProjectDefinition(projectRoot);
-  return REGISTERED_POLICIES.map((inspect) => inspect(data));
+  return REGISTERED_POLICIES.map((inspect) => inspect(data, projectRoot));
 }
 
 /** Look up a single registered field by canonical dotted-path name (or CLI alias). */

@@ -53,14 +53,28 @@ export interface BuildAttributionEnrichmentOptions {
   readonly repoResolver?: (projectRoot: string) => string | null;
 }
 
+const enrichmentCache = new Map<string, AttributionEnrichment>();
+
 /**
  * Build the identity/provenance enrichment stamped on attribution records (#2376).
- * Every field degrades gracefully; this function never throws.
+ *
+ * Memoized per `projectRoot` (identity/version/repo are stable within a session)
+ * so a caller that emits many signals in one run does not spawn a git process and
+ * open the install-id file per event -- mirrors `detectOriginOrg`'s cache to keep
+ * this off the hot emit path (#2377 review). A custom `repoResolver` bypasses the
+ * cache so tests stay deterministic. Every field degrades gracefully; never throws.
  */
 export function buildAttributionEnrichment(
   projectRoot: string,
   options: BuildAttributionEnrichmentOptions = {},
 ): AttributionEnrichment {
+  const useCache = options.repoResolver === undefined;
+  if (useCache) {
+    const cached = enrichmentCache.get(projectRoot);
+    if (cached !== undefined) {
+      return cached;
+    }
+  }
   const resolver = options.repoResolver ?? inferRepoFromGit;
   let repo: string | null = null;
   try {
@@ -68,10 +82,14 @@ export function buildAttributionEnrichment(
   } catch {
     repo = null;
   }
-  return {
+  const enrichment: AttributionEnrichment = {
     repo,
     directive_version: readCorePackageVersion(),
     install_id: resolveInstallId(projectRoot),
     schema_version: ATTRIBUTION_SCHEMA_VERSION,
   };
+  if (useCache) {
+    enrichmentCache.set(projectRoot, enrichment);
+  }
+  return enrichment;
 }

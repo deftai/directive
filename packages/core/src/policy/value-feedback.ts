@@ -219,49 +219,7 @@ export interface ValueFeedbackPolicyField {
   readonly source: string;
 }
 
-function defaultInspectorConfig(): ValueFeedbackConfig {
-  const defaults = defaultResolved("default");
-  return {
-    enabled: defaults.enabled,
-    emitEvents: defaults.emitEvents,
-    sessionLine: defaults.sessionLine,
-    upstreamPrompt: defaults.upstreamPrompt,
-  };
-}
-
-function buildDefaultInspectorField(): ValueFeedbackPolicyField {
-  return {
-    name: FIELD_VALUE_FEEDBACK,
-    current: defaultInspectorConfig(),
-    default: {
-      enabled: DEFAULT_VALUE_FEEDBACK_ENABLED,
-      emitEvents: false,
-      sessionLine: false,
-      upstreamPrompt: false,
-    },
-    source: "default",
-  };
-}
-
-/** Inspector row for `policy:show --field=valueFeedback`. */
-export function inspectValueFeedback(
-  data: Record<string, unknown> | null,
-): ValueFeedbackPolicyField {
-  if (data === null) {
-    return buildDefaultInspectorField();
-  }
-
-  const policyBlock = readPlanPolicy(data.plan);
-  if (
-    typeof policyBlock !== "object" ||
-    policyBlock === null ||
-    Array.isArray(policyBlock) ||
-    !("valueFeedback" in (policyBlock as Record<string, unknown>))
-  ) {
-    return buildDefaultInspectorField();
-  }
-
-  const resolved = resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);
+function fieldFromResolved(resolved: ValueFeedbackResolved): ValueFeedbackPolicyField {
   return {
     name: FIELD_VALUE_FEEDBACK,
     current: {
@@ -278,6 +236,46 @@ export function inspectValueFeedback(
     },
     source: resolved.source,
   };
+}
+
+export interface InspectValueFeedbackOptions {
+  /** Test seam for origin-org auto-enable resolution (#2376). */
+  readonly autoEnable?: OrgAutoEnableOptions;
+}
+
+/**
+ * Inspector row for `policy:show --field=valueFeedback`.
+ *
+ * When `projectRoot` is supplied this MUST mirror {@link resolveValueFeedback}'s
+ * precedence exactly (#2377 review): with no explicit typed block, a trusted-org
+ * checkout resolves to `org-auto`/ON so `policy:show` never reports OFF while the
+ * ledger is actively collecting. Omitting `projectRoot` keeps the legacy
+ * data-only behavior for callers that only need the field name/shape.
+ */
+export function inspectValueFeedback(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+  options: InspectValueFeedbackOptions = {},
+): ValueFeedbackPolicyField {
+  if (data === null) {
+    return fieldFromResolved(defaultResolved("default"));
+  }
+
+  const policyBlock = readPlanPolicy(data.plan);
+  if (
+    typeof policyBlock !== "object" ||
+    policyBlock === null ||
+    Array.isArray(policyBlock) ||
+    !("valueFeedback" in (policyBlock as Record<string, unknown>))
+  ) {
+    if (projectRoot !== undefined && isTrustedOrgAutoEnable(projectRoot, options.autoEnable)) {
+      return fieldFromResolved(orgAutoResolved());
+    }
+    return fieldFromResolved(defaultResolved("default"));
+  }
+
+  const resolved = resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);
+  return fieldFromResolved(resolved);
 }
 
 export interface EnableValueFeedbackOptions {

@@ -288,4 +288,43 @@ describe("policy:show --field=valueFeedback reader", () => {
     });
     expect(field.source).toBe("default");
   });
+
+  it("inspectValueFeedback mirrors org-auto so policy:show never lies for deftai repos (#2377)", () => {
+    const data = { plan: { title: "T", status: "running", items: [], policy: { wipCap: 10 } } };
+    const field = inspectValueFeedback(data, "/some/root", {
+      autoEnable: { repoResolver: () => "deftai/statusreport" },
+    });
+    expect(field.source).toBe("org-auto");
+    expect(field.current).toEqual({
+      enabled: true,
+      emitEvents: true,
+      sessionLine: true,
+      upstreamPrompt: false,
+    });
+  });
+
+  it("inspectValueFeedback stays default for a non-trusted org with no explicit block (#2377)", () => {
+    const data = { plan: { title: "T", status: "running", items: [], policy: { wipCap: 10 } } };
+    const field = inspectValueFeedback(data, "/some/root", {
+      autoEnable: { repoResolver: () => "someone-else/proj" },
+    });
+    expect(field.source).toBe("default");
+    expect(field.current.enabled).toBe(false);
+  });
+
+  it("inspectValueFeedback: explicit typed enabled:false wins over org-auto (#2377)", () => {
+    const data = {
+      plan: {
+        title: "T",
+        status: "running",
+        items: [],
+        policy: { valueFeedback: { enabled: false } },
+      },
+    };
+    const field = inspectValueFeedback(data, "/some/root", {
+      autoEnable: { repoResolver: () => "deftai/directive" },
+    });
+    expect(field.source).toBe("typed");
+    expect(field.current.enabled).toBe(false);
+  });
 });

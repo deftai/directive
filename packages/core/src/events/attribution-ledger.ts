@@ -57,12 +57,14 @@ export function emitAttributionSignal(
     const signalClass = signalClassForEvent(name);
     const logPath = resolveLedgerLogPath(options.projectRoot, options.logPath);
     const enrichment = buildAttributionEnrichment(options.projectRoot);
+    // Authoritative fields (signal_class + provenance enrichment) are spread LAST
+    // so a caller payload can never silently shadow them (#2377 review).
     return emit(
       name,
       {
+        ...payload,
         signal_class: signalClass,
         ...enrichment,
-        ...payload,
       },
       { logPath },
     );

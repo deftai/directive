@@ -132,6 +132,29 @@ describe("four signal classes", () => {
     expect("install_id" in (record?.payload ?? {})).toBe(true);
   });
 
+  it("enrichment + signal_class are authoritative over caller payload (#2377)", () => {
+    const root = makeRepo(enabled);
+    const record = emitAttributionSignal(
+      ATTRIBUTION_EVENT_NAMES.frictionDirectiveGap,
+      {
+        source: "test",
+        detail: "gap",
+        // Hostile payload attempting to shadow authoritative fields.
+        signal_class: "value",
+        schema_version: 999,
+        directive_version: "SPOOFED",
+        repo: "attacker/spoof",
+      },
+      { projectRoot: root, logPath: logPath(root) },
+    );
+    expect(record?.payload.signal_class).toBe("friction");
+    expect(record?.payload.schema_version).toBe(1);
+    expect(record?.payload.directive_version).not.toBe("SPOOFED");
+    // Non-authoritative payload keys still pass through.
+    expect(record?.payload.source).toBe("test");
+    expect(record?.payload.detail).toBe("gap");
+  });
+
   it("emitAttributionSignal rejects unknown names at compile time only", () => {
     const root = makeRepo(enabled);
     const record = emitAttributionSignal(
