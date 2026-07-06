@@ -6,6 +6,7 @@ import {
   type ValueFeedbackResolved,
 } from "../policy/value-feedback.js";
 import { ATTRIBUTION_EVENT_NAMES, type AttributionEventName } from "./attribution-constants.js";
+import { buildAttributionEnrichment } from "./attribution-enrichment.js";
 
 export {
   ALL_ATTRIBUTION_EVENT_NAMES,
@@ -55,10 +56,12 @@ export function emitAttributionSignal(
     }
     const signalClass = signalClassForEvent(name);
     const logPath = resolveLedgerLogPath(options.projectRoot, options.logPath);
+    const enrichment = buildAttributionEnrichment(options.projectRoot);
     return emit(
       name,
       {
         signal_class: signalClass,
+        ...enrichment,
         ...payload,
       },
       { logPath },

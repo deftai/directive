@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Company-owned repos auto-enable local value feedback.** Repositories whose GitHub origin belongs to a trusted org (built-in `deftai`, extendable via `DEFT_VALUE_AUTOENABLE_ORGS`) now switch on local, no-egress value-feedback collection automatically -- org membership is the consent, while network/upstream escalation stays opt-in. Every attribution event is now stamped with its repo, the directive version, a stable per-checkout install id, and a schema version so the local ledgers can be aggregated later without re-deriving provenance. Refs #1709, #2376.
+
 ### Changed
 
 ### Fixed

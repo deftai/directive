@@ -5,6 +5,7 @@ import {
 } from "../vbrief-build/project-definition-io.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { appendAuditLog, loadProjectDefinition, projectDefinitionPath } from "./resolve.js";
+import { isTrustedOrgAutoEnable, type OrgAutoEnableOptions } from "./value-feedback-autoenable.js";
 
 /** Canonical registered policy field name (matches other FIELD_* dotted paths). */
 export const FIELD_VALUE_FEEDBACK = "plan.policy.valueFeedback";
@@ -30,7 +31,7 @@ export interface ValueFeedbackConfig {
   readonly upstreamPrompt: boolean;
 }
 
-export type ValueFeedbackSource = "typed" | "default" | "default-on-error";
+export type ValueFeedbackSource = "typed" | "org-auto" | "default" | "default-on-error";
 
 export interface ValueFeedbackResolved extends ValueFeedbackConfig {
   readonly source: ValueFeedbackSource;
@@ -60,6 +61,21 @@ function defaultResolved(
     upstreamPrompt: false,
     source,
     error,
+  };
+}
+
+/**
+ * Trusted-org auto-enable resolution (#2376): LOCAL emit + session readback ON,
+ * network/upstream OFF. Applies only when the typed flag is absent.
+ */
+function orgAutoResolved(): ValueFeedbackResolved {
+  return {
+    enabled: true,
+    emitEvents: VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.emitEvents,
+    sessionLine: VALUE_FEEDBACK_SUBFLAG_DEFAULTS_WHEN_ENABLED.sessionLine,
+    upstreamPrompt: false,
+    source: "org-auto",
+    error: null,
   };
 }
 
@@ -126,8 +142,24 @@ function resolveFromPolicyBlock(raw: unknown): ValueFeedbackResolved {
   };
 }
 
-/** Resolve `plan.policy.valueFeedback` from PROJECT-DEFINITION (#1709). */
-export function resolveValueFeedback(projectRoot: string): ValueFeedbackResolved {
+export interface ResolveValueFeedbackOptions {
+  /** Test seam for origin-org auto-enable resolution (#2376). */
+  readonly autoEnable?: OrgAutoEnableOptions;
+}
+
+/**
+ * Resolve `plan.policy.valueFeedback` from PROJECT-DEFINITION (#1709).
+ *
+ * Precedence (#2376): an explicit typed `valueFeedback` block always wins
+ * (including `enabled: false`). Only when the typed flag is ABSENT does the
+ * trusted-org auto-enable layer apply -- for company-owned (deftai) repos it
+ * turns LOCAL emit + session readback ON while leaving network/upstream OFF.
+ * Any other repo (or no origin remote) stays OFF.
+ */
+export function resolveValueFeedback(
+  projectRoot: string,
+  options: ResolveValueFeedbackOptions = {},
+): ValueFeedbackResolved {
   const [data, err] = loadProjectDefinition(projectRoot);
   if (data === null) {
     return defaultResolved("default-on-error", err);
@@ -139,6 +171,9 @@ export function resolveValueFeedback(projectRoot: string): ValueFeedbackResolved
     Array.isArray(policyBlock) ||
     !("valueFeedback" in (policyBlock as Record<string, unknown>))
   ) {
+    if (isTrustedOrgAutoEnable(projectRoot, options.autoEnable)) {
+      return orgAutoResolved();
+    }
     return defaultResolved("default");
   }
   return resolveFromPolicyBlock((policyBlock as Record<string, unknown>).valueFeedback);

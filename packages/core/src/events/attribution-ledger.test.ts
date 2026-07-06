@@ -122,6 +122,16 @@ describe("four signal classes", () => {
     }
   });
 
+  it("stamps enrichment (directive_version, install_id, schema_version) on records (#2376)", () => {
+    const root = makeRepo(enabled);
+    const record = recordGateCatch(root, "verify:branch", "gate", { logPath: logPath(root) });
+    expect(record).not.toBeNull();
+    expect(typeof record?.payload.directive_version).toBe("string");
+    expect(record?.payload.schema_version).toBe(1);
+    expect("repo" in (record?.payload ?? {})).toBe(true);
+    expect("install_id" in (record?.payload ?? {})).toBe(true);
+  });
+
   it("emitAttributionSignal rejects unknown names at compile time only", () => {
     const root = makeRepo(enabled);
     const record = emitAttributionSignal(

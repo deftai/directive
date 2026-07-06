@@ -262,7 +262,8 @@ Reference: AGENTS.md `## Issue body→comments reading (#2143)`, `## Umbrella cu
 
 Value attribution, budgeted session readbacks, and upstream gap escalation are gated on `plan.policy.valueFeedback` (default OFF). Workers MUST NOT emit value claims, session readback lines, or file upstream framework-gap issues unless the relevant sub-flag is ON and the operator has confirmed enablement where required.
 
-- ! While `valueFeedback.enabled` is false, treat every value-feedback path as a no-op -- no ledger writes, no session lines, no upstream prompts, no token spend.
+- ! Trusted-org local auto-enable (#2376): a repo whose GitHub origin belongs to a company-owned org (default `deftai`; extend via `DEFT_VALUE_AUTOENABLE_ORGS`) auto-resolves LOCAL emit + session readback ON with `source=org-auto` and network/upstream OFF -- no per-repo confirmation. An explicit typed `valueFeedback` block (including `enabled: false`) always wins; any other repo or no origin remote stays OFF.
+- ! While `valueFeedback.enabled` is false AND no trusted-org auto-enable applies, treat every value-feedback path as a no-op -- no ledger writes, no session lines, no upstream prompts, no token spend.
 - ! Value claims MUST cite concrete attributed ledger events; silence when nothing is attributable.
 - ! Session readback repeats suppress for 4 hours per attribution event id (same debounce class as #1279 triage welcome). Pull-based detail uses `task value:show` / `deft value:show`, not ambient pushes.
 - ! Upstream gap filing is confirmation-gated -- route through `deft-directive-feedback`; draft + dedup with `task feedback:file` / `deft feedback:file`, then re-run with `--confirm` only after explicit operator approval. Consumer projects only; maintainer repo no-ops unless `DEFT_VALUE_SELF_DOGFOOD=1`.

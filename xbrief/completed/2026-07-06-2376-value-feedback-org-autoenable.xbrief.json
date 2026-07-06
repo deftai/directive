@@ -1,0 +1,74 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for GitHub issue #2376",
+    "updated": "2026-07-06T21:15:00Z"
+  },
+  "plan": {
+    "title": "feat(value-feedback): enrich attribution events + trusted-org auto-enable of local collection (Refs #1709)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Make the per-machine value-feedback ledger (#1709) good enough to aggregate later, and auto-enable LOCAL collection for company-owned (deftai) repos with zero per-repo or per-machine setup. Strictly local + no network; the collector/push/aggregation is a deferred follow-up.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2376",
+      "ImplementationPlan": "Part A -- Event enrichment: stamp each attribution record at emit time with `repo` (normalized owner/name via inferRepoFromGit/parseGitHubRemoteRepo), `directive_version` (readCorePackageVersion at emit), `install_id` (stable per-checkout uuid persisted in .deft-cache/), and `schema_version` for future migration. Part B -- Trusted-org auto-enable: add a resolution layer above the typed policy that reads the origin org and, when it matches a built-in DEFAULT_AUTOENABLE_ORGS constant (['deftai']) or the optional DEFT_VALUE_AUTOENABLE_ORGS env override AND no explicit typed valueFeedback flag is set, resolves emitEvents+sessionLine ON with source=org-auto and network/upstream OFF; explicit typed enabled:false always wins; no remote / no match stays OFF. Contract-locked docs: reword the #1709 value-feedback block in AGENTS.md + content/templates/agents-entry.md + agent-prompt-preamble.md in lockstep, scope the operator-confirmation prohibition to network/upstream surfaces, add a VALUE_FEEDBACK_MARKERS marker for the new rule, and run agents:refresh.",
+      "Overview": "See https://github.com/deftai/directive/issues/2376. Company policy decision (resolved): for deftai-owned repos, org membership IS the consent for local, no-egress collection; network/upstream still requires explicit opt-in. Open sub-decision resolved during dispatch: keep the maintainer-repo split (in-org emit auto-enables, session readback stays behind DEFT_VALUE_SELF_DOGFOOD=1).",
+      "Traces": "Refs #1709. Consumer-facing follow-up on the value-feedback framework shipped in v0.71.0."
+    },
+    "items": [
+      {
+        "id": "2376-a1",
+        "title": "Attribution records enriched with repo, directive_version, install_id, schema_version",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Every attribution ledger record carries repo (normalized owner/name), directive_version (from readCorePackageVersion at emit), a stable install_id persisted once in .deft-cache/, and a schema_version. Enrichment is best-effort and never interrupts the emit path."
+        }
+      },
+      {
+        "id": "2376-a2",
+        "title": "Trusted-org auto-enable resolution layer (local-only)",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A github.com/deftai/* clone with no explicit typed valueFeedback flag resolves emitEvents+sessionLine ON with source=org-auto and network OFF. Explicit typed enabled:false overrides. Non-matching org or no origin remote stays OFF. DEFT_VALUE_AUTOENABLE_ORGS extends the matched-org set."
+        }
+      },
+      {
+        "id": "2376-a3",
+        "title": "Contract-locked doc rules reworded in lockstep",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The #1709 value-feedback block in AGENTS.md, content/templates/agents-entry.md, and content/templates/agent-prompt-preamble.md carries the trusted-org local auto-enable rule and scopes the operator-confirmation prohibition to network/upstream surfaces; VALUE_FEEDBACK_MARKERS is updated; agents:refresh has been run; the agents-entry contract test is green."
+        }
+      },
+      {
+        "id": "2376-a4",
+        "title": "Tests and quality gates",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "New/changed source files ship with tests (verify:forward-coverage); task check is green; a CHANGELOG [Unreleased] entry is added."
+        }
+      }
+    ],
+    "tags": [
+      "value-feedback",
+      "telemetry",
+      "policy"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2376",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2376: feat(value-feedback): enrich attribution events + trusted-org auto-enable of local collection (Refs #1709)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1709: Epic: Directive value attribution & adoption loop (RFC)"
+      }
+    ],
+    "updated": "2026-07-06T21:41:05Z",
+    "metadata": {
+      "completedAt": "2026-07-06T21:41:05Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}

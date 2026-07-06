@@ -171,6 +171,9 @@ const VALUE_FEEDBACK_MARKERS = [
   "Refs #1709",
   "DEFT_VALUE_SELF_DOGFOOD",
   "without operator confirmation",
+  "Trusted-org local auto-enable (#2376)",
+  "DEFT_VALUE_AUTOENABLE_ORGS",
+  "source=org-auto",
 ] as const;
 
 // #1703: tiered eval framework discoverability MUST mirror across maintainer

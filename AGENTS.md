@@ -74,12 +74,14 @@ Same `!` / `⊗` rules as the managed `## Deterministic questions runtime obliga
 
 ## Value feedback and attribution (#1709)
 
-- ! `plan.policy.valueFeedback.enabled` defaults OFF -- while false, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in ONLY via `task policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `task policy:show --field=valueFeedback`.
+- ! `plan.policy.valueFeedback.enabled` defaults OFF for non-org repos -- while off, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in for any repo via `task policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `task policy:show --field=valueFeedback`.
+- ! Trusted-org local auto-enable (#2376) -- for a repo whose GitHub origin belongs to a company-owned org (built-in default `deftai`; extend via the `DEFT_VALUE_AUTOENABLE_ORGS` env override), LOCAL emit + session readback resolve ON with `source=org-auto` and network/upstream OFF, with NO per-repo or per-machine confirmation: org membership IS the consent for local, no-egress collection on company-owned resources. An explicit typed `valueFeedback` block always wins (including `enabled: false`); a non-matching org or no origin remote stays OFF (fail-safe).
+- ! Attribution records are enriched at emit time (#2376) with `repo`, `directive_version`, `install_id` (a stable per-checkout uuid under gitignored `.deft-cache/`), and `schema_version`, so a later collector can aggregate cross-repo without re-deriving provenance.
 - ! Value claims MUST be attributed-only -- point to concrete logged events ("encoding gate caught 2 corruptions"), never vague quality claims. Silence when the ledger has nothing attributable for the session slot.
 - ! Budgeted awareness -- at most one session readback line when `sessionLine` is allowed; repeat suppression uses a 4-hour window per attribution event id (parity with #1279 triage welcome debounce). Pull-based detail is `task value:show`, not pushed.
 - ! Gap escalation to `deftai/directive` is confirmation-gated -- route conversational filing through `deft-directive-feedback`; the agent drafts + dedups; the operator approves before `task feedback:file -- --confirm`. Use `Refs #1709` in upstream bodies, not `Closes`.
-- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`.
-- ⊗ Enable value-feedback surfaces without explicit operator confirmation on the typed policy flag.
+- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`. Trusted-org auto-enable still turns LOCAL emit ON inside the maintainer repo, but session readback stays gated behind `DEFT_VALUE_SELF_DOGFOOD=1`.
+- ⊗ Enable any NETWORK or upstream value-feedback surface (upstream gap escalation / `task feedback:file`) without operator confirmation -- trusted-org auto-enable authorizes LOCAL, no-egress collection ONLY.
 - ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
 - ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
 
@@ -415,12 +417,14 @@ Skill routing (which skill answers which trigger) is not a table in this policy 
 
 ## Value feedback and attribution (#1709)
 
-- ! `plan.policy.valueFeedback.enabled` defaults OFF -- while false, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in ONLY via `deft policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `deft policy:show --field=valueFeedback`.
+- ! `plan.policy.valueFeedback.enabled` defaults OFF for non-org repos -- while off, every downstream path (emit-only ledger, budgeted session readback, upstream gap escalation) short-circuits with zero token spend. Opt-in for any repo via `deft policy:enable-value-feedback -- --confirm` after the capability-cost disclosure prints. Inspect with `deft policy:show --field=valueFeedback`.
+- ! Trusted-org local auto-enable (#2376) -- for a repo whose GitHub origin belongs to a company-owned org (built-in default `deftai`; extend via the `DEFT_VALUE_AUTOENABLE_ORGS` env override), LOCAL emit + session readback resolve ON with `source=org-auto` and network/upstream OFF, with NO per-repo or per-machine confirmation: org membership IS the consent for local, no-egress collection on company-owned resources. An explicit typed `valueFeedback` block always wins (including `enabled: false`); a non-matching org or no origin remote stays OFF (fail-safe).
+- ! Attribution records are enriched at emit time (#2376) with `repo`, `directive_version`, `install_id` (a stable per-checkout uuid under gitignored `.deft-cache/`), and `schema_version`, so a later collector can aggregate cross-repo without re-deriving provenance.
 - ! Value claims MUST be attributed-only -- point to concrete logged events ("encoding gate caught 2 corruptions"), never vague quality claims. Silence when the ledger has nothing attributable for the session slot.
 - ! Budgeted awareness -- at most one session readback line when `sessionLine` is allowed; repeat suppression uses a 4-hour window per attribution event id (parity with #1279 triage welcome debounce). Pull-based detail is `deft value:show`, not pushed.
 - ! Gap escalation to `deftai/directive` is confirmation-gated -- route conversational filing through `deft-directive-feedback`; the agent drafts + dedups; the operator approves before `deft feedback:file -- --confirm`. Use `Refs #1709` in upstream bodies, not `Closes`.
-- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`.
-- ⊗ Enable value-feedback surfaces without explicit operator confirmation on the typed policy flag.
+- ! Gap escalation is consumer-only -- no-op inside the directive maintainer repo unless `DEFT_VALUE_SELF_DOGFOOD=1`. Trusted-org auto-enable still turns LOCAL emit ON inside the maintainer repo, but session readback stays gated behind `DEFT_VALUE_SELF_DOGFOOD=1`.
+- ⊗ Enable any NETWORK or upstream value-feedback surface (upstream gap escalation / `deft feedback:file`) without operator confirmation -- trusted-org auto-enable authorizes LOCAL, no-egress collection ONLY.
 - ⊗ File upstream framework-gap issues without operator confirmation or past duplicate detection.
 - ⊗ Treat unattributed self-promotion as value feedback -- if there is no ledger event, emit nothing.
 
