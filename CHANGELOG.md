@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Upgrade guide documents triage-cache relocation (#2349).** UPGRADING.md now explains the v0.71.0 move of the triage working-set from `.eval/` to `.triage-cache/`, the lazy automatic migration, and the canonical-wins conflict policy; stale operator-facing docs and task descriptions now cite `.triage-cache/` instead of legacy `.eval/` triage paths. Refs #1703. Closes #2349.
+
 ### Fixed
 
 - The subagent monitor now rejects a non-numeric `--threshold-minutes` value (e.g. a typo) with a clear error and non-zero exit, instead of silently accepting `NaN` and running with an invalid staleness threshold. (#2357)

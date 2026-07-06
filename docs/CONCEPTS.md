@@ -145,7 +145,7 @@ This gives agents and maintainers a shared answer to "what is in progress?" and 
 
 Backlog work should flow through the local cache and triage audit layer:
 
-- `task triage:bootstrap` seeds `.deft-cache/` and `vbrief/.eval/`.
+- `task triage:bootstrap` seeds `.deft-cache/` and `<lifecycle-root>/.triage-cache/` (e.g. `xbrief/.triage-cache/`).
 - `task triage:queue` ranks candidates from cached state.
 - `task triage:accept`, `task triage:reject`, `task triage:defer`, `task triage:needs-ac`, and duplicate/reset verbs record decisions.
 - `task cache:*` fetches, reads, invalidates, and prunes cached content.

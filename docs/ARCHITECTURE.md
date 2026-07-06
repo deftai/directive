@@ -188,7 +188,7 @@ flowchart LR
 Deft's backlog workflow is cache-backed:
 
 - `.deft-cache/` stores fetched external content.
-- `vbrief/.eval/` stores triage decisions and audit records.
+- `<lifecycle-root>/.triage-cache/` (e.g. `xbrief/.triage-cache/`) stores triage decisions and audit records; `<lifecycle-root>/.eval/results/` stores framework-eval ledgers (#1703).
 - `task triage:bootstrap` seeds the local cache and audit layer.
 - `task triage:queue`, `task triage:accept`, `task triage:reject`, `task triage:defer`, and related verbs turn external issues into auditable scope decisions.
 

@@ -259,6 +259,7 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 - **From v0.25.x — manual (breaking).** The deft-cache on-disk layout changed: [From v0.25.x → v0.26.0](#from-v025x--v0260-deft-cache-unified-layer-breaking).
 - **From v0.26.x — auto-handled (interactive).** Run the triage adoption ritual: [From v0.26.x → v0.27](#from-v026x---v027-triage-adoption-via-task-triagewelcome).
 - **From v0.27.x — mostly auto-handled.** Pick up the install manifest and the `deft/` → `.deft/core/` layout: [From v0.27.x → v0.28](#from-v027x---v028-canonical-install-manifest-at-installversion), [From deft/ → .deft/core/](#from-deft---deftcore), and [From drifted AGENTS.md → current install](#from-drifted-agentsmd---current-install-task-upgrade-repair-path-1061).
+- **From v0.70.x — auto-handled (lazy).** The triage working-set cache moved off `.eval/` to `.triage-cache/`; run any triage/scope/doctor command once after upgrade to trigger the lazy migration: [From v0.70.x → v0.71.0 (triage cache relocation, #1703)](#from-v070x--v0710-triage-cache-relocation-1703).
 - **From v0.60.x — manual (hook refresh).** After #2049, consumer `.githooks/` dispatch through the `deft` CLI only. Run [From v0.60.0 → v0.61.x (refresh project-root git hooks, #2049)](#from-v0600--v061x-refresh-project-root-git-hooks-2049) after every framework upgrade that touches hook templates.
 - **From v0.28–v0.36 (and the final hop to current) — auto-handled.** If still on the Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) above, then `npm i -g @deftai/directive@latest` for all future upgrades.
 
@@ -272,6 +273,31 @@ deft doctor
 ```
 
 Run those from your project root after any bucket-specific hops (`deft update` refreshes `.deft/core/` and `.githooks/`; `deft migrate` stamps npm provenance once and is idempotent). If still on a Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) first.
+
+---
+
+## From v0.70.x → v0.71.0 (triage cache relocation, #1703)
+
+- **Applies when:** any project on deft v0.70.x (or earlier releases that stored the triage working-set under `<lifecycle-root>/.eval/`) that upgrades to v0.71.0+. Detection: after upgrade, triage append-only logs (`candidates.jsonl`, `slices.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`, `subscription-history.jsonl`, `doctor-state.json`, `decompositions/`, `README.md`) still live under `<lifecycle-root>/.eval/` instead of `<lifecycle-root>/.triage-cache/`. The `<lifecycle-root>` is `xbrief/` or legacy `vbrief/` depending on your layout.
+- **Safe to auto-run:** Yes (lazy, idempotent). The engine migrates each known legacy file/dir from `.eval/` → `.triage-cache/` the first time any triage/scope/doctor path is resolved after upgrade — for example `deft triage:summary`, `deft triage:bootstrap`, `deft doctor`, or any scope transition that touches the triage cache. Nothing to do manually beyond running one of those commands once; re-runs are no-ops.
+- **Restart required:** No for the filesystem migration itself. Start a **new agent session** after upgrade if your session still cites the old `.eval/` triage paths in AGENTS.md or skill prose loaded before the deposit refresh.
+- **Commands:**
+  - `deft triage:summary` (or any other triage/scope/doctor verb — triggers lazy migration on first resolve)
+  - `deft doctor` (also resolves triage-cache paths during install-integrity checks)
+  - `ls <lifecycle-root>/.triage-cache/` (confirm relocated files after the first trigger)
+
+### What changed
+
+- **Triage working-set moved.** Append-only triage logs, decomposition scratch, and the deposited triage README now resolve under `<lifecycle-root>/.triage-cache/` instead of `<lifecycle-root>/.eval/`.
+- **`.eval/` reclaimed for framework eval.** The `.eval/` namespace is now the version-eval results store at `<lifecycle-root>/.eval/results/` (health/golden/crud ledgers from #1703). This store had no prior home — it is not a rename of the triage cache.
+- **Lazy migration, not upgrade-triggered.** `deft update`, `deft migrate`, and `deft migrate:xbrief` do **not** relocate the triage working-set. The last copies `vbrief/.eval/` → `xbrief/.eval/` as-is when crossing the xbrief rename; the triage relocation fires only on triage/scope/doctor path resolve. There is no dedicated `migrate:triage-cache` verb.
+- **Conflict policy (canonical wins).** When both a legacy `.eval/` copy and a canonical `.triage-cache/` copy of the same basename exist, the legacy `.eval/` entry is skipped — the canonical `.triage-cache/` file wins. The migration is idempotent.
+
+### References
+
+- [#1703](https://github.com/deftai/directive/issues/1703) — triage working-set relocation + framework-eval results store.
+- [#2349](https://github.com/deftai/directive/issues/2349) — operator-facing upgrade documentation for this relocation.
+- [`packages/core/src/triage/cache-path.ts`](../packages/core/src/triage/cache-path.ts) — `migrateLegacyTriageCacheFromEval()` implementation.
 
 ---
 

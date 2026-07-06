@@ -128,7 +128,8 @@ vbrief/
 ├── active/                          # Running scope vBRIEFs
 ├── completed/                       # Completed scope vBRIEFs
 ├── cancelled/                       # Cancelled or rejected scope vBRIEFs
-└── .eval/                           # Local triage audit state, gitignored
+├── .triage-cache/                   # Local triage audit/working-set, gitignored
+└── .eval/                           # Framework eval results (`.eval/results/`), gitignored
 ```
 
 `PROJECT-DEFINITION.vbrief.json` replaces the old `PROJECT.md` authority role. `SPECIFICATION.md` is generated from `vbrief/specification.vbrief.json`; do not hand-edit it for durable changes.
@@ -163,7 +164,7 @@ When Deft is installed into another project, the important locations are:
 - `vbrief/` -- consumer project vBRIEF root.
 - `vbrief/PROJECT-DEFINITION.vbrief.json` -- consumer project identity and policy.
 - `vbrief/{proposed,pending,active,completed,cancelled}/` -- consumer scope lifecycle folders.
-- `.deft-cache/` and `vbrief/.eval/` -- local cache and triage audit state, normally gitignored.
+- `.deft-cache/` and `<lifecycle-root>/.triage-cache/` -- local content cache and triage audit/working-set, normally gitignored; `<lifecycle-root>/.eval/results/` holds framework-eval ledgers (#1703).
 - `~/.config/deft/USER.md` on Unix/macOS or `%APPDATA%\deft\USER.md` on Windows -- personal preferences.
 
 Legacy `deft/` installs can appear during migration, but `.deft/core/` is the canonical installed framework path.

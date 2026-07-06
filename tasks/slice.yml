@@ -56,7 +56,7 @@ tasks:
           ENGINE_CMD: 'slice record-existing {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   list:
-    desc: "List recorded slices in vbrief/.eval/slices.jsonl (umbrella + child count + actor + sliced_at). -- task slice:list [-- --json]"
+    desc: "List recorded slices in <lifecycle-root>/.triage-cache/slices.jsonl (umbrella + child count + actor + sliced_at). -- task slice:list [-- --json]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
     deps:

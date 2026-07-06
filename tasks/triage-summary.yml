@@ -21,7 +21,7 @@ vars:
 
 tasks:
   summary:
-    desc: "Emit the D2 (#1122) one-line triage state for the session-start ritual (N9 / #1149). Always exits 0; appends a JSONL record to vbrief/.eval/summary-history.jsonl. -- task triage:summary -- [--json] [--no-history]"
+    desc: "Emit the D2 (#1122) one-line triage state for the session-start ritual (N9 / #1149). Always exits 0; appends a JSONL record to <lifecycle-root>/.triage-cache/summary-history.jsonl. -- task triage:summary -- [--json] [--no-history]"
     internal: true
     # Runtime/session dispatch: no engine:_ts-build / pnpm build (#2181).
     dir: '{{.USER_WORKING_DIR}}'
