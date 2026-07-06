@@ -46,7 +46,10 @@ export function runChangelogCheck(projectRoot: string, io: TaskSurfaceIo): numbe
     io.writeOut("FAIL: CHANGELOG.md not found\n");
     return 1;
   }
-  const text = readFileSync(path, "utf8");
+  // Normalize CRLF -> LF before matching (#2329). On Windows checkouts with
+  // core.autocrlf=true the working tree uses CRLF, and the `[ \t]*\n` header
+  // pattern does not consume the `\r`, so the section falsely reads as absent.
+  const text = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
   const match = UNRELEASED_RE.exec(text);
   if (match === null) {
     io.writeOut("FAIL: No [Unreleased] section found in CHANGELOG.md\n");

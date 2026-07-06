@@ -62,6 +62,21 @@ describe("task-surface", () => {
     expect(lines.join("")).toContain("1 entries");
   });
 
+  it("changelog-check passes on a CRLF working tree (#2329)", () => {
+    // Windows checkouts with core.autocrlf=true yield a CRLF working tree.
+    // Before #2329 the `[ \t]*\n` header pattern did not consume the `\r`,
+    // so a valid section false-failed as "No [Unreleased] section found".
+    const project = makeProject();
+    writeFileSync(
+      join(project, "CHANGELOG.md"),
+      "## [Unreleased]\r\n\r\n- Added thing\r\n\r\n## [0.1.0]\r\n",
+      "utf8",
+    );
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io)).toBe(0);
+    expect(lines.join("")).toContain("1 entries");
+  });
+
   it("changelog-check fails when changelog is missing", () => {
     const project = makeProject();
     const { lines, io } = captureIo();
