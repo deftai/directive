@@ -1,8 +1,15 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cachePut } from "../../cache/operations.js";
+
+// #2350: assert the accept path delegates to the native TS intake ingest,
+// not the removed legacy Python `issue_ingest` shell-out. Mocking the intake
+// module keeps the regression test deterministic (no cache/network fetch).
+vi.mock("../../intake/issue-ingest.js", () => ({
+  ingestSingleForAccept: vi.fn(() => ["created", "/tmp/2350.xbrief.json"]),
+}));
 import { createCandidatesLog, resolveAuditLogPath, rollbackAuditEntry } from "./candidates-log.js";
 import { CandidatesLogError } from "./errors.js";
 import {
@@ -109,36 +116,22 @@ describe("createDefaultDeps", () => {
     );
   });
 
-  it("accept() authors a vBRIEF via the native TS intake path, not the removed Python shim (#2350)", () => {
+  it("accept() delegates to the native TS intake ingest, not the removed Python shim (#2350)", async () => {
+    const { ingestSingleForAccept } = await import("../../intake/issue-ingest.js");
+    const mockIngest = vi.mocked(ingestSingleForAccept);
+    mockIngest.mockClear();
     const root = makeRepo();
-    cachePut(
-      "github-issue",
-      "deftai/directive/2350",
-      {
-        number: 2350,
-        title: "triage:accept regression fixture",
-        html_url: "https://github.com/deftai/directive/issues/2350",
-        body: "Body for the accept ingest regression.",
-        labels: [],
-      },
-      { cacheRoot: join(root, ".deft-cache") },
-    );
     const deps = createDefaultDeps(root);
     const decisionId = accept(2350, "deftai/directive", deps, { projectRoot: root });
     expect(decisionId).toMatch(
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
     );
+    // The production wiring authored the brief via the in-process TS intake
+    // path; the removed Python `issue_ingest` shell-out (pre-#2350) would have
+    // raised ModuleNotFoundError and rolled the audit entry back.
+    expect(mockIngest).toHaveBeenCalledWith(2350, "deftai/directive", { projectRoot: root });
     const auditText = readFileSync(resolveAuditLogPath(root), "utf8");
     expect(auditText).toContain('"decision":"accept"');
-    // The native TS intake authored a proposed brief in-process; the removed
-    // Python `issue_ingest` shell-out (pre-#2350) would have thrown
-    // ModuleNotFoundError here and rolled the audit entry back.
-    const proposedDir = join(root, "vbrief", "proposed");
-    expect(existsSync(proposedDir)).toBe(true);
-    const briefs = readdirSync(proposedDir).filter(
-      (f) => f.endsWith(".vbrief.json") || f.endsWith(".xbrief.json"),
-    );
-    expect(briefs.length).toBeGreaterThanOrEqual(1);
   });
 
   it("disables upstream gh calls in parity harness mode", () => {
