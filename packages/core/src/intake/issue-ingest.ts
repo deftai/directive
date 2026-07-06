@@ -506,6 +506,21 @@ export interface FetchIssueOptions {
   readonly scmCall?: ScmCallFn;
 }
 
+/**
+ * Strip the `# #<number>: <title>` header that `renderContent` prepends when it
+ * materializes an issue's `content.md` at cache-put (#2314). The header is the
+ * only shape difference between the cache-read body and the live/raw-body path;
+ * removing it makes an ingested xBRIEF's `Overview` identical whether the source
+ * was a cache hit or a live fetch. A missing/older-shape header is left intact.
+ */
+export function stripRenderedIssueHeader(content: string, number: number): string {
+  if (!Number.isFinite(number)) {
+    return content;
+  }
+  const header = new RegExp(`^# #${number}:[^\\n]*\\n\\n`);
+  return content.replace(header, "");
+}
+
 export function fetchFromCache(
   repo: string,
   number: number,
@@ -529,7 +544,14 @@ export function fetchFromCache(
     // buildIssueVbrief.
     if (result.contentPath !== null) {
       try {
-        issue.body = readFileSync(result.contentPath, "utf8");
+        // #2314: content.md is `renderContent`-prefixed with a `# #<n>: <title>`
+        // header at cache-put. Strip that header so the cache-read Overview
+        // matches the live/raw-body path (which has no header), keeping the
+        // durable xBRIEF identical for a cache hit vs a live fetch.
+        issue.body = stripRenderedIssueHeader(
+          readFileSync(result.contentPath, "utf8"),
+          Number(issue.number),
+        );
       } catch {
         // fall back to the raw body (re-scanned downstream)
       }
