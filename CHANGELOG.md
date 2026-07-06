@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `deft reconcile:issues --apply-lifecycle-fixes` no longer corrupts canonical v0.8 scope briefs. When moving a brief to `completed/`/`cancelled/`, it now stamps the `updated` timestamp onto the brief's existing info envelope (`xBRIEFInfo` for v0.8) instead of unconditionally appending a stray, version-less `vBRIEFInfo` block that made the file fail `vbrief:validate`. Fixes a v0.71.0 release-cut blocker. (#2346)
 - The subagent monitor now rejects a non-numeric `--threshold-minutes` value (e.g. a typo) with a clear error and non-zero exit, instead of silently accepting `NaN` and running with an invalid staleness threshold. (#2357)
 - Triage working-set writers no longer recreate legacy cache files under `.eval/` after the #1703 relocation: migration now removes orphaned legacy copies, regenerates the relocated README with layout-aware `.triage-cache/` paths (instead of renaming stale `.eval/` content), and the intake candidates-log default resolves through `.triage-cache/`. Refs #2344.
 - `deft triage:accept` no longer fails with `ModuleNotFoundError: No module named 'issue_ingest'`. It now authors the scope brief through the native TypeScript intake path instead of shelling out to a legacy Python script that was removed during the Python-surface deprecation, so accepting an issue (and the `verify:cache-fresh` dispatch gate that depends on it) works again. (#2350)
