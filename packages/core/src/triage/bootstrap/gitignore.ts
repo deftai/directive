@@ -451,12 +451,15 @@ function ensureGitattributesMergeUnion(
   });
 }
 
-function ensureEvalReadme(
-  projectRoot: string,
-  readmePath: string,
-  readmeRel: string,
-  stepName: string,
-): StepOutcome {
+interface EnsureEvalReadmeOptions {
+  readonly projectRoot: string;
+  readonly readmePath: string;
+  readonly readmeRel: string;
+  readonly stepName: string;
+}
+
+function ensureEvalReadme(options: EnsureEvalReadmeOptions): StepOutcome {
+  const { projectRoot, readmePath, readmeRel, stepName } = options;
   try {
     readFileSync(readmePath, { encoding: "utf8" });
     return stepOutcome(stepName, true, `${readmeRel} already present (no-op)`, {
@@ -512,7 +515,7 @@ export function stepEnsureGitignoreEvalEntries(projectRoot: string): StepOutcome
   }
   Object.assign(details, gaResult.details);
 
-  const rdResult = ensureEvalReadme(projectRoot, readmePath, readmeRel, stepName);
+  const rdResult = ensureEvalReadme({ projectRoot, readmePath, readmeRel, stepName });
   if (!rdResult.ok) {
     Object.assign(details, rdResult.details);
     return stepOutcome(stepName, false, rdResult.message, details, rdResult.error ?? null);

@@ -75,9 +75,14 @@ export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCac
       continue;
     }
     if (name === "README.md") {
-      writeFileSync(targetPath, generateTriageCacheReadmeBody(projectRoot), "utf8");
-      unlinkSync(legacyPath);
-      regeneratedFiles.push(name);
+      if (existsSync(targetPath)) {
+        unlinkSync(legacyPath);
+        removedLegacyFiles.push(name);
+      } else {
+        writeFileSync(targetPath, generateTriageCacheReadmeBody(projectRoot), "utf8");
+        unlinkSync(legacyPath);
+        regeneratedFiles.push(name);
+      }
       continue;
     }
     if (existsSync(targetPath)) {

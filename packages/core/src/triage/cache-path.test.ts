@@ -146,6 +146,22 @@ describe("triage cache-path (#1703)", () => {
     expect(readme).not.toContain("legacy `.eval/` readme");
   });
 
+  it("preserves an existing canonical README and only removes the legacy copy", () => {
+    seedXbrief();
+    const legacyDir = resolveEvalDir(root);
+    const targetDir = resolveTriageCacheDir(root);
+    mkdirSync(legacyDir, { recursive: true });
+    mkdirSync(targetDir, { recursive: true });
+    writeFileSync(join(legacyDir, "README.md"), "# stale legacy\n", "utf8");
+    writeFileSync(join(targetDir, "README.md"), "# canonical custom\n", "utf8");
+
+    const result = migrateLegacyTriageCacheFromEval(root);
+    expect(result.removedLegacyFiles).toContain("README.md");
+    expect(result.regeneratedFiles).not.toContain("README.md");
+    expect(readFileSync(join(targetDir, "README.md"), "utf8")).toBe("# canonical custom\n");
+    expect(existsSync(join(legacyDir, "README.md"))).toBe(false);
+  });
+
   it("removes orphaned legacy triage-cache files when the canonical .triage-cache copy already exists", () => {
     seedXbrief();
     const legacyDir = resolveEvalDir(root);
