@@ -16,6 +16,7 @@ import {
   ingestOne,
   provenanceIssueNumber,
   ScannerHardFailError,
+  stripRenderedIssueHeader,
 } from "./issue-ingest.js";
 
 function completed(stdout: string, stderr: string, returncode: number): CompletedProcess {
@@ -302,6 +303,56 @@ describe("issue:ingest quarantine scanning (#2306)", () => {
     } finally {
       rmSync(cacheRoot, { recursive: true, force: true });
     }
+  });
+
+  it("(e) cache-read body drops the rendered `# #<n>: <title>` header for live parity (#2314)", () => {
+    const cacheRoot = mkdtempSync(join(tmpdir(), "deft-ingest-parity-"));
+    try {
+      cachePut(
+        "github-issue",
+        "o/r/2314",
+        {
+          number: 2314,
+          title: "Cache vs live drift",
+          html_url: "https://github.com/o/r/issues/2314",
+          body: "The observable body text.",
+        },
+        { cacheRoot },
+      );
+      const issue = fetchFromCache("o/r", 2314, { cacheRoot });
+      const body = issue?.body as string;
+      // The `# #2314: Cache vs live drift` header that renderContent prepends at
+      // cache-put must NOT leak into the cache-read body (the live/raw path has
+      // no such header), so the durable Overview is identical either way.
+      expect(body.startsWith("# #2314:")).toBe(false);
+      expect(body).toBe("The observable body text.");
+    } finally {
+      rmSync(cacheRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("stripRenderedIssueHeader (#2314)", () => {
+  it("strips the matching rendered header and preserves the body", () => {
+    expect(stripRenderedIssueHeader("# #42: Title\n\nBody text", 42)).toBe("Body text");
+  });
+
+  it("handles an empty title", () => {
+    expect(stripRenderedIssueHeader("# #42: \n\nBody", 42)).toBe("Body");
+  });
+
+  it("leaves content without a header intact", () => {
+    expect(stripRenderedIssueHeader("Just a body, no header.", 42)).toBe("Just a body, no header.");
+  });
+
+  it("does not strip a header for a different issue number", () => {
+    expect(stripRenderedIssueHeader("# #99: Other\n\nBody", 42)).toBe("# #99: Other\n\nBody");
+  });
+
+  it("only strips the leading header, not later matching lines", () => {
+    expect(stripRenderedIssueHeader("# #42: T\n\nfirst\n\n# #42: T\n\nsecond", 42)).toBe(
+      "first\n\n# #42: T\n\nsecond",
+    );
   });
 });
 
