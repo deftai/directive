@@ -1,0 +1,29 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2344"
+  },
+  "plan": {
+    "title": "Stray operator-private artifacts + gitignore gap in reclaimed .eval/ namespace (#1703)",
+    "status": "running",
+    "narratives": {
+      "Description": "Stray operator-private artifacts + gitignore gap in reclaimed .eval/ namespace (#1703)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2344",
+      "Overview": "## Summary\n\nThe reclaimed `.eval/` namespace (#1703 Tier 2) accumulates operator-private cache stragglers and accidentally-committed scratch files that were never added to `.gitignore`.\n\nObserved in a maintainer working tree on `master`:\n\n- **15 tracked junk files** committed under `xbrief/.eval/` — scratch issue-body dumps from earlier issue-editing operations (`_tmp_976_body_*.md`, `_tmp_985_*`, `_tmp_988_*`, `_tmp_issue_*.json`). These are runtime artefacts that should never have been versioned.\n- **3 loose untracked legacy triage-cache files** in `xbrief/.eval/`: `candidates.jsonl`, `summary-history.jsonl`, `doctor-state.json`. These are the exact operator-private basenames that `.triage-cache/` already gitignores (`.gitignore` lines 99–104), but the `.eval/` namespace has no equivalent rule.\n\n```quarantined\n## Why this matters\n\n`.eval/` was the legacy triage-cache directory. `packages/core/src/triage/cache-path.ts` migrates those basenames into `.triage-cache/` on resolve (`LEGACY_TRIAGE_EVAL_DIR_NAME = \".eval\"`), and #1703 reclaimed `.eval/` for team-shared **tracked** version-eval results under `.eval/results/` (`health-history.jsonl`, `golden-runs.jsonl`).\n\nTwo gaps:\n\n1. **Gitignore gap.** The loose operator-private basenames and `_tmp_*` scratch under `.eval/` are not ignored, so `git status` is perpetually dirty and it is easy to re-commit operator-private cache (as already happened with the 15 `_tmp_*` files). We must NOT blanket-ignore `.eval/` — that would drop the tracked `results/` ledger (see the #1464 \"forbidden blanket `vbrief/.eval/` line\" heal path in `init-deposit/gitignore.ts`).\n\n2. **Root-cause question (needs investigation).** `xbrief/.eval/doctor-state.json` was rewritten *today*, after the migration code exists — so a code path is still creating legacy triage-cache files in the legacy `.eval/` location instead of `.triage-cache/`, or the migration only runs lazily on a triage resolve that this tree never hit. Worth confirming which component writes `doctor-state.json` / `candidates.jsonl` to `.eval/` and whether the migration should run proactively.\n\n```\n## Proposed fix\n\n- Remove the 15 tracked `_tmp_*` junk files.\n- Add `.gitignore` rules (mirroring the `.triage-cache` block) for the loose legacy basenames and `_tmp_*` under `xbrief/.eval/` and `vbrief/.eval/`, without touching tracked `.eval/results/`.\n- Investigate and fix the root cause of legacy triage-cache files being written into `.eval/` post-migration (item 2).\n\nThe first two are addressed by the accompanying PR; item 2 remains open for a follow-up if the immediate gitignore + cleanup is deemed sufficient for now.\n\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-07-06T00:41:18Z)\n\nImmediate cleanup landed in #2345 (merged): the 15 stray `_tmp_*` files are removed, and `.gitignore` now covers the loose legacy triage-cache basenames + `_tmp_*` under `xbrief/.eval/` and `vbrief/.eval/` (without blanket-ignoring the tracked `.eval/results/` ledger). The stale `standards.test.ts` cases for the removed files were dropped.\n\n**Remaining (leaving this issue open):** item 2 — root-cause investigation into why `doctor-state.json` (and the other legacy triage-cache basenames) are still being written to the legacy `.eval/` location post-migration instead of `.triage-cache/`. Either a writer still targets the legacy dir, or the `triage/cache-path.ts` migration only runs lazily on a resolve path that some trees never hit and should run proactively.",
+      "Labels": "triage, tooling"
+    },
+    "items": [],
+    "tags": [
+      "triage",
+      "tooling"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2344",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2344: Stray operator-private artifacts + gitignore gap in reclaimed .eval/ namespace (#1703)"
+      }
+    ],
+    "updated": "2026-07-06T13:36:19Z"
+  }
+}
