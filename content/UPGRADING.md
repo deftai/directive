@@ -259,9 +259,9 @@ runs the doctor first gets pointed at this exact two-step before touching `init`
 - **From v0.25.x — manual (breaking).** The deft-cache on-disk layout changed: [From v0.25.x → v0.26.0](#from-v025x--v0260-deft-cache-unified-layer-breaking).
 - **From v0.26.x — auto-handled (interactive).** Run the triage adoption ritual: [From v0.26.x → v0.27](#from-v026x---v027-triage-adoption-via-task-triagewelcome).
 - **From v0.27.x — mostly auto-handled.** Pick up the install manifest and the `deft/` → `.deft/core/` layout: [From v0.27.x → v0.28](#from-v027x---v028-canonical-install-manifest-at-installversion), [From deft/ → .deft/core/](#from-deft---deftcore), and [From drifted AGENTS.md → current install](#from-drifted-agentsmd---current-install-task-upgrade-repair-path-1061).
-- **From v0.70.x — auto-handled (lazy).** The triage working-set cache moved off `.eval/` to `.triage-cache/`; run any triage/scope/doctor command once after upgrade to trigger the lazy migration: [From v0.70.x → v0.71.0 (triage cache relocation, #1703)](#from-v070x--v0710-triage-cache-relocation-1703).
 - **From v0.60.x — manual (hook refresh).** After #2049, consumer `.githooks/` dispatch through the `deft` CLI only. Run [From v0.60.0 → v0.61.x (refresh project-root git hooks, #2049)](#from-v0600--v061x-refresh-project-root-git-hooks-2049) after every framework upgrade that touches hook templates.
 - **From v0.28–v0.36 (and the final hop to current) — auto-handled.** If still on the Go-installer layout, follow the [One-time migration from the Go installer](#one-time-migration-from-the-go-installer-legacy--npm) above, then `npm i -g @deftai/directive@latest` for all future upgrades.
+- **From v0.70.x — auto-handled (lazy).** The triage working-set cache moved off `.eval/` to `.triage-cache/`; run any triage/scope/doctor command once after upgrade to trigger the lazy migration: [From v0.70.x → v0.71.0 (triage cache relocation, #1703)](#from-v070x--v0710-triage-cache-relocation-1703).
 
 **Final step for every bucket.** Finish on the canonical npm upgrade path, then let the doctor confirm you are current:
 
