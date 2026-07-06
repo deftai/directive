@@ -172,4 +172,51 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
     ]);
     expect(validateEpicStoryLinks(all, vbrief, display)).toEqual([]);
   });
+
+  it("stamps updated into xBRIEFInfo (v0.8) without appending a stray vBRIEFInfo (#2346)", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-2346-"));
+    const xbrief = join(root, "xbrief");
+    mkdirSync(join(xbrief, "active"), { recursive: true });
+
+    const name = "2026-07-05-2337-task-aliases.xbrief.json";
+    writeFileSync(
+      join(xbrief, "active", name),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8", description: "Scope xBRIEF for #99" },
+          plan: {
+            title: "Story",
+            status: "running",
+            items: [{ title: "slice", status: "running" }],
+            references: [
+              { type: "x-xbrief/github-issue", uri: "https://github.com/o/r/issues/99" },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const anchors = scanLifecycleAnchors(xbrief);
+    const report = buildLifecycleReport(
+      anchors,
+      new Map([[99, new IssueState("CLOSED", "COMPLETED")]]),
+      false,
+    );
+    const [moved, , failures] = applyLifecycleFixes(xbrief, report, root);
+    expect(moved).toBe(1);
+    expect(failures).toEqual([]);
+
+    const movedPath = join(xbrief, "completed", name);
+    const data = JSON.parse(readFileSync(movedPath, "utf8")) as Record<string, unknown>;
+    // The `updated` stamp lands on the existing xBRIEFInfo envelope...
+    const xInfo = data.xBRIEFInfo as Record<string, unknown>;
+    expect(xInfo.version).toBe("0.8");
+    expect(typeof xInfo.updated).toBe("string");
+    // ...and no stray, version-less vBRIEFInfo block is appended (the #2346 bug
+    // that failed vbrief:validate with "'vBRIEFInfo.version' ... got 'undefined'").
+    expect("vBRIEFInfo" in data).toBe(false);
+  });
 });

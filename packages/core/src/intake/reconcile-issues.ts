@@ -6,6 +6,7 @@ import { type CallOptions, type CompletedProcess, call } from "../scm/call.js";
 import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
+import { LEGACY_INFO_ROOT_KEY, MIGRATED_INFO_ROOT_KEY } from "../xbrief-migrate/constants.js";
 
 export const LIFECYCLE_FOLDERS = [
   "proposed",
@@ -763,8 +764,14 @@ export function applyLifecycleFixes(
     const terminalStatus = destFolder === "cancelled" ? "cancelled" : "completed";
     plan.status = terminalStatus;
     const stamp = utcNowIso();
-    const info = (data.vBRIEFInfo ?? {}) as Record<string, unknown>;
-    data.vBRIEFInfo = info;
+    // Stamp `updated` into whichever info envelope the file already uses (#2346).
+    // Canonical v0.8 briefs use `xBRIEFInfo`; stamping `vBRIEFInfo` unconditionally
+    // appended a stray, version-less `vBRIEFInfo` block that then failed
+    // `vbrief:validate` ('vBRIEFInfo.version' must be one of ..., got 'undefined').
+    // Legacy briefs (or files without either envelope) keep the `vBRIEFInfo` key.
+    const infoKey = MIGRATED_INFO_ROOT_KEY in data ? MIGRATED_INFO_ROOT_KEY : LEGACY_INFO_ROOT_KEY;
+    const info = (data[infoKey] ?? {}) as Record<string, unknown>;
+    data[infoKey] = info;
     info.updated = stamp;
     plan.updated = stamp;
     propagateItemStatus(plan.items, terminalStatus, stamp);
