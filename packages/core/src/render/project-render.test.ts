@@ -298,6 +298,16 @@ describe("project-render main() --project-root layout resolver (#2139)", () => {
     const exit = projectRenderMain(["--acknowledge-staleness", "--project-root", root]);
     expect(exit).toBe(0);
   });
+
+  it("--acknowledge-staleness is position-independent: works after --project-root (#2236)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-ack-order-"));
+    tmpDirs.push(root);
+    makeLifecycleDirs(root, "xbrief");
+    projectRenderMain(["--project-root", root]);
+    // --acknowledge-staleness must work even when NOT in position 0 (#2236).
+    const exit = projectRenderMain(["--project-root", root, "--acknowledge-staleness"]);
+    expect(exit).toBe(0);
+  });
 });
 
 describe("project-render main() cwd layout resolver (#2149)", () => {

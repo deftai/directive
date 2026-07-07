@@ -426,15 +426,17 @@ export function main(argv: readonly string[]): number {
     return 0;
   }
 
-  const acknowledge = argv[0] === "--acknowledge-staleness";
-  const rest = acknowledge ? argv.slice(1) : argv;
-
+  // Parse all flags in a single positional-independent pass so that
+  // --acknowledge-staleness is recognised at any position (not only argv[0]).
+  let acknowledge = false;
   let projectRoot: string | undefined;
   const positional: string[] = [];
-  for (let i = 0; i < rest.length; i += 1) {
-    const arg = rest[i] as string;
-    if (arg === "--project-root") {
-      projectRoot = rest[i + 1] as string | undefined;
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i] as string;
+    if (arg === "--acknowledge-staleness") {
+      acknowledge = true;
+    } else if (arg === "--project-root") {
+      projectRoot = argv[i + 1] as string | undefined;
       i += 1;
     } else if (arg.startsWith("--project-root=")) {
       projectRoot = arg.slice("--project-root=".length);
