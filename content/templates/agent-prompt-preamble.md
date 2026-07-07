@@ -239,7 +239,7 @@ task scm:body:issue:edit -- --repo OWNER/REPO --issue 1555 --body-file "$bodyFil
 task scm:body:pr:edit -- --repo OWNER/REPO --pr 42 --body-file "$bodyFile"
 ```
 
-The wrapper reads UTF-8 body text from a file or stdin, sends JSON to `gh api --input -` via `_safe_subprocess.run_text` with `shell=False`, and prints the live post-mutation read-back object. Use live `gh` for immediate verification after mutations; do not use `ghx` for the first read-back because it may serve a cached stale GET.
+The wrapper reads UTF-8 body text from a file and invokes the `github-body` TS CLI (which routes through `gh api --input -` with explicit UTF-8 encoding), then prints the live post-mutation read-back object. Use live `gh` for immediate verification after mutations; do not use `ghx` for the first read-back because it may serve a cached stale GET.
 
 ## 5.6 Issue reading — body then comments (#2143 / #2066)
 
