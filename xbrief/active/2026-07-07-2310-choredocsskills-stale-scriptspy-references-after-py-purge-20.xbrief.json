@@ -1,0 +1,79 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2310"
+  },
+  "plan": {
+    "title": "chore(docs,skills): stale scripts/*.py references after py-purge (#2022) -- registry-data.ts banner + AGENTS.md/preamble/review-cycle cite deleted Python",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(docs,skills): stale scripts/*.py references after py-purge (#2022) -- registry-data.ts banner + AGENTS.md/preamble/review-cycle cite deleted Python",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2310",
+      "Overview": "## Summary\n\nThe TS-native migration (py-purge, #2022) removed the entire root `scripts/` directory, but several **generated banners, docs, skills, and templates still reference `scripts/*.py` paths** as if they exist. These references are now dead: they point agents and readers at files that were deleted, and in a few cases instruct agents to *run* a Python script that is gone.\n\nSurfaced by a swarm worker while shipping #2302 item 3 (PR #2309): the worker was told (by the xBRIEF/task and by the file's own banner) to edit `scripts/triage_help.py` and regenerate — but neither the file nor the `scripts/` dir exists, so it edited the generated TS directly.\n\n## Verified instance (concrete, in-tree on master)\n\n`packages/core/src/triage/help/registry-data.ts` line 1:\n\n```\n/** Auto-generated from scripts/triage_help.py -- do not edit by hand. */\n```\n\n`scripts/triage_help.py` (and all of `scripts/`) no longer exists (`ls scripts/` → no such directory; `scripts/*.py` count = 0). The banner is a **stale generator provenance** with a \"do not edit by hand\" instruction that now has no generator behind it — a footgun that makes contributors hunt for a nonexistent source (exactly what happened in PR #2309).\n\n## Broader pattern (needs an audit)\n\nThe always-loaded maintainer `AGENTS.md` section, `content/skills/deft-directive-review-cycle/SKILL.md`, and `content/templates/agent-prompt-preamble.md` still cite numerous `scripts/*.py` paths as live surfaces, e.g.:\n\n- `scripts/preflight_branch.py` (review-cycle Branch-Protection guard tells the agent to `uv run python scripts/preflight_branch.py`)\n- `scripts/_safe_subprocess.py`, `scripts/policy.py`, `scripts/pr_merge_readiness.py`, `scripts/_events.py`, `scripts/triage_actions.py`, `scripts/subagent_monitor.py`, `scripts/platform_capabilities.py`, `scripts/github_auth_modes.py`, and others\n\nWhere the Python was ported to TS, the prose should point at the `task ...` equivalent (e.g. `task verify:branch`) or the TS module, not the deleted `.py`. Where a rule says \"run `uv run python scripts/foo.py`\", that command now fails.\n\n## Remediation (proposed)\n\n1. Fix the concrete instance: drop or correct the `registry-data.ts` generator banner (it is now a hand-maintained TS file; either remove the banner or repoint it at the real source/task).\n2. Audit `scripts/*.py` references across the always-loaded surface and generated banners: `AGENTS.md`, `content/templates/agents-entry.md` (mirror), `content/templates/agent-prompt-preamble.md`, `content/skills/**/SKILL.md`, and any `Auto-generated from scripts/...` banners in `packages/*/src`. Repoint each to its `task`/TS successor or delete if obsolete.\n3. Consider a deterministic guard (mirrors `verify:*`): fail when a tracked file references a `scripts/*.py` path that does not resolve, so this drift cannot silently reaccumulate.\n\n## Acceptance criteria\n\n- [ ] `registry-data.ts` banner no longer claims generation from the deleted `scripts/triage_help.py`.\n- [ ] `scripts/*.py` references in the always-loaded AGENTS.md surface, the canonical preamble, and the review-cycle skill are repointed to their `task`/TS successors or removed.\n- [ ] Any \"run `uv run python scripts/*.py`\" instruction in a skill/preamble is replaced with the working `task ...` equivalent.\n- [ ] (Optional) a `verify:*` gate fails on unresolved `scripts/*.py` references in tracked files.\n\n## References\n\n- #2022 — Python→TS migration / py-purge (source of the removal)\n- #2309 — PR where the stale banner + missing generator was surfaced (#2302 item 3)\n- #1309 — template propagation discipline (agents-entry.md mirror must stay in sync)\n\n## Provenance\n\nSurfaced by a swarm worker during the 2026-07-05 directive swarm session (PR #2309); the stale generator banner and missing `scripts/` dir verified in-tree on master.\n\n",
+      "Labels": "bug, skills",
+      "ImplementationPlan": "1. Fix the concrete instance: packages/core/src/triage/help/registry-data.ts line-1 banner ('Auto-generated from scripts/triage_help.py') -- it is now a hand-maintained TS file; remove or repoint the banner. 2. Audit scripts/*.py references across the always-loaded surface + generated banners: AGENTS.md, content/templates/agents-entry.md (mirror), content/templates/agent-prompt-preamble.md, content/skills/deft-directive-review-cycle/SKILL.md (and other SKILL.md). Repoint each to its task/TS successor (e.g. scripts/preflight_branch.py -> `task verify:branch`) or delete if obsolete; replace any 'uv run python scripts/foo.py' instruction with the working task equivalent. 3. Per #1309 template propagation, mirror any AGENTS.md change into content/templates/agents-entry.md and run `task agents:refresh`. 4. (Optional) add a verify:* gate that fails on unresolved scripts/*.py references in tracked files. COORDINATION: co-edits registry-data.ts with #2378 and AGENTS.md/agents-entry.md with #2033 -- same conflict_group 'docs-content'.",
+      "Traces": "#2310, #2022, #1309"
+    },
+    "items": [
+      {
+        "title": "`registry-data.ts` banner no longer claims generation from the deleted `scripts/triage_help.py`.",
+        "status": "proposed"
+      },
+      {
+        "title": "`scripts/*.py` references in the always-loaded AGENTS.md surface, the canonical preamble, and the review-cycle skill are repointed to their `task`/TS successors or removed.",
+        "status": "proposed"
+      },
+      {
+        "title": "Any \"run `uv run python scripts/*.py`\" instruction in a skill/preamble is replaced with the working `task ...` equivalent.",
+        "status": "proposed"
+      },
+      {
+        "title": "(Optional) a `verify:*` gate fails on unresolved `scripts/*.py` references in tracked files.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "skills"
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2310",
+        "related": "#2378, #2033, #2022, #1309"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/triage/help/registry-data.ts",
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "content/templates/agent-prompt-preamble.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md"
+        ],
+        "verify_commands": [
+          "task agents:refresh",
+          "task check"
+        ],
+        "expected_outputs": [
+          "no tracked file cites a deleted scripts/*.py path; banners/skills repointed to task/TS successors; agents-entry.md mirror refreshed"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-content",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "notes": "Co-edits registry-data.ts with #2378 and AGENTS.md + agents-entry.md with #2033. Same conflict_group 'docs-content'; a single worker should own #2378 + #2310 + #2033 and run `task agents:refresh` once."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2310",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2310: chore(docs,skills): stale scripts/*.py references after py-purge (#2022) -- registry-data.ts banner + AGENTS.md/preamble/review-cycle cite deleted Python"
+      }
+    ],
+    "updated": "2026-07-07T13:42:19Z"
+  }
+}

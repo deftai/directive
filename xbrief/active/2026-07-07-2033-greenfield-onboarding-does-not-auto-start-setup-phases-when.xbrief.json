@@ -1,0 +1,69 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #2033"
+  },
+  "plan": {
+    "title": "Greenfield onboarding does not auto-start setup phases when USER.md already exists",
+    "status": "running",
+    "narratives": {
+      "Description": "Greenfield onboarding does not auto-start setup phases when USER.md already exists",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/2033",
+      "Overview": "## Summary\n\nOn a fresh (greenfield) project immediately after installing deft, simply loading `AGENTS.md` does **not** kick off the setup phases when a `USER.md` already exists on the machine (e.g. from a prior install or another project). The agent reads `AGENTS.md`, but the \"First Session\" routing into the project-definition phase (Phase 2) never fires, so the user is left without `vbrief/PROJECT-DEFINITION.vbrief.json` and no prompt to create it.\n\n## Expected behavior\n\nPer the `AGENTS.md` \"First Session\" contract and `content/skills/deft-directive-setup/SKILL.md`:\n\n- **USER.md missing** -> start Phase 1 (user preferences)\n- **USER.md exists, `PROJECT-DEFINITION.vbrief.json` missing** -> start Phase 2 (project definition)\n\nSo on a greenfield project where `USER.md` already exists but `vbrief/PROJECT-DEFINITION.vbrief.json` does not, the agent should automatically enter the setup skill at Phase 2 and walk the user through generating the project definition.\n\n## Actual behavior\n\nAfter install, when the agent loads `AGENTS.md` on a greenfield project and `USER.md` already exists, the setup phases do **not** start. The agent neither reads `content/skills/deft-directive-setup/SKILL.md` nor begins Phase 2, and the project is left without a `PROJECT-DEFINITION.vbrief.json`.\n\n## Repro\n\n1. Have an existing `USER.md` at the platform default path (`~/.config/deft/USER.md` or `%APPDATA%\\deft\\USER.md`).\n2. Install deft into a fresh/greenfield project that has no `vbrief/PROJECT-DEFINITION.vbrief.json` and no lifecycle folders.\n3. Start a session / load `AGENTS.md`.\n4. Observe: setup phases (specifically Phase 2 project definition) do not auto-start.\n\n## Notes / suspected area\n\n- The \"First Session\" detection block in `AGENTS.md` (and the managed-section mirror) and the routing into `content/skills/deft-directive-setup/SKILL.md` Phase 2.\n- The \"USER.md exists, PROJECT-DEFINITION.vbrief.json missing -> Phase 2\" branch appears not to be reliably triggering on greenfield + pre-existing USER.md.\n- Worth confirming whether this is a detection gap (greenfield state not recognized) vs. a routing gap (state recognized but Phase 2 not entered automatically).\n\n## Acceptance criteria\n\n- [ ] On a greenfield project with an existing `USER.md` and no `PROJECT-DEFINITION.vbrief.json`, loading `AGENTS.md` reliably routes the agent into the setup skill at Phase 2.\n- [ ] The behavior is covered by a deterministic test where feasible (state detection + routing).",
+      "Labels": "adoption-blocker, Workflow",
+      "ImplementationPlan": "Surface: the 'First Session' detection block in AGENTS.md (+ its managed-section mirror content/templates/agents-entry.md) and the routing into content/skills/deft-directive-setup/SKILL.md Phase 2. 1. Make the 'USER.md exists, PROJECT-DEFINITION missing -> Phase 2' branch reliably fire on greenfield + pre-existing USER.md; tighten the instruction so the agent auto-enters the setup skill at Phase 2 rather than only reading AGENTS.md. 2. Post-#2112, reference xbrief/PROJECT-DEFINITION.xbrief.json (NOT the legacy vbrief path the issue body cites). 3. Per #1309, mirror the AGENTS.md change into content/templates/agents-entry.md and run `task agents:refresh`. 4. Add a deterministic test of the state-detection + routing where feasible.",
+      "Traces": "#2033, #2112, #1309"
+    },
+    "items": [
+      {
+        "title": "On a greenfield project with an existing `USER.md` and no `PROJECT-DEFINITION.vbrief.json`, loading `AGENTS.md` reliably routes the agent into the setup skill at Phase 2.",
+        "status": "proposed"
+      },
+      {
+        "title": "The behavior is covered by a deterministic test where feasible (state detection + routing).",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "adoption-blocker",
+      "Workflow"
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2033",
+        "related": "#2310, #2112, #1309"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "AGENTS.md",
+          "content/templates/agents-entry.md",
+          "content/skills/deft-directive-setup/SKILL.md"
+        ],
+        "verify_commands": [
+          "task agents:refresh",
+          "task check"
+        ],
+        "expected_outputs": [
+          "greenfield + pre-existing USER.md reliably routes into setup skill Phase 2; contract references xbrief paths"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-content",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium",
+        "notes": "Co-edits AGENTS.md + agents-entry.md with #2310. Same conflict_group 'docs-content'; single worker owns #2378 + #2310 + #2033."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2033",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2033: Greenfield onboarding does not auto-start setup phases when USER.md already exists"
+      }
+    ],
+    "updated": "2026-07-07T13:42:19Z"
+  }
+}

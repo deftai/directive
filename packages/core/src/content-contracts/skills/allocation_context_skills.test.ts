@@ -30,8 +30,8 @@ const _SWARM_POPULATION_TOKENS = [
 const _STEP1A_HEADER = "### Step 1a: Worker Runtime and GitHub Auth Preflight (#1557)";
 const _STEP1A_END = "### Step 1b: Provider-neutral sub-agent routing (#1531)";
 const _SWARM_SANDBOX_AUTH_TOKENS = [
-  "scripts/platform_capabilities.py",
-  "scripts/github_auth_modes.py",
+  "packages/core/src/platform/platform-capabilities.ts",
+  "packages/core/src/intake/github-auth-modes.ts",
   "sandbox_uid_remap",
   "host-gh",
   "injected-token",
@@ -142,8 +142,8 @@ describe("test_allocation_context_skills", () => {
     expect(found).toBe(true);
   });
   it.each([
-    "scripts/platform_capabilities.py",
-    "scripts/github_auth_modes.py",
+    "packages/core/src/platform/platform-capabilities.ts",
+    "packages/core/src/intake/github-auth-modes.ts",
     "sandbox_uid_remap",
     "host-gh",
     "injected-token",

@@ -30,7 +30,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Detection Criteria
 
-A project is **pre-cutover** if ANY of the following are true. This prose mirrors the executable helper in `scripts/_precutover.py`; when in doubt, the helper is canonical.
+A project is **pre-cutover** if ANY of the following are true. When in doubt, run `task verify:pre-cutover` (the deterministic helper).
 
 1. `SPECIFICATION.md` exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 2. `PROJECT.md` exists and contains neither the legacy `<!-- deft:deprecated-redirect -->` sentinel NOR the current `Purpose: deprecation redirect` canonical-banner marker (same one-release-cycle grace window).
@@ -625,7 +625,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
   - **If the next step is `skills/deft-directive-swarm/SKILL.md`**: the swarm skill's Phase 0 Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope xBRIEFs) is the canonical bridge. The monitor will scan `xbrief/proposed/` and `xbrief/pending/`, present in-scope candidates, and run `task scope:promote -- <path>` then `task scope:activate -- <path>` on explicit user approval. No manual operator action is required ahead of the swarm invocation.
   - **If the next step is `skills/deft-directive-refinement/SKILL.md`**: the refinement skill's Phase 4 (Promote/Demote) owns the same `task scope:promote` / `task scope:activate` surface and runs the bridge as part of the refinement loop. The refinement skill MAY leave xBRIEFs in `pending/` deliberately when they are queued for prioritisation rather than immediate dispatch.
-  - **If the user wants to invoke an implementation agent directly via `skills/deft-directive-build/SKILL.md` or `start_agent`**: the bridge MUST be run manually before dispatch -- `task scope:promote -- xbrief/proposed/<file>` then `task scope:activate -- xbrief/pending/<file>`. Both commands are idempotent and exit 0 on no-op (see `scripts/scope_lifecycle.py`). The #810 preflight gate (`task xbrief:preflight -- <active-path>`) will exit 0 only after the activate step.
+  - **If the user wants to invoke an implementation agent directly via `skills/deft-directive-build/SKILL.md` or `start_agent`**: the bridge MUST be run manually before dispatch -- `task scope:promote -- xbrief/proposed/<file>` then `task scope:activate -- xbrief/pending/<file>`. Both commands are idempotent and exit 0 on no-op. The #810 preflight gate (`task xbrief:preflight -- <active-path>`) will exit 0 only after the activate step.
 
 ⊗ Auto-run `task scope:promote` or `task scope:activate` from the setup skill on the Phase 3 outputs. The lifecycle commitment belongs to the user ("I am ready to swarm/build on this scope"), not the setup interview; silent promotion would clear the #810 implementation-intent gate without explicit user authorisation and bypass the deterministic-questions contract that protects every other Phase 3 transition.
 

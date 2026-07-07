@@ -97,8 +97,8 @@ describe("test_allocation_context_skills.py", () => {
     expect(found).toBe(true);
   });
   for (const token of [
-    "scripts/platform_capabilities.py",
-    "scripts/github_auth_modes.py",
+    "packages/core/src/platform/platform-capabilities.ts",
+    "packages/core/src/intake/github-auth-modes.ts",
     "sandbox_uid_remap",
     "host-gh",
     "injected-token",

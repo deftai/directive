@@ -1,0 +1,76 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #2378 (triage:summary legacy vbrief/.eval/ path doc-drift cleanup).",
+    "created": "2026-07-07T13:00:00Z",
+    "updated": "2026-07-07T13:00:00Z"
+  },
+  "plan": {
+    "id": "2378-triage-summary-legacy-path-doc-drift",
+    "title": "Normalize triage:summary history-path docs off the legacy vbrief/.eval/ prefix",
+    "status": "running",
+    "planRef": "https://github.com/deftai/directive/issues/2378",
+    "narratives": {
+      "Description": "The functional bug reported in #2378 (triage:summary writing a stray top-level vbrief/.eval/summary-history.jsonl on an xbrief-layout project) is ALREADY FIXED on main: the write site (packages/cli/src/triage-summary.ts and packages/core/src/triage/welcome/summary.ts) resolves the path via resolveTriageCachePath -> resolveLifecycleRoot, which selects xbrief/ on a migrated tree and writes <lifecycle-root>/.triage-cache/summary-history.jsonl. That behavior landed with #1703 (.eval/ -> .triage-cache/ relocation) and #2109 (layout-aware root resolution). What remains is user-facing DOC/STRING drift that still advertises the legacy hardcoded prefix and the pre-#1703 subdir. This story normalizes those references; no runtime write-path change.",
+      "ImplementationPlan": "1. Taskfile.yml (~line 872): the triage:summary alias desc still reads 'appends a JSONL record to vbrief/.eval/summary-history.jsonl' -- wrong on BOTH counts (.eval/ subdir and hardcoded vbrief/ prefix). Update it to '<lifecycle-root>/.triage-cache/summary-history.jsonl' to match the already-correct include fragment tasks/triage-summary.yml:24. 2. packages/core/src/triage/help/registry-data.ts (~line 9): the triage:summary help entry hardcodes 'vbrief/.triage-cache/summary-history.jsonl'; make it layout-neutral '<lifecycle-root>/.triage-cache/summary-history.jsonl'. 3. Update/confirm any help-registry contract test that pins the help string. Leave the SUMMARY_HISTORY_REL_PATH display constants (triage/summary/index.ts, triage/welcome/constants.ts) OUT of scope -- they are covered by the #2112 vbrief-removal normalization sweep and share files/tests with it (see conflict_group). Reply on #2378 confirming the functional fix shipped in the 0.71.x line and close-as-fixed once the doc normalization merges.",
+      "UserStory": "As an operator reading triage:summary help / Taskfile descriptions, I want the documented history-path to match where the file is actually written (<lifecycle-root>/.triage-cache/), so the docs don't point me at a legacy vbrief/.eval/ path that the engine no longer uses.",
+      "Overview": "Filed against engine v0.68.1 (pre-#1703). Reporter explicitly asked to confirm-or-close on latest. Confirmed fixed functionally; only doc/help drift remains. Evidence cited in the issue: Taskfile.yml desc and tasks/triage-summary.yml (the latter is already correct on main). This is a patch-safe, string-only cleanup.",
+      "Traces": "#2378, #1703, #2109"
+    },
+    "items": [
+      {
+        "id": "2378-a1",
+        "title": "Given the Taskfile triage:summary desc, when read, then it names <lifecycle-root>/.triage-cache/summary-history.jsonl",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Taskfile.yml, when the triage:summary alias desc is read, then it no longer contains 'vbrief/.eval/' and matches the tasks/triage-summary.yml include fragment wording."
+        }
+      },
+      {
+        "id": "2378-a2",
+        "title": "Given the triage:summary help entry, when rendered, then it names a layout-neutral <lifecycle-root>/.triage-cache/ path",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/triage/help/registry-data.ts, when the triage:summary help string is rendered, then it references '<lifecycle-root>/.triage-cache/summary-history.jsonl' with no hardcoded 'vbrief/' prefix, and any pinning contract test is updated to match."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "child_issue": "#2378",
+        "related": "#1703, #2109, #2112"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "Taskfile.yml",
+          "packages/core/src/triage/help/registry-data.ts",
+          "packages/core/src/triage/help/registry-data.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm -C packages/core vitest run src/triage/help",
+          "task check"
+        ],
+        "expected_outputs": [
+          "no user-facing triage:summary doc references the legacy vbrief/.eval/ path; help + Taskfile desc read <lifecycle-root>/.triage-cache/summary-history.jsonl"
+        ],
+        "depends_on": [],
+        "conflict_group": "docs-content",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium",
+        "notes": "Co-edits packages/core/src/triage/help/registry-data.ts with #2310. Same conflict_group 'docs-content'; a single worker should own #2378 + #2310 + #2033."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/2378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #2378: triage:summary writes to legacy vbrief/.eval/ prefix on xbrief-layout projects"
+      }
+    ],
+    "updated": "2026-07-07T13:42:14Z"
+  }
+}

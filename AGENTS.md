@@ -7,13 +7,15 @@ Full guidelines: main.md
 
 **Headless bypass**: If you have been dispatched with a specific task (e.g. cloud agent, CI agent, scheduled run), skip the onboarding checks below and proceed directly to your task. The onboarding flow is for interactive sessions only.
 
-Check what exists before doing anything else:
+! Check what exists before doing anything else -- do NOT respond to any user request until the correct phase fires:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read content/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
+! Read content/skills/deft-directive-setup/SKILL.md and immediately start Phase 1 (user preferences). Do not wait for a user prompt.
 
-**USER.md exists, PROJECT-DEFINITION.xbrief.json missing** (./xbrief/):
-→ Read content/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
+**USER.md exists, `xbrief/PROJECT-DEFINITION.xbrief.json` missing**:
+! Read content/skills/deft-directive-setup/SKILL.md and immediately start Phase 2 (project definition). This branch MUST fire even when USER.md already exists from a prior install or another project -- a pre-existing USER.md is not a reason to skip Phase 2 on a greenfield project.
+
+⊗ Respond to any user query (greet, answer questions, take requests) before the correct phase has completed -- first-session phase routing is mandatory, not advisory.
 
 ## Returning Sessions
 
@@ -121,7 +123,7 @@ Same rules as the managed `### Story Start Gate` below; in this repo substitute 
 - ! Resolve exactly one target story xBRIEF by default; batching requires explicit operator approval + a short rationale. When invoked as part of a swarm cohort dispatch, the approved Phase 5 allocation plan IS the consent token (#954, all-or-nothing dispatch envelope) — do not re-prompt mid-cohort. Within a swarm cohort, between stories the tree MUST be checkpoint-clean; if `git status --short` shows uncommitted state, checkpoint-commit it and proceed (the "ask the operator" branch applies only at the FIRST story-start of a fresh branch).
 - ! Promote/activate scope with `task scope:promote -- <path>` then `task scope:activate -- <path>`, run `task xbrief:preflight -- <active-story-path>` before code-writing, keep one story per branch/PR with a checkpoint commit between stories, and finish with `task scope:complete -- <active-story-path>`. Gate 0 `task verify:story-ready` machine-checks these preconditions (see the pre-`start_agent` gate stack below).
 
-**Pre-`start_agent` gate stack (#1149/#1348):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (0) session ritual gate (#1348, `task verify:session-ritual -- --tier=gated`) → (1) story-start Gate 0 (#1378, `task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]`) → (2) xBRIEF implementation-intent gate (#810, `task xbrief:preflight -- <path>`) → (3) `task verify:cache-fresh` (D5 / #1127) → (4) branch-policy gate (existing -- `scripts/preflight_branch.py`, surfaced via `task verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks; see `**Branching:**` below) → (5) `start_agent`. Any non-zero exit aborts dispatch; do NOT spawn the sub-agent past a failed gate. The canonical order makes the gates composable so each one assumes the previous one has already cleared.
+**Pre-`start_agent` gate stack (#1149/#1348):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (0) session ritual gate (#1348, `task verify:session-ritual -- --tier=gated`) → (1) story-start Gate 0 (#1378, `task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]`) → (2) xBRIEF implementation-intent gate (#810, `task xbrief:preflight -- <path>`) → (3) `task verify:cache-fresh` (D5 / #1127) → (4) branch-policy gate (`task verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks; see `**Branching:**` below) → (5) `start_agent`. Any non-zero exit aborts dispatch; do NOT spawn the sub-agent past a failed gate. The canonical order makes the gates composable so each one assumes the previous one has already cleared.
 
 **Before code changes:**
 - ! Check `./xbrief/` lifecycle folders for existing scope xBRIEF coverage of the issue being fixed
@@ -138,10 +140,10 @@ Same rules as the managed `### Story Start Gate` below; in this repo substitute 
 
 **Branching:**
 - ! Always work on a feature branch — never commit directly to master/main unless the user explicitly instructs it or `PROJECT-DEFINITION.xbrief.json` has `plan.policy.allowDirectCommitsToMaster = true` (typed flag, #746). The legacy `Allow direct commits to master:` narrative key is recognised at read time with a deprecation warning; new writes go through the typed surface only.
-- ! Three enforcement surfaces back this rule (#747): (1) `.githooks/pre-commit` and `.githooks/pre-push` hooks call `scripts/preflight_branch.py`; install via `task setup` (idempotent `git config core.hooksPath .githooks`); verify via `task verify:hooks-installed`. (2) `task verify:branch` is wired into the `task check` aggregate so any pre-commit run flags a default-branch commit. (3) The `branch-gate` GH Actions workflow (`.github/workflows/branch-gate.yml`) refuses PRs whose `head_ref` equals `base_ref`. Override paths: `task policy:allow-direct-commits -- --confirm` writes the typed flag with a capability-cost disclosure; `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is the emergency env-var bypass.
+- ! Three enforcement surfaces back this rule (#747): (1) `.githooks/pre-commit` and `.githooks/pre-push` hooks run `task verify:branch`; install via `task setup` (idempotent `git config core.hooksPath .githooks`); verify via `task verify:hooks-installed`. (2) `task verify:branch` is wired into the `task check` aggregate so any pre-commit run flags a default-branch commit. (3) The `branch-gate` GH Actions workflow (`.github/workflows/branch-gate.yml`) refuses PRs whose `head_ref` equals `base_ref`. Override paths: `task policy:allow-direct-commits -- --confirm` writes the typed flag with a capability-cost disclosure; `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is the emergency env-var bypass.
 
 **Branch Policy Disclosure (session start):**
-- ! When `plan.policy.allowDirectCommitsToMaster = true` on the active project's `xbrief/PROJECT-DEFINITION.xbrief.json`, the agent MUST surface the policy state at the start of any interactive session (alongside or after the Deft Directive alignment confirmation). Use the disclosure phrasing from `scripts/policy.py::disclosure_line` -- e.g. `[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF.`
+- ! When `plan.policy.allowDirectCommitsToMaster = true` on the active project's `xbrief/PROJECT-DEFINITION.xbrief.json`, the agent MUST surface the policy state at the start of any interactive session (alongside or after the Deft Directive alignment confirmation). Use the disclosure phrasing from `task policy:show --field=allowDirectCommitsToMaster` -- e.g. `[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF.`
 - ⊗ Begin a session that will commit/push without surfacing the policy state when `allowDirectCommitsToMaster=true` -- the user needs visibility that the gate is OFF for this project
 
 **PR conventions:**
@@ -176,18 +178,18 @@ Platform/tool/runtime-specific rules are lazy-loaded, not shipped in the always-
 
 Rationale + recurrence record: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Safe subprocess capture (#1366).
 
-- ! Any deft script that captures `gh` output or another Python subprocess for parsing MUST route the call through `scripts/_safe_subprocess.py::run_text` (or pass `encoding="utf-8", errors="replace"` to `subprocess.run` directly). The helper FORCES `capture_output=True`, `text=True`, `encoding="utf-8"`, `errors="replace"`, and `shell=False` -- callers cannot regress the safety contract via kwargs.
-- ! New scripts under `scripts/` that shell out for parsable output (gh, git, python, task) MUST adopt the helper from day one. Existing scripts are migrated opportunistically; `scripts/pr_merge_readiness.py` is the #1366 reference adopter.
-- ⊗ Pass `text=True` to `subprocess.run` without an explicit `encoding="utf-8", errors="replace"` pair when the captured output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages, web fetches). The default locale-codepage decode is the bug.
-- ⊗ Catch and silently swallow `UnicodeDecodeError` from a subprocess capture site -- the helper makes the error unreachable; if a future caller hits it, the right response is to fix the call site to route through the helper, not to swallow.
+- ! The `scripts/` Python directory was removed in #2022 (TS-native migration). All subprocess capture rules from this section now apply to TS tooling only -- the `scripts/_safe_subprocess.py` helper no longer exists; TS equivalents use the Node.js `child_process` / `execa` patterns and are not subject to Python locale-codepage decode issues.
+- ! TS scripts that shell out for parsable output (gh, git, task) MUST use `execa` or `child_process.spawn` with `encoding: "utf8"` -- never `execSync` with default encoding when the output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages).
+- ⊗ Use `execSync` / `spawnSync` without explicit `encoding: "utf8"` when capturing `gh api` output that may contain non-ASCII glyphs -- the default `Buffer` return is the TS analogue of the Python locale-codepage bug.
+- ⊗ Reference `scripts/_safe_subprocess.py`, `scripts/pr_merge_readiness.py`, or any deleted Python script as a live implementation path -- the entire `scripts/` directory was removed in #2022.
 
 ## Cascade automation surface (#1369)
 
 Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Cascade automation surface (#1369). Canonical surface: `task pr:wait-mergeable-and-merge`.
 
-- ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>` (script: `scripts/pr_wait_mergeable.py`). Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
+- ! Cascade automation on the Grok Build hybrid path MUST go through `task pr:wait-mergeable-and-merge -- <N> --repo <owner>/<repo>`. Do NOT hand-roll a `while ...; do task pr:merge-ready ...; done` shell loop or a per-cascade ad-hoc Python monitor. The helper composes the resilient wait-until-ready loop (#1368) with the Layer-3 protected-issue check (#701) and the `gh pr merge --squash --delete-branch --admin` invocation behind a single three-state exit (0 merged / 1 timeout-or-escalation / 2 config error).
 - ! The per-PR atomic gate (`task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) documented in `content/skills/deft-directive-swarm/SKILL.md` Phase 5 -> 6 STILL applies for any in-cascade merge an operator runs by hand. The Wave-3 cascade surface is the automated wrapper; the per-PR atomic gate is the manual freshness-window-atomic check. The two co-exist -- one does not retire the other.
-- ! When `--protected <issue-numbers>` is supplied, the helper invokes `scripts/pr_check_protected_issues.py` (#701) BEFORE the wait loop. A persistent `closingIssuesReferences` link short-circuits the cascade with exit 1 (escalation) AHEAD of any `gh pr merge` call. New cascade scripts MUST preserve this ordering -- the protected-issue check is structurally a pre-condition that cannot be resolved by waiting.
+- ! When `--protected <issue-numbers>` is supplied, the helper runs the protected-issue check (#701) BEFORE the wait loop. A persistent `closingIssuesReferences` link short-circuits the cascade with exit 1 (escalation) AHEAD of any `gh pr merge` call. New cascade scripts MUST preserve this ordering -- the protected-issue check is structurally a pre-condition that cannot be resolved by waiting.
 - ⊗ Hand-roll a cascade `while ... task pr:merge-ready` shell loop (or equivalent ad-hoc Python monitor) when `task pr:wait-mergeable-and-merge` is available. The Wave-1+2 hardening is in the helpers the new task composes; hand-rolled loops re-introduce the `head: None` / babysit-each-PR failure mode #1369 closes.
 - ⊗ Run `gh pr merge <N>` from inside a cascade automation script without first chaining the Layer-3 protected-issue check (#701) when the PR is known to reference any umbrella / staying-OPEN issue. The cascade surface (`task pr:wait-mergeable-and-merge` with `--protected`) is the canonical compose-point; hand-rolled merges that skip the chain re-surface the PR #700 / PR #401 persistent-link recurrence.
 
@@ -196,7 +198,7 @@ Rationale + recurrence record + cross-references: `docs/analysis/2026-07-02-agen
 Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § Headless swarm launch gate-stack (#1387).
 
 - ! When the operator supplies a pre-approved cohort via the **C1** CLI `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`, the swarm skill's Phase 0 per-phase approval gates collapse into the SINGLE #1378 `## Allocation context` consent token (`dispatch_kind: swarm-cohort` + non-null `allocation_plan_id` + `batching_rationale`); the interactive promote-fill loop is skipped.
-- ! Phase 2 accepts a **pre-created worktree map** (the **C3** JSON array of `{ story_id, worktree_path, base_branch }`) resolved via `resolve_worktree_map(...)` in `scripts/swarm_worktrees.py` -- which raises on same-path collisions or base-branch mismatches -- instead of always running `git worktree add` per agent.
+- ! Phase 2 accepts a **pre-created worktree map** (the **C3** JSON array of `{ story_id, worktree_path, base_branch }`) resolved via `resolveWorktreeMap` (`packages/core/src/swarm/worktrees.ts`) -- which raises on same-path collisions or base-branch mismatches -- instead of always running `git worktree add` per agent.
 - ! Phase 3 consumes the **C2** launch-manifest (the JSON array of `{ story_id, xbrief_path, worktree_path, branch, allocation_context }`, where `allocation_context` is the #1378 token) emitted by `task swarm:launch` as dispatch PREP before spawning; the spawn itself stays agent-driven via the platform adapter (`start_agent` / `spawn_subagent`). `task swarm:launch` does NOT spawn agents -- it emits the manifest and stops.
 - ⊗ Re-prompt the operator for per-phase batching approval when a pre-approved cohort is launched via `task swarm:launch` -- the #1378 allocation-context token is the batched consent (all-or-nothing dispatch envelope, #954).
 
@@ -205,10 +207,10 @@ Rationale + cross-references: `docs/analysis/2026-07-02-agents-md-incident-rule-
 Rationale: `docs/analysis/2026-07-02-agents-md-incident-rule-rationale.md` § SCM tooling — prefer ghx (#884).
 
 - ! When you need to invoke the GitHub CLI (`gh issue view`, `gh pr list`, `gh api`, ...) and `ghx` is on PATH, prefer `ghx` over `gh` -- the surface is identical and the cached responses are 10x faster on repeated calls
-- ! Fall back to `gh` transparently when `ghx` is not on PATH; do NOT fail or warn -- this mirrors the `scripts/scm.py` runtime ladder and keeps the rule additive for consumers who have not yet opted in
-- ~ Maintainers SHOULD run `task setup` (which invokes `scripts/setup_ghx.py`) to install `ghx`; the install is consent-gated and never auto-runs by default. Pass `--yes` for non-interactive (CI / scripted) approval
+- ! Fall back to `gh` transparently when `ghx` is not on PATH; do NOT fail or warn -- this keeps the rule additive for consumers who have not yet opted in
+- ~ Maintainers SHOULD run `task setup` to install `ghx`; the install is consent-gated and never auto-runs by default. Pass `--yes` for non-interactive (CI / scripted) approval
 - ⊗ Auto-install `ghx` without explicit operator consent -- `task setup` MUST prompt before invoking the upstream installer; the only non-interactive paths are `--yes` (explicit approval) or `DEFT_SETUP_GHX_SKIP=1` (explicit opt-out)
-- ! Raw `gh` calls outside `scripts/scm.py` are forbidden by `task verify:scm-boundary` (#1145 / N5 -- partial down-payment on #445 / #935 Workstream 6). The verb layer (`scripts/triage_*.py`, `scripts/scope_*.py`, `scripts/slice_*.py`, `scripts/issue_ingest.py`, ...) MUST invoke `gh` only via `scm.call(source, verb, args, **kwargs)`; the deterministic gate scans the canonical scope globs and fails `task check` when any of them route around the shim. Non-`github-issue` sources raise `NotImplementedError` so a consumer on GitLab / Gitea / local sees the deferred abstraction immediately.
+- ! Raw `gh` calls outside the TS SCM shim layer are forbidden by `task verify:scm-boundary` (#1145 / N5 -- partial down-payment on #445 / #935 Workstream 6). The TS verb layer MUST route `gh` calls through the canonical SCM shim; the deterministic gate scans the canonical scope globs and fails `task check` when any of them route around the shim. Non-`github-issue` sources raise `NotImplementedError` so a consumer on GitLab / Gitea / local sees the deferred abstraction immediately.
 - ? Power users MAY install `ghx` manually via the upstream `install.ps1` (Windows) or `install.sh` (macOS / Linux); the `task setup` prompt is a convenience, not a gate
 
 ## Test performance discipline (#975)
@@ -266,7 +268,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `content/templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=2d77bc08b976 refreshed=2026-07-06T13:42:56Z session=8b0b6e7136b1 -->
+<!-- deft:managed-section v3 sha=977563e97ddc refreshed=2026-07-07T14:02:20Z session=8d3ecca17184 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -287,7 +289,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 **Pre-cutover detected** if ANY of the following are true:
 
-- ./SPECIFICATION.md exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `./xbrief/specification.xbrief.json` plus all five lifecycle folders exist. This mirrors `.deft/core/scripts/_precutover.py`.
+- ./SPECIFICATION.md exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `./xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 - ./PROJECT.md exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
 - ./xbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
 
@@ -297,13 +299,15 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## First Session
 
-Check what exists before doing anything else:
+! Check what exists before doing anything else -- do NOT respond to any user request until the correct phase fires:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
+! Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and immediately start Phase 1 (user preferences). Do not wait for a user prompt.
 
-**USER.md exists, PROJECT-DEFINITION.xbrief.json missing** (./xbrief/):
-→ Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
+**USER.md exists, `xbrief/PROJECT-DEFINITION.xbrief.json` missing**:
+! Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and immediately start Phase 2 (project definition). This branch MUST fire even when USER.md already exists from a prior install or another project -- a pre-existing USER.md is not a reason to skip Phase 2 on a greenfield project.
+
+⊗ Respond to any user query (greet, answer questions, take requests) before the correct phase has completed -- first-session phase routing is mandatory, not advisory.
 
 ## Returning Sessions
 
@@ -450,7 +454,7 @@ When the active project's `xbrief/PROJECT-DEFINITION.xbrief.json` has `plan.poli
 
 > "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF."
 
-This phrasing comes from `.deft/core/scripts/policy.py::disclosure_line` and stays in lockstep with the typed surface (#746). When the policy is OFF (default; `allowDirectCommitsToMaster=false`), no session-start disclosure is required -- the absence of the disclosure line itself signals the default-enforcing state.
+This phrasing is produced by `deft policy:show --field=allowDirectCommitsToMaster` and stays in lockstep with the typed surface (#746). When the policy is OFF (default; `allowDirectCommitsToMaster=false`), no session-start disclosure is required -- the absence of the disclosure line itself signals the default-enforcing state.
 
 Override paths (`deft policy:show` / `deft policy:enforce-branches` / `deft policy:allow-direct-commits -- --confirm` / `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`) are detailed in the Branch policy & branch verification section above.
 

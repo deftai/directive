@@ -29,13 +29,13 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Branch-Protection Policy Guard
 
-! Before entering the review/fix loop, run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Halt before any state mutation if the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND the operator has not set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. Concretely:
+! Before entering the review/fix loop, run the skill-level branch-policy guard (#746 / #747). Halt before any state mutation if the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND the operator has not set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. Concretely:
 
 ```
-uv run python scripts/preflight_branch.py --project-root . --quiet || exit 1
+task verify:branch || exit 1
 ```
 
-or invoke `task verify:branch`. The skill MUST NOT modify files, push, or comment on the PR until the guard passes -- this catches the case where a malformed PROJECT-DEFINITION quietly disabled the policy and the agent would have committed directly to master mid-review.
+The skill MUST NOT modify files, push, or comment on the PR until the guard passes -- this catches the case where a malformed PROJECT-DEFINITION quietly disabled the policy and the agent would have committed directly to master mid-review.
 
 ## Deterministic Questions Contract
 
@@ -311,7 +311,7 @@ If the exit predicate is not met (any field `unknown`), go back to Step 2.
 
 Greptile can post a **separate** informal clean reply that says prior issues are resolved and the current diff is clean while omitting the canonical rolling-summary fields Directive merge gates require: `Last reviewed commit:` and `Confidence Score: X/5`. `task pr:merge-ready` and `task swarm:verify-review-clean` correctly refuse merge-ready in this state -- prose alone cannot prove review currency or confidence.
 
-! When the latest Greptile bot comment is found, reports P0=0 and P1=0, but BOTH canonical fields are unparsed, classify the state as **`informal-clean missing-canonical-fields`** (see `scripts/pr_merge_readiness.py`) instead of treating it as "review still writing" or silently polling.
+! When the latest Greptile bot comment is found, reports P0=0 and P1=0, but BOTH canonical fields are unparsed, classify the state as **`informal-clean missing-canonical-fields`** (see `task pr:merge-ready` diagnostic output) instead of treating it as "review still writing" or silently polling.
 
 ! Recovery for informal-clean missing canonical fields -- route to ONE of these operator actions; do NOT keep polling:
 
@@ -348,10 +348,10 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 
 ## Framework Events Emitted Here
 
-! When the user replies `yes` / `confirmed` / `approve` on a ready-to-merge PR thread (Phase 5 -> 6 gate per the canonical #642 workflow comment), emit a `plan:approved` framework event via `scripts/_events.py` so the approval is captured as a structural artifact rather than prose-only:
+! When the user replies `yes` / `confirmed` / `approve` on a ready-to-merge PR thread (Phase 5 -> 6 gate per the canonical #642 workflow comment), emit a `plan:approved` framework event via `task lifecycle:event` so the approval is captured as a structural artifact rather than prose-only:
 
 ```
-python -m scripts._events emit plan:approved \
+task lifecycle:event -- emit plan:approved \
   --plan-ref https://github.com/<owner>/<repo>/pull/<N> \
   --approver <github-login> \
   --approval-phrase <yes|confirmed|approve> \

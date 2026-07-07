@@ -58,7 +58,7 @@ Heterogeneous swarm dispatch (#1531) assigns each worker a **dispatch provider**
 When present, the section documents these fields in order:
 
 - `dispatch_provider`: the runtime primitive that launched this worker -- e.g. `spawn_subagent`, `start_agent`, `cursor-composer`, `cursor-cloud-agent`, or a future adapter id. Names the harness surface, not the model.
-- `worker_role`: the role boundary for this dispatch -- one of `leaf-implementation`, `orchestrator`, `review-monitor`, or `merge-release` (stable ids from `scripts/policy.py` `SWARM_WORKER_ROLES`). Tells the worker which preamble rules and skill surfaces apply.
+- `worker_role`: the role boundary for this dispatch -- one of `leaf-implementation`, `orchestrator`, `review-monitor`, or `merge-release` (stable ids from `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`). Tells the worker which preamble rules and skill surfaces apply.
 - `selected_backend`: the stable backend id from `plan.policy.swarmSubagentBackend` / `task policy:subagent-backends` (e.g. `composer`, `grok-build`, `cursor-cloud`) | null -- which catalogued coding backend the operator selected for this role.
 - `routing_policy`: <path or reference to the operator's routing file / tiering policy> | null -- when backend selection is delegated to harness routing instead of a typed policy field, cite the policy handle here so postmortems can reconstruct the route. The canonical handle is the gitignored, per-machine `.deft/routing.local.json` (#1739), keyed by `(dispatch_provider, worker_role)`; set decisions with `task swarm:routing-set -- --role <role> (--model <slug> | --harness-default)`.
 - `resolved_model` (#1739): the concrete model slug the operator pinned for this `(provider, role)` | null for an explicit harness default. Resolved from `.deft/routing.local.json` and stamped into the `task swarm:launch` manifest. **This is the field the dispatch primitive must actually honor** -- see the threading rule below.
@@ -98,7 +98,7 @@ Worked example (a tiered leaf worker on Composer):
 
 ! Pre-dispatch gate (#1739 / #1877): run `task verify:routing` before spawning ANY sub-agent (cohort OR solo) — it fails when a dispatched worker role has no decision (pinned model or explicit harness default) for the active provider. `task verify:story-ready` chains the same routing gate for single Cursor/Grok Task dispatches (#1877). Session start runs `task verify:routing -- --advise` (non-blocking disclosure).
 
-Reference: `.deft/routing.local.json` + `task swarm:routing-set` + `task verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `scripts/policy.py` `SWARM_WORKER_ROLES`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
+Reference: `.deft/routing.local.json` + `task swarm:routing-set` + `task verify:routing` (#1739, supersedes the `plan.policy.swarmSubagentBackend` enum of #1531a / #1735), `packages/core/src/swarm/routing.ts` `SWARM_WORKER_ROLES`, issue #1531 scope update (dispatch provider / worker role / model selection are three separate concerns).
 
 ## 2.7 Runtime and GitHub auth mode (#1557)
 
@@ -129,7 +129,7 @@ Worked example (cloud / headless worker):
 - github_auth_mode: injected-token
 ```
 
-Reference: `scripts/platform_capabilities.py` (#1557a), `scripts/github_auth_modes.py` (#1557b), issue #1557.
+Reference: `packages/core/src/platform/platform-capabilities.ts` (#1557a), `packages/core/src/intake/github-auth-modes.ts` (#1557b), issue #1557.
 
 ## 3. PowerShell 5.1 non-ASCII rule (#798)
 
@@ -154,24 +154,24 @@ When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_co
 
 This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based) is not affected by this wrapper leakage.
 
-## 3.6 Safe subprocess on Windows -- UTF-8 capture helper (#1366)
+## 3.6 Safe subprocess on Windows -- UTF-8 capture (#1366)
 
-Windows hosts running deft tooling (Grok Build, native PowerShell, scheduled / cloud agents) inherit the locale codepage (cp1252 / cp437) as the default `text=True` decode encoding for `subprocess.run`. When the child process (most commonly `gh api` returning a Greptile rolling-summary body) emits bytes that are not valid in that codepage, Python's internal `Thread-3 (_readerthread)` crashes with `UnicodeDecodeError`. The calling script then returns empty / malformed stdout, and any monitor parsing the JSON sees `head: None` -- the exact failure mode behind the #1166 swarm `Still waiting... (last reviewed: none, head: None)` symptom.
+**Historical note:** The `scripts/` Python directory was removed in #2022 (TS-native migration). The `scripts/_safe_subprocess.py::run_text` helper no longer exists. The underlying risk -- locale-codepage decode failures when capturing `gh api` output on Windows -- still applies to any TS tooling that shells out.
 
-**Directive rule:** Any deft script that captures `gh` output or another Python subprocess for parsing MUST route its capture through `scripts/_safe_subprocess.py::run_text` (or pass `encoding="utf-8", errors="replace"` to `subprocess.run` directly). The helper FORCES `capture_output=True`, `text=True`, `encoding="utf-8"`, `errors="replace"`, and `shell=False`; callers cannot regress the safety contract via kwargs.
+**Directive rule for TS tooling:** Any TS script that captures `gh` output or other child-process output for parsing MUST use `execa` (preferred) or `child_process.spawn` with explicit `encoding: "utf8"`. Never use `execSync` / `spawnSync` without explicit encoding when the output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages).
 
-```python path=null start=null
-# WRONG -- crashes Thread-3 (_readerthread) on Windows when output contains non-cp1252 bytes
-result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+```typescript
+// WRONG -- Buffer return; non-ASCII bytes become mojibake or throw on .toString()
+const out = execSync("gh api ...");
 
-# RIGHT -- bytes that don't decode under utf-8 become U+FFFD; the reader thread never crashes
-from _safe_subprocess import run_text
-result = run_text(cmd, timeout=60)
+// RIGHT -- explicit utf8 encoding; non-ASCII bytes survive the round-trip
+import { execa } from "execa";
+const { stdout } = await execa("gh", ["api", "..."], { encoding: "utf8" });
 ```
 
-This rule applies on every platform but BITES on Windows + Grok Build / cmd / PowerShell hosts where the locale codepage is not UTF-8. Linux / macOS hosts generally default to UTF-8 already and so do not reproduce the crash, but routing through `run_text` keeps the behavior identical across platforms.
+This rule bites on Windows + Grok Build / cmd / PowerShell hosts where the default codepage is not UTF-8. Linux / macOS generally default to UTF-8 and do not reproduce the crash, but explicit encoding keeps behavior identical across platforms.
 
-Reference: AGENTS.md `## Safe subprocess capture (#1366)`. Recurrence record: the #1166 swarm session repeatedly observed `Thread-3 (_readerthread) UnicodeDecodeError` across multiple gh-shelling tools; #1366 is the structural fix.
+Reference: AGENTS.md `## Safe subprocess capture (#1366)`. Recurrence record: the #1166 swarm session repeatedly observed `Thread-3 (_readerthread) UnicodeDecodeError` across multiple gh-shelling tools; #1366 is the structural fix. `scripts/_safe_subprocess.py` was the Python-era solution; the TS-era solution is explicit encoding on every `execa`/`spawn` call.
 
 ## 3.7 Per-run unique pytest basetemp under concurrent swarm dispatch (#1681)
 
@@ -404,7 +404,7 @@ The contract in one paragraph:
 - The record is JSON with at least `agent_id` (matches filename), `parent_id`, `last_heartbeat_at` (ISO-8601 UTC, `Z`-suffix), `last_message` (one human-readable line), `phase` (one of `starting | implementing | validating | committing | pushing | polling | fixing | terminal`), and optional `terminal_state`.
 - Writes MUST be atomic (write-to-temp + rename) so the monitor never reads a half-written file.
 
-The parent monitor watches via `scripts/subagent_monitor.py` (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Skipping the heartbeat is a hard `⊗` for any long-running sub-agent: a stalled agent with no heartbeat surface is the exact #1166 failure mode this contract closes.
+The parent monitor watches the heartbeat file directly (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Skipping the heartbeat is a hard `⊗` for any long-running sub-agent: a stalled agent with no heartbeat surface is the exact #1166 failure mode this contract closes.
 
 ## 11. Mandatory DONE message even on early exit
 
@@ -433,7 +433,7 @@ The `--allow-stale` override is per-shell and audited: the dispatcher MAY pass i
 
 The `--allow-missing-bootstrap` flag exists for the framework's own `task check` wiring (so a fresh framework checkout doesn't fail its own `verify:cache-fresh` aggregate run) and MUST NOT be passed by dispatchers. Consumer dispatchers leave it OFF; a missing cache is a real failure for them.
 
-Reference: the gate is implemented at `scripts/preflight_cache.py` and exposed via `task verify:cache-fresh`; the subscription scope is read via the D12 surface `scripts/triage_scope.py` so a consumer that has tightened `plan.policy.triageScope[]` is not gated by stale entries outside their subscription.
+Reference: the gate is exposed via `task verify:cache-fresh`; the subscription scope is read via the D12 surface (`task triage:scope`) so a consumer that has tightened `plan.policy.triageScope[]` is not gated by stale entries outside their subscription.
 
 ## 13. Cancellation Attribution (#1300)
 

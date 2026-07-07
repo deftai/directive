@@ -869,7 +869,7 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:summary:
-    desc: "Emit the one-line triage state for the session-start ritual (D2 / #1122). Always exits 0; appends a JSONL record to vbrief/.eval/summary-history.jsonl. -- task triage:summary -- [--json] [--no-history]"
+    desc: "Emit the one-line triage state for the session-start ritual (D2 / #1122). Always exits 0; appends a JSONL record to <lifecycle-root>/.triage-cache/summary-history.jsonl. -- task triage:summary -- [--json] [--no-history]"
     cmds:
       - task: triage-summary:summary
         vars:

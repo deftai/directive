@@ -61,7 +61,7 @@ const _SWEEP_STEP_HEADER = "### Step 1.5: Cohort Completion Sweep (#1487)";
 const _SWEEP_STEP_END = "### Step 2: Close Issues and Update Origins";
 const _SWEEP_STEP_TOKENS = [
   "task swarm:complete-cohort",
-  "scripts/swarm_complete_cohort.py",
+  "task scope:complete",
   "REQUIRED",
   "Stage 1",
   "Stage 2",
@@ -112,8 +112,8 @@ const _PROVIDER_NEUTRAL_PREAMBLE_TOKENS = [
 const _STEP1A_HEADER = "### Step 1a: Worker Runtime and GitHub Auth Preflight (#1557)";
 const _STEP1A_END = "### Step 1b: Provider-neutral sub-agent routing (#1531)";
 const _SANDBOX_AUTH_TOKENS = [
-  "scripts/platform_capabilities.py",
-  "scripts/github_auth_modes.py",
+  "packages/core/src/platform/platform-capabilities.ts",
+  "packages/core/src/intake/github-auth-modes.ts",
   "local-unsandboxed",
   "cursor-native-sandbox",
   "cloud-headless",
@@ -198,7 +198,6 @@ const _PHASE6_LIFECYCLE_COMMIT_TOKENS = [
   "non-fast-forward",
   "check_vbrief_lifecycle_sync",
   "task reconcile:issues -- --apply-lifecycle-fixes",
-  "scripts/reconcile_issues.py",
   "skills/deft-directive-release/SKILL.md",
   "authoritative post-swarm lifecycle record",
   "#1358",
@@ -435,7 +434,7 @@ describe("test_swarm_skill", () => {
   });
   it.each([
     "task swarm:complete-cohort",
-    "scripts/swarm_complete_cohort.py",
+    "task scope:complete",
     "REQUIRED",
     "Stage 1",
     "Stage 2",
@@ -525,8 +524,8 @@ describe("test_swarm_skill", () => {
     expect(/!\s+Every intentional backend-routed dispatch MUST carry/m.test(block)).toBe(true);
   });
   it.each([
-    "scripts/platform_capabilities.py",
-    "scripts/github_auth_modes.py",
+    "packages/core/src/platform/platform-capabilities.ts",
+    "packages/core/src/intake/github-auth-modes.ts",
     "local-unsandboxed",
     "cursor-native-sandbox",
     "cloud-headless",
@@ -654,7 +653,6 @@ describe("test_swarm_skill", () => {
     "non-fast-forward",
     "check_vbrief_lifecycle_sync",
     "task reconcile:issues -- --apply-lifecycle-fixes",
-    "scripts/reconcile_issues.py",
     "skills/deft-directive-release/SKILL.md",
     "authoritative post-swarm lifecycle record",
     "#1358",

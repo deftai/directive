@@ -19,7 +19,7 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 **Pre-cutover detected** if ANY of the following are true:
 
-- ./SPECIFICATION.md exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `./xbrief/specification.xbrief.json` plus all five lifecycle folders exist. This mirrors `.deft/core/scripts/_precutover.py`.
+- ./SPECIFICATION.md exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `./xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 - ./PROJECT.md exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
 - ./xbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
 
@@ -29,13 +29,15 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 ## First Session
 
-Check what exists before doing anything else:
+! Check what exists before doing anything else -- do NOT respond to any user request until the correct phase fires:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
+! Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and immediately start Phase 1 (user preferences). Do not wait for a user prompt.
 
-**USER.md exists, PROJECT-DEFINITION.xbrief.json missing** (./xbrief/):
-→ Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
+**USER.md exists, `xbrief/PROJECT-DEFINITION.xbrief.json` missing**:
+! Read .deft/core/.agents/skills/deft-directive-setup/SKILL.md and immediately start Phase 2 (project definition). This branch MUST fire even when USER.md already exists from a prior install or another project -- a pre-existing USER.md is not a reason to skip Phase 2 on a greenfield project.
+
+⊗ Respond to any user query (greet, answer questions, take requests) before the correct phase has completed -- first-session phase routing is mandatory, not advisory.
 
 ## Returning Sessions
 
@@ -182,7 +184,7 @@ When the active project's `xbrief/PROJECT-DEFINITION.xbrief.json` has `plan.poli
 
 > "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF."
 
-This phrasing comes from `.deft/core/scripts/policy.py::disclosure_line` and stays in lockstep with the typed surface (#746). When the policy is OFF (default; `allowDirectCommitsToMaster=false`), no session-start disclosure is required -- the absence of the disclosure line itself signals the default-enforcing state.
+This phrasing is produced by `deft policy:show --field=allowDirectCommitsToMaster` and stays in lockstep with the typed surface (#746). When the policy is OFF (default; `allowDirectCommitsToMaster=false`), no session-start disclosure is required -- the absence of the disclosure line itself signals the default-enforcing state.
 
 Override paths (`deft policy:show` / `deft policy:enforce-branches` / `deft policy:allow-direct-commits -- --confirm` / `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`) are detailed in the Branch policy & branch verification section above.
 

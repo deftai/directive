@@ -15,7 +15,6 @@ const _SWARM_STEP0_5_MUST_TOKENS = [
   "task scope:activate",
   "skills/deft-directive-setup/SKILL.md",
   "skills/deft-directive-refinement/SKILL.md",
-  "scripts/scope_lifecycle.py",
   "Invalid transition",
 ];
 const _SWARM_STEP0_5_MUST_NOT_TOKENS = [
@@ -36,7 +35,6 @@ const _SETUP_BRIDGE_TOKENS = [
   "skills/deft-directive-swarm/SKILL.md",
   "Phase 0 Step 0.5",
   "skills/deft-directive-refinement/SKILL.md",
-  "scripts/scope_lifecycle.py",
   "⊗",
   "Auto-run",
 ];
@@ -74,7 +72,6 @@ describe("test_setup_swarm_bridge", () => {
     "task scope:activate",
     "skills/deft-directive-setup/SKILL.md",
     "skills/deft-directive-refinement/SKILL.md",
-    "scripts/scope_lifecycle.py",
     "Invalid transition",
   ])("swarm_step0_5_must_tokens_present %s", (token) => {
     const block = _swarm_step0_5_block(readSkill(_SWARM_PATH));
@@ -131,7 +128,6 @@ describe("test_setup_swarm_bridge", () => {
     "skills/deft-directive-swarm/SKILL.md",
     "Phase 0 Step 0.5",
     "skills/deft-directive-refinement/SKILL.md",
-    "scripts/scope_lifecycle.py",
     "⊗",
     "Auto-run",
   ])("setup_phase3_bridge_tokens_present %s", (token) => {

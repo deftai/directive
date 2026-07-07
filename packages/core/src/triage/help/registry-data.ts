@@ -1,4 +1,4 @@
-/** Auto-generated from scripts/triage_help.py -- do not edit by hand. */
+/** Hand-maintained help registry. Edit directly; no generator script. */
 export const registryData = {
   registry: {
     "task triage:summary": {
@@ -6,7 +6,7 @@ export const registryData = {
       summary: "One-line state for session-start ritual",
       refs: "(D2 / #1122)",
       description:
-        "Emit the one-line triage state consumed by the session-start ritual. Always exits 0 (status surface, not a gate); appends a JSONL record to vbrief/.triage-cache/summary-history.jsonl for observability.",
+        "Emit the one-line triage state consumed by the session-start ritual. Always exits 0 (status surface, not a gate); appends a JSONL record to <lifecycle-root>/.triage-cache/summary-history.jsonl for observability.",
       usage: "task triage:summary [-- --json] [--no-history]",
       flags: [
         ["--json", "(off)", "Emit the structured record as JSON instead of the one-liner."],
