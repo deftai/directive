@@ -450,7 +450,8 @@ function runInstallIntegrityChecks(
       if (
         (name === "legacy-layout" ||
           name === "canonical-vendored-npm-signpost" ||
-          name === "manifest-version-reportable") &&
+          name === "manifest-version-reportable" ||
+          name === "gitignore-coverage") &&
         status === "fail"
       ) {
         sink.warn(`${name}: ${detail}`);

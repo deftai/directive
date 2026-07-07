@@ -8,6 +8,7 @@ import {
   frameworkStagePaths,
   installerManagedGuardEre,
   isInstallerManagedPath,
+  pruneStrayDepositPaths,
   stageFrameworkPaths,
 } from "./hygiene.js";
 import { CANONICAL_TASKFILE_INCLUDE } from "./scaffold.js";
@@ -212,5 +213,67 @@ describe("scoped staging", () => {
     const result = stageFrameworkPaths(project, paths, { gitPorcelain: () => null });
     expect(result.staged).toBe(false);
     expect(existsSync(join(project, ".deft", "core", "main.md"))).toBe(true);
+  });
+});
+
+describe("pruneStrayDepositPaths (#2347)", () => {
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function freshRoot(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    return root;
+  }
+
+  it("removes stray packages/ from .deft/core when absent from content package", async () => {
+    const root = freshRoot("prune-stray-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(join(deftDir, "packages", "core", "src"), { recursive: true });
+    writeFileSync(join(deftDir, "packages", "core", "src", "index.ts"), "export {};\n", "utf8");
+    mkdirSync(contentRoot, { recursive: true });
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+
+    const lines: string[] = [];
+    const result = await pruneStrayDepositPaths(deftDir, contentRoot, {
+      printf: (t) => lines.push(t),
+    });
+
+    expect(result.pruned).toContain("packages");
+    expect(existsSync(join(deftDir, "packages"))).toBe(false);
+    expect(lines.join("")).toContain("Pruned stray framework-source tree");
+    expect(lines.join("")).toContain("#2347");
+  });
+
+  it("does NOT prune packages/ when content package also ships it", async () => {
+    const root = freshRoot("prune-skip-content-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(join(deftDir, "packages"), { recursive: true });
+    mkdirSync(join(contentRoot, "packages"), { recursive: true });
+    writeFileSync(join(contentRoot, "packages", "README.md"), "# shipped\n", "utf8");
+
+    const result = await pruneStrayDepositPaths(deftDir, contentRoot, { printf: () => {} });
+
+    expect(result.pruned).toHaveLength(0);
+    expect(existsSync(join(deftDir, "packages"))).toBe(true);
+  });
+
+  it("is a no-op when the stray path is already absent", async () => {
+    const root = freshRoot("prune-absent-");
+    const deftDir = join(root, ".deft", "core");
+    const contentRoot = join(root, "content-pkg");
+    mkdirSync(deftDir, { recursive: true });
+    mkdirSync(contentRoot, { recursive: true });
+
+    const result = await pruneStrayDepositPaths(deftDir, contentRoot, { printf: () => {} });
+
+    expect(result.pruned).toHaveLength(0);
   });
 });

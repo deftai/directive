@@ -299,6 +299,15 @@ describe("doctor CLI", () => {
     expect(renderStrayPackagesAdvisoryLine(root)).toContain("advisory");
   });
 
+  it("names `directive update` as the remediation for stray packages/ (#2347)", () => {
+    const root = makeRoot("doctor-stray-remediation-");
+    makeLifecycleDirs(root);
+    mkdirSync(join(root, ".deft", "core", "packages"), { recursive: true });
+    const advisory = renderStrayPackagesAdvisoryLine(root);
+    expect(advisory).toContain("directive update");
+    expect(advisory).toContain("#2347");
+  });
+
   it("defaults projectRoot to process.cwd() when --project-root is omitted", () => {
     // Exercises the `flags.projectRoot ?? process.cwd()` false branch in doctor.ts.
     const out = captureStdout(() => {

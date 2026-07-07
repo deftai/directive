@@ -75,6 +75,35 @@ describe("ensureInitGitignoreLines", () => {
     }
   });
 
+  it("covers xBRIEF-era eval result paths on both layouts (#2206)", () => {
+    // Generated version-eval results (health history, golden runs) live under
+    // .eval/results/ for both vbrief/ and xbrief/ layouts. Before #2206 only the
+    // triage-cache paths were covered; the eval/results/ subdirectory was missing.
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain("xbrief/.eval/results/");
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain("vbrief/.eval/results/");
+  });
+
+  it("covers xbrief migration backup directories (#2206)", () => {
+    // `deft migrate:xbrief` creates .deft/xbrief-migrate-backup-<stamp>/ directories
+    // that the old .deft/*.bak-* pattern did not cover.
+    expect(CANONICAL_GITIGNORE_BASELINE).toContain(".deft/xbrief-migrate-backup-*/");
+  });
+
+  it("update/brownfield: ensureInitGitignoreLines adds xBRIEF-era entries (#2206)", () => {
+    const root = freshRoot("gitignore-brownfield-");
+    // Simulate a brownfield project that has a .gitignore without Deft entries.
+    writeFileSync(join(root, ".gitignore"), "node_modules/\nbuild/\n", "utf8");
+
+    const result = ensureInitGitignoreLines(root, { printf: () => {} });
+
+    expect(result.changed).toBe(true);
+    const text = readFileSync(join(root, ".gitignore"), "utf8");
+    expect(text).toContain("xbrief/.eval/results/");
+    expect(text).toContain("vbrief/.eval/results/");
+    expect(text).toContain(".deft/xbrief-migrate-backup-*/");
+    expect(text).toContain("node_modules/");
+  });
+
   it("born-ignores the local engine cache dir (.deft/.cli/) (#2264)", () => {
     const root = freshRoot("gitignore-cli-");
     ensureInitGitignoreLines(root, { printf: () => {} });

@@ -968,4 +968,49 @@ describe("directive update refresh-only + self-heal (#2266)", () => {
     // The non-destructive .gitignore write DID land the canonical baseline.
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft-cache/");
   });
+
+  it("#2148: does NOT deposit deft-core-guard.yml when .deft/core is gitignored / not tracked", async () => {
+    const project = freshRoot("refresh-no-guard-untracked-");
+    const contentRoot = installFakeContentPackage(project);
+    initGitRepo(project);
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: false, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitPorcelain: () => "",
+        // Simulate gitignored / not-tracked deposit (npm-managed layout).
+        gitLsFiles: () => "",
+      },
+    );
+
+    expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(false);
+  });
+
+  it("#2148: DOES deposit deft-core-guard.yml when .deft/core is git-tracked (vendored layout)", async () => {
+    const project = freshRoot("refresh-guard-tracked-");
+    const contentRoot = installFakeContentPackage(project);
+    initGitRepo(project);
+    // Simulate a tracked deposit by making gitLsFiles return a tracked path.
+    mkdirSync(join(project, ".deft", "core"), { recursive: true });
+    writeFileSync(join(project, ".deft", "core", "main.md"), "# tracked\n", "utf8");
+
+    await runRefreshDeposit(
+      { projectDir: project, jsonOut: false, nonInteractive: false, upgrade: true },
+      { printf: () => {} },
+      {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.53.0",
+        nowIso: () => "2026-06-24T12:00:00Z",
+        gitPorcelain: () => "",
+        // Simulate a tracked deposit.
+        gitLsFiles: () => ".deft/core/main.md\n",
+      },
+    );
+
+    expect(existsSync(join(project, ".github", "workflows", "deft-core-guard.yml"))).toBe(true);
+  });
 });

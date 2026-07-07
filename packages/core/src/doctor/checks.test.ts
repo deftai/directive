@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  checkGitignoreCoverage,
   checkInstallPathConsistency,
   checkLegacyLayout,
   checkManifestAgreement,
@@ -266,5 +267,82 @@ describe("checkManifestVersionReportable (#2294)", () => {
     );
     expect(result.status).toBe("skip");
     expect(result.detail).toContain("no provenance");
+  });
+});
+
+describe("checkGitignoreCoverage (#2206)", () => {
+  function seamsFor(gitignoreText: string | null): { readText: (path: string) => string | null } {
+    return {
+      readText: (p: string) => (p.endsWith(".gitignore") ? gitignoreText : null),
+    };
+  }
+
+  it("skips when .gitignore is absent", () => {
+    const result = checkGitignoreCoverage("/proj", seamsFor(null));
+    expect(result.status).toBe("skip");
+    expect(result.detail).toContain("directive init");
+  });
+
+  it("passes when all canonical entries are present", () => {
+    const lines = [
+      ".deft-cache/",
+      ".deft/.cli/",
+      ".deft/ritual-state.json",
+      ".deft/last-session.json",
+      ".deft/routing.local.json",
+      "vbrief/.triage-cache/candidates.jsonl",
+      "vbrief/.triage-cache/summary-history.jsonl",
+      "vbrief/.triage-cache/scope-lifecycle.jsonl",
+      "vbrief/.triage-cache/decompositions/",
+      "vbrief/.triage-cache/doctor-state.json",
+      "xbrief/.triage-cache/candidates.jsonl",
+      "xbrief/.triage-cache/summary-history.jsonl",
+      "xbrief/.triage-cache/scope-lifecycle.jsonl",
+      "xbrief/.triage-cache/decompositions/",
+      "xbrief/.triage-cache/doctor-state.json",
+      "vbrief/*.lock",
+      ".deft/core.bak-*/",
+      ".deft/*.bak-*",
+      ".deft/xbrief-migrate-backup-*/",
+      "*.premigrate.*",
+      "vbrief/.eval/results/",
+      "xbrief/.eval/results/",
+    ].join("\n");
+    const result = checkGitignoreCoverage("/proj", seamsFor(lines));
+    expect(result.status).toBe("pass");
+    expect((result.data?.missing as string[]).length).toBe(0);
+  });
+
+  it("fails when canonical entries are missing", () => {
+    const result = checkGitignoreCoverage("/proj", seamsFor("node_modules/\n"));
+    expect(result.status).toBe("fail");
+    const missing = result.data?.missing as string[];
+    expect(missing.length).toBeGreaterThan(0);
+    expect(missing).toContain(".deft-cache/");
+    expect(result.detail).toContain("directive update");
+  });
+
+  it("reports xBRIEF-era eval result paths as missing (#2206)", () => {
+    const partial =
+      ".deft-cache/\n.deft/.cli/\n.deft/ritual-state.json\n.deft/last-session.json\n" +
+      ".deft/routing.local.json\nvbrief/.triage-cache/candidates.jsonl\n" +
+      "vbrief/.triage-cache/summary-history.jsonl\nvbrief/.triage-cache/scope-lifecycle.jsonl\n" +
+      "vbrief/.triage-cache/decompositions/\nvbrief/.triage-cache/doctor-state.json\n" +
+      "xbrief/.triage-cache/candidates.jsonl\nxbrief/.triage-cache/summary-history.jsonl\n" +
+      "xbrief/.triage-cache/scope-lifecycle.jsonl\nxbrief/.triage-cache/decompositions/\n" +
+      "xbrief/.triage-cache/doctor-state.json\nvbrief/*.lock\n.deft/core.bak-*/\n.deft/*.bak-*\n" +
+      "*.premigrate.*\n";
+    const result = checkGitignoreCoverage("/proj", seamsFor(partial));
+    expect(result.status).toBe("fail");
+    const missing = result.data?.missing as string[];
+    expect(missing).toContain("xbrief/.eval/results/");
+    expect(missing).toContain("vbrief/.eval/results/");
+    expect(missing).toContain(".deft/xbrief-migrate-backup-*/");
+  });
+
+  it("is advisory: does NOT change the doctor exit code", () => {
+    const fail = checkGitignoreCoverage("/proj", seamsFor("node_modules/\n"));
+    expect(fail.status).toBe("fail");
+    expect(deriveExitCode([fail], [])).toBe(0);
   });
 });

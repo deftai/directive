@@ -885,13 +885,28 @@ export async function pruneVendoredTsTests(projectDir: string, io: InitDepositIo
   return removed;
 }
 
+export interface DepositNeutralizationOptions {
+  /**
+   * #2148: skip depositing `.github/workflows/deft-core-guard.yml` when the
+   * framework deposit is not git-tracked (npm-managed / gitignored layout). The
+   * guard CI check is meaningless when there is no committed `.deft/core/**` to
+   * guard; skipping it prevents the file from re-appearing as untracked noise
+   * after every `directive update`.
+   */
+  readonly skipGuardWorkflow?: boolean;
+}
+
 /** Best-effort #1430 neutralization deposit (mirrors depositNeutralization). */
-export async function depositNeutralization(projectDir: string, io: InitDepositIo): Promise<void> {
+export async function depositNeutralization(
+  projectDir: string,
+  io: InitDepositIo,
+  options: DepositNeutralizationOptions = {},
+): Promise<void> {
   const steps: Array<() => boolean | Promise<boolean>> = [
     () => ensureGitattributes(projectDir, io),
     () => ensureGreptileIgnore(projectDir, io),
     () => ensureCodeqlPathsIgnore(projectDir, io),
-    () => ensureCoreGuardWorkflow(projectDir, io),
+    ...(options.skipGuardWorkflow ? [] : [() => ensureCoreGuardWorkflow(projectDir, io)]),
     () => pruneFrameworkSelfTests(projectDir, io),
     async () => (await pruneVendoredTsTests(projectDir, io)) > 0,
   ];

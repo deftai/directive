@@ -10,7 +10,7 @@ import {
   renderXbriefMigrationLine,
 } from "@deftai/directive-core/xbrief-migrate";
 
-/** Advisory when a consumer deposit carries git-vendored framework source (#2142). */
+/** Advisory when a consumer deposit carries git-vendored framework source (#2142 / #2347). */
 export function renderStrayPackagesAdvisoryLine(projectRoot: string): string {
   const packagesDir = join(projectRoot, ".deft", "core", "packages");
   if (!existsSync(packagesDir)) {
@@ -18,8 +18,9 @@ export function renderStrayPackagesAdvisoryLine(projectRoot: string): string {
   }
   return (
     "Deposit hygiene: advisory -- .deft/core/packages/ is present (git-vendored framework source, " +
-    "not shipped by npm @deftai/directive-content). Upgrade directive to pick up task guard fixes; " +
-    "consider removing the stray tree from version control."
+    "not shipped by npm @deftai/directive-content). " +
+    "Run `directive update` to auto-prune this stray tree, then commit the result (#2347). " +
+    "Or remove it manually: `git rm -r --cached .deft/core/packages && git commit -m 'chore: remove stray framework source'`."
   );
 }
 

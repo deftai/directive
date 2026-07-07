@@ -16,11 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `directive doctor` now checks that the consumer `.gitignore` carries the canonical Deft entries (`.deft-cache/`, `.deft/.cli/`, triage-cache, backup patterns, and xBRIEF-era eval paths). Missing coverage is flagged as an advisory finding with `directive update` as the one-step fix. Closes #2206.
+
 ### Changed
 
 - **Greenfield onboarding now reliably enters setup Phase 2 when USER.md already exists.** The AGENTS.md "First Session" routing for "USER.md exists but no PROJECT-DEFINITION.xbrief.json" is now a mandatory `!` directive with an explicit `⊗` prohibition against responding to user queries before completing setup — fixing the adoption-blocker where a pre-existing USER.md silently skipped Phase 2. Closes #2033.
 - **Stale Python-script references purged from docs, skills, and templates.** After the #2022 TS-native migration removed the `scripts/` directory, several docs and skills still cited deleted `.py` files as live surfaces (e.g. `uv run python scripts/preflight_branch.py`, `scripts/_events.py`, `scripts/policy.py::disclosure_line`). All audited references across AGENTS.md, agents-entry.md, agent-prompt-preamble.md, and SKILL.md files are now repointed to their `task`/TS successors or removed. The `registry-data.ts` banner no longer falsely claims generation from the deleted `scripts/triage_help.py`. Closes #2310.
 - **triage:summary history-path corrected in help strings and Taskfile desc.** The `triage:summary` help entry and Taskfile alias desc previously hardcoded a legacy `vbrief/.eval/` or `vbrief/.triage-cache/` path; both now read `<lifecycle-root>/.triage-cache/summary-history.jsonl` to match the runtime behavior. Closes #2378.
+- `directive update` no longer re-deposits `.github/workflows/deft-core-guard.yml` on projects where `.deft/core/` is gitignored / not git-tracked (npm-managed layout). The guard workflow is only useful when the deposit is committed; skipping it eliminates the untracked-file noise that appeared after every update. Closes #2148.
+- `directive update` now auto-prunes a stray `.deft/core/packages/` tree if it is not shipped by the `@deftai/directive-content` package. Previously the additive file-swap never removed it, causing the deposit-hygiene advisory from `deft doctor` to persist across every upgrade. The `deft doctor` advisory also now names `directive update` as the deterministic fix. Closes #2347.
 
 ### Fixed
 

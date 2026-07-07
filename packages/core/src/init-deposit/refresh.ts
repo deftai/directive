@@ -34,8 +34,13 @@ import {
   resolveEngine,
 } from "../resolution/index.js";
 import { gitPorcelain } from "../story-ready/git.js";
-import { ensureInitGitignoreLines, type GitLsFiles } from "./gitignore.js";
-import { depositStagePaths, isInstallerManagedPath, printCommitGuidance } from "./hygiene.js";
+import { ensureInitGitignoreLines, type GitLsFiles, isDepositTrackedInGit } from "./gitignore.js";
+import {
+  depositStagePaths,
+  isInstallerManagedPath,
+  printCommitGuidance,
+  pruneStrayDepositPaths,
+} from "./hygiene.js";
 import { type InitDepositArgs, parseInitArgv } from "./init-deposit.js";
 import {
   buildLegacyRefusalJson,
@@ -495,6 +500,10 @@ export async function runRefreshDeposit(
 
   await copyContent(contentRoot, deftDir);
   await prunePythonArtifactsFromDeposit(deftDir, projectDir, io);
+  // #2347: prune framework-source paths that the content package does not ship.
+  // The additive file-swap never removes them, causing the deposit-hygiene
+  // advisory to persist across every upgrade until manually cleaned.
+  await pruneStrayDepositPaths(deftDir, contentRoot, io);
 
   const nowIso = seams.nowIso ?? (() => new Date().toISOString().replace(/\.\d{3}Z$/, "Z"));
   const manifestFields: InstallManifestFields = {
@@ -520,7 +529,14 @@ export async function runRefreshDeposit(
 
   const agentsMdUpdated = writeAgentsMd(projectDir, deftDir, io);
 
-  await depositNeutralization(projectDir, io);
+  // #2148: the deft-core-guard CI workflow is only meaningful when the deposit
+  // is git-tracked (committed vendor layout). On an npm-managed (gitignored)
+  // deposit it creates untracked noise after every `directive update`. Probe
+  // git-tracked status once and share the result with the gitignore upkeep below.
+  const depositTracked = isDepositTrackedInGit(projectDir, seams.gitLsFiles);
+  const skipGuardWorkflow = depositTracked !== true;
+
+  await depositNeutralization(projectDir, io, { skipGuardWorkflow });
 
   // #2266: non-destructive `.gitignore` upkeep for framework-owned paths. This
   // NEVER un-tracks a committed deposit -- `ensureInitGitignoreLines` only writes

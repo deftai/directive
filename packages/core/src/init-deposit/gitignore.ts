@@ -52,7 +52,13 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   "vbrief/*.lock",
   ".deft/core.bak-*/",
   ".deft/*.bak-*",
+  // xBRIEF-era migration-backup directories created by `deft migrate:xbrief` (#2206).
+  ".deft/xbrief-migrate-backup-*/",
   "*.premigrate.*",
+  // Generated version-eval results live under `.eval/results/` (NOT triage-cache)
+  // for both the legacy `vbrief/` tree and the post-#2034 `xbrief/` tree (#2206).
+  "vbrief/.eval/results/",
+  "xbrief/.eval/results/",
 ];
 
 const DEFT_FRAMEWORK_GITIGNORE_HEADER =

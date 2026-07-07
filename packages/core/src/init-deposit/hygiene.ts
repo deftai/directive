@@ -7,6 +7,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { rm, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { gitPorcelain } from "../story-ready/git.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
@@ -156,6 +157,67 @@ export function stageFrameworkPaths(
     const error = cause instanceof Error ? cause : new Error(String(cause));
     return { staged: false, error };
   }
+}
+
+/**
+ * Framework-internal subdirectories that are shipped as part of the source
+ * repository but are NOT included in the `@deftai/directive-content` npm
+ * package deposited into `.deft/core/`. If one of these paths survives from
+ * a prior git-vendored install, `deft update`'s additive file-swap will never
+ * remove it — causing the deposit-hygiene advisory to persist indefinitely.
+ *
+ * Each entry is a relative path within `.deft/core/`; presence in the CONTENT
+ * root overrides the prune (i.e. if the content package ever ships `packages/`
+ * again, we won't prune it).
+ *
+ * Refs #2347.
+ */
+export const STRAY_DEPOSIT_FRAMEWORK_PATHS = ["packages"] as const;
+
+export interface PruneStrayDepositPathsResult {
+  readonly pruned: string[];
+}
+
+/**
+ * Remove framework-source subdirectories from `.deft/core/` that are not
+ * present in the deposited content package (#2347). Silently skips any path
+ * that is also present in `contentRoot` (future-safe: if the content package
+ * ever ships `packages/` we stop pruning it).
+ */
+export async function pruneStrayDepositPaths(
+  deftDir: string,
+  contentRoot: string,
+  io: InitDepositIo,
+): Promise<PruneStrayDepositPathsResult> {
+  const pruned: string[] = [];
+  for (const rel of STRAY_DEPOSIT_FRAMEWORK_PATHS) {
+    const depositPath = join(deftDir, rel);
+    const contentPath = join(contentRoot, rel);
+    let isInDeposit = false;
+    let isInContent = false;
+    try {
+      isInDeposit = (await stat(depositPath)).isDirectory();
+    } catch {
+      // absent — nothing to prune
+    }
+    if (!isInDeposit) continue;
+    try {
+      isInContent = (await stat(contentPath)).isDirectory();
+    } catch {
+      // not in content package — safe to prune
+    }
+    if (isInContent) continue;
+    try {
+      await rm(depositPath, { recursive: true, force: true });
+      pruned.push(rel);
+      io.printf(
+        `Pruned stray framework-source tree .deft/core/${rel}/ — not shipped by @deftai/directive-content (#2347).\n`,
+      );
+    } catch (cause) {
+      io.printf(`Warning: could not prune .deft/core/${rel}/: ${String(cause)}\n`);
+    }
+  }
+  return { pruned };
 }
 
 export const COMMIT_HYGIENE_BRANCH_NAME = "chore/deft-framework-upgrade";
