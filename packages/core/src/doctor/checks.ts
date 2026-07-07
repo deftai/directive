@@ -1,8 +1,5 @@
 import { join } from "node:path";
-import {
-  CANONICAL_GITIGNORE_BASELINE,
-  GITIGNORE_DEFT_CORE_LINE,
-} from "../init-deposit/gitignore.js";
+import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import {
   detectLegacyLayout,
   type LegacyDetectSeams,
@@ -16,6 +13,7 @@ import {
 } from "../init-deposit/migrate.js";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { findSkillPathsInText } from "../text/redos-safe.js";
+import { stripGitignoreInlineComment } from "../triage/bootstrap/gitignore.js";
 import {
   CANONICAL_UPGRADE_COMMAND,
   GO_BRIDGE_RELEASES_URL,
@@ -511,28 +509,21 @@ export function checkManifestVersionReportable(
 }
 
 /**
- * Collect the present gitignore lines from a `.gitignore` file text, stripping
- * inline comments (content after ` #` is treated as a comment per gitignore spec).
+ * Collect the normalised (inline-comment-stripped) gitignore patterns from a
+ * `.gitignore` file text. Uses the shared `stripGitignoreInlineComment` helper
+ * so coverage checks stay consistent with `ensureInitGitignoreLines`.
  */
 function collectGitignorePresent(text: string): Set<string> {
   const present = new Set<string>();
   for (const raw of text.split("\n")) {
-    const trimmed = raw.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const commentIdx = trimmed.indexOf(" #");
-    const line = commentIdx >= 0 ? trimmed.slice(0, commentIdx).trim() : trimmed;
+    const line = stripGitignoreInlineComment(raw);
     if (line) present.add(line);
   }
   return present;
 }
 
 function gitignoreLineIsCovered(present: ReadonlySet<string>, line: string): boolean {
-  if (present.has(line)) return true;
-  // `.deft/core` (without trailing slash) also covers `.deft/core/`
-  if (line === GITIGNORE_DEFT_CORE_LINE) {
-    return present.has(".deft/core") || present.has(".deft/core/");
-  }
-  return false;
+  return present.has(line);
 }
 
 /**
