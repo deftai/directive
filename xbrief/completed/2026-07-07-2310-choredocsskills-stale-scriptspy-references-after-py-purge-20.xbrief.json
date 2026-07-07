@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "chore(docs,skills): stale scripts/*.py references after py-purge (#2022) -- registry-data.ts banner + AGENTS.md/preamble/review-cycle cite deleted Python",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(docs,skills): stale scripts/*.py references after py-purge (#2022) -- registry-data.ts banner + AGENTS.md/preamble/review-cycle cite deleted Python",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2310",
@@ -65,7 +65,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "medium",
         "notes": "Co-edits registry-data.ts with #2378 and AGENTS.md + agents-entry.md with #2033. Same conflict_group 'docs-content'; a single worker should own #2378 + #2310 + #2033 and run `task agents:refresh` once."
-      }
+      },
+      "completedAt": "2026-07-07T14:23:26Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -74,6 +76,6 @@
         "title": "Issue #2310: chore(docs,skills): stale scripts/*.py references after py-purge (#2022) -- registry-data.ts banner + AGENTS.md/preamble/review-cycle cite deleted Python"
       }
     ],
-    "updated": "2026-07-07T13:42:19Z"
+    "updated": "2026-07-07T14:23:26Z"
   }
 }

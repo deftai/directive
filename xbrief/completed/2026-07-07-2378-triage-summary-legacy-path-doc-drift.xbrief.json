@@ -8,7 +8,7 @@
   "plan": {
     "id": "2378-triage-summary-legacy-path-doc-drift",
     "title": "Normalize triage:summary history-path docs off the legacy vbrief/.eval/ prefix",
-    "status": "running",
+    "status": "completed",
     "planRef": "https://github.com/deftai/directive/issues/2378",
     "narratives": {
       "Description": "The functional bug reported in #2378 (triage:summary writing a stray top-level vbrief/.eval/summary-history.jsonl on an xbrief-layout project) is ALREADY FIXED on main: the write site (packages/cli/src/triage-summary.ts and packages/core/src/triage/welcome/summary.ts) resolves the path via resolveTriageCachePath -> resolveLifecycleRoot, which selects xbrief/ on a migrated tree and writes <lifecycle-root>/.triage-cache/summary-history.jsonl. That behavior landed with #1703 (.eval/ -> .triage-cache/ relocation) and #2109 (layout-aware root resolution). What remains is user-facing DOC/STRING drift that still advertises the legacy hardcoded prefix and the pre-#1703 subdir. This story normalizes those references; no runtime write-path change.",
@@ -62,7 +62,9 @@
         "file_scope_confidence": "high",
         "model_tier": "medium",
         "notes": "Co-edits packages/core/src/triage/help/registry-data.ts with #2310. Same conflict_group 'docs-content'; a single worker should own #2378 + #2310 + #2033."
-      }
+      },
+      "completedAt": "2026-07-07T14:23:25Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -71,6 +73,6 @@
         "title": "Issue #2378: triage:summary writes to legacy vbrief/.eval/ prefix on xbrief-layout projects"
       }
     ],
-    "updated": "2026-07-07T13:42:14Z"
+    "updated": "2026-07-07T14:23:25Z"
   }
 }

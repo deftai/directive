@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Greenfield onboarding does not auto-start setup phases when USER.md already exists",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Greenfield onboarding does not auto-start setup phases when USER.md already exists",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/2033",
@@ -55,7 +55,9 @@
         "file_scope_confidence": "medium",
         "model_tier": "medium",
         "notes": "Co-edits AGENTS.md + agents-entry.md with #2310. Same conflict_group 'docs-content'; single worker owns #2378 + #2310 + #2033."
-      }
+      },
+      "completedAt": "2026-07-07T14:23:28Z",
+      "capacityBucket": "new-capability"
     },
     "references": [
       {
@@ -64,6 +66,6 @@
         "title": "Issue #2033: Greenfield onboarding does not auto-start setup phases when USER.md already exists"
       }
     ],
-    "updated": "2026-07-07T13:42:19Z"
+    "updated": "2026-07-07T14:23:28Z"
   }
 }
