@@ -12,7 +12,8 @@ afterAll(() => {
 function mkRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-cli-summary-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
   return root;
 }
 
@@ -77,7 +78,7 @@ describe("triage-summary CLI", () => {
     mkdirSync(cache, { recursive: true });
     writeFileSync(join(cache, "meta.json"), "{}", "utf8");
     silentRun(["--project-root", root]);
-    expect(existsSync(join(root, "vbrief", ".triage-cache", "summary-history.jsonl"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", ".triage-cache", "summary-history.jsonl"))).toBe(true);
   });
 
   it("parses equals-form flags", () => {

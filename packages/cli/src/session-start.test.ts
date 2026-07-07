@@ -88,10 +88,10 @@ describe("session-start run", () => {
   it("writes text lines to stdout on success", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-session-start-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      `${JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "T", status: "running", items: [] } })}\n`,
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T", status: "running", items: [] } })}\n`,
       "utf8",
     );
     const prevStdout = process.stdout.write.bind(process.stdout);

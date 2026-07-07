@@ -20,14 +20,14 @@ describe("scope-lifecycle CLI", () => {
     const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     vi.mocked(spawnSync).mockReturnValueOnce({
       status: 0,
-      stdout: "Promoted x.vbrief.json\n",
+      stdout: "Promoted x.xbrief.json\n",
       stderr: "warning\n",
       pid: 1,
-      output: [null, "Promoted x.vbrief.json\n", "warning\n", null],
+      output: [null, "Promoted x.xbrief.json\n", "warning\n", null],
       signal: null,
       error: undefined,
     });
-    expect(run(["promote", "/tmp/x.vbrief.json", "--project-root", "/tmp"])).toBe(0);
+    expect(run(["promote", "/tmp/x.xbrief.json", "--project-root", "/tmp"])).toBe(0);
     expect(stdoutSpy).toHaveBeenCalled();
     expect(stderrSpy).toHaveBeenCalled();
     stdoutSpy.mockRestore();

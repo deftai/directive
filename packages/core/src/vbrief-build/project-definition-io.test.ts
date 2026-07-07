@@ -15,11 +15,12 @@ describe("projectDefinitionIO", () => {
   it("round-trips policy mutations under lock", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-"));
     const path = projectDefinitionPath(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     writeFileSync(
       path,
       pythonJsonPretty({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", policy: { wipCap: 10 }, items: [] },
       }),
       "utf8",
@@ -44,7 +45,7 @@ describe("projectDefinitionIO", () => {
   it("resolves the xbrief path on a migrated tree, vbrief otherwise (#2302)", () => {
     const legacyRoot = mkdtempSync(join(tmpdir(), "vb-pd-legacy-"));
     expect(
-      projectDefinitionPath(legacyRoot).endsWith("vbrief/PROJECT-DEFINITION.vbrief.json"),
+      projectDefinitionPath(legacyRoot).endsWith("xbrief/PROJECT-DEFINITION.xbrief.json"),
     ).toBe(true);
     rmSync(legacyRoot, { recursive: true, force: true });
 
@@ -70,7 +71,8 @@ describe("projectDefinitionIO", () => {
   it("raises on invalid JSON and non-object payloads", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-badjson-"));
     const path = projectDefinitionPath(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     writeFileSync(path, "not-json", "utf8");
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(/not valid JSON/);
     writeFileSync(path, "[]", "utf8");

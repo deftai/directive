@@ -26,7 +26,7 @@ import { resolveCandidatesLogPath } from "../triage/cache-path.js";
 
 export const CACHE_DIR_NAME = ".deft-cache";
 export const DEFAULT_SOURCE = "github-issue";
-export const CANDIDATES_RELPATH = join("vbrief", ".triage-cache", "candidates.jsonl");
+export const CANDIDATES_RELPATH = join("xbrief", ".triage-cache", "candidates.jsonl");
 export const DEFAULT_MAX_AGE_HOURS = 24;
 export const ENV_MAX_AGE_HOURS = "DEFT_CACHE_MAX_AGE_HOURS";
 export const ENV_TRIAGE_REPO = "DEFT_TRIAGE_REPO";

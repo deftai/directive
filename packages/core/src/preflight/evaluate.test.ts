@@ -26,7 +26,7 @@ describe("evaluate", () => {
   it("returns exit 0 for active/ + running", () => {
     const path = writeVbrief(
       "active",
-      "story.vbrief.json",
+      "story.xbrief.json",
       JSON.stringify({ plan: { status: "running" } }),
     );
     const result = evaluate(path);
@@ -37,7 +37,7 @@ describe("evaluate", () => {
   it("rejects pending/ folder", () => {
     const path = writeVbrief(
       "pending",
-      "story.vbrief.json",
+      "story.xbrief.json",
       JSON.stringify({ plan: { status: "running" } }),
     );
     const result = evaluate(path);
@@ -49,7 +49,7 @@ describe("evaluate", () => {
   it("rejects proposed/ folder", () => {
     const path = writeVbrief(
       "proposed",
-      "story.vbrief.json",
+      "story.xbrief.json",
       JSON.stringify({ plan: { status: "running" } }),
     );
     expect(evaluate(path).exitCode).toBe(1);
@@ -58,7 +58,7 @@ describe("evaluate", () => {
   it("rejects wrong plan.status", () => {
     const path = writeVbrief(
       "active",
-      "story.vbrief.json",
+      "story.xbrief.json",
       JSON.stringify({ plan: { status: "pending" } }),
     );
     const result = evaluate(path);
@@ -68,31 +68,31 @@ describe("evaluate", () => {
   });
 
   it("rejects missing plan.status", () => {
-    const path = writeVbrief("active", "story.vbrief.json", JSON.stringify({ plan: {} }));
+    const path = writeVbrief("active", "story.xbrief.json", JSON.stringify({ plan: {} }));
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("lacks `plan.status`");
   });
 
   it("rejects missing plan object", () => {
-    const path = writeVbrief("active", "story.vbrief.json", JSON.stringify({}));
+    const path = writeVbrief("active", "story.xbrief.json", JSON.stringify({}));
     expect(evaluate(path).message).toContain("lacks a `plan` object");
   });
 
   it("rejects non-object top-level JSON", () => {
-    const path = writeVbrief("active", "story.vbrief.json", "[]");
+    const path = writeVbrief("active", "story.xbrief.json", "[]");
     expect(evaluate(path).message).toContain("top-level value is not a JSON object");
   });
 
   it("rejects malformed JSON with Python-style msg", () => {
-    const path = writeVbrief("active", "story.vbrief.json", "{bad json");
+    const path = writeVbrief("active", "story.xbrief.json", "{bad json");
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("Expecting property name enclosed in double quotes (line 1).");
   });
 
   it("rejects missing file", () => {
-    const path = join(tmpdir(), "missing-active-story.vbrief.json");
+    const path = join(tmpdir(), "missing-active-story.xbrief.json");
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("vBRIEF not found");
@@ -110,10 +110,10 @@ describe("evaluate", () => {
 
 describe("emitJson", () => {
   it("emits sorted keys matching the Python schema", () => {
-    const json = emitJson("/x/y.vbrief.json", 0, "OK");
+    const json = emitJson("/x/y.xbrief.json", 0, "OK");
     expect(json).toBe(
       JSON.stringify(
-        { ready: true, exit_code: 0, vbrief_path: "/x/y.vbrief.json", message: "OK" },
+        { ready: true, exit_code: 0, vbrief_path: "/x/y.xbrief.json", message: "OK" },
         ["exit_code", "message", "ready", "vbrief_path"],
       ),
     );
@@ -137,7 +137,7 @@ describe("evaluate edge branches", () => {
   it("handles unreadable vBRIEF files", () => {
     const path = writeVbrief(
       "active",
-      "locked.vbrief.json",
+      "locked.xbrief.json",
       JSON.stringify({ plan: { status: "running" } }),
     );
     chmodSync(path, 0o000);
@@ -151,18 +151,18 @@ describe("evaluate edge branches", () => {
   });
 
   it("maps unexpected token to Expecting value", () => {
-    const path = writeVbrief("active", "story.vbrief.json", "not json");
+    const path = writeVbrief("active", "story.xbrief.json", "not json");
     expect(evaluate(path).message).toContain("Expecting value (line 1).");
   });
 
   it("maps Extra data JSON errors", () => {
-    const path = writeVbrief("active", "extra.vbrief.json", '{"a":1}{"b":2}');
+    const path = writeVbrief("active", "extra.xbrief.json", '{"a":1}{"b":2}');
     expect(evaluate(path).message).toContain("Extra data");
   });
 
   it("falls back to generic JSON error mapping", () => {
     // Force a message shape not covered by explicit branches.
-    const path = writeVbrief("active", "weird.vbrief.json", "\u0000");
+    const path = writeVbrief("active", "weird.xbrief.json", "\u0000");
     const result = evaluate(path);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("not valid JSON");

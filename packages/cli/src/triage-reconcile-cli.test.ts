@@ -33,9 +33,9 @@ function captureIo(fn: () => number): { code: number; stdout: string; stderr: st
 function seedProject(): string {
   const root = mkdtempSync(join(tmpdir(), "reconcile-cli-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({ plan: {} }),
     "utf8",
   );

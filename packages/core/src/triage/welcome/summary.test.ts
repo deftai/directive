@@ -30,15 +30,15 @@ describe("welcome summary", () => {
 
   it("includes WIP warning at cap", () => {
     const root = mkdtempSync(join(tmpdir(), "sum3-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { wipCap: 1 } } }),
       "utf8",
     );
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "pending", "a.vbrief.json"), "{}", "utf8");
-    writeFileSync(join(root, "vbrief", "pending", "b.vbrief.json"), "{}", "utf8");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "pending", "a.xbrief.json"), "{}", "utf8");
+    writeFileSync(join(root, "xbrief", "pending", "b.xbrief.json"), "{}", "utf8");
     writeCache(root, "deftai/directive", 9);
     const result = computeSummary(root);
     expect(formatOneLiner(result)).toContain("\u26a0");
@@ -47,9 +47,9 @@ describe("welcome summary", () => {
 
   it("adds scope discrepancy second line", () => {
     const root = mkdtempSync(join(tmpdir(), "sum4-"));
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "active", "run.vbrief.json"),
+      join(root, "xbrief", "active", "run.xbrief.json"),
       JSON.stringify({ plan: { status: "running" } }),
       "utf8",
     );
@@ -62,9 +62,9 @@ describe("welcome summary", () => {
   it("includes stale defer segment", () => {
     const root = mkdtempSync(join(tmpdir(), "sum6-"));
     writeCache(root, "deftai/directive", 3);
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
+      join(root, "xbrief", ".triage-cache", "candidates.jsonl"),
       `${JSON.stringify({ repo: "deftai/directive", issue_number: 3, decision: "resume-eligible" })}\n`,
       "utf8",
     );

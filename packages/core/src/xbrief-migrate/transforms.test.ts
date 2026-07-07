@@ -68,6 +68,7 @@ describe("transformArtifactV06ToV08", () => {
         ],
       },
     });
+    // v0.6 → v0.8 transform rewrites vbrief/ → xbrief/ and x-vbrief/ → x-xbrief/ in references
     expect(validateVbriefSchema(first, "transformed.json")).toEqual([]);
 
     const second = transformArtifactV06ToV08(first);
@@ -75,13 +76,13 @@ describe("transformArtifactV06ToV08", () => {
   });
 
   it("rewrites embedded tokens idempotently", () => {
-    const input = "x-vbrief/plan vbrief/active/a.vbrief.json";
+    const input = "x-vbrief/plan vbrief/active/a.xbrief.json";
     expect(rewriteEmbeddedTokens(input)).toBe("x-xbrief/plan xbrief/active/a.xbrief.json");
     expect(rewriteEmbeddedTokens(rewriteEmbeddedTokens(input))).toBe(rewriteEmbeddedTokens(input));
   });
 
   it("does not rewrite external http(s) uri strings", () => {
-    const uri = "https://github.com/deftai/vbrief/blob/main/spec.md";
+    const uri = "https://github.com/deftai/xbrief/blob/main/spec.md";
     expect(rewriteEmbeddedTokens(uri)).toBe(uri);
   });
 
@@ -214,9 +215,9 @@ describe("detectLegacyVbriefLayout", () => {
   it("collects structured reasons across legacy markers", () => {
     const root = mkdtempSync(join(tmpdir(), "xbrief-migrate-detect-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "active", "story.vbrief.json"),
+      join(root, "xbrief", "active", "story.xbrief.json"),
       JSON.stringify(SAMPLE_V06),
       "utf8",
     );

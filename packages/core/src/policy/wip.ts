@@ -1,6 +1,11 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import {
+  hasArtifactSuffix,
+  LEGACY_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_DIR,
+  resolveLifecycleRoot,
+} from "../layout/resolve.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import { loadProjectDefinition } from "./resolve.js";
 
@@ -73,10 +78,23 @@ export function resolveWipCap(projectRoot: string): WipCapResult {
   return { cap: raw, source: "typed", error: null };
 }
 
-/** Count *.vbrief.json files in vbrief/pending/ + vbrief/active/ (#1124). */
+/** Count *.xbrief.json files in xbrief/pending/ + xbrief/active/ (#1124). */
 export function countVbriefWip(projectRoot: string): number {
   let total = 0;
-  const vbriefRoot = resolveLifecycleRoot(projectRoot);
+  let vbriefRoot: string;
+  try {
+    vbriefRoot = resolveLifecycleRoot(projectRoot);
+  } catch (err) {
+    // If xbrief/ dir exists (even without artifacts), there is no WIP to count.
+    // If only vbrief/ exists, this is a legacy project that must be migrated -- re-throw.
+    if (
+      !existsSync(join(projectRoot, MIGRATED_ARTIFACT_DIR)) &&
+      existsSync(join(projectRoot, LEGACY_ARTIFACT_DIR))
+    ) {
+      throw err; // Legacy-only project: operator must run deft migrate:xbrief.
+    }
+    return 0; // No layout found at all; no WIP files to count.
+  }
   for (const sub of WIP_LIFECYCLE_DIRS) {
     const folder = join(vbriefRoot, sub);
     if (!existsSync(folder)) {

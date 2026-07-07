@@ -100,7 +100,7 @@ describe("event detect emit", () => {
       "version:drift",
       {
         current_version: "0.20.0",
-        marker_path: "/tmp/example/vbrief/.deft-version",
+        marker_path: "/tmp/example/xbrief/.deft-version",
         project_root: "/tmp/example",
         recorded_version: "0.19.0",
       },

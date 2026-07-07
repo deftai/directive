@@ -154,7 +154,7 @@ describe("triage-subscribe CLI", () => {
   it("returns 1 on corrupt project definition", () => {
     const root = buildFixtureRepo("subscribe");
     temps.push(root);
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{", "utf8");
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{", "utf8");
     const { code, stderr } = captureIo(() =>
       runSubscribe(["subscribe", "--label", "x", "--project-root", root]),
     );

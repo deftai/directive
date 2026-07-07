@@ -15,11 +15,11 @@ afterEach(() => {
 function initRoot(): { root: string; head: string } {
   const root = mkdtempSync(join(tmpdir(), "verify-msg-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "T",
         status: "running",

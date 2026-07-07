@@ -37,7 +37,7 @@ function pythonRepr(value: unknown): string {
 }
 
 /** Filesystem-relative location of the PROJECT-DEFINITION vBRIEF. */
-export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
+export const PROJECT_DEFINITION_REL_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
 
 /** Threshold in days for the "dormant" universal rule (Decision 1). */
 export const DORMANT_AGE_DAYS = 90;
@@ -332,7 +332,13 @@ export function validateHoldMarkers(markers: unknown): { errors: string[]; warni
 }
 
 export function projectDefinitionPath(projectRoot?: string): string {
-  return resolveProjectDefinitionPath(projectRoot ?? process.cwd());
+  const root = projectRoot ?? process.cwd();
+  try {
+    return resolveProjectDefinitionPath(root);
+  } catch {
+    // No xbrief/ layout; return canonical path so callers get a predictable "not found" result.
+    return join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+  }
 }
 
 function loadProjectDefinition(projectRoot?: string): Record<string, unknown> | null {
@@ -853,7 +859,7 @@ export function validateProject(projectRoot: string): {
       code: 0,
       stdout:
         "OK: no PROJECT-DEFINITION at " +
-        `${resolveProjectDefinitionPath(root)} -- ` +
+        `${projectDefinitionPath(root)} -- ` +
         "framework defaults apply with no consumer overrides.\n",
       stderr: "",
     };
@@ -866,7 +872,7 @@ export function validateProject(projectRoot: string): {
       stderr: "FAIL: PROJECT-DEFINITION.plan is not an object\n",
     };
   }
-  const rel = resolveProjectDefinitionPath(root);
+  const rel = projectDefinitionPath(root);
   const classifyErrs = validateTriageAutoClassifyOnPlan(plan, rel);
   const holderErrs = validateTriageHoldMarkersOnPlan(plan, rel);
   const errors = [...classifyErrs, ...holderErrs];

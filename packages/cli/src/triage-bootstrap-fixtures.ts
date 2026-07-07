@@ -65,7 +65,7 @@ export function normalizeStdout(text: string): string {
           if (typeof details === "object" && details !== null) {
             const detailRecord = details as Record<string, unknown>;
             if (typeof detailRecord.audit_path === "string") {
-              detailRecord.audit_path = "<ROOT>/vbrief/.eval/candidates.jsonl";
+              detailRecord.audit_path = "<ROOT>/xbrief/.triage-cache/candidates.jsonl";
             }
             if (typeof detailRecord.fetch_timeout_s === "number") {
               detailRecord.fetch_timeout_s = Math.trunc(detailRecord.fetch_timeout_s);
@@ -84,6 +84,7 @@ export function normalizeStdout(text: string): string {
   return normalizeOutput(text);
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;
@@ -91,12 +92,12 @@ interface Capture {
 }
 
 function writeScopeVbrief(root: string, folder: string, slug: string, issueNumber: number): void {
-  const dir = join(root, "vbrief", folder);
+  const dir = join(root, "xbrief", folder);
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, `${slug}.vbrief.json`),
+    join(dir, `${slug}.xbrief.json`),
     `${JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         id: slug,
         title: slug,
@@ -113,10 +114,10 @@ function writeScopeVbrief(root: string, folder: string, slug: string, issueNumbe
   );
 }
 
-/** Build a throwaway project root with optional vBRIEF fixtures. */
+/** Build a throwaway project root with optional xBRIEF fixtures. */
 export function buildFixtureRepo(options: FixtureOptions = {}): string {
   const root = mkdtempSync(join(tmpdir(), "deft-triage-bootstrap-parity-"));
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   for (const item of options.scopeVbriefs ?? []) {
     writeScopeVbrief(root, item.folder, item.slug, item.issue);
   }

@@ -12,10 +12,10 @@ import {
 } from "./writers.js";
 
 function seedPd(root: string): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { policy: {} } }),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { policy: {} } }),
     "utf8",
   );
 }
@@ -28,7 +28,7 @@ describe("welcome writers", () => {
     writeTriageScope(root, rules, { presetLabel: "small" });
     writeWipCap(root, 8);
     const data = JSON.parse(
-      readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
     );
     expect(data.plan["x-directive/policy"].triageScope).toEqual(rules);
     expect(data.plan["x-directive/policy"].wipCap).toBe(8);
@@ -45,10 +45,10 @@ describe("welcome writers", () => {
 
   it("previewWipRelief classifies by age", () => {
     const root = mkdtempSync(join(tmpdir(), "relief-"));
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
     writeFileSync(
-      join(pending, "old.vbrief.json"),
+      join(pending, "old.xbrief.json"),
       JSON.stringify({ plan: { updated: "2020-01-01T00:00:00Z" } }),
       "utf8",
     );

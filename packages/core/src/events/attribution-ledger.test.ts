@@ -40,15 +40,15 @@ function makeRepo(options: {
 }): string {
   const root = mkdtempSync(join(tmpdir(), "deft-attrib-ledger-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   const policy = {
     ...(options.policy ?? {}),
     ...(options.valueFeedback !== undefined ? { valueFeedback: options.valueFeedback } : {}),
   };
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "T",
         status: "running",
@@ -191,19 +191,19 @@ describe("wired gate sources", () => {
       valueFeedback: { enabled: true, emitEvents: true },
       policy: { wipCap: 1 },
     });
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "pending", "a.vbrief.json"),
+      join(root, "xbrief", "pending", "a.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { status: "approved", title: "A", items: [] },
       }),
       "utf8",
     );
     writeFileSync(
-      join(root, "vbrief", "pending", "b.vbrief.json"),
+      join(root, "xbrief", "pending", "b.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { status: "approved", title: "B", items: [] },
       }),
       "utf8",
@@ -220,12 +220,12 @@ describe("wired gate sources", () => {
 
   it("wired sources stay silent when policy is off", () => {
     const root = makeRepo({ policy: { wipCap: 1 } });
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    for (const name of ["a.vbrief.json", "b.vbrief.json"]) {
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    for (const name of ["a.xbrief.json", "b.xbrief.json"]) {
       writeFileSync(
-        join(root, "vbrief", "pending", name),
+        join(root, "xbrief", "pending", name),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: { status: "approved", title: name, items: [] },
         }),
         "utf8",
@@ -264,12 +264,12 @@ describe("wired gate sources", () => {
       valueFeedback: { enabled: true, emitEvents: true },
       policy: { wipCap: 1 },
     });
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    for (const name of ["a.vbrief.json", "b.vbrief.json"]) {
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    for (const name of ["a.xbrief.json", "b.xbrief.json"]) {
       writeFileSync(
-        join(root, "vbrief", "pending", name),
+        join(root, "xbrief", "pending", name),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: { status: "approved", title: name, items: [] },
         }),
         "utf8",

@@ -10,7 +10,7 @@ function writeScope(vbrief: string, folder: string, filename: string, status: st
     join(vbrief, folder, filename),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "Scope", status, items: [] },
       },
       null,
@@ -23,14 +23,14 @@ function writeScope(vbrief: string, folder: string, filename: string, status: st
 describe("validateProjectDefinition D3 registry-status", () => {
   it("flags mismatch via source_path even when metadata omits scope links", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-d3-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "active", "2026-01-01-scope.vbrief.json", "blocked");
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "active", "2026-01-01-scope.xbrief.json", "blocked");
 
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     const errors = validateProjectDefinition(
       fp,
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -41,7 +41,7 @@ describe("validateProjectDefinition D3 registry-status", () => {
               title: "Scope",
               status: "running",
               metadata: {
-                source_path: "active/2026-01-01-scope.vbrief.json",
+                source_path: "active/2026-01-01-scope.xbrief.json",
               },
             },
           ],
@@ -56,15 +56,15 @@ describe("validateProjectDefinition D3 registry-status", () => {
 
   it("allows cancelled umbrella item when only github-issue refs remain in metadata", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-decompose-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "cancelled", "2026-06-16-umbrella.vbrief.json", "cancelled");
-    writeScope(vbrief, "completed", "2026-06-16-story.vbrief.json", "completed");
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "cancelled", "2026-06-16-umbrella.xbrief.json", "cancelled");
+    writeScope(vbrief, "completed", "2026-06-16-story.xbrief.json", "completed");
 
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     const errors = validateProjectDefinition(
       fp,
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -75,7 +75,7 @@ describe("validateProjectDefinition D3 registry-status", () => {
               title: "Umbrella",
               status: "cancelled",
               metadata: {
-                source_path: "cancelled/2026-06-16-umbrella.vbrief.json",
+                source_path: "cancelled/2026-06-16-umbrella.xbrief.json",
                 references: [
                   {
                     type: "x-vbrief/github-issue",
@@ -89,7 +89,7 @@ describe("validateProjectDefinition D3 registry-status", () => {
               title: "Story",
               status: "completed",
               metadata: {
-                source_path: "completed/2026-06-16-story.vbrief.json",
+                source_path: "completed/2026-06-16-story.xbrief.json",
               },
             },
           ],

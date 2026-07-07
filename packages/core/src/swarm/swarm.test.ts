@@ -7,12 +7,12 @@ import { readinessReport } from "./readiness.js";
 import { enforceSubagentBackendPolicy, probeSubagentBackends } from "./subagent-backend.js";
 
 function writeReadyStory(project: string, storyId: string, issue: number): string {
-  const full = join(project, "vbrief", "active", `${storyId}.vbrief.json`);
-  mkdirSync(join(project, "vbrief", "active"), { recursive: true });
+  const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", "active"), { recursive: true });
   writeFileSync(
     full,
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         id: storyId,
         title: storyId,
@@ -95,8 +95,8 @@ describe("swarm readiness + launch", () => {
     const story = {
       token: "x",
       story_id: "s1",
-      path: "/p/a.vbrief.json",
-      relpath: "vbrief/active/a.vbrief.json",
+      path: "/p/a.xbrief.json",
+      relpath: "xbrief/active/a.xbrief.json",
     };
     const manifest = buildManifest([story], {
       projectRoot: "/proj",
@@ -111,7 +111,7 @@ describe("swarm readiness + launch", () => {
 
   it("looksLikePath distinguishes numeric tokens", () => {
     expect(looksLikePath("100")).toBe(false);
-    expect(looksLikePath("a.vbrief.json")).toBe(true);
+    expect(looksLikePath("a.xbrief.json")).toBe(true);
   });
 
   it("safeSegment strips leading/trailing separators with byte-identical output (#1822)", () => {
@@ -186,9 +186,9 @@ describe("swarm subagent backend", () => {
 
   it("fails policy when backend unset", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-pol-"));
-    mkdirSync(join(project, "vbrief"), { recursive: true });
+    mkdirSync(join(project, "xbrief"), { recursive: true });
     writeFileSync(
-      join(project, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: {} } }),
       "utf8",
     );

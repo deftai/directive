@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateVbriefSchema } from "../../vbrief-validate/index.js";
 import { isFile, loadJson, readText } from "./_helpers.js";
 
-const LEGACY_TOP_LEVEL_KEYS = new Set(["vbrief", "tasks", "overview", "architecture"]);
+const LEGACY_TOP_LEVEL_KEYS = new Set(["xbrief", "tasks", "overview", "architecture"]);
 const VBRIEF_PATHS = ["xbrief/specification.xbrief.json", "xbrief/plan.xbrief.json"] as const;
 
 function schemaStatusEnum(): Set<string> {
@@ -107,7 +107,7 @@ describe("test_vbrief_schema.py", () => {
   });
   it("test_narrative_object_value_must_be_string", () => {
     const data = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Test",
         status: "draft",
@@ -125,7 +125,7 @@ describe("test_vbrief_schema.py", () => {
   });
   it("test_item_narrative_value_must_be_string", () => {
     const data = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Test",
         status: "draft",
@@ -144,7 +144,7 @@ describe("test_vbrief_schema.py", () => {
   });
   it("test_items_inside_plan_item_accepted_v06", () => {
     const data = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Test",
         status: "draft",
@@ -162,7 +162,7 @@ describe("test_vbrief_schema.py", () => {
   });
   it("test_recursive_subitems_validation", () => {
     const data = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Test",
         status: "draft",
@@ -188,7 +188,7 @@ describe("test_vbrief_schema.py", () => {
   });
   it("test_valid_hierarchical_spec_passes", () => {
     const data = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Project SPECIFICATION",
         status: "draft",

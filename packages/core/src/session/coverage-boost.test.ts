@@ -39,11 +39,11 @@ function initRepo(): { root: string; head: string } {
   const root = mkdtempSync(join(tmpdir(), "session-cov-"));
   temps.push(root);
   writeFileSync(join(root, "README.md"), "x\n", "utf8");
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "T",
         status: "running",
@@ -159,11 +159,11 @@ describe("session coverage boost", () => {
     const { root } = initRepo();
     expect(readSentinel(root)).toBeNull();
     expect(computeResumeSignal(null, new Date(), root)).toBeNull();
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "active", "a.vbrief.json"), "{}\n", "utf8");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "a.xbrief.json"), "{}\n", "utf8");
     writeSentinel(root, {
       deftVersion: "1",
-      lastActiveVbrief: "vbrief/completed/a.vbrief.json",
+      lastActiveVbrief: "xbrief/completed/a.xbrief.json",
       lastBranch: "main",
       now: new Date("2026-06-08T00:00:00Z"),
     });
@@ -171,14 +171,14 @@ describe("session coverage boost", () => {
     expect(computeResumeSignal(sentinel, new Date("2026-06-09T01:00:00Z"), root)).toBeNull();
     writeSentinel(root, {
       deftVersion: "1",
-      lastActiveVbrief: "vbrief/active/a.vbrief.json",
+      lastActiveVbrief: "xbrief/active/a.xbrief.json",
       lastBranch: "main",
       now: new Date("2026-06-09T00:30:00Z"),
     });
     expect(
       computeResumeSignal(readSentinel(root), new Date("2026-06-09T01:00:00Z"), root),
     ).toBeNull();
-    expect(detectLatestActiveVbrief(root)).toBe("vbrief/active/a.vbrief.json");
+    expect(detectLatestActiveVbrief(root)).toBe("xbrief/active/a.xbrief.json");
   });
 
   it("defaultBranchSync covers warning branches", () => {
@@ -307,7 +307,7 @@ describe("session coverage boost", () => {
     expect(
       runSessionStartHookWrite(root, {
         detectBranchFn: () => "main",
-        detectLatestActiveVbriefFn: () => "vbrief/active/x.json",
+        detectLatestActiveVbriefFn: () => "xbrief/active/x.json",
         resolveVersionFn: () => {
           throw new Error("boom");
         },

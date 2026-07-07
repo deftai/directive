@@ -80,9 +80,9 @@ describe("triage CLI runners", () => {
 
   it("handles ignore-label no-op path", () => {
     const root = mkdtempSync(join(tmpdir(), "cli-drift3-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageScopeIgnores: [{ label: "x" }] } } }),
       "utf8",
     );
@@ -112,17 +112,17 @@ describe("triage CLI runners", () => {
 
   it("runs scope-drift report with threshold", () => {
     const root = mkdtempSync(join(tmpdir(), "cli-drift-th-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}", "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}", "utf8");
     expect(runScopeDrift(["--threshold", "2", "--project-root", root])).toBe(0);
     rmSync(root, { recursive: true, force: true });
   });
 
   it("runs scope-drift ignore-milestone changed", () => {
     const root = mkdtempSync(join(tmpdir(), "cli-drift-ms-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: {} } }),
       "utf8",
     );
@@ -214,7 +214,7 @@ describe("triage-aux-a parity helpers", () => {
 
   it("buildFixtureRepo applies setup", () => {
     const root = buildFixtureRepo((r) =>
-      mkdirSync(join(r, "vbrief", "active"), { recursive: true }),
+      mkdirSync(join(r, "xbrief", "active"), { recursive: true }),
     );
     expect(root.length).toBeGreaterThan(0);
     rmSync(root, { recursive: true, force: true });

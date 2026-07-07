@@ -165,20 +165,20 @@ describe("renderBody", () => {
 describe("reconcileUmbrellas", () => {
   it("creates current-shape comment", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-umbrella-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "child.vbrief.json"),
+      join(active, "child.xbrief.json"),
       `${JSON.stringify({ plan: { id: "child-a", metadata: { kind: "story", swarm: { depends_on: [] } } } })}\n`,
     );
     writeFileSync(
-      join(active, "epic.vbrief.json"),
+      join(active, "epic.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "epic-1",
           metadata: { kind: "epic", swarm: { depends_on: [] } },
           references: [
-            { type: "x-vbrief/plan", uri: "active/child.vbrief.json", title: "child-a" },
+            { type: "x-vbrief/plan", uri: "active/child.xbrief.json", title: "child-a" },
             {
               type: "x-vbrief/github-issue",
               uri: "https://github.com/deftai/directive/issues/1284",

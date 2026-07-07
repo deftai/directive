@@ -6,13 +6,13 @@ import { computeReport, renderReport } from "./show.js";
 
 function makeProject(root: string): void {
   for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-    mkdirSync(join(root, "vbrief", folder), { recursive: true });
+    mkdirSync(join(root, "xbrief", folder), { recursive: true });
   }
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "Capacity test",
           status: "running",
@@ -45,9 +45,9 @@ describe("capacity show", () => {
     makeProject(root);
     const now = new Date("2026-06-04T12:00:00.000Z");
     writeFileSync(
-      join(root, "vbrief", "completed", "done-0.vbrief.json"),
+      join(root, "xbrief", "completed", "done-0.xbrief.json"),
       `${JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "done-0",
           status: "completed",

@@ -27,12 +27,12 @@ function tempRoot(): string {
 
 function writeProject(root: string, capacity: Record<string, unknown>): void {
   for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-    mkdirSync(join(root, "vbrief", folder), { recursive: true });
+    mkdirSync(join(root, "xbrief", folder), { recursive: true });
   }
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { policy: { capacityAllocation: capacity } },
     }),
   );
@@ -58,20 +58,20 @@ describe("validate-content final coverage", () => {
     });
     const completedAt = "2026-06-03T12:00:00Z";
     writeFileSync(
-      join(root, "vbrief", "completed", "2026-06-01-f.vbrief.json"),
+      join(root, "xbrief", "completed", "2026-06-01-f.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           metadata: { capacityBucket: "feature", completedAt },
         },
       }),
     );
-    mkdirSync(join(root, "vbrief", ".audit"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".audit"), { recursive: true });
     const lines = Array.from({ length: 6 }, (_, i) =>
       JSON.stringify({ decision_id: `d${i}`, status: "pending", kind: "gate" }),
     );
     writeFileSync(
-      join(root, "vbrief", ".audit", "pending-human-decisions.jsonl"),
+      join(root, "xbrief", ".audit", "pending-human-decisions.jsonl"),
       `${lines.join("\n")}\n`,
     );
     const report = computeReport(root, { now: NOW });
@@ -96,9 +96,9 @@ describe("validate-content final coverage", () => {
     });
     const completedAt = "2026-06-03T12:00:00Z";
     writeFileSync(
-      join(root, "vbrief", "completed", "f0.vbrief.json"),
+      join(root, "xbrief", "completed", "f0.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { metadata: { capacityBucket: "feature", completedAt } },
       }),
     );
@@ -113,9 +113,9 @@ describe("validate-content final coverage", () => {
   it("covers link parser and filename edge branches", () => {
     expect(extractLinkTargets("no links")).toEqual([]);
     expect(extractLinkTargets("[open only")).toEqual([]);
-    expect(isDatePrefixedVbriefFilename("2026-01-01.vbrief.json")).toBe(false);
-    expect(isDatePrefixedVbriefFilename("2026-01-01-.vbrief.json")).toBe(false);
-    expect(isDatePrefixedVbriefFilename("2026-01-01-A.vbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-01-01.xbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-01-01-.xbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-01-01-A.xbrief.json")).toBe(false);
   });
 
   it("covers validate-links read failures gracefully", () => {
@@ -192,11 +192,11 @@ describe("validate-content final coverage", () => {
   it("covers capacity policy validation and autonomy disabled render", () => {
     expect(validateCapacityAllocation(null)).toEqual([]);
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { policy: { autonomy: { enabled: false } } },
       }),
     );
@@ -219,9 +219,9 @@ describe("validate-content final coverage", () => {
     const payloads = [{ cost: 1 }, {}, {}];
     for (const [i, meta] of payloads.entries()) {
       writeFileSync(
-        join(root, "vbrief", "completed", `2026-06-0${i + 1}-c.vbrief.json`),
+        join(root, "xbrief", "completed", `2026-06-0${i + 1}-c.xbrief.json`),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: { metadata: { capacityBucket: "feature", completedAt, ...meta } },
         }),
       );

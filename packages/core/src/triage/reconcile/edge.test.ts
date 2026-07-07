@@ -19,9 +19,9 @@ describe("reconcile edge cases", () => {
 
   it("reports skipped no repo", () => {
     const root = mkdtempSync(join(tmpdir(), "reconcile-norepo-"));
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "proposed", "bare.vbrief.json"),
+      join(root, "xbrief", "proposed", "bare.xbrief.json"),
       JSON.stringify({
         plan: { references: [{ type: "x-vbrief/github-issue", uri: "999" }] },
       }),

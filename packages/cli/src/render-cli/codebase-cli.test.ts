@@ -47,7 +47,6 @@ describe("deft-ts codebase-default-extractor", () => {
   it("emits degraded artifact when project root has no sources", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-extract-empty-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
     const result = runDeftTs("codebase-default-extractor", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
     const payload = JSON.parse(result.stdout) as { degraded: unknown[]; modules: unknown[] };
@@ -60,8 +59,9 @@ describe("deft-ts codebase-provider", () => {
   it("exits 2 when PROJECT-DEFINITION is invalid JSON", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-provider-"));
     temps.push(root);
-    const vbriefPath = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    const vbriefPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     writeFileSync(vbriefPath, "{not-json", "utf8");
     const result = runDeftTs("codebase-provider", ["--project-root", root]);
     expect(result.exitCode).toBe(2);

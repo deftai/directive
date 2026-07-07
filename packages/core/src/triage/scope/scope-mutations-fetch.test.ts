@@ -193,9 +193,9 @@ describe("cli diff-from-upstream error branch", () => {
       signal: null,
     } as ReturnType<typeof spawnSync>);
     const root = mkdtempSync(join(tmpdir(), "clid-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { title: "T", status: "running", items: [] } }),
       "utf8",
     );

@@ -7,12 +7,12 @@ import { candidateDepGraph, markCycles } from "./swarm-deps.js";
 import type { Candidate } from "./types.js";
 
 function writeBrief(root: string, storyId: string, folder: string, dependsOn: string[] = []): void {
-  const dir = join(root, "vbrief", folder);
+  const dir = join(root, "xbrief", folder);
   mkdirSync(dir, { recursive: true });
   const status =
     folder === "completed" ? "completed" : folder === "active" ? "running" : "proposed";
   writeFileSync(
-    join(dir, `2026-05-21-${storyId}.vbrief.json`),
+    join(dir, `2026-05-21-${storyId}.xbrief.json`),
     `${JSON.stringify({
       plan: {
         id: storyId,
@@ -26,9 +26,9 @@ function writeBrief(root: string, storyId: string, folder: string, dependsOn: st
 }
 
 function writeProjectDef(root: string, wipCap: number): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify({ plan: { policy: { wipCap } } })}\n`,
     "utf8",
   );
@@ -44,7 +44,8 @@ describe("reconcileGraph", () => {
   it("returns exit 2 when proposed missing", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-graph-"));
     roots.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     const [code] = reconcileGraph(root, { dryRun: true });
     expect(code).toBe(2);
   });
@@ -128,7 +129,7 @@ describe("candidateDepGraph external dep status", () => {
       swarm: { depends_on: ["ext"] },
       blocked: [],
     };
-    candidateDepGraph([a], { ext: ["/vbrief/active/ext.vbrief.json", "running"] });
+    candidateDepGraph([a], { ext: ["/xbrief/active/ext.xbrief.json", "running"] });
     expect(a.blocked.length).toBe(1);
   });
 });

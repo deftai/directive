@@ -26,7 +26,7 @@ export * from "./gitignore.js";
 export * from "./types.js";
 
 export const CACHE_DIR_NAME = ".deft-cache";
-export const AUDIT_LOG_RELPATH = "vbrief/.triage-cache/candidates.jsonl";
+export const AUDIT_LOG_RELPATH = "xbrief/.triage-cache/candidates.jsonl";
 export const BACKFILL_FOLDERS = ["proposed", "pending", "active"] as const;
 export const BOOTSTRAP_ACTOR = "agent:bootstrap";
 export const DEFAULT_FETCH_TIMEOUT_S = 3600;
@@ -488,13 +488,23 @@ export function stepBackfillAuditLog(
     );
   }
 
-  const vbriefRoot = resolveLifecycleRoot(projectRoot);
+  let vbriefRoot: string;
+  try {
+    vbriefRoot = resolveLifecycleRoot(projectRoot);
+  } catch {
+    return stepOutcome(
+      "backfill_audit_log",
+      true,
+      `skipped (no xbrief/ layout under ${projectRoot})`,
+      { skipped: "no-xbrief" },
+    );
+  }
   if (!existsSync(vbriefRoot)) {
     return stepOutcome(
       "backfill_audit_log",
       true,
-      `skipped (no vbrief/ directory under ${projectRoot})`,
-      { skipped: "no-vbrief" },
+      `skipped (no xbrief/ directory under ${projectRoot})`,
+      { skipped: "no-xbrief" },
     );
   }
 

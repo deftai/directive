@@ -20,11 +20,11 @@ function seedConsumerProject(): string {
     "tag: 'v0.59.0'\nsha: abc\ninstall_root: '.deft/core'\n",
     "utf8",
   );
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Consumer", status: "running", items: [], policy: {} },
     }),
     "utf8",

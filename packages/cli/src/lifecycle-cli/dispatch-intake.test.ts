@@ -14,7 +14,7 @@ afterAll(() => {
 function makeProjectRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-lc-intake-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
   return root;
 }
 
@@ -44,7 +44,7 @@ describe("deft-ts intake / reconcile verbs (#1838 s3)", () => {
       "--project-root",
       root,
       "--vbrief-dir",
-      join(root, "vbrief", "proposed"),
+      join(root, "xbrief", "proposed"),
       "--dry-run",
     ]);
     expect(result.exitCode).toBeGreaterThan(0);
@@ -65,7 +65,7 @@ describe("deft-ts intake / reconcile verbs (#1838 s3)", () => {
     const result = await runDispatch([
       "reconcile-issues",
       "--vbrief-dir",
-      join(root, "vbrief"),
+      join(root, "xbrief"),
       "--project-root",
       root,
       "--json",

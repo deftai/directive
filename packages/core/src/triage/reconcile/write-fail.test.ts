@@ -8,7 +8,7 @@ import { reconcile } from "./reconcile.js";
 function scopeVbrief(folder: string, slug: string, issue: number): void {
   mkdirSync(folder, { recursive: true });
   writeFileSync(
-    join(folder, `${slug}.vbrief.json`),
+    join(folder, `${slug}.xbrief.json`),
     JSON.stringify({
       plan: {
         references: [
@@ -26,10 +26,10 @@ function scopeVbrief(folder: string, slug: string, issue: number): void {
 describe("reconcile write failures", () => {
   it("returns exit 1 when audit append fails", () => {
     const root = mkdtempSync(join(tmpdir(), "reconcile-fail-"));
-    scopeVbrief(join(root, "vbrief", "proposed"), "x", 12);
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
-    writeFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "", "utf8");
-    const auditPath = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
+    scopeVbrief(join(root, "xbrief", "proposed"), "x", 12);
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "xbrief", ".triage-cache", "candidates.jsonl"), "", "utf8");
+    const auditPath = join(root, "xbrief", ".triage-cache", "candidates.jsonl");
     chmodSync(auditPath, 0o444);
     const result = reconcile(root, { repo: "deftai/directive", auditLogPath: auditPath });
     expect(result.exitCode).toBe(1);
@@ -48,11 +48,11 @@ describe("reconcile write failures", () => {
 
   it("dry-run does not write audit log", () => {
     const root = mkdtempSync(join(tmpdir(), "reconcile-dry-"));
-    scopeVbrief(join(root, "vbrief", "proposed"), "d", 20);
+    scopeVbrief(join(root, "xbrief", "proposed"), "d", 20);
     const result = reconcile(root, { repo: "deftai/directive", dryRun: true });
     expect(result.restored).toBe(1);
     expect(() =>
-      readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8"),
+      readFileSync(join(root, "xbrief", ".triage-cache", "candidates.jsonl"), "utf8"),
     ).toThrow();
     rmSync(root, { recursive: true, force: true });
   });

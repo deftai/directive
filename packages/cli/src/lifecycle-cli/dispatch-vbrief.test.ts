@@ -13,13 +13,13 @@ afterAll(() => {
 });
 
 function writePendingVbrief(root: string, status = "pending"): string {
-  const dir = join(root, "vbrief", "pending");
+  const dir = join(root, "xbrief", "pending");
   mkdirSync(dir, { recursive: true });
-  const path = join(dir, "2026-06-21-story.vbrief.json");
+  const path = join(dir, "2026-06-21-story.xbrief.json");
   writeFileSync(
     path,
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6", updated: "2026-06-01T00:00:00Z" },
+      xBRIEFInfo: { version: "0.8", updated: "2026-06-01T00:00:00Z" },
       plan: { title: "Story", status, items: [] },
     }),
     "utf8",
@@ -60,7 +60,7 @@ describe("deft-ts vbrief lifecycle verbs (#1838 s3)", () => {
     const src = writePendingVbrief(root);
     const result = await runDispatch(["vbrief-activate", src]);
     expect(result.exitCode).toBe(0);
-    const dest = join(root, "vbrief", "active", "2026-06-21-story.vbrief.json");
+    const dest = join(root, "xbrief", "active", "2026-06-21-story.xbrief.json");
     expect(existsSync(dest)).toBe(true);
     expect(existsSync(src)).toBe(false);
   });

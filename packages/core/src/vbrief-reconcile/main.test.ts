@@ -72,7 +72,8 @@ describe("main CLI runners", () => {
   it("runGraph missing proposed exits 2", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-main-graph-"));
     roots.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     expect(runGraph({ projectRoot: root })).toBe(2);
   });
 
@@ -98,10 +99,10 @@ describe("main CLI runners", () => {
   it("cmd handles labels and umbrellas human output", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-main-labels-umb-"));
     roots.push(root);
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "s.vbrief.json"),
+      join(active, "s.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "s",
@@ -122,7 +123,7 @@ describe("main CLI runners", () => {
     expect(cmdVbriefReconcile(["labels", "--project-root", root, "--dry-run"])).toBe(0);
     vi.spyOn(scm, "call").mockReturnValue({ args: [], returncode: 0, stdout: "[]", stderr: "" });
     writeFileSync(
-      join(active, "e.vbrief.json"),
+      join(active, "e.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "e",
@@ -187,7 +188,7 @@ describe("reconciliation branches", () => {
 
   it("loadOverrides reads file", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ovr-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
       join(vbrief, "migration-overrides.yaml"),
@@ -259,10 +260,10 @@ describe("labels SCM client", () => {
 
   it("labels unchanged and errors", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-labels-br-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "ok.vbrief.json"),
+      join(active, "ok.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "ok",
@@ -274,9 +275,9 @@ describe("labels SCM client", () => {
         },
       })}\n`,
     );
-    writeFileSync(join(active, "bad.vbrief.json"), "not-json\n");
+    writeFileSync(join(active, "bad.xbrief.json"), "not-json\n");
     writeFileSync(
-      join(active, "noref.vbrief.json"),
+      join(active, "noref.xbrief.json"),
       `${JSON.stringify({ plan: { id: "noref", metadata: { kind: "story", swarm: { depends_on: [] } } } })}\n`,
     );
     const client = new FakeLabelClient();
@@ -290,10 +291,10 @@ describe("labels SCM client", () => {
 
   it("labels apply error path", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-labels-err-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "e.vbrief.json"),
+      join(active, "e.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "e",
@@ -363,7 +364,7 @@ describe("umbrellas SCM client", () => {
 
   it("umbrella edit when body changes", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-umb-edit-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     const existingBody = renderBody({
       passN: 1,
@@ -377,17 +378,17 @@ describe("umbrellas SCM client", () => {
     const client = new FakeUmbrellaClient();
     client.comments.set("deftai/directive:200", [{ id: 5, body: existingBody }]);
     writeFileSync(
-      join(active, "c.vbrief.json"),
+      join(active, "c.xbrief.json"),
       `${JSON.stringify({ plan: { id: "c1", metadata: { kind: "story", swarm: { depends_on: [] } } } })}\n`,
     );
     writeFileSync(
-      join(active, "e.vbrief.json"),
+      join(active, "e.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "ep",
           metadata: { kind: "epic", swarm: { depends_on: [] } },
           references: [
-            { type: "x-vbrief/plan", uri: "active/c.vbrief.json" },
+            { type: "x-vbrief/plan", uri: "active/c.xbrief.json" },
             {
               type: "x-vbrief/github-issue",
               uri: "https://github.com/deftai/directive/issues/200",
@@ -409,17 +410,17 @@ describe("umbrellas SCM client", () => {
 
   it("child index and render branches", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-umb-idx-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "c.vbrief.json"),
+      join(active, "c.xbrief.json"),
       `${JSON.stringify({ plan: { id: "c", metadata: { kind: "story", swarm: { depends_on: ["x"] } } } })}\n`,
     );
-    const index = buildChildIndex(join(root, "vbrief"));
+    const index = buildChildIndex(join(root, "xbrief"));
     expect(childFromData({ plan: { id: "z" } }, "active", "z").story_id).toBe("z");
     expect(
       computeChildren(
-        { plan: { references: [{ type: "x-vbrief/plan", uri: "active/c.vbrief.json" }] } },
+        { plan: { references: [{ type: "x-vbrief/plan", uri: "active/c.xbrief.json" }] } },
         index,
       ).length,
     ).toBe(1);

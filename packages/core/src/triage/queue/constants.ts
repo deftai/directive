@@ -7,17 +7,17 @@ export const CACHE_SOURCE_GITHUB_ISSUE = "github-issue";
 /** Env var honoured for repo inference when `--repo` is absent (#1238). */
 export const ENV_TRIAGE_REPO = "DEFT_TRIAGE_REPO";
 
-/** PROJECT-DEFINITION vBRIEF location for typed-policy lookup. */
-export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
+/** PROJECT-DEFINITION xBRIEF location for typed-policy lookup. */
+export const PROJECT_DEFINITION_REL_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
 
 /** Default queue limit when `--limit` is omitted on the CLI surface. */
 export const DEFAULT_QUEUE_LIMIT = 25;
 
 /** Default audit log path relative to the deft framework root (candidates_log.REPO_ROOT). */
-export const DEFAULT_AUDIT_LOG_REL_PATH = "vbrief/.eval/candidates.jsonl";
+export const DEFAULT_AUDIT_LOG_REL_PATH = "xbrief/.triage-cache/candidates.jsonl";
 
 /** Default slices log path relative to project root. */
-export const DEFAULT_SLICES_LOG_REL_PATH = "vbrief/.eval/slices.jsonl";
+export const DEFAULT_SLICES_LOG_REL_PATH = "xbrief/.triage-cache/slices.jsonl";
 
 /** Group display order (#1128 / D13 / #1286). */
 export const GROUP_ORDER = ["ORPHAN", "RESUME", "URGENT", "untriaged", "other", "BLOCKED"] as const;

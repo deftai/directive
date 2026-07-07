@@ -25,7 +25,7 @@ describe("registryMetadataReferencesFromScope", () => {
       },
       {
         type: "x-vbrief/plan",
-        uri: "completed/2026-06-16-story-a.vbrief.json",
+        uri: "completed/2026-06-16-story-a.xbrief.json",
         title: "Story A",
       },
     ];
@@ -40,7 +40,7 @@ describe("registryStatusScopeUris", () => {
       title: "Umbrella epic",
       status: "cancelled",
       metadata: {
-        source_path: "cancelled/2026-06-16-umbrella.vbrief.json",
+        source_path: "cancelled/2026-06-16-umbrella.xbrief.json",
         references: [
           {
             type: "x-vbrief/github-issue",
@@ -48,14 +48,14 @@ describe("registryStatusScopeUris", () => {
           },
           {
             type: "x-vbrief/plan",
-            uri: "completed/2026-06-16-story-a.vbrief.json",
+            uri: "completed/2026-06-16-story-a.xbrief.json",
           },
         ],
       },
       references: [
         {
           type: "x-vbrief/plan",
-          uri: "completed/2026-06-16-story-b.vbrief.json",
+          uri: "completed/2026-06-16-story-b.xbrief.json",
         },
       ],
     };
@@ -63,13 +63,13 @@ describe("registryStatusScopeUris", () => {
       references: [
         {
           type: "x-vbrief/plan",
-          uri: "completed/2026-06-16-story-c.vbrief.json",
+          uri: "completed/2026-06-16-story-c.xbrief.json",
           title: "Umbrella epic",
         },
       ],
     };
     expect(plan.references).toHaveLength(1);
-    expect(registryStatusScopeUris(item)).toEqual(["cancelled/2026-06-16-umbrella.vbrief.json"]);
+    expect(registryStatusScopeUris(item)).toEqual(["cancelled/2026-06-16-umbrella.xbrief.json"]);
   });
 });
 
@@ -77,10 +77,10 @@ describe("formatRegistryStatusMismatch", () => {
   it("formats the D3 diagnostic", () => {
     expect(
       formatRegistryStatusMismatch(
-        "vbrief/PROJECT-DEFINITION.vbrief.json",
+        "xbrief/PROJECT-DEFINITION.xbrief.json",
         2,
         "cancelled",
-        "completed/story.vbrief.json",
+        "completed/story.xbrief.json",
         "completed",
       ),
     ).toContain("(D3 registry-status)");

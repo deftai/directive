@@ -47,11 +47,11 @@ function seedContradictionRepo(): string {
 function makeRepo(valueFeedback?: Record<string, unknown>): string {
   const root = mkdtempSync(join(tmpdir(), "deft-friction-emit-policy-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "T",
         status: "running",
@@ -114,7 +114,7 @@ describe("recordFrictionFromContradictoryGates (#2339)", () => {
 
   it("returns zero when no contradictory gates are present", () => {
     const root = makeRepo({ enabled: true, emitEvents: true });
-    const pdPath = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+    const pdPath = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
     const raw: unknown = JSON.parse(readFileSync(pdPath, "utf8"));
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
       throw new Error("fixture must be an object");

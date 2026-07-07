@@ -75,12 +75,12 @@ describe("vbrief-validation extra branch coverage", () => {
 
   it("covers finalize success with warnings", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-finalize-ok-"));
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PROJECT-DEFINITION",
           status: "running",
@@ -91,15 +91,15 @@ describe("vbrief-validation extra branch coverage", () => {
       "utf8",
     );
     writeFileSync(
-      join(pending, "2026-01-01-test-scope.vbrief.json"),
+      join(pending, "2026-01-01-test-scope.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "Test", status: "pending", items: [], references: [] },
       }),
       "utf8",
     );
     const stderr: string[] = [];
-    const [ok] = finalizeMigration(root, join(root, "vbrief"), ["seed"], {
+    const [ok] = finalizeMigration(root, join(root, "xbrief"), ["seed"], {
       stderrWriter: (c) => stderr.push(c),
     });
     expect(ok).toBe(true);

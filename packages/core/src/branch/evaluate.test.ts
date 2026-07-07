@@ -22,12 +22,12 @@ function readAttribution(root: string, log = join(root, DEFAULT_EVENT_LOG)) {
 }
 
 function writeProjectDef(root: string, plan: Record<string, unknown>): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [], ...plan },
     }),
     { encoding: "utf8" },
@@ -47,7 +47,8 @@ describe("evaluate", () => {
   function root(): string {
     const r = mkdtempSync(join(tmpdir(), "deft-branch-eval-"));
     roots.push(r);
-    mkdirSync(join(r, "vbrief"), { recursive: true });
+    mkdirSync(join(r, "xbrief"), { recursive: true });
+    writeFileSync(join(r, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     return r;
   }
 

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
-import { resolveLifecycleLayout } from "../../layout/resolve.js";
+import { MIGRATED_ARTIFACT_DIR, resolveLifecycleLayout } from "../../layout/resolve.js";
 import {
   resolveCandidatesLogPath,
   resolveTriageCachePath,
@@ -23,11 +23,11 @@ export const GITIGNORE_DEFT_RUNTIME_SENTINELS: readonly string[] = [
 
 /** Legacy static vbrief paths kept for tests referencing the pre-#1703 constant shape. */
 export const GITIGNORE_EVAL_ENTRIES: readonly string[] = [
-  "vbrief/.triage-cache/candidates.jsonl",
-  "vbrief/.triage-cache/summary-history.jsonl",
-  "vbrief/.triage-cache/scope-lifecycle.jsonl",
-  "vbrief/.triage-cache/decompositions/",
-  "vbrief/.triage-cache/doctor-state.json",
+  "xbrief/.triage-cache/candidates.jsonl",
+  "xbrief/.triage-cache/summary-history.jsonl",
+  "xbrief/.triage-cache/scope-lifecycle.jsonl",
+  "xbrief/.triage-cache/decompositions/",
+  "xbrief/.triage-cache/doctor-state.json",
 ];
 
 /** Layout-aware gitignore lines for triage working-set files (#1703). */
@@ -43,8 +43,13 @@ export function gitignoreTriageCacheEntries(projectRoot: string): readonly strin
 }
 
 export function gitattributesTriageCacheGlob(projectRoot: string): string {
-  const layout = resolveLifecycleLayout(projectRoot);
-  return `${layout.artifactDir}/${TRIAGE_CACHE_DIR_NAME}/*.jsonl`;
+  let artifactDir: string;
+  try {
+    artifactDir = resolveLifecycleLayout(projectRoot).artifactDir;
+  } catch {
+    artifactDir = MIGRATED_ARTIFACT_DIR; // No layout; default to xbrief/.
+  }
+  return `${artifactDir}/${TRIAGE_CACHE_DIR_NAME}/*.jsonl`;
 }
 
 export const GITATTRIBUTES_EVAL_RULE = "vbrief/.triage-cache/*.jsonl  merge=union";
@@ -178,8 +183,13 @@ operators should know:
 
 /** Layout-aware triage-cache README body for the active lifecycle tree (#2344 / #2349). */
 export function generateTriageCacheReadmeBody(projectRoot: string): string {
-  const layout = resolveLifecycleLayout(projectRoot);
-  const triagePrefix = `${layout.artifactDir}/${TRIAGE_CACHE_DIR_NAME}`;
+  let artifactDir: string;
+  try {
+    artifactDir = resolveLifecycleLayout(projectRoot).artifactDir;
+  } catch {
+    artifactDir = MIGRATED_ARTIFACT_DIR; // No layout; default to xbrief/.
+  }
+  const triagePrefix = `${artifactDir}/${TRIAGE_CACHE_DIR_NAME}`;
   return EVAL_README_BODY.replaceAll("vbrief/.triage-cache", triagePrefix);
 }
 

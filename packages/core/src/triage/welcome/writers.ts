@@ -190,7 +190,12 @@ export function previewWipRelief(
   projectRoot: string,
   olderThanDays = DEFAULT_RELIEF_AGE_DAYS,
 ): ReliefPreview {
-  const pendingDir = resolveLifecycleFolder(projectRoot, "pending");
+  let pendingDir: string;
+  try {
+    pendingDir = resolveLifecycleFolder(projectRoot, "pending");
+  } catch {
+    return { olderThanDays, eligibleCount: 0, eligibleFiles: [], skippedCount: 0 };
+  }
   if (!existsSync(pendingDir)) {
     return { olderThanDays, eligibleCount: 0, eligibleFiles: [], skippedCount: 0 };
   }

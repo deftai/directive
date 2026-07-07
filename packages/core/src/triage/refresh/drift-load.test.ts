@@ -38,19 +38,19 @@ describe("loadCachedFetchedAt", () => {
 describe("detectDrift dedupe", () => {
   it("skips duplicate issue refs across vbriefs", () => {
     const root = mkdtempSync(join(tmpdir(), "drift-dedupe-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     const ref = {
       type: "x-vbrief/github-issue",
       uri: "https://github.com/deftai/directive/issues/1",
     };
     writeFileSync(
-      join(active, "a.vbrief.json"),
+      join(active, "a.xbrief.json"),
       JSON.stringify({ plan: { references: [ref] } }),
       "utf8",
     );
     writeFileSync(
-      join(active, "b.vbrief.json"),
+      join(active, "b.xbrief.json"),
       JSON.stringify({ plan: { references: [ref] } }),
       "utf8",
     );

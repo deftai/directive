@@ -18,12 +18,12 @@ afterAll(() => {
 function makeRepo(plan?: Record<string, unknown>): string {
   const root = mkdtempSync(join(tmpdir(), "deft-advisory-policy-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   if (plan !== undefined) {
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], ...plan },
       }),
       "utf8",

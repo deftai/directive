@@ -58,17 +58,17 @@ describe("verify-source branch coverage", () => {
 
   it("discoverCodeStructurePaths retains unreadable PROJECT-DEFINITION", () => {
     root = mkdtempSync(join(tmpdir(), "cs-disc-bad-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    writeFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "{bad", "utf8");
+    writeFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "{bad", "utf8");
     const paths = discoverCodeStructurePaths(root);
-    expect(paths.some((p) => p.endsWith("PROJECT-DEFINITION.vbrief.json"))).toBe(true);
+    expect(paths.some((p) => p.endsWith("PROJECT-DEFINITION.xbrief.json"))).toBe(true);
   });
 
   it("validateFile adds CS-HOME when standalone disallowed", () => {
     root = mkdtempSync(join(tmpdir(), "cs-home-"));
-    const path = join(root, "vbrief", "active", "story.vbrief.json");
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    const path = join(root, "xbrief", "active", "story.xbrief.json");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({

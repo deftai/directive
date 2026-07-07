@@ -61,9 +61,9 @@ describe("spec-validate", () => {
 describe("spec-render", () => {
   it("renders approved spec with banner and narratives", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-sr-"));
-    const vbrief = join(dir, "vbrief");
+    const vbrief = join(dir, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    const specPath = join(vbrief, "specification.vbrief.json");
+    const specPath = join(vbrief, "specification.xbrief.json");
     const outPath = join(dir, "SPECIFICATION.md");
     writeFileSync(specPath, JSON.stringify(MINIMAL_SPEC), "utf8");
     const [ok] = renderSpec(specPath, outPath, { includeScopes: false });
@@ -108,15 +108,15 @@ describe("prd-render", () => {
 describe("project-render", () => {
   it("creates skeleton PROJECT-DEFINITION", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-pr-"));
-    const vbrief = join(dir, "vbrief");
+    const vbrief = join(dir, "xbrief");
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
       mkdirSync(join(vbrief, f), { recursive: true });
     }
     const [ok, msg] = renderProjectDefinition(vbrief, { now: new Date("2026-06-04T12:00:00Z") });
     expect(ok).toBe(true);
     expect(msg).toContain("created");
-    const content = readFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "utf8");
-    expect(content).toContain('"version": "0.6"');
+    const content = readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8");
+    expect(content).toContain('"version": "0.8"');
     rmSync(dir, { recursive: true, force: true });
   });
 });
@@ -124,7 +124,7 @@ describe("project-render", () => {
 describe("roadmap-render", () => {
   it("renders empty pending message", () => {
     const dir = mkdtempSync(join(tmpdir(), "deft-rr-"));
-    const pending = join(dir, "vbrief", "pending");
+    const pending = join(dir, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
     const content = generateRoadmapContent(pending);
     expect(content).toContain("# Roadmap");
@@ -137,9 +137,9 @@ describe("roadmap-render", () => {
     const pending = join(dir, "pending");
     mkdirSync(pending, { recursive: true });
     writeFileSync(
-      join(pending, "2026-01-01-feature.vbrief.json"),
+      join(pending, "2026-01-01-feature.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "Feature A",
           status: "pending",

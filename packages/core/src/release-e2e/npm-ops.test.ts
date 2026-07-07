@@ -27,7 +27,7 @@ import type { E2ESeams } from "./types.js";
 function installFakeContentPackage(projectRoot: string, version = "0.53.0"): string {
   const pkgDir = join(projectRoot, "node_modules", "@deftai", "directive-content");
   mkdirSync(join(pkgDir, "templates"), { recursive: true });
-  mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
+  mkdirSync(join(pkgDir, "xbrief", "schemas"), { recursive: true });
   mkdirSync(join(pkgDir, ".githooks"), { recursive: true });
   // tasks/ + scripts/ mirror the engine dirs the #1967 prepack bundles
   // alongside .githooks/ + Taskfile.yml so the deposited .deft/core/Taskfile.yml
@@ -43,8 +43,8 @@ function installFakeContentPackage(projectRoot: string, version = "0.53.0"): str
     join(pkgDir, "templates/agents-entry.md"),
   );
   writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");
-  writeFileSync(join(pkgDir, "vbrief", "schemas", "cache-meta.schema.json"), "{}\n", "utf8");
-  writeFileSync(join(pkgDir, "vbrief", "vbrief.md"), "# vbrief\n", "utf8");
+  writeFileSync(join(pkgDir, "xbrief", "schemas", "cache-meta.schema.json"), "{}\n", "utf8");
+  writeFileSync(join(pkgDir, "xbrief", "vbrief.md"), "# vbrief\n", "utf8");
   writeFileSync(join(pkgDir, ".githooks", "pre-commit"), "#!/bin/sh\nexit 0\n", "utf8");
   chmodSync(join(pkgDir, ".githooks", "pre-commit"), 0o755);
   writeFileSync(join(pkgDir, ".githooks", "pre-push"), "#!/bin/sh\nexit 0\n", "utf8");
@@ -121,7 +121,7 @@ describe("deposit journey e2e legs (#1942 S5)", () => {
     expect(result.deftDir).toBe(join(project, ".deft/core"));
     expect(readFileSync(join(result.deftDir, "main.md"), "utf8")).toContain("# Deft");
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("deft:managed-section");
-    expect(existsSync(join(project, "vbrief", "active", ".gitkeep"))).toBe(true);
+    expect(existsSync(join(project, "xbrief", "active", ".gitkeep"))).toBe(true);
     expect(readFileSync(join(project, ".gitignore"), "utf8")).toContain(".deft/core/");
     // #1967: the deposited .deft/core carries the branch-policy hooks and a
     // resolvable Taskfile (with its tasks/ fragments + helper scripts), not a

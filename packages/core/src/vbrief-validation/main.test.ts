@@ -8,9 +8,9 @@ import { PARITY_SCENARIO_NAMES, runParityScenario } from "./parity-scenarios.js"
 function seedValidProjectDefinition(vbriefDir: string): void {
   mkdirSync(vbriefDir, { recursive: true });
   writeFileSync(
-    join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+    join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "PROJECT-DEFINITION",
         status: "running",
@@ -27,7 +27,7 @@ describe("vbrief-validation parity scenarios", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-parity-"));
     try {
       seedValidProjectDefinition(join(root, "vbrief-valid"));
-      seedValidProjectDefinition(join(root, "vbrief"));
+      seedValidProjectDefinition(join(root, "xbrief"));
       for (const name of PARITY_SCENARIO_NAMES) {
         const result = runParityScenario(name, { fixtureRoot: root });
         expect(result.ok, name).toBe(true);

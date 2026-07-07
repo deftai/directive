@@ -5,10 +5,10 @@ import { describe, expect, it } from "vitest";
 import { refreshActive } from "./refresh.js";
 
 function seedActive(root: string, num = 8): string {
-  const active = join(root, "vbrief", "active");
+  const active = join(root, "xbrief", "active");
   mkdirSync(active, { recursive: true });
   writeFileSync(
-    join(active, "s.vbrief.json"),
+    join(active, "s.xbrief.json"),
     JSON.stringify({
       plan: {
         references: [

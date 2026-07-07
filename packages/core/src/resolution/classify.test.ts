@@ -137,6 +137,7 @@ describe("resolution/classify default (real filesystem) seams", () => {
     created.push(root);
     mkdirSync(join(root, ".deft/core"), { recursive: true });
     mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     mkdirSync(join(root, "src"), { recursive: true });
     writeFileSync(join(root, "AGENTS.md"), AGENTS_WITH_SHA, "utf8");
     writeFileSync(

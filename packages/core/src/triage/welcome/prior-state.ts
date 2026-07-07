@@ -29,7 +29,12 @@ export interface PriorState {
 }
 
 function loadProjectDefinition(projectRoot: string): Record<string, unknown> | null {
-  const path = resolveProjectDefinitionPath(projectRoot);
+  let path: string;
+  try {
+    path = resolveProjectDefinitionPath(projectRoot);
+  } catch {
+    return null; // No xbrief/ layout; no project definition.
+  }
   if (!existsSync(path)) return null;
   try {
     const data = JSON.parse(readFileSync(path, "utf8")) as unknown;
@@ -65,7 +70,12 @@ export function candidatesLogPath(projectRoot: string): string {
 
 function countWip(projectRoot: string): number {
   let total = 0;
-  const root = resolveLifecycleRoot(projectRoot);
+  let root: string;
+  try {
+    root = resolveLifecycleRoot(projectRoot);
+  } catch {
+    return 0; // No xbrief/ layout; no WIP.
+  }
   for (const sub of WIP_LIFECYCLE_DIRS) {
     const folder = join(root, sub);
     if (!existsSync(folder)) continue;

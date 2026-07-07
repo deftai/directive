@@ -48,12 +48,12 @@ describe("vbrief-validation coverage boost", () => {
 
   it("covers validation finalize/isolate branches", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-boost-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "Bad", status: "in_progress", items: [] },
       }),
       "utf8",
@@ -71,7 +71,7 @@ describe("vbrief-validation coverage boost", () => {
 
   it("covers safety manifest IO and rollback branches", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-safety-boost-"));
-    mkdirSync(join(root, "vbrief", "migration"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "migration"), { recursive: true });
     const manifest = new SafetyManifest({ backups: [] });
     writeSafetyManifest(root, manifest, { dryRun: true });
     writeSafetyManifest(root, manifest, { dryRun: false });

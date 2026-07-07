@@ -11,7 +11,12 @@ export function extractReferencedIssues(
   projectRoot: string,
   lifecycleFolders: readonly string[] = LIFECYCLE_FOLDERS,
 ): { any: Set<number>; active: Set<number> } {
-  const root = resolveLifecycleRoot(projectRoot);
+  let root: string;
+  try {
+    root = resolveLifecycleRoot(projectRoot);
+  } catch {
+    return { any: new Set(), active: new Set() };
+  }
   const anySet = new Set<number>();
   const activeSet = new Set<number>();
   if (!existsSync(root)) return { any: anySet, active: activeSet };

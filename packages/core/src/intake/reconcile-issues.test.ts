@@ -49,7 +49,7 @@ describe("reconcile-issues", () => {
   });
 
   it("classifies linked vs closed", () => {
-    const map = new Map<number, string[]>([[1, ["proposed/a.vbrief.json"]]]);
+    const map = new Map<number, string[]>([[1, ["proposed/a.xbrief.json"]]]);
     const states = new Map<number, IssueState>([[1, new IssueState("OPEN")]]);
     const report = reconcile(map, states);
     expect(report.summary.linked_count).toBe(1);
@@ -77,8 +77,8 @@ describe("reconcile-issues", () => {
   });
 
   it("detects terminal lifecycle paths", () => {
-    expect(isTerminalLifecyclePath("completed/foo.vbrief.json")).toBe(true);
-    expect(isTerminalLifecyclePath("active/foo.vbrief.json")).toBe(false);
+    expect(isTerminalLifecyclePath("completed/foo.xbrief.json")).toBe(true);
+    expect(isTerminalLifecyclePath("active/foo.xbrief.json")).toBe(false);
   });
 });
 
@@ -94,17 +94,17 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
 
   it("rewrites child planRefs when parent moves to completed/", () => {
     root = mkdtempSync(join(tmpdir(), "reconcile-planref-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "proposed"), { recursive: true });
     mkdirSync(join(vbrief, "active"), { recursive: true });
 
-    const parentName = "2026-01-01-parent.vbrief.json";
-    const childName = "2026-01-01-child.vbrief.json";
+    const parentName = "2026-01-01-parent.xbrief.json";
+    const childName = "2026-01-01-child.xbrief.json";
     writeFileSync(
       join(vbrief, "proposed", parentName),
       `${JSON.stringify(
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "Parent epic",
             status: "proposed",
@@ -124,7 +124,7 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
       join(vbrief, "active", childName),
       `${JSON.stringify(
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "Child story",
             status: "running",
@@ -167,8 +167,8 @@ describe("applyLifecycleFixes planRef rewrite (#1667)", () => {
     all.set(parentPath, JSON.parse(readFileSync(parentPath, "utf8")) as Record<string, unknown>);
     all.set(childPath, JSON.parse(readFileSync(childPath, "utf8")) as Record<string, unknown>);
     const display = new Map([
-      [parentPath, `vbrief/completed/${parentName}`],
-      [childPath, `vbrief/active/${childName}`],
+      [parentPath, `xbrief/completed/${parentName}`],
+      [childPath, `xbrief/active/${childName}`],
     ]);
     expect(validateEpicStoryLinks(all, vbrief, display)).toEqual([]);
   });

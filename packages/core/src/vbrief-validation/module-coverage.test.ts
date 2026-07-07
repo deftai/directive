@@ -57,9 +57,9 @@ describe("vbrief-validation module branch coverage", () => {
     const [fileErrors] = validateMigrationOutput(filePath);
     expect(fileErrors[0]).toContain("expected vbrief directory does not exist");
 
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(join(root, "vbrief.invalid"), "old", "utf8");
-    const isolated = isolateInvalidOutput(root, join(root, "vbrief"));
+    const isolated = isolateInvalidOutput(root, join(root, "xbrief"));
     expect(isolated).toContain("vbrief.invalid.2");
 
     mkdirSync(join(root, "vbrief.invalid.2"), { recursive: true });
@@ -142,11 +142,11 @@ describe("vbrief-validation module branch coverage", () => {
 
   it("covers validateAll migration branches and slugify collision", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-bridge-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PROJECT-DEFINITION",
           status: "running",
@@ -156,7 +156,7 @@ describe("vbrief-validation module branch coverage", () => {
       }),
       "utf8",
     );
-    const [errors, warnings] = validateMigrationOutput(join(root, "vbrief"));
+    const [errors, warnings] = validateMigrationOutput(join(root, "xbrief"));
     expect(errors).toEqual([]);
     expect(warnings).toEqual([]);
 
@@ -311,7 +311,7 @@ describe("vbrief-validation module branch coverage", () => {
         ],
         acceptanceCountJustification: "",
         swarm: {
-          file_scope: ["vbrief/*"],
+          file_scope: ["xbrief/*"],
           verify_commands: ["npm test -- x", "task check"],
           expected_outputs: ["ok"],
           depends_on: [],
@@ -342,8 +342,8 @@ describe("vbrief-validation module branch coverage", () => {
 
   it("covers safety load failures and rollback append drift", () => {
     const loadRoot = mkdtempSync(join(tmpdir(), "vb-safety-load-"));
-    mkdirSync(join(loadRoot, "vbrief", "migration"), { recursive: true });
-    mkdirSync(join(loadRoot, "vbrief", "migration", "safety-manifest.json"));
+    mkdirSync(join(loadRoot, "xbrief", "migration"), { recursive: true });
+    mkdirSync(join(loadRoot, "xbrief", "migration", "safety-manifest.json"));
     expect(loadSafetyManifest(loadRoot)).toBeNull();
     rmSync(loadRoot, { recursive: true, force: true });
 
@@ -415,11 +415,11 @@ describe("vbrief-validation module branch coverage", () => {
     expect(mapSpecStatus("")).toBe("pending");
     const root = mkdtempSync(join(tmpdir(), "vb-main-fixture-"));
     try {
-      mkdirSync(join(root, "vbrief"), { recursive: true });
+      mkdirSync(join(root, "xbrief"), { recursive: true });
       writeFileSync(
-        join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "PROJECT-DEFINITION",
             status: "running",

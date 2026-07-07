@@ -88,22 +88,22 @@ describe("vbrief-build coverage boost", () => {
           narrative: "bad",
           references: [{ type: "x-vbrief/web-page", uri: "https://x" }],
         },
-        { ipIndex: 2, dependencies: [], specRef: "specification.vbrief.json" },
+        { ipIndex: 2, dependencies: [], specRef: "specification.xbrief.json" },
       ),
     ).toBeTruthy();
   });
 
   it("covers project-definition-io error and lock branches", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-boost-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    const path = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const path = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
     writeFileSync(path, "not-json", "utf8");
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(ProjectDefinitionIOError);
     writeFileSync(path, "[]", "utf8");
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(/not a JSON object/);
     writeFileSync(
       path,
-      pythonJsonPretty({ vBRIEFInfo: { version: "0.6" }, plan: { title: "T" } }),
+      pythonJsonPretty({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T" } }),
       "utf8",
     );
     projectDefinitionMutationLock(root, () => {
@@ -122,8 +122,8 @@ describe("vbrief-build coverage boost", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-sp-boost-"));
     const missing = join(root, "missing.json");
     expect(migrateSpeckitPlan(missing)[0]).toBe(false);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    const bad = join(root, "vbrief", "plan.vbrief.json");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const bad = join(root, "xbrief", "plan.xbrief.json");
     writeFileSync(bad, "{", "utf8");
     expect(migrateSpeckitPlan(bad)[1][0]).toContain("invalid JSON");
     writeFileSync(bad, pythonJsonPretty({ plan: { items: [] } }), "utf8");
@@ -188,9 +188,9 @@ describe("vbrief-build coverage boost", () => {
 
   it("covers speckit narrative extras and migrate non-dict item", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-sp-extra-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    const planPath = join(vbrief, "plan.vbrief.json");
+    const planPath = join(vbrief, "plan.xbrief.json");
     writeFileSync(
       planPath,
       pythonJsonPretty({
@@ -212,7 +212,7 @@ describe("vbrief-build coverage boost", () => {
           narrative: { PhaseDescription: "desc", Tier: "t1", Summary: "sum" },
           references: [{ type: "x-vbrief/plan", uri: "dup" }],
         },
-        { ipIndex: 3, dependencies: [], specRef: "specification.vbrief.json" },
+        { ipIndex: 3, dependencies: [], specRef: "specification.xbrief.json" },
       ),
     ).toBeTruthy();
     rmSync(root, { recursive: true, force: true });
@@ -237,9 +237,9 @@ describe("vbrief-build coverage boost", () => {
 
   it("covers migrate skip-existing branch", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-sp-skip-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
-    const planPath = join(vbrief, "plan.vbrief.json");
+    const planPath = join(vbrief, "plan.xbrief.json");
     writeFileSync(
       planPath,
       pythonJsonPretty({
@@ -264,7 +264,7 @@ describe("vbrief-build coverage boost", () => {
   it("covers empty prose and speckit plan edge shapes", () => {
     expect(firstProseParagraph("")).toBe("");
     const root = mkdtempSync(join(tmpdir(), "vb-sp-shape-"));
-    const planPath = join(root, "plan.vbrief.json");
+    const planPath = join(root, "plan.xbrief.json");
     writeFileSync(planPath, "null", "utf8");
     expect(migrateSpeckitPlan(planPath)[1][0]).toContain("no items");
     writeFileSync(

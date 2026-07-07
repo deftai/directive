@@ -18,7 +18,7 @@ describe("evaluateResumeEligibility branches", () => {
   it("appends resume-eligible when defer condition fires", () => {
     const root = mkdtempSync(join(tmpdir(), "resume-elig-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     const appended: Record<string, unknown>[] = [];
     const result = evaluateResumeEligibility(root, {
       today: "2026-06-09",
@@ -48,7 +48,7 @@ describe("evaluateResumeEligibility branches", () => {
   it("writes via auditLogPath option", () => {
     const root = mkdtempSync(join(tmpdir(), "resume-path-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     let pathUsed = "";
     evaluateResumeEligibility(root, {
       today: "2026-06-09",

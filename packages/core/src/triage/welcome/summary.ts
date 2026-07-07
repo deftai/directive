@@ -104,7 +104,12 @@ function latestDecisions(entries: Array<Record<string, unknown>>): Map<string, s
 }
 
 function countFilesystemInFlight(projectRoot: string): number {
-  const activeDir = resolveLifecycleFolder(projectRoot, "active");
+  let activeDir: string;
+  try {
+    activeDir = resolveLifecycleFolder(projectRoot, "active");
+  } catch {
+    return 0; // No xbrief/ layout; nothing in-flight.
+  }
   if (!existsSync(activeDir)) return 0;
   let count = 0;
   for (const name of readdirSync(activeDir)) {
@@ -124,7 +129,12 @@ function countFilesystemInFlight(projectRoot: string): number {
 }
 
 function isTriageScopeConfigured(projectRoot: string): boolean {
-  const path = resolveProjectDefinitionPath(projectRoot);
+  let path: string;
+  try {
+    path = resolveProjectDefinitionPath(projectRoot);
+  } catch {
+    return false; // No xbrief/ layout; triage scope not configured.
+  }
   if (!existsSync(path)) return false;
   try {
     const data = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;

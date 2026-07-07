@@ -24,30 +24,30 @@ describe("launch and readiness exhaustive branches", () => {
     expect(defaultPreflightGate("/no/such/vbrief.json").exitCode).not.toBe(0);
     expect(defaultReadinessGate("/no/such/vbrief.json", "/tmp").exitCode).not.toBe(0);
     const project = mkdtempSync(join(tmpdir(), "sw-ex-"));
-    mkdirSync(join(project, "vbrief", "active"), { recursive: true });
-    const badJson = join(project, "vbrief", "active", "bad.vbrief.json");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    const badJson = join(project, "xbrief", "active", "bad.xbrief.json");
     writeFileSync(badJson, "{not-json", "utf8");
-    expect(resolveStories(project, ["", "bad.vbrief.json"]).errors.length).toBeGreaterThan(0);
+    expect(resolveStories(project, ["", "bad.xbrief.json"]).errors.length).toBeGreaterThan(0);
     rmSync(project, { recursive: true, force: true });
   });
 
   it("flags lifecycle and item validation issues", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-val-"));
-    const pendingRunning = writePlan(project, "vbrief/pending/run.vbrief.json", {
+    const pendingRunning = writePlan(project, "xbrief/pending/run.xbrief.json", {
       id: "run",
       title: "run",
       status: "running",
       metadata: { kind: "story", swarm: { readiness: "ready", parallel_safe: true } },
       items: [],
     });
-    const blocked = writePlan(project, "vbrief/active/blocked.vbrief.json", {
+    const blocked = writePlan(project, "xbrief/active/blocked.xbrief.json", {
       id: "blocked",
       title: "blocked",
       status: "blocked",
       metadata: { kind: "story", swarm: { readiness: "ready", parallel_safe: true } },
       items: [{ id: "1", title: "t", status: "pending" }],
     });
-    const noAccept = writePlan(project, "vbrief/active/noacc.vbrief.json", {
+    const noAccept = writePlan(project, "xbrief/active/noacc.xbrief.json", {
       id: "noacc",
       title: "noacc",
       status: "running",
@@ -59,7 +59,7 @@ describe("launch and readiness exhaustive branches", () => {
       metadata: { kind: "story", swarm: { readiness: "ready", parallel_safe: true } },
       items: [{ id: "1", title: "t", status: "pending", narrative: {} }],
     });
-    const phase = writePlan(project, "vbrief/active/2026-06-19-ip-phase.vbrief.json", {
+    const phase = writePlan(project, "xbrief/active/2026-06-19-ip-phase.xbrief.json", {
       id: "ip-phase",
       title: "ip-phase",
       status: "running",
@@ -75,13 +75,13 @@ describe("launch and readiness exhaustive branches", () => {
 
   it("accepts completed dependency for ready story", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-depok-"));
-    writePlan(project, "vbrief/completed/dep-done.vbrief.json", {
+    writePlan(project, "xbrief/completed/dep-done.xbrief.json", {
       id: "dep-done",
       title: "done",
       status: "completed",
       items: [],
     });
-    const path = writePlan(project, "vbrief/active/needs-dep.vbrief.json", {
+    const path = writePlan(project, "xbrief/active/needs-dep.xbrief.json", {
       id: "needs-dep",
       title: "needs-dep",
       status: "running",

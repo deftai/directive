@@ -734,7 +734,12 @@ export function discoverCodeStructurePaths(projectRoot: string): string[] {
       paths.set(projectDef.replace(/\\/g, "/"), projectDef);
     }
   }
-  const vbriefRoot = resolveLifecycleRoot(projectRoot);
+  let vbriefRoot: string;
+  try {
+    vbriefRoot = resolveLifecycleRoot(projectRoot);
+  } catch {
+    return [...paths.values()];
+  }
   if (existsSync(vbriefRoot)) {
     const stack = [vbriefRoot];
     while (stack.length > 0) {

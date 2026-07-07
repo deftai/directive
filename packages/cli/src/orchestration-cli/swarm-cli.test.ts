@@ -15,7 +15,7 @@ afterEach(() => {
 function emptyProject(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-swarm-cli-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "active"), { recursive: true });
   return root;
 }
 

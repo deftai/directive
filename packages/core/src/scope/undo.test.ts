@@ -17,9 +17,9 @@ describe("undo", () => {
 
   it("undoes demote back to pending", () => {
     root = mkdtempSync(join(tmpdir(), "undo-test-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    const pending = join(root, "vbrief", "pending", "z.vbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const pending = join(root, "xbrief", "pending", "z.xbrief.json");
     writeFileSync(
       pending,
       formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
@@ -30,18 +30,18 @@ describe("undo", () => {
     const entry = demote.auditEntry as Record<string, unknown>;
     const undo = undoOne(entry, root);
     expect(undo.ok).toBe(true);
-    expect(existsSync(join(root, "vbrief", "pending", "z.vbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "z.xbrief.json"))).toBe(true);
   });
 
   it("refuses terminal actions", () => {
     root = mkdtempSync(join(tmpdir(), "undo-test-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const entry = {
       decision_id: newDecisionId(),
       timestamp: "2026-05-18T19:00:00Z",
       action: "complete",
-      vbrief_path: "vbrief/completed/x.vbrief.json",
+      vbrief_path: "xbrief/completed/x.xbrief.json",
       from_status: "active",
       to_status: "completed",
       actor: "operator",
@@ -54,11 +54,11 @@ describe("undo", () => {
 
   it("batch undo reverses cohort", () => {
     root = mkdtempSync(join(tmpdir(), "undo-test-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     const batchId = newDecisionId();
-    for (const name of ["a.vbrief.json", "b.vbrief.json"]) {
-      const pending = join(root, "vbrief", "pending", name);
+    for (const name of ["a.xbrief.json", "b.xbrief.json"]) {
+      const pending = join(root, "xbrief", "pending", name);
       writeFileSync(
         pending,
         formatVbriefJson({ plan: { title: name, status: "pending", items: [] } }),
@@ -75,11 +75,11 @@ describe("undo", () => {
 
   it("undoes cancel back to pending using from_status", () => {
     root = mkdtempSync(join(tmpdir(), "undo-cancel-"));
-    mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     writeFileSync(
-      join(root, "vbrief", "cancelled", "c.vbrief.json"),
+      join(root, "xbrief", "cancelled", "c.xbrief.json"),
       formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
       "utf8",
     );
@@ -87,21 +87,21 @@ describe("undo", () => {
       decision_id: newDecisionId(),
       timestamp: "2026-05-18T20:00:00Z",
       action: "cancel",
-      vbrief_path: "vbrief/cancelled/c.vbrief.json",
+      vbrief_path: "xbrief/cancelled/c.xbrief.json",
       from_status: "pending",
       to_status: "cancelled",
       actor: "operator",
     };
     append(entry, logPath);
     expect(undoOne(entry, root, { logPath }).ok).toBe(true);
-    expect(existsSync(join(root, "vbrief", "pending", "c.vbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "c.xbrief.json"))).toBe(true);
   });
 
   it("undoes undo-of-restore back to cancelled", () => {
     root = mkdtempSync(join(tmpdir(), "undo-chain-"));
-    mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const restoreId = newDecisionId();
     append(
@@ -109,7 +109,7 @@ describe("undo", () => {
         decision_id: restoreId,
         timestamp: "2026-05-18T19:00:00Z",
         action: "restore",
-        vbrief_path: "vbrief/cancelled/x.vbrief.json",
+        vbrief_path: "xbrief/cancelled/x.xbrief.json",
         from_status: "cancelled",
         to_status: "proposed",
         actor: "operator",
@@ -117,7 +117,7 @@ describe("undo", () => {
       logPath,
     );
     writeFileSync(
-      join(root, "vbrief", "cancelled", "x.vbrief.json"),
+      join(root, "xbrief", "cancelled", "x.xbrief.json"),
       formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),
       "utf8",
     );
@@ -129,9 +129,9 @@ describe("undo", () => {
 
   it("idempotent re-run is no-op", () => {
     root = mkdtempSync(join(tmpdir(), "undo-test-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    const pending = join(root, "vbrief", "pending", "i.vbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const pending = join(root, "xbrief", "pending", "i.xbrief.json");
     writeFileSync(
       pending,
       formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),

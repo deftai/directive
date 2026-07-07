@@ -47,13 +47,13 @@ function gitCommit(cwd: string, message: string): void {
 }
 
 function writeProjectDef(root: string, plan: Record<string, unknown>): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], ...plan },
       },
       null,
@@ -128,6 +128,7 @@ export const PARITY_SCENARIOS: readonly ParityScenario[] = [
   },
 ];
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;

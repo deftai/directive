@@ -11,7 +11,11 @@ import {
   writeSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { hasArtifactSuffix } from "../layout/resolve.js";
+import {
+  hasArtifactSuffix,
+  LEGACY_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_DIR,
+} from "../layout/resolve.js";
 import { stableJson } from "./json.js";
 import { parseTimestamp, timestampIso } from "./time.js";
 
@@ -20,7 +24,7 @@ export const RITUAL_STATE_SCHEMA_VERSION = 1;
 export const SENTINEL_RELPATH = [".deft", "last-session.json"] as const;
 export const RITUAL_STATE_RELPATH = [".deft", "ritual-state.json"] as const;
 export const MIN_RESUME_AGE_MS = 2 * 60 * 60 * 1000;
-export const ACTIVE_VBRIEF_PREFIX = "vbrief/active/";
+export const ACTIVE_VBRIEF_PREFIX = `${MIGRATED_ARTIFACT_DIR}/active/`;
 
 export interface Sentinel {
   readonly schemaVersion: number;
@@ -323,7 +327,9 @@ export function writeSentinel(
     schemaVersion: SCHEMA_VERSION,
     deftVersion: input.deftVersion,
     timestamp: timestampIso(instant),
-    lastActiveVbrief: input.lastActiveVbrief.replace(/\\/g, "/"),
+    lastActiveVbrief: input.lastActiveVbrief
+      .replace(/\\/g, "/")
+      .replace(`${LEGACY_ARTIFACT_DIR}/active/`, `${MIGRATED_ARTIFACT_DIR}/active/`),
     lastBranch: input.lastBranch,
   };
   atomicWriteJson(sentinelFile, payload, ".last-session.");
@@ -372,7 +378,7 @@ export function computeResumeSignal(
 }
 
 export function detectLatestActiveVbrief(projectRoot: string): string | null {
-  const activeDir = join(resolve(projectRoot), "vbrief", "active");
+  const activeDir = join(resolve(projectRoot), MIGRATED_ARTIFACT_DIR, "active");
   try {
     if (!existsSync(activeDir)) {
       return null;

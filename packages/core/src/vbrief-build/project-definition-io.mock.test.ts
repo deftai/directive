@@ -34,7 +34,7 @@ describe("projectDefinitionIO mocked fs branches", () => {
   it("raises when readFileSync fails for load", () => {
     hoisted.existsSyncMock.mockReturnValue(true);
     hoisted.readFileSyncMock.mockImplementation((path) => {
-      if (String(path).includes("PROJECT-DEFINITION.vbrief.json")) {
+      if (String(path).includes("PROJECT-DEFINITION.xbrief.json")) {
         throw new Error("read denied");
       }
       return hoisted.actualFs!.readFileSync(path);
@@ -101,9 +101,9 @@ describe("projectDefinitionIO mocked fs branches", () => {
       ),
     );
     const root = mkdtempSync(join(tmpdir(), "vb-lock-existing-"));
-    const lockDir = join(root, "vbrief");
+    const lockDir = join(root, "xbrief");
     mkdirSync(lockDir, { recursive: true });
-    writeFileSync(join(lockDir, "PROJECT-DEFINITION.vbrief.json.lock"), "\0", "utf8");
+    writeFileSync(join(lockDir, "PROJECT-DEFINITION.xbrief.json.lock"), "\0", "utf8");
     expect(projectDefinitionMutationLock(root, () => "ok")).toBe("ok");
     rmSync(root, { recursive: true, force: true });
   });

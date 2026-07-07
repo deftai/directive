@@ -60,15 +60,15 @@ describe("build-dist helpers", () => {
   it("iterSourceFiles honors extra excludes and empty prefix list", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-build-dist-extra-"));
     mkdirSync(join(root, "backup"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
     writeFileSync(join(root, "backup", "x.txt"), "x\n");
-    writeFileSync(join(root, "vbrief", "completed", "done.vbrief.json"), "{}\n");
+    writeFileSync(join(root, "xbrief", "completed", "done.xbrief.json"), "{}\n");
 
     const withBackup = iterSourceFiles(root, new Set([...DEFAULT_EXCLUDES, "backup"]));
     expect(withBackup.map((e) => e.archiveRel)).not.toContain("backup/x.txt");
 
     const withCompleted = iterSourceFiles(root, DEFAULT_EXCLUDES, []);
-    expect(withCompleted.map((e) => e.archiveRel)).toContain("vbrief/completed/done.vbrief.json");
+    expect(withCompleted.map((e) => e.archiveRel)).toContain("xbrief/completed/done.xbrief.json");
   });
 
   it("main validates argv and reports help", async () => {

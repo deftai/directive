@@ -27,11 +27,10 @@ describe("layout-aware call sites accept the xbrief layout (#2109 part 1)", () =
     expect(paths.some((p) => p.endsWith("2026-06-30-x.xbrief.json"))).toBe(true);
   });
 
-  it("readiness default glob still resolves a vbrief/ tree unchanged", () => {
+  it("readiness throws on a pure vbrief/ tree after the read-path removal (#2112)", () => {
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(join(root, "vbrief", "active", "2026-06-30-v.vbrief.json"), STORY, "utf8");
-    const paths = expandReadinessPaths(root, []);
-    expect(paths.some((p) => p.endsWith("2026-06-30-v.vbrief.json"))).toBe(true);
+    expect(() => expandReadinessPaths(root, [])).toThrow(/deft migrate:xbrief/);
   });
 
   it("validate discovery picks up .xbrief.json artifacts", () => {
@@ -49,12 +48,12 @@ describe("layout-aware call sites accept the xbrief layout (#2109 part 1)", () =
     expect(validateFilename("vbrief/PROJECT-DEFINITION.vbrief.json")).toEqual([]);
   });
 
-  it("WIP count resolves pending+active under a vbrief/ tree", () => {
+  it("WIP count throws on a pure vbrief/ tree after the read-path removal (#2112)", () => {
     mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(join(root, "vbrief", "pending", "a.vbrief.json"), STORY, "utf8");
     writeFileSync(join(root, "vbrief", "active", "b.vbrief.json"), STORY, "utf8");
-    expect(countVbriefWip(root)).toBe(2);
+    expect(() => countVbriefWip(root)).toThrow(/deft migrate:xbrief/);
   });
 
   it("WIP count resolves pending+active under a migrated xbrief/ tree", () => {

@@ -40,7 +40,7 @@ export const CHILD_REF_TYPE = "x-xbrief/plan";
 
 /** Durable tech-debt acceptance ledger relative path segments. */
 export const TECH_DEBT_LEDGER_RELPATH = [
-  "vbrief",
+  "xbrief",
   ".audit",
   "epic-tech-debt-accepted.jsonl",
 ] as const;

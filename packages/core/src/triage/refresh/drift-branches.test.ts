@@ -41,10 +41,10 @@ describe("loadCachedFetchedAt branches", () => {
 describe("detectDrift branches", () => {
   it("skips duplicate refs and records fetch failures", () => {
     const root = makeRoot();
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "a.vbrief.json"),
+      join(active, "a.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [
@@ -75,9 +75,9 @@ describe("detectDrift branches", () => {
 
   it("collects drift records when live is newer than cache", () => {
     const root = makeRoot();
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
-    const vbrief = join(active, "b.vbrief.json");
+    const vbrief = join(active, "b.xbrief.json");
     writeFileSync(
       vbrief,
       JSON.stringify({

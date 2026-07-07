@@ -6,10 +6,10 @@ import { runCliCapture } from "../../core/src/triage/scope/cli.js";
 import { addLabelToScope } from "../../core/src/triage/scope/mutations.js";
 
 function writePd(root: string, policy: Record<string, unknown> = {}): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    `${JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "T", status: "running", items: [], policy } }, null, 2)}\n`,
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T", status: "running", items: [], policy } }, null, 2)}\n`,
     "utf8",
   );
 }
@@ -51,7 +51,7 @@ describe("triage-scope CLI", () => {
     const result = runCliCapture(["--project-root", root, "--set-preset=mega"]);
     expect(result.code).toBe(0);
     const written: unknown = JSON.parse(
-      readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
     );
     if (written === null || typeof written !== "object") {
       throw new Error("expected PROJECT-DEFINITION to parse to an object");

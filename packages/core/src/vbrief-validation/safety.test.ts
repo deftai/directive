@@ -13,8 +13,8 @@ import {
 
 describe("safety", () => {
   it("premigrateSibling preserves suffix chain", () => {
-    expect(premigrateSibling("/tmp/specification.vbrief.json")).toBe(
-      "/tmp/specification.premigrate.vbrief.json",
+    expect(premigrateSibling("/tmp/specification.xbrief.json")).toBe(
+      "/tmp/specification.premigrate.xbrief.json",
     );
   });
 

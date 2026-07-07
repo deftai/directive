@@ -41,7 +41,7 @@ function writeScope(
 ): string {
   const dir = join(vbrief, folder);
   mkdirSync(dir, { recursive: true });
-  const display = `vbrief/${folder}/${name}`;
+  const display = `xbrief/${folder}/${name}`;
   writeFileSync(join(dir, name), JSON.stringify(body), "utf8");
   return display;
 }
@@ -50,57 +50,57 @@ describe("vbrief-validate extra coverage", () => {
   it("covers paths helpers", () => {
     expect(isRelativeTo("/a/b", "/a")).toBe(true);
     expect(isRelativeTo("/a", "/a")).toBe(true);
-    expect(resolveRefPath("file://active/x.vbrief.json", "/vb")).toContain("active");
+    expect(resolveRefPath("file://active/x.xbrief.json", "/vb")).toContain("active");
     expect(resolveRefPath("https://x", "/vb")).toBeNull();
     expect(resolveRefPath("#1", "/vb")).toBeNull();
-    expect(resolveRefPath("pending/x.vbrief.json", "/vb")).toContain("pending");
-    expect(scopeIdsForRefUri("2026-01-01-my-slug.vbrief.json").has("my-slug")).toBe(true);
-    expect(scopeIdsForRefUri("file://2026-01-01-other.vbrief.json").has("other")).toBe(true);
+    expect(resolveRefPath("pending/x.xbrief.json", "/vb")).toContain("pending");
+    expect(scopeIdsForRefUri("2026-01-01-my-slug.xbrief.json").has("my-slug")).toBe(true);
+    expect(scopeIdsForRefUri("file://2026-01-01-other.xbrief.json").has("other")).toBe(true);
     expect(scopeIdsForRefUri("plain-name").has("plain-name")).toBe(true);
-    expect(lifecycleFolderFor("/proj/vbrief/active/x.vbrief.json", "/proj/vbrief")).toBe("active");
-    expect(lifecycleFolderFor("/proj/vbrief/x.vbrief.json", "/proj/vbrief")).toBeNull();
-    expect(displayPath("/proj/vbrief/active/x.vbrief.json", "/proj/vbrief")).toBe(
-      "vbrief/active/x.vbrief.json",
+    expect(lifecycleFolderFor("/proj/xbrief/active/x.xbrief.json", "/proj/xbrief")).toBe("active");
+    expect(lifecycleFolderFor("/proj/xbrief/x.xbrief.json", "/proj/xbrief")).toBeNull();
+    expect(displayPath("/proj/xbrief/active/x.xbrief.json", "/proj/xbrief")).toBe(
+      "xbrief/active/x.xbrief.json",
     );
   });
 
   it("covers folder status allowed and edge branches", () => {
     expect(
-      validateFolderStatus("vbrief/unknown/x.vbrief.json", { plan: { status: "x" } }, "vbrief"),
+      validateFolderStatus("xbrief/unknown/x.xbrief.json", { plan: { status: "x" } }, "xbrief"),
     ).toEqual([]);
-    expect(validateFolderStatus("vbrief/active/x.vbrief.json", {}, "vbrief")).toEqual([]);
+    expect(validateFolderStatus("xbrief/active/x.xbrief.json", {}, "xbrief")).toEqual([]);
     expect(
-      validateFolderStatus("vbrief/active/x.vbrief.json", { plan: { status: null } }, "vbrief"),
+      validateFolderStatus("xbrief/active/x.xbrief.json", { plan: { status: null } }, "xbrief"),
     ).toEqual([]);
     expect(
       validateFolderStatus(
-        "vbrief/completed/x.vbrief.json",
+        "xbrief/completed/x.xbrief.json",
         { plan: { status: "completed" } },
-        "vbrief",
+        "xbrief",
       ),
     ).toEqual([]);
   });
 
   it("covers filename convention branches", () => {
     expect(matchesFilenameConvention("bad.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01-.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01-abc-.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01-abc--def.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01-abc-def.vbrief.json")).toBe(true);
-    expect(validateFilename("vbrief/active/not-a-date.vbrief.json")[0]).toContain("(D7)");
+    expect(matchesFilenameConvention("2026-01-01.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-abc-.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-abc--def.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-abc-def.xbrief.json")).toBe(true);
+    expect(validateFilename("xbrief/active/not-a-date.xbrief.json")[0]).toContain("(D7)");
   });
 
   it("covers schema nested items and project def narratives", () => {
     expect(normalizeNarrativeKey("Tech Stack")).toBe("techstack");
     expect(
-      validateProjectDefNarratives("vbrief/PROJECT-DEFINITION.vbrief.json", {
+      validateProjectDefNarratives("xbrief/PROJECT-DEFINITION.xbrief.json", {
         narratives: { Overview: "O" },
       }).some((e) => e.includes("techstack")),
     ).toBe(true);
     const nested = validateVbriefSchema(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "T",
           status: "running",
@@ -131,20 +131,20 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers project definition registry and file refs", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-full-"));
-    const vbrief = join(root, "vbrief");
-    const scopeDisplay = writeScope(vbrief, "active", "2026-01-01-scope.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    const scopeDisplay = writeScope(vbrief, "active", "2026-01-01-scope.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "S", status: "blocked", items: [] },
     });
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     const pd = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "PD",
         status: "running",
         narratives: { Overview: "O", TechStack: "T" },
         references: [
-          { type: "x-vbrief/plan", uri: "active/2026-01-01-scope.vbrief.json", title: "Scope" },
+          { type: "x-vbrief/plan", uri: "active/2026-01-01-scope.xbrief.json", title: "Scope" },
         ],
         items: [
           {
@@ -152,12 +152,12 @@ describe("vbrief-validate extra coverage", () => {
             title: "Scope",
             status: "running",
             metadata: {
-              source_path: "active/2026-01-01-scope.vbrief.json",
-              references: [{ type: "x-vbrief/plan", uri: "active/2026-01-01-scope.vbrief.json" }],
+              source_path: "active/2026-01-01-scope.xbrief.json",
+              references: [{ type: "x-vbrief/plan", uri: "active/2026-01-01-scope.xbrief.json" }],
             },
-            references: [{ uri: "active/missing-scope.vbrief.json" }],
+            references: [{ uri: "active/missing-scope.xbrief.json" }],
           },
-          { references: [{ uri: "file://../outside.vbrief.json" }] },
+          { references: [{ uri: "file://../outside.xbrief.json" }] },
         ],
       },
     };
@@ -172,20 +172,20 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers epic links forward and backward paths", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-epic-"));
-    const vbrief = join(root, "vbrief");
-    const parentAbs = join(vbrief, "proposed", "2026-01-01-parent.vbrief.json");
-    const childAbs = join(vbrief, "pending", "2026-01-01-child.vbrief.json");
+    const vbrief = join(root, "xbrief");
+    const parentAbs = join(vbrief, "proposed", "2026-01-01-parent.xbrief.json");
+    const childAbs = join(vbrief, "pending", "2026-01-01-child.xbrief.json");
     mkdirSync(join(vbrief, "proposed"), { recursive: true });
     mkdirSync(join(vbrief, "pending"), { recursive: true });
     writeFileSync(
       parentAbs,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "P",
           status: "proposed",
           items: [],
-          references: [{ type: "x-vbrief/plan", uri: "pending/2026-01-01-child.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "pending/2026-01-01-child.xbrief.json" }],
         },
       }),
       "utf8",
@@ -193,12 +193,12 @@ describe("vbrief-validate extra coverage", () => {
     writeFileSync(
       childAbs,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "C",
           status: "pending",
-          items: [{ planRef: "proposed/2026-01-01-parent.vbrief.json" }],
-          planRef: "proposed/2026-01-01-parent.vbrief.json",
+          items: [{ planRef: "proposed/2026-01-01-parent.xbrief.json" }],
+          planRef: "proposed/2026-01-01-parent.xbrief.json",
           references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/x/y/issues/1" }],
         },
       }),
@@ -209,8 +209,8 @@ describe("vbrief-validate extra coverage", () => {
       all.set(p, JSON.parse(readFileSync(p, "utf8")) as Record<string, unknown>);
     }
     const display = new Map([
-      [parentAbs, "vbrief/proposed/2026-01-01-parent.vbrief.json"],
-      [childAbs, "vbrief/pending/2026-01-01-child.vbrief.json"],
+      [parentAbs, "xbrief/proposed/2026-01-01-parent.xbrief.json"],
+      [childAbs, "xbrief/pending/2026-01-01-child.xbrief.json"],
     ]);
     expect(validateEpicStoryLinks(all, vbrief, display)).toEqual([]);
 
@@ -221,7 +221,7 @@ describe("vbrief-validate extra coverage", () => {
 
     all.set(childAbs, {
       plan: {
-        planRef: "proposed/missing-parent.vbrief.json",
+        planRef: "proposed/missing-parent.xbrief.json",
         references: [{ type: "x-vbrief/github-issue", uri: "https://x" }],
       },
     });
@@ -233,7 +233,7 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers decomposition and placeholder branches", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-decomp-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(join(root, "children.json"), JSON.stringify({ children: {} }), "utf8");
     writeFileSync(join(root, "broken.json"), "{", "utf8");
@@ -241,7 +241,7 @@ describe("vbrief-validate extra coverage", () => {
     writeFileSync(join(root, "PROJECT.md"), "legacy content", "utf8");
     writeFileSync(
       join(root, "SPECIFICATION.md"),
-      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n",
+      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.xbrief.json -->\n",
       "utf8",
     );
     expect(validateDeprecatedPlaceholders(vbrief).some((w) => w.includes("PROJECT.md"))).toBe(true);
@@ -250,12 +250,12 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers staleness branches", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-stale2-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "specification.vbrief.json"),
+      join(vbrief, "specification.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "MissingTitle",
           status: "approved",
@@ -272,7 +272,7 @@ describe("vbrief-validate extra coverage", () => {
   });
 
   it("covers plan hook type repr branches", () => {
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     expect(validateWipCapOnPlan({ policy: { wipCap: true } }, fp)[0]).toContain("bool");
     expect(validateWipCapOnPlan({ policy: { wipCap: null } }, fp)).toEqual([]);
     expect(
@@ -294,16 +294,16 @@ describe("vbrief-validate extra coverage", () => {
       },
     };
     expect(
-      validateOriginProvenance("vbrief/pending/x.vbrief.json", strict, "vbrief", true),
+      validateOriginProvenance("xbrief/pending/x.xbrief.json", strict, "xbrief", true),
     ).toEqual([]);
     const legacyPrefix = {
       plan: { status: "pending", references: [{ type: "github-issue-v2", uri: "x" }] },
     };
     expect(
-      validateOriginProvenance("vbrief/pending/y.vbrief.json", legacyPrefix, "vbrief"),
+      validateOriginProvenance("xbrief/pending/y.xbrief.json", legacyPrefix, "xbrief"),
     ).toEqual([]);
     const badRef = { plan: { status: "pending", references: [{ type: 1, uri: "x" }] } };
-    expect(validateOriginProvenance("vbrief/pending/z.vbrief.json", badRef, "vbrief")[0]).toContain(
+    expect(validateOriginProvenance("xbrief/pending/z.xbrief.json", badRef, "xbrief")[0]).toContain(
       "(D11)",
     );
   });
@@ -323,12 +323,12 @@ describe("vbrief-validate extra coverage", () => {
     expect(renderFinding(findings[0]!)).toContain("bare key");
 
     const root = mkdtempSync(join(tmpdir(), "vb-conf-full-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     execSync("git init", { cwd: root, stdio: "ignore" });
     writeFileSync(
-      join(root, "vbrief", "bad.vbrief.json"),
+      join(root, "xbrief", "bad.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], customBare: true },
       }),
       "utf8",
@@ -336,7 +336,7 @@ describe("vbrief-validate extra coverage", () => {
     execSync("git add -A", { cwd: root, stdio: "ignore" });
     const bad = evaluateConformance(root);
     expect(bad.exitCode).toBe(1);
-    writeFileSync(join(root, "allow.txt"), "vbrief/bad.vbrief.json\n# comment\n", "utf8");
+    writeFileSync(join(root, "allow.txt"), "xbrief/bad.xbrief.json\n# comment\n", "utf8");
     expect(evaluateConformance(root, { allowListPath: join(root, "allow.txt") }).exitCode).toBe(0);
     expect(runConformance(["--help"])).toBe(0);
     expect(runConformance(["--bogus"])).toBe(2);
@@ -356,9 +356,9 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers validate CLI success summary paths", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-cli-ok-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "active", "2026-01-01-good.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "active", "2026-01-01-good.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "G",
         status: "running",
@@ -367,9 +367,9 @@ describe("vbrief-validate extra coverage", () => {
       },
     });
     writeFileSync(
-      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -388,19 +388,19 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers project definition title/id matching and skip branches", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-deep-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "active", "2026-01-01-linked.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "active", "2026-01-01-linked.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Linked", status: "running", items: [] },
     });
-    writeScope(vbrief, "pending", "2026-01-01-valid-ref.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeScope(vbrief, "pending", "2026-01-01-valid-ref.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Valid", status: "pending", items: [] },
     });
-    writeFileSync(join(vbrief, "broken-scope.vbrief.json"), "{bad", "utf8");
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    writeFileSync(join(vbrief, "broken-scope.xbrief.json"), "{bad", "utf8");
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     const pd = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "PD",
         status: "running",
@@ -408,8 +408,8 @@ describe("vbrief-validate extra coverage", () => {
         references: [
           { type: "x-vbrief/plan", uri: "https://github.com/x", title: "Remote" },
           { type: "x-vbrief/plan", uri: "#local", title: "Hash" },
-          { type: "x-vbrief/plan", uri: "missing/nowhere.vbrief.json", title: "Missing" },
-          { type: "x-vbrief/plan", uri: "active/2026-01-01-linked.vbrief.json", title: "Linked" },
+          { type: "x-vbrief/plan", uri: "missing/nowhere.xbrief.json", title: "Missing" },
+          { type: "x-vbrief/plan", uri: "active/2026-01-01-linked.xbrief.json", title: "Linked" },
         ],
         items: [
           { status: 1 },
@@ -418,15 +418,15 @@ describe("vbrief-validate extra coverage", () => {
             id: "2026-01-01-valid-ref",
             title: "Valid",
             status: "pending",
-            references: [{ uri: "pending/2026-01-01-valid-ref.vbrief.json" }],
+            references: [{ uri: "pending/2026-01-01-valid-ref.xbrief.json" }],
           },
           {
             title: "BrokenScope",
             status: "running",
-            metadata: { source_path: "broken-scope.vbrief.json" },
+            metadata: { source_path: "broken-scope.xbrief.json" },
           },
-          { references: [{ uri: "file://pending/2026-01-01-valid-ref.vbrief.json" }] },
-          { references: [{ uri: "../outside.vbrief.json" }] },
+          { references: [{ uri: "file://pending/2026-01-01-valid-ref.xbrief.json" }] },
+          { references: [{ uri: "../outside.xbrief.json" }] },
         ],
       },
     };
@@ -438,12 +438,12 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers staleness happy paths and validateAllMigration", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-stale-ok-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "specification.vbrief.json"),
+      join(vbrief, "specification.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "FreshTitle",
           status: "approved",
@@ -468,9 +468,9 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers validateAll read errors and warnings-as-errors CLI", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-read-err-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
-    const unreadable = join(vbrief, "pending", "2026-01-01-unreadable.vbrief.json");
+    const unreadable = join(vbrief, "pending", "2026-01-01-unreadable.xbrief.json");
     writeFileSync(unreadable, "{}", "utf8");
     chmodSync(unreadable, 0o000);
     const { errors } = validateAll(vbrief);
@@ -479,9 +479,9 @@ describe("vbrief-validate extra coverage", () => {
 
     mkdirSync(join(vbrief, "active"), { recursive: true });
     writeFileSync(
-      join(vbrief, "active", "2026-01-01-warn.vbrief.json"),
+      join(vbrief, "active", "2026-01-01-warn.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "W", status: "running", items: [], references: [] },
       }),
       "utf8",
@@ -492,16 +492,16 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers epic link on-disk child and item planRef paths", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-epic2-"));
-    const vbrief = join(root, "vbrief");
-    const parentAbs = join(vbrief, "proposed", "2026-01-01-p2.vbrief.json");
-    const childAbs = join(vbrief, "pending", "2026-01-01-c2.vbrief.json");
-    const orphanAbs = join(vbrief, "pending", "2026-01-01-orphan.vbrief.json");
+    const vbrief = join(root, "xbrief");
+    const parentAbs = join(vbrief, "proposed", "2026-01-01-p2.xbrief.json");
+    const childAbs = join(vbrief, "pending", "2026-01-01-c2.xbrief.json");
+    const orphanAbs = join(vbrief, "pending", "2026-01-01-orphan.xbrief.json");
     mkdirSync(join(vbrief, "proposed"), { recursive: true });
     mkdirSync(join(vbrief, "pending"), { recursive: true });
     writeFileSync(
       orphanAbs,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "O", status: "pending", items: [] },
       }),
       "utf8",
@@ -511,7 +511,7 @@ describe("vbrief-validate extra coverage", () => {
         parentAbs,
         {
           plan: {
-            references: [{ type: "x-vbrief/plan", uri: "pending/2026-01-01-orphan.vbrief.json" }],
+            references: [{ type: "x-vbrief/plan", uri: "pending/2026-01-01-orphan.xbrief.json" }],
           },
         },
       ],
@@ -519,15 +519,15 @@ describe("vbrief-validate extra coverage", () => {
         childAbs,
         {
           plan: {
-            items: [{ planRef: "proposed/2026-01-01-p2.vbrief.json" }],
+            items: [{ planRef: "proposed/2026-01-01-p2.xbrief.json" }],
             references: [{ type: "x-vbrief/github-issue", uri: "https://x" }],
           },
         },
       ],
     ]);
     const display = new Map([
-      [parentAbs, "vbrief/proposed/2026-01-01-p2.vbrief.json"],
-      [childAbs, "vbrief/pending/2026-01-01-c2.vbrief.json"],
+      [parentAbs, "xbrief/proposed/2026-01-01-p2.xbrief.json"],
+      [childAbs, "xbrief/pending/2026-01-01-c2.xbrief.json"],
     ]);
     expect(
       validateEpicStoryLinks(all, vbrief, display).some((e) => e.includes("references (D4)")),
@@ -539,7 +539,7 @@ describe("vbrief-validate extra coverage", () => {
     expect(
       validateVbriefSchema(
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "T",
             status: "running",
@@ -553,7 +553,7 @@ describe("vbrief-validate extra coverage", () => {
     expect(
       validateVbriefSchema(
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "T",
             status: "running",
@@ -566,7 +566,7 @@ describe("vbrief-validate extra coverage", () => {
   });
 
   it("covers plan hook catch blocks and boolean wipCap repr", async () => {
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     expect(validateWipCapOnPlan({ policy: { wipCap: false } }, fp)[0]).toContain("False");
     expect(
       validateSessionRitualStalenessHoursOnPlan(
@@ -606,15 +606,15 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers staleness parse failures and title-only PRD match", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-stale3-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    writeFileSync(join(vbrief, "specification.vbrief.json"), "{bad json", "utf8");
+    writeFileSync(join(vbrief, "specification.xbrief.json"), "{bad json", "utf8");
     expect(checkRenderStaleness(vbrief)).toEqual([]);
 
     writeFileSync(
-      join(vbrief, "specification.vbrief.json"),
+      join(vbrief, "specification.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: [],
       }),
       "utf8",
@@ -622,9 +622,9 @@ describe("vbrief-validate extra coverage", () => {
     expect(checkRenderStaleness(vbrief)).toEqual([]);
 
     writeFileSync(
-      join(vbrief, "specification.vbrief.json"),
+      join(vbrief, "specification.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "OnlyTitle",
           status: "approved",
@@ -639,9 +639,9 @@ describe("vbrief-validate extra coverage", () => {
 
     writeFileSync(join(root, "SPECIFICATION.md"), "OnlyTitle and item headline", "utf8");
     writeFileSync(
-      join(vbrief, "specification.vbrief.json"),
+      join(vbrief, "specification.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "OnlyTitle",
           status: "approved",
@@ -657,47 +657,47 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers project definition existing file refs without errors", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-ok-ref-"));
-    const vbrief = join(root, "vbrief");
-    const refDisplay = writeScope(vbrief, "active", "2026-01-01-exists.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    const refDisplay = writeScope(vbrief, "active", "2026-01-01-exists.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "E", status: "running", items: [] },
     });
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     const errors = validateProjectDefinition(
       fp,
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
           narratives: { Overview: "O", TechStack: "T" },
           items: [
-            { references: [{ uri: "file://active/2026-01-01-exists.vbrief.json" }] },
-            { references: [{ uri: "active/2026-01-01-exists.vbrief.json" }] },
-            { references: [{ uri: "active/missing-file.vbrief.json" }] },
+            { references: [{ uri: "file://active/2026-01-01-exists.xbrief.json" }] },
+            { references: [{ uri: "active/2026-01-01-exists.xbrief.json" }] },
+            { references: [{ uri: "active/missing-file.xbrief.json" }] },
           ],
         },
       },
       vbrief,
     );
     expect(errors.some((e) => e.includes("missing-file"))).toBe(true);
-    expect(errors.some((e) => e.includes("exists.vbrief.json"))).toBe(false);
+    expect(errors.some((e) => e.includes("exists.xbrief.json"))).toBe(false);
     rmSync(root, { recursive: true, force: true });
     expect(refDisplay).toContain("exists");
   });
 
   it("covers project definition metadata refs and invalid scope plan", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-meta-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "active", "2026-01-01-no-plan.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "active", "2026-01-01-no-plan.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: [],
     });
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     const errors = validateProjectDefinition(
       fp,
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -723,9 +723,9 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers validateAll project definition load errors", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-load-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    writeFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "{bad", "utf8");
+    writeFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "{bad", "utf8");
     expect(validateAll(vbrief).errors.some((e) => e.includes("invalid JSON"))).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
@@ -733,9 +733,9 @@ describe("vbrief-validate extra coverage", () => {
   it("covers origin refs array strict mode branches", () => {
     expect(
       validateOriginProvenance(
-        "vbrief/pending/x.vbrief.json",
+        "xbrief/pending/x.xbrief.json",
         { plan: { status: "pending", references: [null, { type: 1, uri: "x" }] } },
-        "vbrief",
+        "xbrief",
         true,
       )[0],
     ).toContain("--strict-origin-types");
@@ -743,9 +743,9 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers conformance read and parse failures in scan loop", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-conf-read-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     execSync("git init", { cwd: root, stdio: "ignore" });
-    writeFileSync(join(root, "vbrief", "broken.vbrief.json"), "not-json", "utf8");
+    writeFileSync(join(root, "xbrief", "broken.xbrief.json"), "not-json", "utf8");
     execSync("git add -A", { cwd: root, stdio: "ignore" });
     expect(evaluateConformance(root).exitCode).toBe(0);
     rmSync(root, { recursive: true, force: true });
@@ -753,16 +753,16 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers project definition title match and matching registry status", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-match-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "active", "2026-01-01-match.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "active", "2026-01-01-match.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Match", status: "running", items: [] },
     });
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     const errors = validateProjectDefinition(
       fp,
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -770,7 +770,7 @@ describe("vbrief-validate extra coverage", () => {
           references: [
             {
               type: "x-vbrief/plan",
-              uri: "active/2026-01-01-match.vbrief.json",
+              uri: "active/2026-01-01-match.xbrief.json",
               title: "Matched Item",
             },
           ],
@@ -785,19 +785,19 @@ describe("vbrief-validate extra coverage", () => {
 
   it("allows terminal project items to reference terminal child scopes", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-terminal-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "completed", "2026-01-01-done-child.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "completed", "2026-01-01-done-child.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Done Child", status: "completed", items: [] },
     });
-    writeScope(vbrief, "completed", "2026-01-01-failed-child.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeScope(vbrief, "completed", "2026-01-01-failed-child.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Failed Child", status: "failed", items: [] },
     });
     const errors = validateProjectDefinition(
-      "vbrief/PROJECT-DEFINITION.vbrief.json",
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -805,7 +805,7 @@ describe("vbrief-validate extra coverage", () => {
           references: [
             {
               type: "x-vbrief/plan",
-              uri: "completed/2026-01-01-done-child.vbrief.json",
+              uri: "completed/2026-01-01-done-child.xbrief.json",
               title: "Terminal Epic",
             },
           ],
@@ -817,7 +817,7 @@ describe("vbrief-validate extra coverage", () => {
                 references: [
                   {
                     type: "x-vbrief/plan",
-                    uri: "completed/2026-01-01-failed-child.vbrief.json",
+                    uri: "completed/2026-01-01-failed-child.xbrief.json",
                   },
                 ],
               },
@@ -833,15 +833,15 @@ describe("vbrief-validate extra coverage", () => {
 
   it("allows non-terminal project items to reference completed child scopes", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-nonterminal-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "completed", "2026-01-01-child.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "completed", "2026-01-01-child.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Child", status: "completed", items: [] },
     });
     const errors = validateProjectDefinition(
-      "vbrief/PROJECT-DEFINITION.vbrief.json",
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -852,7 +852,7 @@ describe("vbrief-validate extra coverage", () => {
               status: "proposed",
               metadata: {
                 references: [
-                  { type: "x-vbrief/plan", uri: "completed/2026-01-01-child.vbrief.json" },
+                  { type: "x-vbrief/plan", uri: "completed/2026-01-01-child.xbrief.json" },
                 ],
               },
             },
@@ -867,15 +867,15 @@ describe("vbrief-validate extra coverage", () => {
 
   it("keeps project source_path status checks exact for terminal scopes", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-source-exact-"));
-    const vbrief = join(root, "vbrief");
-    writeScope(vbrief, "completed", "2026-01-01-source.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const vbrief = join(root, "xbrief");
+    writeScope(vbrief, "completed", "2026-01-01-source.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Source", status: "completed", items: [] },
     });
     const errors = validateProjectDefinition(
-      "vbrief/PROJECT-DEFINITION.vbrief.json",
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PD",
           status: "running",
@@ -885,9 +885,9 @@ describe("vbrief-validate extra coverage", () => {
               title: "Source",
               status: "cancelled",
               metadata: {
-                source_path: "completed/2026-01-01-source.vbrief.json",
+                source_path: "completed/2026-01-01-source.xbrief.json",
                 references: [
-                  { type: "x-vbrief/plan", uri: "completed/2026-01-01-source.vbrief.json" },
+                  { type: "x-vbrief/plan", uri: "completed/2026-01-01-source.xbrief.json" },
                 ],
               },
             },
@@ -902,14 +902,14 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers epic forward link missing parent reference listing", () => {
     const vbrief = "/tmp/epic4";
-    const parent = join(vbrief, "proposed/p.vbrief.json");
-    const child = join(vbrief, "pending/c.vbrief.json");
+    const parent = join(vbrief, "proposed/p.xbrief.json");
+    const child = join(vbrief, "pending/c.xbrief.json");
     const all = new Map<string, Record<string, unknown>>([
       [
         child,
         {
           plan: {
-            planRef: "proposed/p.vbrief.json",
+            planRef: "proposed/p.xbrief.json",
             references: [{ type: "x-vbrief/github-issue", uri: "https://x" }],
           },
         },
@@ -921,8 +921,8 @@ describe("vbrief-validate extra coverage", () => {
         all,
         vbrief,
         new Map([
-          [child, "vbrief/pending/c.vbrief.json"],
-          [parent, "vbrief/proposed/p.vbrief.json"],
+          [child, "xbrief/pending/c.xbrief.json"],
+          [parent, "xbrief/proposed/p.xbrief.json"],
         ]),
       ).some((e) => e.includes("does not list")),
     ).toBe(true);
@@ -930,12 +930,12 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers staleness when spec content matches and no optional files", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-stale-match-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "specification.vbrief.json"),
+      join(vbrief, "specification.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "approved", items: [{ title: "ItemA" }] },
       }),
       "utf8",
@@ -952,19 +952,19 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers project definition relative uri outside and wipCap string repr", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-out-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    const fp = "vbrief/PROJECT-DEFINITION.vbrief.json";
+    const fp = "xbrief/PROJECT-DEFINITION.xbrief.json";
     expect(
       validateProjectDefinition(
         fp,
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "PD",
             status: "running",
             narratives: { Overview: "O", TechStack: "T" },
-            items: [{ references: [{ uri: "../outside.vbrief.json" }] }],
+            items: [{ references: [{ uri: "../outside.xbrief.json" }] }],
           },
         },
         vbrief,
@@ -976,7 +976,7 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers decomposition non-draft json and validateAll empty tree", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-empty-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(join(root, "config.json"), JSON.stringify({ version: 1 }), "utf8");
     expect(validateNoRootDecompositionDrafts(vbrief)).toEqual([]);
@@ -986,15 +986,15 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers epic item planRef back-link resolution", () => {
     const vbrief = "/tmp/epic5";
-    const parent = join(vbrief, "proposed/p.vbrief.json");
-    const child = join(vbrief, "pending/c.vbrief.json");
+    const parent = join(vbrief, "proposed/p.xbrief.json");
+    const child = join(vbrief, "pending/c.xbrief.json");
     const all = new Map<string, Record<string, unknown>>([
-      [parent, { plan: { references: [{ type: "x-vbrief/plan", uri: "pending/c.vbrief.json" }] } }],
+      [parent, { plan: { references: [{ type: "x-vbrief/plan", uri: "pending/c.xbrief.json" }] } }],
       [
         child,
         {
           plan: {
-            items: [{ planRef: "proposed/p.vbrief.json" }],
+            items: [{ planRef: "proposed/p.xbrief.json" }],
             references: [{ type: "x-vbrief/github-issue", uri: "https://x" }],
           },
         },
@@ -1005,8 +1005,8 @@ describe("vbrief-validate extra coverage", () => {
         all,
         vbrief,
         new Map([
-          [parent, "vbrief/proposed/p.vbrief.json"],
-          [child, "vbrief/pending/c.vbrief.json"],
+          [parent, "xbrief/proposed/p.xbrief.json"],
+          [child, "xbrief/pending/c.xbrief.json"],
         ]),
       ),
     ).toEqual([]);
@@ -1016,7 +1016,7 @@ describe("vbrief-validate extra coverage", () => {
     // Post-#1650: the two Category B keys MUST be namespaced under x-directive/.
     expect(
       scanVbrief("x.json", {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "T",
           status: "running",
@@ -1031,7 +1031,7 @@ describe("vbrief-validate extra coverage", () => {
 
     // The previously-grandfathered bare forms now FAIL conformance (#1650).
     const bareFindings = scanVbrief("bare.json", {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "T",
         status: "running",
@@ -1043,13 +1043,13 @@ describe("vbrief-validate extra coverage", () => {
     expect(bareFindings.map((f) => f.key).sort()).toEqual(["completedNote", "policy"]);
 
     const root = mkdtempSync(join(tmpdir(), "vb-conf-many-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     execSync("git init", { cwd: root, stdio: "ignore" });
     const bareItems = Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`bare${i}`, true]));
     writeFileSync(
-      join(root, "vbrief", "many.vbrief.json"),
+      join(root, "xbrief", "many.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [bareItems] },
       }),
       "utf8",
@@ -1059,7 +1059,7 @@ describe("vbrief-validate extra coverage", () => {
     expect(many.exitCode).toBe(1);
     expect(many.message).toContain("... and");
 
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     writeFileSync(join(root, "PROJECT.md"), "legacy", "utf8");
     chmodSync(join(root, "PROJECT.md"), 0o000);
     expect(validateDeprecatedPlaceholders(vbrief)).toEqual([]);
@@ -1076,7 +1076,7 @@ describe("vbrief-validate extra coverage", () => {
     expect(emptyPlanNarratives.some((e) => e.includes("'overview' (D3)"))).toBe(true);
     expect(emptyPlanNarratives.some((e) => e.includes("'techstack' (D3)"))).toBe(true);
     expect(
-      validateVbriefSchema({ vBRIEFInfo: { version: "0.6" }, plan: { title: "T" } }, "f.json").some(
+      validateVbriefSchema({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T" } }, "f.json").some(
         (e) => e.includes("missing required field 'status'"),
       ),
     ).toBe(true);
@@ -1085,29 +1085,29 @@ describe("vbrief-validate extra coverage", () => {
 
   it("covers epic child present on disk but omitted from map", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-epic-disk-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
     writeFileSync(
-      join(vbrief, "pending", "2026-01-01-on-disk.vbrief.json"),
+      join(vbrief, "pending", "2026-01-01-on-disk.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "C", status: "pending", items: [] },
       }),
       "utf8",
     );
-    const parent = join(vbrief, "proposed/p.vbrief.json");
+    const parent = join(vbrief, "proposed/p.xbrief.json");
     const all = new Map<string, Record<string, unknown>>([
       [
         parent,
         {
           plan: {
-            references: [{ type: "x-vbrief/plan", uri: "pending/2026-01-01-on-disk.vbrief.json" }],
+            references: [{ type: "x-vbrief/plan", uri: "pending/2026-01-01-on-disk.xbrief.json" }],
           },
         },
       ],
     ]);
     expect(
-      validateEpicStoryLinks(all, vbrief, new Map([[parent, "vbrief/proposed/p.vbrief.json"]])),
+      validateEpicStoryLinks(all, vbrief, new Map([[parent, "xbrief/proposed/p.xbrief.json"]])),
     ).toEqual([]);
     rmSync(root, { recursive: true, force: true });
   });
@@ -1122,7 +1122,7 @@ describe("vbrief-validate extra coverage", () => {
     expect(
       validateVbriefSchema(
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "T",
             status: "running",

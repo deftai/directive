@@ -71,11 +71,11 @@ describe("validate-content branch coverage", () => {
 
   it("resolveCapacityAllocation returns default-on-error", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { policy: { capacityAllocation: { window: 30, buckets: [] } } },
       }),
     );
@@ -99,17 +99,17 @@ describe("validate-content branch coverage", () => {
 
   it("iterVbriefPlans skips malformed files", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "pending", "bad.vbrief.json"), "not-json");
-    writeFileSync(join(root, "vbrief", "pending", "note.txt"), "x");
-    expect(iterVbriefPlans(join(root, "vbrief"))).toEqual([]);
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "pending", "bad.xbrief.json"), "not-json");
+    writeFileSync(join(root, "xbrief", "pending", "note.txt"), "x");
+    expect(iterVbriefPlans(join(root, "xbrief"))).toEqual([]);
   });
 
   it("summarizeDecisionBacklog reads audit log events", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", ".audit"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".audit"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", ".audit", "pending-human-decisions.jsonl"),
+      join(root, "xbrief", ".audit", "pending-human-decisions.jsonl"),
       `${JSON.stringify({ decision_id: "d1", status: "pending", kind: "gate" })}\n` +
         `${JSON.stringify({ decision_id: "d1", status: "resolved", timestamp: "2026-06-03T00:00:00Z", override: true })}\n`,
     );
@@ -135,17 +135,17 @@ describe("validate-content branch coverage", () => {
     expect(advance.action).toBe("advance");
   });
 
-  it("post-cutover full-spec consumer tolerates specification.vbrief.json", () => {
+  it("post-cutover full-spec consumer tolerates specification.xbrief.json", () => {
     const root = tempRoot();
     for (const d of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", d), { recursive: true });
+      mkdirSync(join(root, "xbrief", d), { recursive: true });
     }
-    writeFileSync(join(root, "vbrief", "specification.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "completed", "2026-05-26-done.vbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "specification.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "completed", "2026-05-26-done.xbrief.json"), "{}");
     writeFileSync(
       join(root, "SPECIFICATION.md"),
-      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n",
+      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.xbrief.json -->\n",
     );
     expect(validateStrategyOutput(root).some((e) => e.includes("Legacy"))).toBe(false);
   });
@@ -153,12 +153,12 @@ describe("validate-content branch coverage", () => {
   it("enforce balanced mix stays within tolerance", () => {
     const root = tempRoot();
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", folder), { recursive: true });
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
     }
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           policy: {
             capacityAllocation: {
@@ -184,9 +184,9 @@ describe("validate-content branch coverage", () => {
     for (const [bucket, count] of layout) {
       for (let i = 0; i < count; i += 1) {
         writeFileSync(
-          join(root, "vbrief", "completed", `${bucket}-${i}.vbrief.json`),
+          join(root, "xbrief", "completed", `${bucket}-${i}.xbrief.json`),
           JSON.stringify({
-            vBRIEFInfo: { version: "0.6" },
+            xBRIEFInfo: { version: "0.8" },
             plan: {
               metadata: { capacityBucket: bucket, completedAt },
             },

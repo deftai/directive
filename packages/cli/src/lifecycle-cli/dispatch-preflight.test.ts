@@ -29,21 +29,21 @@ function gitCommit(cwd: string, message: string): void {
 function buildRepo(branch = "master"): { root: string; vbriefPath: string } {
   const root = mkdtempSync(join(tmpdir(), "deft-lc-pf-"));
   temps.push(root);
-  const dir = join(root, "vbrief", "active");
+  const dir = join(root, "xbrief", "active");
   mkdirSync(dir, { recursive: true });
-  const vbriefPath = join(dir, "story.vbrief.json");
+  const vbriefPath = join(dir, "story.xbrief.json");
   writeFileSync(
     vbriefPath,
     JSON.stringify({
       plan: { status: "running", title: "T", items: [] },
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
     }),
     "utf8",
   );
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "PROJECT-DEFINITION", status: "running", items: [] },
     }),
     "utf8",

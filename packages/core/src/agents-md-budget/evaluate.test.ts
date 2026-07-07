@@ -12,12 +12,12 @@ afterAll(() => {
 });
 
 function writeProjectDefinition(root: string, plan: Record<string, unknown>): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [], ...plan },
     }),
     "utf8",
@@ -43,7 +43,8 @@ function agentsWith(unmanaged: number, managed: number): string {
 function makeRepo(options: { plan?: Record<string, unknown>; agents?: string }): string {
   const root = mkdtempSync(join(tmpdir(), "deft-agents-budget-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
   if (options.plan !== undefined) {
     writeProjectDefinition(root, options.plan);
   }

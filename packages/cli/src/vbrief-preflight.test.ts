@@ -16,7 +16,7 @@ function activeRunning(): string {
   temps.push(root);
   const dir = join(root, "active");
   mkdirSync(dir, { recursive: true });
-  const path = join(dir, "story.vbrief.json");
+  const path = join(dir, "story.xbrief.json");
   writeFileSync(path, JSON.stringify({ plan: { status: "running" } }), "utf8");
   return path;
 }
@@ -60,7 +60,7 @@ describe("run", () => {
     temps.push(root);
     const dir = join(root, "pending");
     mkdirSync(dir, { recursive: true });
-    const path = join(dir, "story.vbrief.json");
+    const path = join(dir, "story.xbrief.json");
     writeFileSync(path, JSON.stringify({ plan: { status: "running" } }), "utf8");
     expect(silentRun(["--vbrief-path", path])).toBe(1);
   });
@@ -88,17 +88,17 @@ describe("vbrief-preflight-parity helpers", () => {
   it("parseJsonOutput extracts structured fields", async () => {
     const { parseJsonOutput } = await import("./vbrief-preflight-fixtures.js");
     const stdout =
-      '{"exit_code":1,"message":"nope","ready":false,"vbrief_path":"/x/story.vbrief.json"}';
+      '{"exit_code":1,"message":"nope","ready":false,"vbrief_path":"/x/story.xbrief.json"}';
     const out = parseJsonOutput(stdout, 1);
     expect(out.exitCode).toBe(1);
     expect(out.ready).toBe(false);
-    expect(out.vbriefPath).toBe("/x/story.vbrief.json");
+    expect(out.vbriefPath).toBe("/x/story.xbrief.json");
     expect(out.message).toBe("nope");
   });
 
   it("diffOutputs reports clean when outputs match", async () => {
     const { diffOutputs, parseJsonOutput } = await import("./vbrief-preflight-fixtures.js");
-    const stdout = '{"exit_code":0,"message":"OK","ready":true,"vbrief_path":"/a.vbrief.json"}';
+    const stdout = '{"exit_code":0,"message":"OK","ready":true,"vbrief_path":"/a.xbrief.json"}';
     const py = parseJsonOutput(stdout, 0);
     const ts = parseJsonOutput(stdout, 0);
     const r = diffOutputs("case", py, ts);

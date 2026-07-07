@@ -34,7 +34,7 @@ describe("renderXbriefMigrationLine", () => {
     expect(renderXbriefMigrationLine(root)).toContain("xBrief migration: none");
   });
 
-  it("signposts legacy vbrief layout with migrate:xbrief guidance", () => {
+  it("reports migrate-required for a pure legacy-only vbrief/ project (#2112)", () => {
     const root = mkdtempSync(join(tmpdir(), "xbrief-signpost-legacy-"));
     temps.push(root);
     mkdirSync(join(root, "vbrief", "active"), { recursive: true });
@@ -51,9 +51,9 @@ describe("renderXbriefMigrationLine", () => {
     );
 
     const line = renderXbriefMigrationLine(root);
-    expect(line).toContain("legacy vbrief layout detected");
+    expect(line).toContain("migrate required");
+    expect(line).toContain("only vbrief/ found");
     expect(line).toContain("migrate:xbrief");
-    expect(line).toContain("more marker(s)");
   });
 
   it("reports an unambiguous xbrief-active + vbrief-removed state after migration [a2]", () => {
@@ -118,6 +118,31 @@ describe("renderXbriefMigrationLine", () => {
     const line = renderXbriefMigrationLine(root);
     expect(line).toContain("converge pending");
     expect(line).toContain("empty legacy vbrief/");
+    expect(line).toContain("migrate:xbrief");
+  });
+
+  it("reports migrate-required for a dual-populated tree (#2112)", () => {
+    const root = mkdtempSync(join(tmpdir(), "xbrief-signpost-dual-"));
+    temps.push(root);
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "vbrief", "active", "legacy.vbrief.json"),
+      JSON.stringify(SAMPLE_V06),
+      "utf8",
+    );
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", description: "fixture" },
+        plan: { title: "Migrated", status: "running", items: [] },
+      }),
+      "utf8",
+    );
+
+    const line = renderXbriefMigrationLine(root);
+    expect(line).toContain("migrate required");
+    expect(line).toContain("both vbrief/ and xbrief/ found");
     expect(line).toContain("migrate:xbrief");
   });
 });

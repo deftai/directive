@@ -7,7 +7,7 @@ import { CategoryBConflictError, migrateCategoryBCorpus, namespaceCategoryBPlan 
 describe("namespaceCategoryBPlan (#1650)", () => {
   it("renames bare policy + completedNote to the x-directive/ namespace", () => {
     const doc = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { id: "x", policy: { wipCap: 5 }, completedNote: "done" },
     };
     const result = namespaceCategoryBPlan(doc);
@@ -55,8 +55,8 @@ describe("migrateCategoryBCorpus (#1650)", () => {
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "catb-corpus-"));
-    mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
   });
 
   afterEach(() => {
@@ -70,21 +70,21 @@ describe("migrateCategoryBCorpus (#1650)", () => {
   }
 
   it("namespaces every Category B key across the corpus and is idempotent", () => {
-    const pd = write("vbrief/PROJECT-DEFINITION.vbrief.json", {
+    const pd = write("xbrief/PROJECT-DEFINITION.xbrief.json", {
       plan: { id: "pd", policy: { wipCap: 5 } },
     });
-    const done = write("vbrief/completed/done.vbrief.json", {
+    const done = write("xbrief/completed/done.xbrief.json", {
       plan: { id: "done", completedNote: "shipped" },
     });
-    write("vbrief/active/clean.vbrief.json", {
+    write("xbrief/active/clean.xbrief.json", {
       plan: { id: "clean", "x-directive/policy": {} },
     });
 
     const first = migrateCategoryBCorpus(root);
     expect(first.scanned).toBe(3);
     expect(first.changed).toEqual([
-      "vbrief/PROJECT-DEFINITION.vbrief.json",
-      "vbrief/completed/done.vbrief.json",
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      "xbrief/completed/done.xbrief.json",
     ]);
     expect(first.conflicts).toEqual([]);
 
@@ -99,12 +99,12 @@ describe("migrateCategoryBCorpus (#1650)", () => {
   });
 
   it("reports a conflict without rewriting the file", () => {
-    write("vbrief/active/conflict.vbrief.json", {
+    write("xbrief/active/conflict.xbrief.json", {
       plan: { policy: { wipCap: 1 }, "x-directive/policy": { wipCap: 2 } },
     });
     const result = migrateCategoryBCorpus(root);
     expect(result.conflicts).toHaveLength(1);
-    expect(result.conflicts[0]?.path).toBe("vbrief/active/conflict.vbrief.json");
+    expect(result.conflicts[0]?.path).toBe("xbrief/active/conflict.xbrief.json");
     expect(result.changed).toEqual([]);
   });
 });

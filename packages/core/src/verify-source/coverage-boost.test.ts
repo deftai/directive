@@ -70,7 +70,7 @@ describe("verify-source coverage boost", () => {
 
   it("validateFile handles home conflict and standalone paths", () => {
     root = mkdtempSync(join(tmpdir(), "cs-boost-"));
-    const path = join(root, "x.vbrief.json");
+    const path = join(root, "x.xbrief.json");
     writeFileSync(
       path,
       JSON.stringify({
@@ -103,10 +103,10 @@ describe("verify-source coverage boost", () => {
 
   it("discoverCodeStructurePaths finds sibling vbrief files", () => {
     root = mkdtempSync(join(tmpdir(), "cs-disc-"));
-    const vbrief = join(root, "vbrief", "active");
+    const vbrief = join(root, "xbrief", "active");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "story.vbrief.json"),
+      join(vbrief, "story.xbrief.json"),
       JSON.stringify({
         plan: {
           architecture: {
@@ -123,15 +123,22 @@ describe("verify-source coverage boost", () => {
       "utf8",
     );
     const paths = discoverCodeStructurePaths(root);
-    expect(paths.some((p) => p.endsWith("story.vbrief.json"))).toBe(true);
+    expect(paths.some((p) => p.endsWith("story.xbrief.json"))).toBe(true);
+  });
+
+  it("discoverCodeStructurePaths gracefully handles missing xbrief/ layout", () => {
+    // No xbrief/ directory - resolveLifecycleRoot throws; should return empty paths
+    const emptyRoot = mkdtempSync(join(tmpdir(), "cs-empty-"));
+    const paths = discoverCodeStructurePaths(emptyRoot);
+    expect(Array.isArray(paths)).toBe(true);
   });
 
   it("evaluateCodeStructure supports json and strict modes", () => {
     root = mkdtempSync(join(tmpdir(), "cs-json-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           architecture: {
@@ -326,7 +333,7 @@ def run():
 
   it("evaluateCodeStructure emits FAIL lines for invalid explicit path", () => {
     root = mkdtempSync(join(tmpdir(), "cs-fail-"));
-    const path = join(root, "bad.vbrief.json");
+    const path = join(root, "bad.xbrief.json");
     writeFileSync(
       path,
       JSON.stringify({

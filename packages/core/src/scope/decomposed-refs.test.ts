@@ -20,16 +20,16 @@ describe("decomposed-refs branches", () => {
 
   it("skips invalid parents, missing files, and unchanged uris", () => {
     root = mkdtempSync(join(tmpdir(), "decomp-br-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    const parent = join(vbrief, "active", "p.vbrief.json");
+    const parent = join(vbrief, "active", "p.xbrief.json");
     writeFileSync(
       parent,
       formatVbriefJson({
         plan: {
           references: [
-            { type: "x-vbrief/plan", uri: "active/child.vbrief.json" },
-            { type: "x-vbrief/plan", uri: "active/child.vbrief.json" },
+            { type: "x-vbrief/plan", uri: "active/child.xbrief.json" },
+            { type: "x-vbrief/plan", uri: "active/child.xbrief.json" },
             null,
             { type: "other", uri: "x" },
           ],
@@ -37,13 +37,13 @@ describe("decomposed-refs branches", () => {
       }),
     );
     const childData = {
-      plan: { planRef: "active/p.vbrief.json", items: [{ planRef: 123 }] },
+      plan: { planRef: "active/p.xbrief.json", items: [{ planRef: 123 }] },
     };
     expect(
       updateDecomposedParentBackReferences(
         childData,
-        join(vbrief, "pending", "child.vbrief.json"),
-        join(vbrief, "active", "child.vbrief.json"),
+        join(vbrief, "pending", "child.xbrief.json"),
+        join(vbrief, "active", "child.xbrief.json"),
         vbrief,
       ),
     ).toEqual([]);
@@ -52,18 +52,18 @@ describe("decomposed-refs branches", () => {
       parent,
       formatVbriefJson({
         plan: {
-          references: [{ type: "x-vbrief/plan", uri: "active/child.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "active/child.xbrief.json" }],
         },
       }),
     );
     writeFileSync(
-      join(vbrief, "active", "child.vbrief.json"),
-      formatVbriefJson({ plan: { planRef: "active/p.vbrief.json", items: [] } }),
+      join(vbrief, "active", "child.xbrief.json"),
+      formatVbriefJson({ plan: { planRef: "active/p.xbrief.json", items: [] } }),
     );
     updateDecomposedParentBackReferences(
       childData,
-      join(vbrief, "active", "child.vbrief.json"),
-      join(vbrief, "active", "child.vbrief.json"),
+      join(vbrief, "active", "child.xbrief.json"),
+      join(vbrief, "active", "child.xbrief.json"),
       vbrief,
     );
     expect(JSON.parse(readFileSync(parent, "utf8")).plan.references[0].uri).toContain("active/");
@@ -71,16 +71,16 @@ describe("decomposed-refs branches", () => {
 
   it("updates child planRefs when parent moves", () => {
     root = mkdtempSync(join(tmpdir(), "decomp-child-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    const parent = join(vbrief, "pending", "p.vbrief.json");
-    const child = join(vbrief, "pending", "c.vbrief.json");
+    const parent = join(vbrief, "pending", "p.xbrief.json");
+    const child = join(vbrief, "pending", "c.xbrief.json");
     writeFileSync(
       parent,
       formatVbriefJson({
         plan: {
-          references: [{ type: "x-vbrief/plan", uri: "pending/c.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "pending/c.xbrief.json" }],
           items: [],
         },
       }),
@@ -88,11 +88,11 @@ describe("decomposed-refs branches", () => {
     writeFileSync(
       child,
       formatVbriefJson({
-        plan: { planRef: "pending/p.vbrief.json", items: [{ planRef: "pending/p.vbrief.json" }] },
+        plan: { planRef: "pending/p.xbrief.json", items: [{ planRef: "pending/p.xbrief.json" }] },
       }),
     );
     const parentData = JSON.parse(readFileSync(parent, "utf8"));
-    const newParent = join(vbrief, "active", "p.vbrief.json");
+    const newParent = join(vbrief, "active", "p.xbrief.json");
     writeFileSync(newParent, readFileSync(parent));
     rmSync(parent);
     const updated = updateDecomposedChildBackReferences(parentData, parent, newParent, vbrief);
@@ -102,6 +102,6 @@ describe("decomposed-refs branches", () => {
 
   it("detectLifecycleFolder returns null outside lifecycle dirs", () => {
     expect(detectLifecycleFolder("/tmp/vbrief.json")).toBeNull();
-    expect(detectLifecycleFolder("/tmp/proposed/x.vbrief.json")).toBe("proposed");
+    expect(detectLifecycleFolder("/tmp/proposed/x.xbrief.json")).toBe("proposed");
   });
 });

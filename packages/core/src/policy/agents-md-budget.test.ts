@@ -16,15 +16,15 @@ function makeRepo(raw?: string): string {
   const root = mkdtempSync(join(tmpdir(), "deft-agents-budget-policy-"));
   temps.push(root);
   if (raw !== undefined) {
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), raw, "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), raw, "utf8");
   }
   return root;
 }
 
 /** Serialize a plan object into a minimal valid PROJECT-DEFINITION envelope. */
 function withPlan(plan: unknown): string {
-  return JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan });
+  return JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan });
 }
 
 describe("resolveAgentsMdBudget", () => {

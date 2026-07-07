@@ -35,9 +35,9 @@ import { spawnSync } from "node:child_process";
 const mockedSpawn = vi.mocked(spawnSync);
 
 function writePd(root: string, body: Record<string, unknown>): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(body, null, 2)}\n`,
     "utf8",
   );
@@ -47,10 +47,10 @@ describe("mutations-core branch coverage", () => {
   it("loadProjectDefinitionForMutation error paths", () => {
     const root = mkdtempSync(join(tmpdir(), "mcio-"));
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(ProjectDefinitionIOError);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "[]", "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "[]", "utf8");
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(/not a JSON object/);
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{bad", "utf8");
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{bad", "utf8");
     expect(() => loadProjectDefinitionForMutation(root)).toThrow(/not valid JSON/);
   });
 
@@ -118,10 +118,10 @@ describe("mutations-core branch coverage", () => {
 describe("renderers and resolve branch coverage", () => {
   it("extractReferencedIssues walks vbrief lifecycle folders", () => {
     const root = mkdtempSync(join(tmpdir(), "ref-"));
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "active", "story.vbrief.json"),
+      join(root, "xbrief", "active", "story.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [
@@ -133,9 +133,9 @@ describe("renderers and resolve branch coverage", () => {
       }),
       "utf8",
     );
-    writeFileSync(join(root, "vbrief", "proposed", "bad.vbrief.json"), "not-json", "utf8");
+    writeFileSync(join(root, "xbrief", "proposed", "bad.xbrief.json"), "not-json", "utf8");
     writeFileSync(
-      join(root, "vbrief", "proposed", "slice.vbrief.json"),
+      join(root, "xbrief", "proposed", "slice.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/7" }],
@@ -197,8 +197,8 @@ describe("renderers and resolve branch coverage", () => {
       getRawIgnores({ plan: { policy: { triageScopeIgnores: [{ label: "x" }, null, 1] } } }),
     ).toEqual([{ label: "x" }]);
     const root = mkdtempSync(join(tmpdir(), "resx-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{", "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{", "utf8");
     expect(loadProjectDefinition(root)).toBeNull();
     writePd(root, {
       plan: {

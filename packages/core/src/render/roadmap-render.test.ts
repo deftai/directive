@@ -18,8 +18,8 @@ afterEach(() => {
 function makeFixture(): { pending: string; completed: string; outPath: string } {
   const root = mkdtempSync(join(tmpdir(), "deft-roadmap-idem-"));
   temps.push(root);
-  const pending = join(root, "vbrief", "pending");
-  const completed = join(root, "vbrief", "completed");
+  const pending = join(root, "xbrief", "pending");
+  const completed = join(root, "xbrief", "completed");
   mkdirSync(pending, { recursive: true });
   mkdirSync(completed, { recursive: true });
   return { pending, completed, outPath: join(root, "ROADMAP.md") };
@@ -31,7 +31,7 @@ function writeVbrief(dir: string, name: string, data: unknown): void {
 
 /** Scope with multiple GitHub issue references (flat phase-grouped model). */
 const MULTI_REF_SCOPE_A = {
-  vBRIEFInfo: { version: "0.6" },
+  xBRIEFInfo: { version: "0.8" },
   plan: {
     title: "Feature Work",
     status: "pending",
@@ -44,7 +44,7 @@ const MULTI_REF_SCOPE_A = {
 };
 
 const MULTI_REF_SCOPE_B = {
-  vBRIEFInfo: { version: "0.6" },
+  xBRIEFInfo: { version: "0.8" },
   plan: {
     title: "Second Scope",
     status: "running",
@@ -59,7 +59,7 @@ const MULTI_REF_SCOPE_B = {
 
 /** Hierarchical scope listing multiple issue numbers in references[]. */
 const HIERARCHICAL_MULTI_REF = {
-  vBRIEFInfo: { version: "0.6" },
+  xBRIEFInfo: { version: "0.8" },
   plan: {
     title: "Dependency Test",
     status: "pending",
@@ -78,8 +78,8 @@ const HIERARCHICAL_MULTI_REF = {
 describe("roadmap-render idempotency", () => {
   it("render then check exits 0 for flat scopes with multi-issue references[]", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
-    writeVbrief(pending, "2026-02-01-b.vbrief.json", MULTI_REF_SCOPE_B);
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(pending, "2026-02-01-b.xbrief.json", MULTI_REF_SCOPE_B);
 
     const [renderOk, renderMsg] = renderRoadmap(pending, outPath);
     expect(renderOk).toBe(true);
@@ -92,7 +92,7 @@ describe("roadmap-render idempotency", () => {
 
   it("render then check exits 0 for hierarchical scopes with multi-issue references[]", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-deps.vbrief.json", HIERARCHICAL_MULTI_REF);
+    writeVbrief(pending, "2026-01-01-deps.xbrief.json", HIERARCHICAL_MULTI_REF);
 
     const [renderOk] = renderRoadmap(pending, outPath);
     expect(renderOk).toBe(true);
@@ -109,8 +109,8 @@ describe("roadmap-render idempotency", () => {
 
   it("--check compares on-disk bytes against renderRoadmapToBuffer output", () => {
     const { pending, completed, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
-    writeVbrief(pending, "2026-02-01-b.vbrief.json", MULTI_REF_SCOPE_B);
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(pending, "2026-02-01-b.xbrief.json", MULTI_REF_SCOPE_B);
 
     renderRoadmap(pending, outPath, completed);
 
@@ -124,8 +124,8 @@ describe("roadmap-render idempotency", () => {
 
   it("main CLI render then --check exits 0 with multi-issue references[]", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
-    writeVbrief(pending, "2026-02-01-b.vbrief.json", MULTI_REF_SCOPE_B);
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(pending, "2026-02-01-b.xbrief.json", MULTI_REF_SCOPE_B);
 
     expect(roadmapRenderMain([pending, outPath])).toBe(0);
     expect(roadmapRenderMain(["--check", pending, outPath])).toBe(0);
@@ -133,7 +133,7 @@ describe("roadmap-render idempotency", () => {
 
   it("checkDrift detects stale ROADMAP.md content", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
     writeFileSync(outPath, "stale content\n", "utf8");
     const [ok, msg] = checkDrift(pending, outPath);
     expect(ok).toBe(false);
@@ -149,7 +149,7 @@ describe("roadmap-render idempotency", () => {
 
   it("checkDrift rejects missing ROADMAP when pending vBRIEFs exist", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
     const [ok, msg] = checkDrift(pending, outPath);
     expect(ok).toBe(false);
     expect(msg).toContain("does not exist");
@@ -157,8 +157,8 @@ describe("roadmap-render idempotency", () => {
 
   it("checkDrift rejects missing ROADMAP when only completed vBRIEFs exist", () => {
     const { pending, completed, outPath } = makeFixture();
-    writeVbrief(completed, "2026-01-01-done.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(completed, "2026-01-01-done.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Done scope",
         status: "completed",
@@ -179,9 +179,9 @@ describe("roadmap-render idempotency", () => {
 
   it("generateRoadmapContent alias matches renderRoadmapToBuffer", () => {
     const { pending, completed } = makeFixture();
-    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
-    writeVbrief(completed, "2026-01-01-done.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(completed, "2026-01-01-done.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Done", status: "completed", references: [{ id: "#99" }] },
     });
     expect(generateRoadmapContent(pending, completed)).toBe(
@@ -191,8 +191,8 @@ describe("roadmap-render idempotency", () => {
 
   it("renders dependency ordering and completed section", () => {
     const { pending, completed, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-deps.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-01-01-deps.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Dependency Test",
         status: "pending",
@@ -210,8 +210,8 @@ describe("roadmap-render idempotency", () => {
         ],
       },
     });
-    writeVbrief(completed, "2026-01-01-done.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(completed, "2026-01-01-done.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Completed item",
         status: "completed",
@@ -229,15 +229,15 @@ describe("roadmap-render idempotency", () => {
 
   it("main --check returns 1 when ROADMAP has drifted", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-a.vbrief.json", MULTI_REF_SCOPE_A);
+    writeVbrief(pending, "2026-01-01-a.xbrief.json", MULTI_REF_SCOPE_A);
     writeFileSync(outPath, "stale\n", "utf8");
     expect(roadmapRenderMain(["--check", pending, outPath])).toBe(1);
   });
 
   it("groups legacy narrative Phase labels and tier subgroups", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-01-01-tiered.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-01-01-tiered.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Tiered scope",
         status: "pending",
@@ -245,8 +245,8 @@ describe("roadmap-render idempotency", () => {
         references: [{ id: "#10" }, { uri: "https://github.com/o/r/issues/11" }],
       },
     });
-    writeVbrief(pending, "2026-02-01-untiered.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-02-01-untiered.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Untiered scope",
         status: "pending",
@@ -254,7 +254,7 @@ describe("roadmap-render idempotency", () => {
         references: [{ url: "https://github.com/o/r/issues/12" }],
       },
     });
-    writeFileSync(join(pending, "bad.vbrief.json"), "{not json", "utf8");
+    writeFileSync(join(pending, "bad.xbrief.json"), "{not json", "utf8");
     renderRoadmap(pending, outPath);
     const content = readFileSync(outPath, "utf8");
     expect(content).toContain("### Tier 1 -- Core");
@@ -265,8 +265,8 @@ describe("roadmap-render idempotency", () => {
 
   it("orders ranked scopes and renders phase narratives", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-06-04-a.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-06-04-a.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Alpha",
         status: "pending",
@@ -282,8 +282,8 @@ describe("roadmap-render idempotency", () => {
         ],
       },
     });
-    writeVbrief(pending, "2026-06-04-b.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-06-04-b.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Bravo",
         status: "pending",
@@ -302,8 +302,8 @@ describe("roadmap-render idempotency", () => {
 
   it("covers rank parsing and numeric phase ordering branches", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-04-15-a-phase6.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-04-15-a-phase6.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Widget 6",
         status: "pending",
@@ -311,8 +311,8 @@ describe("roadmap-render idempotency", () => {
         references: [{ id: "#600" }],
       },
     });
-    writeVbrief(pending, "2026-04-15-b-phase1.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-04-15-b-phase1.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Widget 1",
         status: "pending",
@@ -328,8 +328,8 @@ describe("roadmap-render idempotency", () => {
 
   it("renders legacy source/target edges and phase headings without ids", () => {
     const { pending, outPath } = makeFixture();
-    writeVbrief(pending, "2026-04-15-c-hier.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    writeVbrief(pending, "2026-04-15-c-hier.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Legacy edges",
         status: "pending",
@@ -367,11 +367,11 @@ describe("roadmap-render main() --project-root layout resolver (#2139)", () => {
   function writePendingVbrief(root: string, layoutDir: string): void {
     const pending = join(root, layoutDir, "pending");
     mkdirSync(pending, { recursive: true });
-    const suffix = layoutDir === "xbrief" ? ".xbrief.json" : ".vbrief.json";
+    const suffix = layoutDir === "xbrief" ? ".xbrief.json" : ".xbrief.json";
     writeFileSync(
       join(pending, `2026-01-01-feature${suffix}`),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "Feature X",
           status: "pending",
@@ -396,7 +396,7 @@ describe("roadmap-render main() --project-root layout resolver (#2139)", () => {
   it("falls back to vbrief/pending/ via --project-root on legacy tree (#2139)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-roadmap-vbrief-"));
     tmpDirs.push(root);
-    writePendingVbrief(root, "vbrief");
+    writePendingVbrief(root, "xbrief");
     const outPath = join(root, "ROADMAP.md");
     const exit = roadmapRenderMain(["--project-root", root, outPath]);
     expect(exit).toBe(0);

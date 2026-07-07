@@ -8,10 +8,10 @@ import { computeDrift, renderDriftReport } from "./index.js";
 import { resolveScopeIgnores } from "./scope-rules.js";
 
 function writePd(root: string, policy: Record<string, unknown> = {}): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { policy } }),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { policy } }),
     "utf8",
   );
 }

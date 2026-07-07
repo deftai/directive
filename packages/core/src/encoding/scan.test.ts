@@ -56,14 +56,14 @@ describe("renderFinding", () => {
 
 describe("isVbriefNarrativeControlScope", () => {
   it("is true only for in-flight vBRIEFs", () => {
-    expect(isVbriefNarrativeControlScope("vbrief/active/x.vbrief.json")).toBe(true);
-    expect(isVbriefNarrativeControlScope("vbrief/proposed/x.vbrief.json")).toBe(true);
-    expect(isVbriefNarrativeControlScope("vbrief/completed/x.vbrief.json")).toBe(false);
-    expect(isVbriefNarrativeControlScope("vbrief/active/x.json")).toBe(false);
+    expect(isVbriefNarrativeControlScope("xbrief/active/x.xbrief.json")).toBe(true);
+    expect(isVbriefNarrativeControlScope("xbrief/proposed/x.xbrief.json")).toBe(true);
+    expect(isVbriefNarrativeControlScope("xbrief/completed/x.xbrief.json")).toBe(false);
+    expect(isVbriefNarrativeControlScope("xbrief/active/x.json")).toBe(false);
     expect(isVbriefNarrativeControlScope("notes.md")).toBe(false);
   });
   it("normalizes backslash paths (Windows edge case)", () => {
-    expect(isVbriefNarrativeControlScope("vbrief\\active\\x.vbrief.json")).toBe(true);
+    expect(isVbriefNarrativeControlScope("vbrief\\active\\x.xbrief.json")).toBe(true);
   });
 });
 
@@ -114,46 +114,46 @@ describe("scanFile", () => {
   });
   it("detects control chars in an active vBRIEF narrative", () => {
     const content = `${JSON.stringify({ plan: { narratives: { problem: "bad\u000bvtab" } } }, null, 2)}\n`;
-    const full = fixture("vb.vbrief.json", content);
-    const findings = scanFile("vbrief/active/vb.vbrief.json", full);
+    const full = fixture("vb.xbrief.json", content);
+    const findings = scanFile("xbrief/active/vb.xbrief.json", full);
     expect(labels(findings)).toContain("U+000B vertical tab in vBRIEF narrative");
   });
   it("does not scan narrative controls for non-in-flight vBRIEFs", () => {
     const content = `${JSON.stringify({ plan: { narratives: { problem: "bad\u000bvtab" } } }, null, 2)}\n`;
-    const full = fixture("done.vbrief.json", content);
-    expect(scanFile("vbrief/completed/done.vbrief.json", full)).toEqual([]);
+    const full = fixture("done.xbrief.json", content);
+    expect(scanFile("xbrief/completed/done.xbrief.json", full)).toEqual([]);
   });
   it("flags a generic control char and a non-indentation tab in a narrative", () => {
     const content = `${JSON.stringify({ plan: { narratives: { a: "x\u0007y", b: "prose\there" } } }, null, 2)}\n`;
-    const full = fixture("ctl.vbrief.json", content);
-    const ls = labels(scanFile("vbrief/active/ctl.vbrief.json", full));
+    const full = fixture("ctl.xbrief.json", content);
+    const ls = labels(scanFile("xbrief/active/ctl.xbrief.json", full));
     expect(ls).toContain("U+0007 control character in vBRIEF narrative");
     expect(ls).toContain("U+0009 tab in vBRIEF narrative");
   });
   it("allows leading-indentation tabs in a narrative", () => {
     const content = `${JSON.stringify({ plan: { narratives: { a: "\t\tindented ok" } } }, null, 2)}\n`;
-    const full = fixture("indent.vbrief.json", content);
-    expect(scanFile("vbrief/active/indent.vbrief.json", full)).toEqual([]);
+    const full = fixture("indent.xbrief.json", content);
+    expect(scanFile("xbrief/active/indent.xbrief.json", full)).toEqual([]);
   });
   it("returns [] for an unreadable path", () => {
     expect(scanFile("missing.md", join(root, "does-not-exist.md"))).toEqual([]);
   });
   it("ignores malformed vBRIEF JSON without throwing", () => {
-    const full = fixture("broken.vbrief.json", "{not json");
-    expect(scanFile("vbrief/active/broken.vbrief.json", full)).toEqual([]);
+    const full = fixture("broken.xbrief.json", "{not json");
+    expect(scanFile("xbrief/active/broken.xbrief.json", full)).toEqual([]);
   });
 
   it("ignores active vBRIEFs lacking a plan.narratives object", () => {
     const cases: Array<[string, unknown]> = [
-      ["arr.vbrief.json", []],
-      ["noplan.vbrief.json", { other: 1 }],
-      ["planstr.vbrief.json", { plan: "x" }],
-      ["narrstr.vbrief.json", { plan: { narratives: "x" } }],
-      ["narrnum.vbrief.json", { plan: { narratives: { problem: 5 } } }],
+      ["arr.xbrief.json", []],
+      ["noplan.xbrief.json", { other: 1 }],
+      ["planstr.xbrief.json", { plan: "x" }],
+      ["narrstr.xbrief.json", { plan: { narratives: "x" } }],
+      ["narrnum.xbrief.json", { plan: { narratives: { problem: 5 } } }],
     ];
     for (const [name, value] of cases) {
       const full = fixture(name, `${JSON.stringify(value)}\n`);
-      expect(scanFile(`vbrief/active/${name}`, full)).toEqual([]);
+      expect(scanFile(`xbrief/active/${name}`, full)).toEqual([]);
     }
   });
 });

@@ -54,7 +54,7 @@ function makeCachedIssue(
 }
 
 function writeAuditLog(root: string, entries: Record<string, unknown>[]): void {
-  const dir = join(root, "vbrief", ".triage-cache");
+  const dir = join(root, "xbrief", ".triage-cache");
   mkdirSync(dir, { recursive: true });
   const body = entries.map((e) => JSON.stringify(e)).join("\n");
   writeFileSync(join(dir, "candidates.jsonl"), body.length > 0 ? `${body}\n` : "", "utf8");
@@ -77,30 +77,30 @@ function auditEntry(
 }
 
 function setWipCap(root: string, cap: number): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { policy: { wipCap: cap } } }),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { policy: { wipCap: cap } } }),
     "utf8",
   );
 }
 
 function writeActiveVbrief(root: string, name: string, status: string): void {
-  const dir = join(root, "vbrief", "active");
+  const dir = join(root, "xbrief", "active");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, `${name}.vbrief.json`),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { status, title: name } }),
+    join(dir, `${name}.xbrief.json`),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { status, title: name } }),
     "utf8",
   );
 }
 
 function writePendingVbriefs(root: string, count: number): void {
-  const dir = join(root, "vbrief", "pending");
+  const dir = join(root, "xbrief", "pending");
   mkdirSync(dir, { recursive: true });
   for (let i = 0; i < count; i += 1) {
-    writeFileSync(join(dir, `test-${i}.vbrief.json`), "{}", "utf8");
+    writeFileSync(join(dir, `test-${i}.xbrief.json`), "{}", "utf8");
   }
 }
 
@@ -394,9 +394,9 @@ describe("filesystem in-flight counter", () => {
 
   it("tolerates malformed vbriefs", () => {
     const root = mkRoot();
-    const dir = join(root, "vbrief", "active");
+    const dir = join(root, "xbrief", "active");
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "torn.vbrief.json"), '{"plan": {"status":', "utf8");
+    writeFileSync(join(dir, "torn.xbrief.json"), '{"plan": {"status":', "utf8");
     writeActiveVbrief(root, "good", "running");
     expect(countFilesystemInFlight(root)).toBe(1);
   });
@@ -428,8 +428,8 @@ describe("helpers", () => {
 
   it("readAuditLog tolerates malformed lines", () => {
     const root = mkRoot();
-    const log = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    const log = join(root, "xbrief", ".triage-cache", "candidates.jsonl");
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(
       log,
       `{bad json\n${JSON.stringify(auditEntry("deftai/directive", 1, "accept", "a"))}\n`,
@@ -450,7 +450,7 @@ describe("helpers", () => {
 
   it("appendHistory writes jsonl", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
+    const history = join(root, "xbrief", ".triage-cache", "summary-history.jsonl");
     appendHistory(
       history,
       baseResult({ untriaged: 4, inFlight: 2, wipCount: 3 }),
@@ -543,7 +543,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("does not suppress when discrepancy line would flip within 4h", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
+    const history = join(root, "xbrief", ".triage-cache", "summary-history.jsonl");
     const prior = baseResult({
       untriaged: 5,
       inFlight: 2,
@@ -566,7 +566,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("suppresses when key unchanged within 4h", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
+    const history = join(root, "xbrief", ".triage-cache", "summary-history.jsonl");
     const result = baseResult({
       untriaged: 5,
       inFlight: 2,
@@ -584,7 +584,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("does not suppress after 4h window", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
+    const history = join(root, "xbrief", ".triage-cache", "summary-history.jsonl");
     const result = baseResult({
       untriaged: 5,
       inFlight: 2,
@@ -602,7 +602,7 @@ describe("D2 suppression key (#1279)", () => {
 
   it("readLastHistoryRecord returns latest jsonl entry", () => {
     const root = mkRoot();
-    const history = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
+    const history = join(root, "xbrief", ".triage-cache", "summary-history.jsonl");
     appendHistory(history, baseResult({ untriaged: 1 }), "[triage] one", {
       emittedAt: "2026-06-29T10:00:00Z",
     });

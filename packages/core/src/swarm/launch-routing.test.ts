@@ -7,8 +7,8 @@ import { buildManifest, type ResolvedStory, swarmLaunch } from "./launch.js";
 const story: ResolvedStory = {
   token: "story-a",
   story_id: "story-a",
-  path: "/abs/story-a.vbrief.json",
-  relpath: "vbrief/active/story-a.vbrief.json",
+  path: "/abs/story-a.xbrief.json",
+  relpath: "xbrief/active/story-a.xbrief.json",
 };
 
 describe("buildManifest model stamping", () => {
@@ -54,12 +54,12 @@ describe("buildManifest model stamping", () => {
 });
 
 function writeReadyStory(project: string, storyId: string, issue: number): void {
-  const full = join(project, "vbrief", "active", `${storyId}.vbrief.json`);
-  mkdirSync(join(project, "vbrief", "active"), { recursive: true });
+  const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", "active"), { recursive: true });
   writeFileSync(
     full,
     `${JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         id: storyId,
         title: storyId,

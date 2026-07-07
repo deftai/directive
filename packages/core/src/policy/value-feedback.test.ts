@@ -26,11 +26,11 @@ afterAll(() => {
 function makeRepo(plan?: Record<string, unknown>): string {
   const root = mkdtempSync(join(tmpdir(), "deft-value-feedback-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [], ...plan },
     }),
     "utf8",
@@ -190,7 +190,7 @@ describe("enableValueFeedback disclosure gate", () => {
     expect(result.stdout).toContain(VALUE_FEEDBACK_CAPABILITY_COST_DISCLOSURE);
     expect(result.changed).toBe(false);
     const raw = JSON.parse(
-      readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
     );
     expect(raw).not.toBeNull();
     expect(typeof raw).toBe("object");

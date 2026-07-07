@@ -56,7 +56,7 @@ describe("evaluateXbriefDrift", () => {
     expect(result.message).toContain("no legacy-layout drift");
   });
 
-  it("exits 1 on a NEW *.vbrief.json artifact (legacy suffix)", () => {
+  it("exits 1 on a NEW *.xbrief.json artifact (legacy suffix)", () => {
     root = initRepo();
     writeTracked(root, "packages/core/regression.vbrief.json", CANONICAL_ARTIFACT);
     const result = evaluateXbriefDrift(root);
@@ -68,7 +68,7 @@ describe("evaluateXbriefDrift", () => {
 
   it("exits 1 on a NEW top-level vbrief/ lifecycle dir", () => {
     root = initRepo();
-    writeTracked(root, "vbrief/active/2026-06-30-1-thing.xbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "vbrief/active/2026-06-30-1-thing.vbrief.json", CANONICAL_ARTIFACT);
     const result = evaluateXbriefDrift(root);
     expect(result.code).toBe(1);
     expect(result.findings).toHaveLength(1);
@@ -89,19 +89,19 @@ describe("evaluateXbriefDrift", () => {
     // Legacy read-path regression fixtures + the shipped content/vbrief surface +
     // forensic doc template + archived history + framework migration RESULT artifacts
     // legitimately retain the legacy layout / token and must stay green.
-    writeTracked(root, "tests/fixtures/migration/clean/vbrief/x.vbrief.json", CANONICAL_ARTIFACT);
-    writeTracked(root, "content/vbrief/conformance/valid/x.vbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "tests/fixtures/migration/clean/xbrief/x.xbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "content/xbrief/conformance/valid/x.xbrief.json", CANONICAL_ARTIFACT);
     writeTracked(
       root,
-      ".deft/core/vbrief/conformance/valid/extension-at-root.vbrief.json",
+      ".deft/core/xbrief/conformance/valid/extension-at-root.xbrief.json",
       CANONICAL_ARTIFACT,
     );
     writeTracked(
       root,
-      "docs/reference/forensic-research/templates/x.vbrief.json",
+      "docs/reference/forensic-research/templates/x.xbrief.json",
       CANONICAL_ARTIFACT,
     );
-    writeTracked(root, "history/archive/2026-03-20-thing/x.vbrief.json", CANONICAL_ARTIFACT);
+    writeTracked(root, "history/archive/2026-03-20-thing/x.xbrief.json", CANONICAL_ARTIFACT);
     writeTracked(root, "xbrief/migration/legacy-note.xbrief.json", LEGACY_TOKEN_ARTIFACT);
     const result = evaluateXbriefDrift(root);
     expect(result.code).toBe(0);
@@ -128,7 +128,7 @@ describe("evaluateXbriefDrift", () => {
     writeTracked(
       root,
       "packages/core/src/layout/resolve.ts",
-      `export const LEGACY_ARTIFACT_DIR = "vbrief";\nexport const LEGACY_ARTIFACT_SUFFIX = ".vbrief.json";\n`,
+      `export const LEGACY_ARTIFACT_DIR = "vbrief";\nexport const LEGACY_ARTIFACT_SUFFIX = ".xbrief.json";\n`,
     );
     const result = evaluateXbriefDrift(root);
     expect(result.code).toBe(0);

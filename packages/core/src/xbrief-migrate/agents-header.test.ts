@@ -14,7 +14,7 @@ import { MIGRATED_ARTIFACT_DIR } from "./constants.js";
 const MANAGED_BLOCK = [
   "<!-- deft:managed-section v3 sha=abc123 refreshed=2026-07-02T00:00:00Z session=deadbeef -->",
   "# Deft — AI Development Framework",
-  "Managed body deliberately mentions vbrief/active/x.vbrief.json and vbrief:preflight.",
+  "Managed body deliberately mentions vbrief/active/x.xbrief.json and vbrief:preflight.",
   "<!-- /deft:managed-section -->",
 ].join("\n");
 
@@ -60,14 +60,14 @@ describe("rewriteUnmanagedHeaderTokens", () => {
     // Managed block is byte-for-byte intact — its legacy tokens survive.
     expect(result.content).toContain(MANAGED_BLOCK);
     expect(result.content).toContain(
-      "Managed body deliberately mentions vbrief/active/x.vbrief.json and vbrief:preflight.",
+      "Managed body deliberately mentions vbrief/active/x.xbrief.json and vbrief:preflight.",
     );
   });
 
   it("reports per-token replacement counts", () => {
     const result = rewriteUnmanagedHeaderTokens(STALE_HEADER);
     const byToken = new Map(result.replacements.map((r) => [r.legacy, r.count]));
-    // vbrief/ appears in header lines: proposed/, active/, `vbrief/`, completed/ (4).
+    // vbrief/ appears in header lines: scoped/, proposed/, active/, completed/ (4).
     expect(byToken.get("vbrief/")).toBe(4);
     // .vbrief.json appears in test-single, proposed/foo, active/foo (3).
     expect(byToken.get(".vbrief.json")).toBe(3);
@@ -83,7 +83,7 @@ describe("rewriteUnmanagedHeaderTokens", () => {
   });
 
   it("rewrites the whole document when there is no managed section", () => {
-    const plain = "See vbrief/active/story.vbrief.json and run vbrief:preflight.\n";
+    const plain = "See vbrief/active/story.xbrief.json and run vbrief:preflight.\n";
     const result = rewriteUnmanagedHeaderTokens(plain);
     expect(result.content).toBe("See xbrief/active/story.xbrief.json and run xbrief:preflight.\n");
     expect(result.changed).toBe(true);
@@ -129,7 +129,7 @@ describe("patchAgentsMdHeader", () => {
   it("honours read/write seams without touching disk", () => {
     let written: string | null = null;
     const outcome = patchAgentsMdHeader("/nowhere", {
-      readText: () => "run vbrief:preflight -- vbrief/active/x.vbrief.json\n",
+      readText: () => "run vbrief:preflight -- vbrief/active/x.xbrief.json\n",
       writeText: (_path, text) => {
         written = text;
       },
@@ -140,7 +140,7 @@ describe("patchAgentsMdHeader", () => {
 
   it("captures a write failure as a non-fatal `failed` outcome instead of throwing", () => {
     const outcome = patchAgentsMdHeader("/nowhere", {
-      readText: () => "run vbrief:preflight -- vbrief/active/x.vbrief.json\n",
+      readText: () => "run vbrief:preflight -- vbrief/active/x.xbrief.json\n",
       writeText: () => {
         throw new Error("EACCES: read-only AGENTS.md");
       },
@@ -229,7 +229,7 @@ describe("renderStaleHeaderLine", () => {
     const line = renderStaleHeaderLine(root);
     expect(line).toContain("still");
     expect(line).toContain("migrate:xbrief");
-    expect(line).toContain("vbrief/");
+    expect(line).toContain("xbrief/");
   });
 
   it("accepts an injected readText seam (no disk I/O for the AGENTS.md read)", () => {
@@ -239,7 +239,7 @@ describe("renderStaleHeaderLine", () => {
     // No AGENTS.md on disk — the seam supplies a stale header in memory.
     const line = renderStaleHeaderLine(
       root,
-      () => "run vbrief:preflight -- vbrief/active/x.vbrief.json\n",
+      () => "run vbrief:preflight -- vbrief/active/x.xbrief.json\n",
     );
     expect(line).toContain("migrate:xbrief");
     expect(line).toContain("vbrief:preflight");

@@ -174,10 +174,13 @@ export function checkManifestAgreement(
   const isFile = seams.isFile ?? ((p) => readText(p, seams) !== null);
   const manifestPath = locateManifest(projectRoot, installRoot, isFile);
   const expectedManifestPath = manifestPath ?? manifestCandidatePaths(projectRoot, installRoot)[0];
-  const bareCandidates = [
-    join(resolveLifecycleRoot(projectRoot), ".deft-version"),
-    join(projectRoot, ".deft-version"),
-  ];
+  let layoutRoot: string;
+  try {
+    layoutRoot = resolveLifecycleRoot(projectRoot);
+  } catch {
+    layoutRoot = projectRoot; // No xbrief/ layout; fall back to project root for bare version check.
+  }
+  const bareCandidates = [join(layoutRoot, ".deft-version"), join(projectRoot, ".deft-version")];
   const barePath = bareCandidates.find((p) => isFile(p)) ?? null;
   const manifestText = manifestPath ? readText(manifestPath, seams) : null;
   const bareText = barePath ? readText(barePath, seams) : null;

@@ -17,7 +17,7 @@ afterAll(() => {
 function makeRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-slice-branches-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+  mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
   mkdirSync(join(root, ".git"));
   return root;
 }
@@ -103,7 +103,7 @@ describe("slice branch coverage", () => {
         children: [{ n: 2, url: "u2", wave: 1, role: "manual" }],
         expected_close_signal: "all-children-merged",
       },
-      { path: join(root, "vbrief", ".triage-cache", "slices.jsonl") },
+      { path: join(root, "xbrief", ".triage-cache", "slices.jsonl") },
     );
     const forced = runRecordExisting(
       {
@@ -123,7 +123,7 @@ describe("slice branch coverage", () => {
       { newSliceId: () => "cccccccc-bbbb-cccc-dddd-eeeeeeeeeeee" },
     );
     expect(forced.exitCode).toBe(0);
-    expect(readAll({ path: join(root, "vbrief", ".triage-cache", "slices.jsonl") })).toHaveLength(
+    expect(readAll({ path: join(root, "xbrief", ".triage-cache", "slices.jsonl") })).toHaveLength(
       2,
     );
 
@@ -430,7 +430,7 @@ describe("slice branch coverage", () => {
       { newSliceId: () => "eeeeeeee-bbbb-cccc-dddd-eeeeeeeeeeee" },
     );
     expect(write.exitCode).toBe(0);
-    const saved = readAll({ path: join(root, "vbrief", ".triage-cache", "slices.jsonl") }).find(
+    const saved = readAll({ path: join(root, "xbrief", ".triage-cache", "slices.jsonl") }).find(
       (r) => r.umbrella === 2,
     );
     expect(saved?.notes).toBe("saved");

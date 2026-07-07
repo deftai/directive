@@ -59,7 +59,8 @@ describe("precutover helpers", () => {
   it("missingLifecycleFolders reports absent lifecycle dirs", () => {
     const base = mkdtempSync(join(tmpdir(), "precutover-"));
     temps.push(base);
-    mkdirSync(join(base, "vbrief"), { recursive: true });
+    mkdirSync(join(base, "xbrief"), { recursive: true });
+    writeFileSync(join(base, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     expect(missingLifecycleFolders(base)).toEqual([
       "proposed",
       "pending",
@@ -73,12 +74,12 @@ describe("precutover helpers", () => {
     const base = mkdtempSync(join(tmpdir(), "precutover-"));
     temps.push(base);
     const content =
-      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n";
+      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: xbrief/specification.xbrief.json -->\n";
     expect(isGeneratedSpecificationExport(base, content)).toBe(false);
-    mkdirSync(join(base, "vbrief"), { recursive: true });
+    mkdirSync(join(base, "xbrief"), { recursive: true });
     writeFileSync(
-      join(base, "vbrief", "specification.vbrief.json"),
-      '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"x","status":"running","narratives":{},"items":[]}}',
+      join(base, "xbrief", "specification.xbrief.json"),
+      '{"xBRIEFInfo":{"version":"0.8"},"plan":{"title":"x","status":"running","narratives":{},"items":[]}}',
       "utf8",
     );
     expect(isGeneratedSpecificationExport(base, content)).toBe(true);
@@ -134,15 +135,15 @@ describe("precutover helpers", () => {
     const base = mkdtempSync(join(tmpdir(), "precutover-"));
     temps.push(base);
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(base, "vbrief", folder), { recursive: true });
+      mkdirSync(join(base, "xbrief", folder), { recursive: true });
     }
     writeFileSync(
-      join(base, "vbrief", "specification.vbrief.json"),
-      '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"x","status":"running","narratives":{},"items":[]}}',
+      join(base, "xbrief", "specification.xbrief.json"),
+      '{"xBRIEFInfo":{"version":"0.8"},"plan":{"title":"x","status":"running","narratives":{},"items":[]}}',
       "utf8",
     );
     const content =
-      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n";
+      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: xbrief/specification.xbrief.json -->\n";
     expect(isCurrentGeneratedSpecification(base, content)).toBe(true);
   });
 
@@ -166,12 +167,13 @@ describe("precutover helpers", () => {
     const base = mkdtempSync(join(tmpdir(), "precutover-"));
     temps.push(base);
     writeFileSync(join(base, "SPECIFICATION.md"), "# spec\n", "utf8");
-    mkdirSync(join(base, "vbrief"), { recursive: true });
+    mkdirSync(join(base, "xbrief"), { recursive: true });
+    writeFileSync(join(base, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     const result = detectPreCutover(base);
     expect(result.preCutover).toBe(true);
     expect(result.reasons.some((r) => r.includes("SPECIFICATION.md"))).toBe(true);
     expect(result.reasons.some((r) => r.includes("lifecycle folder"))).toBe(true);
-    expect(result.reasons.some((r) => r.includes("vbrief/"))).toBe(true);
+    expect(result.reasons.some((r) => r.includes("xbrief/"))).toBe(true);
   });
 
   it("renderPrecutoverLine prints frozen guidance when pre-cutover", () => {
@@ -187,7 +189,7 @@ describe("precutover helpers", () => {
     const base = mkdtempSync(join(tmpdir(), "precutover-"));
     temps.push(base);
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(base, "vbrief", folder), { recursive: true });
+      mkdirSync(join(base, "xbrief", folder), { recursive: true });
     }
     expect(renderPrecutoverLine(base)).toContain("Pre-cutover: none");
   });

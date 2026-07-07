@@ -31,11 +31,11 @@ function initRepo(policy: Record<string, unknown> = {}): { root: string; head: s
   const root = mkdtempSync(join(tmpdir(), "session-extra-"));
   temps.push(root);
   writeFileSync(join(root, "README.md"), "x\n", "utf8");
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [], policy },
     }),
     "utf8",
@@ -129,12 +129,12 @@ describe("session extra coverage", () => {
     writeFileSync(join(root, ".deft", "last-session.json"), "[]", "utf8");
     expect(readSentinel(root)).toBeNull();
     expect(detectLatestActiveVbrief(root)).toBeNull();
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "active", "z.vbrief.json"), "{}\n", "utf8");
-    expect(detectLatestActiveVbrief(root)).toBe("vbrief/active/z.vbrief.json");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "z.xbrief.json"), "{}\n", "utf8");
+    expect(detectLatestActiveVbrief(root)).toBe("xbrief/active/z.xbrief.json");
     writeSentinel(root, {
       deftVersion: "1",
-      lastActiveVbrief: "vbrief/active/z.vbrief.json",
+      lastActiveVbrief: "xbrief/active/z.xbrief.json",
       lastBranch: "main",
       now: new Date("2026-06-08T00:00:00Z"),
     });
@@ -265,11 +265,11 @@ describe("session extra coverage", () => {
 
   it("session hook write failure returns code 1", () => {
     const { root } = initRepo();
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "active", "a.vbrief.json"), "{}\n", "utf8");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "a.xbrief.json"), "{}\n", "utf8");
     const result = runSessionStartHookWrite(root, {
       detectBranchFn: () => "main",
-      detectLatestActiveVbriefFn: () => "vbrief/active/a.vbrief.json",
+      detectLatestActiveVbriefFn: () => "xbrief/active/a.xbrief.json",
       resolveVersionFn: () => "1.0.0",
       writeSentinelFn: () => {
         throw new Error("fail");

@@ -7,8 +7,8 @@ import {
 } from "../vbrief-build/project-definition-io.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 
-/** Filesystem-relative location of the project-definition vBRIEF (display/back-compat). */
-export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
+/** Filesystem-relative location of the project-definition xBRIEF (display/back-compat). */
+export const PROJECT_DEFINITION_REL_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
 
 /** Environment variable emergency bypass for branch protection (#747). */
 export const ENV_BYPASS = "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT";
@@ -36,7 +36,14 @@ export interface PolicyResult {
  * else PROJECT-DEFINITION.vbrief.json (unchanged on today's tree).
  */
 export function projectDefinitionPath(projectRoot: string): string {
-  return resolveProjectDefinitionPath(pathResolve(projectRoot));
+  const root = pathResolve(projectRoot);
+  try {
+    return resolveProjectDefinitionPath(root);
+  } catch {
+    // No xbrief/ layout; return canonical xbrief path so callers get a predictable
+    // "not found" result rather than a thrown error.
+    return join(root, PROJECT_DEFINITION_REL_PATH);
+  }
 }
 
 function envBypassActive(): boolean {

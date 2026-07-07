@@ -98,13 +98,13 @@ export function populateCacheLayout(
 
 export function createConsumerProject(parent: string): string {
   const root = join(parent, "consumer");
-  mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-  mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-  mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-  mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
-  mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "specification.vbrief.json"),
+    join(root, "xbrief", "specification.xbrief.json"),
     `${JSON.stringify(
       {
         vBRIEFInfo: { version: "0.5" },
@@ -131,7 +131,7 @@ export function writeScopeVbrief(
   filename: string,
   status = "proposed",
 ): string {
-  const target = join(projectRoot, "vbrief", folder, filename);
+  const target = join(projectRoot, "xbrief", folder, filename);
   writeFileSync(
     target,
     `${JSON.stringify(

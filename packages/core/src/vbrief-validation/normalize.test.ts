@@ -13,7 +13,7 @@ describe("normalize", () => {
   });
 
   it("normalizeFixturePaths replaces fixture root", () => {
-    expect(normalizeFixturePaths("/tmp/fix/vbrief/x", "/tmp/fix")).toBe("<FIXTURE>/vbrief/x");
+    expect(normalizeFixturePaths("/tmp/fix/xbrief/x", "/tmp/fix")).toBe("<FIXTURE>/xbrief/x");
   });
 
   it("sortedDiagnostics sorts errors", () => {

@@ -52,13 +52,13 @@ describe("artifactSha256 ensure_ascii parity with Python", () => {
 });
 
 function writePolicyProject(root: string, policy: Record<string, unknown>): void {
-  const vbrief = join(root, "vbrief");
+  const vbrief = join(root, "xbrief");
   mkdirSync(vbrief, { recursive: true });
   writeFileSync(
-    join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+    join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "Fixture",
           status: "running",

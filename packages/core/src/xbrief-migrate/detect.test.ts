@@ -57,12 +57,12 @@ describe("detectLegacyVbriefLayout branch coverage", () => {
     expect(result.reasons.some((r) => r.includes("declared version 0.6"))).toBe(true);
   });
 
-  it("detects a root-level .vbrief.json artifact (lines 88-95)", () => {
-    // Root-level *.vbrief.json files are scanned separately from the vbrief/ directory.
+  it("detects a root-level .xbrief.json artifact (lines 88-95)", () => {
+    // Root-level *.xbrief.json files are scanned separately from the vbrief/ directory.
     // This exercises the loop at lines 88-96 of detect.ts.
     const artifact = JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "root", status: "proposed", items: [] },
       },
       null,
@@ -163,7 +163,7 @@ describe("detectXbriefConvergence (#2270)", () => {
     mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
     writeFileSync(
       join(root, LEGACY_ARTIFACT_DIR, "active", `story${LEGACY_ARTIFACT_SUFFIX}`),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "t", items: [] } }),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "t", items: [] } }),
       "utf8",
     );
     expect(detectXbriefConvergence(root).state).toBe("legacy-only");
@@ -184,7 +184,7 @@ describe("detectXbriefConvergence (#2270)", () => {
     mkdirSync(join(root, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
     writeFileSync(
       join(root, LEGACY_ARTIFACT_DIR, "active", `story${LEGACY_ARTIFACT_SUFFIX}`),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "t", items: [] } }),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "t", items: [] } }),
       "utf8",
     );
     expect(detectXbriefConvergence(root).state).toBe("dual-populated");

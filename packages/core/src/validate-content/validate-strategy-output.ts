@@ -39,7 +39,18 @@ export function validateStrategyOutput(projectRoot: string, strict = false): str
   const errors: string[] = [];
   // Layout-aware (#2109 part 2a): resolve the lifecycle dir/suffix dynamically;
   // identical to vbrief/ on today's tree.
-  const layout = resolveLifecycleLayout(root);
+  let layout: ReturnType<typeof resolveLifecycleLayout>;
+  try {
+    layout = resolveLifecycleLayout(root);
+  } catch {
+    if (strict) {
+      errors.push(
+        "xbrief/ directory missing entirely. v0.20 strategies must emit at least " +
+          "xbrief/proposed/ (with date-prefixed files) + PROJECT-DEFINITION.xbrief.json.",
+      );
+    }
+    return errors;
+  }
   const vbriefDir = layout.root;
 
   if (!existsSync(vbriefDir)) {

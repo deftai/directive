@@ -99,7 +99,7 @@ export function formatMissingRootError(): string {
   return (
     "error: cannot determine project root. Pass --project-root PATH, " +
     "set $DEFT_PROJECT_ROOT, or run from inside a directory tree that " +
-    "contains vbrief/ or .git/ (#535)."
+    "contains xbrief/ or .git/ (#535)."
   );
 }
 

@@ -64,6 +64,7 @@ export function normalizeOutput(text: string): string {
     .replace(/project_root=[^\s)]+/g, "project_root=<ROOT>");
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;
@@ -91,7 +92,7 @@ function writeCachedIssue(root: string, repo: string, issue: QueueFixtureIssue):
 }
 
 function writeAuditLog(root: string, repo: string, entries: readonly QueueAuditEntry[]): void {
-  const dir = join(root, "vbrief", ".eval");
+  const dir = join(root, "xbrief", ".triage-cache");
   mkdirSync(dir, { recursive: true });
   const lines = entries.map((entry) =>
     JSON.stringify({
@@ -107,26 +108,26 @@ function writeAuditLog(root: string, repo: string, entries: readonly QueueAuditE
 }
 
 function writeProjectDefinition(root: string, rankingLabels?: readonly string[]): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   const plan: Record<string, unknown> = { title: "T", status: "running", items: [] };
   if (rankingLabels !== undefined && rankingLabels.length > 0) {
     plan.policy = { triageRankingLabels: [...rankingLabels] };
   }
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
-    `${JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan }, null, 2)}\n`,
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
+    `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`,
     { encoding: "utf8" },
   );
 }
 
 function writeActiveScope(root: string, repo: string, issueNumber: number, filename: string): void {
-  const dir = join(root, "vbrief", "active");
+  const dir = join(root, "xbrief", "active");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, filename),
     `${JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Active scope",
         status: "running",
@@ -149,12 +150,12 @@ function writeBlockedScope(
   issueNumber: number,
   filename: string,
 ): void {
-  const dir = join(root, "vbrief", "active");
+  const dir = join(root, "xbrief", "active");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, filename),
     `${JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Blocked scope",
         status: "blocked",
@@ -172,7 +173,7 @@ function writeBlockedScope(
 }
 
 function writeSliceRecords(root: string, records: readonly Record<string, unknown>[]): void {
-  const dir = join(root, "vbrief", ".eval");
+  const dir = join(root, "xbrief", ".triage-cache");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, "slices.jsonl"),
@@ -185,7 +186,7 @@ function writeSliceRecords(root: string, records: readonly Record<string, unknow
 export function buildFixtureRepo(options: QueueFixtureOptions = {}): string {
   const root = mkdtempSync(join(tmpdir(), "deft-triage-queue-parity-"));
   const repo = options.repo ?? DEFAULT_REPO;
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeProjectDefinition(root, options.rankingLabels);
   for (const issue of options.issues ?? []) {
     writeCachedIssue(root, repo, issue);
@@ -194,10 +195,10 @@ export function buildFixtureRepo(options: QueueFixtureOptions = {}): string {
     writeAuditLog(root, repo, options.auditEntries);
   }
   for (const issueNumber of options.activeIssueNumbers ?? []) {
-    writeActiveScope(root, repo, issueNumber, `active-${issueNumber}.vbrief.json`);
+    writeActiveScope(root, repo, issueNumber, `active-${issueNumber}.xbrief.json`);
   }
   for (const issueNumber of options.blockedIssueNumbers ?? []) {
-    writeBlockedScope(root, repo, issueNumber, `blocked-${issueNumber}.vbrief.json`);
+    writeBlockedScope(root, repo, issueNumber, `blocked-${issueNumber}.xbrief.json`);
   }
   if (options.sliceRecords !== undefined && options.sliceRecords.length > 0) {
     writeSliceRecords(root, options.sliceRecords);
@@ -344,10 +345,10 @@ export function augmentParityArgv(testCase: ParityCase, root: string): readonly 
   }
   const extras: string[] = [];
   if (testCase.fixture.auditEntries !== undefined && testCase.fixture.auditEntries.length > 0) {
-    extras.push("--audit-log", join(root, "vbrief", ".eval", "candidates.jsonl"));
+    extras.push("--audit-log", join(root, "xbrief", ".triage-cache", "candidates.jsonl"));
   }
   if (testCase.fixture.sliceRecords !== undefined && testCase.fixture.sliceRecords.length > 0) {
-    extras.push("--slices-log", join(root, "vbrief", ".eval", "slices.jsonl"));
+    extras.push("--slices-log", join(root, "xbrief", ".triage-cache", "slices.jsonl"));
   }
   return [...argv, ...extras];
 }

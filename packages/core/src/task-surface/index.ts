@@ -83,17 +83,17 @@ export function runChangeInit(projectRoot: string, name: string, io: TaskSurface
   }
   mkdirSync(join(base, "specs"), { recursive: true });
   writeFileSync(
-    join(base, "proposal.vbrief.json"),
+    join(base, "proposal.xbrief.json"),
     `${JSON.stringify(proposalTemplate(trimmed), null, 2)}\n`,
     "utf8",
   );
   writeFileSync(
-    join(base, "tasks.vbrief.json"),
+    join(base, "tasks.xbrief.json"),
     `${JSON.stringify(tasksTemplate(trimmed), null, 2)}\n`,
     "utf8",
   );
   io.writeOut(`OK: Created change proposal at ${base}/\n`);
-  for (const file of ["proposal.vbrief.json", "tasks.vbrief.json", "specs/"]) {
+  for (const file of ["proposal.xbrief.json", "tasks.xbrief.json", "specs/"]) {
     io.writeOut(`  - ${file}\n`);
   }
   return 0;

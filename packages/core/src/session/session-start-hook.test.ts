@@ -16,11 +16,11 @@ describe("session start hook", () => {
 
   it("writes sentinel when preconditions satisfied", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-ok-"));
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "active", "a.vbrief.json"), "{}\n", "utf8");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "a.xbrief.json"), "{}\n", "utf8");
     const result = runSessionStartHookWrite(root, {
       detectBranchFn: () => "feat/x",
-      detectLatestActiveVbriefFn: () => "vbrief/active/a.vbrief.json",
+      detectLatestActiveVbriefFn: () => "xbrief/active/a.xbrief.json",
       resolveVersionFn: () => "0.9.0",
       writeSentinelFn: (projectRoot, input) => {
         expect(input.deftVersion).toBe("0.9.0");

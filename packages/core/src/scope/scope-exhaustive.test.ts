@@ -30,18 +30,18 @@ describe("scope exhaustive branches", () => {
 
   it("vbrief-ref edge cases", () => {
     root = mkdtempSync(join(tmpdir(), "ex-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief);
     expect(collectPlanRefs({ items: [{ planRef: 1 }] })).toEqual([]);
     expect(collectChildUris({ references: [{ type: "other" }] })).toEqual([]);
-    expect(scopeIdsForFilename("slug.vbrief.json").has("slug")).toBe(true);
+    expect(scopeIdsForFilename("slug.xbrief.json").has("slug")).toBe(true);
     expect(relativeToVbrief("/outside", vbrief)).toBeNull();
     expect(resolveVbriefRef("", vbrief)).toBeNull();
   });
 
   it("undo inverse for undo-of-demote and missing metadata", () => {
     root = mkdtempSync(join(tmpdir(), "ex-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const demoteId = newDecisionId();
     append(
@@ -49,7 +49,7 @@ describe("scope exhaustive branches", () => {
         decision_id: demoteId,
         timestamp: "2026-05-18T19:00:00Z",
         action: "demote",
-        vbrief_path: "vbrief/proposed/x.vbrief.json",
+        vbrief_path: "xbrief/proposed/x.xbrief.json",
         from_status: "pending",
         to_status: "proposed",
         actor: "operator",
@@ -67,16 +67,16 @@ describe("scope exhaustive branches", () => {
       decision_id: newDecisionId(),
       timestamp: "2026-05-18T20:00:00Z",
       action: "undo",
-      vbrief_path: "vbrief/pending/x.vbrief.json",
+      vbrief_path: "xbrief/pending/x.xbrief.json",
       from_status: "proposed",
       to_status: "pending",
       actor: "operator",
       undo_meta: { original_decision_id: demoteId, original_action: "demote" },
     };
     append(undoEntry, logPath);
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "pending", "x.vbrief.json"),
+      join(root, "xbrief", "pending", "x.xbrief.json"),
       formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
     );
     expect(undoOne(undoEntry, root, { logPath }).ok).toBe(true);
@@ -86,7 +86,7 @@ describe("scope exhaustive branches", () => {
         {
           decision_id: newDecisionId(),
           action: "cancel",
-          vbrief_path: "vbrief/cancelled/y.vbrief.json",
+          vbrief_path: "xbrief/cancelled/y.xbrief.json",
         },
         root,
         { logPath },
@@ -96,7 +96,7 @@ describe("scope exhaustive branches", () => {
 
   it("undoMain latest finds nothing when log empty", () => {
     root = mkdtempSync(join(tmpdir(), "ex-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(canonicalLogPath(root), "", "utf8");
     expect(undoMain(["--latest", "--project-root", root])).toBe(1);
   });
@@ -108,34 +108,34 @@ describe("scope exhaustive branches", () => {
 
   it("decomposed parent rewrite handles item-level planRef", () => {
     root = mkdtempSync(join(tmpdir(), "ex-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    const parent = join(vbrief, "pending", "p.vbrief.json");
+    const parent = join(vbrief, "pending", "p.xbrief.json");
     writeFileSync(
       parent,
       formatVbriefJson({
         plan: {
           title: "P",
-          items: [{ planRef: "pending/c.vbrief.json" }],
+          items: [{ planRef: "pending/c.xbrief.json" }],
           references: [],
         },
       }),
     );
-    const child = join(vbrief, "pending", "c.vbrief.json");
+    const child = join(vbrief, "pending", "c.xbrief.json");
     writeFileSync(
       child,
-      formatVbriefJson({ plan: { title: "C", items: [], planRef: "pending/p.vbrief.json" } }),
+      formatVbriefJson({ plan: { title: "C", items: [], planRef: "pending/p.xbrief.json" } }),
     );
     const childData = JSON.parse(readFileSync(child, "utf8")) as Record<string, unknown>;
-    const newChild = join(vbrief, "active", "c.vbrief.json");
+    const newChild = join(vbrief, "active", "c.xbrief.json");
     writeFileSync(newChild, readFileSync(child));
     rmSync(child);
     updateDecomposedParentBackReferences(childData, child, newChild, vbrief);
     updateDecomposedChildBackReferences(
       JSON.parse(readFileSync(parent, "utf8")) as Record<string, unknown>,
       parent,
-      join(vbrief, "active", "p.vbrief.json"),
+      join(vbrief, "active", "p.xbrief.json"),
       vbrief,
     );
     expect(existsSync(newChild)).toBe(true);

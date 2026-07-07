@@ -178,24 +178,24 @@ function defaultScriptRunner(scriptsDir: string): ScriptRunner {
 export function copyFixtureToTmp(fixtureRoot: string, tmpRoot: string): string {
   const project = tmpRoot;
   mkdirSync(project, { recursive: true });
-  mkdirSync(join(project, "vbrief"), { recursive: true });
-  copyFileSync(
-    join(fixtureRoot, "PROJECT-DEFINITION.vbrief.json"),
-    join(project, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-  );
+  mkdirSync(join(project, "xbrief"), { recursive: true });
+  const srcPD = join(fixtureRoot, "PROJECT-DEFINITION.xbrief.json");
+  if (existsSync(srcPD)) {
+    copyFileSync(srcPD, join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"));
+  }
   for (const sub of ["active", "proposed", "pending", "completed", "cancelled"] as const) {
-    const srcDir = join(fixtureRoot, "vbrief", sub);
-    const dstDir = join(project, "vbrief", sub);
+    const srcDir = join(fixtureRoot, "xbrief", sub);
+    const dstDir = join(project, "xbrief", sub);
     mkdirSync(dstDir, { recursive: true });
     if (existsSync(srcDir)) {
       for (const name of readdirSync(srcDir)) {
-        if (name.endsWith(".vbrief.json")) {
+        if (name.endsWith(".xbrief.json")) {
           copyFileSync(join(srcDir, name), join(dstDir, name));
         }
       }
     }
   }
-  mkdirSync(join(project, "vbrief", ".eval"), { recursive: true });
+  mkdirSync(join(project, "xbrief", ".eval"), { recursive: true });
   return project;
 }
 

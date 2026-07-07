@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { activate } from "./activate.js";
 
-const FIXTURE_NAME = "2026-05-01-test.vbrief.json";
+const FIXTURE_NAME = "2026-05-01-test.xbrief.json";
 const FIXED_NOW = new Date("2026-06-19T12:00:00.000Z");
 
 function writeVbrief(
@@ -16,7 +16,7 @@ function writeVbrief(
     payloadOverride?: Record<string, unknown>;
   } = {},
 ): string {
-  const dir = join(base, "vbrief", folder);
+  const dir = join(base, "xbrief", folder);
   mkdirSync(dir, { recursive: true });
   const path = join(dir, FIXTURE_NAME);
   if (options.rawOverride !== undefined) {
@@ -30,7 +30,7 @@ function writeVbrief(
   writeFileSync(
     path,
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6", updated: "2026-04-30T00:00:00Z" },
+      xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
       plan: { title: "T", status: options.status ?? "pending", items: [] },
     }),
     "utf8",
@@ -60,7 +60,7 @@ describe("activate", () => {
     expect(result.exitCode).toBe(0);
     expect(result.message).toContain("Activated");
 
-    const dest = join(root, "vbrief", "active", FIXTURE_NAME);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
     expect(existsSync(dest)).toBe(true);
     expect(existsSync(src)).toBe(false);
 
@@ -77,7 +77,7 @@ describe("activate", () => {
     const src = writeVbrief(root, "pending", { status: "approved" });
     const result = activate(src, { now: FIXED_NOW });
     expect(result.exitCode).toBe(0);
-    const dest = join(root, "vbrief", "active", FIXTURE_NAME);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
     const payload = JSON.parse(readFileSync(dest, "utf8")) as { plan: { status: string } };
     expect(payload.plan.status).toBe("running");
   });
@@ -126,7 +126,7 @@ describe("activate", () => {
 
   it("rejects missing path", () => {
     const root = tempRoot();
-    const result = activate(join(root, "missing.vbrief.json"), { now: FIXED_NOW });
+    const result = activate(join(root, "missing.xbrief.json"), { now: FIXED_NOW });
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("vBRIEF not found");
   });
@@ -142,7 +142,7 @@ describe("activate", () => {
   it("rejects missing plan", () => {
     const root = tempRoot();
     const src = writeVbrief(root, "pending", {
-      payloadOverride: { vBRIEFInfo: { version: "0.6" } },
+      payloadOverride: { xBRIEFInfo: { version: "0.8" } },
     });
     const result = activate(src, { now: FIXED_NOW });
     expect(result.exitCode).toBe(1);
@@ -152,7 +152,7 @@ describe("activate", () => {
   it("rejects missing plan.status", () => {
     const root = tempRoot();
     const src = writeVbrief(root, "pending", {
-      payloadOverride: { vBRIEFInfo: { version: "0.6" }, plan: { title: "T" } },
+      payloadOverride: { xBRIEFInfo: { version: "0.8" }, plan: { title: "T" } },
     });
     const result = activate(src, { now: FIXED_NOW });
     expect(result.exitCode).toBe(1);
@@ -162,7 +162,7 @@ describe("activate", () => {
   it("rejects destination collision", () => {
     const root = tempRoot();
     const src = writeVbrief(root, "pending", { status: "pending" });
-    const activeDir = join(root, "vbrief", "active");
+    const activeDir = join(root, "xbrief", "active");
     mkdirSync(activeDir, { recursive: true });
     writeFileSync(join(activeDir, FIXTURE_NAME), "{}", "utf8");
     const result = activate(src, { now: FIXED_NOW });
@@ -178,7 +178,7 @@ describe("activate", () => {
     });
     const result = activate(src, { now: FIXED_NOW });
     expect(result.exitCode).toBe(0);
-    const dest = join(root, "vbrief", "active", FIXTURE_NAME);
+    const dest = join(root, "xbrief", "active", FIXTURE_NAME);
     const payload = JSON.parse(readFileSync(dest, "utf8")) as { vBRIEFInfo: { updated: string } };
     expect(payload.vBRIEFInfo.updated).toBe("2026-06-19T12:00:00Z");
   });

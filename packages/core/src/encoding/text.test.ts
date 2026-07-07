@@ -52,12 +52,12 @@ describe("fnmatchCase", () => {
   it("matches the -798- allow-list carve-out", () => {
     expect(
       fnmatchCase(
-        "vbrief/active/2026-01-01-798-x.vbrief.json",
-        "vbrief/active/*-798-*.vbrief.json",
+        "xbrief/active/2026-01-01-798-x.xbrief.json",
+        "xbrief/active/*-798-*.xbrief.json",
       ),
     ).toBe(true);
     expect(
-      fnmatchCase("vbrief/active/2026-01-01-1-x.vbrief.json", "vbrief/active/*-798-*.vbrief.json"),
+      fnmatchCase("xbrief/active/2026-01-01-1-x.xbrief.json", "xbrief/active/*-798-*.xbrief.json"),
     ).toBe(false);
   });
 

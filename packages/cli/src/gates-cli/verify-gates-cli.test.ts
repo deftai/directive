@@ -114,7 +114,7 @@ describe("deft-ts verify-scm-boundary (maps tests/cli/test_verify_scm_boundary.p
 
 describe("deft-ts vbrief-validate / verify:vbrief-conformance", () => {
   it("vbrief-validate exits 0 on framework vbrief tree", () => {
-    const { exitCode } = runDeftTs("vbrief-validate", ["--vbrief-dir", join(repoRoot(), "vbrief")]);
+    const { exitCode } = runDeftTs("vbrief-validate", ["--vbrief-dir", join(repoRoot(), "xbrief")]);
     expect([0, 1]).toContain(exitCode);
   });
 
@@ -143,13 +143,13 @@ describe("deft-ts verify-story-ready", () => {
   it("returns 1 when vbrief path missing", () => {
     const { exitCode } = runDeftTs("verify-story-ready", [
       "--vbrief-path",
-      "/no/such/story.vbrief.json",
+      "/no/such/story.xbrief.json",
     ]);
     expect([1, 2]).toContain(exitCode);
   });
 
   it("verify:story-ready alias routes identically", () => {
-    const args = ["--vbrief-path", "/no/such/story.vbrief.json"];
+    const args = ["--vbrief-path", "/no/such/story.xbrief.json"];
     expect(runDeftTs("verify:story-ready", args).exitCode).toBe(
       runDeftTs("verify-story-ready", args).exitCode,
     );
@@ -160,9 +160,9 @@ describe("deft-ts active vBRIEF preflight path", () => {
   it("returns 0 for an active running vBRIEF", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-preflight-"));
     temps.push(root);
-    const activeDir = join(root, "vbrief", "active");
+    const activeDir = join(root, "xbrief", "active");
     mkdirSync(activeDir, { recursive: true });
-    const vbriefPath = join(activeDir, "story.vbrief.json");
+    const vbriefPath = join(activeDir, "story.xbrief.json");
     writeFileSync(vbriefPath, JSON.stringify({ plan: { status: "running" } }), "utf8");
     const { exitCode } = runDeftTs("vbrief-preflight", ["--vbrief-path", vbriefPath]);
     expect(exitCode).toBe(0);

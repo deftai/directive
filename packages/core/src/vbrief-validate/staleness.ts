@@ -84,11 +84,14 @@ function checkSpecStaleness(
   return [];
 }
 
-/** Warn if PRD.md or SPECIFICATION.md are stale relative to specification.vbrief.json (#398). */
+/** Warn if PRD.md or SPECIFICATION.md are stale relative to the spec artifact (#398). */
 export function checkRenderStaleness(vbriefDir: string): string[] {
   const warnings: string[] = [];
   const projectRoot = join(vbriefDir, "..");
-  const specPath = join(vbriefDir, "specification.vbrief.json");
+  // Prefer the migrated xbrief artifact; fall back to the legacy vbrief artifact.
+  const specPath = existsSync(join(vbriefDir, "specification.xbrief.json"))
+    ? join(vbriefDir, "specification.xbrief.json")
+    : join(vbriefDir, "specification.vbrief.json");
 
   if (!existsSync(specPath)) {
     return warnings;

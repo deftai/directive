@@ -19,8 +19,8 @@ import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { platform } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { copyTree } from "../deposit/copy-tree.js";
-import { resolveLifecycleRoot } from "../layout/resolve.js";
 import { agentsRefreshPlan } from "../platform/agents-md.js";
+import { MIGRATED_ARTIFACT_DIR } from "../xbrief-migrate/constants.js";
 import { CANONICAL_INSTALL_ROOT, type InitDepositIo } from "./constants.js";
 import { installerManagedGuardEre } from "./hygiene.js";
 
@@ -392,7 +392,7 @@ export async function writeConsumerVbrief(
   deftDir: string,
   io: InitDepositIo,
 ): Promise<boolean> {
-  const consumerVbrief = resolveLifecycleRoot(projectDir);
+  const consumerVbrief = join(projectDir, MIGRATED_ARTIFACT_DIR);
   const schemasDst = join(consumerVbrief, "schemas");
   const vbriefMdDst = join(consumerVbrief, "vbrief.md");
 

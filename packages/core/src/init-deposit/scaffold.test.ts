@@ -110,10 +110,10 @@ describe("init-deposit scaffold", () => {
 
     expect(await writeConsumerVbrief(project, deftDir, io)).toBe(true);
     for (const sub of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      expect(existsSync(join(project, "vbrief", sub, ".gitkeep"))).toBe(true);
+      expect(existsSync(join(project, "xbrief", sub, ".gitkeep"))).toBe(true);
     }
-    expect(existsSync(join(project, "vbrief", "schemas", "example.schema.json"))).toBe(true);
-    expect(readFileSync(join(project, "vbrief", "vbrief.md"), "utf8")).toContain("# vbrief");
+    expect(existsSync(join(project, "xbrief", "schemas", "example.schema.json"))).toBe(true);
+    expect(readFileSync(join(project, "xbrief", "vbrief.md"), "utf8")).toContain("# vbrief");
   });
 
   it("creates .agents/skills pointers idempotently", () => {

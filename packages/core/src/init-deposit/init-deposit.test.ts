@@ -99,7 +99,7 @@ describe("runInitDeposit", () => {
   function installFakeContentPackage(projectRoot: string): string {
     const pkgDir = join(projectRoot, "node_modules", "@deftai", "directive-content");
     mkdirSync(join(pkgDir, "templates"), { recursive: true });
-    mkdirSync(join(pkgDir, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(pkgDir, "xbrief", "schemas"), { recursive: true });
     mkdirSync(join(pkgDir, ".githooks"), { recursive: true });
     writeFileSync(
       join(pkgDir, "package.json"),
@@ -111,8 +111,8 @@ describe("runInitDeposit", () => {
       join(pkgDir, "templates/agents-entry.md"),
     );
     writeFileSync(join(pkgDir, "main.md"), "# Deft\n", "utf8");
-    writeFileSync(join(pkgDir, "vbrief", "schemas", "cache-meta.schema.json"), "{}\n", "utf8");
-    writeFileSync(join(pkgDir, "vbrief", "vbrief.md"), "# vbrief\n", "utf8");
+    writeFileSync(join(pkgDir, "xbrief", "schemas", "cache-meta.schema.json"), "{}\n", "utf8");
+    writeFileSync(join(pkgDir, "xbrief", "vbrief.md"), "# vbrief\n", "utf8");
     writeFileSync(
       join(pkgDir, ".githooks", "pre-commit"),
       readFileSync(join(process.cwd(), ".githooks/pre-commit"), "utf8"),
@@ -151,7 +151,7 @@ describe("runInitDeposit", () => {
     expect(result.deftDir).toBe(join(project, ".deft/core"));
     expect(readFileSync(join(result.deftDir, "main.md"), "utf8")).toContain("# Deft");
     expect(readFileSync(join(project, "AGENTS.md"), "utf8")).toContain("deft:managed-section");
-    expect(existsSync(join(project, "vbrief", "active", ".gitkeep"))).toBe(true);
+    expect(existsSync(join(project, "xbrief", "active", ".gitkeep"))).toBe(true);
     expect(existsSync(join(project, ".agents/skills/deft-directive-sync/SKILL.md"))).toBe(true);
     expect(existsSync(join(project, ".githooks", "pre-commit"))).toBe(true);
     expect(readFileSync(join(project, ".githooks", "pre-commit"), "utf8")).toContain(

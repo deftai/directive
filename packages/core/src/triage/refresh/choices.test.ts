@@ -7,10 +7,10 @@ import { refreshActive } from "./refresh.js";
 describe("refreshActive choices", () => {
   it("handles drift prompt branches", () => {
     const root = mkdtempSync(join(tmpdir(), "refresh2-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "s.vbrief.json"),
+      join(active, "s.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [

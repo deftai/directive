@@ -33,12 +33,12 @@ function writeVbrief(
   base: string,
   folder = "active",
   status: string | null = "running",
-  name = "2026-06-01-story.vbrief.json",
+  name = "2026-06-01-story.xbrief.json",
 ): string {
-  const dir = join(base, "vbrief", folder);
+  const dir = join(base, "xbrief", folder);
   mkdirSync(dir, { recursive: true });
   const path = join(dir, name);
-  const payload: Record<string, unknown> = { vBRIEFInfo: { version: "0.6" } };
+  const payload: Record<string, unknown> = { xBRIEFInfo: { version: "0.8" } };
   if (status !== null) {
     payload.plan = { title: "T", items: [], status };
   }
@@ -210,7 +210,7 @@ describe("evaluate", () => {
 
   it("missing vbrief is not ready (exit 1)", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
-    const missing = join(base, "vbrief", "active", "nope.vbrief.json");
+    const missing = join(base, "xbrief", "active", "nope.xbrief.json");
     const result = evaluate(missing, { gitStatus: CLEAN_TREE });
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("not found");
@@ -244,9 +244,9 @@ describe("evaluate", () => {
 
   it("invalid vbrief json is not ready (exit 1)", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
-    const dir = join(base, "vbrief", "active");
+    const dir = join(base, "xbrief", "active");
     mkdirSync(dir, { recursive: true });
-    const path = join(dir, "bad.vbrief.json");
+    const path = join(dir, "bad.xbrief.json");
     writeFileSync(path, "{not json", "utf8");
     temps.push(base);
     const result = evaluate(path, { gitStatus: CLEAN_TREE });
@@ -256,10 +256,10 @@ describe("evaluate", () => {
 
   it("vbrief without plan object is not ready (exit 1)", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-sr-"));
-    const dir = join(base, "vbrief", "active");
+    const dir = join(base, "xbrief", "active");
     mkdirSync(dir, { recursive: true });
-    const path = join(dir, "noplan.vbrief.json");
-    writeFileSync(path, JSON.stringify({ vBRIEFInfo: { version: "0.6" } }), "utf8");
+    const path = join(dir, "noplan.xbrief.json");
+    writeFileSync(path, JSON.stringify({ xBRIEFInfo: { version: "0.8" } }), "utf8");
     temps.push(base);
     const result = evaluate(path, { gitStatus: CLEAN_TREE });
     expect(result.exitCode).toBe(1);

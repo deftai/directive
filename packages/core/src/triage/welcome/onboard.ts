@@ -72,7 +72,15 @@ export function runOnboardMode(projectRoot: string, options: OnboardOptions = {}
     return failure(2);
   }
 
-  const pdPath = resolveProjectDefinitionPath(projectRoot);
+  let pdPath: string;
+  try {
+    pdPath = resolveProjectDefinitionPath(projectRoot);
+  } catch {
+    out(
+      `[welcome] No xbrief/ layout found at ${projectRoot}. Run \`deft migrate:xbrief\` to convert your project from the legacy vbrief/ layout, or run project setup first (deft-directive-setup).`,
+    );
+    return failure(2);
+  }
   if (!existsSync(pdPath)) {
     out(
       `[welcome] No project definition found at ${pdPath}. Run project setup first (deft-directive-setup) before onboarding triage.`,

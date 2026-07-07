@@ -78,6 +78,7 @@ export function diffOutputs(
   };
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;
@@ -90,7 +91,7 @@ export function buildFixtures(root: string): Map<string, string> {
   for (const [label, folder, content] of PARITY_FIXTURES) {
     const dir = join(root, folder);
     mkdirSync(dir, { recursive: true });
-    const file = join(dir, `${label}.vbrief.json`);
+    const file = join(dir, `${label}.xbrief.json`);
     writeFileSync(file, content, { encoding: "utf8" });
     paths.set(label, file);
   }

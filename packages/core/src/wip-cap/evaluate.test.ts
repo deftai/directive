@@ -27,12 +27,12 @@ afterAll(() => {
 });
 
 function writeProjectDefinition(root: string, plan: Record<string, unknown>): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [], ...plan },
     }),
     "utf8",
@@ -40,12 +40,12 @@ function writeProjectDefinition(root: string, plan: Record<string, unknown>): vo
 }
 
 function writeVbrief(root: string, folder: "pending" | "active", name: string): void {
-  const dir = join(root, "vbrief", folder);
+  const dir = join(root, "xbrief", folder);
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     join(dir, name),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { status: "approved", title: "T", items: [] },
     }),
     "utf8",
@@ -59,15 +59,16 @@ function makeRepo(options: {
 }): string {
   const root = mkdtempSync(join(tmpdir(), "deft-wip-cap-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
   if (options.plan !== undefined) {
     writeProjectDefinition(root, options.plan);
   }
   for (let i = 0; i < (options.pendingFiles ?? 0); i += 1) {
-    writeVbrief(root, "pending", `pending-${i}.vbrief.json`);
+    writeVbrief(root, "pending", `pending-${i}.xbrief.json`);
   }
   for (let i = 0; i < (options.activeFiles ?? 0); i += 1) {
-    writeVbrief(root, "active", `active-${i}.vbrief.json`);
+    writeVbrief(root, "active", `active-${i}.xbrief.json`);
   }
   return root;
 }

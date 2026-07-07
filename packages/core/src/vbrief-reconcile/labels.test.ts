@@ -45,10 +45,10 @@ describe("computeDesiredLabels", () => {
 describe("reconcileLabels", () => {
   it("adds blocked label", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-labels-"));
-    const dir = join(root, "vbrief", "active");
+    const dir = join(root, "xbrief", "active");
     mkdirSync(dir, { recursive: true });
     writeFileSync(
-      join(dir, "story.vbrief.json"),
+      join(dir, "story.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "blk",

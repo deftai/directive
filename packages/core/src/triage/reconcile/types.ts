@@ -1,4 +1,4 @@
-export const AUDIT_LOG_RELPATH = "vbrief/.eval/candidates.jsonl";
+export const AUDIT_LOG_RELPATH = "xbrief/.triage-cache/candidates.jsonl";
 export const BACKFILL_FOLDERS = ["proposed", "pending", "active"] as const;
 export const RECONCILE_ACTOR = "agent:reconcile";
 

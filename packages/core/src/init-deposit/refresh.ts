@@ -259,12 +259,17 @@ function readRecordedManagedBy(deftDir: string): string | null {
 function syncBareVersionMarker(projectDir: string, version: string): void {
   const normalized = normalizeVersion(version);
   if (!normalized || normalized === DEV_FALLBACK) return;
-  const vbriefDir = resolveLifecycleRoot(projectDir);
+  let vbriefDir: string | null = null;
+  try {
+    vbriefDir = resolveLifecycleRoot(projectDir);
+  } catch {
+    // No xbrief/ layout present — write the root-level derivative instead.
+  }
   let targetDir = projectDir;
   try {
-    if (statSync(vbriefDir).isDirectory()) targetDir = vbriefDir;
+    if (vbriefDir !== null && statSync(vbriefDir).isDirectory()) targetDir = vbriefDir;
   } catch {
-    // vbrief/ absent — write the root-level derivative instead
+    // xbrief/ absent — write the root-level derivative instead
   }
   try {
     mkdirSync(targetDir, { recursive: true });

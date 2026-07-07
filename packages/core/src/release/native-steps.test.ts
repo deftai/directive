@@ -1,4 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockRenderRoadmap = vi.fn();
@@ -58,6 +61,19 @@ describe("native release steps", () => {
     expect(msg).toBe("no mismatches");
   });
 
+  it("checkVbriefLifecycleSyncNative skips for legacy-only vbrief/ project", () => {
+    const legacyRoot =
+      (mkdirSync(join(tmpdir(), `deft-native-legacy-${Date.now()}`), {
+        recursive: true,
+      }) as string) ?? join(tmpdir(), `deft-native-legacy-${Date.now()}`);
+    // Create a vbrief/-only layout (no xbrief/) — should trigger the catch-block early return
+    mkdirSync(join(legacyRoot, "vbrief"), { recursive: true });
+    const [ok, count, msg] = checkVbriefLifecycleSyncNative(legacyRoot, "deftai/directive");
+    expect(ok).toBe(false);
+    expect(count).toBe(0);
+    expect(msg).toContain("no xbrief/ layout found");
+  });
+
   it("checkVbriefLifecycleSyncNative fails when gh fetch returns null", () => {
     mockScanVbriefDir.mockReturnValue(new Map([[1, []]]));
     mockFetchIssueStates.mockReturnValue(null);
@@ -71,7 +87,7 @@ describe("native release steps", () => {
     mockScanVbriefDir.mockReturnValue(new Map());
     mockFetchIssueStates.mockReturnValue({});
     mockReconcile.mockReturnValue({
-      no_open_issue: [{ vbrief_files: ["vbrief/active/a.vbrief.json"] }],
+      no_open_issue: [{ vbrief_files: ["xbrief/active/a.xbrief.json"] }],
     });
     mockIsTerminalLifecyclePath.mockReturnValue(false);
     const [ok, count, msg] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
@@ -81,7 +97,7 @@ describe("native release steps", () => {
   });
 
   it("checkVbriefLifecycleSyncNative truncates mismatch preview beyond five", () => {
-    const files = Array.from({ length: 6 }, (_, i) => `vbrief/active/story-${i}.vbrief.json`);
+    const files = Array.from({ length: 6 }, (_, i) => `xbrief/active/story-${i}.xbrief.json`);
     mockScanVbriefDir.mockReturnValue(new Map());
     mockFetchIssueStates.mockReturnValue({});
     mockReconcile.mockReturnValue({ no_open_issue: [{ vbrief_files: files }] });
@@ -102,10 +118,57 @@ describe("native release steps", () => {
     expect(msg).toContain("scan boom");
   });
 
+  it("checkVbriefLifecycleSyncNative handles entry without vbrief_files", () => {
+    // Entry with undefined vbrief_files — exercises the `?? []` branch
+    mockScanVbriefDir.mockReturnValue(new Map());
+    mockFetchIssueStates.mockReturnValue({});
+    mockReconcile.mockReturnValue({ no_open_issue: [{}] });
+    const [ok, count] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
+    expect(ok).toBe(true);
+    expect(count).toBe(0);
+  });
+
+  it("checkVbriefLifecycleSyncNative catches non-Error throws", () => {
+    // Exercises the String(err) branch in catch (err instanceof Error = false)
+    mockScanVbriefDir.mockImplementation(() => {
+      throw "string-error-value";
+    });
+    const [ok, count, msg] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
+    expect(ok).toBe(false);
+    expect(count).toBe(-1);
+    expect(msg).toBe("string-error-value");
+  });
+
+  it("checkVbriefLifecycleSyncNative handles entry without vbrief_files", () => {
+    // Entry with undefined vbrief_files — exercises the `?? []` branch
+    mockScanVbriefDir.mockReturnValue(new Map());
+    mockFetchIssueStates.mockReturnValue({});
+    mockReconcile.mockReturnValue({ no_open_issue: [{}] });
+    const [ok, count] = checkVbriefLifecycleSyncNative("/proj", "deftai/directive");
+    expect(ok).toBe(true);
+    expect(count).toBe(0);
+  });
+
   it("runBuildNative requires version", () => {
     const [ok, msg] = runBuildNative("/tmp", null);
     expect(ok).toBe(false);
     expect(msg).toContain("requires a release version");
+  });
+
+  it("runBuildNative uses stdout when stderr is empty", () => {
+    // Covers stderr=="" fallthrough to stdout branch and status fallback
+    vi.mocked(spawnSync).mockReturnValue({
+      status: null,
+      stdout: "stdout error line",
+      stderr: "",
+      pid: 1,
+      output: [null, "stdout error line", ""],
+      signal: null,
+      error: undefined,
+    });
+    const [ok, msg] = runBuildNative("/proj", "1.2.3");
+    expect(ok).toBe(false);
+    expect(msg).toContain("build failed");
   });
 
   it("runBuildNative fails when runner exits nonzero", () => {

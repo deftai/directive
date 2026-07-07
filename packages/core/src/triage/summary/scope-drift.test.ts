@@ -16,10 +16,10 @@ function mkRoot(): string {
 }
 
 function writeProjectDefinition(root: string, triageScope: Record<string, unknown>[]): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
       plan: { policy: { triageScope } },
     }),

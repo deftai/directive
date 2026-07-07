@@ -14,7 +14,7 @@ afterAll(() => {
 function makeRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-slice-cli-br-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+  mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
   mkdirSync(join(root, ".git"));
   return root;
 }
@@ -32,7 +32,7 @@ describe("cli branch coverage", () => {
 
   it("runCli lists records with non-array children and json output", () => {
     const root = makeRoot();
-    const path = join(root, "vbrief", ".triage-cache", "slices.jsonl");
+    const path = join(root, "xbrief", ".triage-cache", "slices.jsonl");
     writeFileSync(
       path,
       `${pythonJsonStringify({

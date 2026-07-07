@@ -11,8 +11,8 @@ function writeStory(
   swarm: Record<string, unknown>,
   folder = "active",
 ): string {
-  const full = join(project, "vbrief", folder, `${storyId}.vbrief.json`);
-  mkdirSync(join(project, "vbrief", folder), { recursive: true });
+  const full = join(project, "xbrief", folder, `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", folder), { recursive: true });
   writeFileSync(
     full,
     JSON.stringify({

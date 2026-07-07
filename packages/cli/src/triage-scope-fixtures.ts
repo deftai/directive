@@ -42,13 +42,13 @@ export function normalizeOutput(text: string): string {
 }
 
 function writeProjectDefinition(root: string, policy: Record<string, unknown> = {}): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], policy },
       },
       null,
@@ -60,7 +60,7 @@ function writeProjectDefinition(root: string, policy: Record<string, unknown> = 
 
 export function buildFixtureRepo(options: ScopeFixtureOptions = {}): string {
   const root = mkdtempSync(join(tmpdir(), "deft-triage-scope-parity-"));
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeProjectDefinition(root, options.policy ?? {});
   return root;
 }

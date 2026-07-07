@@ -27,13 +27,14 @@ afterEach(() => {
 function makeRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "writers-br-"));
   roots.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
   return root;
 }
 
 function seedPd(root: string, body: Record<string, unknown> = { plan: { policy: {} } }): void {
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify(body),
     "utf8",
   );
@@ -59,7 +60,7 @@ describe("writers error and edge branches", () => {
     const [changed] = writeTriageScope(root, rules, { presetLabel: "small", actor: "tester" });
     expect(changed).toBe(true);
     const data = JSON.parse(
-      readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
     );
     expect(data.plan["x-directive/policy"].triageScope).toEqual(rules);
     expect(readFileSync(join(root, "meta", "policy-changes.log"), "utf8")).toContain(
@@ -89,9 +90,9 @@ describe("writers error and edge branches", () => {
       skippedCount: 0,
     });
 
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
-    const path = join(pending, "mtime-only.vbrief.json");
+    const path = join(pending, "mtime-only.xbrief.json");
     writeFileSync(path, JSON.stringify({ plan: {} }), "utf8");
     const old = new Date(Date.now() - 40 * 86400000);
     utimesSync(path, old, old);

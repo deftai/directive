@@ -28,8 +28,8 @@ function writeProjectDef(
   narratives: Record<string, string>,
   title = "Test Project",
 ): void {
-  writeJson(join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"), {
-    vBRIEFInfo: { version: "0.6" },
+  writeJson(join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"), {
+    xBRIEFInfo: { version: "0.8" },
     plan: {
       title,
       status: "running",
@@ -47,12 +47,12 @@ function writeScope(
 ): void {
   const dir = join(vbriefDir, folder);
   mkdirSync(dir, { recursive: true });
-  writeJson(join(dir, filename), { vBRIEFInfo: { version: "0.6" }, plan });
+  writeJson(join(dir, filename), { xBRIEFInfo: { version: "0.8" }, plan });
 }
 
 function makeGreenfieldTree(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-gf-"));
-  const vbrief = join(root, "vbrief");
+  const vbrief = join(root, "xbrief");
   mkdirSync(vbrief, { recursive: true });
   for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
     mkdirSync(join(vbrief, folder), { recursive: true });
@@ -63,12 +63,12 @@ function makeGreenfieldTree(): string {
     "tech stack": "TypeScript",
     Configuration: "defaults",
   });
-  writeScope(vbrief, "proposed", "2026-06-28-idea.vbrief.json", {
+  writeScope(vbrief, "proposed", "2026-06-28-idea.xbrief.json", {
     title: "Future idea",
     status: "proposed",
     narratives: { Overview: "Not committed yet." },
   });
-  writeScope(vbrief, "pending", "2026-06-28-backlog.vbrief.json", {
+  writeScope(vbrief, "pending", "2026-06-28-backlog.xbrief.json", {
     title: "Accepted story",
     status: "pending",
     narratives: { Overview: "Ready when promoted." },
@@ -83,7 +83,7 @@ describe("spec-authority resolver", () => {
     roots = [];
   });
 
-  it("classifies greenfield when PD exists without specification.vbrief.json", () => {
+  it("classifies greenfield when PD exists without specification.xbrief.json", () => {
     const root = makeGreenfieldTree();
     roots.push(root);
     const authority = resolveSpecAuthority(root);
@@ -158,14 +158,14 @@ describe("spec-authority resolver", () => {
   it("passes migration fidelity when product narratives land in PD", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-mig-ok-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeProjectDef(vbrief, {
       Overview: "Overview",
       ProblemStatement: "Migrated problem",
       Goals: "Migrated goals",
     });
-    writeJson(join(vbrief, "specification.premigrate.vbrief.json"), {
+    writeJson(join(vbrief, "specification.premigrate.xbrief.json"), {
       plan: { narratives: { ProblemStatement: "Old", Goals: "Old" } },
     });
     expect(checkSpecMigrationFidelity(root)).toEqual([]);
@@ -183,7 +183,7 @@ describe("spec-authority resolver", () => {
   it("buildScopeOutlookSection returns empty when no scopes", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-empty-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     expect(buildScopeOutlookSection(vbrief)).toEqual([]);
   });
@@ -199,7 +199,7 @@ describe("spec-authority resolver", () => {
   it("exportSpec fails when greenfield Overview is empty", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-noov-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeProjectDef(vbrief, { Overview: "" });
     const [ok, msg] = exportSpec({ projectRoot: root });
@@ -210,13 +210,13 @@ describe("spec-authority resolver", () => {
   it("recognizes full-spec state with matching banner", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-full-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
       mkdirSync(join(vbrief, folder), { recursive: true });
     }
     writeProjectDef(vbrief, { Overview: "PD overview" });
-    writeJson(join(vbrief, "specification.vbrief.json"), {
-      vBRIEFInfo: { version: "0.6" },
+    writeJson(join(vbrief, "specification.xbrief.json"), {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Full spec",
         status: "running",
@@ -225,7 +225,7 @@ describe("spec-authority resolver", () => {
     });
     writeFileSync(
       join(root, "SPECIFICATION.md"),
-      `${GENERATED_SPEC_PURPOSE}\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n`,
+      `${GENERATED_SPEC_PURPOSE}\n<!-- Source of truth: xbrief/specification.xbrief.json -->\n`,
       "utf8",
     );
     expect(isFullSpecState(root)).toBe(true);
@@ -258,21 +258,21 @@ describe("spec-authority resolver", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-main-"));
     roots.push(root);
     expect(exportSpecMain([root])).toBe(1);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeProjectDef(vbrief, { Overview: "Overview text" });
     expect(exportSpecMain([root])).toBe(0);
   });
 
-  it("exports full-spec state via specification.vbrief.json path", () => {
+  it("exports full-spec state via specification.xbrief.json path", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-full-exp-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
       mkdirSync(join(vbrief, folder), { recursive: true });
     }
     writeProjectDef(vbrief, { Overview: "PD overview", Architecture: "PD arch" });
-    writeJson(join(vbrief, "specification.vbrief.json"), {
+    writeJson(join(vbrief, "specification.xbrief.json"), {
       vBRIEFInfo: { version: "0.6" },
       plan: {
         title: "Canonical spec",
@@ -306,29 +306,29 @@ describe("spec-authority resolver", () => {
   it("buildScopeOutlookSection covers active, completed, deps, and proposed limit", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-scope-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
       mkdirSync(join(vbrief, folder), { recursive: true });
     }
-    writeScope(vbrief, "proposed", "a.vbrief.json", {
+    writeScope(vbrief, "proposed", "a.xbrief.json", {
       id: "scope-a",
       title: "Proposed A",
       status: "proposed",
       narratives: { Overview: "Idea A" },
     });
-    writeScope(vbrief, "proposed", "b.vbrief.json", {
+    writeScope(vbrief, "proposed", "b.xbrief.json", {
       id: "scope-b",
       title: "Proposed B",
       status: "proposed",
       narratives: { Description: "Idea B" },
     });
-    writeScope(vbrief, "proposed", "c.vbrief.json", {
+    writeScope(vbrief, "proposed", "c.xbrief.json", {
       id: "scope-c",
       title: "Proposed C",
       status: "proposed",
       narratives: { Overview: "Idea C" },
     });
-    writeScope(vbrief, "active", "running.vbrief.json", {
+    writeScope(vbrief, "active", "running.xbrief.json", {
       id: "scope-run",
       title: "Running story",
       status: "running",
@@ -342,7 +342,7 @@ describe("spec-authority resolver", () => {
       ],
       edges: [{ from: "scope-a", to: "scope-run" }],
     });
-    writeScope(vbrief, "completed", "done.vbrief.json", {
+    writeScope(vbrief, "completed", "done.xbrief.json", {
       id: "scope-done",
       title: "Finished",
       status: "completed",
@@ -360,17 +360,17 @@ describe("spec-authority resolver", () => {
   it("checkSpecMigrationFidelity returns empty when spec or premigrate absent", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-mig-skip-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     expect(checkSpecMigrationFidelity(root)).toEqual([]);
 
     writeProjectDef(vbrief, { Overview: "Only overview" });
-    writeJson(join(vbrief, "specification.premigrate.vbrief.json"), {
+    writeJson(join(vbrief, "specification.premigrate.xbrief.json"), {
       plan: { narratives: { Overview: "Old overview only" } },
     });
     expect(checkSpecMigrationFidelity(root)).toEqual([]);
 
-    writeJson(join(vbrief, "specification.vbrief.json"), {
+    writeJson(join(vbrief, "specification.xbrief.json"), {
       plan: { narratives: { Overview: "Canonical" } },
     });
     expect(checkSpecMigrationFidelity(root)).toEqual([]);
@@ -379,14 +379,14 @@ describe("spec-authority resolver", () => {
   it("resolveExportNarratives merges PD identity hints into full-spec export", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-narr-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeProjectDef(vbrief, {
       Overview: "PD overview",
       Architecture: "PD-only architecture",
       RisksAndUnknowns: "PD risks",
     });
-    writeJson(join(vbrief, "specification.vbrief.json"), {
+    writeJson(join(vbrief, "specification.xbrief.json"), {
       plan: {
         narratives: { Overview: "Spec overview", ProblemStatement: "Problem" },
       },
@@ -409,8 +409,8 @@ describe("spec-authority resolver", () => {
     const root = makeGreenfieldTree();
     roots.push(root);
     expect(isGreenfieldSpecExport(root)).toBe(false);
-    const vbrief = join(root, "vbrief");
-    writeJson(join(vbrief, "specification.vbrief.json"), {
+    const vbrief = join(root, "xbrief");
+    writeJson(join(vbrief, "specification.xbrief.json"), {
       plan: { narratives: { Overview: "Spec" } },
     });
     expect(isFullSpecState(root)).toBe(false);
@@ -439,13 +439,13 @@ describe("spec-authority resolver", () => {
   it("checkSpecMigrationFidelity passes when narratives land in scope vBRIEFs", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-mig-scope-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
     writeProjectDef(vbrief, { Overview: "Overview" });
-    writeJson(join(vbrief, "specification.premigrate.vbrief.json"), {
+    writeJson(join(vbrief, "specification.premigrate.xbrief.json"), {
       plan: { narratives: { ProblemStatement: "Old problem", Goals: "Old goals" } },
     });
-    writeScope(vbrief, "pending", "story.vbrief.json", {
+    writeScope(vbrief, "pending", "story.xbrief.json", {
       title: "Story",
       status: "pending",
       narratives: { ProblemStatement: "Migrated problem", Goals: "Migrated goals" },
@@ -456,10 +456,10 @@ describe("spec-authority resolver", () => {
   it("buildScopeOutlookSection skips invalid scope JSON and malformed edges", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-bad-scope-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    writeFileSync(join(vbrief, "active", "broken.vbrief.json"), "{bad", "utf8");
-    writeScope(vbrief, "active", "linked.vbrief.json", {
+    writeFileSync(join(vbrief, "active", "broken.xbrief.json"), "{bad", "utf8");
+    writeScope(vbrief, "active", "linked.xbrief.json", {
       id: "a",
       title: "Linked",
       status: "running",
@@ -473,9 +473,9 @@ describe("spec-authority resolver", () => {
   it("buildScopeOutlookSection renders item acceptance bullets and array criteria", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-items-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
-    writeScope(vbrief, "pending", "story.vbrief.json", {
+    writeScope(vbrief, "pending", "story.xbrief.json", {
       title: "Story",
       status: "pending",
       narratives: { Acceptance: ["Criterion A", "Criterion B"] },
@@ -492,10 +492,10 @@ describe("spec-authority resolver", () => {
   it("exportSpec fails when full-spec validation fails", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-spec-auth-bad-spec-"));
     roots.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeProjectDef(vbrief, { Overview: "PD" });
-    writeJson(join(vbrief, "specification.vbrief.json"), {
+    writeJson(join(vbrief, "specification.xbrief.json"), {
       plan: { title: "Bad", status: "bogus-status", items: [] },
     });
     const [ok, msg] = exportSpec({ projectRoot: root });

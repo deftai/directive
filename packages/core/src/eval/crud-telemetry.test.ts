@@ -118,7 +118,7 @@ describe("InstrumentedVbriefCrud", () => {
       directiveVersion: version,
       now: () => new Date("2026-07-05T18:00:00.000Z"),
     });
-    return { crud, filePath: join(tempDir, "fixture.vbrief.json") };
+    return { crud, filePath: join(tempDir, "fixture.xbrief.json") };
   }
 
   it("records per-operation metrics tagged with the directive version", () => {
@@ -212,7 +212,7 @@ describe("InstrumentedVbriefCrud", () => {
 
   it("appends metrics to the versioned CRUD ledger", () => {
     tempDir = mkdtempSync(join(tmpdir(), "crud-telemetry-"));
-    const filePath = join(tempDir, "xbrief", "active", "fixture.vbrief.json");
+    const filePath = join(tempDir, "xbrief", "active", "fixture.xbrief.json");
     mkdirSync(dirname(filePath), { recursive: true });
     const crud = new InstrumentedVbriefCrud({ directiveVersion: "ledger-test" });
 

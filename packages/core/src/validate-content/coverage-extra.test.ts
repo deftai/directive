@@ -30,12 +30,12 @@ function writeProject(
   capacity: Record<string, unknown>,
   autonomy?: Record<string, unknown>,
 ): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   const policy: Record<string, unknown> = { capacityAllocation: capacity };
   if (autonomy) policy.autonomy = autonomy;
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { policy } }),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { policy } }),
   );
 }
 
@@ -49,12 +49,12 @@ afterEach(() => {
 
 describe("validate-content extra branch coverage", () => {
   it("filename validator rejects malformed date and slug segments", () => {
-    expect(isDatePrefixedVbriefFilename("2026/05/26-bad.vbrief.json")).toBe(false);
-    expect(isDatePrefixedVbriefFilename("2026-05-26-.vbrief.json")).toBe(false);
-    expect(isDatePrefixedVbriefFilename("2026-05-26-Bad.vbrief.json")).toBe(false);
-    expect(isDatePrefixedVbriefFilename("2026-05-26-foo-.vbrief.json")).toBe(false);
-    expect(isDatePrefixedVbriefFilename("2026-05-26-foo--bar.vbrief.json")).toBe(false);
-    expect(isDatePrefixedVbriefFilename("short.vbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026/05/26-bad.xbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-05-26-.xbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-05-26-Bad.xbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-05-26-foo-.xbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-05-26-foo--bar.xbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("short.xbrief.json")).toBe(false);
   });
 
   it("validate-links truncates long broken-link reports and honors strict env", () => {
@@ -95,7 +95,7 @@ describe("validate-content extra branch coverage", () => {
     const fileRoot = evaluateCapacity({ projectRoot: join(root, "not-a-dir.txt") });
     expect(fileRoot.code).toBe(2);
 
-    mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
     writeProject(root, {
       unit: "vbrief-count",
       window: 30,
@@ -105,9 +105,9 @@ describe("validate-content extra branch coverage", () => {
       buckets: [{ id: "feature", target: 1 }],
     });
     writeFileSync(
-      join(root, "vbrief", "completed", "2026-06-03-a.vbrief.json"),
+      join(root, "xbrief", "completed", "2026-06-03-a.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { metadata: { capacityBucket: "feature", completedAt: "2026-06-03T12:00:00Z" } },
       }),
     );
@@ -119,7 +119,7 @@ describe("validate-content extra branch coverage", () => {
   it("verify-capacity reports enforce deficit", () => {
     const root = tempRoot();
     for (const folder of ["pending", "active", "completed"]) {
-      mkdirSync(join(root, "vbrief", folder), { recursive: true });
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
     }
     writeProject(root, {
       unit: "vbrief-count",
@@ -135,9 +135,9 @@ describe("validate-content extra branch coverage", () => {
     const completedAt = "2026-06-03T12:00:00Z";
     for (let i = 0; i < 10; i += 1) {
       writeFileSync(
-        join(root, "vbrief", "completed", `2026-06-03-f${i}.vbrief.json`),
+        join(root, "xbrief", "completed", `2026-06-03-f${i}.xbrief.json`),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: { metadata: { capacityBucket: "feature", completedAt } },
         }),
       );
@@ -149,11 +149,11 @@ describe("validate-content extra branch coverage", () => {
 
   it("capacity-policy autonomy and backlog edge branches", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           policy: {
             autonomy: {
@@ -169,9 +169,9 @@ describe("validate-content extra branch coverage", () => {
     expect(autonomy.gateLevels.gateA).toBe("escalate");
     expect(autonomy.gateLevels.gateB).toBeUndefined();
 
-    mkdirSync(join(root, "vbrief", ".audit"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".audit"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", ".audit", "pending-human-decisions.jsonl"),
+      join(root, "xbrief", ".audit", "pending-human-decisions.jsonl"),
       "not-json\n" +
         `${JSON.stringify({ status: "pending" })}\n` +
         `${JSON.stringify({ decision_id: "d1", status: "resolved", timestamp: "bad", override: true })}\n` +
@@ -226,7 +226,7 @@ describe("validate-content extra branch coverage", () => {
 
     const root = tempRoot();
     for (const folder of ["pending", "completed"]) {
-      mkdirSync(join(root, "vbrief", folder), { recursive: true });
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
     }
     writeProject(root, {
       unit: "vbrief-count",
@@ -237,9 +237,9 @@ describe("validate-content extra branch coverage", () => {
       buckets: [{ id: "feature", target: 1 }],
     });
     writeFileSync(
-      join(root, "vbrief", "completed", "2026-06-03-a.vbrief.json"),
+      join(root, "xbrief", "completed", "2026-06-03-a.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { metadata: { completedAt: "2026-06-03T12:00:00Z" } },
       }),
     );

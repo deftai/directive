@@ -13,7 +13,7 @@ describe("iterActiveVbriefs", () => {
   it("returns empty list when active dir is missing", () => {
     const root = mkdtempSync(join(tmpdir(), "extract-missing-"));
     temps.push(root);
-    expect(iterActiveVbriefs(join(root, "vbrief", "active"))).toEqual([]);
+    expect(iterActiveVbriefs(join(root, "xbrief", "active"))).toEqual([]);
   });
 
   it("lists sorted vbrief files", () => {
@@ -21,23 +21,23 @@ describe("iterActiveVbriefs", () => {
     temps.push(root);
     const active = join(root, "active");
     mkdirSync(active, { recursive: true });
-    writeFileSync(join(active, "b.vbrief.json"), "{}", "utf8");
-    writeFileSync(join(active, "a.vbrief.json"), "{}", "utf8");
+    writeFileSync(join(active, "b.xbrief.json"), "{}", "utf8");
+    writeFileSync(join(active, "a.xbrief.json"), "{}", "utf8");
     writeFileSync(join(active, "skip.txt"), "x", "utf8");
     const paths = iterActiveVbriefs(active);
-    expect(paths.map((p) => p.split("/").pop())).toEqual(["a.vbrief.json", "b.vbrief.json"]);
+    expect(paths.map((p) => p.split("/").pop())).toEqual(["a.xbrief.json", "b.xbrief.json"]);
   });
 });
 
 describe("extractIssueRefs", () => {
   it("returns empty array for unreadable files", () => {
-    expect(extractIssueRefs("/no/such/file.vbrief.json")).toEqual([]);
+    expect(extractIssueRefs("/no/such/file.xbrief.json")).toEqual([]);
   });
 
   it("returns empty array for malformed json", () => {
     const root = mkdtempSync(join(tmpdir(), "extract-bad-json-"));
     temps.push(root);
-    const path = join(root, "bad.vbrief.json");
+    const path = join(root, "bad.xbrief.json");
     writeFileSync(path, "{", "utf8");
     expect(extractIssueRefs(path)).toEqual([]);
   });
@@ -45,7 +45,7 @@ describe("extractIssueRefs", () => {
   it("returns empty array for non-object roots", () => {
     const root = mkdtempSync(join(tmpdir(), "extract-array-"));
     temps.push(root);
-    const path = join(root, "arr.vbrief.json");
+    const path = join(root, "arr.xbrief.json");
     writeFileSync(path, "[]", "utf8");
     expect(extractIssueRefs(path)).toEqual([]);
   });
@@ -53,11 +53,11 @@ describe("extractIssueRefs", () => {
   it("returns empty array when plan or references are invalid", () => {
     const root = mkdtempSync(join(tmpdir(), "extract-plan-"));
     temps.push(root);
-    const noPlan = join(root, "no-plan.vbrief.json");
+    const noPlan = join(root, "no-plan.xbrief.json");
     writeFileSync(noPlan, JSON.stringify({ plan: null }), "utf8");
     expect(extractIssueRefs(noPlan)).toEqual([]);
 
-    const noRefs = join(root, "no-refs.vbrief.json");
+    const noRefs = join(root, "no-refs.xbrief.json");
     writeFileSync(noRefs, JSON.stringify({ plan: { references: "bad" } }), "utf8");
     expect(extractIssueRefs(noRefs)).toEqual([]);
   });
@@ -65,7 +65,7 @@ describe("extractIssueRefs", () => {
   it("skips non-github refs and bad uris", () => {
     const root = mkdtempSync(join(tmpdir(), "extract-refs-"));
     temps.push(root);
-    const path = join(root, "refs.vbrief.json");
+    const path = join(root, "refs.xbrief.json");
     writeFileSync(
       path,
       JSON.stringify({

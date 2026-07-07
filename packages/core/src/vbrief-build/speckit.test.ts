@@ -46,7 +46,7 @@ describe("createSpeckitScopeVbrief", () => {
           Traces: "REQ-1",
         },
       },
-      { ipIndex: 1, dependencies: ["ip-0"], specRef: "../specification.vbrief.json" },
+      { ipIndex: 1, dependencies: ["ip-0"], specRef: "../specification.xbrief.json" },
     );
     const refs = (scope.plan as Record<string, unknown>).references as Record<string, unknown>[];
     expect(refs[0]?.TrustLevel).toBe("internal");
@@ -60,9 +60,9 @@ describe("createSpeckitScopeVbrief", () => {
 describe("migrateSpeckitPlan", () => {
   it("creates pending scope and rewrites plan scaffold", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-speckit-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    const planPath = join(vbrief, "plan.vbrief.json");
+    const planPath = join(vbrief, "plan.xbrief.json");
     writeFileSync(
       planPath,
       pythonJsonPretty({

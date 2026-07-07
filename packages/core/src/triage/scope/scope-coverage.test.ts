@@ -78,10 +78,10 @@ describe("evaluate and render paths", () => {
 
   it("extractReferencedIssues walks vbrief graph", () => {
     const root = mkdtempSync(join(tmpdir(), "refs-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "story.vbrief.json"),
+      join(active, "story.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/42/" }],

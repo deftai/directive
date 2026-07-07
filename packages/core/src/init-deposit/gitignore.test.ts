@@ -61,7 +61,7 @@ describe("ensureInitGitignoreLines", () => {
 
   it("ignores triage-cache files on both vbrief/ and xbrief/ layouts (#2348)", () => {
     // The engine writes operator-private triage-cache files under the active
-    // layout's `.triage-cache/`. Before #2348 only the `vbrief/` set was in the
+    // layout's `.triage-cache/`. Before #2348 only the `xbrief/` set was in the
     // baseline, so on an `xbrief/` project those paths were trackable.
     for (const leaf of [
       "candidates.jsonl",
@@ -70,7 +70,7 @@ describe("ensureInitGitignoreLines", () => {
       "decompositions/",
       "doctor-state.json",
     ]) {
-      expect(CANONICAL_GITIGNORE_BASELINE).toContain(`vbrief/.triage-cache/${leaf}`);
+      expect(CANONICAL_GITIGNORE_BASELINE).toContain(`xbrief/.triage-cache/${leaf}`);
       expect(CANONICAL_GITIGNORE_BASELINE).toContain(`xbrief/.triage-cache/${leaf}`);
     }
   });

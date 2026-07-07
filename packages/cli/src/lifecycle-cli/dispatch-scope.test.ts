@@ -15,7 +15,7 @@ function makeVbriefRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-lc-scope-"));
   temps.push(root);
   for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-    mkdirSync(join(root, "vbrief", folder), { recursive: true });
+    mkdirSync(join(root, "xbrief", folder), { recursive: true });
   }
   return root;
 }
@@ -31,7 +31,7 @@ describe("deft-ts scope lifecycle verb (#1838 s3)", () => {
     const result = await runDispatch([
       "scope-lifecycle",
       "not-a-verb",
-      join(root, "vbrief", "pending", "x.vbrief.json"),
+      join(root, "xbrief", "pending", "x.xbrief.json"),
       "--project-root",
       root,
     ]);

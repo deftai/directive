@@ -298,7 +298,19 @@ export function sweepCohort(
   projectRoot: string,
   dryRun: boolean,
 ): SweepResult {
-  const vbriefDir = resolveLifecycleRoot(projectRoot);
+  let vbriefDir: string;
+  try {
+    vbriefDir = resolveLifecycleRoot(projectRoot);
+  } catch {
+    return {
+      project_root: resolve(projectRoot),
+      dry_run: dryRun,
+      stories: [],
+      parents: [],
+      errors: [],
+      ok: true,
+    };
+  }
   const result: SweepResult = {
     project_root: resolve(projectRoot),
     dry_run: dryRun,

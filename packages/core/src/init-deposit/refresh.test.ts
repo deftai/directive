@@ -260,8 +260,9 @@ describe("runRefreshDeposit", () => {
   it("syncs vbrief/.deft-version to the deposited content version (#2055)", async () => {
     const project = freshRoot("refresh-marker-");
     const contentRoot = installFakeContentPackage(project, "0.61.0");
-    mkdirSync(join(project, "vbrief"), { recursive: true });
-    writeFileSync(join(project, "vbrief", ".deft-version"), "0.60.0\n", "utf8");
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
+    writeFileSync(join(project, "xbrief", ".deft-version"), "0.60.0\n", "utf8");
 
     await runRefreshDeposit(
       { projectDir: project, jsonOut: false, nonInteractive: true, upgrade: true },
@@ -274,7 +275,7 @@ describe("runRefreshDeposit", () => {
       },
     );
 
-    expect(readFileSync(join(project, "vbrief", ".deft-version"), "utf8").trim()).toBe("0.61.0");
+    expect(readFileSync(join(project, "xbrief", ".deft-version"), "utf8").trim()).toBe("0.61.0");
   });
 
   it("preserves managed_by: npm across a payload refresh (#2056)", async () => {

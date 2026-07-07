@@ -3,6 +3,7 @@
  * Replaces python-steps.ts (scripts/ roadmap_render, reconcile_issues, build_dist).
  */
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -11,7 +12,12 @@ import {
   reconcile,
   scanVbriefDir,
 } from "../intake/reconcile-issues.js";
-import { resolveLifecycleFolder, resolveLifecycleRoot } from "../layout/resolve.js";
+import {
+  LEGACY_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_DIR,
+  resolveLifecycleFolder,
+  resolveLifecycleRoot,
+} from "../layout/resolve.js";
 import { renderRoadmap } from "../render/roadmap-render.js";
 import type { ReleaseSeams } from "./types.js";
 
@@ -32,7 +38,19 @@ export function checkVbriefLifecycleSyncNative(
   projectRoot: string,
   repo: string,
 ): [boolean, number, string] {
-  const vbriefDir = resolveLifecycleRoot(projectRoot);
+  let vbriefDir: string;
+  try {
+    vbriefDir = resolveLifecycleRoot(projectRoot);
+  } catch (_err) {
+    // Re-throw if this is a legacy-only vbrief/ project; fall back to canonical path otherwise.
+    if (
+      existsSync(join(projectRoot, LEGACY_ARTIFACT_DIR)) &&
+      !existsSync(join(projectRoot, MIGRATED_ARTIFACT_DIR))
+    ) {
+      return [false, 0, "no xbrief/ layout found; skipping lifecycle sync check"];
+    }
+    vbriefDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  }
   try {
     const issueToVbriefs = scanVbriefDir(vbriefDir);
     const issueStateMap = fetchIssueStates(repo, new Set(issueToVbriefs.keys()), {

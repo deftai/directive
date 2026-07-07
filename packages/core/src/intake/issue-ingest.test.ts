@@ -164,7 +164,7 @@ describe("issue-ingest layout-aware emission parity", () => {
     // A completed story artifact still serialized with a legacy vBRIEFInfo envelope.
     writeFileSync(
       join(completedDir, "2026-07-02-legacy-completed.xbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Old story" } }),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "Old story" } }),
       "utf8",
     );
     try {
@@ -225,7 +225,7 @@ describe("issue:ingest quarantine scanning (#2306)", () => {
 
   it("(b) fails closed (throws, nothing written) on a credential hard-fail", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ingest-hardfail-"));
-    const vbriefDir = join(root, "vbrief");
+    const vbriefDir = join(root, "xbrief");
     mkdirSync(vbriefDir, { recursive: true });
     try {
       // Synthetic GitHub PAT-shaped token: gh scanner hard-fails on it.
@@ -396,14 +396,14 @@ describe("extractPlanItems", () => {
     const body = [
       "## Acceptance criteria",
       "",
-      '- [ ] `scripts/triage_summary.py` `in-flight` count reads `len(glob("vbrief/active/*.vbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)',
+      '- [ ] `scripts/triage_summary.py` `in-flight` count reads `len(glob("xbrief/active/*.xbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)',
       "- [ ] When `filesystem_count != cache_scoped_count`, append `[triage:scope] N in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)` (loud discrepancy line)",
       "- [ ] `task check` passes",
     ].join("\n");
     expect(extractPlanItems(body)).toEqual([
       {
         title:
-          '`scripts/triage_summary.py` `in-flight` count reads `len(glob("vbrief/active/*.vbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)',
+          '`scripts/triage_summary.py` `in-flight` count reads `len(glob("xbrief/active/*.xbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)',
         status: "proposed",
       },
       {
@@ -542,7 +542,7 @@ describe("ingestOne with fetchIssue", () => {
   it("writes vBRIEF from live payload when cache is stale", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-ingest-root-"));
     const cacheRoot = join(root, ".deft-cache");
-    const vbriefDir = join(root, "vbrief");
+    const vbriefDir = join(root, "xbrief");
     const clock = new FixedClock(new Date("2026-06-20T12:00:00Z"));
     try {
       cachePut(

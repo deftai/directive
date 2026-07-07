@@ -17,12 +17,12 @@ describe("activate statSync failure branch", () => {
   it("reports statSync failures after existsSync succeeds", async () => {
     const root = mkdtempSync(join(tmpdir(), "deft-activate-stat-"));
     roots.push(root);
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "pending", items: [] },
       }),
       "utf8",

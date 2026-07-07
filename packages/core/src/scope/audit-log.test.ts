@@ -17,7 +17,7 @@ function validDemoteEntry(overrides: Record<string, unknown> = {}): Record<strin
     decision_id: newDecisionId(),
     timestamp: "2026-05-17T21:05:00Z",
     action: "demote",
-    vbrief_path: "vbrief/proposed/foo.vbrief.json",
+    vbrief_path: "xbrief/proposed/foo.xbrief.json",
     from_status: "pending",
     to_status: "proposed",
     actor: "operator",
@@ -42,7 +42,7 @@ describe("audit-log", () => {
 
   it("appends and reads demote entries", () => {
     root = mkdtempSync(join(tmpdir(), "audit-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const entry = validDemoteEntry();
     append(entry, logPath);
@@ -88,7 +88,7 @@ describe("audit-log", () => {
 
   it("skips malformed lines", () => {
     root = mkdtempSync(join(tmpdir(), "audit-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     const { writeFileSync } = require("node:fs") as typeof import("node:fs");
     writeFileSync(logPath, "not-json\n", "utf8");

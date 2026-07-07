@@ -65,7 +65,7 @@ describe("evaluate", () => {
 
   it("honors the -798- builtin allow-list", () => {
     const root = buildRepo({
-      "vbrief/active/2026-01-01-798-x.vbrief.json": `${JSON.stringify({ note: "catalogs \u0393\u00a3\u00f4" })}\n`,
+      "xbrief/active/2026-01-01-798-x.xbrief.json": `${JSON.stringify({ note: "catalogs \u0393\u00a3\u00f4" })}\n`,
     });
     expect(evaluate(root, { mode: "all" }).exitCode).toBe(0);
   });

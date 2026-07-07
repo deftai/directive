@@ -57,7 +57,12 @@ export function findReconcilable(
   const seen = new Set<string>();
 
   for (const folderName of BACKFILL_FOLDERS) {
-    const folderPath = resolveLifecycleFolder(root, folderName);
+    let folderPath: string;
+    try {
+      folderPath = resolveLifecycleFolder(root, folderName);
+    } catch {
+      continue; // No xbrief/ layout; skip this folder.
+    }
     for (const [refRepo, number, path] of scanLifecycleRefs(folderPath)) {
       const effectiveRepo = refRepo ?? defaultRepo;
       if (effectiveRepo === null) continue;
@@ -85,7 +90,13 @@ function countSkippedExisting(
   let count = 0;
   const root = resolve(projectRoot);
   for (const folderName of BACKFILL_FOLDERS) {
-    for (const [refRepo, number] of scanLifecycleRefs(resolveLifecycleFolder(root, folderName))) {
+    let folderPath: string;
+    try {
+      folderPath = resolveLifecycleFolder(root, folderName);
+    } catch {
+      continue; // No xbrief/ layout; skip this folder.
+    }
+    for (const [refRepo, number] of scanLifecycleRefs(folderPath)) {
       const effectiveRepo = refRepo ?? defaultRepo;
       if (effectiveRepo === null) continue;
       const key = auditKey(effectiveRepo, number);
@@ -107,7 +118,13 @@ function countNoRepo(projectRoot: string, defaultRepo: string | null, auditPath:
   let count = 0;
   const root = resolve(projectRoot);
   for (const folderName of BACKFILL_FOLDERS) {
-    for (const [refRepo, number] of scanLifecycleRefs(resolveLifecycleFolder(root, folderName))) {
+    let folderPath: string;
+    try {
+      folderPath = resolveLifecycleFolder(root, folderName);
+    } catch {
+      continue; // No xbrief/ layout; skip this folder.
+    }
+    for (const [refRepo, number] of scanLifecycleRefs(folderPath)) {
       if ((refRepo ?? defaultRepo) === null && !existingNumbers.has(number)) count += 1;
     }
   }

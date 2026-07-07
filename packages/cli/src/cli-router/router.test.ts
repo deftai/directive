@@ -36,10 +36,10 @@ describe("routeArgv", () => {
   });
 
   it("maps scope promote to scope-lifecycle promote", () => {
-    expect(routeArgv(["scope", "promote", "path.vbrief.json"]).argv).toEqual([
+    expect(routeArgv(["scope", "promote", "path.xbrief.json"]).argv).toEqual([
       "scope-lifecycle",
       "promote",
-      "path.vbrief.json",
+      "path.xbrief.json",
     ]);
   });
 
@@ -127,12 +127,12 @@ describe("routeArgv", () => {
 });
 
 describe("taskKeyToDispatchArgv", () => {
-  it("mirrors representative task keys from verify/scope/vbrief/triage", () => {
+  it("mirrors representative task keys from verify/scope/xbrief/triage", () => {
     expect(taskKeyToDispatchArgv("verify:branch")).toEqual(["verify:branch"]);
-    expect(taskKeyToDispatchArgv("scope:promote", ["x.vbrief.json"])).toEqual([
+    expect(taskKeyToDispatchArgv("scope:promote", ["x.xbrief.json"])).toEqual([
       "scope-lifecycle",
       "promote",
-      "x.vbrief.json",
+      "x.xbrief.json",
     ]);
     expect(taskKeyToDispatchArgv("vbrief:preflight")).toEqual(["vbrief:preflight"]);
     expect(taskKeyToDispatchArgv("triage:welcome")).toEqual(["triage:welcome"]);

@@ -45,8 +45,8 @@ describe("test_structure.py", () => {
   it("tools/", () => {
     expect(isDir("tools")).toBe(true);
   });
-  it("vbrief/", () => {
-    expect(isDir("vbrief")).toBe(true);
+  it("xbrief/", () => {
+    expect(isDir("xbrief")).toBe(true);
   });
   it("verification/", () => {
     expect(isDir("verification")).toBe(true);

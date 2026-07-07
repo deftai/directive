@@ -3,7 +3,7 @@ import { cmdVbriefActivate, parseArgs, run } from "./main.js";
 
 describe("parseArgs", () => {
   it("parses a single vbrief path", () => {
-    expect(parseArgs(["/tmp/foo.vbrief.json"])).toEqual({ vbriefPath: "/tmp/foo.vbrief.json" });
+    expect(parseArgs(["/tmp/foo.xbrief.json"])).toEqual({ vbriefPath: "/tmp/foo.xbrief.json" });
   });
 
   it("errors when path missing", () => {

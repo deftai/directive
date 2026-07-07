@@ -7,7 +7,12 @@
 
 import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { resolveEvalDir, resolveLifecycleLayout, resolveLifecycleRoot } from "../layout/resolve.js";
+import {
+  MIGRATED_ARTIFACT_DIR,
+  resolveEvalDir,
+  resolveLifecycleLayout,
+  resolveLifecycleRoot,
+} from "../layout/resolve.js";
 import { generateTriageCacheReadmeBody } from "./bootstrap/gitignore.js";
 
 /** Directory name for the triage working-set cache (not version-eval results). */
@@ -40,13 +45,25 @@ export interface TriageCacheMigrationResult {
 
 /** Absolute path to the layout-aware `.triage-cache/` directory. */
 export function resolveTriageCacheDir(projectRoot: string): string {
-  return join(resolveLifecycleRoot(projectRoot), TRIAGE_CACHE_DIR_NAME);
+  let layoutRoot: string;
+  try {
+    layoutRoot = resolveLifecycleRoot(projectRoot);
+  } catch {
+    layoutRoot = join(projectRoot, MIGRATED_ARTIFACT_DIR); // No xbrief/ layout; use canonical path.
+  }
+  return join(layoutRoot, TRIAGE_CACHE_DIR_NAME);
 }
 
 /** POSIX-style path relative to project root (e.g. `xbrief/.triage-cache/foo`). */
 export function triageCacheRelPath(projectRoot: string, ...segments: string[]): string {
-  const layout = resolveLifecycleLayout(projectRoot);
-  return [layout.artifactDir, TRIAGE_CACHE_DIR_NAME, ...segments].join("/");
+  let artifactDir: string;
+  try {
+    const layout = resolveLifecycleLayout(projectRoot);
+    artifactDir = layout.artifactDir;
+  } catch {
+    artifactDir = "xbrief"; // No layout; default to xbrief/ path for display purposes.
+  }
+  return [artifactDir, TRIAGE_CACHE_DIR_NAME, ...segments].join("/");
 }
 
 /**
@@ -54,7 +71,18 @@ export function triageCacheRelPath(projectRoot: string, ...segments: string[]): 
  * `.triage-cache/` when the new location is absent.
  */
 export function migrateLegacyTriageCacheFromEval(projectRoot: string): TriageCacheMigrationResult {
-  const legacyDir = resolveEvalDir(projectRoot);
+  let legacyDir: string;
+  try {
+    legacyDir = resolveEvalDir(projectRoot);
+  } catch {
+    return {
+      migratedFiles: [],
+      skippedFiles: [],
+      migratedDirs: [],
+      regeneratedFiles: [],
+      removedLegacyFiles: [],
+    };
+  }
   const targetDir = resolveTriageCacheDir(projectRoot);
   const migratedFiles: string[] = [];
   const skippedFiles: string[] = [];
@@ -123,7 +151,7 @@ export function triageCacheDisplayPath(projectRoot: string, absPath: string): st
 }
 
 /** Back-compat display constant; resolution flows through `resolveTriageCachePath`. */
-export const TRIAGE_CANDIDATES_LOG_REL_PATH = "vbrief/.triage-cache/candidates.jsonl";
+export const TRIAGE_CANDIDATES_LOG_REL_PATH = "xbrief/.triage-cache/candidates.jsonl";
 
 /** Layout-aware candidates audit-log path. */
 export function resolveCandidatesLogPath(projectRoot: string): string {

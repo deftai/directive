@@ -87,7 +87,7 @@ describe("createScopeVbrief", () => {
 describe("referenceWithDefaultTrust", () => {
   it("fills internal and external defaults", () => {
     expect(
-      referenceWithDefaultTrust({ type: "x-vbrief/plan", uri: "specification.vbrief.json" })
+      referenceWithDefaultTrust({ type: "x-vbrief/plan", uri: "specification.xbrief.json" })
         .TrustLevel,
     ).toBe("internal");
     expect(

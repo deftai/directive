@@ -891,12 +891,12 @@ describe("test_taskfile_caching.py", () => {
   it.skipIf(!taskAvailable)("test_prd_render_force_overwrites_hand_authored_prd", () => {
     const fixture = mkdtempSync(join(tmpdir(), "deft-prd-render-574-"));
     try {
-      mkdirSync(join(fixture, "vbrief"));
+      mkdirSync(join(fixture, "xbrief"));
       writeFileSync(
-        join(fixture, "vbrief", "specification.vbrief.json"),
+        join(fixture, "xbrief", "specification.xbrief.json"),
         `${JSON.stringify(
           {
-            vBRIEFInfo: { version: "0.6" },
+            xBRIEFInfo: { version: "0.8" },
             plan: {
               title: "#574 regression fixture",
               status: "draft",

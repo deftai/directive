@@ -150,7 +150,7 @@ describe("buildSpecTaskIndex refs", () => {
 describe("writeReconciliationReport", () => {
   it("writes reconciliation report file", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-wrr2-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     const [, report] = reconcileScopeItems({
       roadmapActive: [],

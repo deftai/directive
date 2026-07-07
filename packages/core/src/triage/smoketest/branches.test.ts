@@ -18,10 +18,10 @@ afterAll(() => {
 });
 
 function seedFixture(root: string): void {
-  mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
   writeFileSync(
-    join(root, "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: {} }),
+    join(root, "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: {} }),
     "utf8",
   );
   writeFileSync(
@@ -130,13 +130,13 @@ describe("copyFixtureToTmp branches", () => {
     const tmp = mkdtempSync(join(tmpdir(), "smoke-tmp-min-"));
     temps.push(fixture, tmp);
     writeFileSync(
-      join(fixture, "PROJECT-DEFINITION.vbrief.json"),
+      join(fixture, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: {} }),
       "utf8",
     );
     const project = copyFixtureToTmp(fixture, join(tmp, "proj"));
     expect(
-      readFileSync(join(project, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+      readFileSync(join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
     ).toContain("plan");
   });
 });

@@ -14,7 +14,7 @@ afterEach(() => {
 function makeProjectRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-triage-cli-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+  mkdirSync(join(root, "xbrief", ".eval"), { recursive: true });
   return root;
 }
 

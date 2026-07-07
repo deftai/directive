@@ -52,12 +52,12 @@ describe("ritual sentinel", () => {
 
   it("writeSentinel and computeResumeSignal", () => {
     const root = mkdtempSync(join(tmpdir(), "session-sent-"));
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "active", "x.vbrief.json"), "{}\n", "utf8");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "x.xbrief.json"), "{}\n", "utf8");
     const ts = new Date("2026-06-08T00:00:00Z");
     writeSentinel(root, {
       deftVersion: "0.1.0",
-      lastActiveVbrief: "vbrief/active/x.vbrief.json",
+      lastActiveVbrief: "xbrief/active/x.xbrief.json",
       lastBranch: "main",
       now: ts,
     });

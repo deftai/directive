@@ -398,8 +398,8 @@ describe("triage-queue-parity helpers", () => {
       },
     };
     const argv = augmentParityArgv(testCase, root);
-    expect(argv).toContain(join(root, "vbrief", ".eval", "candidates.jsonl"));
-    expect(argv).toContain(join(root, "vbrief", ".eval", "slices.jsonl"));
+    expect(argv).toContain(join(root, "xbrief", ".triage-cache", "candidates.jsonl"));
+    expect(argv).toContain(join(root, "xbrief", ".triage-cache", "slices.jsonl"));
   });
 
   it("buildFixtureRepo writes cache and audit artifacts", () => {
@@ -410,7 +410,7 @@ describe("triage-queue-parity helpers", () => {
     });
     temps.push(root);
     expect(PARITY_CASES.length).toBeGreaterThan(5);
-    const definition = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+    const definition = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
     expect(definition.length).toBeGreaterThan(0);
   });
 });

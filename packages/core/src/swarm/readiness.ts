@@ -4,7 +4,9 @@ import { referenceTypeMatches } from "@deftai/directive-types";
 import {
   ARTIFACT_SUFFIXES,
   hasArtifactSuffix,
+  LEGACY_ARTIFACT_DIR,
   LIFECYCLE_DIR_NAMES,
+  MIGRATED_ARTIFACT_DIR,
   resolveLifecycleLayout,
   resolveLifecycleRoot,
   stripArtifactSuffix,
@@ -58,7 +60,28 @@ function projectRel(projectRoot: string, path: string): string {
 }
 
 function expandPaths(projectRoot: string, patterns: readonly string[]): string[] {
-  const layout = resolveLifecycleLayout(projectRoot);
+  // Use the canonical xbrief layout; re-throw only if a legacy vbrief/-only tree is detected (#2112).
+  let layout: ReturnType<typeof resolveLifecycleLayout>;
+  try {
+    layout = resolveLifecycleLayout(projectRoot);
+  } catch (err) {
+    const xbriefDir = join(projectRoot, MIGRATED_ARTIFACT_DIR);
+    if (existsSync(xbriefDir)) {
+      // xbrief/ dir exists but has no artifacts yet -- treat as valid (empty) layout.
+      layout = {
+        root: xbriefDir,
+        artifactDir: MIGRATED_ARTIFACT_DIR,
+        artifactSuffix: ".xbrief.json",
+        infoRootKey: "xBRIEFInfo",
+        migrated: true,
+      };
+    } else if (existsSync(join(projectRoot, LEGACY_ARTIFACT_DIR))) {
+      throw err; // Legacy-only project: operator must run deft migrate:xbrief.
+    } else {
+      // Neither exists -- return empty list.
+      return [];
+    }
+  }
   const usePatterns =
     patterns.length > 0 ? patterns : [`${layout.artifactDir}/active/*${layout.artifactSuffix}`];
   const out: string[] = [];
@@ -269,7 +292,12 @@ function acceptanceCountJustification(
 
 function allScopeIds(projectRoot: string): Map<string, [string, string]> {
   const ids = new Map<string, [string, string]>();
-  const vbriefDir = resolveLifecycleRoot(projectRoot);
+  let vbriefDir: string;
+  try {
+    vbriefDir = resolveLifecycleRoot(projectRoot);
+  } catch {
+    return ids; // No xbrief/ layout; no scope IDs.
+  }
   for (const folder of LIFECYCLE_FOLDERS) {
     const dir = join(vbriefDir, folder);
     if (!existsSync(dir)) {

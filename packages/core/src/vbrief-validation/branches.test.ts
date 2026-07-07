@@ -29,9 +29,9 @@ import {
 
 function writeInvalidPd(vbriefDir: string): void {
   writeFileSync(
-    join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+    join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "Bad", status: "in_progress", items: [] },
     }),
     "utf8",
@@ -40,9 +40,9 @@ function writeInvalidPd(vbriefDir: string): void {
 
 function writeValidPd(vbriefDir: string): void {
   writeFileSync(
-    join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+    join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "PROJECT-DEFINITION",
         status: "running",
@@ -76,15 +76,16 @@ describe("remaining vbrief-validation branches", () => {
 
   it("covers validation isolate first collision and finalize relative path", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-val-br-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeInvalidPd(join(root, "vbrief"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
+    writeInvalidPd(join(root, "xbrief"));
     const stderr: string[] = [];
-    const [ok] = finalizeMigration(root, join(root, "vbrief"), ["seed"], {
+    const [ok] = finalizeMigration(root, join(root, "xbrief"), ["seed"], {
       stderrWriter: (s) => stderr.push(s),
       isolateInvalid: () => join(root, "..", "outside.invalid"),
     });
     expect(ok).toBe(false);
-    expect(isolateInvalidOutput(root, join(root, "vbrief"))).toContain("vbrief.invalid");
+    expect(isolateInvalidOutput(root, join(root, "xbrief"))).toContain("vbrief.invalid");
     const existing = new Set<string>();
     slugifyId("collision seed", existing);
     slugifyId("collision seed", existing);
@@ -141,8 +142,9 @@ describe("remaining vbrief-validation branches", () => {
   it("covers main --all mode", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-main-all-"));
     try {
-      mkdirSync(join(root, "vbrief"), { recursive: true });
-      writeValidPd(join(root, "vbrief"));
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
+      writeValidPd(join(root, "xbrief"));
       expect(cmdVbriefValidation(["--all", "--fixture-root", root])).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -151,9 +153,10 @@ describe("remaining vbrief-validation branches", () => {
 
   it("validateMigrationOutput succeeds when directory is valid", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-bridge-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeValidPd(join(root, "vbrief"));
-    const [errors] = validateMigrationOutput(join(root, "vbrief"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
+    writeValidPd(join(root, "xbrief"));
+    const [errors] = validateMigrationOutput(join(root, "xbrief"));
     expect(errors).toEqual([]);
     rmSync(root, { recursive: true, force: true });
   });

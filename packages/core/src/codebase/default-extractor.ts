@@ -123,7 +123,13 @@ function sourcePathRel(projectRoot: string, sourcePath: string): string | null {
 
 /** Return the authored codeStructure source path used by the default extractor. */
 export function defaultCodeStructurePath(projectRoot: string, codeStructurePath?: string): string {
-  return codeStructurePath ?? resolveProjectDefinitionPath(projectRoot);
+  if (codeStructurePath !== undefined) return codeStructurePath;
+  try {
+    return resolveProjectDefinitionPath(projectRoot);
+  } catch {
+    // No xbrief/ layout; return canonical path so callers get a predictable "not found" result.
+    return join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+  }
 }
 
 function stableId(value: string): string {

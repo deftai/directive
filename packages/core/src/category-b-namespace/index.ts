@@ -9,7 +9,14 @@
  * order-preserving (the namespaced key takes the legacy key's slot, keeping
  * artifact diffs minimal).
  */
-import { type Dirent, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  type Dirent,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
 import {
@@ -123,7 +130,19 @@ function collectVbriefFiles(dir: string, acc: string[] = []): string[] {
  */
 export function migrateCategoryBCorpus(projectRoot: string): CorpusMigrationResult {
   const root = resolve(projectRoot);
-  const vbriefDir = resolveLifecycleRoot(root);
+  let vbriefDir: string;
+  try {
+    vbriefDir = resolveLifecycleRoot(root);
+  } catch {
+    // If xbrief/ layout is absent, fall back to vbrief/ for this pre-migration tool
+    // (category-b migration rewrites policy keys regardless of layout stage).
+    const legacyDir = join(root, "vbrief");
+    if (existsSync(legacyDir)) {
+      vbriefDir = legacyDir;
+    } else {
+      return { scanned: 0, changed: [], conflicts: [] };
+    }
+  }
   let scanned = 0;
   const changed: string[] = [];
   const conflicts: CorpusMigrationConflict[] = [];

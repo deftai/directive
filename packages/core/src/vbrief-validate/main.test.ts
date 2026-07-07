@@ -16,26 +16,26 @@ describe("filename convention", () => {
   });
 
   it("accepts valid slugs and rejects edge cases", () => {
-    expect(matchesFilenameConvention("2026-01-01-my-feature.vbrief.json")).toBe(true);
-    expect(matchesFilenameConvention("2026-01-01-a.vbrief.json")).toBe(true);
-    expect(matchesFilenameConvention("2026-01-01-a-b-c.vbrief.json")).toBe(true);
-    expect(matchesFilenameConvention("PROJECT-DEFINITION.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01-.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01-trailing-.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("bad-name.vbrief.json")).toBe(false);
-    expect(matchesFilenameConvention("2026-01-01-UPPER.vbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-my-feature.xbrief.json")).toBe(true);
+    expect(matchesFilenameConvention("2026-01-01-a.xbrief.json")).toBe(true);
+    expect(matchesFilenameConvention("2026-01-01-a-b-c.xbrief.json")).toBe(true);
+    expect(matchesFilenameConvention("PROJECT-DEFINITION.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-trailing-.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("bad-name.xbrief.json")).toBe(false);
+    expect(matchesFilenameConvention("2026-01-01-UPPER.xbrief.json")).toBe(false);
   });
 });
 
 describe("validateAll", () => {
   it("validates a minimal valid project definition", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-validate-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "PROJECT-DEFINITION",
           status: "running",
@@ -53,10 +53,10 @@ describe("validateAll", () => {
 
   it("flags invalid schema version", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-bad-ver-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         vBRIEFInfo: { version: "0.5" },
         plan: { title: "X", status: "running", items: [] },
@@ -71,20 +71,20 @@ describe("validateAll", () => {
 
 describe("conformance scan", () => {
   it("flags bare plan keys and allows path planRef", () => {
-    const bare = scanVbrief("vbrief/x.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const bare = scanVbrief("xbrief/x.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [], customField: true, planRef: "#123" },
     });
     expect(bare.some((f) => f.key === "customField")).toBe(true);
     expect(bare.some((f) => f.key === "planRef")).toBe(true);
 
-    const pathRef = scanVbrief("vbrief/y.vbrief.json", {
-      vBRIEFInfo: { version: "0.6" },
+    const pathRef = scanVbrief("xbrief/y.xbrief.json", {
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "T",
         status: "running",
         items: [],
-        planRef: "completed/parent.vbrief.json",
+        planRef: "completed/parent.xbrief.json",
       },
     });
     expect(pathRef.some((f) => f.key === "planRef")).toBe(false);
@@ -104,7 +104,8 @@ describe("CLI", () => {
 
   it("runs conformance clean on valid fixture", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-conf-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     execSync("git init", { cwd: root, stdio: "ignore" });
     expect(runConformance(["--all", "--project-root", root])).toBe(0);
     rmSync(root, { recursive: true, force: true });
@@ -112,12 +113,12 @@ describe("CLI", () => {
 
   it("reports warnings without failing unless escalated", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-warn-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "pending"), { recursive: true });
     writeFileSync(
-      join(vbrief, "pending", "2026-01-01-warn-only.vbrief.json"),
+      join(vbrief, "pending", "2026-01-01-warn-only.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "W", status: "pending", items: [], references: [] },
       }),
       "utf8",
@@ -128,7 +129,8 @@ describe("CLI", () => {
 
   it("routes --staged argv to conformance for verify:vbrief-conformance alias", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-cmd-staged-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     execSync("git init", { cwd: root, stdio: "ignore" });
     expect(cmdVbriefValidate(["--staged", "--project-root", root, "--quiet"])).toBe(0);
     rmSync(root, { recursive: true, force: true });

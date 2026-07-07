@@ -19,7 +19,13 @@ const DEPRECATION_REDIRECT_PURPOSE = "<!-- Purpose: deprecation redirect -->";
 const LIFECYCLE_FOLDERS = ["proposed", "pending", "active", "completed", "cancelled"] as const;
 
 export function missingLifecycleFolders(projectRoot: string): string[] {
-  const lifecycleRoot = resolveLifecycleRoot(projectRoot);
+  let lifecycleRoot: string;
+  try {
+    lifecycleRoot = resolveLifecycleRoot(projectRoot);
+  } catch {
+    // No xbrief/ layout present -- all lifecycle folders are missing.
+    return [...LIFECYCLE_FOLDERS];
+  }
   return LIFECYCLE_FOLDERS.filter((folder) => !existsSync(join(lifecycleRoot, folder)));
 }
 
@@ -34,11 +40,14 @@ export function isDeprecationRedirect(content: string): boolean {
 
 /** Full-spec generated export (layout-resolved specification artifact source line). */
 export function isGeneratedSpecificationExport(projectRoot: string, content: string): boolean {
-  return (
-    content.includes(GENERATED_SPEC_PURPOSE) &&
-    contentHasGeneratedSpecSource(content) &&
-    existsSync(resolveSpecArtifactPath(projectRoot))
-  );
+  if (!content.includes(GENERATED_SPEC_PURPOSE) || !contentHasGeneratedSpecSource(content)) {
+    return false;
+  }
+  try {
+    return existsSync(resolveSpecArtifactPath(projectRoot));
+  } catch {
+    return false;
+  }
 }
 
 /** Return true for a fully current generated spec export (full-spec or greenfield). */
@@ -115,7 +124,21 @@ export function detectPreCutover(projectRoot: string): PrecutoverDetection {
     }
   }
 
-  const layout = resolveLifecycleLayout(projectRoot);
+  // Since #2112, resolveLifecycleLayout throws when no xbrief/ layout is present.
+  // Catch that error so the doctor can still diagnose pre-cutover state on unmigrated trees.
+  // However, an empty (greenfield) directory with no pre-cutover artifacts is NOT pre-cutover.
+  let layout: ReturnType<typeof resolveLifecycleLayout> | null = null;
+  try {
+    layout = resolveLifecycleLayout(projectRoot);
+  } catch {
+    // No xbrief/ layout found. Only report a pre-cutover reason if legacy artifacts
+    // (SPECIFICATION.md / PROJECT.md) were already detected above; a bare empty directory
+    // without any artifacts is greenfield, not pre-cutover.
+    if (reasons.length > 0) {
+      reasons.push("xbrief/ lifecycle layout not found -- run `deft migrate:xbrief` first");
+    }
+    return { preCutover: reasons.length > 0, reasons };
+  }
   if (existsSync(layout.root)) {
     const missing = missingLifecycleFolders(projectRoot);
     if (missing.length > 0) {

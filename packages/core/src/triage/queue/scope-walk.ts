@@ -127,7 +127,12 @@ function walkScopeFolders(
   folders: readonly string[],
   visitor: (plan: Record<string, unknown>, filename: string) => void,
 ): void {
-  const base = resolveLifecycleRoot(projectRoot);
+  let base: string;
+  try {
+    base = resolveLifecycleRoot(projectRoot);
+  } catch {
+    return; // No xbrief/ layout present -- nothing to walk.
+  }
   for (const folder of folders) {
     const folderDir = join(base, folder);
     if (!existsSync(folderDir)) {

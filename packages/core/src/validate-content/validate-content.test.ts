@@ -44,8 +44,8 @@ describe("link-parser", () => {
 
 describe("filename convention", () => {
   it("accepts date-prefixed names", () => {
-    expect(isDatePrefixedVbriefFilename("2026-05-26-foo-bar.vbrief.json")).toBe(true);
-    expect(isDatePrefixedVbriefFilename("scaffold.vbrief.json")).toBe(false);
+    expect(isDatePrefixedVbriefFilename("2026-05-26-foo-bar.xbrief.json")).toBe(true);
+    expect(isDatePrefixedVbriefFilename("scaffold.xbrief.json")).toBe(false);
   });
 });
 
@@ -96,9 +96,9 @@ describe("validate-links", () => {
 describe("validate-strategy-output", () => {
   it("passes conformant tree", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "proposed", "2026-05-26-good.vbrief.json"), "{}");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "proposed", "2026-05-26-good.xbrief.json"), "{}");
     expect(validateStrategyOutput(root)).toEqual([]);
     const result = evaluateStrategy({ projectRoot: root });
     expect(result.code).toBe(0);
@@ -107,39 +107,40 @@ describe("validate-strategy-output", () => {
 
   it("flags missing project definition", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "proposed", "2026-05-26-good.vbrief.json"), "{}");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "proposed", "2026-05-26-good.xbrief.json"), "{}");
     const errors = validateStrategyOutput(root);
     expect(errors.some((e) => e.includes("PROJECT-DEFINITION"))).toBe(true);
   });
 
   it("flags non-date-prefixed filenames", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "proposed", "scaffold.vbrief.json"), "{}");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "proposed", "scaffold.xbrief.json"), "{}");
     const errors = validateStrategyOutput(root);
-    expect(errors.some((e) => e.includes("scaffold.vbrief.json"))).toBe(true);
+    expect(errors.some((e) => e.includes("scaffold.xbrief.json"))).toBe(true);
   });
 
   it("forbids legacy spec in user projects", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "vbrief"), { recursive: true });
     writeFileSync(join(root, "vbrief", "specification.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "proposed", "2026-05-26-good.vbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "proposed", "2026-05-26-good.xbrief.json"), "{}");
     expect(validateStrategyOutput(root).some((e) => e.includes("Legacy artifact"))).toBe(true);
   });
 
   it("tolerates framework root heuristic", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     mkdirSync(join(root, "strategies"));
     writeFileSync(join(root, "AGENTS.md"), "#");
     writeFileSync(join(root, "Taskfile.yml"), "version: '3'");
-    writeFileSync(join(root, "vbrief", "specification.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "proposed", "2026-05-26-good.vbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "specification.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "proposed", "2026-05-26-good.xbrief.json"), "{}");
     expect(validateStrategyOutput(root)).toEqual([]);
   });
 
@@ -147,14 +148,21 @@ describe("validate-strategy-output", () => {
     const root = tempRoot();
     const result = evaluateStrategy({ projectRoot: root, strict: true });
     expect(result.code).toBe(1);
-    expect(result.message).toContain("vbrief/ directory missing entirely");
+    expect(result.message).toContain("xbrief/ directory missing entirely");
+  });
+
+  it("non-strict mode passes silently when xbrief/ layout missing", () => {
+    const root = tempRoot();
+    // No xbrief/ layout — resolveLifecycleLayout throws; non-strict should return no errors
+    const errors = validateStrategyOutput(root, false);
+    expect(errors).toEqual([]);
   });
 
   it("quiet mode suppresses success output", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}");
-    writeFileSync(join(root, "vbrief", "proposed", "2026-05-26-good.vbrief.json"), "{}");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}");
+    writeFileSync(join(root, "xbrief", "proposed", "2026-05-26-good.xbrief.json"), "{}");
     const result = evaluateStrategy({ projectRoot: root, quiet: true });
     expect(result.code).toBe(0);
     expect(result.stream).toBe("none");
@@ -164,13 +172,13 @@ describe("validate-strategy-output", () => {
 describe("verify-capacity", () => {
   function writeProject(root: string, capacity: Record<string, unknown> | null): void {
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", folder), { recursive: true });
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
     }
     const plan: Record<string, unknown> = { title: "T", status: "running", items: [] };
     if (capacity) plan.policy = { capacityAllocation: capacity };
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan }),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }),
     );
   }
 
@@ -199,9 +207,9 @@ describe("verify-capacity", () => {
     const completedAt = "2026-06-03T12:00:00Z";
     for (let i = 0; i < 4; i += 1) {
       writeFileSync(
-        join(root, "vbrief", "completed", `f-${i}.vbrief.json`),
+        join(root, "xbrief", "completed", `f-${i}.xbrief.json`),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: `f-${i}`,
             status: "completed",
@@ -232,9 +240,9 @@ describe("verify-capacity", () => {
     const completedAt = "2026-06-03T12:00:00Z";
     for (let i = 0; i < 4; i += 1) {
       writeFileSync(
-        join(root, "vbrief", "completed", `f-${i}.vbrief.json`),
+        join(root, "xbrief", "completed", `f-${i}.xbrief.json`),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: `f-${i}`,
             status: "completed",
@@ -264,10 +272,10 @@ describe("capacity-policy validation", () => {
 
   it("resolves default when missing", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { status: "running" } }),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { status: "running" } }),
     );
     const allocation = resolveCapacityAllocation(root);
     expect(allocation.source).toBe("default");
@@ -279,11 +287,11 @@ describe("capacity-show rendering", () => {
   it("renders advisory banner when unconfigured", () => {
     const root = tempRoot();
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", folder), { recursive: true });
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
     }
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { status: "running", items: [] } }),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { status: "running", items: [] } }),
     );
     const report = computeReport(root, { now: NOW });
     const text = renderReport(report);

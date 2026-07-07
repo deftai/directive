@@ -46,12 +46,12 @@ function buildFakeCache(report: Partial<FetchAllReport> = {}): CacheModule & { c
 }
 
 function writeScopeVbrief(root: string, folder: string, slug: string, issue: number): void {
-  const dir = join(root, "vbrief", folder);
+  const dir = join(root, "xbrief", folder);
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, `${slug}.vbrief.json`),
+    join(dir, `${slug}.xbrief.json`),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         id: slug,
         title: slug,
@@ -183,7 +183,7 @@ describe("stepBackfillAuditLog", () => {
 
   it("skips when vbrief directory missing", () => {
     const root = makeRoot();
-    expect(stepBackfillAuditLog(root, "deftai/directive").details.skipped).toBe("no-vbrief");
+    expect(stepBackfillAuditLog(root, "deftai/directive").details.skipped).toBe("no-xbrief");
   });
 
   it("writes one accept entry per scope vbrief", () => {
@@ -197,7 +197,7 @@ describe("stepBackfillAuditLog", () => {
       nowIso: () => "2026-06-18T12:00:00Z",
     });
     expect(outcome.ok).toBe(true);
-    const audit = join(root, "vbrief", ".triage-cache", "candidates.jsonl");
+    const audit = join(root, "xbrief", ".triage-cache", "candidates.jsonl");
     const lines = readFileSync(audit, "utf8")
       .split("\n")
       .filter((line) => line.trim().length > 0)
@@ -226,7 +226,7 @@ describe("runBootstrap", () => {
       "seed_candidates_log",
     ]);
     expect(result.exitCode).toBe(0);
-    expect(readFileSync(join(root, "vbrief", ".triage-cache", "candidates.jsonl"), "utf8")).toBe(
+    expect(readFileSync(join(root, "xbrief", ".triage-cache", "candidates.jsonl"), "utf8")).toBe(
       "",
     );
   });

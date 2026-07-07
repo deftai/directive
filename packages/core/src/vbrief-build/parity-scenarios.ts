@@ -245,10 +245,10 @@ export function runParityScenario(name: string, ctx: ParityScenarioContext): Par
         ),
       };
     case "project-definition-roundtrip": {
-      const vbriefDir = join(ctx.fixtureRoot, "vbrief");
+      const vbriefDir = join(ctx.fixtureRoot, "xbrief");
       mkdirSync(vbriefDir, { recursive: true });
       const seed: JsonObject = {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "Parity project",
           status: "running",
@@ -256,7 +256,7 @@ export function runParityScenario(name: string, ctx: ParityScenarioContext): Par
           items: [],
         },
       };
-      const pdPath = join(vbriefDir, "PROJECT-DEFINITION.vbrief.json");
+      const pdPath = join(vbriefDir, "PROJECT-DEFINITION.xbrief.json");
       writeFileSync(pdPath, pythonJsonPretty(seed), "utf8");
       let roundtrip: JsonObject = {};
       projectDefinitionMutationLock(ctx.fixtureRoot, () => {

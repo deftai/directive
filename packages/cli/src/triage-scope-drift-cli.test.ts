@@ -33,9 +33,9 @@ function captureIo(fn: () => number): { code: number; stdout: string; stderr: st
 function seedProject(): string {
   const root = mkdtempSync(join(tmpdir(), "scope-drift-cli-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({ plan: { policy: { triageScope: [] } } }),
     "utf8",
   );

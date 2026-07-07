@@ -8,9 +8,9 @@ import { classifyOnboarding, detectPriorState, pendingDecisionsNudgeLine } from 
 describe("prior-state branches", () => {
   it("detects small preset scope", () => {
     const root = mkdtempSync(join(tmpdir(), "prior-small-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageScope: SUBSCRIPTION_PRESETS.small, wipCap: 5 } } }),
       "utf8",
     );
@@ -22,9 +22,9 @@ describe("prior-state branches", () => {
 
   it("detects mid and mega presets", () => {
     const root = mkdtempSync(join(tmpdir(), "prior-mid-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageScope: SUBSCRIPTION_PRESETS.mid } } }),
       "utf8",
     );
@@ -32,9 +32,9 @@ describe("prior-state branches", () => {
     rmSync(root, { recursive: true, force: true });
 
     const root2 = mkdtempSync(join(tmpdir(), "prior-mega-"));
-    mkdirSync(join(root2, "vbrief"), { recursive: true });
+    mkdirSync(join(root2, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root2, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root2, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageScope: SUBSCRIPTION_PRESETS.mega } } }),
       "utf8",
     );
@@ -71,9 +71,9 @@ describe("prior-state branches", () => {
 
   it("detects custom scope rules", () => {
     const root = mkdtempSync(join(tmpdir(), "prior-custom-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageScope: [{ rule: "labels", "any-of": ["x"] }] } } }),
       "utf8",
     );

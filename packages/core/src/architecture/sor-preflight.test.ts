@@ -27,8 +27,8 @@ function fixture(name: string): string {
 }
 
 function _writeStory(dir: string, payload: unknown): string {
-  const path = join(dir, "vbrief", "active", "story.vbrief.json");
-  mkdirSync(join(dir, "vbrief", "active"), { recursive: true });
+  const path = join(dir, "xbrief", "active", "story.xbrief.json");
+  mkdirSync(join(dir, "xbrief", "active"), { recursive: true });
   writeFileSync(path, JSON.stringify(payload, null, 2), "utf8");
   return path;
 }
@@ -68,7 +68,7 @@ describe("evaluateStory", () => {
     sor.stateSurfaces = [surface];
     const tmpDir = join(tmpdir(), `sor-test-${Date.now()}`);
     mkdirSync(tmpDir, { recursive: true });
-    const badPath = join(tmpDir, "story.vbrief.json");
+    const badPath = join(tmpDir, "story.xbrief.json");
     writeFileSync(badPath, JSON.stringify(raw, null, 2), "utf8");
     const bad = evaluateStory(badPath);
     expect(bad.code).toBe(1);
@@ -82,7 +82,7 @@ describe("evaluateStory", () => {
   });
 
   it("missing story path returns code 2", () => {
-    const result = evaluateStory("/nonexistent/path/story.vbrief.json");
+    const result = evaluateStory("/nonexistent/path/story.xbrief.json");
     expect(result.code).toBe(2);
   });
 
@@ -618,24 +618,24 @@ describe("evaluateDiffText record resolution", () => {
 
   it("returns code 2 when multiple changed vBRIEFs carry SoR records", () => {
     const proj = mkTmp();
-    mkdirSync(join(proj, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(proj, "xbrief", "active"), { recursive: true });
     writeFileSync(
-      join(proj, "vbrief", "active", "a.vbrief.json"),
+      join(proj, "xbrief", "active", "a.xbrief.json"),
       JSON.stringify(sorVbrief()),
       "utf8",
     );
     writeFileSync(
-      join(proj, "vbrief", "active", "b.vbrief.json"),
+      join(proj, "xbrief", "active", "b.xbrief.json"),
       JSON.stringify(sorVbrief()),
       "utf8",
     );
     const diff = [
-      "diff --git a/vbrief/active/a.vbrief.json b/vbrief/active/a.vbrief.json",
-      "+++ b/vbrief/active/a.vbrief.json",
+      "diff --git a/xbrief/active/a.xbrief.json b/xbrief/active/a.xbrief.json",
+      "+++ b/xbrief/active/a.xbrief.json",
       "@@ -0,0 +1 @@",
       "+{}",
-      "diff --git a/vbrief/active/b.vbrief.json b/vbrief/active/b.vbrief.json",
-      "+++ b/vbrief/active/b.vbrief.json",
+      "diff --git a/xbrief/active/b.xbrief.json b/xbrief/active/b.xbrief.json",
+      "+++ b/xbrief/active/b.xbrief.json",
       "@@ -0,0 +1 @@",
       "+{}",
       "diff --git a/app/repo.py b/app/repo.py",
@@ -665,15 +665,15 @@ describe("evaluateDiffText record resolution", () => {
 
   it("resolves a single changed vBRIEF record automatically", () => {
     const proj = mkTmp();
-    mkdirSync(join(proj, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(proj, "xbrief", "active"), { recursive: true });
     writeFileSync(
-      join(proj, "vbrief", "active", "only.vbrief.json"),
+      join(proj, "xbrief", "active", "only.xbrief.json"),
       JSON.stringify(sorVbrief()),
       "utf8",
     );
     const diff = [
-      "diff --git a/vbrief/active/only.vbrief.json b/vbrief/active/only.vbrief.json",
-      "+++ b/vbrief/active/only.vbrief.json",
+      "diff --git a/xbrief/active/only.xbrief.json b/xbrief/active/only.xbrief.json",
+      "+++ b/xbrief/active/only.xbrief.json",
       "@@ -0,0 +1 @@",
       "+{}",
       "diff --git a/app/models.py b/app/models.py",
@@ -765,19 +765,19 @@ describe("evaluateDiffText changed-folder filters", () => {
 
   it("reads SoR records from a changed vbrief/pending path and skips other folders", () => {
     const proj = mkTmp();
-    mkdirSync(join(proj, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(proj, "xbrief", "pending"), { recursive: true });
     writeFileSync(
-      join(proj, "vbrief", "pending", "only.vbrief.json"),
+      join(proj, "xbrief", "pending", "only.xbrief.json"),
       JSON.stringify(sorVbrief()),
       "utf8",
     );
     const diff = [
-      "diff --git a/vbrief/completed/old.vbrief.json b/vbrief/completed/old.vbrief.json",
-      "+++ b/vbrief/completed/old.vbrief.json",
+      "diff --git a/xbrief/completed/old.xbrief.json b/xbrief/completed/old.xbrief.json",
+      "+++ b/xbrief/completed/old.xbrief.json",
       "@@ -0,0 +1 @@",
       "+{}",
-      "diff --git a/vbrief/pending/only.vbrief.json b/vbrief/pending/only.vbrief.json",
-      "+++ b/vbrief/pending/only.vbrief.json",
+      "diff --git a/xbrief/pending/only.xbrief.json b/xbrief/pending/only.xbrief.json",
+      "+++ b/xbrief/pending/only.xbrief.json",
       "@@ -0,0 +1 @@",
       "+{}",
       "diff --git a/app/models.py b/app/models.py",

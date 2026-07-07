@@ -45,7 +45,7 @@ function completed(stdout = "", stderr = "", returncode = 0): CompletedProcess {
 
 function mkVbriefTree(root: string, specs: { folder: string; name: string; data: object }[]): void {
   for (const spec of specs) {
-    const dir = join(root, "vbrief", spec.folder);
+    const dir = join(root, "xbrief", spec.folder);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, spec.name), `${JSON.stringify(spec.data, null, 2)}\n`, "utf8");
   }
@@ -95,7 +95,7 @@ describe("intake cli and branch coverage", () => {
 
     it("issue-emit-cli parses umbrella and per-vbrief flags", () => {
       const dir = mkdtempSync(join(tmpdir(), "emit-cli-flags-"));
-      const path = join(dir, "solo.vbrief.json");
+      const path = join(dir, "solo.xbrief.json");
       writeVbrief(path, { plan: { title: "Solo" } });
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       expect(
@@ -184,7 +184,8 @@ describe("intake cli and branch coverage", () => {
 
     it("ingestSingleForAccept succeeds with stubbed fetch", () => {
       const root = mkdtempSync(join(tmpdir(), "accept-ok-"));
-      mkdirSync(join(root, "vbrief"), { recursive: true });
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
       const callSpy = vi.spyOn(scm, "call").mockImplementation(() =>
         completed(
           JSON.stringify({
@@ -200,7 +201,7 @@ describe("intake cli and branch coverage", () => {
       );
       const [result, path] = ingestSingleForAccept(15, "o/r", { projectRoot: root });
       expect(result).toBe("created");
-      expect(path).toContain("vbrief");
+      expect(path).toContain("xbrief");
       callSpy.mockRestore();
       rmSync(root, { recursive: true, force: true });
     });
@@ -247,8 +248,8 @@ describe("intake cli and branch coverage", () => {
   describe("issue-emit modes", () => {
     it("emitUmbrella creates umbrella issue and updates children", () => {
       const dir = mkdtempSync(join(tmpdir(), "umbrella-"));
-      const a = join(dir, "a.vbrief.json");
-      const b = join(dir, "b.vbrief.json");
+      const a = join(dir, "a.xbrief.json");
+      const b = join(dir, "b.xbrief.json");
       writeVbrief(a, { plan: { title: "Child A" } });
       writeVbrief(b, { plan: { title: "Child B" } });
       const scmCall = () => completed("https://github.com/o/r/issues/100\n", "", 0);
@@ -272,7 +273,7 @@ describe("intake cli and branch coverage", () => {
 
     it("issueEmitMain per-vbrief and title guard", () => {
       const dir = mkdtempSync(join(tmpdir(), "per-vb-"));
-      const path = join(dir, "one.vbrief.json");
+      const path = join(dir, "one.xbrief.json");
       writeVbrief(path, { plan: { title: "One" } });
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       expect(issueEmitMain({ patterns: [path], projectRoot: dir, title: "Bad" })).toBe(2);
@@ -297,7 +298,7 @@ describe("intake cli and branch coverage", () => {
       mkVbriefTree(root, [
         {
           folder: "active",
-          name: "linked.vbrief.json",
+          name: "linked.xbrief.json",
           data: {
             plan: {
               references: [
@@ -322,7 +323,7 @@ describe("intake cli and branch coverage", () => {
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       expect(
         reconcileMain({
-          vbriefDir: join(root, "vbrief"),
+          vbriefDir: join(root, "xbrief"),
           repo: "o/r",
           projectRoot: root,
           format: "json",
@@ -363,7 +364,7 @@ describe("intake cli and branch coverage", () => {
 
     it("reconcileCliMain report-unlinked path", () => {
       const root = mkdtempSync(join(tmpdir(), "reconcile-cli-"));
-      mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
       const callSpy = vi.spyOn(scm, "call").mockImplementation((_src, verb, args) => {
         if (verb === "issue") {
           return completed("[]", "", 0);
@@ -377,7 +378,7 @@ describe("intake cli and branch coverage", () => {
       expect(
         reconcileCliMain([
           "--vbrief-dir",
-          join(root, "vbrief"),
+          join(root, "xbrief"),
           "--repo",
           "o/r",
           "--project-root",
@@ -392,7 +393,7 @@ describe("intake cli and branch coverage", () => {
 
     it("reconcileCliMain apply-lifecycle-fixes fails when target exists", () => {
       const root = mkdtempSync(join(tmpdir(), "reconcile-fail-"));
-      const name = "child.vbrief.json";
+      const name = "child.xbrief.json";
       const data = {
         plan: {
           planRef: "#55",
@@ -402,8 +403,8 @@ describe("intake cli and branch coverage", () => {
         },
       };
       mkVbriefTree(root, [{ folder: "active", name, data }]);
-      mkdirSync(join(root, "vbrief", "completed"), { recursive: true });
-      writeFileSync(join(root, "vbrief", "completed", name), "{}", "utf8");
+      mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+      writeFileSync(join(root, "xbrief", "completed", name), "{}", "utf8");
 
       const callSpy = vi.spyOn(scm, "call").mockImplementation((_src, _verb, args) => {
         if (args[0] === "graphql") {
@@ -426,7 +427,7 @@ describe("intake cli and branch coverage", () => {
       expect(
         reconcileCliMain([
           "--vbrief-dir",
-          join(root, "vbrief"),
+          join(root, "xbrief"),
           "--repo",
           "o/r",
           "--project-root",

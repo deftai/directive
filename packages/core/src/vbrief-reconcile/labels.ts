@@ -112,7 +112,21 @@ export function reconcileLabels(
   options: ReconcileLabelsOptions = {},
 ): [number, ReconcileLabelsOutcome] {
   const root = resolve(projectRoot);
-  const vbriefDir = resolveLifecycleRoot(root);
+  let vbriefDir: string;
+  try {
+    vbriefDir = resolveLifecycleRoot(root);
+  } catch {
+    return [
+      2,
+      {
+        changed: [],
+        unchanged: [],
+        skipped_no_ref: [],
+        errors: [],
+        dry_run: options.dryRun ?? false,
+      },
+    ];
+  }
   if (!existsSync(vbriefDir)) {
     return [
       2,

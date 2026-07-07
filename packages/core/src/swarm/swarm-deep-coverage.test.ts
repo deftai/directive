@@ -51,9 +51,9 @@ function gitInit(repo: string): void {
 }
 
 function writeProjectDef(project: string, backend = "grok-build"): void {
-  mkdirSync(join(project, "vbrief"), { recursive: true });
+  mkdirSync(join(project, "xbrief"), { recursive: true });
   writeFileSync(
-    join(project, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({ plan: { policy: { swarmSubagentBackend: backend } } }),
     "utf8",
   );
@@ -65,12 +65,12 @@ function writeReadyStory(
   issue: number,
   opts?: { fileScope?: string[]; dependsOn?: string[]; conflictGroup?: string },
 ): string {
-  const full = join(project, "vbrief", "active", `${storyId}.vbrief.json`);
-  mkdirSync(join(project, "vbrief", "active"), { recursive: true });
+  const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", "active"), { recursive: true });
   writeFileSync(
     full,
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         id: storyId,
         title: storyId,
@@ -188,7 +188,7 @@ describe("swarm launch deep coverage", () => {
 
   it("surfaces resolve and gate clearance errors", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-err-"));
-    mkdirSync(join(project, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
     writeProjectDef(project);
     const badClear = join(project, "bad-clear.json");
     writeFileSync(badClear, "{}", "utf8");
@@ -214,9 +214,9 @@ describe("swarm launch deep coverage", () => {
     expect(resolveStories(project, ["99999"]).errors[0]).toContain("no active story");
     expect(resolveStories(project, ["8100"]).errors[0]).toContain("ambiguous");
     expect(
-      resolveStories(project, ["vbrief/active/by-path.vbrief.json"]).resolved[0]?.story_id,
+      resolveStories(project, ["xbrief/active/by-path.xbrief.json"]).resolved[0]?.story_id,
     ).toBe("by-path");
-    expect(resolveStories(project, ["missing.vbrief.json"]).errors.length).toBe(1);
+    expect(resolveStories(project, ["missing.xbrief.json"]).errors.length).toBe(1);
     const dedup = resolveStories(project, ["by-path", "by-path"]);
     expect(dedup.resolved.length).toBe(1);
     void p1;
@@ -366,8 +366,8 @@ describe("swarm launch deep coverage", () => {
 describe("swarm readiness deep coverage", () => {
   it("reports blocked story with missing swarm fields", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-rblk-"));
-    mkdirSync(join(project, "vbrief", "active"), { recursive: true });
-    const path = join(project, "vbrief", "active", "blocked.vbrief.json");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    const path = join(project, "xbrief", "active", "blocked.xbrief.json");
     writeFileSync(
       path,
       JSON.stringify({
@@ -413,8 +413,8 @@ describe("swarm readiness deep coverage", () => {
 
   it("flags epic and phase decomposition", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-epic-"));
-    mkdirSync(join(project, "vbrief", "active"), { recursive: true });
-    const epicPath = join(project, "vbrief", "active", "epic-parent.vbrief.json");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    const epicPath = join(project, "xbrief", "active", "epic-parent.xbrief.json");
     writeFileSync(
       epicPath,
       JSON.stringify({
@@ -422,7 +422,7 @@ describe("swarm readiness deep coverage", () => {
           id: "epic-parent",
           title: "Epic",
           status: "running",
-          references: [{ type: "x-vbrief/plan", uri: "active/child.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "active/child.xbrief.json" }],
           metadata: { kind: "epic" },
         },
       }),
@@ -438,7 +438,7 @@ describe("swarm readiness deep coverage", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-rdy2-"));
     const path = writeReadyStory(project, "exp-a", 8030);
     const paths = expandReadinessPaths(project, []);
-    expect(paths.some((p) => p.endsWith("exp-a.vbrief.json"))).toBe(true);
+    expect(paths.some((p) => p.endsWith("exp-a.xbrief.json"))).toBe(true);
     const { report } = readinessReport(project, [path]);
     const candidates = paths.map((p) => readinessReport(project, [p])).flatMap(() => []);
     void candidates;
@@ -452,9 +452,9 @@ describe("swarm readiness deep coverage", () => {
 describe("swarm complete-cohort deep coverage", () => {
   it("dry-run sweeps parent epic after child settles", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-parent-"));
-    mkdirSync(join(project, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "pending"), { recursive: true });
     const childPath = writeReadyStory(project, "child-s", 8070);
-    const parentPath = join(project, "vbrief", "pending", "parent-e.vbrief.json");
+    const parentPath = join(project, "xbrief", "pending", "parent-e.xbrief.json");
     writeFileSync(
       parentPath,
       JSON.stringify({
@@ -462,19 +462,19 @@ describe("swarm complete-cohort deep coverage", () => {
           id: "parent-e",
           title: "Parent epic",
           status: "pending",
-          references: [{ type: "x-vbrief/plan", uri: "active/child-s.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "active/child-s.xbrief.json" }],
           metadata: { kind: "epic" },
         },
       }),
       "utf8",
     );
     writeFileSync(
-      join(project, "vbrief", "active", "child-s.vbrief.json"),
+      join(project, "xbrief", "active", "child-s.xbrief.json"),
       JSON.stringify({
         ...JSON.parse(readFileSync(childPath, "utf8")),
         plan: {
           ...JSON.parse(readFileSync(childPath, "utf8")).plan,
-          planRef: "pending/parent-e.vbrief.json",
+          planRef: "pending/parent-e.xbrief.json",
         },
       }),
       "utf8",
@@ -486,15 +486,15 @@ describe("swarm complete-cohort deep coverage", () => {
 
   it("handles noop and skip transitions", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-skip-"));
-    mkdirSync(join(project, "vbrief", "completed"), { recursive: true });
-    mkdirSync(join(project, "vbrief", "proposed"), { recursive: true });
-    const donePath = join(project, "vbrief", "completed", "done.vbrief.json");
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "proposed"), { recursive: true });
+    const donePath = join(project, "xbrief", "completed", "done.xbrief.json");
     writeFileSync(
       donePath,
       JSON.stringify({ plan: { id: "done", status: "completed", items: [] } }),
       "utf8",
     );
-    const proposedPath = join(project, "vbrief", "proposed", "prop.vbrief.json");
+    const proposedPath = join(project, "xbrief", "proposed", "prop.xbrief.json");
     writeFileSync(
       proposedPath,
       JSON.stringify({ plan: { id: "prop", status: "proposed", items: [] } }),
@@ -530,12 +530,12 @@ describe("swarm complete-cohort deep coverage", () => {
 
   it("resolveCohortPaths handles globs and missing paths", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-ccpath-"));
-    mkdirSync(join(project, "vbrief", "active"), { recursive: true });
-    const story = join(project, "vbrief", "active", "cc.vbrief.json");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    const story = join(project, "xbrief", "active", "cc.xbrief.json");
     writeFileSync(story, JSON.stringify({ plan: { status: "running" } }), "utf8");
     const { paths, errors } = resolveCohortPaths(
       [story],
-      ["vbrief/active/*.vbrief.json", "missing-glob/*.json"],
+      ["xbrief/active/*.xbrief.json", "missing-glob/*.json"],
       project,
     );
     expect(paths.length).toBeGreaterThan(0);
@@ -548,7 +548,7 @@ describe("swarm complete-cohort deep coverage", () => {
     const storyPath = writeReadyStory(project, "ccjson-a", 8050);
     const result = completeCohort({
       projectRoot: project,
-      cohortGlobs: ["vbrief/active/*.vbrief.json"],
+      cohortGlobs: ["xbrief/active/*.xbrief.json"],
       dryRun: true,
       emitJson: true,
     });
@@ -563,7 +563,7 @@ describe("swarm complete-cohort deep coverage", () => {
     const storyPath = writeReadyStory(project, "ccerr-a", 8051);
     const result = completeCohort({
       projectRoot: project,
-      stories: [storyPath, "missing-story.vbrief.json"],
+      stories: [storyPath, "missing-story.xbrief.json"],
       dryRun: true,
     });
     expect(result.stdout).toContain("ccerr-a");
@@ -573,7 +573,8 @@ describe("swarm complete-cohort deep coverage", () => {
 
   it("completeCohortMain returns config error for empty cohort", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-cccli-"));
-    mkdirSync(join(project, "vbrief"), { recursive: true });
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     expect(completeCohortMain(["--project-root", project])).toBe(2);
     rmSync(project, { recursive: true, force: true });
   });
@@ -651,8 +652,8 @@ describe("swarm verify-review-clean deep coverage", () => {
 
   it("discovers PRs from vbrief cohort glob", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-vrc-"));
-    mkdirSync(join(project, "vbrief", "active"), { recursive: true });
-    const path = join(project, "vbrief", "active", "pr-ref.vbrief.json");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    const path = join(project, "xbrief", "active", "pr-ref.xbrief.json");
     writeFileSync(
       path,
       JSON.stringify({
@@ -819,7 +820,7 @@ describe("swarm verify-review-clean deep coverage", () => {
 
   it("resolveCohortFromVbriefs reports unreadable vbrief", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-badvb-"));
-    const path = join(project, "bad.vbrief.json");
+    const path = join(project, "bad.xbrief.json");
     writeFileSync(path, "not-json", "utf8");
     const { failures } = resolveCohortFromVbriefs([path]);
     expect(failures[0]?.reason).toContain("unreadable");
@@ -926,13 +927,13 @@ describe("swarm subagent-backend deep coverage", () => {
     writeProjectDef(project, "not-a-backend");
     expect(resolveSwarmSubagentBackend(project).error).toContain("must be one of");
     writeFileSync(
-      join(project, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { swarmSubagentBackend: null } } }),
       "utf8",
     );
     expect(resolveSwarmSubagentBackend(project).error).toContain("explicitly null");
     writeFileSync(
-      join(project, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { swarmSubagentBackend: "  " } } }),
       "utf8",
     );

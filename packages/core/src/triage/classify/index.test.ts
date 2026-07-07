@@ -50,11 +50,11 @@ function now(): Date {
 }
 
 function writeProjectDefinition(root: string, plan: Record<string, unknown>): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan }),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }),
     "utf8",
   );
 }
@@ -430,15 +430,15 @@ describe("extractReferencedIssues", () => {
   it("pulls from pending and active only", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-classify-refs-"));
     temps.push(root);
-    const vbriefDir = join(root, "vbrief");
+    const vbriefDir = join(root, "xbrief");
     for (const folder of ["pending", "active", "completed"]) {
       mkdirSync(join(vbriefDir, folder), { recursive: true });
     }
     const writeVbrief = (folder: string, name: string, issueN: number) => {
       writeFileSync(
-        join(vbriefDir, folder, `2026-05-17-${name}.vbrief.json`),
+        join(vbriefDir, folder, `2026-05-17-${name}.xbrief.json`),
         JSON.stringify({
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: name,
             status: "running",
@@ -498,7 +498,8 @@ describe("validateProject and listProject", () => {
   it("validateProject ok when project definition missing", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-classify-val-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     const result = validateProject(root);
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("no PROJECT-DEFINITION");
@@ -507,10 +508,10 @@ describe("validateProject and listProject", () => {
   it("validateProject fails on malformed plan", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-classify-val-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: null }),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: null }),
       "utf8",
     );
     const result = validateProject(root);
@@ -687,11 +688,11 @@ describe("additional validation branches", () => {
   it("extractReferencedIssues skips malformed vbrief files", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-triage-classify-bad-"));
     temps.push(root);
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
-    writeFileSync(join(pending, "bad.vbrief.json"), "not json", "utf8");
+    writeFileSync(join(pending, "bad.xbrief.json"), "not json", "utf8");
     writeFileSync(
-      join(pending, "good.vbrief.json"),
+      join(pending, "good.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [{ type: "other", uri: "https://github.com/o/r/issues/5" }],

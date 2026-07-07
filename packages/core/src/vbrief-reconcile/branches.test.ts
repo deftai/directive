@@ -61,16 +61,16 @@ describe("branch coverage boost", () => {
   it("loadOverrides missing file", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-br-"));
     roots.push(root);
-    expect(loadOverrides(join(root, "vbrief"))).toEqual({});
+    expect(loadOverrides(join(root, "xbrief"))).toEqual({});
   });
 
   it("candidateFromPath invalid json", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cand-"));
     roots.push(root);
-    const dir = join(root, "vbrief", "proposed");
+    const dir = join(root, "xbrief", "proposed");
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "bad.vbrief.json"), "{bad\n");
-    expect(candidateFromPath(join(dir, "bad.vbrief.json"), root)).toBeNull();
+    writeFileSync(join(dir, "bad.xbrief.json"), "{bad\n");
+    expect(candidateFromPath(join(dir, "bad.xbrief.json"), root)).toBeNull();
   });
 
   it("asStrList non-array", () => {
@@ -91,10 +91,10 @@ describe("branch coverage boost", () => {
   it("labels fetch error increments errors", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-lerr-"));
     roots.push(root);
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "x.vbrief.json"),
+      join(active, "x.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "x",
@@ -117,14 +117,14 @@ describe("branch coverage boost", () => {
   it("umbrellas skips duplicate issue key", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-udup-"));
     roots.push(root);
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     const ref = [
       { type: "x-vbrief/github-issue", uri: "https://github.com/deftai/directive/issues/55" },
     ];
     for (const id of ["e1", "e2"]) {
       writeFileSync(
-        join(active, `${id}.vbrief.json`),
+        join(active, `${id}.xbrief.json`),
         `${JSON.stringify({ plan: { id, metadata: { kind: "epic", swarm: { depends_on: [] } }, references: ref } })}\n`,
       );
     }
@@ -147,7 +147,7 @@ describe("branch coverage boost", () => {
     });
     const root = mkdtempSync(join(tmpdir(), "deft-cmd-err-"));
     roots.push(root);
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     expect(cmdVbriefReconcile(["graph", "--project-root", root])).toBe(2);
   });
 
@@ -168,14 +168,14 @@ describe("branch coverage boost", () => {
   it("umbrellas client error and skipped render", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-umb-err-"));
     roots.push(root);
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "no-ref.vbrief.json"),
+      join(active, "no-ref.xbrief.json"),
       `${JSON.stringify({ plan: { id: "nr", metadata: { kind: "epic", swarm: { depends_on: [] } } } })}\n`,
     );
     writeFileSync(
-      join(active, "boom.vbrief.json"),
+      join(active, "boom.xbrief.json"),
       `${JSON.stringify({
         plan: {
           id: "boom",

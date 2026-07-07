@@ -7,9 +7,9 @@ import { computeDrift } from "./compute.js";
 import { renderDriftReport } from "./render.js";
 
 function writePd(root: string, policy: Record<string, unknown>): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({ plan: { policy } }),
     "utf8",
   );

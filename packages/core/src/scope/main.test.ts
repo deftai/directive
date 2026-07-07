@@ -17,7 +17,7 @@ describe("project-context", () => {
 
   it("finds vbrief sentinel", () => {
     const root = mkdtempSync(join(tmpdir(), "ctx-"));
-    mkdirSync(join(root, "vbrief"));
+    mkdirSync(join(root, "xbrief"));
     expect(resolveProjectRoot(root)).toBe(root);
     rmSync(root, { recursive: true, force: true });
   });
@@ -31,7 +31,7 @@ describe("project-context", () => {
 
   it("uses DEFT_PROJECT_ROOT when set", () => {
     const root = mkdtempSync(join(tmpdir(), "env-ctx-"));
-    mkdirSync(join(root, "vbrief"));
+    mkdirSync(join(root, "xbrief"));
     vi.stubEnv("DEFT_PROJECT_ROOT", root);
     expect(resolveProjectRoot(null)).toBe(root);
     rmSync(root, { recursive: true, force: true });
@@ -41,9 +41,9 @@ describe("project-context", () => {
 describe("wip-cap-check", () => {
   it("allows promote when under cap", () => {
     const root = mkdtempSync(join(tmpdir(), "wip-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       formatVbriefJson({
         plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
       }),
@@ -71,8 +71,8 @@ describe("lifecycleMain", () => {
 
   it("promotes via CLI with equals-form project root", () => {
     root = mkdtempSync(join(tmpdir(), "cli-eq-"));
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    const file = join(root, "vbrief", "proposed", "eq.vbrief.json");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const file = join(root, "xbrief", "proposed", "eq.xbrief.json");
     writeFileSync(
       file,
       formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
@@ -83,8 +83,8 @@ describe("lifecycleMain", () => {
 
   it("returns usage for unknown flags", () => {
     root = mkdtempSync(join(tmpdir(), "cli-flag-"));
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    const file = join(root, "vbrief", "proposed", "s.vbrief.json");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const file = join(root, "xbrief", "proposed", "s.xbrief.json");
     writeFileSync(
       file,
       formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
@@ -95,8 +95,8 @@ describe("lifecycleMain", () => {
 
   it("returns 1 for invalid transition", () => {
     root = mkdtempSync(join(tmpdir(), "cli-bad-"));
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    const file = join(root, "vbrief", "active", "s.vbrief.json");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const file = join(root, "xbrief", "active", "s.xbrief.json");
     writeFileSync(
       file,
       formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }),
@@ -107,15 +107,15 @@ describe("lifecycleMain", () => {
 
   it("fail and unblock transitions stay in active", () => {
     root = mkdtempSync(join(tmpdir(), "fail-unblock-"));
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    const blocked = join(root, "vbrief", "active", "b.vbrief.json");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const blocked = join(root, "xbrief", "active", "b.xbrief.json");
     writeFileSync(
       blocked,
       formatVbriefJson({ plan: { title: "T", status: "blocked", items: [] } }),
       "utf8",
     );
     expect(runTransition("unblock", blocked).ok).toBe(true);
-    const running = join(root, "vbrief", "active", "r.vbrief.json");
+    const running = join(root, "xbrief", "active", "r.xbrief.json");
     writeFileSync(
       running,
       formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }),
@@ -136,8 +136,8 @@ describe("demoteMain", () => {
 
   it("demotes a pending file", () => {
     root = mkdtempSync(join(tmpdir(), "dem-cli-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    const file = join(root, "vbrief", "pending", "d.vbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const file = join(root, "xbrief", "pending", "d.xbrief.json");
     writeFileSync(
       file,
       formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
@@ -148,8 +148,8 @@ describe("demoteMain", () => {
 
   it("returns 1 when demote transition invalid", () => {
     root = mkdtempSync(join(tmpdir(), "dem-bad-"));
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    const file = join(root, "vbrief", "proposed", "d.vbrief.json");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const file = join(root, "xbrief", "proposed", "d.xbrief.json");
     writeFileSync(
       file,
       formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
@@ -160,7 +160,7 @@ describe("demoteMain", () => {
 
   it("batch demote accepts actor and equals-form flags", () => {
     root = mkdtempSync(join(tmpdir(), "dem-batch-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     expect(
       demoteMain(["--batch", "--older-than-days=0", "--project-root", root, "--actor", "ci-bot"]),
     ).toBe(0);
@@ -168,7 +168,7 @@ describe("demoteMain", () => {
 
   it("returns usage for unknown demote flags", () => {
     root = mkdtempSync(join(tmpdir(), "dem-flag-"));
-    const file = join(root, "vbrief", "pending", "d.vbrief.json");
+    const file = join(root, "xbrief", "pending", "d.xbrief.json");
     expect(demoteMain([file, "--project-root", root, "--nope"])).toBe(2);
   });
 });
@@ -176,14 +176,14 @@ describe("demoteMain", () => {
 describe("capacity-stamp policy branches", () => {
   it("returns empty bucket for malformed policy sections", () => {
     const root = mkdtempSync(join(tmpdir(), "cap-policy-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     for (const body of [
       { plan: null },
       { plan: { policy: null } },
       { plan: { policy: { capacityAllocation: null } } },
     ]) {
       writeFileSync(
-        join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
         formatVbriefJson(body),
         "utf8",
       );
@@ -210,9 +210,9 @@ describe("undoMain", () => {
 
   it("undoes latest demote entry", () => {
     root = mkdtempSync(join(tmpdir(), "undo-latest-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
-    const pending = join(root, "vbrief", "pending", "u.vbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    const pending = join(root, "xbrief", "pending", "u.xbrief.json");
     writeFileSync(
       pending,
       formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
@@ -220,7 +220,7 @@ describe("undoMain", () => {
     );
     demoteOne(pending, root, "test");
     expect(undoMain(["--latest", "--project-root", root])).toBe(0);
-    expect(readFileSync(join(root, "vbrief", "pending", "u.vbrief.json"), "utf8")).toContain(
+    expect(readFileSync(join(root, "xbrief", "pending", "u.xbrief.json"), "utf8")).toContain(
       "pending",
     );
   });

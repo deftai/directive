@@ -89,7 +89,7 @@ describe("readSentinel branch coverage", () => {
       {
         schemaVersion: SCHEMA_VERSION,
         timestamp: "2026-06-09T00:00:00Z",
-        lastActiveVbrief: "vbrief/active/x.vbrief.json",
+        lastActiveVbrief: "xbrief/active/x.xbrief.json",
         lastBranch: "",
       },
     ];
@@ -105,7 +105,7 @@ describe("readSentinel branch coverage", () => {
     writeSentinelFile(root, {
       schemaVersion: SCHEMA_VERSION,
       timestamp: "2026-06-09T00:00:00Z",
-      lastActiveVbrief: "vbrief/active/x.vbrief.json",
+      lastActiveVbrief: "xbrief/active/x.xbrief.json",
       lastBranch: "main",
     });
     const sentinel = readSentinel(root);
@@ -116,12 +116,12 @@ describe("readSentinel branch coverage", () => {
     const root = tmpRoot("sent-rt-");
     writeSentinel(root, {
       deftVersion: "1.2.3",
-      lastActiveVbrief: "vbrief\\active\\x.vbrief.json",
+      lastActiveVbrief: "vbrief\\active\\x.xbrief.json",
       lastBranch: "feat/x",
       now: new Date("2026-06-09T00:00:00Z"),
     });
     const sentinel = readSentinel(root);
-    expect(sentinel?.lastActiveVbrief).toBe("vbrief/active/x.vbrief.json");
+    expect(sentinel?.lastActiveVbrief).toBe("xbrief/active/x.xbrief.json");
     expect(sentinel?.deftVersion).toBe("1.2.3");
     expect(sentinel?.lastBranch).toBe("feat/x");
   });
@@ -140,7 +140,7 @@ describe("computeResumeSignal branch coverage", () => {
       schemaVersion: SCHEMA_VERSION,
       deftVersion: "",
       timestamp: new Date("2026-06-09T00:00:00Z"),
-      lastActiveVbrief: "vbrief/pending/x.vbrief.json",
+      lastActiveVbrief: "xbrief/pending/x.xbrief.json",
       lastBranch: "main",
     };
     expect(computeResumeSignal(sentinel, now, root)).toBeNull();
@@ -152,7 +152,7 @@ describe("computeResumeSignal branch coverage", () => {
       schemaVersion: SCHEMA_VERSION,
       deftVersion: "",
       timestamp: new Date("2026-06-09T05:30:00Z"),
-      lastActiveVbrief: `${ACTIVE_VBRIEF_PREFIX}x.vbrief.json`,
+      lastActiveVbrief: `${ACTIVE_VBRIEF_PREFIX}x.xbrief.json`,
       lastBranch: "main",
     };
     expect(computeResumeSignal(sentinel, now, root)).toBeNull();
@@ -164,7 +164,7 @@ describe("computeResumeSignal branch coverage", () => {
       schemaVersion: SCHEMA_VERSION,
       deftVersion: "",
       timestamp: new Date("2026-06-09T00:00:00Z"),
-      lastActiveVbrief: `${ACTIVE_VBRIEF_PREFIX}gone.vbrief.json`,
+      lastActiveVbrief: `${ACTIVE_VBRIEF_PREFIX}gone.xbrief.json`,
       lastBranch: "main",
     };
     expect(computeResumeSignal(sentinel, now, root)).toBeNull();
@@ -172,13 +172,13 @@ describe("computeResumeSignal branch coverage", () => {
 
   it("emits a resume signal when all conditions hold", () => {
     const root = tmpRoot("rs-ok-");
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "active", "x.vbrief.json"), "{}\n", "utf8");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "x.xbrief.json"), "{}\n", "utf8");
     const sentinel = {
       schemaVersion: SCHEMA_VERSION,
       deftVersion: "",
       timestamp: new Date("2026-06-09T00:00:00Z"),
-      lastActiveVbrief: `${ACTIVE_VBRIEF_PREFIX}x.vbrief.json`,
+      lastActiveVbrief: `${ACTIVE_VBRIEF_PREFIX}x.xbrief.json`,
       lastBranch: "feat/x",
     };
     const signal = computeResumeSignal(sentinel, now, root);
@@ -195,27 +195,27 @@ describe("detectLatestActiveVbrief branch coverage", () => {
 
   it("returns null when there are no vBRIEF files", () => {
     const root = tmpRoot("det-empty-");
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "active", "README.md"), "x\n", "utf8");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "README.md"), "x\n", "utf8");
     expect(detectLatestActiveVbrief(root)).toBeNull();
   });
 
   it("returns the most recently modified vBRIEF", () => {
     const root = tmpRoot("det-latest-");
-    const dir = join(root, "vbrief", "active");
+    const dir = join(root, "xbrief", "active");
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "old.vbrief.json"), "{}\n", "utf8");
-    writeFileSync(join(dir, "new.vbrief.json"), "{}\n", "utf8");
+    writeFileSync(join(dir, "old.xbrief.json"), "{}\n", "utf8");
+    writeFileSync(join(dir, "new.xbrief.json"), "{}\n", "utf8");
     utimesSync(
-      join(dir, "old.vbrief.json"),
+      join(dir, "old.xbrief.json"),
       new Date("2026-06-01T00:00:00Z"),
       new Date("2026-06-01T00:00:00Z"),
     );
     utimesSync(
-      join(dir, "new.vbrief.json"),
+      join(dir, "new.xbrief.json"),
       new Date("2026-06-09T00:00:00Z"),
       new Date("2026-06-09T00:00:00Z"),
     );
-    expect(detectLatestActiveVbrief(root)).toBe("vbrief/active/new.vbrief.json");
+    expect(detectLatestActiveVbrief(root)).toBe("xbrief/active/new.xbrief.json");
   });
 });

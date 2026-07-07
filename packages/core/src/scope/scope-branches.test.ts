@@ -24,7 +24,7 @@ describe("scope branch coverage", () => {
     expect(undoMain(["--latest", "--decision-id", "x", "--project-root", "/tmp"])).toBe(2);
     expect(undoMain(["a", "--decision-id", "b", "--project-root", "/tmp"])).toBe(2);
     root = mkdtempSync(join(tmpdir(), "scope-br-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(canonicalLogPath(root), "{}\n", "utf8");
     expect(undoMain(["--batch-id", newDecisionId(), "--project-root", root])).toBe(1);
   });
@@ -32,31 +32,31 @@ describe("scope branch coverage", () => {
   it("lifecycle promote with force over cap", () => {
     root = mkdtempSync(join(tmpdir(), "scope-br-"));
     for (const f of ["proposed", "pending", "active"]) {
-      mkdirSync(join(root, "vbrief", f), { recursive: true });
+      mkdirSync(join(root, "xbrief", f), { recursive: true });
     }
     for (let i = 0; i < 10; i += 1) {
       writeFileSync(
-        join(root, "vbrief", "pending", `p${i}.vbrief.json`),
+        join(root, "xbrief", "pending", `p${i}.xbrief.json`),
         formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
       );
     }
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       formatVbriefJson({
         plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
       }),
     );
-    const file = join(root, "vbrief", "proposed", "new.vbrief.json");
+    const file = join(root, "xbrief", "proposed", "new.xbrief.json");
     writeFileSync(file, formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }));
     expect(lifecycleMain(["promote", file, "--project-root", root, "--force"])).toBe(0);
   });
 
   it("undo restore and nested undo branches", () => {
     root = mkdtempSync(join(tmpdir(), "scope-br-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     const logPath = canonicalLogPath(root);
-    const proposed = join(root, "vbrief", "proposed", "r.vbrief.json");
+    const proposed = join(root, "xbrief", "proposed", "r.xbrief.json");
     writeFileSync(
       proposed,
       formatVbriefJson({ plan: { title: "T", status: "proposed", items: [] } }),
@@ -65,17 +65,17 @@ describe("scope branch coverage", () => {
       decision_id: newDecisionId(),
       timestamp: "2026-05-18T20:00:00Z",
       action: "restore",
-      vbrief_path: "vbrief/proposed/r.vbrief.json",
+      vbrief_path: "xbrief/proposed/r.xbrief.json",
       from_status: "cancelled",
       to_status: "proposed",
       actor: "operator",
     };
     append(restoreEntry, logPath);
     expect(undoOne(restoreEntry, root, { logPath }).ok).toBe(true);
-    expect(existsSync(join(root, "vbrief", "cancelled", "r.vbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "cancelled", "r.xbrief.json"))).toBe(true);
 
-    const pending = join(root, "vbrief", "pending", "d.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const pending = join(root, "xbrief", "pending", "d.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       pending,
       formatVbriefJson({ plan: { title: "T", status: "pending", items: [] } }),
@@ -120,13 +120,13 @@ describe("scope branch coverage", () => {
 
   it("fail unblock from blocked and same-folder cancel no-op", () => {
     root = mkdtempSync(join(tmpdir(), "scope-br-"));
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
-    const active = join(root, "vbrief", "active", "f.vbrief.json");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    const active = join(root, "xbrief", "active", "f.xbrief.json");
     writeFileSync(active, formatVbriefJson({ plan: { title: "T", status: "running", items: [] } }));
     runTransition("block", active);
     expect(runTransition("unblock", active).ok).toBe(true);
-    const cancelled = join(root, "vbrief", "cancelled", "c.vbrief.json");
+    const cancelled = join(root, "xbrief", "cancelled", "c.xbrief.json");
     writeFileSync(
       cancelled,
       formatVbriefJson({ plan: { title: "T", status: "cancelled", items: [] } }),

@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed the legacy `vbrief/` read path that had been retained for one MINOR back-compat window. Projects using only `vbrief/` now receive a clear error directing operators to run `deft migrate:xbrief`; silent fallbacks are gone. The `deft migrate:xbrief` tool remains fully functional as the migration path. Closes #2112. Refs #2034.
+
 ## [0.72.0] - 2026-07-06
 
 > deftai-org repos auto-enable local no-egress value-feedback collection; every attribution event now carries repo, directive version, install id, and schema version.

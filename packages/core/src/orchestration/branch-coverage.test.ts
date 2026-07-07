@@ -32,14 +32,14 @@ import {
 function jgProject(gates?: unknown[], disabled?: string[]): string {
   const root = mkdtempSync(join(tmpdir(), "jg-bc-"));
   for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
-    mkdirSync(join(root, "vbrief", f), { recursive: true });
+    mkdirSync(join(root, "xbrief", f), { recursive: true });
   }
   const policy: Record<string, unknown> = {};
   if (gates) policy.judgmentGates = gates;
   if (disabled) policy.judgmentGatesDisabled = disabled;
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { items: [], policy } }),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { items: [], policy } }),
     "utf8",
   );
   return root;
@@ -165,7 +165,7 @@ describe("subagent-monitor branch coverage", () => {
 describe("verify-investigation branch coverage", () => {
   function base(): Record<string, unknown> {
     return {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         status: "completed",
         items: [],
@@ -484,7 +484,7 @@ describe("verify-investigation iter/cmd branch coverage", () => {
     extra: Record<string, unknown> = {},
   ): Record<string, unknown> {
     return {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         status: "completed",
         items,
@@ -622,9 +622,9 @@ describe("verify-judgment-gates arg branch coverage", () => {
 
   it("resolveJudgmentGates with non-object plan/policy blocks", () => {
     const root1 = mkdtempSync(join(tmpdir(), "pol-pl-"));
-    mkdirSync(join(root1, "vbrief"), { recursive: true });
+    mkdirSync(join(root1, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root1, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root1, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: [1, 2, 3] }),
       "utf8",
     );
@@ -632,9 +632,9 @@ describe("verify-judgment-gates arg branch coverage", () => {
     rmSync(root1, { recursive: true, force: true });
 
     const root2 = mkdtempSync(join(tmpdir(), "pol-po-"));
-    mkdirSync(join(root2, "vbrief"), { recursive: true });
+    mkdirSync(join(root2, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root2, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root2, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: "not-an-object" } }),
       "utf8",
     );

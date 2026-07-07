@@ -105,7 +105,7 @@ function completed(stdout = "", stderr = "", returncode = 0): CompletedProcess {
 
 function mkVbriefTree(root: string, specs: { folder: string; name: string; data: object }[]): void {
   for (const spec of specs) {
-    const dir = join(root, "vbrief", spec.folder);
+    const dir = join(root, "xbrief", spec.folder);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, spec.name), `${JSON.stringify(spec.data, null, 2)}\n`, "utf8");
   }
@@ -234,7 +234,7 @@ describe("intake coverage boost", () => {
 
     it("ingestOne handles duplicate and dry-run", () => {
       const dir = mkdtempSync(join(tmpdir(), "ingest-"));
-      const refs = new Map<number, string[]>([[5, ["proposed/existing.vbrief.json"]]]);
+      const refs = new Map<number, string[]>([[5, ["proposed/existing.xbrief.json"]]]);
       const [dup] = ingestOne(
         { number: 5, title: "Dup", url: "https://github.com/o/r/issues/5" },
         {
@@ -290,7 +290,7 @@ describe("intake coverage boost", () => {
       mkVbriefTree(root, [
         {
           folder: "proposed",
-          name: "a.vbrief.json",
+          name: "a.xbrief.json",
           data: {
             plan: {
               narratives: { Origin: "Ingested from https://github.com/o/r/issues/10" },
@@ -301,8 +301,8 @@ describe("intake coverage boost", () => {
           },
         },
       ]);
-      const refs = scanProvenanceRefs(join(root, "vbrief"));
-      expect(refs.get(10)).toEqual(["proposed/a.vbrief.json"]);
+      const refs = scanProvenanceRefs(join(root, "xbrief"));
+      expect(refs.get(10)).toEqual(["proposed/a.xbrief.json"]);
       expect(resolveRepoUrl("o/r")).toBe("https://github.com/o/r");
       expect(resolveRepoUrl("https://github.com/o/r/")).toBe("https://github.com/o/r");
       expect(targetFilename(3, "Hello World")).toMatch(/-3-hello-world\.vbrief\.json$/);
@@ -320,7 +320,8 @@ describe("intake coverage boost", () => {
 
     it("ingestSingleForAccept throws on fetch failure", () => {
       const root = mkdtempSync(join(tmpdir(), "accept-"));
-      mkdirSync(join(root, "vbrief"), { recursive: true });
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
       expect(() =>
         ingestSingleForAccept(9, "o/r", {
           projectRoot: root,
@@ -356,8 +357,8 @@ describe("intake coverage boost", () => {
 
     it("reconcile and reconcileWithUnlinked classify issues", () => {
       const map = new Map<number, string[]>([
-        [1, ["active/a.vbrief.json"]],
-        [2, ["active/b.vbrief.json"]],
+        [1, ["active/a.xbrief.json"]],
+        [2, ["active/b.xbrief.json"]],
       ]);
       const states = new Map<number, IssueState>([
         [1, new IssueState("OPEN")],
@@ -380,7 +381,7 @@ describe("intake coverage boost", () => {
       mkVbriefTree(root, [
         {
           folder: "active",
-          name: "child.vbrief.json",
+          name: "child.xbrief.json",
           data: {
             plan: {
               planRef: "#55",
@@ -422,7 +423,7 @@ describe("intake coverage boost", () => {
       expect(num).toBe(88);
       expect(axis).toBe("parent_issue");
 
-      const anchors = scanLifecycleAnchors(join(root, "vbrief"));
+      const anchors = scanLifecycleAnchors(join(root, "xbrief"));
       expect(anchors).toHaveLength(1);
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       const applyReport = buildLifecycleReport(
@@ -430,14 +431,14 @@ describe("intake coverage boost", () => {
         new Map([[55, new IssueState("CLOSED", "NOT_PLANNED")]]),
       );
       const [moved, skipped, failures] = applyLifecycleFixes(
-        join(root, "vbrief"),
+        join(root, "xbrief"),
         applyReport,
         root,
       );
       expect(moved).toBe(1);
       expect(skipped).toBe(0);
       expect(failures).toHaveLength(0);
-      expect(existsSync(join(root, "vbrief", "cancelled", "child.vbrief.json"))).toBe(true);
+      expect(existsSync(join(root, "xbrief", "cancelled", "child.xbrief.json"))).toBe(true);
       stderr.mockRestore();
       rmSync(root, { recursive: true, force: true });
     });
@@ -447,7 +448,7 @@ describe("intake coverage boost", () => {
       mkVbriefTree(root, [
         {
           folder: "proposed",
-          name: "x.vbrief.json",
+          name: "x.xbrief.json",
           data: {
             plan: {
               references: [
@@ -457,8 +458,8 @@ describe("intake coverage boost", () => {
           },
         },
       ]);
-      const map = scanVbriefDir(join(root, "vbrief"));
-      expect(map.get(42)).toEqual(["proposed/x.vbrief.json"]);
+      const map = scanVbriefDir(join(root, "xbrief"));
+      expect(map.get(42)).toEqual(["proposed/x.xbrief.json"]);
       rmSync(root, { recursive: true, force: true });
     });
 
@@ -480,7 +481,7 @@ describe("intake coverage boost", () => {
     it("renderIssueBody fallback and emit paths", () => {
       expect(renderIssueBody({})).toContain("Scope vBRIEF");
       const dir = mkdtempSync(join(tmpdir(), "emit-"));
-      const path = join(dir, "one.vbrief.json");
+      const path = join(dir, "one.xbrief.json");
       writeVbrief(path, {
         plan: {
           title: "Emit me",
@@ -489,13 +490,13 @@ describe("intake coverage boost", () => {
       });
       const skipped = emitSingle(path, { repo: "o/r", noNetwork: false });
       expect(skipped.result).toBe("skipped");
-      writeVbrief(join(dir, "two.vbrief.json"), { plan: { title: "Dry" } });
-      const dry = emitSingle(join(dir, "two.vbrief.json"), { repo: "o/r", noNetwork: true });
+      writeVbrief(join(dir, "two.xbrief.json"), { plan: { title: "Dry" } });
+      const dry = emitSingle(join(dir, "two.xbrief.json"), { repo: "o/r", noNetwork: true });
       expect(dry.result).toBe("dryrun");
-      const umbrella = emitUmbrella([join(dir, "two.vbrief.json")], {
+      const umbrella = emitUmbrella([join(dir, "two.xbrief.json")], {
         repo: "o/r",
         noNetwork: true,
-        displayPaths: ["two.vbrief.json"],
+        displayPaths: ["two.xbrief.json"],
       });
       expect(umbrella.result).toBe("dryrun");
       rmSync(dir, { recursive: true, force: true });
@@ -503,7 +504,7 @@ describe("intake coverage boost", () => {
 
     it("fileIssue and emitPerVbrief with stub scm", () => {
       const dir = mkdtempSync(join(tmpdir(), "emit-file-"));
-      const path = join(dir, "fresh.vbrief.json");
+      const path = join(dir, "fresh.xbrief.json");
       writeVbrief(path, { plan: { title: "Fresh" } });
       const scmCall = () => completed("https://github.com/o/r/issues/42\n", "", 0);
       const created = emitSingle(path, { repo: "o/r", scmCall });
@@ -519,21 +520,21 @@ describe("intake coverage boost", () => {
 
     it("expandPatterns displayPath isNoNetwork issueEmitMain", () => {
       const dir = mkdtempSync(join(tmpdir(), "emit-cli-"));
-      const vpath = join(dir, "solo.vbrief.json");
+      const vpath = join(dir, "solo.xbrief.json");
       writeVbrief(vpath, { plan: { title: "Solo" } });
       const matches = expandPatterns([vpath], dir);
       expect(matches).toHaveLength(1);
-      expect(displayPath(vpath, dir)).toBe("solo.vbrief.json");
+      expect(displayPath(vpath, dir)).toBe("solo.xbrief.json");
       const prev = process.env.DEFT_NO_NETWORK;
       process.env.DEFT_NO_NETWORK = "1";
       expect(isNoNetwork(false)).toBe(true);
       process.env.DEFT_NO_NETWORK = prev;
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       expect(issueEmitMain({ patterns: [], projectRoot: dir })).toBe(2);
-      writeVbrief(join(dir, "other.vbrief.json"), { plan: { title: "Other" } });
+      writeVbrief(join(dir, "other.xbrief.json"), { plan: { title: "Other" } });
       expect(
         issueEmitMain({
-          patterns: [join(dir, "*.vbrief.json")],
+          patterns: [join(dir, "*.xbrief.json")],
           projectRoot: dir,
           dryRun: true,
         }),

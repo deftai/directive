@@ -17,8 +17,17 @@ function makeLifecycleDirs(
   folders: readonly string[] = LIFECYCLE_FOLDERS,
 ): void {
   for (const folder of folders) {
-    mkdirSync(join(projectRoot, "vbrief", folder), { recursive: true });
+    mkdirSync(join(projectRoot, "xbrief", folder), { recursive: true });
   }
+  // Seed a minimal .xbrief.json so resolveLifecycleLayout can resolve the tree (#2112).
+  writeFileSync(
+    join(projectRoot, "xbrief", "active", "seed.xbrief.json"),
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8", description: "seed" },
+      plan: { title: "Seed", status: "running", items: [] },
+    }),
+    "utf8",
+  );
 }
 
 const createdRoots: string[] = [];
@@ -129,15 +138,16 @@ describe("doctor CLI", () => {
 
   it("flags a pre-cutover PROJECT.md and missing lifecycle folders", () => {
     const root = makeRoot("doctor-project-md-");
-    // Only a subset of lifecycle folders -> missing-folder reason fires.
-    makeLifecycleDirs(root, ["proposed", "active"]);
+    // Only vbrief dirs, no xbrief layout -- resolver throws, doctor reports layout missing.
+    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
     writeFileSync(join(root, "PROJECT.md"), "# Project\n\nLegacy project doc.\n", "utf8");
     const out = captureStdout(() => {
       run([`--project-root=${root}`]);
     });
     expect(out).toContain("Pre-cutover: migration needed");
     expect(out).toContain("PROJECT.md");
-    expect(out).toContain("missing lifecycle folder");
+    expect(out).toContain("xbrief/ lifecycle layout not found");
   });
 
   it("treats deprecation-redirect root docs as already migrated", () => {
@@ -152,17 +162,22 @@ describe("doctor CLI", () => {
     expect(out).toContain("Pre-cutover: none");
   });
 
-  it("treats a current generated SPECIFICATION export as already migrated", () => {
+  it("treats a current generated xbrief SPECIFICATION export as already migrated (#2112)", () => {
     const root = makeRoot("doctor-generated-");
-    makeLifecycleDirs(root);
+    for (const folder of LIFECYCLE_FOLDERS) {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    }
     writeFileSync(
-      join(root, "vbrief", "specification.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "Spec", items: [] } }),
+      join(root, "xbrief", "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "Spec", status: "running", items: [] },
+      }),
       "utf8",
     );
     writeFileSync(
       join(root, "SPECIFICATION.md"),
-      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n# Spec\n",
+      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: xbrief/specification.xbrief.json -->\n# Spec\n",
       "utf8",
     );
     const out = captureStdout(() => {
@@ -221,15 +236,14 @@ describe("doctor CLI", () => {
     const out = captureStdout(() => {
       run(["--project-root", root]);
     });
-    expect(out).toContain("xBrief migration: legacy vbrief layout detected");
+    expect(out).toContain("xBrief migration: migrate required");
+    expect(out).toContain("only vbrief/ found");
     expect(out).toContain("migrate:xbrief");
   });
 
   it("signposts a half-migrated AGENTS.md header (xbrief tree + vbrief header) (#2154)", () => {
     const root = makeRoot("doctor-header-drift-");
-    for (const folder of LIFECYCLE_FOLDERS) {
-      mkdirSync(join(root, "xbrief", folder), { recursive: true });
-    }
+    makeLifecycleDirs(root);
     writeFileSync(
       join(root, "AGENTS.md"),
       [
@@ -254,9 +268,7 @@ describe("doctor CLI", () => {
 
   it("reports no AGENTS.md header drift for a clean xbrief header (#2154)", () => {
     const root = makeRoot("doctor-header-clean-");
-    for (const folder of LIFECYCLE_FOLDERS) {
-      mkdirSync(join(root, "xbrief", folder), { recursive: true });
-    }
+    makeLifecycleDirs(root);
     writeFileSync(join(root, "AGENTS.md"), "# Consumer\nAll on xbrief/ now.\n", "utf8");
     const out = captureStdout(() => {
       run(["--project-root", root]);

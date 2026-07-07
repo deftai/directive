@@ -12,8 +12,8 @@ import { completeCohort, sweepCohort } from "./complete-cohort.js";
 import { completeCohortMain } from "./complete-cohort-cli.js";
 
 function writeActiveStory(project: string, storyId: string): string {
-  const full = join(project, "vbrief", "active", `${storyId}.vbrief.json`);
-  mkdirSync(join(project, "vbrief", "active"), { recursive: true });
+  const full = join(project, "xbrief", "active", `${storyId}.xbrief.json`);
+  mkdirSync(join(project, "xbrief", "active"), { recursive: true });
   writeFileSync(
     full,
     JSON.stringify({
@@ -32,6 +32,14 @@ function writeActiveStory(project: string, storyId: string): string {
 describe("complete cohort live sweep with mocked transition", () => {
   beforeEach(() => {
     vi.mocked(runTransition).mockClear();
+  });
+
+  it("sweepCohort returns empty result when no xbrief/ layout found", () => {
+    const emptyProject = mkdtempSync(join(tmpdir(), "sw-empty-"));
+    const sweep = sweepCohort([], emptyProject, false);
+    expect(sweep.ok).toBe(true);
+    expect(sweep.stories).toEqual([]);
+    rmSync(emptyProject, { recursive: true, force: true });
   });
 
   it("completes active story via runTransition", () => {
@@ -55,7 +63,7 @@ describe("complete cohort live sweep with mocked transition", () => {
   it("dry-run completes active parent epic when child settles", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-par-act-"));
     const childPath = writeActiveStory(project, "child-act");
-    const parentPath = join(project, "vbrief", "active", "parent-act.vbrief.json");
+    const parentPath = join(project, "xbrief", "active", "parent-act.xbrief.json");
     writeFileSync(
       parentPath,
       JSON.stringify({
@@ -63,7 +71,7 @@ describe("complete cohort live sweep with mocked transition", () => {
           id: "parent-act",
           title: "Parent active",
           status: "running",
-          references: [{ type: "x-vbrief/plan", uri: "active/child-act.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "active/child-act.xbrief.json" }],
           metadata: { kind: "epic" },
         },
       }),
@@ -76,7 +84,7 @@ describe("complete cohort live sweep with mocked transition", () => {
           id: "child-act",
           title: "child-act",
           status: "running",
-          planRef: "active/parent-act.vbrief.json",
+          planRef: "active/parent-act.xbrief.json",
           items: [{ id: "i1", title: "t", status: "pending" }],
         },
       }),
@@ -95,9 +103,9 @@ describe("complete cohort live sweep with mocked transition", () => {
       return { ok: true, message: `${verb} ok` };
     });
     const project = mkdtempSync(join(tmpdir(), "sw-act-fail-"));
-    mkdirSync(join(project, "vbrief", "pending"), { recursive: true });
-    mkdirSync(join(project, "vbrief", "completed"), { recursive: true });
-    const childCompleted = join(project, "vbrief", "completed", "child-done.vbrief.json");
+    mkdirSync(join(project, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    const childCompleted = join(project, "xbrief", "completed", "child-done.xbrief.json");
     writeFileSync(
       childCompleted,
       JSON.stringify({
@@ -105,20 +113,20 @@ describe("complete cohort live sweep with mocked transition", () => {
           id: "child-done",
           title: "child-done",
           status: "completed",
-          planRef: "pending/parent-pend.vbrief.json",
+          planRef: "pending/parent-pend.xbrief.json",
           items: [{ id: "i1", title: "t", status: "done" }],
         },
       }),
       "utf8",
     );
     writeFileSync(
-      join(project, "vbrief", "pending", "parent-pend.vbrief.json"),
+      join(project, "xbrief", "pending", "parent-pend.xbrief.json"),
       JSON.stringify({
         plan: {
           id: "parent-pend",
           title: "parent-pend",
           status: "pending",
-          references: [{ type: "x-vbrief/plan", uri: "completed/child-done.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "completed/child-done.xbrief.json" }],
           metadata: { kind: "epic" },
         },
       }),

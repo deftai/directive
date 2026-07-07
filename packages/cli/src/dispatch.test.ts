@@ -935,7 +935,7 @@ describe("native policy-set handler (#2022)", () => {
   let root: string;
 
   function projectDefPath(): string {
-    return join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+    return join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
   }
 
   function auditLogPath(): string {
@@ -955,9 +955,10 @@ describe("native policy-set handler (#2022)", () => {
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), "deft-policy-set-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     const payload = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [] },
     };
     writeFileSync(projectDefPath(), JSON.stringify(payload), "utf8");
@@ -1551,8 +1552,8 @@ describe("directive bootstrap (#2022 Phase 4)", () => {
   });
 
   it("carries --project phase intent and reconfigure re-entry signal", async () => {
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{}\n", "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}\n", "utf8");
     const { io, out } = captureIo();
 
     const code = await runDirectiveBootstrap(

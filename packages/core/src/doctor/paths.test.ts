@@ -35,7 +35,7 @@ describe("resolveFrameworkRootForProject (#2146)", () => {
   it("detects a consumer .deft/core deposit before the npm-engine fallback", () => {
     const project = freshProject();
     const deposit = join(project, ".deft", "core");
-    mkdirSync(join(deposit, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(deposit, "xbrief", "schemas"), { recursive: true });
     writeFileSync(join(deposit, "QUICK-START.md"), "# qs\n", "utf8");
     expect(resolveFrameworkRootForProject(project)).toBe(deposit);
   });

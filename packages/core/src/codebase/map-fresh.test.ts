@@ -6,11 +6,11 @@ import { runCodebaseMapCli } from "./map.js";
 import { checkCodebaseMapFresh, runCodebaseMapFreshCli } from "./map-fresh.js";
 
 function writeProject(root: string): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Fixture",
         status: "running",

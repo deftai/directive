@@ -19,7 +19,7 @@ afterAll(() => {
 function makeRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-slice-ctx-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"));
+  mkdirSync(join(root, "xbrief"));
   return root;
 }
 

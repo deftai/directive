@@ -12,12 +12,12 @@ afterAll(() => {
 function makePendingRoadmapFixture(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-cli-roadmap-"));
   temps.push(root);
-  const pending = join(root, "vbrief", "pending");
+  const pending = join(root, "xbrief", "pending");
   mkdirSync(pending, { recursive: true });
   writeFileSync(
-    join(pending, "2026-01-01-feature.vbrief.json"),
+    join(pending, "2026-01-01-feature.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "Feature A",
         status: "pending",
@@ -56,11 +56,11 @@ describe("deft-ts spec-validate", () => {
     expect(result.stdout).toContain("valid vBRIEF");
   });
 
-  it("falls back to vbrief/specification.vbrief.json via --project-root on legacy tree (#2132)", () => {
+  it("falls back to vbrief/specification.xbrief.json via --project-root on legacy tree (#2132)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-spec-val-vbrief-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "specification.vbrief.json"), VALID_SPEC_JSON, "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "specification.xbrief.json"), VALID_SPEC_JSON, "utf8");
     const result = runDeftTs("spec-validate", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("valid vBRIEF");
@@ -81,9 +81,9 @@ describe("deft-ts spec-render", () => {
   it("renders SPECIFICATION.md from an approved spec via direct path", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-spec-render-"));
     temps.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
-    const specPath = join(vbrief, "specification.vbrief.json");
+    const specPath = join(vbrief, "specification.xbrief.json");
     const outPath = join(root, "SPECIFICATION.md");
     writeFileSync(specPath, APPROVED_SPEC_JSON, "utf8");
     const result = runDeftTs("spec-render", [specPath, outPath]);
@@ -108,8 +108,8 @@ describe("deft-ts spec-render", () => {
   it("renders SPECIFICATION.md via --project-root on legacy vbrief tree (#2132)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-spec-render-vbrief-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "specification.vbrief.json"), APPROVED_SPEC_JSON, "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "specification.xbrief.json"), APPROVED_SPEC_JSON, "utf8");
     const result = runDeftTs("spec-render", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
     const content = readFileSync(join(root, "SPECIFICATION.md"), "utf8");
@@ -119,7 +119,7 @@ describe("deft-ts spec-render", () => {
 });
 
 const PRD_SPEC_JSON = JSON.stringify({
-  vBRIEFInfo: { version: "0.6" },
+  xBRIEFInfo: { version: "0.8" },
   plan: {
     title: "PRD Title",
     status: "approved",
@@ -158,8 +158,8 @@ describe("deft-ts prd-render", () => {
   it("resolves spec via --project-root on legacy vbrief tree (#2132)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-prd-vbrief-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "specification.vbrief.json"), PRD_SPEC_JSON, "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "specification.xbrief.json"), PRD_SPEC_JSON, "utf8");
     const outPath = join(root, "PRD.md");
     const result = runDeftTs("prd-render", ["--project-root", root, "--output", outPath]);
     expect(result.exitCode).toBe(0);
@@ -170,18 +170,18 @@ describe("deft-ts prd-render", () => {
 });
 
 describe("deft-ts project-render", () => {
-  it("creates PROJECT-DEFINITION.vbrief.json from lifecycle folders", () => {
+  it("creates PROJECT-DEFINITION.xbrief.json from lifecycle folders", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-proj-"));
     temps.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
       mkdirSync(join(vbrief, f), { recursive: true });
     }
     const result = runDeftTs("project-render", [vbrief]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("PROJECT-DEFINITION.vbrief.json");
-    expect(readFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "utf8")).toContain(
-      "vBRIEFInfo",
+    expect(result.stdout).toContain("PROJECT-DEFINITION.xbrief.json");
+    expect(readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8")).toContain(
+      "xBRIEFInfo",
     );
   });
 
@@ -193,28 +193,28 @@ describe("deft-ts project-render", () => {
       mkdirSync(join(xbrief, f), { recursive: true });
     }
     writeFileSync(
-      join(xbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(xbrief, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6", created: "2026-07-01T00:00:00Z" },
+        xBRIEFInfo: { version: "0.8", created: "2026-07-01T00:00:00Z" },
         plan: { title: "T", status: "running", narratives: {}, items: [], metadata: {} },
       }),
       "utf8",
     );
     const result = runDeftTs("project-render", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("PROJECT-DEFINITION.vbrief.json");
+    expect(result.stdout).toContain("PROJECT-DEFINITION.xbrief.json");
   });
 
   it("falls back to vbrief/ via --project-root on legacy tree (#2139)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-proj-vbrief-"));
     temps.push(root);
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
       mkdirSync(join(vbrief, f), { recursive: true });
     }
     const result = runDeftTs("project-render", ["--project-root", root]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("PROJECT-DEFINITION.vbrief.json");
+    expect(result.stdout).toContain("PROJECT-DEFINITION.xbrief.json");
   });
 });
 
@@ -222,7 +222,7 @@ describe("deft-ts roadmap-render", () => {
   it("renders ROADMAP.md for pending vBRIEFs", () => {
     const root = makePendingRoadmapFixture();
     const outPath = join(root, "ROADMAP.md");
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     const result = runDeftTs("roadmap-render", [pending, outPath]);
     expect(result.exitCode).toBe(0);
     const content = readFileSync(outPath, "utf8");
@@ -234,7 +234,7 @@ describe("deft-ts roadmap-render", () => {
   it("reports drift with --check when file is stale", () => {
     const root = makePendingRoadmapFixture();
     const outPath = join(root, "ROADMAP.md");
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     writeFileSync(outPath, "stale roadmap\n", "utf8");
     const result = runDeftTs("roadmap-render", ["--check", pending, outPath]);
     expect(result.exitCode).toBe(1);
@@ -244,7 +244,7 @@ describe("deft-ts roadmap-render", () => {
   it("accepts empty pending directory", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-cli-roadmap-empty-"));
     temps.push(root);
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
     const outPath = join(root, "ROADMAP.md");
     const result = runDeftTs("roadmap-render", [pending, outPath]);

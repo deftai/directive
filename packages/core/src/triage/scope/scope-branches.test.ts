@@ -78,9 +78,9 @@ describe("branch coverage boosters", () => {
 
   it("runCliCapture handles add-label and list combo", () => {
     const root = mkdtempSync(join(tmpdir(), "clib-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       `${JSON.stringify({ plan: { title: "T", status: "running", items: [] } })}\n`,
       "utf8",
     );
@@ -112,11 +112,11 @@ describe("branch coverage boosters", () => {
 
   it("mutations-core throws on malformed project definition", () => {
     const root = mkdtempSync(join(tmpdir(), "mc-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), '{"plan": []}', "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), '{"plan": []}', "utf8");
     expect(() => subscribe(root, { label: "x" })).toThrow(/non-object 'plan'/);
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       '{"plan": {"policy": []}}',
       "utf8",
     );
@@ -125,9 +125,9 @@ describe("branch coverage boosters", () => {
 
   it("computeDiff includes is-open milestone snapshot", () => {
     const root = mkdtempSync(join(tmpdir(), "diffb-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           title: "T",
@@ -154,9 +154,9 @@ describe("branch coverage boosters", () => {
 
   it("resolveScopeRules handles non-object plan branches", () => {
     const root = mkdtempSync(join(tmpdir(), "resb-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: null }),
       "utf8",
     );
@@ -197,9 +197,9 @@ describe("branch coverage boosters", () => {
 
   it("runCliCapture ignore-label no-op goes to stderr", () => {
     const root = mkdtempSync(join(tmpdir(), "clin-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           title: "T",

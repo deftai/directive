@@ -73,10 +73,10 @@ describe("evaluateCodeStructure", () => {
 
   it("validates PROJECT-DEFINITION when present", () => {
     root = mkdtempSync(join(tmpdir(), "cs-pd-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(vbrief, { recursive: true });
     writeFileSync(
-      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           architecture: {
@@ -93,7 +93,7 @@ describe("evaluateCodeStructure", () => {
 
   it("exits 2 on invalid JSON path", () => {
     root = mkdtempSync(join(tmpdir(), "cs-bad-json-"));
-    const bad = join(root, "bad.vbrief.json");
+    const bad = join(root, "bad.xbrief.json");
     writeFileSync(bad, "{not json", "utf8");
     const result = evaluateCodeStructure(root, { paths: [bad] });
     expect(result.code).toBe(2);

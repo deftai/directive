@@ -46,7 +46,7 @@ export function exportSpec(options: ExportSpecOptions = {}): ExportSpecResult {
 
   const authority = resolveSpecAuthority(projectRoot);
   if (!authority) {
-    return [false, "✗ Missing vbrief/PROJECT-DEFINITION.vbrief.json — cannot export spec."];
+    return [false, "✗ Missing xbrief/PROJECT-DEFINITION.xbrief.json — cannot export spec."];
   }
 
   if (authority.kind === "full-spec" && authority.specPath) {
@@ -55,7 +55,7 @@ export function exportSpec(options: ExportSpecOptions = {}): ExportSpecResult {
   } else if (!greenfieldOverviewNonEmpty(authority)) {
     return [
       false,
-      "⚠ PROJECT-DEFINITION.vbrief.json Overview narrative is empty (D3). Populate Overview before export.",
+      "⚠ PROJECT-DEFINITION.xbrief.json Overview narrative is empty (D3). Populate Overview before export.",
     ];
   }
 

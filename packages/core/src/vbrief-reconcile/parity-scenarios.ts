@@ -107,8 +107,8 @@ function writeBrief(
   folder: string,
   extra: Record<string, unknown> = {},
 ): string {
-  const path = join(root, "vbrief", folder, `2026-05-21-${storyId}.vbrief.json`);
-  mkdirSync(join(root, "vbrief", folder), { recursive: true });
+  const path = join(root, "xbrief", folder, `2026-05-21-${storyId}.xbrief.json`);
+  mkdirSync(join(root, "xbrief", folder), { recursive: true });
   const statusMap: Record<string, string> = {
     proposed: "proposed",
     pending: "pending",
@@ -117,7 +117,7 @@ function writeBrief(
     cancelled: "cancelled",
   };
   const data = {
-    vBRIEFInfo: { version: "0.6" },
+    xBRIEFInfo: { version: "0.8" },
     plan: {
       id: storyId,
       title: storyId,
@@ -256,7 +256,7 @@ export function runParityScenario(
       };
     }
     case "graph-dry-run": {
-      mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
       writeBrief(root, "dep-done", "completed");
       writeBrief(root, "child", "proposed", {
         metadata: {
@@ -287,7 +287,7 @@ export function runParityScenario(
       };
     }
     case "graph-cycle": {
-      mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
       for (const id of ["a", "b"]) {
         writeBrief(root, id, "proposed", {
           metadata: {
@@ -315,12 +315,12 @@ export function runParityScenario(
       };
     }
     case "graph-missing-proposed": {
-      mkdirSync(join(root, "vbrief"), { recursive: true });
+      mkdirSync(join(root, "xbrief"), { recursive: true });
       const [code] = reconcileGraph(root, { dryRun: true });
       return { scenario: name, ok: true, payload: { exitCode: code } };
     }
     case "labels-blocked-dry-run": {
-      mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
       writeBrief(root, "blk", "active", {
         status: "blocked",
         references: [
@@ -344,7 +344,7 @@ export function runParityScenario(
       };
     }
     case "labels-utf8-dry-run": {
-      mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
       writeBrief(root, "utf8", "active", {
         references: [
           {
@@ -363,7 +363,7 @@ export function runParityScenario(
       };
     }
     case "umbrellas-create-dry-run": {
-      mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
       writeBrief(root, "child-a", "active", {
         metadata: { kind: "story", swarm: { depends_on: [] } },
       });
@@ -391,7 +391,7 @@ export function runParityScenario(
       };
     }
     case "umbrellas-unchanged": {
-      mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+      mkdirSync(join(root, "xbrief", "active"), { recursive: true });
       writeBrief(root, "child-b", "active", {
         metadata: { kind: "story", swarm: { depends_on: [] } },
       });

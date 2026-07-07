@@ -71,11 +71,11 @@ describe("xbrief/ allowlist parity (#2277)", () => {
   });
 
   it("keeps the legacy vbrief/ allowlist entries for not-yet-migrated projects", () => {
-    expect(isInstallerManagedPath("vbrief/.deft-version")).toBe(true);
+    expect(isInstallerManagedPath("xbrief/.deft-version")).toBe(true);
     for (const sub of xbriefLifecycleDirs) {
-      expect(isInstallerManagedPath(`vbrief/${sub}/.gitkeep`)).toBe(true);
+      expect(isInstallerManagedPath(`xbrief/${sub}/.gitkeep`)).toBe(true);
     }
-    expect(installerManagedGuardEre()).toContain("vbrief/\\.deft-version");
+    expect(installerManagedGuardEre()).toContain("xbrief/\\.deft-version");
   });
 });
 

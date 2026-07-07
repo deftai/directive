@@ -67,7 +67,7 @@ describe("scope branch coverage", () => {
       decision_id: newDecisionId(),
       timestamp: "2026-05-17T21:05:00Z",
       action: "demote",
-      vbrief_path: "vbrief/proposed/x.vbrief.json",
+      vbrief_path: "xbrief/proposed/x.xbrief.json",
       from_status: "pending",
       to_status: "proposed",
       actor: "operator",
@@ -100,14 +100,14 @@ describe("scope branch coverage", () => {
 
   it("capacity-stamp reads default bucket and handles invalid shapes", () => {
     root = mkdtempSync(join(tmpdir(), "cap-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{", "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{", "utf8");
     const plan: Record<string, unknown> = { status: "running" };
     stampCompletionMetadata(plan, root, "2026-06-01T00:00:00Z");
     expect(plan.metadata).toBeTruthy();
 
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       formatVbriefJson({
         plan: { policy: { capacityAllocation: { defaultBucket: "core" } } },
       }),
@@ -116,7 +116,7 @@ describe("scope branch coverage", () => {
     expect((plan.metadata as Record<string, unknown>).capacityBucket).toBe("core");
 
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       formatVbriefJson({ plan: { policy: { capacityAllocation: { defaultBucket: 1 } } } }),
     );
     const plan2: Record<string, unknown> = {
@@ -155,64 +155,64 @@ describe("scope branch coverage", () => {
   it("transition covers error paths, no-ops, block/unblock, complete", () => {
     root = mkdtempSync(join(tmpdir(), "trans-"));
     expect(runTransition("bogus", "/x").ok).toBe(false);
-    expect(runTransition("promote", join(root, "missing.vbrief.json")).ok).toBe(false);
+    expect(runTransition("promote", join(root, "missing.xbrief.json")).ok).toBe(false);
     writeFileSync(join(root, "not-vbrief.json"), "{}", "utf8");
     expect(runTransition("promote", join(root, "not-vbrief.json")).ok).toBe(false);
-    writeVbrief(root, "outside.vbrief.json", "proposed");
-    expect(runTransition("promote", join(root, "outside.vbrief.json")).ok).toBe(false);
+    writeVbrief(root, "outside.xbrief.json", "proposed");
+    expect(runTransition("promote", join(root, "outside.xbrief.json")).ok).toBe(false);
 
-    const proposed = join(root, "vbrief", "proposed");
-    writeVbrief(proposed, "bad.vbrief.json", "proposed");
-    writeFileSync(join(proposed, "bad.vbrief.json"), "{", "utf8");
-    expect(runTransition("promote", join(proposed, "bad.vbrief.json")).ok).toBe(false);
+    const proposed = join(root, "xbrief", "proposed");
+    writeVbrief(proposed, "bad.xbrief.json", "proposed");
+    writeFileSync(join(proposed, "bad.xbrief.json"), "{", "utf8");
+    expect(runTransition("promote", join(proposed, "bad.xbrief.json")).ok).toBe(false);
 
-    writeVbrief(proposed, "wrong-folder.vbrief.json", "proposed");
-    expect(runTransition("activate", join(proposed, "wrong-folder.vbrief.json")).ok).toBe(false);
+    writeVbrief(proposed, "wrong-folder.xbrief.json", "proposed");
+    expect(runTransition("activate", join(proposed, "wrong-folder.xbrief.json")).ok).toBe(false);
 
-    writeVbrief(proposed, "already.vbrief.json", "pending");
-    expect(runTransition("promote", join(proposed, "already.vbrief.json")).ok).toBe(true);
+    writeVbrief(proposed, "already.xbrief.json", "pending");
+    expect(runTransition("promote", join(proposed, "already.xbrief.json")).ok).toBe(true);
 
-    writeVbrief(join(root, "vbrief", "active"), "block.vbrief.json", "running");
-    const activeFile = join(root, "vbrief", "active", "block.vbrief.json");
+    writeVbrief(join(root, "xbrief", "active"), "block.xbrief.json", "running");
+    const activeFile = join(root, "xbrief", "active", "block.xbrief.json");
     expect(runTransition("block", activeFile).ok).toBe(true);
     expect(runTransition("block", activeFile).message).toContain("No-op");
 
-    writeVbrief(join(root, "vbrief", "active"), "complete.vbrief.json", "running");
-    const completeFile = join(root, "vbrief", "active", "complete.vbrief.json");
+    writeVbrief(join(root, "xbrief", "active"), "complete.xbrief.json", "running");
+    const completeFile = join(root, "xbrief", "active", "complete.xbrief.json");
     expect(runTransition("complete", completeFile).ok).toBe(true);
     const completed = JSON.parse(
-      readFileSync(join(root, "vbrief", "completed", "complete.vbrief.json"), "utf8"),
+      readFileSync(join(root, "xbrief", "completed", "complete.xbrief.json"), "utf8"),
     );
     expect(completed.plan.metadata?.completedAt).toBeTruthy();
 
-    recordWipCapOverride("/outside/file.vbrief.json", root, {
+    recordWipCapOverride("/outside/file.xbrief.json", root, {
       allowed: true,
       forceOverride: true,
       cap: 10,
       count: 11,
       source: "typed",
     });
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     expect(readAll(canonicalLogPath(root)).length).toBeGreaterThanOrEqual(0);
   });
 
   it("lifecycleMain wip cap refusal and force override", () => {
     root = mkdtempSync(join(tmpdir(), "life-"));
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     for (let i = 0; i < 10; i += 1) {
-      writeVbrief(join(root, "vbrief", "pending"), `p${i}.vbrief.json`, "pending");
+      writeVbrief(join(root, "xbrief", "pending"), `p${i}.xbrief.json`, "pending");
     }
     // Pin a typed wipCap so the refusal is deterministic regardless of the
     // framework DEFAULT_WIP_CAP (#2319 raised the default from 10 to 20).
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       formatVbriefJson({
         plan: { title: "P", status: "running", items: [], policy: { wipCap: 10 } },
       }),
     );
-    writeVbrief(join(root, "vbrief", "proposed"), "new.vbrief.json", "proposed");
-    const file = join(root, "vbrief", "proposed", "new.vbrief.json");
+    writeVbrief(join(root, "xbrief", "proposed"), "new.xbrief.json", "proposed");
+    const file = join(root, "xbrief", "proposed", "new.xbrief.json");
     expect(lifecycleMain(["promote", file, "--project-root", root])).toBe(1);
     expect(lifecycleMain(["promote", file, "--project-root", root, "--force"])).toBe(0);
     expect(lifecycleMain(["notreal", file, "--project-root", root])).toBe(2);
@@ -221,22 +221,22 @@ describe("scope branch coverage", () => {
   it("demote and resolve paths cover batch and validation branches", () => {
     root = mkdtempSync(join(tmpdir(), "dem-"));
     expect(resolveFilePath("", null)[1]).toContain("No vBRIEF");
-    expect(resolveFilePath("rel.vbrief.json", "/nonexistent-xyz")[1]).toContain("Cannot resolve");
+    expect(resolveFilePath("rel.xbrief.json", "/nonexistent-xyz")[1]).toContain("Cannot resolve");
     expect(resolveDemoteFilePath("", null)[1]).toContain("scope_demote");
     expect(resolveProjectRootStrict("/nonexistent-xyz")[1]).toContain("Cannot determine");
 
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    writeVbrief(join(root, "vbrief", "pending"), "old.vbrief.json", "pending", {
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeVbrief(join(root, "xbrief", "pending"), "old.xbrief.json", "pending", {
       updated: "2020-01-01T00:00:00Z",
     });
-    const pending = join(root, "vbrief", "pending", "old.vbrief.json");
+    const pending = join(root, "xbrief", "pending", "old.xbrief.json");
     expect(demoteOne(pending, root, "test").ok).toBe(true);
     expect(demoteOne(pending, root, "test").ok).toBe(false);
-    expect(demoteOne(join(root, "vbrief", "proposed", "x.vbrief.json"), root, "x").ok).toBe(false);
+    expect(demoteOne(join(root, "xbrief", "proposed", "x.xbrief.json"), root, "x").ok).toBe(false);
 
     expect(batchDemote(root, 9999)[0]).toBe(0);
     expect(() => batchDemote(root, -1)).toThrow();
-    writeFileSync(join(root, "vbrief", "pending", "broken.vbrief.json"), "{", "utf8");
+    writeFileSync(join(root, "xbrief", "pending", "broken.xbrief.json"), "{", "utf8");
     const [, , skipped] = batchDemote(root, 0);
     expect(skipped.some((s) => s.includes("broken"))).toBe(true);
 
@@ -246,7 +246,7 @@ describe("scope branch coverage", () => {
 
   it("undo covers restore, cancel meta, terminal refusal, dry-run, batch", () => {
     root = mkdtempSync(join(tmpdir(), "undo-br-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
 
     expect(undoOne({ action: "complete", decision_id: "x" }, root, { logPath }).ok).toBe(false);
@@ -258,15 +258,15 @@ describe("scope branch coverage", () => {
         decision_id: restoreId,
         timestamp: "2026-05-18T20:00:00Z",
         action: "restore",
-        vbrief_path: "vbrief/cancelled/r.vbrief.json",
+        vbrief_path: "xbrief/cancelled/r.xbrief.json",
         from_status: "cancelled",
         to_status: "proposed",
         actor: "operator",
       },
       logPath,
     );
-    mkdirSync(join(root, "vbrief", "cancelled"), { recursive: true });
-    writeVbrief(join(root, "vbrief", "cancelled"), "r.vbrief.json", "cancelled");
+    mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
+    writeVbrief(join(root, "xbrief", "cancelled"), "r.xbrief.json", "cancelled");
     const restoreEntry = findByDecisionId(restoreId, readAll(logPath));
     expect(restoreEntry).not.toBeNull();
     expect(undoOne(restoreEntry as Record<string, unknown>, root, { logPath }).ok).toBe(true);
@@ -277,7 +277,7 @@ describe("scope branch coverage", () => {
         decision_id: cancelId,
         timestamp: "2026-05-18T21:00:00Z",
         action: "cancel",
-        vbrief_path: "vbrief/cancelled/c.vbrief.json",
+        vbrief_path: "xbrief/cancelled/c.xbrief.json",
         from_status: "running",
         to_status: "cancelled",
         actor: "operator",
@@ -285,7 +285,7 @@ describe("scope branch coverage", () => {
       },
       logPath,
     );
-    writeVbrief(join(root, "vbrief", "cancelled"), "c.vbrief.json", "cancelled");
+    writeVbrief(join(root, "xbrief", "cancelled"), "c.xbrief.json", "cancelled");
     const cancelEntry = findByDecisionId(cancelId, readAll(logPath));
     expect(cancelEntry).not.toBeNull();
     expect(
@@ -307,41 +307,41 @@ describe("scope branch coverage", () => {
 
   it("decomposed-refs and project-definition-sync cover remaining branches", () => {
     root = mkdtempSync(join(tmpdir(), "sync-"));
-    const vbrief = join(root, "vbrief");
-    expect(detectLifecycleFolder("/tmp/foo.vbrief.json")).toBeNull();
-    expect(detectLifecycleFolder(join(vbrief, "active", "x.vbrief.json"))).toBe("active");
+    const vbrief = join(root, "xbrief");
+    expect(detectLifecycleFolder("/tmp/foo.xbrief.json")).toBeNull();
+    expect(detectLifecycleFolder(join(vbrief, "active", "x.xbrief.json"))).toBe("active");
     expect(updateDecomposedParentBackReferences({}, "a", "b", vbrief)).toEqual([]);
     expect(updateDecomposedChildBackReferences({ plan: [] }, "a", "b", vbrief)).toEqual([]);
 
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    const parent = join(vbrief, "active", "parent.vbrief.json");
+    const parent = join(vbrief, "active", "parent.xbrief.json");
     writeFileSync(
       parent,
       formatVbriefJson({
         plan: {
           references: [
             { type: "other", uri: "x" },
-            { type: "x-vbrief/plan", uri: "active/child.vbrief.json" },
+            { type: "x-vbrief/plan", uri: "active/child.xbrief.json" },
           ],
         },
       }),
     );
     const childData = {
       plan: {
-        planRef: "active/parent.vbrief.json",
-        items: [{ planRef: "active/parent.vbrief.json" }],
+        planRef: "active/parent.xbrief.json",
+        items: [{ planRef: "active/parent.xbrief.json" }],
       },
     };
     updateDecomposedParentBackReferences(
       childData,
-      join(vbrief, "pending", "child.vbrief.json"),
-      join(vbrief, "active", "child.vbrief.json"),
+      join(vbrief, "pending", "child.xbrief.json"),
+      join(vbrief, "active", "child.xbrief.json"),
       vbrief,
     );
 
     mkdirSync(join(vbrief, "completed"), { recursive: true });
     writeFileSync(
-      join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
       formatVbriefJson({
         plan: {
           title: "Proj",
@@ -350,15 +350,15 @@ describe("scope branch coverage", () => {
               id: "2026-04-12-add-oauth",
               title: "Add OAuth support",
               status: "running",
-              references: [{ type: "x-vbrief/plan", uri: "file://active/oauth.vbrief.json" }],
-              metadata: { source_path: "active/oauth.vbrief.json" },
+              references: [{ type: "x-vbrief/plan", uri: "file://active/oauth.xbrief.json" }],
+              metadata: { source_path: "active/oauth.xbrief.json" },
             },
           ],
-          references: [{ type: "x-vbrief/plan", uri: "active/oauth.vbrief.json" }],
+          references: [{ type: "x-vbrief/plan", uri: "active/oauth.xbrief.json" }],
         },
       }),
     );
-    const oauth = join(vbrief, "active", "oauth.vbrief.json");
+    const oauth = join(vbrief, "active", "oauth.xbrief.json");
     writeFileSync(
       oauth,
       formatVbriefJson({ plan: { title: "Add OAuth support", status: "running", items: [] } }),
@@ -366,18 +366,18 @@ describe("scope branch coverage", () => {
     syncProjectDefinitionAfterScopeMove(
       JSON.parse(readFileSync(oauth, "utf8")),
       oauth,
-      join(vbrief, "completed", "oauth.vbrief.json"),
+      join(vbrief, "completed", "oauth.xbrief.json"),
       vbrief,
       "completed",
     );
-    const pd = JSON.parse(readFileSync(join(vbrief, "PROJECT-DEFINITION.vbrief.json"), "utf8"));
+    const pd = JSON.parse(readFileSync(join(vbrief, "PROJECT-DEFINITION.xbrief.json"), "utf8"));
     expect(pd.plan.items[0].status).toBe("completed");
     expect(pd.plan.references[0].uri).toContain("completed/");
   });
 
   it("project-context resolves cli root and env", () => {
     root = mkdtempSync(join(tmpdir(), "ctx-"));
-    mkdirSync(join(root, "vbrief"));
+    mkdirSync(join(root, "xbrief"));
     expect(resolveProjectRoot(root)).toBe(root);
     expect(resolveProjectRoot("/nonexistent-deft-path-abc")).toBeNull();
     vi.stubEnv("DEFT_PROJECT_ROOT", root);
@@ -386,7 +386,8 @@ describe("scope branch coverage", () => {
 
   it("undoBatch records failures in skipped", () => {
     root = mkdtempSync(join(tmpdir(), "undo-fail-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}", "utf8");
     const logPath = canonicalLogPath(root);
     const batchId = newDecisionId();
     append(
@@ -394,7 +395,7 @@ describe("scope branch coverage", () => {
         decision_id: newDecisionId(),
         timestamp: "2026-05-18T19:00:00Z",
         action: "demote",
-        vbrief_path: "vbrief/proposed/nope.vbrief.json",
+        vbrief_path: "xbrief/proposed/nope.xbrief.json",
         from_status: "pending",
         to_status: "proposed",
         actor: "operator",
@@ -415,10 +416,11 @@ describe("scope branch coverage", () => {
 
   it("undoMain missing log and undo failure paths", () => {
     root = mkdtempSync(join(tmpdir(), "undo-main-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{}", "utf8");
     expect(undoMain(["--latest", "--project-root", root])).toBe(1);
 
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     const logPath = canonicalLogPath(root);
     writeFileSync(logPath, "", "utf8");
     const demoteId = newDecisionId();
@@ -427,7 +429,7 @@ describe("scope branch coverage", () => {
         decision_id: demoteId,
         timestamp: "2026-05-18T19:00:00Z",
         action: "demote",
-        vbrief_path: "vbrief/proposed/missing.vbrief.json",
+        vbrief_path: "xbrief/proposed/missing.xbrief.json",
         from_status: "pending",
         to_status: "proposed",
         actor: "operator",
@@ -446,20 +448,20 @@ describe("scope branch coverage", () => {
 
   it("lifecycleMain reports resolve errors", () => {
     expect(
-      lifecycleMain(["promote", "rel.vbrief.json", "--project-root", "/nonexistent-deft-root-xyz"]),
+      lifecycleMain(["promote", "rel.xbrief.json", "--project-root", "/nonexistent-deft-root-xyz"]),
     ).toBe(2);
   });
 
   it("scope cli entry executes lifecycleMain", () => {
     root = mkdtempSync(join(tmpdir(), "cli-"));
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
-    writeVbrief(join(root, "vbrief", "proposed"), "cli.vbrief.json", "proposed");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    writeVbrief(join(root, "xbrief", "proposed"), "cli.xbrief.json", "proposed");
     const cliPath = join(process.cwd(), "packages", "core", "dist", "scope", "cli.js");
-    const file = join(root, "vbrief", "proposed", "cli.vbrief.json");
+    const file = join(root, "xbrief", "proposed", "cli.xbrief.json");
     const r = spawnSync("node", [cliPath, "promote", file, "--project-root", root], {
       encoding: "utf8",
     });
     expect(r.status).toBe(0);
-    expect(existsSync(join(root, "vbrief", "pending", "cli.vbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "pending", "cli.xbrief.json"))).toBe(true);
   });
 });

@@ -26,9 +26,9 @@ describe("triage cache-path (#1703)", () => {
   });
 
   function seedVbrief(): void {
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "active", "s.vbrief.json"),
+      join(root, "xbrief", "active", "s.xbrief.json"),
       JSON.stringify({ plan: { id: "s", status: "running", items: [] } }),
       "utf8",
     );
@@ -45,12 +45,12 @@ describe("triage cache-path (#1703)", () => {
 
   it("resolves the dedicated triage-cache directory under the active lifecycle root", () => {
     seedVbrief();
-    expect(resolveTriageCacheDir(root)).toBe(join(root, "vbrief", TRIAGE_CACHE_DIR_NAME));
+    expect(resolveTriageCacheDir(root)).toBe(join(root, "xbrief", TRIAGE_CACHE_DIR_NAME));
     expect(resolveTriageCachePath(root, "candidates.jsonl")).toBe(
-      join(root, "vbrief", TRIAGE_CACHE_DIR_NAME, "candidates.jsonl"),
+      join(root, "xbrief", TRIAGE_CACHE_DIR_NAME, "candidates.jsonl"),
     );
     expect(triageCacheRelPath(root, "candidates.jsonl")).toBe(
-      "vbrief/.triage-cache/candidates.jsonl",
+      "xbrief/.triage-cache/candidates.jsonl",
     );
   });
 
@@ -70,7 +70,7 @@ describe("triage cache-path (#1703)", () => {
     writeFileSync(join(legacyDir, "candidates.jsonl"), legacyBody, "utf8");
 
     const resolved = resolveCandidatesLogPath(root);
-    expect(resolved).toBe(join(root, "vbrief", TRIAGE_CACHE_DIR_NAME, "candidates.jsonl"));
+    expect(resolved).toBe(join(root, "xbrief", TRIAGE_CACHE_DIR_NAME, "candidates.jsonl"));
     expect(existsSync(resolved)).toBe(true);
     expect(readFileSync(resolved, "utf8")).toBe(legacyBody);
     expect(existsSync(join(legacyDir, "candidates.jsonl"))).toBe(false);

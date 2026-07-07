@@ -14,7 +14,7 @@ afterAll(() => {
 function makeRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-cli-slice-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief", ".eval"), { recursive: true });
+  mkdirSync(join(root, "xbrief", ".eval"), { recursive: true });
   mkdirSync(join(root, ".git"));
   return root;
 }

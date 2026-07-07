@@ -484,7 +484,7 @@ describe("packsSlice main", () => {
   it("discoverPacks honors repoRoot for provenance paths", () => {
     const root = mkdtempSync(join(tmpdir(), "pslice-disc-"));
     const packDir = join(root, "packs", "lessons");
-    mkdirSync(join(root, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "schemas"), { recursive: true });
     mkdirSync(packDir, { recursive: true });
     writeFileSync(
       join(packDir, "lessons-pack-0.1.json"),
@@ -492,11 +492,11 @@ describe("packsSlice main", () => {
       "utf8",
     );
     writeFileSync(
-      join(root, "vbrief", "schemas", "lessons-pack.schema.json"),
+      join(root, "xbrief", "schemas", "lessons-pack.schema.json"),
       JSON.stringify({ description: "Fixture pack." }),
       "utf8",
     );
-    const packs = discoverPacks(join(root, "packs"), join(root, "vbrief", "schemas"), root);
+    const packs = discoverPacks(join(root, "packs"), join(root, "xbrief", "schemas"), root);
     expect(packs[0]?.source).toBe("packs/lessons/lessons-pack-0.1.json");
     rmSync(root, { recursive: true, force: true });
   });

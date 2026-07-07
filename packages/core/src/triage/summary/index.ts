@@ -24,7 +24,7 @@ export const CACHE_DIR_NAME = ".deft-cache";
 export const CACHE_SOURCE = "github-issue";
 export const CANDIDATES_LOG_REL_PATH = AUDIT_LOG_REL_PATH;
 export { latestDecisions, readAuditLog } from "../actions/candidates-log.js";
-export const SUMMARY_HISTORY_REL_PATH = "vbrief/.triage-cache/summary-history.jsonl";
+export const SUMMARY_HISTORY_REL_PATH = "xbrief/.triage-cache/summary-history.jsonl";
 export const SUMMARY_HISTORY_SCHEMA = "deft.triage.summary.v1";
 /** D2 repeat-suppression window for session-start triage one-liner (#1122 / #1279). */
 export const D2_SUPPRESSION_WINDOW_HOURS = 4;

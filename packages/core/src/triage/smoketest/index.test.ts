@@ -47,14 +47,14 @@ describe("copyFixtureToTmp", () => {
     const fixture = mkdtempSync(join(tmpdir(), "deft-smoke-fix-"));
     const tmp = mkdtempSync(join(tmpdir(), "deft-smoke-tmp-"));
     temps.push(fixture, tmp);
-    mkdirSync(join(fixture, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(fixture, "xbrief", "proposed"), { recursive: true });
     writeFileSync(
-      join(fixture, "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: {} }),
+      join(fixture, "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: {} }),
       "utf8",
     );
     writeFileSync(
-      join(fixture, "vbrief", "proposed", "test-1.vbrief.json"),
+      join(fixture, "xbrief", "proposed", "test-1.xbrief.json"),
       JSON.stringify({ plan: { status: "proposed" } }),
       "utf8",
     );

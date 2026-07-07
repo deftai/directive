@@ -85,7 +85,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
   it("scope promote resolves against consumer --project-root", () => {
     const parent = makeTempRoot("deft-consumer-scope-");
     const consumer = createConsumerProject(parent);
-    writeScopeVbrief(consumer, "proposed", "2026-04-22-fixture.vbrief.json");
+    writeScopeVbrief(consumer, "proposed", "2026-04-22-fixture.xbrief.json");
     const unrelated = join(parent, "elsewhere");
     mkdirSync(unrelated, { recursive: true });
 
@@ -94,7 +94,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     try {
       const rc = lifecycleMain([
         "promote",
-        "vbrief/proposed/2026-04-22-fixture.vbrief.json",
+        "xbrief/proposed/2026-04-22-fixture.xbrief.json",
         "--project-root",
         consumer,
       ]);
@@ -103,10 +103,10 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
       process.chdir(prevCwd);
     }
 
-    expect(existsSync(join(consumer, "vbrief", "pending", "2026-04-22-fixture.vbrief.json"))).toBe(
+    expect(existsSync(join(consumer, "xbrief", "pending", "2026-04-22-fixture.xbrief.json"))).toBe(
       true,
     );
-    expect(existsSync(join(repoRoot, "vbrief", "proposed", "2026-04-22-fixture.vbrief.json"))).toBe(
+    expect(existsSync(join(repoRoot, "xbrief", "proposed", "2026-04-22-fixture.xbrief.json"))).toBe(
       false,
     );
   });
@@ -127,7 +127,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
       return true;
     }) as typeof process.stderr.write;
     try {
-      const rc = lifecycleMain(["promote", "vbrief/proposed/missing.vbrief.json"]);
+      const rc = lifecycleMain(["promote", "xbrief/proposed/missing.xbrief.json"]);
       expect(rc).toBe(2);
       expect(stderr.join("").toLowerCase()).toContain("project root");
     } finally {
@@ -149,24 +149,24 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
         labels: [],
       },
       {
-        vbriefDir: join(consumer, "vbrief"),
+        vbriefDir: join(consumer, "xbrief"),
         status: "proposed",
         repoUrl: "https://github.com/owner/consumer",
       },
     );
     expect(result[0]).toBe("created");
 
-    const files = readdirSync(join(consumer, "vbrief", "proposed")).filter((f) =>
-      f.endsWith(".vbrief.json"),
+    const files = readdirSync(join(consumer, "xbrief", "proposed")).filter((f) =>
+      f.endsWith(".xbrief.json"),
     );
     expect(files.length).toBeGreaterThan(0);
     const payload = JSON.parse(
-      readFileSync(join(consumer, "vbrief", "proposed", files[0] as string), "utf8"),
+      readFileSync(join(consumer, "xbrief", "proposed", files[0] as string), "utf8"),
     ) as {
-      vBRIEFInfo: { version: string };
+      xBRIEFInfo: { version: string };
       plan: { references: Array<Record<string, unknown>> };
     };
-    expect(payload.vBRIEFInfo.version).toBe("0.6");
+    expect(payload.xBRIEFInfo.version).toBe("0.8");
     const ref = payload.plan.references[0];
     expect(ref?.uri).toBe("https://github.com/owner/consumer/issues/101");
     expect(ref?.type).toBe("x-xbrief/github-issue");
@@ -190,7 +190,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     try {
       const rc = ingestModule.issueIngestMain({
         number: 1,
-        vbriefDir: join(consumer, "vbrief"),
+        vbriefDir: join(consumer, "xbrief"),
         projectRoot: consumer,
       });
       expect(rc).toBe(2);
@@ -205,10 +205,10 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     const parent = makeTempRoot("deft-consumer-reconcile-");
     const consumer = createConsumerProject(parent);
     writeFileSync(
-      join(consumer, "vbrief", "proposed", "2026-04-22-reconcile-fixture.vbrief.json"),
+      join(consumer, "xbrief", "proposed", "2026-04-22-reconcile-fixture.xbrief.json"),
       `${JSON.stringify(
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: {
             title: "Reconcile fixture",
             status: "proposed",
@@ -234,7 +234,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     });
 
     const rc = reconcileModule.reconcileMain({
-      vbriefDir: join(consumer, "vbrief"),
+      vbriefDir: join(consumer, "xbrief"),
       projectRoot: consumer,
       repo: "owner/consumer",
     });
@@ -249,7 +249,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     const parent = makeTempRoot("deft-consumer-prd-");
     const consumer = createConsumerProject(parent);
     const output = join(consumer, "PRD.md");
-    renderPrd(join(consumer, "vbrief", "specification.vbrief.json"), output);
+    renderPrd(join(consumer, "xbrief", "specification.xbrief.json"), output);
     expect(existsSync(output)).toBe(true);
     const content = readFileSync(output, "utf8");
     expect(content).toContain(PRD_GENERATED_SENTINEL);
@@ -280,7 +280,7 @@ describe("integration-e2e consumer tasks (mirrors test_consumer_tasks.py)", () =
     }) as typeof process.exit;
     try {
       expect(() =>
-        renderPrd(join(consumer, "vbrief", "specification.vbrief.json"), handAuthored),
+        renderPrd(join(consumer, "xbrief", "specification.xbrief.json"), handAuthored),
       ).toThrow(/process.exit:2/);
       expect(exitCode).toBe(2);
       expect(stderr.join("").toLowerCase()).toContain("refusing to overwrite");

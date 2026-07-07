@@ -8,7 +8,7 @@ import { formatVbriefJson } from "./vbrief-json.js";
 function makeRepo(): string {
   const root = mkdtempSync(join(tmpdir(), "scope-test-"));
   for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-    mkdirSync(join(root, "vbrief", folder), { recursive: true });
+    mkdirSync(join(root, "xbrief", folder), { recursive: true });
   }
   return root;
 }
@@ -17,9 +17,9 @@ function writeVbrief(
   root: string,
   folder: string,
   status: string,
-  name = "story.vbrief.json",
+  name = "story.xbrief.json",
 ): string {
-  const path = join(root, "vbrief", folder, name);
+  const path = join(root, "xbrief", folder, name);
   writeFile(path, {
     vBRIEFInfo: { version: "0.5" },
     plan: { title: "T", status, items: [] },
@@ -47,7 +47,7 @@ describe("runTransition", () => {
     const result = runTransition("promote", file, fixed);
     expect(result.ok).toBe(true);
     expect(result.message).toContain("Promoted");
-    const dest = join(root, "vbrief", "pending", "story.vbrief.json");
+    const dest = join(root, "xbrief", "pending", "story.xbrief.json");
     expect(existsSync(dest)).toBe(true);
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { status: string; updated: string };
@@ -61,7 +61,7 @@ describe("runTransition", () => {
     const file = writeVbrief(root, "pending", "pending");
     const result = runTransition("activate", file);
     expect(result.ok).toBe(true);
-    expect(existsSync(join(root, "vbrief", "active", "story.vbrief.json"))).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(true);
   });
 
   it("completes active to completed with stamp", () => {
@@ -69,7 +69,7 @@ describe("runTransition", () => {
     const file = writeVbrief(root, "active", "running");
     const result = runTransition("complete", file);
     expect(result.ok).toBe(true);
-    const dest = join(root, "vbrief", "completed", "story.vbrief.json");
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as {
       plan: { metadata: { completedAt: string } };
     };
@@ -81,7 +81,7 @@ describe("runTransition", () => {
     const file = writeVbrief(root, "active", "running");
     const result = runTransition("fail", file);
     expect(result.ok).toBe(true);
-    const dest = join(root, "vbrief", "completed", "story.vbrief.json");
+    const dest = join(root, "xbrief", "completed", "story.xbrief.json");
     const data = JSON.parse(readFileSync(dest, "utf8")) as { plan: { status: string } };
     expect(data.plan.status).toBe("failed");
   });
@@ -102,7 +102,7 @@ describe("runTransition", () => {
   });
 
   it("detects lifecycle folder", () => {
-    expect(detectLifecycleFolder("/tmp/vbrief/pending/foo.vbrief.json")).toBe("pending");
-    expect(detectLifecycleFolder("/tmp/other/foo.vbrief.json")).toBeNull();
+    expect(detectLifecycleFolder("/tmp/xbrief/pending/foo.xbrief.json")).toBe("pending");
+    expect(detectLifecycleFolder("/tmp/other/foo.xbrief.json")).toBeNull();
   });
 });

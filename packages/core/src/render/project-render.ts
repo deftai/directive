@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
+import {
+  hasArtifactSuffix,
+  resolveLayoutRootOrCanonical,
+  stripArtifactSuffix,
+} from "../layout/resolve.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import {
   atomicWriteProjectDefinition,
@@ -440,8 +444,20 @@ export function main(argv: readonly string[]): number {
     return 2;
   }
 
-  const vbriefDir =
-    positional[0] ?? resolveLifecycleRoot(resolve(projectRoot !== undefined ? projectRoot : "."));
+  let vbriefDir: string;
+  if (positional[0] !== undefined) {
+    vbriefDir = positional[0];
+  } else {
+    const effectiveRoot = resolve(projectRoot !== undefined ? projectRoot : ".");
+    try {
+      vbriefDir = resolveLayoutRootOrCanonical(effectiveRoot);
+    } catch {
+      process.stderr.write(
+        `No xbrief/ layout found at ${effectiveRoot}. Run \`deft migrate:xbrief\` to convert your project from the legacy vbrief/ layout.\n`,
+      );
+      return 2;
+    }
+  }
 
   const [ok, message] = acknowledge
     ? acknowledgeProjectDefinitionStaleness(vbriefDir)

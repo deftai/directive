@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -20,7 +20,6 @@ afterEach(() => {
 function seedProject(): string {
   const root = mkdtempSync(join(tmpdir(), "deft-golden-eval-"));
   temps.push(root);
-  mkdirSync(join(root, "xbrief"), { recursive: true });
   return root;
 }
 

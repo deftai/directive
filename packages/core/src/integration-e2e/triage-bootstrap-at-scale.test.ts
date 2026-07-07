@@ -44,14 +44,14 @@ describe("integration-e2e triage bootstrap at scale (mirrors test_triage_bootstr
 
     const gitignore = readFileSync(join(root, ".gitignore"), "utf8");
     expect(gitignore).toContain(".deft-cache/");
-    expect(gitignore).toContain("vbrief/.triage-cache/candidates.jsonl");
-    expect(gitignore).toContain("vbrief/.triage-cache/summary-history.jsonl");
-    expect(gitignore).toContain("vbrief/.triage-cache/scope-lifecycle.jsonl");
+    expect(gitignore).toContain("xbrief/.triage-cache/candidates.jsonl");
+    expect(gitignore).toContain("xbrief/.triage-cache/summary-history.jsonl");
+    expect(gitignore).toContain("xbrief/.triage-cache/scope-lifecycle.jsonl");
     const activeLines = gitignore
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length > 0 && !line.startsWith("#"));
-    expect(activeLines).not.toContain("vbrief/.triage-cache/");
+    expect(activeLines).not.toContain("xbrief/.triage-cache/");
   });
 
   it("runBootstrap emits per-step progress lines", async () => {

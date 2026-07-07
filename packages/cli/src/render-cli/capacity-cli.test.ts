@@ -13,15 +13,15 @@ function makeProjectRoot(capacity?: Record<string, unknown>): string {
   const root = mkdtempSync(join(tmpdir(), "deft-cli-cap-"));
   temps.push(root);
   for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-    mkdirSync(join(root, "vbrief", folder), { recursive: true });
+    mkdirSync(join(root, "xbrief", folder), { recursive: true });
   }
   const plan: Record<string, unknown> = { title: "Capacity test", status: "running", items: [] };
   if (capacity !== undefined) {
     plan.policy = { capacityAllocation: capacity };
   }
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan }),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }),
     "utf8",
   );
   return root;
@@ -29,9 +29,9 @@ function makeProjectRoot(capacity?: Record<string, unknown>): string {
 
 function writeCompleted(root: string, name: string, metadata: Record<string, unknown>): void {
   writeFileSync(
-    join(root, "vbrief", "completed", `${name}.vbrief.json`),
+    join(root, "xbrief", "completed", `${name}.xbrief.json`),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: name, status: "completed", items: [], metadata },
     }),
     "utf8",
@@ -102,7 +102,7 @@ describe("deft-ts capacity-backfill", () => {
       buckets: [{ id: "feature", target: 1.0 }],
       matchers: [{ bucket: "feature", matchLabels: ["feature"] }],
     });
-    const path = join(root, "vbrief", "completed", "story-a.vbrief.json");
+    const path = join(root, "xbrief", "completed", "story-a.xbrief.json");
     writeCompleted(root, "story-a", { completedAt: "2026-06-03T12:00:00Z" });
     const before = readFileSync(path, "utf8");
     const result = runDeftTs("capacity-backfill", ["--dry-run", "--project-root", root]);

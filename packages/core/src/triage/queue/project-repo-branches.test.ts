@@ -24,8 +24,9 @@ describe("loadProjectDefinition branches", () => {
     roots.push(root);
     expect(loadProjectDefinition(root)).toBeNull();
 
-    const path = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    const path = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     writeFileSync(path, "not-json", "utf8");
     expect(loadProjectDefinition(root)).toBeNull();
 
@@ -36,9 +37,9 @@ describe("loadProjectDefinition branches", () => {
   it("returns parsed object for valid project definition", () => {
     const root = mkdtempSync(join(tmpdir(), "queue-project-ok-"));
     roots.push(root);
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: {} } }),
       "utf8",
     );

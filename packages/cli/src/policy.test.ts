@@ -13,12 +13,12 @@ describe("normalizeOutput", () => {
   it("normalizes missing PROJECT-DEFINITION paths", () => {
     expect(
       normalizeOutput(
-        "error=PROJECT-DEFINITION not found at /tmp/abc/vbrief/PROJECT-DEFINITION.vbrief.json",
+        "error=PROJECT-DEFINITION not found at /tmp/abc/xbrief/PROJECT-DEFINITION.xbrief.json",
       ),
     ).toBe("error=PROJECT-DEFINITION not found at <ROOT>");
     expect(
       normalizeOutput(
-        "[deft policy] Branch-protection policy is ON (fail-closed: PROJECT-DEFINITION not found at /tmp/x/vbrief/PROJECT-DEFINITION.vbrief.json). Direct commits to the default branch are blocked.",
+        "[deft policy] Branch-protection policy is ON (fail-closed: PROJECT-DEFINITION not found at /tmp/x/xbrief/PROJECT-DEFINITION.xbrief.json). Direct commits to the default branch are blocked.",
       ),
     ).toContain("fail-closed: PROJECT-DEFINITION not found at <ROOT>");
   });
@@ -110,11 +110,11 @@ describe("run show + set integration", () => {
   function project(): string {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-cli-"));
     roots.push(r);
-    mkdirSync(join(r, "vbrief"), { recursive: true });
+    mkdirSync(join(r, "xbrief"), { recursive: true });
     writeFileSync(
-      join(r, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], policy: { wipCap: 5 } },
       }),
       { encoding: "utf8" },
@@ -161,11 +161,11 @@ describe("run show + set integration", () => {
   it("warns to stderr when a bare plan.policy shadows the namespaced form (#2301)", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-shadow-"));
     roots.push(r);
-    mkdirSync(join(r, "vbrief"), { recursive: true });
+    mkdirSync(join(r, "xbrief"), { recursive: true });
     writeFileSync(
-      join(r, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "T",
           status: "running",
@@ -188,11 +188,11 @@ describe("run show + set integration", () => {
   it("does not warn when only the namespaced policy exists", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-noshadow-"));
     roots.push(r);
-    mkdirSync(join(r, "vbrief"), { recursive: true });
+    mkdirSync(join(r, "xbrief"), { recursive: true });
     writeFileSync(
-      join(r, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], "x-directive/policy": { wipCap: 8 } },
       }),
       { encoding: "utf8" },
@@ -227,7 +227,8 @@ describe("run show + set integration", () => {
   it("warns when PROJECT-DEFINITION missing", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-empty-"));
     roots.push(r);
-    mkdirSync(join(r, "vbrief"), { recursive: true });
+    mkdirSync(join(r, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(r, "xbrief", "active", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     const { code, err } = captureRun(["show", "--project-root", r]);
     expect(code).toBe(0);
     expect(err).toContain("PROJECT-DEFINITION not found");
@@ -288,6 +289,8 @@ describe("run show + set integration", () => {
   it("returns config error when setting on missing project def", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-missing-"));
     roots.push(r);
+    mkdirSync(join(r, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(r, "xbrief", "active", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     const { code, err } = captureRun(["enforce-branches", "--project-root", r]);
     expect(code).toBe(2);
     expect(err).toContain("not found");
@@ -330,9 +333,9 @@ describe("run show + set integration", () => {
   it("reports no-op when enforce-branches value already matches", () => {
     const r = project();
     writeFileSync(
-      join(r, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           title: "T",
           status: "running",
@@ -350,9 +353,9 @@ describe("run show + set integration", () => {
   it("returns config error for malformed project definition on set", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-policy-malformed-"));
     roots.push(r);
-    mkdirSync(join(r, "vbrief"), { recursive: true });
+    mkdirSync(join(r, "xbrief"), { recursive: true });
     writeFileSync(
-      join(r, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: [] } }),
       { encoding: "utf8" },
     );

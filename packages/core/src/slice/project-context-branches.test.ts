@@ -13,7 +13,7 @@ describe("resolveProjectRoot walk", () => {
   it("walks upward from a subdirectory to find vbrief/", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-slice-walk-"));
     temps.push(root);
-    mkdirSync(join(root, "vbrief"));
+    mkdirSync(join(root, "xbrief"));
     const sub = join(root, "nested", "deep");
     mkdirSync(sub, { recursive: true });
     const prev = process.env.DEFT_PROJECT_ROOT;

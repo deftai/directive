@@ -101,11 +101,11 @@ describe("branch coverage helpers", () => {
             { type: "x-vbrief/web-page", uri: "u" },
           ],
         },
-        { ipIndex: 1, dependencies: [], specRef: "specification.vbrief.json" },
+        { ipIndex: 1, dependencies: [], specRef: "specification.xbrief.json" },
       ),
     ).toBeTruthy();
     const root = mkdtempSync(join(tmpdir(), "vb-br-sp-"));
-    const planPath = join(root, "plan.vbrief.json");
+    const planPath = join(root, "plan.xbrief.json");
     writeFileSync(
       planPath,
       pythonJsonPretty({
@@ -136,8 +136,8 @@ describe("branch coverage helpers", () => {
     expect(parseRoadmapItems(join(root, "ROADMAP.md")).phaseDescriptions["Phase Q"]).toBe("Desc");
     writeFileSync(join(root, "blocked"), "x", "utf8");
     expect(() =>
-      atomicWriteProjectDefinition(join(root, "blocked", "PROJECT-DEFINITION.vbrief.json"), {
-        vBRIEFInfo: { version: "0.6" },
+      atomicWriteProjectDefinition(join(root, "blocked", "PROJECT-DEFINITION.xbrief.json"), {
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T" },
       }),
     ).toThrow();
@@ -146,11 +146,12 @@ describe("branch coverage helpers", () => {
 
   it("covers project-definition lock sidecar and atomic write", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-br-pd-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
     const path = projectDefinitionPath(root);
     writeFileSync(
       path,
-      pythonJsonPretty({ vBRIEFInfo: { version: "0.6" }, plan: { title: "T", items: [] } }),
+      pythonJsonPretty({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T", items: [] } }),
       "utf8",
     );
     writeFileSync(`${path}.lock`, "\0", "utf8");

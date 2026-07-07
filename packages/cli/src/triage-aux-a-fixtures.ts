@@ -53,6 +53,7 @@ export function normalizeOutput(text: string): string {
     .replace(/Installed \d+ packages[^\n]*\n/g, "");
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;
@@ -84,10 +85,10 @@ export function diffCase(python: CommandCapture, ts: CommandCapture, caseName: s
 }
 
 function writeProjectDefinition(root: string, policy: Record<string, unknown> = {}): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    `${JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { policy } }, null, 2)}\n`,
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { policy } }, null, 2)}\n`,
     "utf8",
   );
 }
@@ -135,7 +136,7 @@ export const PARITY_CASES: readonly ParityCase[] = [
 
 export function buildFixtureRepo(setup?: (root: string) => void): string {
   const root = mkdtempSync(join(tmpdir(), "deft-triage-aux-a-parity-"));
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   setup?.(root);
   return root;
 }

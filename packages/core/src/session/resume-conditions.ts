@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { hasArtifactSuffix } from "../layout/resolve.js";
+import { hasArtifactSuffix, MIGRATED_ARTIFACT_DIR } from "../layout/resolve.js";
 
 export const RESUME_ELIGIBLE_DECISION = "resume-eligible";
 export const EVALUATOR_ACTOR = "agent:resume-evaluator";
@@ -295,7 +295,7 @@ export function evaluate(expr: Expression, ctx: ResumeContext): boolean {
 }
 
 function countPending(projectRoot: string): number {
-  const folder = join(resolve(projectRoot), "vbrief", PENDING_LIFECYCLE_DIR);
+  const folder = join(resolve(projectRoot), MIGRATED_ARTIFACT_DIR, PENDING_LIFECYCLE_DIR);
   try {
     if (!statSync(folder).isDirectory()) return 0;
   } catch {

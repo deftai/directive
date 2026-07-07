@@ -25,8 +25,8 @@ describe("resume conditions", () => {
 
   it("buildContext reads cache and pending", () => {
     const root = mkdtempSync(join(tmpdir(), "resume-ctx-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    writeFileSync(join(root, "vbrief", "pending", "a.vbrief.json"), "{}\n", "utf8");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "pending", "a.xbrief.json"), "{}\n", "utf8");
     mkdirSync(join(root, ".deft-cache", "github-issue", "deftai", "directive", "1"), {
       recursive: true,
     });

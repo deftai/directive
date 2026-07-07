@@ -16,10 +16,10 @@ function mkRoot(): string {
 }
 
 function writeVbrief(root: string, folder: string, name: string, uri: string): void {
-  const dir = join(root, "vbrief", folder);
+  const dir = join(root, "xbrief", folder);
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, `${name}.vbrief.json`),
+    join(dir, `${name}.xbrief.json`),
     JSON.stringify({
       "x-vbrief": [{ type: "x-vbrief/github-issue", uri }],
     }),
@@ -45,7 +45,7 @@ describe("countReconcilable", () => {
   it("excludes issues with existing audit entries", () => {
     const root = mkRoot();
     writeVbrief(root, "pending", "story", "https://github.com/deftai/directive/issues/99");
-    const logDir = join(root, "vbrief", ".triage-cache");
+    const logDir = join(root, "xbrief", ".triage-cache");
     mkdirSync(logDir, { recursive: true });
     writeFileSync(
       join(logDir, "candidates.jsonl"),

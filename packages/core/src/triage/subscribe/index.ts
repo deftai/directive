@@ -14,9 +14,9 @@ import { migrateLegacyPolicyKey, PLAN_POLICY_KEY } from "../../policy/plan-exten
 import { projectDefinitionMutationLock } from "../../vbrief-build/project-definition-io.js";
 import { resolveTriageCachePath } from "../cache-path.js";
 
-export const SUBSCRIPTION_HISTORY_REL_PATH = "vbrief/.triage-cache/subscription-history.jsonl";
+export const SUBSCRIPTION_HISTORY_REL_PATH = "xbrief/.triage-cache/subscription-history.jsonl";
 export const SUBSCRIPTION_HISTORY_SCHEMA = "deft.triage.subscription-change.v1";
-export const PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json";
+export const PROJECT_DEFINITION_REL_PATH = "xbrief/PROJECT-DEFINITION.xbrief.json";
 
 /** Python ``!r``-style quoting for parity with triage_subscribe.py messages. */
 export function pyRepr(value: string): string {

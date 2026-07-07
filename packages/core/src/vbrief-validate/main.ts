@@ -53,7 +53,19 @@ export function runValidate(argv: string[]): number {
     }
   }
 
-  const resolvedDir = vbriefDir ?? resolveLifecycleLayout(projectRoot ?? process.cwd()).root;
+  let resolvedDir: string;
+  if (vbriefDir !== null) {
+    resolvedDir = vbriefDir;
+  } else {
+    try {
+      resolvedDir = resolveLifecycleLayout(projectRoot ?? process.cwd()).root;
+    } catch {
+      process.stdout.write(
+        `OK: No xbrief/ layout found at ${projectRoot ?? process.cwd()} -- skipping validation\n`,
+      );
+      return 0;
+    }
+  }
 
   if (!existsSync(resolvedDir)) {
     process.stdout.write(`OK: No vbrief directory at ${resolvedDir} -- skipping validation\n`);

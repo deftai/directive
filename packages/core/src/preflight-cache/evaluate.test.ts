@@ -22,7 +22,7 @@ function makeTmpDir(): string {
 function setupProjectRoot(): string {
   const root = makeTmpDir();
   // Create vbrief/.triage-cache/ directory
-  mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+  mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
   return root;
 }
 
@@ -510,11 +510,11 @@ describe("evaluate -- correctness edge cases", () => {
       labels: [],
       repository: { full_name: "owner/repo" },
     });
-    const projectDef = join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json");
+    const projectDef = join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json");
     writeFileSync(
       projectDef,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { policy: { triageScope: [{ repoPattern: "^owner/" }] } },
       }),
       "utf8",

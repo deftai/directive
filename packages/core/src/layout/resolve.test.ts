@@ -49,15 +49,11 @@ describe("layout resolution (#2109 part 1)", () => {
     );
   }
 
-  it("returns the legacy vbrief layout when only vbrief/ is present (unchanged)", () => {
+  it("throws with a migration hint when only vbrief/ is present (#2112)", () => {
     seedVbrief();
-    const layout = resolveLifecycleLayout(root);
-    expect(layout.artifactDir).toBe("vbrief");
-    expect(layout.artifactSuffix).toBe(".vbrief.json");
-    expect(layout.infoRootKey).toBe("vBRIEFInfo");
-    expect(layout.migrated).toBe(false);
-    expect(layout.root).toBe(join(root, "vbrief"));
-    expect(resolveLifecycleRoot(root)).toBe(join(root, "vbrief"));
+    expect(() => resolveLifecycleLayout(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveLifecycleLayout(root)).toThrow(/No xbrief\/ layout found/);
+    expect(() => resolveLifecycleRoot(root)).toThrow(/deft migrate:xbrief/);
   });
 
   it("returns the xbrief layout when an xbrief/ tree with .xbrief.json files exists", () => {
@@ -78,20 +74,17 @@ describe("layout resolution (#2109 part 1)", () => {
     expect(layout.migrated).toBe(true);
   });
 
-  it("falls back to vbrief when xbrief/ exists but has no .xbrief.json artifacts", () => {
+  it("throws when xbrief/ exists but has no .xbrief.json artifacts and only vbrief/ has content (#2112)", () => {
     seedVbrief();
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     // Only a legacy-suffixed file under xbrief/ -- not a migrated artifact.
     writeFileSync(join(root, "xbrief", "active", "stray.vbrief.json"), "{}", "utf8");
-    const layout = resolveLifecycleLayout(root);
-    expect(layout.artifactDir).toBe("vbrief");
-    expect(layout.migrated).toBe(false);
+    expect(() => resolveLifecycleLayout(root)).toThrow(/deft migrate:xbrief/);
   });
 
-  it("defaults to vbrief when neither layout is present", () => {
-    const layout = resolveLifecycleLayout(root);
-    expect(layout.artifactDir).toBe("vbrief");
-    expect(layout.migrated).toBe(false);
+  it("throws with a migration hint when neither layout is present (#2112)", () => {
+    expect(() => resolveLifecycleLayout(root)).toThrow(/No xbrief\/ layout found/);
+    expect(() => resolveLifecycleLayout(root)).toThrow(/deft migrate:xbrief/);
   });
 });
 
@@ -156,22 +149,14 @@ describe("layout-aware path helpers (#2109 part 2a)", () => {
     );
   }
 
-  it("resolves lifecycle folder / eval / audit / project-definition under vbrief by default", () => {
+  it("throws on a pure vbrief/ tree -- no fallback read path after #2112", () => {
     seedVbrief();
-    expect(resolveLifecycleFolder(root, "pending")).toBe(join(root, "vbrief", "pending"));
-    expect(resolveEvalDir(root)).toBe(join(root, "vbrief", ".eval"));
-    expect(resolveEvalPath(root, "results", "ledger.json")).toBe(
-      join(root, "vbrief", ".eval", "results", "ledger.json"),
-    );
-    expect(resolveAuditDir(root)).toBe(join(root, "vbrief", ".audit"));
-    expect(resolveAuditPath(root, "pending-human-decisions.jsonl")).toBe(
-      join(root, "vbrief", ".audit", "pending-human-decisions.jsonl"),
-    );
-    expect(resolveProjectDefinitionPath(root)).toBe(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    );
-    expect(projectDefinitionFilename(root)).toBe("PROJECT-DEFINITION.vbrief.json");
-    expect(projectDefinitionRelPath(root)).toBe("vbrief/PROJECT-DEFINITION.vbrief.json");
+    expect(() => resolveLifecycleFolder(root, "pending")).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveEvalDir(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveAuditDir(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => resolveProjectDefinitionPath(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => projectDefinitionFilename(root)).toThrow(/deft migrate:xbrief/);
+    expect(() => projectDefinitionRelPath(root)).toThrow(/deft migrate:xbrief/);
   });
 
   it("resolves the same helpers under xbrief once the migrated tree exists", () => {
@@ -190,10 +175,9 @@ describe("layout-aware path helpers (#2109 part 2a)", () => {
     expect(projectDefinitionRelPath(root)).toBe("xbrief/PROJECT-DEFINITION.xbrief.json");
   });
 
-  it("resolveLifecycleRoot equals the resolved layout root under both layouts", () => {
-    seedVbrief();
-    expect(resolveLifecycleRoot(root)).toBe(resolveLifecycleLayout(root).root);
+  it("resolveLifecycleRoot equals the resolved layout root under the xbrief layout", () => {
     seedXbrief();
+    expect(resolveLifecycleRoot(root)).toBe(resolveLifecycleLayout(root).root);
     expect(resolveLifecycleRoot(root)).toBe(join(root, "xbrief"));
   });
 });

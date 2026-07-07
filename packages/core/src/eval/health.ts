@@ -67,7 +67,12 @@ function isFrameworkSourceCheckout(projectRoot: string): boolean {
 }
 
 function loadPlan(projectRoot: string): { plan: unknown; filepath: string } | null {
-  const filepath = resolveProjectDefinitionPath(projectRoot);
+  let filepath: string;
+  try {
+    filepath = resolveProjectDefinitionPath(projectRoot);
+  } catch {
+    return null; // No xbrief/ layout; no project definition.
+  }
   if (!existsSync(filepath)) {
     return null;
   }

@@ -41,6 +41,7 @@ export function normalizeOutput(text: string): string {
     .replace(/Installed \d+ packages[^\n]*\n/g, "");
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;
@@ -48,12 +49,12 @@ interface Capture {
 }
 
 function writeProjectDefinition(root: string, policy: Record<string, unknown> = {}): void {
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], policy },
       },
       null,

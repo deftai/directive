@@ -21,9 +21,9 @@ describe("summary extra branches", () => {
   it("shows reconcile hint when reconcilable > 0", () => {
     const root = mkdtempSync(join(tmpdir(), "sum-rec-"));
     writeCache(root, "deftai/directive", 7);
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "pending", "p.vbrief.json"),
+      join(root, "xbrief", "pending", "p.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [
@@ -40,15 +40,15 @@ describe("summary extra branches", () => {
 
   it("scope line when triageScope configured", () => {
     const root = mkdtempSync(join(tmpdir(), "sum-scope-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageScope: [{ rule: "labels", "any-of": ["x"] }] } } }),
       "utf8",
     );
-    mkdirSync(join(root, "vbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "active", "a.vbrief.json"),
+      join(root, "xbrief", "active", "a.xbrief.json"),
       JSON.stringify({ plan: { status: "running" } }),
       "utf8",
     );
@@ -68,7 +68,7 @@ describe("summary extra branches", () => {
 
   it("appendHistory writes jsonl", () => {
     const root = mkdtempSync(join(tmpdir(), "sum-hist-"));
-    const hist = join(root, "vbrief", ".triage-cache", "summary-history.jsonl");
+    const hist = join(root, "xbrief", ".triage-cache", "summary-history.jsonl");
     appendHistory(
       hist,
       {

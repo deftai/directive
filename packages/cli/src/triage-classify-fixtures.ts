@@ -47,6 +47,7 @@ export function normalizeOutput(text: string): string {
   );
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;
@@ -54,13 +55,13 @@ interface Capture {
 }
 
 function writeProjectDefinition(root: string, plan: Record<string, unknown>): void {
-  const dir = join(root, "vbrief");
+  const dir = join(root, "xbrief");
   mkdirSync(dir, { recursive: true });
   writeFileSync(
-    join(dir, "PROJECT-DEFINITION.vbrief.json"),
+    join(dir, "PROJECT-DEFINITION.xbrief.json"),
     `${JSON.stringify(
       {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], ...plan },
       },
       null,
@@ -73,10 +74,10 @@ function writeProjectDefinition(root: string, plan: Record<string, unknown>): vo
 /** Build a throwaway project root with optional PROJECT-DEFINITION. */
 export function buildFixtureRepo(options: FixtureOptions = {}): string {
   const root = mkdtempSync(join(tmpdir(), "deft-triage-classify-parity-"));
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   if (options.rawProjectDefinition !== undefined) {
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       `${JSON.stringify(options.rawProjectDefinition, null, 2)}\n`,
       { encoding: "utf8" },
     );
@@ -165,7 +166,7 @@ export const PARITY_CASES: readonly ParityCase[] = [
     argv: ["--validate"],
     fixture: {
       rawProjectDefinition: {
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: null,
       },
     },

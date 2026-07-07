@@ -302,7 +302,7 @@ describe("probe-session", () => {
 
 function closeReadyLedger(): Record<string, unknown> {
   return {
-    vBRIEFInfo: { version: "0.6" },
+    xBRIEFInfo: { version: "0.8" },
     plan: {
       status: "completed",
       items: [
@@ -395,14 +395,14 @@ describe("verify-judgment-gates", () => {
   function makeProject(gates?: unknown[], disabled?: string[]): string {
     const root = mkdtempSync(join(tmpdir(), "jg-"));
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", f), { recursive: true });
+      mkdirSync(join(root, "xbrief", f), { recursive: true });
     }
     const policy: Record<string, unknown> = {};
     if (gates) policy.judgmentGates = gates;
     if (disabled) policy.judgmentGatesDisabled = disabled;
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { items: [], policy } }),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { items: [], policy } }),
       "utf8",
     );
     return root;
@@ -521,11 +521,11 @@ describe("judgment-policy", () => {
     expect(validateJudgmentGatesDisabled(["id"]).length).toBe(0);
 
     const root = mkdtempSync(join(tmpdir(), "pol-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           policy: {
             judgmentGates: [

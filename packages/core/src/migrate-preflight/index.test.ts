@@ -43,8 +43,8 @@ function makeFakeDeftRoot(
   const { schemas = true, contentNested = false } = opts;
   const deftRoot = join(base, "deft");
   const schemaRoot = contentNested
-    ? join(deftRoot, "content", "vbrief", "schemas")
-    : join(deftRoot, "vbrief", "schemas");
+    ? join(deftRoot, "content", "xbrief", "schemas")
+    : join(deftRoot, "xbrief", "schemas");
   if (schemas) {
     mkdirSync(schemaRoot, { recursive: true });
   }
@@ -55,7 +55,8 @@ function makeProjectRoot(base: string, opts: { vbrief?: boolean } = {}): string 
   const project = join(base, "project");
   mkdirSync(project, { recursive: true });
   if (opts.vbrief !== false) {
-    mkdirSync(join(project, "vbrief"), { recursive: true });
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(join(project, "xbrief", "seed.xbrief.json"), "{}", { encoding: "utf8" });
   }
   return project;
 }
@@ -107,7 +108,7 @@ describe("migrate-preflight", () => {
     const deftRoot = makeFakeDeftRoot(base);
     const project = makeProjectRoot(base);
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(project, "vbrief", folder), { recursive: true });
+      mkdirSync(join(project, "xbrief", folder), { recursive: true });
     }
     initCleanGitRepo(project);
     const { exitCode } = evaluate(deftRoot, project);
@@ -140,16 +141,16 @@ describe("migrate-preflight", () => {
     temps.push(base);
     const project = makeProjectRoot(base);
     for (const folder of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(project, "vbrief", folder), { recursive: true });
+      mkdirSync(join(project, "xbrief", folder), { recursive: true });
     }
     writeFileSync(
-      join(project, "vbrief", "specification.vbrief.json"),
+      join(project, "xbrief", "specification.xbrief.json"),
       '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"x","status":"running","narratives":{},"items":[]}}',
       "utf8",
     );
     writeFileSync(
       join(project, "SPECIFICATION.md"),
-      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n",
+      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: xbrief/specification.xbrief.json -->\n",
       "utf8",
     );
     const result = checkDocumentModel(project);
@@ -161,15 +162,15 @@ describe("migrate-preflight", () => {
     const base = mkdtempSync(join(tmpdir(), "deft-preflight-"));
     temps.push(base);
     const project = makeProjectRoot(base, { vbrief: false });
-    mkdirSync(join(project, "vbrief"), { recursive: true });
+    mkdirSync(join(project, "xbrief"), { recursive: true });
     writeFileSync(
-      join(project, "vbrief", "specification.vbrief.json"),
+      join(project, "xbrief", "specification.xbrief.json"),
       '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"x","status":"running","narratives":{},"items":[]}}',
       "utf8",
     );
     writeFileSync(
       join(project, "SPECIFICATION.md"),
-      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: vbrief/specification.vbrief.json -->\n",
+      "<!-- Purpose: rendered specification -->\n<!-- Source of truth: xbrief/specification.xbrief.json -->\n",
       "utf8",
     );
     const result = checkDocumentModel(project);

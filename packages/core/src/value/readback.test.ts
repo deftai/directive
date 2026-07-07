@@ -47,15 +47,15 @@ function makeRepo(options: {
 }): string {
   const root = mkdtempSync(join(tmpdir(), "deft-readback-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   const policy =
     options.valueFeedback !== undefined
       ? { wipCap: 20, valueFeedback: options.valueFeedback }
       : { wipCap: 20 };
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "T", status: "running", items: [], policy },
     }),
     "utf8",

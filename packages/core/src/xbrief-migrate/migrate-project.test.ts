@@ -26,8 +26,8 @@ import {
 } from "./migrate-project.js";
 
 const SAMPLE_V06 = {
-  vBRIEFInfo: {
-    version: "0.6",
+  xBRIEFInfo: {
+    version: "0.8",
     description: "fixture",
     created: "2026-06-30T00:00:00Z",
     updated: "2026-06-30T00:00:00Z",
@@ -38,7 +38,7 @@ const SAMPLE_V06 = {
     items: [],
     references: [
       {
-        uri: "vbrief/active/child.vbrief.json",
+        uri: "xbrief/active/child.xbrief.json",
         type: "x-vbrief/plan",
         title: "Child",
       },
@@ -58,7 +58,7 @@ function scaffoldLegacyProject(base: string): string {
   const project = join(base, "consumer");
   mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
   writeFileSync(
-    join(project, LEGACY_ARTIFACT_DIR, "active", "story.vbrief.json"),
+    join(project, LEGACY_ARTIFACT_DIR, "active", "story.xbrief.json"),
     JSON.stringify(SAMPLE_V06),
     "utf8",
   );
@@ -175,7 +175,7 @@ describe("runXbriefMigration", () => {
     const project = scaffoldLegacyProject(base);
     writeFileSync(
       join(project, LEGACY_ARTIFACT_DIR, "notes.txt"),
-      "see vbrief/active/story.vbrief.json\n",
+      "see vbrief/active/story.xbrief.json\n",
       "utf8",
     );
 
@@ -293,10 +293,10 @@ describe("runXbriefMigrationCli", () => {
       "",
       "## Lifecycle",
       "- `task vbrief:preflight -- vbrief/active/foo.vbrief.json`",
-      "- Scoped work lives in `vbrief/`.",
+      "- Scoped work lives in `xbrief/`.",
       "",
       "<!-- deft:managed-section v3 -->",
-      "body mentions vbrief/active/x.vbrief.json",
+      "body mentions vbrief/active/x.xbrief.json",
       "<!-- /deft:managed-section -->",
       "",
     ].join("\n");
@@ -409,8 +409,8 @@ describe("runXbriefMigration convergence (#2270)", () => {
     const project = scaffoldCanonicalXbrief(base);
     mkdirSync(join(project, LEGACY_ARTIFACT_DIR, "active"), { recursive: true });
     writeFileSync(
-      join(project, LEGACY_ARTIFACT_DIR, "active", "old.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { title: "old", items: [] } }),
+      join(project, LEGACY_ARTIFACT_DIR, "active", "old.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "old", items: [] } }),
       "utf8",
     );
 
@@ -420,7 +420,7 @@ describe("runXbriefMigration convergence (#2270)", () => {
       expect(outcome.action).toBe("marker");
     }
     // Legacy content is never destructively deleted; the marker rides alongside it.
-    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "active", "old.vbrief.json"))).toBe(true);
+    expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, "active", "old.xbrief.json"))).toBe(true);
     expect(existsSync(join(project, LEGACY_ARTIFACT_DIR, VBRIEF_DEPRECATION_MARKER_FILENAME))).toBe(
       true,
     );

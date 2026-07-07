@@ -27,12 +27,12 @@ function agentsWith(unmanaged: number, managed: number): string {
 function buildRepo(options: { plan?: Record<string, unknown>; agents?: string }): string {
   const root = mkdtempSync(join(tmpdir(), "deft-cli-agents-budget-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   if (options.plan !== undefined) {
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "running", items: [], ...options.plan },
       }),
       "utf8",

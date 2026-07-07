@@ -39,4 +39,4 @@ export const ISO8601_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 
 export const WAVE_FLAG_RE = /^--wave-(\d+)(?:=(.*))?$/;
 
-export const PROJECT_ROOT_SENTINELS = ["vbrief", ".git"] as const;
+export const PROJECT_ROOT_SENTINELS = ["xbrief", "vbrief", ".git"] as const;

@@ -43,7 +43,7 @@ function resolveContentRoot(frameworkRoot: string): string {
 }
 
 export function checkLayout(deftRoot: string, projectRoot: string): CheckResult {
-  const schemasDir = join(resolveContentRoot(deftRoot), "vbrief", "schemas");
+  const schemasDir = join(resolveContentRoot(deftRoot), "xbrief", "schemas");
   if (!existsSync(schemasDir) || !statSync(schemasDir).isDirectory()) {
     return {
       name: "layout",
@@ -52,19 +52,19 @@ export function checkLayout(deftRoot: string, projectRoot: string): CheckResult 
     };
   }
 
-  const projectVbrief = join(projectRoot, "vbrief");
-  if (!existsSync(projectVbrief)) {
+  const projectXbrief = join(projectRoot, "xbrief");
+  if (!existsSync(projectXbrief)) {
     return {
       name: "layout",
       status: "WARN",
-      message: `Project vbrief/ not present at ${projectVbrief} -- expected for greenfield projects.`,
+      message: `Project xbrief/ not present at ${projectXbrief} -- expected for greenfield projects.`,
     };
   }
 
   return {
     name: "layout",
     status: "PASS",
-    message: `Framework schemas present; project vbrief/ at ${projectVbrief}.`,
+    message: `Framework schemas present; project xbrief/ at ${projectXbrief}.`,
   };
 }
 
@@ -124,7 +124,7 @@ export function checkDocumentModel(projectRoot: string): CheckResult {
         return {
           name: "document-model",
           status: "FAIL",
-          message: `Generated SPECIFICATION.md detected (source: vbrief/specification.vbrief.json); repair missing lifecycle folder(s) instead of migrating: ${missing.join(", ")}.`,
+          message: `Generated SPECIFICATION.md detected (source: xbrief/specification.xbrief.json); repair missing lifecycle folder(s) instead of migrating: ${missing.join(", ")}.`,
         };
       }
     }
@@ -133,12 +133,12 @@ export function checkDocumentModel(projectRoot: string): CheckResult {
         name: "document-model",
         status: "PASS",
         message:
-          "Current generated SPECIFICATION.md detected (source: vbrief/specification.vbrief.json); pre-v0.20 migration is not needed.",
+          "Current generated SPECIFICATION.md detected (source: xbrief/specification.xbrief.json); pre-v0.20 migration is not needed.",
       };
     }
   }
 
-  const vbriefRoot = join(projectRoot, "vbrief");
+  const vbriefRoot = join(projectRoot, "xbrief");
   if (existsSync(vbriefRoot)) {
     const missing = missingLifecycleFolders(projectRoot);
     if (missing.length > 0) {

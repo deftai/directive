@@ -98,9 +98,9 @@ describe("orchestration coverage boost", () => {
       ]).length,
     ).toBeGreaterThan(3);
     const badRoot = mkdtempSync(join(tmpdir(), "pol-bad-"));
-    mkdirSync(join(badRoot, "vbrief"), { recursive: true });
+    mkdirSync(join(badRoot, "xbrief"), { recursive: true });
     writeFileSync(
-      join(badRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(badRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           policy: {
@@ -180,7 +180,7 @@ describe("orchestration coverage boost", () => {
 
   it("verify-investigation hard-failure branches", () => {
     const data = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         status: "completed",
         items: [
@@ -212,12 +212,12 @@ describe("orchestration coverage boost", () => {
   it("verify-judgment-gates matching branches", () => {
     const root = mkdtempSync(join(tmpdir(), "jg-edge-"));
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", f), { recursive: true });
+      mkdirSync(join(root, "xbrief", f), { recursive: true });
     }
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           policy: {
             judgmentGates: [
@@ -261,11 +261,11 @@ describe("orchestration coverage boost", () => {
   it("verify-judgment-gates CLI and mechanical clearance", () => {
     const root = mkdtempSync(join(tmpdir(), "jg-cli-"));
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", f), { recursive: true });
+      mkdirSync(join(root, "xbrief", f), { recursive: true });
     }
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { items: [], policy: {} } }),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { items: [], policy: {} } }),
       "utf8",
     );
     expect(cmdVerifyJudgmentGates(["--bad", "--project-root", root])).toBe(2);
@@ -389,9 +389,9 @@ describe("orchestration coverage boost", () => {
     expect(validateJudgmentGates([42]).some((e) => e.includes("must be an object"))).toBe(true);
 
     const disabledRoot = mkdtempSync(join(tmpdir(), "pol-dis-"));
-    mkdirSync(join(disabledRoot, "vbrief"), { recursive: true });
+    mkdirSync(join(disabledRoot, "xbrief"), { recursive: true });
     writeFileSync(
-      join(disabledRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(disabledRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: { policy: { judgmentGatesDisabled: ["production-infrastructure"] } },
       }),
@@ -447,7 +447,7 @@ describe("orchestration coverage boost", () => {
     expect(() => loadLedger(join(root, "bad.json"))).toThrow();
 
     const ledger = {
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: {
         status: "completed",
         items: [
@@ -489,14 +489,14 @@ describe("orchestration coverage boost", () => {
   it("verify-judgment-gates outcome helpers and clearances", () => {
     const root = mkdtempSync(join(tmpdir(), "jg-out-"));
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(root, "vbrief", f), { recursive: true });
+      mkdirSync(join(root, "xbrief", f), { recursive: true });
     }
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-      JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { items: [], policy: {} } }),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { items: [], policy: {} } }),
       "utf8",
     );
-    mkdirSync(join(root, "vbrief", ".audit"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".audit"), { recursive: true });
     writeFileSync(
       clearanceLogPath(root),
       '{"gate_id":"g","cleared_scope":"abc"}\n{broken\n',
@@ -547,9 +547,9 @@ describe("orchestration coverage boost", () => {
     expect(cmdVerifyJudgmentGates(["clear", "--project-root", "/nonexistent-clear"])).toBe(2);
 
     const policyErrRoot = mkdtempSync(join(tmpdir(), "jg-pol-"));
-    mkdirSync(join(policyErrRoot, "vbrief"), { recursive: true });
+    mkdirSync(join(policyErrRoot, "xbrief"), { recursive: true });
     writeFileSync(
-      join(policyErrRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(policyErrRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           policy: {
@@ -571,12 +571,12 @@ describe("orchestration coverage boost", () => {
 
     const gateRoot = mkdtempSync(join(tmpdir(), "jg-all-"));
     for (const f of ["proposed", "pending", "active", "completed", "cancelled"]) {
-      mkdirSync(join(gateRoot, "vbrief", f), { recursive: true });
+      mkdirSync(join(gateRoot, "xbrief", f), { recursive: true });
     }
     writeFileSync(
-      join(gateRoot, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(gateRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: {
           items: [],
           policy: {

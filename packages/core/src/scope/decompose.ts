@@ -10,7 +10,12 @@
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
-import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
+import {
+  hasArtifactSuffix,
+  LEGACY_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_DIR,
+  resolveLifecycleRoot,
+} from "../layout/resolve.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import { formatVbriefJson } from "./vbrief-json.js";
@@ -465,7 +470,18 @@ export function storyQualityIssues(opts: {
 // ---------------------------------------------------------------------------
 
 function vbriefDir(projectRoot: string): string {
-  return resolveLifecycleRoot(projectRoot);
+  try {
+    return resolveLifecycleRoot(projectRoot);
+  } catch (err) {
+    // Re-throw if only vbrief/ exists (legacy-only); fall back to canonical xbrief/ path otherwise.
+    if (
+      existsSync(join(projectRoot, LEGACY_ARTIFACT_DIR)) &&
+      !existsSync(join(projectRoot, MIGRATED_ARTIFACT_DIR))
+    ) {
+      throw err;
+    }
+    return join(projectRoot, MIGRATED_ARTIFACT_DIR);
+  }
 }
 
 function relToVbrief(vbriefDirPath: string, path: string): string {

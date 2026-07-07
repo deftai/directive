@@ -101,7 +101,7 @@ describe("test_agent_prompt_preamble_template", () => {
       "xbrief/active/2026-05-07-954-orchestrator-agents-md-preamble-template.xbrief.json",
     );
     expect(templateText).toContain("xbrief/completed/");
-    expect(templateText).not.toContain("vbrief/.../954-orchestrator-agents-md-preamble-template");
+    expect(templateText).not.toContain("xbrief/.../954-orchestrator-agents-md-preamble-template");
   });
   it("template_documents_runtime_and_github_auth_mode_fields", () => {
     expect(templateText).toContain("Runtime and GitHub auth mode");

@@ -24,7 +24,7 @@ describe("vbrief-activate coverage boost", () => {
 
   it("rejects a directory path", () => {
     const root = tempRoot();
-    const dirPath = join(root, "vbrief", "pending", "dir.vbrief.json");
+    const dirPath = join(root, "xbrief", "pending", "dir.xbrief.json");
     mkdirSync(dirPath, { recursive: true });
     const result = activate(dirPath);
     expect(result.exitCode).toBe(1);
@@ -33,8 +33,8 @@ describe("vbrief-activate coverage boost", () => {
 
   it("maps extra-data json errors", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(path, '{"plan":{"status":"pending"}}{}', "utf8");
     const result = activate(path);
     expect(result.exitCode).toBe(1);
@@ -43,8 +43,8 @@ describe("vbrief-activate coverage boost", () => {
 
   it("maps property-name json errors", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(path, "{bad", "utf8");
     const result = activate(path);
     expect(result.exitCode).toBe(1);
@@ -53,18 +53,18 @@ describe("vbrief-activate coverage boost", () => {
 
   it("reports write failures", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    const pendingDir = join(root, "vbrief", "pending");
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    const pendingDir = join(root, "xbrief", "pending");
     mkdirSync(pendingDir, { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "pending", items: [] },
       }),
       "utf8",
     );
-    const activeDir = join(root, "vbrief", "active");
+    const activeDir = join(root, "xbrief", "active");
     mkdirSync(activeDir, { recursive: true });
     chmodSync(activeDir, 0o555);
 
@@ -76,13 +76,13 @@ describe("vbrief-activate coverage boost", () => {
 
   it("reports unlink failures after successful write", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    const pendingDir = join(root, "vbrief", "pending");
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    const pendingDir = join(root, "xbrief", "pending");
     mkdirSync(pendingDir, { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "pending", items: [] },
       }),
       "utf8",
@@ -97,12 +97,12 @@ describe("vbrief-activate coverage boost", () => {
 
   it("run writes success to stdout", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "pending", items: [] },
       }),
       "utf8",
@@ -116,19 +116,19 @@ describe("vbrief-activate coverage boost", () => {
 
   it("run writes reject to stderr", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const code = run(["/does/not/exist.vbrief.json"]);
+    const code = run(["/does/not/exist.xbrief.json"]);
     expect(code).toBe(1);
     stderr.mockRestore();
   });
 
   it("reports read errors from loadVbrief", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "pending", items: [] },
       }),
       "utf8",
@@ -142,31 +142,31 @@ describe("vbrief-activate coverage boost", () => {
 
   it("reports mkdir failures for active directory", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "pending", items: [] },
       }),
       "utf8",
     );
-    chmodSync(join(root, "vbrief"), 0o555);
+    chmodSync(join(root, "xbrief"), 0o555);
     const result = activate(path, { now: new Date("2026-06-19T12:00:00.000Z") });
-    chmodSync(join(root, "vbrief"), 0o755);
+    chmodSync(join(root, "xbrief"), 0o755);
     expect(result.exitCode).toBe(1);
     expect(result.message).toContain("Could not create");
   });
 
   it("reports empty plan.status as malformed", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       path,
       JSON.stringify({
-        vBRIEFInfo: { version: "0.6" },
+        xBRIEFInfo: { version: "0.8" },
         plan: { title: "T", status: "", items: [] },
       }),
       "utf8",
@@ -177,7 +177,7 @@ describe("vbrief-activate coverage boost", () => {
   });
 
   it("parseArgs returns the positional path", () => {
-    expect(parseArgs(["/tmp/a.vbrief.json"]).vbriefPath).toBe("/tmp/a.vbrief.json");
+    expect(parseArgs(["/tmp/a.xbrief.json"]).vbriefPath).toBe("/tmp/a.xbrief.json");
   });
 
   it("formatEligibleStatusList matches Python repr", () => {
@@ -186,13 +186,13 @@ describe("vbrief-activate coverage boost", () => {
 
   it("serializes output with trailing newline parity", () => {
     const root = tempRoot();
-    const path = join(root, "vbrief", "pending", "x.vbrief.json");
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+    const path = join(root, "xbrief", "pending", "x.xbrief.json");
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
       path,
       `${JSON.stringify(
         {
-          vBRIEFInfo: { version: "0.6", updated: "2026-04-30T00:00:00Z" },
+          xBRIEFInfo: { version: "0.8", updated: "2026-04-30T00:00:00Z" },
           plan: { title: "T", status: "pending", items: [] },
         },
         null,
@@ -201,7 +201,7 @@ describe("vbrief-activate coverage boost", () => {
       "utf8",
     );
     activate(path, { now: new Date("2026-06-19T12:00:00.000Z") });
-    const dest = join(root, "vbrief", "active", "x.vbrief.json");
+    const dest = join(root, "xbrief", "active", "x.xbrief.json");
     const body = readFileSync(dest, "utf8");
     expect(body.endsWith("\n")).toBe(true);
     expect(body.includes("\r\n")).toBe(false);

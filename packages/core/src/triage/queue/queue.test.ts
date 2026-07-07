@@ -231,12 +231,12 @@ describe("buildQueue", () => {
     const left = selectionOrderingKey({
       labelIndex: 1,
       isContinuation: true,
-      continuationOrder: "2026-01-01-epic.vbrief.json",
+      continuationOrder: "2026-01-01-epic.xbrief.json",
     });
     const right = selectionOrderingKey({
       labelIndex: 1,
       isContinuation: true,
-      continuationOrder: "2026-02-01-epic.vbrief.json",
+      continuationOrder: "2026-02-01-epic.xbrief.json",
     });
     expect(compareSelectionKeys(left, right)).toBeLessThan(0);
   });
@@ -286,10 +286,10 @@ describe("loadCachedIssues", () => {
 
   it("excludes issues matching triageScopeIgnores labels", () => {
     const root = makeTempRoot();
-    const vbriefDir = join(root, "vbrief");
+    const vbriefDir = join(root, "xbrief");
     mkdirSync(vbriefDir, { recursive: true });
     writeFileSync(
-      join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: { policy: { triageScopeIgnores: [{ label: "held-open" }] } },
       }),
@@ -308,10 +308,10 @@ describe("loadCachedIssues", () => {
 
   it("excludes issues matching triageScopeIgnores author rule", () => {
     const root = makeTempRoot();
-    const vbriefDir = join(root, "vbrief");
+    const vbriefDir = join(root, "xbrief");
     mkdirSync(vbriefDir, { recursive: true });
     writeFileSync(
-      join(vbriefDir, "PROJECT-DEFINITION.vbrief.json"),
+      join(vbriefDir, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           policy: {
@@ -348,7 +348,7 @@ describe("resolveAuditLogPath", () => {
   it("uses frameworkRoot when no override is provided", () => {
     const root = makeTempRoot();
     expect(resolveAuditLogPath({ frameworkRoot: root })).toBe(
-      join(root, "vbrief", ".triage-cache", "candidates.jsonl"),
+      join(root, "xbrief", ".triage-cache", "candidates.jsonl"),
     );
   });
 
@@ -356,7 +356,7 @@ describe("resolveAuditLogPath", () => {
     const root = makeTempRoot();
     const previous = process.env.DEFT_ROOT;
     process.env.DEFT_ROOT = root;
-    expect(resolveAuditLogPath({})).toBe(join(root, "vbrief", ".triage-cache", "candidates.jsonl"));
+    expect(resolveAuditLogPath({})).toBe(join(root, "xbrief", ".triage-cache", "candidates.jsonl"));
     process.env.DEFT_ROOT = previous;
   });
 });
@@ -364,7 +364,7 @@ describe("resolveAuditLogPath", () => {
 describe("readAuditEntries", () => {
   it("reads repo-filtered audit rows", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief", ".triage-cache");
+    const dir = join(root, "xbrief", ".triage-cache");
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       join(dir, "candidates.jsonl"),
@@ -387,7 +387,7 @@ describe("readAuditEntries", () => {
 
   it("skips malformed audit lines", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief", ".triage-cache");
+    const dir = join(root, "xbrief", ".triage-cache");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "candidates.jsonl"), "not-json\n", { encoding: "utf8" });
     expect(readAuditEntries(REPO, { auditLogPath: join(dir, "candidates.jsonl") })).toEqual([]);
@@ -421,10 +421,10 @@ describe("loadCachedIssues extended", () => {
   it("annotates rank and blocked state from scope vbriefs", () => {
     const root = makeTempRoot();
     writeCachedIssue(root, issue(8, { title: "Ranked" }));
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
     writeFileSync(
-      join(pending, "ranked.vbrief.json"),
+      join(pending, "ranked.xbrief.json"),
       JSON.stringify({
         plan: {
           metadata: { rank: 1 },
@@ -467,10 +467,10 @@ describe("scope helpers extended", () => {
 
   it("detects blocked scopes and maps them to issue numbers", () => {
     const root = makeTempRoot();
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
     writeFileSync(
-      join(pending, "blocked.vbrief.json"),
+      join(pending, "blocked.xbrief.json"),
       JSON.stringify({
         plan: {
           status: "blocked",
@@ -487,10 +487,10 @@ describe("scope helpers extended", () => {
 
   it("collects active referenced issue numbers", () => {
     const root = makeTempRoot();
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "running.vbrief.json"),
+      join(active, "running.xbrief.json"),
       JSON.stringify({
         plan: {
           status: "running",
@@ -506,18 +506,18 @@ describe("scope helpers extended", () => {
 
   it("ignores corrupt scope vbrief files while walking", () => {
     const root = makeTempRoot();
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
-    writeFileSync(join(pending, "bad.vbrief.json"), "not-json", { encoding: "utf8" });
+    writeFileSync(join(pending, "bad.xbrief.json"), "not-json", { encoding: "utf8" });
     expect([...blockedByIssueNumber(root)]).toEqual([]);
     expect([...activeReferencedIssueNumbers(root)]).toEqual([]);
   });
   it("maps rank from pending scopes", () => {
     const root = makeTempRoot();
-    const pending = join(root, "vbrief", "pending");
+    const pending = join(root, "xbrief", "pending");
     mkdirSync(pending, { recursive: true });
     writeFileSync(
-      join(pending, "ranked.vbrief.json"),
+      join(pending, "ranked.xbrief.json"),
       JSON.stringify({
         plan: {
           metadata: { rank: 2 },
@@ -558,7 +558,7 @@ describe("orphan helpers", () => {
 
   it("loads slice records from jsonl", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief", ".triage-cache");
+    const dir = join(root, "xbrief", ".triage-cache");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "slices.jsonl"), `${JSON.stringify({ slice_id: "s1" })}\n`, {
       encoding: "utf8",
@@ -569,7 +569,7 @@ describe("orphan helpers", () => {
   it("resolveSlicesLogPath uses frameworkRoot by default", () => {
     const root = makeTempRoot();
     expect(resolveSlicesLogPath({ frameworkRoot: root })).toBe(
-      join(root, "vbrief", ".triage-cache", "slices.jsonl"),
+      join(root, "xbrief", ".triage-cache", "slices.jsonl"),
     );
   });
 });
@@ -586,10 +586,10 @@ describe("ranking labels", () => {
 
   it("reads consumer ranking labels from project definition", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief");
+    const dir = join(root, "xbrief");
     mkdirSync(dir, { recursive: true });
     writeFileSync(
-      join(dir, "PROJECT-DEFINITION.vbrief.json"),
+      join(dir, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: { policy: { triageRankingLabels: ["urgent", "breaking-change"] } },
       }),
@@ -603,14 +603,14 @@ describe("ranking labels", () => {
   });
   it("returns empty default for malformed project definition shapes", () => {
     const root = makeTempRoot();
-    const dir = join(root, "vbrief");
+    const dir = join(root, "xbrief");
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "PROJECT-DEFINITION.vbrief.json"), '{"plan":"bad"}', {
+    writeFileSync(join(dir, "PROJECT-DEFINITION.xbrief.json"), '{"plan":"bad"}', {
       encoding: "utf8",
     });
     expect(resolveRankingLabels(root)).toEqual([]);
     writeFileSync(
-      join(dir, "PROJECT-DEFINITION.vbrief.json"),
+      join(dir, "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageRankingLabels: [] } } }),
       { encoding: "utf8" },
     );

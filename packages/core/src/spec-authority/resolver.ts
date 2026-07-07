@@ -26,8 +26,14 @@ export interface ResolvedSpecAuthority {
 
 export function resolveSpecAuthority(projectRoot: string): ResolvedSpecAuthority | null {
   const root = projectRoot;
-  const layout = resolveLifecycleLayout(root);
-  const vbriefDir = resolveLifecycleRoot(root);
+  let layout: ReturnType<typeof resolveLifecycleLayout>;
+  let vbriefDir: string;
+  try {
+    layout = resolveLifecycleLayout(root);
+    vbriefDir = resolveLifecycleRoot(root);
+  } catch {
+    return null; // No xbrief/ layout; spec authority unavailable.
+  }
   const projectDefPath = resolveProjectDefinitionPath(root);
   if (!existsSync(projectDefPath)) return null;
 

@@ -109,7 +109,7 @@ describe("test_change_and_skills", () => {
     const text = readRepoFile("skills/deft-directive-setup/SKILL.md");
     expect(text).toContain("specification.xbrief.json");
     expect(text.toLowerCase()).toContain("approval");
-    expect(text.toLowerCase()).toContain("vbrief");
+    expect(text.toLowerCase()).toContain("xbrief");
   });
 
   it("setup_skill_phase3_no_authoritative_prd", () => {

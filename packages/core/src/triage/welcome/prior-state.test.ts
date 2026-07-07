@@ -7,9 +7,9 @@ import { detectPriorState, pendingDecisionsNudgeLine } from "./prior-state.js";
 describe("prior-state probes", () => {
   it("detects mid subscription preset", () => {
     const root = mkdtempSync(join(tmpdir(), "prior-"));
-    mkdirSync(join(root, "vbrief"), { recursive: true });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({
         plan: {
           policy: {
@@ -42,7 +42,7 @@ describe("prior-state probes", () => {
 
   it("pending decisions nudge when over threshold", () => {
     const root = mkdtempSync(join(tmpdir(), "prior3-"));
-    mkdirSync(join(root, "vbrief", ".audit"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".audit"), { recursive: true });
     const lines = [
       JSON.stringify({ decision_id: "a", status: "pending" }),
       JSON.stringify({ decision_id: "b", status: "pending" }),
@@ -50,7 +50,7 @@ describe("prior-state probes", () => {
       JSON.stringify({ decision_id: "d", status: "pending" }),
     ];
     writeFileSync(
-      join(root, "vbrief", ".audit", "pending-human-decisions.jsonl"),
+      join(root, "xbrief", ".audit", "pending-human-decisions.jsonl"),
       `${lines.join("\n")}\n`,
       "utf8",
     );

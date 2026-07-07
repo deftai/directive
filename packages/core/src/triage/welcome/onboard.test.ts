@@ -16,10 +16,10 @@ afterEach(() => {
 function seedProject(policy: Record<string, unknown> = {}): { root: string; out: string[] } {
   const root = mkdtempSync(join(tmpdir(), "onboard-"));
   temps.push(root);
-  mkdirSync(join(root, "vbrief"), { recursive: true });
+  mkdirSync(join(root, "xbrief"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { policy } }),
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { policy } }),
     "utf8",
   );
   return { root, out: [] };
@@ -27,17 +27,17 @@ function seedProject(policy: Record<string, unknown> = {}): { root: string; out:
 
 /** Seed an old (demote-eligible) pending scope artifact so WIP relief fires. */
 function seedPendingScope(root: string, name: string, updated = "2020-01-01T00:00:00Z"): void {
-  mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
+  mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
   writeFileSync(
-    join(root, "vbrief", "pending", name),
-    JSON.stringify({ vBRIEFInfo: { version: "0.6" }, plan: { updated } }),
+    join(root, "xbrief", "pending", name),
+    JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { updated } }),
     "utf8",
   );
 }
 
 function readPolicy(root: string): Record<string, unknown> {
   const payload: unknown = JSON.parse(
-    readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+    readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
   );
   if (payload === null || typeof payload !== "object") return {};
   const plan = (payload as { plan?: unknown }).plan;
@@ -125,7 +125,7 @@ describe("runOnboardMode (#2295)", () => {
     // Pre-populate WIP above a low cap with a demote-eligible (old) pending
     // scope so the relief branch in runOnboardMode actually fires.
     const { root, out } = seedProject({ wipCap: 1 });
-    seedPendingScope(root, "2020-01-01-old-scope.vbrief.json");
+    seedPendingScope(root, "2020-01-01-old-scope.xbrief.json");
     const outcome = runOnboardMode(root, {
       writeHistory: false,
       selfHealFn: noHeal,
@@ -142,7 +142,7 @@ describe("runOnboardMode (#2295)", () => {
 
   it("does not offer relief when WIP is under cap", () => {
     const { root, out } = seedProject({ wipCap: 10 });
-    seedPendingScope(root, "2020-01-01-old-scope.vbrief.json");
+    seedPendingScope(root, "2020-01-01-old-scope.xbrief.json");
     const outcome = runOnboardMode(root, {
       writeHistory: false,
       selfHealFn: noHeal,

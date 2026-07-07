@@ -89,7 +89,7 @@ describe("task-surface", () => {
     const { lines, io } = captureIo();
     expect(runChangeInit(project, "my-change", io)).toBe(0);
     expect(
-      existsSync(join(project, "history", "changes", "my-change", "proposal.vbrief.json")),
+      existsSync(join(project, "history", "changes", "my-change", "proposal.xbrief.json")),
     ).toBe(true);
     expect(lines.join("")).toContain("OK: Created change proposal");
   });

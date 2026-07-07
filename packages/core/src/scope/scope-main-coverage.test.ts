@@ -25,7 +25,7 @@ describe("scope main and context branches", () => {
 
   it("resolveProjectRoot walks from nested directory", () => {
     root = mkdtempSync(join(tmpdir(), "ctx-walk-"));
-    mkdirSync(join(root, "vbrief"));
+    mkdirSync(join(root, "xbrief"));
     mkdirSync(join(root, "sub", "deep"), { recursive: true });
     expect(resolveProjectRoot(null, join(root, "sub", "deep"))).toBe(root);
   });
@@ -37,12 +37,12 @@ describe("scope main and context branches", () => {
 
   it("decomposed helpers skip bad files gracefully", () => {
     root = mkdtempSync(join(tmpdir(), "decomp-"));
-    const vbrief = join(root, "vbrief");
+    const vbrief = join(root, "xbrief");
     mkdirSync(join(vbrief, "active"), { recursive: true });
-    const badParent = join(vbrief, "active", "bad.vbrief.json");
+    const badParent = join(vbrief, "active", "bad.xbrief.json");
     writeFileSync(badParent, "{", "utf8");
     const childData = {
-      plan: { planRef: "active/bad.vbrief.json", items: [] },
+      plan: { planRef: "active/bad.xbrief.json", items: [] },
     };
     expect(
       updateDecomposedParentBackReferences(
@@ -54,7 +54,7 @@ describe("scope main and context branches", () => {
     ).toEqual([]);
     const parentData = {
       plan: {
-        references: [{ type: "x-vbrief/plan", uri: "active/missing.vbrief.json" }],
+        references: [{ type: "x-vbrief/plan", uri: "active/missing.xbrief.json" }],
         items: [],
       },
     };
@@ -70,11 +70,11 @@ describe("scope main and context branches", () => {
 
   it("undoMain batch success and dry-run", () => {
     root = mkdtempSync(join(tmpdir(), "undo-cli-"));
-    mkdirSync(join(root, "vbrief", "pending"), { recursive: true });
-    mkdirSync(join(root, "vbrief", "proposed"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
     const batchId = newDecisionId();
-    for (const name of ["one.vbrief.json", "two.vbrief.json"]) {
-      const pending = join(root, "vbrief", "pending", name);
+    for (const name of ["one.xbrief.json", "two.xbrief.json"]) {
+      const pending = join(root, "xbrief", "pending", name);
       writeFileSync(
         pending,
         formatVbriefJson({ plan: { title: name, status: "pending", items: [] } }),
@@ -82,15 +82,15 @@ describe("scope main and context branches", () => {
       demoteOne(pending, root, "batch", { batchId });
     }
     expect(undoMain(["--batch-id", batchId, "--project-root", root])).toBe(0);
-    for (const name of ["one.vbrief.json", "two.vbrief.json"]) {
-      demoteOne(join(root, "vbrief", "pending", name), root, "batch", { batchId });
+    for (const name of ["one.xbrief.json", "two.xbrief.json"]) {
+      demoteOne(join(root, "xbrief", "pending", name), root, "batch", { batchId });
     }
     expect(undoMain(["--batch-id", batchId, "--dry-run", "--project-root", root])).toBe(0);
   });
 
   it("undoBatch returns empty message when no members", () => {
     root = mkdtempSync(join(tmpdir(), "undo-batch-"));
-    mkdirSync(join(root, "vbrief", ".triage-cache"), { recursive: true });
+    mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
     writeFileSync(canonicalLogPath(root), "", "utf8");
     const [count, , skipped] = undoBatch(newDecisionId(), root);
     expect(count).toBe(0);

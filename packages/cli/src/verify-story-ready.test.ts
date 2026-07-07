@@ -35,12 +35,12 @@ function gitCommit(cwd: string, message: string): void {
 function buildRepo(status = "running"): { root: string; vbriefPath: string } {
   const root = mkdtempSync(join(tmpdir(), "deft-cli-sr-"));
   temps.push(root);
-  const dir = join(root, "vbrief", "active");
+  const dir = join(root, "xbrief", "active");
   mkdirSync(dir, { recursive: true });
-  const vbriefPath = join(dir, "story.vbrief.json");
+  const vbriefPath = join(dir, "story.xbrief.json");
   writeFileSync(
     vbriefPath,
-    JSON.stringify({ plan: { status, title: "T", items: [] }, vBRIEFInfo: { version: "0.6" } }),
+    JSON.stringify({ plan: { status, title: "T", items: [] }, xBRIEFInfo: { version: "0.8" } }),
   );
   execFileSync("git", ["init", "-q"], { cwd: root });
   execFileSync("git", ["add", "-A"], { cwd: root });
@@ -69,7 +69,7 @@ describe("parseArgs", () => {
     expect(
       parseArgs([
         "--vbrief-path",
-        "/x.vbrief.json",
+        "/x.xbrief.json",
         "--project-root",
         "/root",
         "--allocation-context",
@@ -78,7 +78,7 @@ describe("parseArgs", () => {
         "--json",
       ]),
     ).toMatchObject({
-      vbriefPath: "/x.vbrief.json",
+      vbriefPath: "/x.xbrief.json",
       projectRoot: "/root",
       allocationContext: "/env.md",
       allowDirty: true,
@@ -284,7 +284,7 @@ describe("story-ready-parity helpers", () => {
     }
     const { root, vbriefPath, envelopePath } = buildScenarioRepo(scenario);
     temps.push(root);
-    expect(vbriefPath).toContain("2026-06-01-story.vbrief.json");
+    expect(vbriefPath).toContain("2026-06-01-story.xbrief.json");
     expect(envelopePath).toBeNull();
   });
 
@@ -293,7 +293,7 @@ describe("story-ready-parity helpers", () => {
   )("buildScenarioRepo handles scenario %s", (_name, scenario) => {
     const { root, vbriefPath, envelopePath } = buildScenarioRepo(scenario);
     temps.push(root);
-    expect(vbriefPath).toContain(".vbrief.json");
+    expect(vbriefPath).toContain(".xbrief.json");
     if (scenario.envelopeRel !== null) {
       expect(envelopePath).toContain(scenario.envelopeRel);
     }

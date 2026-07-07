@@ -7,10 +7,10 @@ import { detectDrift } from "./drift.js";
 describe("detectDrift integration", () => {
   it("finds drift when live is newer", () => {
     const root = mkdtempSync(join(tmpdir(), "detect-"));
-    const active = join(root, "vbrief", "active");
+    const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     writeFileSync(
-      join(active, "story.vbrief.json"),
+      join(active, "story.xbrief.json"),
       JSON.stringify({
         plan: {
           references: [

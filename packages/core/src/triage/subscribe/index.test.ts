@@ -10,12 +10,12 @@ afterAll(() => {
 });
 
 function writePd(root: string, policy: Record<string, unknown> = {}): void {
-  const vbrief = join(root, "vbrief");
+  const vbrief = join(root, "xbrief");
   mkdirSync(vbrief, { recursive: true });
   writeFileSync(
-    join(vbrief, "PROJECT-DEFINITION.vbrief.json"),
+    join(vbrief, "PROJECT-DEFINITION.xbrief.json"),
     JSON.stringify({
-      vBRIEFInfo: { version: "0.6" },
+      xBRIEFInfo: { version: "0.8" },
       plan: { title: "x", status: "running", items: [], policy },
     }),
     "utf8",
@@ -24,7 +24,7 @@ function writePd(root: string, policy: Record<string, unknown> = {}): void {
 
 function readRules(root: string): unknown[] {
   const data = JSON.parse(
-    readFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "utf8"),
+    readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
   ) as { plan?: Record<string, unknown> };
   const policy = (data.plan?.["x-directive/policy"] ?? data.plan?.policy) as
     | { triageScope?: unknown[] }
@@ -148,7 +148,7 @@ describe("unsubscribe", () => {
   it("writes subscription history on change", () => {
     const root = makeRepo();
     subscribe(root, { label: "tracked", actor: "agent:test" });
-    const historyPath = join(root, "vbrief", ".triage-cache", "subscription-history.jsonl");
+    const historyPath = join(root, "xbrief", ".triage-cache", "subscription-history.jsonl");
     expect(existsSync(historyPath)).toBe(true);
   });
 
@@ -186,7 +186,7 @@ describe("unsubscribe", () => {
   it("throws on invalid project definition shape", () => {
     const root = makeRepo();
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: [] }),
       "utf8",
     );
@@ -203,13 +203,13 @@ describe("unsubscribe", () => {
   it("rejects invalid policy and triageScope shapes", () => {
     const root = makeRepo();
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: "bad" } }),
       "utf8",
     );
     expect(() => subscribe(root, { label: "x" })).toThrow(/non-object 'plan.policy'/);
     writeFileSync(
-      join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"),
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       JSON.stringify({ plan: { policy: { triageScope: "bad" } } }),
       "utf8",
     );
@@ -218,7 +218,7 @@ describe("unsubscribe", () => {
 
   it("rejects invalid JSON project definition", () => {
     const root = makeRepo();
-    writeFileSync(join(root, "vbrief", "PROJECT-DEFINITION.vbrief.json"), "{bad", "utf8");
+    writeFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "{bad", "utf8");
     expect(() => subscribe(root, { label: "x" })).toThrow(/not valid JSON/);
   });
 });

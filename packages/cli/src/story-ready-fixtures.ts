@@ -39,11 +39,11 @@ function writeVbrief(
   status: string = "running",
   folder = "active",
 ): void {
-  const full = join(root, "vbrief", folder, rel);
+  const full = join(root, "xbrief", folder, rel);
   mkdirSync(dirname(full), { recursive: true });
   const payload = {
     plan: { status, title: "T", items: [] },
-    vBRIEFInfo: { version: "0.6" },
+    xBRIEFInfo: { version: "0.8" },
   };
   writeFileSync(full, `${JSON.stringify(payload)}\n`, "utf8");
 }
@@ -60,7 +60,7 @@ function renderAllocation(fields: Record<string, string | null>): string {
 const VALID_COHORT: Record<string, string | null> = {
   allocation_plan_id: "orchestrator-run-019e80bd",
   batching_rationale: "Three disjoint-file-scope stories from #1378.",
-  cohort_vbriefs: "[vbrief/active/a.json, vbrief/active/b.json]",
+  cohort_vbriefs: "[xbrief/active/a.json, xbrief/active/b.json]",
   dispatch_kind: "swarm-cohort",
   operator_approval_evidence: "user directive 2026-06-01T02:26Z",
 };
@@ -69,33 +69,34 @@ const VALID_COHORT: Record<string, string | null> = {
 export const PARITY_SCENARIOS: readonly ParityScenario[] = [
   {
     name: "clean-active-running-solo",
-    vbriefRel: "2026-06-01-story.vbrief.json",
+    vbriefRel: "2026-06-01-story.xbrief.json",
     envelopeRel: null,
   },
   {
     name: "dirty-tree",
-    vbriefRel: "2026-06-01-story.vbrief.json",
+    vbriefRel: "2026-06-01-story.xbrief.json",
     envelopeRel: null,
     dirty: true,
   },
   {
     name: "non-running-vbrief",
-    vbriefRel: "2026-06-01-pending.vbrief.json",
+    vbriefRel: "2026-06-01-pending.xbrief.json",
     vbriefStatus: "approved",
     envelopeRel: null,
   },
   {
     name: "satisfied-swarm-cohort",
-    vbriefRel: "2026-06-01-story.vbrief.json",
+    vbriefRel: "2026-06-01-story.xbrief.json",
     envelopeRel: "envelope-cohort.md",
   },
   {
     name: "malformed-allocation",
-    vbriefRel: "2026-06-01-story.vbrief.json",
+    vbriefRel: "2026-06-01-story.xbrief.json",
     envelopeRel: "envelope-bad.md",
   },
 ];
 
+// biome-ignore lint/correctness/noUnusedVariables: pre-existing fixture type, needed for test structure
 interface Capture {
   status: number;
   stdout: string;
@@ -153,7 +154,7 @@ export function buildScenarioRepo(scenario: ParityScenario): {
     gitCommit(root, "init");
   }
 
-  const vbriefPath = join(root, "vbrief", "active", vbriefName);
+  const vbriefPath = join(root, "xbrief", "active", vbriefName);
   return { root, vbriefPath, envelopePath };
 }
 

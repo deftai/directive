@@ -95,10 +95,10 @@ describe("safety rollback branches", () => {
     const backup = join(root, "SPECIFICATION.premigrate.md");
     writeFileSync(src, "stub", "utf8");
     writeFileSync(backup, "original", "utf8");
-    const created = join(root, "vbrief", "migration", "LEGACY-REPORT.md");
-    mkdirSync(join(root, "vbrief", "migration"), { recursive: true });
+    const created = join(root, "xbrief", "migration", "LEGACY-REPORT.md");
+    mkdirSync(join(root, "xbrief", "migration"), { recursive: true });
     writeFileSync(created, "legacy", "utf8");
-    const renamed = join(root, "vbrief", "migration", "LEGACY-REPORT.reviewed.md");
+    const renamed = join(root, "xbrief", "migration", "LEGACY-REPORT.reviewed.md");
     writeFileSync(renamed, "legacy", "utf8");
     const gitignore = join(root, ".gitignore");
     writeFileSync(gitignore, "base\nappended\n", "utf8");
@@ -116,12 +116,12 @@ describe("safety rollback branches", () => {
             size_bytes: 8,
           },
         ],
-        created_files: ["vbrief/migration/LEGACY-REPORT.md"],
-        created_dirs: ["vbrief/migration"],
+        created_files: ["xbrief/migration/LEGACY-REPORT.md"],
+        created_dirs: ["xbrief/migration"],
         renames: [
           {
-            original: "vbrief/migration/LEGACY-REPORT.md",
-            current: "vbrief/migration/LEGACY-REPORT.reviewed.md",
+            original: "xbrief/migration/LEGACY-REPORT.md",
+            current: "xbrief/migration/LEGACY-REPORT.reviewed.md",
             renamed_by: "sync",
             renamed_at: "2026-04-22T00:00:00Z",
           },

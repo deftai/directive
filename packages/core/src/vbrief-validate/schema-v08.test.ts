@@ -21,7 +21,7 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
     expect(
       validateVbriefSchema(
         {
-          vBRIEFInfo: { version: "0.6" },
+          xBRIEFInfo: { version: "0.8" },
           plan: { title: "Legacy", status: "running", items: [] },
         },
         "v06.json",
@@ -81,7 +81,7 @@ describe("validateVbriefSchema xBRIEF v0.8 (#2107)", () => {
   });
 
   it("treats x-xbrief reference types as conformant and origin-trusting", () => {
-    const rel = "vbrief/active/2026-06-30-story.xbrief.json";
+    const rel = "xbrief/active/2026-06-30-story.xbrief.json";
     const data = {
       xBRIEFInfo: { version: "0.8" },
       plan: {
