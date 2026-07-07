@@ -394,3 +394,187 @@ describe("project-render main() cwd layout resolver (#2149)", () => {
     expect(parsed.xBRIEFInfo).toBeUndefined();
   });
 });
+
+describe("project-render main() flag parsing (#2236)", () => {
+  it("--help prints usage to stdout and exits 0 without rendering", () => {
+    const writes: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = (s: string) => {
+      writes.push(s);
+      return true;
+    };
+    let exit: number;
+    try {
+      exit = projectRenderMain(["--help"]);
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    expect(exit).toBe(0);
+    expect(writes.join("")).toContain("Usage:");
+  });
+
+  it("-h is an alias for --help", () => {
+    const writes: string[] = [];
+    const origWrite = process.stdout.write.bind(process.stdout);
+    process.stdout.write = (s: string) => {
+      writes.push(s);
+      return true;
+    };
+    let exit: number;
+    try {
+      exit = projectRenderMain(["-h"]);
+    } finally {
+      process.stdout.write = origWrite;
+    }
+    expect(exit).toBe(0);
+    expect(writes.join("")).toContain("Usage:");
+  });
+
+  it("unknown flag exits 2 without treating it as a path", () => {
+    const errWrites: string[] = [];
+    const origErr = process.stderr.write.bind(process.stderr);
+    process.stderr.write = (s: string) => {
+      errWrites.push(s);
+      return true;
+    };
+    let exit: number;
+    try {
+      exit = projectRenderMain(["--unknown-flag"]);
+    } finally {
+      process.stderr.write = origErr;
+    }
+    expect(exit).toBe(2);
+    expect(errWrites.join("")).toContain("Unknown flag");
+  });
+});
+
+describe("project-render D3 registry-status round-trip (#1715)", () => {
+  const tmpDirs: string[] = [];
+  afterEach(() => {
+    for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+
+  /**
+   * Regression test for #1715: the TS renderer is validator-clean by construction
+   * because it derives each registry item's status directly from the scope file's
+   * `plan.status` (via deriveRegistryItemStatus). The D3 registry-status check
+   * compares the registry item status against the same field, so they always agree
+   * and no mismatch is possible from render output.
+   *
+   * The scenario: an umbrella scope in `active/` with plan.status "running" has
+   * children in `completed/` with plan.status "completed". The umbrella's registry
+   * entry gets status "running" (from its own plan.status, NOT from its children),
+   * and D3 compares that against the umbrella file which says "running" — match.
+   */
+  it("render-then-validate passes for umbrella (running) with completed children (#1715)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-1715-"));
+    tmpDirs.push(root);
+    const vbrief = join(root, "vbrief");
+    mkdirSync(vbrief, { recursive: true });
+
+    writeScope(vbrief, "active", "2026-06-12-umbrella-epic.vbrief.json", {
+      title: "Umbrella epic (still active/running)",
+      status: "running",
+      items: [],
+      metadata: { kind: "epic" },
+      references: [
+        ISSUE_REF,
+        {
+          type: "x-vbrief/plan",
+          uri: "completed/2026-06-12-child-a.vbrief.json",
+          title: "Child A",
+        },
+        {
+          type: "x-vbrief/plan",
+          uri: "completed/2026-06-12-child-b.vbrief.json",
+          title: "Child B",
+        },
+        {
+          type: "x-vbrief/plan",
+          uri: "completed/2026-06-12-child-c.vbrief.json",
+          title: "Child C",
+        },
+        {
+          type: "x-vbrief/plan",
+          uri: "completed/2026-06-12-child-d.vbrief.json",
+          title: "Child D",
+        },
+      ],
+    });
+    for (const child of ["child-a", "child-b", "child-c", "child-d"]) {
+      writeScope(vbrief, "completed", `2026-06-12-${child}.vbrief.json`, {
+        title: `Child ${child}`,
+        status: "completed",
+        items: [],
+        metadata: { kind: "story" },
+        references: [ISSUE_REF],
+        planRef: "active/2026-06-12-umbrella-epic.vbrief.json",
+      });
+    }
+
+    writeProjectDefinition(vbrief);
+
+    const [ok, message] = renderProjectDefinition(vbrief, {
+      now: new Date("2026-06-18T12:00:00Z"),
+    });
+    expect(ok).toBe(true);
+    expect(message).toContain("5 scope items");
+
+    const projectDef = readJsonObject(join(vbrief, "PROJECT-DEFINITION.vbrief.json"));
+    const errors = validateProjectDefinition(
+      "vbrief/PROJECT-DEFINITION.vbrief.json",
+      projectDef,
+      vbrief,
+    );
+    expect(errors.filter((e) => e.includes("registry-status"))).toEqual([]);
+
+    const plan = projectDef.plan as { items: Array<Record<string, unknown>> };
+    const umbrella = plan.items.find(
+      (item) =>
+        (item.metadata as Record<string, string>)?.source_path ===
+        "active/2026-06-12-umbrella-epic.vbrief.json",
+    );
+    expect(umbrella).toBeDefined();
+    // Status derives from the umbrella's own plan.status, NOT from children.
+    expect(umbrella?.status).toBe("running");
+  });
+
+  it("deterministic items[] ordering prevents reorder churn on re-render (#1715)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-pr-1715-order-"));
+    tmpDirs.push(root);
+    const vbrief = join(root, "vbrief");
+    mkdirSync(vbrief, { recursive: true });
+
+    for (const name of ["alpha", "beta", "gamma"]) {
+      writeScope(vbrief, "completed", `2026-06-12-${name}.vbrief.json`, {
+        title: name,
+        status: "completed",
+        items: [],
+      });
+    }
+    writeScope(vbrief, "active", "2026-06-12-delta.vbrief.json", {
+      title: "delta",
+      status: "running",
+      items: [],
+    });
+    writeProjectDefinition(vbrief);
+
+    const [ok1] = renderProjectDefinition(vbrief, { now: new Date("2026-06-18T12:00:00Z") });
+    expect(ok1).toBe(true);
+    const ids1 = (
+      readJsonObject(join(vbrief, "PROJECT-DEFINITION.vbrief.json")).plan as {
+        items: Array<{ id: string }>;
+      }
+    ).items.map((i) => i.id);
+
+    const [ok2] = renderProjectDefinition(vbrief, { now: new Date("2026-06-18T13:00:00Z") });
+    expect(ok2).toBe(true);
+    const ids2 = (
+      readJsonObject(join(vbrief, "PROJECT-DEFINITION.vbrief.json")).plan as {
+        items: Array<{ id: string }>;
+      }
+    ).items.map((i) => i.id);
+
+    expect(ids2).toEqual(ids1);
+  });
+});

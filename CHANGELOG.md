@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `project:render` now correctly refreshes `xbrief/PROJECT-DEFINITION.xbrief.json` on xbrief-layout projects instead of writing an empty legacy `vbrief/PROJECT-DEFINITION.vbrief.json` with 0 scope items. The renderer was already layout-aware via `resolveLifecycleRoot`; the xbrief path is now exercised end-to-end with fixture tests. Closes #2236.
+- `project:render --help` (and any unrecognized `--flag`) now prints usage and exits cleanly instead of consuming the flag as a positional output path and creating a stray `./--help/` directory. Closes #2236.
+- Render output is validator-clean by construction: the TS renderer derives each registry item's status directly from the scope file's `plan.status`, so D3 registry-status mismatches cannot arise from a fresh render. Regression tests added for the umbrella-with-completed-children scenario reported in #1715. Refs #1715.
+
 ### Removed
 
 ## [0.72.0] - 2026-07-06

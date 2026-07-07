@@ -7,7 +7,7 @@
 
 ## Overview
 
-Deft Directive is a self-dogfooded framework for AI-assisted software work. It combines agent-consumed guidance, deterministic Taskfile automation, vBRIEF lifecycle metadata, a TypeScript engine, a Go installer, local triage/cache workflows, content packs, and release/PR gates. The current source tree is Taskfile-first: `task --list` is the primary command contract, delegating to the TypeScript engine in `packages/`. The legacy Python runtime and the `run`/`run.py`/`run.bat` launchers were fully removed at v0.63.0 -- deft is now TypeScript-native end to end. Project identity and architectural intent live in `vbrief/PROJECT-DEFINITION.vbrief.json`; rendered markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The early Deft intent remains active: turn loose agent prompting into a repeatable practice with modular guidance, lazy loading, specification before implementation, observable tests/gates, and a feedback loop for lessons learned.
+Deft Directive is a self-dogfooded framework for AI-assisted software work. It combines agent-consumed guidance, deterministic Taskfile automation, vBRIEF lifecycle metadata, a TypeScript engine, a Go installer, local triage/cache workflows, content packs, and release/PR gates. The current source tree is Taskfile-first: `task --list` is the primary command contract, delegating to the TypeScript engine in `packages/`. The legacy Python runtime and the `run`/`run.py`/`run.bat` launchers were fully removed at v0.63.0 -- deft is now TypeScript-native end to end. Project identity and architectural intent live in `xbrief/PROJECT-DEFINITION.xbrief.json`; rendered markdown files such as `SPECIFICATION.md`, `PRD.md`, and `ROADMAP.md` are generated views. The early Deft intent remains active: turn loose agent prompting into a repeatable practice with modular guidance, lazy loading, specification before implementation, observable tests/gates, and a feedback loop for lessons learned.
 
 ## ProblemStatement
 
@@ -40,7 +40,7 @@ The framework has outgrown its early self-specification. The old project narrati
 ## SuccessMetrics
 
 - Project-definition and specification narratives describe the current architecture rather than the early Phase 1-3 shape.
-- `SPECIFICATION.md` is regenerated from `vbrief/specification.vbrief.json` and opens with current system context.
+- `SPECIFICATION.md` is regenerated from `xbrief/specification.xbrief.json` and opens with current system context.
 - Architecture, concepts, files, commands, README, and codebase docs agree on Taskfile-first operation and vBRIEF source-of-truth boundaries.
 - Architecture/concepts/commands docs include current Mermaid diagrams for rituals, gates, lifecycle, projections, and triage/cache flow.
 - Stale planning docs cannot be mistaken for current architecture guidance.
@@ -48,7 +48,7 @@ The framework has outgrown its early self-specification. The old project narrati
 
 ## Architecture
 
-The implemented architecture has ten cooperating areas. (1) Framework content: `AGENTS.md`, `main.md`, standards, skills, strategies, templates, docs, conventions, and domain guidance consumed by agents. (2) Task runner: `Taskfile.yml` and `tasks/*.yml` expose the deterministic command surface for checks, rendering, lifecycle, triage, scope, cache, release, PR, swarm, policy, packs, and codebase commands. (3) TypeScript engine: `packages/` plus root package metadata and TS configs implement the deterministic gates, CLI shims, command routing, validators, renderers, lifecycle movement, issue/cache/triage automation, doctor/session gates, and codebase extraction -- the primary tooling runtime. The #1530 Python-to-TypeScript migration completed at v0.63.0: the Python runtime, `scripts/*.py`, and the `run`/`run.py`/`run.bat` launchers were removed and the Python-oracle parity harnesses retired. (4) Node workspace and build: `package.json`, `pnpm-lock.yaml`, `tsconfig*.json`, and the `vitest` config define the workspace, build, and test-runner surface for the engine. (5) Go installer: `cmd/deft-install/` installs or upgrades a vendored `.deft/core/` payload, writes manifests, refreshes managed AGENTS sections, wires Taskfile includes, and hands off to the canonical doctor. (6) vBRIEF metadata: `vbrief/` stores project identity, specification source, schemas, lifecycle scope files, policy, and `plan.architecture.codeStructure`. (7) Triage/cache/scope automation: `.deft-cache/`, `vbrief/.eval/`, `task triage:*`, `task cache:*`, and `task scope:*` turn GitHub/backlog state into auditable scope vBRIEFs. (8) Release/PR/swarm automation: `task release:*`, `task pr:*`, `task swarm:*`, and associated skills encode pre-PR, review, merge, and release workflows. (9) Codebase architecture metadata: `codeStructure` is the authored source of truth; `task codebase:validate-structure`, `codebase:extract-default`, `codebase:provider-map`, `codebase:map`, `verify:codebase-map-fresh`, and `codebase:projection-registry` implement the current contract and MAP projection layer. (10) Tests and gates: colocated `packages/**/*.test.ts` suites plus shared fixtures and snapshots under `tests/`, `.githooks/`, `.github/workflows/`, and `task check` provide regression, content, branch, encoding, vBRIEF, capacity, session, and forward-coverage enforcement.
+The implemented architecture has ten cooperating areas. (1) Framework content: `AGENTS.md`, `main.md`, standards, skills, strategies, templates, docs, conventions, and domain guidance consumed by agents. (2) Task runner: `Taskfile.yml` and `tasks/*.yml` expose the deterministic command surface for checks, rendering, lifecycle, triage, scope, cache, release, PR, swarm, policy, packs, and codebase commands. (3) TypeScript engine: `packages/` plus root package metadata and TS configs implement the deterministic gates, CLI shims, command routing, validators, renderers, lifecycle movement, issue/cache/triage automation, doctor/session gates, and codebase extraction -- the primary tooling runtime. The #1530 Python-to-TypeScript migration completed at v0.63.0: the Python runtime, `scripts/*.py`, and the `run`/`run.py`/`run.bat` launchers were removed and the Python-oracle parity harnesses retired. (4) Node workspace and build: `package.json`, `pnpm-lock.yaml`, `tsconfig*.json`, and the `vitest` config define the workspace, build, and test-runner surface for the engine. (5) Go installer: `cmd/deft-install/` installs or upgrades a vendored `.deft/core/` payload, writes manifests, refreshes managed AGENTS sections, wires Taskfile includes, and hands off to the canonical doctor. (6) vBRIEF metadata: `xbrief/` stores project identity, specification source, schemas, lifecycle scope files, policy, and `plan.architecture.codeStructure`. (7) Triage/cache/scope automation: `.deft-cache/`, `xbrief/.eval/`, `task triage:*`, `task cache:*`, and `task scope:*` turn GitHub/backlog state into auditable scope vBRIEFs. (8) Release/PR/swarm automation: `task release:*`, `task pr:*`, `task swarm:*`, and associated skills encode pre-PR, review, merge, and release workflows. (9) Codebase architecture metadata: `codeStructure` is the authored source of truth; `task codebase:validate-structure`, `codebase:extract-default`, `codebase:provider-map`, `codebase:map`, `verify:codebase-map-fresh`, and `codebase:projection-registry` implement the current contract and MAP projection layer. (10) Tests and gates: colocated `packages/**/*.test.ts` suites plus shared fixtures and snapshots under `tests/`, `.githooks/`, `.github/workflows/`, and `task check` provide regression, content, branch, encoding, vBRIEF, capacity, session, and forward-coverage enforcement.
 
 ## LegacyArtifacts
 
@@ -70,13 +70,116 @@ Historical Phase 1-3 narrative and inline plan.items were removed from the curre
 
 ## Scope outlook
 
+### Active
+
+### 2026-07-07-1715-bugprojectrender-regenerated-project-definition-fails-task-v: bug(project:render): regenerated PROJECT-DEFINITION fails task vbrief:validate (D3 registry-status) + large reordering churn vs committed file  `[running]`
+
+## Summary
+
+`task project:render` (`scripts/project_render.py`) regenerates `vbrief/PROJECT-DEFINITION.vbrief.json` from the lifecycle folders, but the freshly-rendered file **fails `task vbrief:validate`** with D3 registry-status errors. So the canonical render produces output the canonical validator rejects -- render and validate disagree on the same source state.
+
+It also rewrites the `items[]` registry with **large reordering churn** vs the committed file (dozens of items move/regroup), so the committed PROJECT-DEFINITION is already out of sync with what render deterministically produces.
+
+## Reproduction (observed 2026-06-18)
+
+During an unrelated refinement of #1530 (no edits to any 2026-06-12 scope):
+
+1. `task vbrief:validate` on the committed tree -> `OK: 644 scope vBRIEF(s), PROJECT-DEFINITION`.
+2. `task project:render` -> `PROJECT-DEFINITION.vbrief.json updated (644 scope items)` + `80 staleness flag(s)`.
+3. `task vbrief:validate` on the rendered tree -> **FAIL: 4 error(s)**:
+
+```
+FAIL: .../PROJECT-DEFINITION.vbrief.json: items[42] status is 'proposed' but referenced scope
+  'completed/2026-06-12-generic-terminal-swarm-fallback-should-offer-serial-self-exe.vbrief.json'
+  has plan.status 'completed' (D3 registry-status)
+... (same for greenfield-setup, lifecycle-taskfile-commands, interactive-swarm-worktrees -- all 2026-06-12 completed scopes)
+```
+
+`git checkout -- vbrief/PROJECT-DEFINITION.vbrief.json ROADMAP.md` restores the passing state.
+
+## Why this matters
+
+- **Render -> validate is not consistent.** A standard refinement Phase 4 step (`task project:render`) turns a green tree red. Any agent following the refinement skill hits this and either commits a validate-failing registry or has to revert the render.
+- **`items[42]` is a grouped registry entry marked `proposed` while all four referenced children are `completed`.** The render derives/keeps a `proposed` umbrella status that the D3 registry-status rule (`scripts/vbrief_validate.py`) rejects. Either render must reconcile the grouped item's status to its children, or the D3 rule must accept the grouping semantics -- they currently contradict.
+- The `80 staleness flag(s)` warning + the broad reordering churn suggest the committed PROJECT-DEFINITION has drifted from render output independently of this incident.
+
+## Likely root cause (to confirm)
+
+`project_render.py` aggregates lifecycle folders into `plan.items[]` but does not roll a grouped/umbrella item's `status` up from its children (or the committed file was hand-edited and never re-rendered). The D3 registry-status check then flags the parent `proposed` vs child `completed` mismatch.
+
+## Acceptance criteria
+
+- `task project:render` immediately followed by `task vbrief:validate` passes on a clean tree (render output is validator-clean by construction).
+- Grouped/umbrella registry items either have their `status` reconciled to their children by the renderer, or the D3 rule explicitly accepts the grouping semantics -- documented either way.
+- A regression test: render-then-validate round-trip on a fixture with a grouped item whose children are completed.
+
+## References
+
+- `scripts/project_render.py` (renderer)
+- `scripts/vbrief_validate.py` (D3 registry-status rule)
+- Surfaced incidentally during #1530 refinement; not caused by it.
+
+**Acceptance**:
+
+- `task project:render` immediately followed by `task vbrief:validate` passes on a clean tree (render output is validator-clean by construction). `[proposed]`
+- Grouped/umbrella registry items either have their `status` reconciled to their children by the renderer, or the D3 rule explicitly accepts the grouping semantics -- documented either way. `[proposed]`
+- A regression test: render-then-validate round-trip on a fixture with a grouped item whose children are completed. `[proposed]`
+
+### 2026-07-07-2236-projectrender-is-not-xbrief-aware-writes-empty-legacy-vbrief: project:render is not xbrief-aware — writes empty legacy vbrief/PROJECT-DEFINITION.vbrief.json (0 items) on xbrief projects  `[running]`
+
+## Summary
+
+On a project that has been migrated to the **xbrief** lifecycle layout, `deft project:render` does not refresh `xbrief/PROJECT-DEFINITION.xbrief.json`. Instead it writes a brand-new **legacy** `vbrief/PROJECT-DEFINITION.vbrief.json` containing **0 scope items**, ignoring the existing `xbrief/` scopes entirely. It also appears to ignore CLI flags (see "Secondary bug" below).
+
+## Environment
+
+- `deft --version`: `@deftai/directive (engine: @deftai/directive-core@0.66.2)`
+- Deposit `.deft/core/VERSION`:
+  - `tag: 'v0.66.2'`, `sha: 'content-package'`, `install_root: '.deft/core'`, `managed_by: 'npm'`
+- Install shape: npm-managed vendored deposit at `.deft/core` (migrated from a former git-submodule install)
+- Layout: **xbrief** (project was migrated `vbrief/` → `xbrief/`; `deft doctor` reports "xBrief migration: none — project is on the xbrief layout")
+- OS: macOS
+
+## Steps to reproduce
+
+1. Have a project on the xbrief layout with a populated `xbrief/PROJECT-DEFINITION.xbrief.json` and multiple scopes under `xbrief/{proposed,pending,active,completed}/`.
+2. Confirm health: `deft doctor` → clean, xbrief layout current.
+3. Run `deft project:render`.
+
+## Expected
+
+`xbrief/PROJECT-DEFINITION.xbrief.json` is re-rendered from the current `xbrief/` scopes (registry items reflecting the on-disk lifecycle folders).
+
+## Actual
+
+```
+✓ PROJECT-DEFINITION.vbrief.json created (0 scope items)
+```
+
+- A new **`vbrief/`** directory is created at the project root (legacy path), containing `vbrief/PROJECT-DEFINITION.vbrief.json` with `"items": []` and empty narratives.
+- The existing `xbrief/PROJECT-DEFINITION.xbrief.json` is left untouched (so no data loss, but the command is a no-op for xbrief projects and litters the tree with a bogus legacy file).
+- Because it scans the (non-existent) `vbrief/` scope folders, it always reports **0 scope items**.
+
+## Secondary bug — flags treated as path args
+
+`deft project:render --help` does not print help; it re-runs the render and interprets `--help` as an output location, creating a stray **`./--help/`** directory containing `--help/PROJECT-DEFINITION.vbrief.json`.
+
+## Impact
+
+On xbrief-migrated projects there is no working way to refresh the project-definition registry via the CLI. `PROJECT-DEFINITION` staleness (e.g. completed scopes not reflected in registry item statuses) cannot be reconciled with `project:render`, and each invocation writes a misleading empty legacy `vbrief/` artifact.
+
+## Suggested fix
+
+- Make `project:render` (and likely the sibling `roadmap:render` / `spec:render`) resolve the brief lifecycle directory (`xbrief/` when present, falling back to `vbrief/`), write to `PROJECT-DEFINITION.xbrief.json`, and scan `xbrief/<lifecycle>/` for items.
+- Add proper `--help`/flag parsing so unknown flags are not consumed as positional path arguments.
+
 ### Completed
 
 ### 2026-04-14-bdd-vbrief-context: bdd strategy: move context and scenarios to vbrief; remove specs/ folder  `[completed]`
 
 See GitHub issue #365 for full description and acceptance criteria.
 
-### 2026-04-14-change-proposal-vbrief: deft:change proposal.md and design.md should be proposal.vbrief.json  `[completed]`
+### 2026-04-14-change-proposal-vbrief: deft:change proposal.md and design.md should be proposal.xbrief.json  `[completed]`
 
 See GitHub issue #371 for full description and acceptance criteria.
 
@@ -104,7 +207,7 @@ See GitHub issue #368 for full description and acceptance criteria.
 
 See GitHub issue #345 for full description and acceptance criteria.
 
-### 2026-04-14-rapid-vbrief-render: rapid strategy: SPECIFICATION.md should be rendered from specification.vbrief.json  `[completed]`
+### 2026-04-14-rapid-vbrief-render: rapid strategy: SPECIFICATION.md should be rendered from specification.xbrief.json  `[completed]`
 
 See GitHub issue #363 for full description and acceptance criteria.
 
@@ -116,11 +219,11 @@ See GitHub issue #367 for full description and acceptance criteria.
 
 See GitHub issue #369 for full description and acceptance criteria.
 
-### 2026-04-14-speckit-phase1-project-definition: speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.vbrief.json  `[completed]`
+### 2026-04-14-speckit-phase1-project-definition: speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.xbrief.json  `[completed]`
 
 See GitHub issue #361 for full description and acceptance criteria.
 
-### 2026-04-14-speckit-phase23-vbrief: speckit Phase 2/3 should write to vbrief/specification.vbrief.json, not specs/*.md  `[completed]`
+### 2026-04-14-speckit-phase23-vbrief: speckit Phase 2/3 should write to xbrief/specification.xbrief.json, not specs/*.md  `[completed]`
 
 See GitHub issue #362 for full description and acceptance criteria.
 
@@ -174,7 +277,7 @@ See GitHub issue #387 for full description and acceptance criteria.
 
 ### 2026-04-16-404-run-project-lifecycle-subdirs: fix(cli): run project should create vbrief lifecycle subdirectories  `[completed]`
 
-`run project` creates vbrief/PROJECT-DEFINITION.vbrief.json but does not scaffold the 5 lifecycle subdirectories (proposed/, pending/, active/, completed/, cancelled/). skills/deft-directive-setup/SKILL.md creates them correctly; the CLI cmd_project() only creates vbrief/ implicitly via _atomic_write.
+`run project` creates xbrief/PROJECT-DEFINITION.xbrief.json but does not scaffold the 5 lifecycle subdirectories (proposed/, pending/, active/, completed/, cancelled/). skills/deft-directive-setup/SKILL.md creates them correctly; the CLI cmd_project() only creates xbrief/ implicitly via _atomic_write.
 
 **Acceptance**:
 
@@ -194,16 +297,16 @@ scripts/project_render.py SKELETON_NARRATIVES uses 'TechStack' (camelCase). scri
 
 ### 2026-04-16-407-readme-vbrief-centric-accuracy: docs(readme): README still describes SPECIFICATION.md as primary output instead of vBRIEF  `[completed]`
 
-README.md described SPECIFICATION.md as the primary output of the setup/spec flow. In the v0.20 vBRIEF-centric model SPECIFICATION.md is a rendered artifact; the source of truth is `vbrief/specification.vbrief.json` plus scope vBRIEFs in lifecycle folders. If a user edits SPECIFICATION.md directly, their changes are overwritten on the next `task spec:render`.
+README.md described SPECIFICATION.md as the primary output of the setup/spec flow. In the v0.20 vBRIEF-centric model SPECIFICATION.md is a rendered artifact; the source of truth is `xbrief/specification.xbrief.json` plus scope vBRIEFs in lifecycle folders. If a user edits SPECIFICATION.md directly, their changes are overwritten on the next `task spec:render`.
 
 **Acceptance**:
 
-- Rewrite Step 2 to reference PROJECT-DEFINITION.vbrief.json `[running]`
+- Rewrite Step 2 to reference PROJECT-DEFINITION.xbrief.json `[running]`
 - Rename Step 3 to 'Generate a Scope vBRIEF' with vBRIEF-centric explanation `[running]`
 - Update Step 4 build example and add brownfield pointer to docs/BROWNFIELD.md `[running]`
-- Fix Rule Precedence mermaid + Rule Hierarchy list to reference vbrief/* files `[running]`
-- Update SDD diagrams and text to reference specification.vbrief.json `[running]`
-- Update example workflow diagrams (Existing Go Project, code review) to read PROJECT-DEFINITION.vbrief.json `[running]`
+- Fix Rule Precedence mermaid + Rule Hierarchy list to reference xbrief/* files `[running]`
+- Update SDD diagrams and text to reference specification.xbrief.json `[running]`
+- Update example workflow diagrams (Existing Go Project, code review) to read PROJECT-DEFINITION.xbrief.json `[running]`
 - Content tests asserting vBRIEF-centric wording `[running]`
 
 ### 2026-04-16-408-brownfield-adoption-guide: docs(readme): missing brownfield adoption guide for existing projects  `[completed]`
@@ -246,7 +349,7 @@ Existing users updating their deft submodule to v0.20 have no reliable path to m
 
 ### 2026-04-17-417-migrate-overview-narrative: fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key  `[completed]`
 
-Canonical v0.19 consumer projects (SPECIFICATION.md + PROJECT.md + ROADMAP.md, no pre-existing vbrief/specification.vbrief.json) migrate via `task migrate:vbrief` to a PROJECT-DEFINITION.vbrief.json that is missing the required `Overview` narrative key. D3 in scripts/vbrief_validate.py requires both 'overview' and 'tech stack' (case-folded) to be present. _build_project_definition only pulls narratives from spec_vbrief and extracts 'tech stack' from PROJECT.md -- neither source supplies Overview for the canonical v0.19 layout. Result: post-migration `task vbrief:validate` fails with 'narratives missing expected key overview (D3)'. Discovered during swarm-402 Phase 5 consumer upgrade simulation (13/14 checks passed).
+Canonical v0.19 consumer projects (SPECIFICATION.md + PROJECT.md + ROADMAP.md, no pre-existing xbrief/specification.xbrief.json) migrate via `task migrate:vbrief` to a PROJECT-DEFINITION.xbrief.json that is missing the required `Overview` narrative key. D3 in scripts/vbrief_validate.py requires both 'overview' and 'tech stack' (case-folded) to be present. _build_project_definition only pulls narratives from spec_vbrief and extracts 'tech stack' from PROJECT.md -- neither source supplies Overview for the canonical v0.19 layout. Result: post-migration `task vbrief:validate` fails with 'narratives missing expected key overview (D3)'. Discovered during swarm-402 Phase 5 consumer upgrade simulation (13/14 checks passed).
 
 **Acceptance**:
 
@@ -284,7 +387,7 @@ RC2 testing off phase2/vbrief-cutover (HEAD 032ac87) shows all three #359 behavi
 
 ### 2026-04-20-432-speckit-phase3-spec-render-enforcement: speckit Phase 3 -> Phase 4 advances without enforcing ! task spec:render  `[completed]`
 
-speckit.md Phase 3 declares ! Run task spec:render but nothing in the workflow contract enforces it. Yolo-mode agents advance to Phase 4 with specification.vbrief.json + plan.vbrief.json written and no SPECIFICATION.md anywhere. Defeats Phase 3 review intent.
+speckit.md Phase 3 declares ! Run task spec:render but nothing in the workflow contract enforces it. Yolo-mode agents advance to Phase 4 with specification.xbrief.json + plan.xbrief.json written and no SPECIFICATION.md anywhere. Defeats Phase 3 review intent.
 
 **Acceptance**:
 
@@ -320,35 +423,35 @@ scripts/spec_render.py consumes only the Overview narrative plus plan.items, so 
 
 ### 2026-04-20-435-spec-render-lifecycle-aggregator: spec rendering does not aggregate scope vBRIEFs from lifecycle folders (v0.20 model)  `[completed]`
 
-task spec:render reads only the single specification.vbrief.json file. In v0.20 the project spec is the union of that file plus scope vBRIEFs in vbrief/pending/, active/, completed/. Today SPECIFICATION.md shows only intent; scopes are invisible to readers.
+task spec:render reads only the single specification.xbrief.json file. In v0.20 the project spec is the union of that file plus scope vBRIEFs in xbrief/pending/, active/, completed/. Today SPECIFICATION.md shows only intent; scopes are invisible to readers.
 
 **Acceptance**:
 
 - Add --include-scopes flag (default on) to spec_render.py `[running]`
-- Walk vbrief/pending/, active/, completed/ and load scope vBRIEFs `[running]`
+- Walk xbrief/pending/, active/, completed/ and load scope vBRIEFs `[running]`
 - Emit Implementation Plan section grouped by lifecycle bucket `[running]`
 - Use #458 bilingual edge reader for cross-scope topo-sort `[running]`
 - Add aggregator fixture + assertion test `[running]`
 - Add --include-scopes=off fallback regression test `[running]`
 
-### 2026-04-20-436-speckit-phase4-scope-vbriefs: speckit Phase 4 collides with plan.vbrief.json definition (no scope vBRIEFs emitted)  `[completed]`
+### 2026-04-20-436-speckit-phase4-scope-vbriefs: speckit Phase 4 collides with plan.xbrief.json definition (no scope vBRIEFs emitted)  `[completed]`
 
-speckit.md Phase 4 writes project task list to plan.vbrief.json, but vbrief.md defines plan.vbrief.json as session-level agent-private todo list. Same filename, two contradictory roles. Result: speckit projects bypass lifecycle folders entirely; ROADMAP.md is empty; PROJECT-DEFINITION items registry is empty; any future agent honoring the session-todo contract overwrites the project plan. Decision 2026-04-20: implement Option 1 (speckit emits scope vBRIEFs).
+speckit.md Phase 4 writes project task list to plan.xbrief.json, but vbrief.md defines plan.xbrief.json as session-level agent-private todo list. Same filename, two contradictory roles. Result: speckit projects bypass lifecycle folders entirely; ROADMAP.md is empty; PROJECT-DEFINITION items registry is empty; any future agent honoring the session-todo contract overwrites the project plan. Decision 2026-04-20: implement Option 1 (speckit emits scope vBRIEFs).
 
 **Acceptance**:
 
-- Update speckit.md Phase 4 to emit scope vBRIEFs in vbrief/pending/ `[running]`
+- Update speckit.md Phase 4 to emit scope vBRIEFs in xbrief/pending/ `[running]`
 - Document filename convention ip<NNN> 3-digit padded in vbrief.md (Risk 5) `[running]`
 - Document plan.metadata.dependencies plan-level placement in vbrief.md (Risk 6) `[running]`
 - Document canonical narrative keys Description/Acceptance/Traces in vbrief.md (Risk 7) `[running]`
 - Add speckit-plan translator to scripts/migrate_vbrief.py `[running]`
 - Add migration tests for speckit-plan -> scope vBRIEF emission `[running]`
 - Add content tests for speckit.md and vbrief.md updates `[running]`
-- Revert plan.vbrief.json to session-todo role in agent guidance `[running]`
+- Revert plan.xbrief.json to session-todo role in agent guidance `[running]`
 
 ### 2026-04-20-454-task-issue-ingest: v0.20.0 GA blocker: add task issue:ingest for GitHub issue -> vBRIEF ingestion  `[completed]`
 
-vbrief/vbrief.md declares origin-provenance ingestion as a MUST but ships no tool to perform it. Only migrate (one-time) and reconcile (read-only) exist. Every post-GA issue grows reconcile unlinked section monotonically; mitigations are hand-author, ignore, or re-migrate (no longer works).
+xbrief/vbrief.md declares origin-provenance ingestion as a MUST but ships no tool to perform it. Only migrate (one-time) and reconcile (read-only) exist. Every post-GA issue grows reconcile unlinked section monotonically; mitigations are hand-author, ignore, or re-migrate (no longer works).
 
 **Acceptance**:
 
@@ -357,7 +460,7 @@ vbrief/vbrief.md declares origin-provenance ingestion as a MUST but ships no too
 - Add bulk mode (--all, --label, --status, --dry-run) `[running]`
 - Wire task issue:ingest in Taskfile.yml `[running]`
 - Add tests/cli/test_issue_ingest.py (5 scenarios) `[running]`
-- Add task issue:ingest to vbrief/vbrief.md Quick Reference Task Commands table `[running]`
+- Add task issue:ingest to xbrief/vbrief.md Quick Reference Task Commands table `[running]`
 - Add Ingesting GitHub issues subsection to README.md `[running]`
 - Mention task issue:ingest in UPGRADING.md v0.20 section `[running]`
 
@@ -368,7 +471,7 @@ v0.20 introduces new vocabulary (Scope vBRIEF, lifecycle folder, plan-level narr
 **Acceptance**:
 
 - Create deft/glossary.md with RFC2119 legend + 13 required terms `[running]`
-- Add cross-ref from vbrief/vbrief.md `[running]`
+- Add cross-ref from xbrief/vbrief.md `[running]`
 - Add one-line pointer in README.md Skills/Contracts/Docs section `[running]`
 - Reference deft/glossary.md in UPGRADING.md v0.20 section `[running]`
 - Add tests/content/test_glossary.py (exists + terms + length) `[running]`
@@ -387,7 +490,7 @@ Schema requires {from,to,type}; speckit doc example uses {from,to,type}; code (r
 - Add legacy {source, target} regression fixture `[running]`
 - Add mixed-keys-within-single-plan fixture `[running]`
 - Confirm strategies/speckit.md edge example stays {from, to} `[running]`
-- Ensure vbrief/vbrief.md edges documentation uses {from, to} `[running]`
+- Ensure xbrief/vbrief.md edges documentation uses {from, to} `[running]`
 
 ### 2026-04-21-477-interview-click-commit-rendering: Interview skill: click-commit rendering mode + plain-text Confirmation Gate (#477)  `[completed]`
 
@@ -426,7 +529,7 @@ Migrator loses per-task bodies, renumbers FR traces, does not emit Requirements 
 - Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit `[running]`
 - Preserve per-task body + Depends-on + AcceptanceCriteria into scope vBRIEF narratives `[running]`
 - Pass FR/NFR trace IDs through verbatim (no renumbering) `[running]`
-- Emit Requirements narrative on specification.vbrief.json `[running]`
+- Emit Requirements narrative on specification.xbrief.json `[running]`
 - Emit plan.edges[] from Depends-on lines; drop Dependency Graph + Parallelisable Work (D4) `[running]`
 - Fold Project-Level Acceptance Criteria into SuccessMetrics (D4) `[running]`
 - Align narrative keys to #506 D3 canonical set per file `[running]`
@@ -437,17 +540,17 @@ Migrator loses per-task bodies, renumbers FR traces, does not emit Requirements 
 
 ### 2026-04-21-496-migrate-vbrief-reconciliation: migrate:vbrief reconciliation strategy when SPEC and ROADMAP disagree (#496)  `[completed]`
 
-Implement per-dimension ownership (SPEC owns identity/bodies/acceptance/traces; ROADMAP owns completion; grouping preserved from both). Emit vbrief/migration/RECONCILIATION.md on disagreement. Add --strict exit-non-zero mode. Load vbrief/migration-overrides.yaml. Add sibling *_source provenance fields to scope narratives.
+Implement per-dimension ownership (SPEC owns identity/bodies/acceptance/traces; ROADMAP owns completion; grouping preserved from both). Emit xbrief/migration/RECONCILIATION.md on disagreement. Add --strict exit-non-zero mode. Load xbrief/migration-overrides.yaml. Add sibling *_source provenance fields to scope narratives.
 
 **Acceptance**:
 
 - Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit `[running]`
 - Role-based default merge policy (identity<-SPEC, status<-ROADMAP with SPEC tiebreaker, grouping from both) `[running]`
-- Emit vbrief/migration/RECONCILIATION.md on any disagreement `[running]`
+- Emit xbrief/migration/RECONCILIATION.md on any disagreement `[running]`
 - Add --strict mode (exit non-zero on any conflict) `[running]`
-- Load and honor vbrief/migration-overrides.yaml `[running]`
+- Load and honor xbrief/migration-overrides.yaml `[running]`
 - Add per-field *_source provenance to scope narratives `[running]`
-- Orphan ROADMAP items route to vbrief/proposed/ with SourceConflict `[running]`
+- Orphan ROADMAP items route to xbrief/proposed/ with SourceConflict `[running]`
 - Synthetic fixture tests for spec-stale / roadmap-stale / both-stale / clean `[running]`
 - CHANGELOG [Unreleased] entry under Added `[running]`
 
@@ -469,7 +572,7 @@ Per #506 D7: default is destructive with explicit --dry-run opt-in. Always-on: .
 
 ### 2026-04-21-498-migrate-vbrief-validation: migrate:vbrief self-validation + slug-safe IDs + golden tests (#498)  `[completed]`
 
-Per #506 D8, migrator hard-blocks on schema-invalid output: exit non-zero, leave .premigrate backups in place, write partial output to vbrief.invalid/ (isolated from vbrief/). Slug-safe IDs per regex ^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$ applied to filename AND in-JSON id. Real-fixture golden test added.
+Per #506 D8, migrator hard-blocks on schema-invalid output: exit non-zero, leave .premigrate backups in place, write partial output to vbrief.invalid/ (isolated from xbrief/). Slug-safe IDs per regex ^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$ applied to filename AND in-JSON id. Real-fixture golden test added.
 
 **Acceptance**:
 
@@ -493,7 +596,7 @@ Migrator chooses lifecycle folder per scope based on reconciled source state (co
 - Cancelled sources -> cancelled/, plan.status=cancelled `[running]`
 - Orphan ROADMAP items -> proposed/, plan.status=proposed, narrative.SourceConflict set `[running]`
 - Default -> pending/, plan.status=pending (only when no completion signal) `[running]`
-- PROJECT-DEFINITION.vbrief.json plan.items[*].status mirrors scope status `[running]`
+- PROJECT-DEFINITION.xbrief.json plan.items[*].status mirrors scope status `[running]`
 - Synthetic fixture tests cover all five routing cases + registry mirror `[running]`
 - CHANGELOG [Unreleased] entry under Fixed `[running]`
 
@@ -515,27 +618,27 @@ Per #506 D6: (primary) publish migration via standard deft/Taskfile.yml include 
 
 ### 2026-04-21-505-migrate-vbrief-legacy-artifacts: migrate:vbrief LegacyArtifacts mechanism for non-canonical pre-cutover content (#505)  `[completed]`
 
-Per #506 D5 locked parameters: LegacyArtifacts narrative per file (single string); 6KB inline threshold with overflow to vbrief/legacy/{stem}-{slug}.md; top-level ## boundary only (substructure preserved inside canonical narratives); PRD.md section-name diff only (OQ3-b), hand-edited sections captured with warning prefix; vbrief/migration/LEGACY-REPORT.md emitted; deft-directive-sync Phase 6c reviews and renames to LEGACY-REPORT.reviewed.md; files never deleted. Known-mappings hard-coded for v0.20 (shared with #495); normalization = case-insensitive + whitespace-collapsed + punctuation-stripped + word-separator-tolerant.
+Per #506 D5 locked parameters: LegacyArtifacts narrative per file (single string); 6KB inline threshold with overflow to xbrief/legacy/{stem}-{slug}.md; top-level ## boundary only (substructure preserved inside canonical narratives); PRD.md section-name diff only (OQ3-b), hand-edited sections captured with warning prefix; xbrief/migration/LEGACY-REPORT.md emitted; deft-directive-sync Phase 6c reviews and renames to LEGACY-REPORT.reviewed.md; files never deleted. Known-mappings hard-coded for v0.20 (shared with #495); normalization = case-insensitive + whitespace-collapsed + punctuation-stripped + word-separator-tolerant.
 
 **Acceptance**:
 
 - Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit `[running]`
-- LegacyArtifacts narrative per file (specification.vbrief.json, PROJECT-DEFINITION.vbrief.json) `[running]`
+- LegacyArtifacts narrative per file (specification.xbrief.json, PROJECT-DEFINITION.xbrief.json) `[running]`
 - Capture rule: top-level ## boundaries only; substructure preserved inside canonical narratives `[running]`
 - Hard-code known-mappings list per #506 (shared with #495); apply four normalization rules `[running]`
-- 6KB inline threshold; overflow to vbrief/legacy/{stem}-{slug}.md with pointer `[running]`
+- 6KB inline threshold; overflow to xbrief/legacy/{stem}-{slug}.md with pointer `[running]`
 - PRD.md section-name diff (OQ3-b); hand-edited sections get warning prefix `[running]`
-- Emit vbrief/migration/LEGACY-REPORT.md with suggested dispositions `[running]`
+- Emit xbrief/migration/LEGACY-REPORT.md with suggested dispositions `[running]`
 - Extend skills/deft-directive-sync/SKILL.md with Phase 6c Legacy Artifact Review (rename to .reviewed.md, never delete) `[running]`
 - Migrator stdout summary announces legacy capture stats `[running]`
 - Synthetic fixture tests for all capture-path branches `[running]`
 - CHANGELOG [Unreleased] entry under Added `[running]`
 
-### 2026-04-22-527-empty-vbrief-legacy-directory-left-behind-after: rollback: empty `vbrief/legacy/` directory left behind after --rollback  `[completed]`
+### 2026-04-22-527-empty-vbrief-legacy-directory-left-behind-after: rollback: empty `xbrief/legacy/` directory left behind after --rollback  `[completed]`
 
 ## Summary
 
-`task migrate:vbrief -- --rollback` removes the files it created inside `vbrief/legacy/` but does not remove the now-empty `vbrief/legacy/` directory itself. All five lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) and `vbrief/migration/` are correctly `RMDIR`'d — `vbrief/legacy/` is the odd one out.
+`task migrate:vbrief -- --rollback` removes the files it created inside `xbrief/legacy/` but does not remove the now-empty `xbrief/legacy/` directory itself. All five lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) and `xbrief/migration/` are correctly `RMDIR`'d — `xbrief/legacy/` is the odd one out.
 
 ## Impact
 
@@ -545,37 +648,37 @@ Cosmetic only. Empty directories are untracked by git, so `git status` stays cle
 
 Environment: Windows 11, PowerShell 5.1, Python 3.12.8, uv 0.10.9. Deft framework version 0.20.0.
 
-Starting state: a pre-v0.20 project with `SPECIFICATION.md`, `PROJECT.md`, `ROADMAP.md`, `PRD.md`, and `vbrief/specification.vbrief.json`, no lifecycle folders, no `PROJECT-DEFINITION.vbrief.json`.
+Starting state: a pre-v0.20 project with `SPECIFICATION.md`, `PROJECT.md`, `ROADMAP.md`, `PRD.md`, and `xbrief/specification.xbrief.json`, no lifecycle folders, no `PROJECT-DEFINITION.xbrief.json`.
 
 Steps:
 
 1. `task -t ./deft/Taskfile.yml migrate:vbrief -- --dry-run` — preview (passes)
-2. `task -t ./deft/Taskfile.yml migrate:vbrief` — run migration (passes; creates `vbrief/legacy/prd-functional-requirements.md` among other artifacts)
+2. `task -t ./deft/Taskfile.yml migrate:vbrief` — run migration (passes; creates `xbrief/legacy/prd-functional-requirements.md` among other artifacts)
 3. `'y' | task -t ./deft/Taskfile.yml migrate:vbrief -- --rollback` — roll back
 
 Actual rollback log (relevant excerpt):
 
 ```
-REMOVE vbrief/legacy/prd-functional-requirements.md
-REMOVE vbrief/migration/LEGACY-REPORT.md
-REMOVE vbrief/migration/RECONCILIATION.md
-REMOVE vbrief/PROJECT-DEFINITION.vbrief.json
-RMDIR  vbrief/proposed
-RMDIR  vbrief/pending
-RMDIR  vbrief/active
-RMDIR  vbrief/completed
-RMDIR  vbrief/cancelled
+REMOVE xbrief/legacy/prd-functional-requirements.md
+REMOVE xbrief/migration/LEGACY-REPORT.md
+REMOVE xbrief/migration/RECONCILIATION.md
+REMOVE xbrief/PROJECT-DEFINITION.xbrief.json
+RMDIR  xbrief/proposed
+RMDIR  xbrief/pending
+RMDIR  xbrief/active
+RMDIR  xbrief/completed
+RMDIR  xbrief/cancelled
 REMOVE SPECIFICATION.premigrate.md
 REMOVE PROJECT.premigrate.md
 REMOVE ROADMAP.premigrate.md
 REMOVE PRD.premigrate.md
-REMOVE vbrief/specification.premigrate.vbrief.json
-REMOVE vbrief/migration/safety-manifest.json
-RMDIR  vbrief/migration
+REMOVE xbrief/specification.premigrate.xbrief.json
+REMOVE xbrief/migration/safety-manifest.json
+RMDIR  xbrief/migration
 Rollback completed successfully.
 ```
 
-Note the absence of `RMDIR vbrief/legacy` despite the `legacy/` directory now being empty.
+Note the absence of `RMDIR xbrief/legacy` despite the `legacy/` directory now being empty.
 
 Post-rollback verification:
 
@@ -588,11 +691,11 @@ Test-Path vbrief\legacy
 
 ## Expected
 
-After rollback, if a directory was created by the migrator and is now empty, it should be `RMDIR`'d, matching the behavior applied to the five lifecycle folders and `vbrief/migration/`. Leaving empty `vbrief/legacy/` behind is inconsistent.
+After rollback, if a directory was created by the migrator and is now empty, it should be `RMDIR`'d, matching the behavior applied to the five lifecycle folders and `xbrief/migration/`. Leaving empty `xbrief/legacy/` behind is inconsistent.
 
 ## Suggested Fix
 
-After the `REMOVE` loop restores files from sidecars under `vbrief/legacy/`, emit an `RMDIR vbrief/legacy` call if the directory is empty (same pattern as lifecycle folders). The safety manifest already tracks the files created there, so the decision can be made from manifest state without scanning the filesystem.
+After the `REMOVE` loop restores files from sidecars under `xbrief/legacy/`, emit an `RMDIR xbrief/legacy` call if the directory is empty (same pattern as lifecycle folders). The safety manifest already tracks the files created there, so the decision can be made from manifest state without scanning the filesystem.
 
 ## Cross-refs
 
@@ -613,18 +716,18 @@ Filed via Warp/Oz agent while testing the migrate-and-rollback cycle on a greenf
 
 ## Summary
 
-`task migrate:vbrief -- --rollback` does not clean up `vbrief/migration/LEGACY-REPORT.reviewed.md` when Phase 6c of `deft-directive-sync` has completed the legacy artifact review and renamed `LEGACY-REPORT.md` → `LEGACY-REPORT.reviewed.md`. The `vbrief/migration/safety-manifest.json` only tracks the pre-rename filename in its `created_files[]` array, so rollback silently skips the renamed form and leaves it orphaned on disk.
+`task migrate:vbrief -- --rollback` does not clean up `xbrief/migration/LEGACY-REPORT.reviewed.md` when Phase 6c of `deft-directive-sync` has completed the legacy artifact review and renamed `LEGACY-REPORT.md` → `LEGACY-REPORT.reviewed.md`. The `xbrief/migration/safety-manifest.json` only tracks the pre-rename filename in its `created_files[]` array, so rollback silently skips the renamed form and leaves it orphaned on disk.
 
-This is a companion bug to #527 (empty `vbrief/legacy/` directory residue) — both are instances of the same class of bug: rollback's cleanup logic is not aware of post-migration file transformations.
+This is a companion bug to #527 (empty `xbrief/legacy/` directory residue) — both are instances of the same class of bug: rollback's cleanup logic is not aware of post-migration file transformations.
 
 ## Impact
 
-Rollback no longer produces a fully clean pre-cutover state after a completed Phase 6c review. The orphaned `LEGACY-REPORT.reviewed.md` sits inside `vbrief/migration/` and prevents rollback from removing `vbrief/migration/` itself (since the directory is no longer empty). This creates two visible anomalies:
+Rollback no longer produces a fully clean pre-cutover state after a completed Phase 6c review. The orphaned `LEGACY-REPORT.reviewed.md` sits inside `xbrief/migration/` and prevents rollback from removing `xbrief/migration/` itself (since the directory is no longer empty). This creates two visible anomalies:
 
-1. `vbrief/migration/LEGACY-REPORT.reviewed.md` remains after rollback, containing the audit trail of a review session that has otherwise been completely discarded.
-2. `vbrief/migration/` directory persists (not `RMDIR`'d) because it still contains the orphaned file.
+1. `xbrief/migration/LEGACY-REPORT.reviewed.md` remains after rollback, containing the audit trail of a review session that has otherwise been completely discarded.
+2. `xbrief/migration/` directory persists (not `RMDIR`'d) because it still contains the orphaned file.
 
-An operator who re-runs migration after rollback will hit the existing `vbrief/migration/` directory and may trigger unexpected behavior (e.g. if the migrator refuses to overwrite pre-existing migration artifacts, or if it merges against stale review state).
+An operator who re-runs migration after rollback will hit the existing `xbrief/migration/` directory and may trigger unexpected behavior (e.g. if the migrator refuses to overwrite pre-existing migration artifacts, or if it merges against stale review state).
 
 ## Reproduction
 
@@ -632,22 +735,22 @@ Environment: Windows 11, PowerShell 5.1, Python 3.12.8, uv 0.10.9. Deft framewor
 
 Steps:
 
-1. Start from a pre-v0.20 project (`SPECIFICATION.md`, `PROJECT.md`, `ROADMAP.md`, `PRD.md`, `vbrief/specification.vbrief.json` with real content; no lifecycle folders)
-2. Run `task -t ./deft/Taskfile.yml migrate:vbrief` — produces `vbrief/migration/LEGACY-REPORT.md`
+1. Start from a pre-v0.20 project (`SPECIFICATION.md`, `PROJECT.md`, `ROADMAP.md`, `PRD.md`, `xbrief/specification.xbrief.json` with real content; no lifecycle folders)
+2. Run `task -t ./deft/Taskfile.yml migrate:vbrief` — produces `xbrief/migration/LEGACY-REPORT.md`
 3. Run the `deft-directive-sync` Phase 6c Legacy Artifact Review to completion — records all 48 dispositions and renames the file to `LEGACY-REPORT.reviewed.md`
 4. Run `task -t ./deft/Taskfile.yml migrate:vbrief -- --rollback`
 
 Expected (after rollback):
-- `vbrief/migration/` directory is gone (matching the pattern for lifecycle folders)
+- `xbrief/migration/` directory is gone (matching the pattern for lifecycle folders)
 - No audit trail files remain
 
 Actual:
-- `vbrief/migration/LEGACY-REPORT.reviewed.md` remains
-- `vbrief/migration/` directory persists because it is non-empty
+- `xbrief/migration/LEGACY-REPORT.reviewed.md` remains
+- `xbrief/migration/` directory persists because it is non-empty
 
 ## Root Cause
 
-`vbrief/migration/safety-manifest.json` `created_files[]` pins the filename `vbrief/migration/LEGACY-REPORT.md`. Phase 6c of `deft-directive-sync` (per `deft/skills/deft-directive-sync/SKILL.md` § Review loop step 6) renames this file:
+`xbrief/migration/safety-manifest.json` `created_files[]` pins the filename `xbrief/migration/LEGACY-REPORT.md`. Phase 6c of `deft-directive-sync` (per `deft/skills/deft-directive-sync/SKILL.md` § Review loop step 6) renames this file:
 
 > "Once all sections carry a recorded disposition, rename the file to `LEGACY-REPORT.reviewed.md`. The file is kept so the audit trail remains -- ⊗ MUST NOT delete either form."
 
@@ -662,8 +765,8 @@ Two complementary options:
 2. **Manifest-side (more general)**: introduce a "post-migration rename" concept in the safety manifest. When any deft-directive-sync or other skill renames a migrator-created file, it appends an entry to a new `renames[]` array:
    ```
    {
-     "original": "vbrief/migration/LEGACY-REPORT.md",
-     "current":  "vbrief/migration/LEGACY-REPORT.reviewed.md",
+     "original": "xbrief/migration/LEGACY-REPORT.md",
+     "current":  "xbrief/migration/LEGACY-REPORT.reviewed.md",
      "renamed_by": "deft-directive-sync Phase 6c",
      "renamed_at": "2026-04-22T00:45:00Z"
    }
@@ -672,11 +775,11 @@ Two complementary options:
 
 Option 2 is more robust and self-documenting; option 1 is a 2-line patch.
 
-Additionally (both options): after removing files inside `vbrief/migration/`, run the same "is it empty? RMDIR it" logic that lifecycle folders get. This would make `vbrief/migration/` cleanup consistent with `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
+Additionally (both options): after removing files inside `xbrief/migration/`, run the same "is it empty? RMDIR it" logic that lifecycle folders get. This would make `xbrief/migration/` cleanup consistent with `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
 
 ## Related
 
-- #527 — `rollback: empty vbrief/legacy/ directory left behind after --rollback` — same class of bug (rollback unaware of post-migration state)
+- #527 — `rollback: empty xbrief/legacy/ directory left behind after --rollback` — same class of bug (rollback unaware of post-migration state)
 - `deft/skills/deft-directive-sync/SKILL.md` § Phase 6c Review loop — the source of the rename operation
 
 ## Environment
@@ -694,7 +797,7 @@ Filed via Warp/Oz agent while testing the migrate → review → rollback cycle 
 
 ## Summary
 
-After `task migrate:vbrief`, the generated `vbrief/specification.vbrief.json` contains two disagreeing copies of per-task trace metadata for 26 of 36 done-task sections. `plan.items[].subItems[].narrative.Traces` and the `**Traces**: ...` line inside each `LegacyArtifacts` task section disagree on which FR-N / NFR-N identifiers the task implements.
+After `task migrate:vbrief`, the generated `xbrief/specification.xbrief.json` contains two disagreeing copies of per-task trace metadata for 26 of 36 done-task sections. `plan.items[].subItems[].narrative.Traces` and the `**Traces**: ...` line inside each `LegacyArtifacts` task section disagree on which FR-N / NFR-N identifiers the task implements.
 
 The divergence is systematic after Phase 1: **all 10 Phase 1 tasks agree**; **all 8 Phase 2 tasks disagree**; **all 7 Phase 3, 7 Phase 4, and 4 Phase 5 tasks disagree**. Phase 1 agreeing suggests the mismatch is not random; something about the Phase 2+ routing logic in the migrator produces a different FR mapping than the `LegacyArtifacts` section preserves.
 
@@ -712,7 +815,7 @@ Environment: Windows 11, PowerShell 5.1, Python 3.12.8, uv 0.10.9. Deft framewor
 
 1. Start from a pre-v0.20 project that contains `SPECIFICATION.md` with `**Traces**: FR-N` lines inside each task section.
 2. Run `task -t ./deft/Taskfile.yml migrate:vbrief`.
-3. Open `vbrief/specification.vbrief.json`.
+3. Open `xbrief/specification.xbrief.json`.
 4. For any task `tX.Y.Z`, compare:
    - `plan.items[phase-X].subItems[tX.Y.Z].narrative.Traces`
    - The `**Traces**: ...` line inside the `### tX.Y.Z: ...` block within `plan.narratives.LegacyArtifacts`
@@ -815,7 +918,7 @@ More thorough: emit a `RECONCILIATION.md` entry for every task whose traces were
 
 ## Related
 
-- #527 — empty `vbrief/legacy/` residue after rollback
+- #527 — empty `xbrief/legacy/` residue after rollback
 - #528 — orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename
 - This is the third defect found while testing migrate → review → rollback on a greenfield pre-cutover repo.
 
@@ -840,7 +943,7 @@ Two coupled issues with the `.premigrate.*` backup mechanism:
 
 2. **Documentation gap**: Deft docs describe `task migrate:vbrief -- --rollback` as the recovery mechanism for pre-migration state, but do not explicitly document the **post-commit canonical recovery path** via git. Once a migration is committed, the `.premigrate.*` files are redundant with git history and can be safely ignored (or even deleted). Post-commit recovery is:
    ```
-   git checkout <pre-migration-commit> -- SPECIFICATION.md PROJECT.md ROADMAP.md PRD.md vbrief/specification.vbrief.json
+   git checkout <pre-migration-commit> -- SPECIFICATION.md PROJECT.md ROADMAP.md PRD.md xbrief/specification.xbrief.json
    ```
    Without this documented, a user who gitignores backups, commits the migration, then does `git clean -fdx` (or fresh-clones on another machine) loses the ability to `--rollback` and has no documented fallback.
 
@@ -854,7 +957,7 @@ These are coupled: gitignoring `.premigrate.*` is only a sound design default if
   - `PROJECT.premigrate.md`: 1,514 bytes
   - `ROADMAP.premigrate.md`: 8,532 bytes
   - `PRD.premigrate.md`: 13,322 bytes
-  - `vbrief/specification.premigrate.vbrief.json`: 8,367 bytes
+  - `xbrief/specification.premigrate.xbrief.json`: 8,367 bytes
   - **Total: ~70 KB per migration, duplicated into the committable tree**
 - Not detected by `task check`, `spec:validate`, or any existing gate
 - Discovered only when user runs `git status` and sees untracked backups
@@ -881,14 +984,14 @@ Actual: all five `.premigrate.*` files appear as untracked:
 ?? PROJECT.premigrate.md
 ?? ROADMAP.premigrate.md
 ?? SPECIFICATION.premigrate.md
-?? vbrief/specification.premigrate.vbrief.json
+?? xbrief/specification.premigrate.xbrief.json
 ```
 
 Confirmed via `git check-ignore -v` — no rule matches these paths until the project manually adds:
 
 ```
 *.premigrate.md
-*.premigrate.vbrief.json
+*.premigrate.xbrief.json
 ```
 
 ## Suggested Fix
@@ -902,12 +1005,12 @@ Option A (minimal): The migrator appends the required patterns to the project's 
 # Post-commit, pre-migration state is recoverable via git history; see
 # deft/main.md § Safety flags for the post-commit recovery path.
 *.premigrate.md
-*.premigrate.vbrief.json
+*.premigrate.xbrief.json
 ```
 
 Option B (explicit opt-in): The migrator prints a message on first run:
 
-> "Migration backup files (`.premigrate.*`) have been created. Per deft policy, these should be gitignored. Add the following patterns to your `.gitignore`: `*.premigrate.md`, `*.premigrate.vbrief.json`. Or run `task migrate:setup-gitignore` to add them automatically."
+> "Migration backup files (`.premigrate.*`) have been created. Per deft policy, these should be gitignored. Add the following patterns to your `.gitignore`: `*.premigrate.md`, `*.premigrate.xbrief.json`. Or run `task migrate:setup-gitignore` to add them automatically."
 
 Option A is lower friction; Option B is safer if some users might want to commit backups intentionally (edge case, but possible for audit-heavy teams).
 
@@ -918,7 +1021,7 @@ Option A is lower friction; Option B is safer if some users might want to commit
 > After committing a migration, the `.premigrate.*` files become redundant with git history. If they are deleted or unavailable (fresh clone, `git clean`, different machine), restore pre-migration state via:
 >
 > ```
-> git checkout <pre-migration-commit> -- SPECIFICATION.md PROJECT.md ROADMAP.md PRD.md vbrief/specification.vbrief.json
+> git checkout <pre-migration-commit> -- SPECIFICATION.md PROJECT.md ROADMAP.md PRD.md xbrief/specification.xbrief.json
 > ```
 >
 > Find `<pre-migration-commit>` with `git log --oneline --all -- SPECIFICATION.md` (the commit before the deprecation-redirect stub replaced it).
@@ -931,12 +1034,12 @@ Add the two patterns to `.gitignore` manually before committing a migration:
 
 ```
 *.premigrate.md
-*.premigrate.vbrief.json
+*.premigrate.xbrief.json
 ```
 
 ## Related
 
-- #527 — empty `vbrief/legacy/` residue after rollback
+- #527 — empty `xbrief/legacy/` residue after rollback
 - #528 — orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename
 - #529 — disagreeing `Traces` tables in `plan.items[].subItems` vs `LegacyArtifacts`
 - This is the fourth defect found while testing migrate → review → rollback on a greenfield pre-cutover repo.
@@ -1011,7 +1114,7 @@ Based on what the refinement Pre-Flight likely validates:
 ## vBRIEF References
 
 <!-- If this PR implements scope vBRIEFs, list them:
-- `vbrief/pending/YYYY-MM-DD-slug.vbrief.json` -->
+- `xbrief/pending/YYYY-MM-DD-slug.xbrief.json` -->
 
 ## Checklist
 
@@ -1058,12 +1161,12 @@ Filed via Warp/Oz agent while planning a `deft-directive-refinement` session on 
 
 ## Summary
 
-The vBRIEF scope filename convention is specified across multiple deft skills as `YYYY-MM-DD-descriptive-slug.vbrief.json`, but **no skill, doc, or schema defines the slug normalization rules**. This leaves slug generation inconsistent across code paths and ambiguous for agents following the skills.
+The vBRIEF scope filename convention is specified across multiple deft skills as `YYYY-MM-DD-descriptive-slug.xbrief.json`, but **no skill, doc, or schema defines the slug normalization rules**. This leaves slug generation inconsistent across code paths and ambiguous for agents following the skills.
 
 Two concrete symptoms observed in the slizard test repo:
 
 1. The `task migrate:vbrief` tool generates scope vBRIEF filenames during migration using some internal normalization logic. That logic is not documented, not available as a reusable helper, and produces some surprising outputs (see Examples below).
-2. The `deft-directive-refinement` skill's Phase 1 Ingest step instructs the agent to *"create a scope vBRIEF in `vbrief/proposed/` with filename `YYYY-MM-DD-descriptive-slug.vbrief.json`"* without saying how to derive the slug. Two different agents following the skill could produce different slugs for the same input, defeating deduplication and creating near-duplicate files.
+2. The `deft-directive-refinement` skill's Phase 1 Ingest step instructs the agent to *"create a scope vBRIEF in `xbrief/proposed/` with filename `YYYY-MM-DD-descriptive-slug.xbrief.json`"* without saying how to derive the slug. Two different agents following the skill could produce different slugs for the same input, defeating deduplication and creating near-duplicate files.
 
 ## Examples from the migrator (undocumented, observed)
 
@@ -1074,7 +1177,7 @@ From `git@github.com:MScottAdams/slizard-rc3-test.git` at tag `rc3-migration-tes
 | `task check exits 0 on Windows, macOS, Linux` | `task-check-exits-0-on-windows-macos-linux` |
 | `docker build -t slizard . succeeds` | `docker-build-t-slizard-succeeds` |
 | `docker compose up -d starts the container` | `docker-compose-up-d-starts-the-container` |
-| `task update-index -- --repo <id> builds CODEBASE-GRAPH.vbrief.json and LanceDB index for a real repo` | `task-update-index-repo-id-builds-codebase-graph-vbrief-json-and-lancedb-index-fo` (truncated mid-word) |
+| `task update-index -- --repo <id> builds CODEBASE-GRAPH.xbrief.json and LanceDB index for a real repo` | `task-update-index-repo-id-builds-codebase-graph-vbrief-json-and-lancedb-index-fo` (truncated mid-word) |
 | `[x] Confirm support space/board name in deftai/evolution for ticket thread resolution` | `roadmap-11-x-confirm-support-space-board-name-in-deftai-evolution-for-ticket-thr` |
 
 Observations:
@@ -1111,8 +1214,8 @@ Propose the following canonical rules, to be documented in the vBRIEF schema or 
 5. **Truncate at word boundaries** at or before the max length. If the next character after truncation is inside a word (letter/digit), backtrack to the most recent hyphen. Max length: **60** characters for the slug body (shorter than current ~80 — better for readability and filesystem path limits on Windows).
 6. **Empty-slug fallback**: if normalization produces an empty string, use `untitled` plus the source identifier (e.g. `issue-N`, `roadmap-N`, or a 6-char hash of the original title).
 7. **Reserved names**: if the normalized slug exactly matches a Windows-reserved name (`con`, `prn`, `aux`, `nul`, `com1`-`com9`, `lpt1`-`lpt9`), suffix with `-scope`.
-8. **Collision handling**: if `YYYY-MM-DD-{slug}.vbrief.json` already exists in any lifecycle folder, suffix the slug with `-2`, `-3`, etc. until unique. Alternatively (preferred): append a short origin identifier (e.g. `-issue-19`) to disambiguate unambiguously.
-9. **Origin-number prefix/suffix convention**: formalize the GH issue number inclusion. Preferred: **suffix** with `-issue-N` for GH-issue-sourced vBRIEFs (e.g. `2026-04-22-fix-evolution-client-pagination-issue-19.vbrief.json`). This makes dedup and audit trivially grep-able.
+8. **Collision handling**: if `YYYY-MM-DD-{slug}.xbrief.json` already exists in any lifecycle folder, suffix the slug with `-2`, `-3`, etc. until unique. Alternatively (preferred): append a short origin identifier (e.g. `-issue-19`) to disambiguate unambiguously.
+9. **Origin-number prefix/suffix convention**: formalize the GH issue number inclusion. Preferred: **suffix** with `-issue-N` for GH-issue-sourced vBRIEFs (e.g. `2026-04-22-fix-evolution-client-pagination-issue-19.xbrief.json`). This makes dedup and audit trivially grep-able.
 10. **Drop checkbox-marker leakage** (`[x]` / `[ ]`) entirely rather than preserving as literal `x`.
 
 Reference implementation (Python):
@@ -1181,23 +1284,23 @@ Filed via Warp/Oz agent while planning a tiny `deft-directive-refinement` Phase 
 
 ## Summary
 
-The `directive` repo vendors a local copy of the vBRIEF schema at `deft/vbrief/schemas/vbrief-core.schema.json`, but that copy is **out of sync** with the canonical `deftai/vBRIEF` repository. Specifically:
+The `directive` repo vendors a local copy of the vBRIEF schema at `deft/xbrief/schemas/vbrief-core.schema.json`, but that copy is **out of sync** with the canonical `deftai/vBRIEF` repository. Specifically:
 
 1. The canonical `deftai/vBRIEF/schemas/` now publishes **both** versions:
    - `vbrief-core.schema.json` (title says v0.5)
    - `vbrief-core-0.6.schema.json` (v0.6 — adds `failed` status, `PlanItem.items` as preferred nested field, `subItems` deprecated, loosened `VBriefReference.type` pattern)
-2. The directive-vendored copy is a **mixed state** — it sets `vBRIEFInfo.version: const "0.5"` but carries the v0.6-style loose `VBriefReference.type` pattern (`"pattern": "^x-vbrief/"` instead of the v0.5 canonical `"enum": ["x-vbrief/plan"]`).
+2. The directive-vendored copy is a **mixed state** — it sets `vBRIEFInfo.version: const "0.5"` but carries the v0.6-style loose `VBriefReference.type` pattern (`"pattern": "^x-xbrief/"` instead of the v0.5 canonical `"enum": ["x-xbrief/plan"]`).
 3. Directive's skills (`deft-directive-setup/SKILL.md`, `deft-directive-refinement/SKILL.md`) still instruct agents to write `"vBRIEFInfo": {"version": "0.5"}` in generated scope vBRIEFs — they do not reference v0.6 at all.
 4. The `task migrate:vbrief` and `task spec:validate` tasks likely use the vendored schema, meaning consumer projects are validating against a non-canonical mixed-state schema.
 
-Result: consumer projects are producing vBRIEFs that claim to be v0.5 but occupy a shape not strictly conformant to either the canonical v0.5 schema (which would reject their `VBriefReference.type` if it's not exactly `"x-vbrief/plan"`) or the canonical v0.6 schema (which would reject their `version: "0.5"` constant).
+Result: consumer projects are producing vBRIEFs that claim to be v0.5 but occupy a shape not strictly conformant to either the canonical v0.5 schema (which would reject their `VBriefReference.type` if it's not exactly `"x-xbrief/plan"`) or the canonical v0.6 schema (which would reject their `version: "0.5"` constant).
 
 ## Impact
 
 - **Interop risk with other vBRIEF consumers**: any tool using the canonical v0.5 or v0.6 schema from `deftai/vBRIEF` will disagree with tools using directive's vendored copy on edge cases.
 - **Upgrade drift**: when `deftai/vBRIEF` ships v0.7 / v0.8, directive's copy will drift further. Each drift step increases the "mixed state" footprint.
 - **Developer confusion**: a contributor checking `deftai/vBRIEF` for the canonical schema shape will not find what directive is enforcing.
-- **Schema validation gaps**: if `task spec:validate` runs against the directive-vendored copy instead of the canonical, a vBRIEF that violates v0.5 canonical rules (`VBriefReference.type` must equal `"x-vbrief/plan"`) may incorrectly pass.
+- **Schema validation gaps**: if `task spec:validate` runs against the directive-vendored copy instead of the canonical, a vBRIEF that violates v0.5 canonical rules (`VBriefReference.type` must equal `"x-xbrief/plan"`) may incorrectly pass.
 
 ## Canonical v0.5 vs v0.6 vs directive-vendored
 
@@ -1209,7 +1312,7 @@ Observed diff:
 | `Status` enum | draft, proposed, approved, pending, running, completed, blocked, cancelled | +`failed` | matches v0.5 (no `failed`) |
 | `PlanItem.items` | absent | present (preferred nested field) | absent |
 | `PlanItem.subItems` | canonical nested field | present but marked "deprecated legacy alias" | present (no deprecation marker) |
-| `VBriefReference.type` | `enum: ["x-vbrief/plan"]` (strict) | `pattern: "^x-vbrief/"` (loose) | `pattern: "^x-vbrief/"` (loose — v0.6 behavior) |
+| `VBriefReference.type` | `enum: ["x-xbrief/plan"]` (strict) | `pattern: "^x-xbrief/"` (loose) | `pattern: "^x-xbrief/"` (loose — v0.6 behavior) |
 
 The directive copy is thus "v0.5-ish with one v0.6 feature backported, no marker indicating which version is authoritative".
 
@@ -1217,7 +1320,7 @@ The directive copy is thus "v0.5-ish with one v0.6 feature backported, no marker
 
 ### Short-term (urgent): vendor v0.6 clean
 
-1. Replace `deft/vbrief/schemas/vbrief-core.schema.json` with the v0.6 file from `deftai/vBRIEF` (`schemas/vbrief-core-0.6.schema.json`). Rename the vendored file appropriately if directive wants to track only the latest.
+1. Replace `deft/xbrief/schemas/vbrief-core.schema.json` with the v0.6 file from `deftai/vBRIEF` (`schemas/vbrief-core-0.6.schema.json`). Rename the vendored file appropriately if directive wants to track only the latest.
 2. Update all skill templates / examples to emit `"vBRIEFInfo": {"version": "0.6"}` instead of `"0.5"`:
    - `deft/skills/deft-directive-setup/SKILL.md` Phase 2 Template, Phase 3 Output — Light/Full Path templates
    - `deft/skills/deft-directive-refinement/SKILL.md` Phase 1 Step 3
@@ -1233,12 +1336,12 @@ The directive copy is thus "v0.5-ish with one v0.6 feature backported, no marker
 The current ad-hoc vendoring is fragile. Options:
 
 **Option A — Git submodule on `deftai/vBRIEF`**
-- `deft/vbrief/` becomes a submodule pinned to a specific tag
+- `deft/xbrief/` becomes a submodule pinned to a specific tag
 - Pros: clean, auditable, automatic drift detection; future pulls re-sync cleanly
 - Cons: one more submodule to manage; version bumps require explicit commits in directive
 
 **Option B — `task vbrief:sync` (periodic re-vendor)**
-- Task downloads the current schemas from `deftai/vBRIEF` and writes them to `deft/vbrief/schemas/`
+- Task downloads the current schemas from `deftai/vBRIEF` and writes them to `deft/xbrief/schemas/`
 - Pros: simple, no submodule; explicit sync points
 - Cons: network-dependent; easy to forget to run; no automatic drift detection
 
@@ -1254,7 +1357,7 @@ The current ad-hoc vendoring is fragile. Options:
 
 Consider supporting multiple vBRIEF versions concurrently. A consumer project may have vBRIEFs pinned to v0.5 (via migrator output) and start producing v0.6 vBRIEFs after a directive upgrade. A bulk "vbrief upgrade" task (analogous to `task migrate:vbrief` but for schema versions) would:
 
-1. Walk all vBRIEFs under `vbrief/`
+1. Walk all vBRIEFs under `xbrief/`
 2. For each, check `vBRIEFInfo.version`
 3. If older than current, apply migrations (e.g. rename `subItems` → `items` where appropriate, add `failed` as a legal status)
 4. Update `version` field
@@ -1264,7 +1367,7 @@ Out of scope for the short-term fix but worth tracking.
 
 ## Related
 
-- #527 — empty `vbrief/legacy/` residue after rollback
+- #527 — empty `xbrief/legacy/` residue after rollback
 - #528 — orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename
 - #529 — `plan.items[].subItems.Traces` drift (complicated by this issue — if directive upgrades to v0.6, `subItems` becomes legacy anyway)
 - #530 — `.premigrate.*` gitignore + post-commit recovery
@@ -1299,11 +1402,11 @@ This shape **violates the vBRIEF schema in three distinct ways**, regardless of 
 
 ### Violation 1: `"type": "github-issue"` fails the `VBriefReference.type` pattern
 
-All three schemas require `type` to begin with `x-vbrief/`:
+All three schemas require `type` to begin with `x-xbrief/`:
 
-- **v0.5 canonical** (`deftai/vBRIEF/schemas/vbrief-core.schema.json`): `"type": {"enum": ["x-vbrief/plan"]}` — only `"x-vbrief/plan"` allowed
-- **v0.6 canonical** (`deftai/vBRIEF/schemas/vbrief-core-0.6.schema.json`): `"type": {"pattern": "^x-vbrief/"}` — any `x-vbrief/*`
-- **directive-vendored** (`deft/vbrief/schemas/vbrief-core.schema.json`): `"type": {"pattern": "^x-vbrief/"}` — any `x-vbrief/*`
+- **v0.5 canonical** (`deftai/vBRIEF/schemas/vbrief-core.schema.json`): `"type": {"enum": ["x-xbrief/plan"]}` — only `"x-xbrief/plan"` allowed
+- **v0.6 canonical** (`deftai/vBRIEF/schemas/vbrief-core-0.6.schema.json`): `"type": {"pattern": "^x-xbrief/"}` — any `x-xbrief/*`
+- **directive-vendored** (`deft/xbrief/schemas/vbrief-core.schema.json`): `"type": {"pattern": "^x-xbrief/"}` — any `x-xbrief/*`
 
 `"github-issue"` matches none of these.
 
@@ -1323,7 +1426,7 @@ The documented shape, if rewritten to conform, would be:
 "references": [
   {
     "uri": "https://github.com/{owner}/{repo}/issues/{N}",
-    "type": "x-vbrief/github-issue",
+    "type": "x-xbrief/github-issue",
     "title": "Issue #{N}: {issue title}"
   }
 ]
@@ -1331,7 +1434,7 @@ The documented shape, if rewritten to conform, would be:
 
 Notes:
 - `uri` is required and inherited from `URI`
-- `type` prefixed with `x-vbrief/` — `"x-vbrief/github-issue"` is valid under v0.6 pattern (not under v0.5 canonical which requires exactly `"x-vbrief/plan"` — see #533 for how that should be resolved)
+- `type` prefixed with `x-xbrief/` — `"x-xbrief/github-issue"` is valid under v0.6 pattern (not under v0.5 canonical which requires exactly `"x-xbrief/plan"` — see #533 for how that should be resolved)
 - `title` (optional) is schema-defined; can hold human-readable reference label
 - `#{N}` id-style info can go in `title` or in `description` if preferred
 
@@ -1339,8 +1442,8 @@ Notes:
 
 Consumer projects following the refinement skill today produce **invalid vBRIEFs**. Symptoms:
 
-- **`task spec:validate` may pass anyway** — because directive's vendored schema's `VBriefReference.type` pattern is loose (`^x-vbrief/`), but only catches Violation 1 if strict validation is enabled. Violations 2 and 3 pass silently because `additionalProperties: true`.
-- **Strict validators reject** — any tool using canonical `deftai/vBRIEF` schemas would fail validation on Violation 1 (non-`x-vbrief/*` type). A canonical v0.5 validator would additionally reject any `type` other than exactly `"x-vbrief/plan"`.
+- **`task spec:validate` may pass anyway** — because directive's vendored schema's `VBriefReference.type` pattern is loose (`^x-xbrief/`), but only catches Violation 1 if strict validation is enabled. Violations 2 and 3 pass silently because `additionalProperties: true`.
+- **Strict validators reject** — any tool using canonical `deftai/vBRIEF` schemas would fail validation on Violation 1 (non-`x-xbrief/*` type). A canonical v0.5 validator would additionally reject any `type` other than exactly `"x-xbrief/plan"`.
 - **Missing required field** — `uri` is required by the `URI` base type; using `url` instead means a schema-strict validator would flag the object as missing `uri`.
 - **Agent inconsistency** — two different agents following the skill's example will produce the same broken shape. But an agent that happens to know the real schema will produce the correct shape, and now you have two formats in the same project.
 
@@ -1355,14 +1458,14 @@ Consumer projects following the refinement skill today produce **invalid vBRIEFs
    - `deft-directive-build/SKILL.md` — same
    - `deft-directive-interview/SKILL.md` — same
    - Any skill showing `references` in templates or examples
-2. **Document the reference-type conventions**: create a short table in `deft/conventions/references.md` listing known `x-vbrief/*` types and when to use each:
-   - `x-vbrief/plan` — reference to another vBRIEF plan (canonical v0.5 value)
-   - `x-vbrief/github-issue` — GitHub issue
-   - `x-vbrief/github-pr` — GitHub PR
-   - `x-vbrief/jira-ticket` — Jira ticket
-   - `x-vbrief/user-request` — direct user input (no external ID)
-3. **Update `task spec:validate`** (and possibly a new `task vbrief:validate` covering scope vBRIEFs, not just `specification.vbrief.json` — see #532 and comments in #530) to enforce strict `references.type` conformance. This will surface existing non-conformant vBRIEFs so they can be migrated.
-4. **Provide a migration tool** for already-produced non-conformant references. Could be a small `task vbrief:fix-references` that walks all lifecycle folders, rewrites any object with `url` → `uri` and `type: github-issue` → `type: x-vbrief/github-issue`.
+2. **Document the reference-type conventions**: create a short table in `deft/conventions/references.md` listing known `x-xbrief/*` types and when to use each:
+   - `x-xbrief/plan` — reference to another vBRIEF plan (canonical v0.5 value)
+   - `x-xbrief/github-issue` — GitHub issue
+   - `x-xbrief/github-pr` — GitHub PR
+   - `x-xbrief/jira-ticket` — Jira ticket
+   - `x-xbrief/user-request` — direct user input (no external ID)
+3. **Update `task spec:validate`** (and possibly a new `task vbrief:validate` covering scope vBRIEFs, not just `specification.xbrief.json` — see #532 and comments in #530) to enforce strict `references.type` conformance. This will surface existing non-conformant vBRIEFs so they can be migrated.
+4. **Provide a migration tool** for already-produced non-conformant references. Could be a small `task vbrief:fix-references` that walks all lifecycle folders, rewrites any object with `url` → `uri` and `type: github-issue` → `type: x-xbrief/github-issue`.
 
 ## Related
 
@@ -1390,21 +1493,21 @@ Filed via Warp/Oz agent while inspecting the `references` shape for a Phase 1 In
 
 Observed behavior across three invocation paths, all fail:
 
-1. **Direct taskfile invocation**: `task -t ./deft/Taskfile.yml scope:promote -- vbrief/proposed/X.vbrief.json`
+1. **Direct taskfile invocation**: `task -t ./deft/Taskfile.yml scope:promote -- xbrief/proposed/X.xbrief.json`
    ```
-   Error: File not found: C:\Repos\rc3-test2\slizard\deft\vbrief\proposed\X.vbrief.json
+   Error: File not found: C:\Repos\rc3-test2\slizard\deft\vbrief\proposed\X.xbrief.json
    ```
-2. **Absolute path**: `task -t ./deft/Taskfile.yml scope:promote -- C:\repos\rc3-test2\slizard\vbrief\proposed\X.vbrief.json`
-   - Path gets prepended to `deft/`: `C:\Repos\rc3-test2\slizard\deft\'C:\repos\...\X.vbrief.json'`
+2. **Absolute path**: `task -t ./deft/Taskfile.yml scope:promote -- C:\repos\rc3-test2\slizard\vbrief\proposed\X.xbrief.json`
+   - Path gets prepended to `deft/`: `C:\Repos\rc3-test2\slizard\deft\'C:\repos\...\X.xbrief.json'`
 3. **Taskfile include** (recommended by deft/main.md):
    ```yaml
    includes:
      deft:
        taskfile: ./deft/Taskfile.yml
    ```
-   Then `task deft:scope:promote -- vbrief/proposed/X.vbrief.json`:
+   Then `task deft:scope:promote -- xbrief/proposed/X.xbrief.json`:
    ```
-   Error: File not found: C:\Repos\rc3-test2\slizard\deft\vbrief\proposed\X.vbrief.json
+   Error: File not found: C:\Repos\rc3-test2\slizard\deft\vbrief\proposed\X.xbrief.json
    ```
 
 Even via the officially-recommended include mechanism, the bug reproduces identically.
@@ -1413,7 +1516,7 @@ Even via the officially-recommended include mechanism, the bug reproduces identi
 
 `task deft:roadmap:render` and `task deft:project:render` work correctly. Their Taskfile definitions pass **absolute paths as arguments**, e.g.:
 ```
-uv run python scripts/roadmap_render.py "C:\repos\rc3-test2\slizard/vbrief/pending" "C:\repos\rc3-test2\slizard/ROADMAP.md"
+uv run python scripts/roadmap_render.py "C:\repos\rc3-test2\slizard/xbrief/pending" "C:\repos\rc3-test2\slizard/ROADMAP.md"
 ```
 
 The `scope:*` tasks don't. Their summary output confirms they pass the argument raw:
@@ -1435,7 +1538,7 @@ So the bug is specifically in how `scope:*` tasks forward CLI arguments to the P
 
 Environment: Windows 11, PowerShell 5.1, Python 3.12.8, uv 0.10.9. Deft framework 0.20.0.
 
-1. In a deft consumer project with `vbrief/proposed/<some-file>.vbrief.json` present
+1. In a deft consumer project with `xbrief/proposed/<some-file>.xbrief.json` present
 2. Run any of the three invocations above
 3. Observe file-not-found error
 
@@ -1459,9 +1562,9 @@ Two possible fixes:
 ### Fix A: Python-side — find project root
 
 Detect the "vBRIEF project root" by walking up from CWD looking for a sentinel:
-- `vbrief/` directory
+- `xbrief/` directory
 - `.git/` directory
-- `vbrief/PROJECT-DEFINITION.vbrief.json`
+- `xbrief/PROJECT-DEFINITION.xbrief.json`
 
 Or accept an explicit `--project-root` flag with sensible default (`os.environ.get("DEFT_PROJECT_ROOT") or find_project_root()`).
 
@@ -1501,21 +1604,21 @@ Apply Fix B for immediate relief. Follow up with Fix A for robustness. Also docu
 
 Filed via Warp/Oz agent during a Plan D refinement test on slizard-rc3-test.
 
-### 2026-04-22-536-validate-d11-rejects-schema-conformant-x-vbrief-origins: vbrief:validate: D11 rejects schema-conformant x-vbrief/* origins AND exits 1 on warnings-only runs  `[completed]`
+### 2026-04-22-536-validate-d11-rejects-schema-conformant-x-vbrief-origins: vbrief:validate: D11 rejects schema-conformant x-xbrief/* origins AND exits 1 on warnings-only runs  `[completed]`
 
 ## Summary
 
 Two tightly coupled defects in `task vbrief:validate` (implementation: `deft/scripts/vbrief_validate.py`):
 
-### Defect 1: D11 "origin type" check only recognizes a fixed allow-list, not schema-conformant `x-vbrief/*` values
+### Defect 1: D11 "origin type" check only recognizes a fixed allow-list, not schema-conformant `x-xbrief/*` values
 
-When validating a scope vBRIEF in `vbrief/pending/` that carries a schema-conformant `references` entry:
+When validating a scope vBRIEF in `xbrief/pending/` that carries a schema-conformant `references` entry:
 
 ```json
 "references": [
   {
     "uri": "https://github.com/MScottAdams/slizard-rc3-test/issues/19",
-    "type": "x-vbrief/github-issue",
+    "type": "x-xbrief/github-issue",
     "title": "Issue #19: Evolution client API calls lack pagination"
   }
 ]
@@ -1523,20 +1626,20 @@ When validating a scope vBRIEF in `vbrief/pending/` that carries a schema-confor
 
 the validator emits:
 
-> `WARN: .../2026-04-22-evolution-client-api-calls-lack-pagination-issue-19.vbrief.json: scope vBRIEF in 'pending/' has no references with an origin type (D11)`
+> `WARN: .../2026-04-22-evolution-client-api-calls-lack-pagination-issue-19.xbrief.json: scope vBRIEF in 'pending/' has no references with an origin type (D11)`
 
-This is despite the reference being fully conformant to both v0.5 and v0.6 schemas (`type` matches `^x-vbrief/`, `uri` is present, etc. — see #534 for the schema audit).
+This is despite the reference being fully conformant to both v0.5 and v0.6 schemas (`type` matches `^x-xbrief/`, `uri` is present, etc. — see #534 for the schema audit).
 
-The validator appears to hold its own private notion of "origin type" that is NOT "any reference with a type matching `^x-vbrief/`" but rather a narrower allow-list. Likely candidates for the allow-list:
+The validator appears to hold its own private notion of "origin type" that is NOT "any reference with a type matching `^x-xbrief/`" but rather a narrower allow-list. Likely candidates for the allow-list:
 
-- `x-vbrief/plan` (canonical v0.5 enum value)
-- `x-vbrief/github-pr`
-- `x-vbrief/jira-ticket`
-- Possibly nothing beyond `x-vbrief/plan` itself
+- `x-xbrief/plan` (canonical v0.5 enum value)
+- `x-xbrief/github-pr`
+- `x-xbrief/jira-ticket`
+- Possibly nothing beyond `x-xbrief/plan` itself
 
-`x-vbrief/github-issue` is not recognized even though it conforms to the v0.6 pattern and to the directive-vendored schema's loose pattern (see #533). The validator's rule needs to either:
+`x-xbrief/github-issue` is not recognized even though it conforms to the v0.6 pattern and to the directive-vendored schema's loose pattern (see #533). The validator's rule needs to either:
 
-1. Trust the schema (any `^x-vbrief/...` type counts as an origin type), OR
+1. Trust the schema (any `^x-xbrief/...` type counts as an origin type), OR
 2. Document its explicit allow-list and publish it alongside the schema
 
 The current behavior — silently downgrading a schema-valid reference to a warning — is misleading.
@@ -1546,14 +1649,14 @@ The current behavior — silently downgrading a schema-valid reference to a warn
 Even when the validator's own output declares success:
 
 ```
-WARN: .../X.vbrief.json: scope vBRIEF in 'pending/' has no references with an origin type (D11)
-WARN: PRD.md may be stale relative to vbrief/specification.vbrief.json -- run `task prd:render` to refresh
+WARN: .../X.xbrief.json: scope vBRIEF in 'pending/' has no references with an origin type (D11)
+WARN: PRD.md may be stale relative to xbrief/specification.xbrief.json -- run `task prd:render` to refresh
 OK: vBRIEF validation passed: 57 scope vBRIEF(s), PROJECT-DEFINITION (2 warning(s))
 ```
 
 the process exits with status code **1**, not 0. Observed across multiple invocations during the slizard refinement test session. This means:
 
-- CI pipelines gating on `task vbrief:validate` will fail indefinitely on any repo with a single `x-vbrief/github-issue` reference (Defect 1) — blocking merges because of a false positive.
+- CI pipelines gating on `task vbrief:validate` will fail indefinitely on any repo with a single `x-xbrief/github-issue` reference (Defect 1) — blocking merges because of a false positive.
 - Local developers running `task check` (which likely includes `vbrief:validate`) see persistent red even though the validator's own output says "passed".
 - Operators can't easily distinguish "only warnings, safe to proceed" from "actual errors" via exit code.
 
@@ -1578,7 +1681,7 @@ None of these are good outcomes.
 
 Environment: Windows 11, PowerShell 5.1, Python 3.12.8, uv 0.10.9. Deft framework 0.20.0.
 
-1. Create a scope vBRIEF in `vbrief/pending/` with a schema-conformant `x-vbrief/github-issue` reference (see https://github.com/MScottAdams/slizard-rc3-test/blob/refinement/2026-04-22/vbrief/pending/2026-04-22-evolution-client-api-calls-lack-pagination-issue-19.vbrief.json for concrete example).
+1. Create a scope vBRIEF in `xbrief/pending/` with a schema-conformant `x-xbrief/github-issue` reference (see https://github.com/MScottAdams/slizard-rc3-test/blob/refinement/2026-04-22/xbrief/pending/2026-04-22-evolution-client-api-calls-lack-pagination-issue-19.xbrief.json for concrete example).
 2. Run `task deft:vbrief:validate` (or `task vbrief:validate` inside deft).
 3. Observe both defects:
    - D11 warning emitted despite conformant reference
@@ -1588,19 +1691,19 @@ Environment: Windows 11, PowerShell 5.1, Python 3.12.8, uv 0.10.9. Deft framewor
 
 ### For Defect 1
 
-Option A (trust the schema): change D11 to consider ANY reference whose `type` matches `^x-vbrief/` as an origin. This matches the v0.6 schema pattern and is the most permissive interpretation.
+Option A (trust the schema): change D11 to consider ANY reference whose `type` matches `^x-xbrief/` as an origin. This matches the v0.6 schema pattern and is the most permissive interpretation.
 
-Option B (publish the allow-list): explicitly document which `x-vbrief/*` values count as origins. Suggested initial allow-list:
-- `x-vbrief/plan`
-- `x-vbrief/github-issue`
-- `x-vbrief/github-pr`
-- `x-vbrief/jira-ticket`
-- `x-vbrief/user-request`
-- `x-vbrief/spec-section`
+Option B (publish the allow-list): explicitly document which `x-xbrief/*` values count as origins. Suggested initial allow-list:
+- `x-xbrief/plan`
+- `x-xbrief/github-issue`
+- `x-xbrief/github-pr`
+- `x-xbrief/jira-ticket`
+- `x-xbrief/user-request`
+- `x-xbrief/spec-section`
 
 Put this list in `deft/conventions/references.md` (see #534 suggestion) and have the validator reference the same list. Consumer projects can extend via a local config.
 
-Option C (tri-state): only warn if `references` is completely empty. Emit INFO (not WARN) for references with unrecognized-but-conformant types (invites extension without blocking CI). Emit WARN only on references with non-`x-vbrief/*` types.
+Option C (tri-state): only warn if `references` is completely empty. Emit INFO (not WARN) for references with unrecognized-but-conformant types (invites extension without blocking CI). Emit WARN only on references with non-`x-xbrief/*` types.
 
 Recommended: Option A, with an optional `--strict-origin-types` flag for teams that want to enforce an allow-list.
 
@@ -1620,7 +1723,7 @@ Add a `--strict` or `--warnings-as-errors` flag that opts into the current behav
 ## Related
 
 - #533 `task vbrief:validate` pinned to v0.5 — this issue shares the same validator module, which is overdue for a cleanup pass.
-- #534 `references` shape in deft-directive-refinement skill — sibling to Defect 1 here; the skill tells agents to write `"github-issue"` (non-conformant), the validator recognizes `"x-vbrief/github-issue"` (conformant) but warns anyway, creating a pincer where no form is happy.
+- #534 `references` shape in deft-directive-refinement skill — sibling to Defect 1 here; the skill tells agents to write `"github-issue"` (non-conformant), the validator recognizes `"x-xbrief/github-issue"` (conformant) but warns anyway, creating a pincer where no form is happy.
 - #535 `scope:*` path resolution — another validator/lifecycle bug pattern.
 - This is the **tenth defect** found during the refinement test on slizard-rc3-test.
 
@@ -1674,7 +1777,7 @@ The net effect is a "two sources of truth, no documented canonical path" situati
 ### Phase 1 Ingest — replace narrative with task invocation
 
 Current (Phase 1 Step 3, ~30 lines of narrative):
-> "For each new item the user approves for ingest: 1. Create a scope vBRIEF in `vbrief/proposed/` with filename... 2. Include origin provenance in `references`... 3. Set `plan.status` to `proposed`..."
+> "For each new item the user approves for ingest: 1. Create a scope vBRIEF in `xbrief/proposed/` with filename... 2. Include origin provenance in `references`... 3. Set `plan.status` to `proposed`..."
 
 Proposed:
 > **Step 3: Ingest approved items**
@@ -1683,7 +1786,7 @@ Proposed:
 > ```
 > task deft:issue:ingest <N>
 > ```
-> This creates the scope vBRIEF in `vbrief/proposed/` with the canonical filename slug, origin references, and schema-conformant shape. The command is idempotent (safe to re-run on already-ingested issues; it dedupes by references).
+> This creates the scope vBRIEF in `xbrief/proposed/` with the canonical filename slug, origin references, and schema-conformant shape. The command is idempotent (safe to re-run on already-ingested issues; it dedupes by references).
 >
 > For batch mode, run:
 > ```
@@ -1775,7 +1878,7 @@ Filed via Warp/Oz agent after discovering `task issue:ingest` and `task reconcil
 `task issue:ingest` and `task reconcile:issues`, when invoked from a consumer project via the standard Taskfile include (`includes: deft: ./deft/Taskfile.yml`), query issues from **`deftai/directive`** (the deft framework repo) instead of the consumer project's own GitHub repo.
 
 This makes both tasks actively dangerous on consumer projects:
-- Running `task deft:issue:ingest --all` on a consumer project would attempt to ingest the framework's 138 open issues into the consumer's `vbrief/proposed/` folder.
+- Running `task deft:issue:ingest --all` on a consumer project would attempt to ingest the framework's 138 open issues into the consumer's `xbrief/proposed/` folder.
 - Running `task deft:reconcile:issues` reports the framework's issues as "unlinked" from every consumer scope vBRIEF, and silently ignores the consumer's real GitHub references.
 
 Both tasks are currently un-usable by consumer projects. This is a consumer-lifecycle-blocker.
@@ -1800,10 +1903,10 @@ Expected: 15 dry-run entries for `MScottAdams/slizard-rc3-test` issues.
 Actual: **138 dry-run entries for `deftai/directive` issues**, numbered up to #537 (including this issue's sibling issues #527-#537 that were just filed in deftai/directive). Example output:
 ```
 issue:ingest bulk summary: 0 created, 0 duplicate, 138 dry-run (total considered: 138)
-  DRY-RUN proposed\2026-04-22-537-refinement-phase-1-ingest-and-phase-3-reconcile-duplicate-ta.vbrief.json
-  DRY-RUN proposed\2026-04-22-536-vbriefvalidate-d11-rejects-schema-conformant-x-vbrief-origin.vbrief.json
+  DRY-RUN proposed\2026-04-22-537-refinement-phase-1-ingest-and-phase-3-reconcile-duplicate-ta.xbrief.json
+  DRY-RUN proposed\2026-04-22-536-vbriefvalidate-d11-rejects-schema-conformant-x-vbrief-origin.xbrief.json
   ...
-  DRY-RUN proposed\2026-04-22-9-add-ability-to-use-issue-tracking-system-for-human-interfaci.vbrief.json
+  DRY-RUN proposed\2026-04-22-9-add-ability-to-use-issue-tracking-system-for-human-interfaci.xbrief.json
 ```
 
 Every filename is a `deftai/directive` issue, not a slizard-rc3-test issue.
@@ -1812,7 +1915,7 @@ Every filename is a `deftai/directive` issue, not a slizard-rc3-test issue.
 
 `task deft:issue:ingest -- 19 --dry-run` produces:
 ```
-DRY-RUN would write proposed/2026-04-22-19-featspecs-add-spec-deltas-with-vbrief-chain-pattern.vbrief.json
+DRY-RUN would write proposed/2026-04-22-19-featspecs-add-spec-deltas-with-vbrief-chain-pattern.xbrief.json
 ```
 
 That slug describes `deftai/directive` issue #19 ("feat(specs): add spec-deltas with vBRIEF chain pattern"), not `slizard-rc3-test` issue #19 ("Evolution client API calls lack pagination").
@@ -1946,9 +2049,9 @@ Every task in `deft/tasks/*.yml` reviewed:
 | `reconcile:issues` | same as above | **BROKEN** | #538 |
 | `prd:render` | **NO path args, NO USER_WORKING_DIR** | **BROKEN — destructive** (overwrites deft/PRD.md) | **This issue** |
 | `project:render` | `"{{.ROOT_DIR}}/vbrief"` (inconsistent; uses ROOT_DIR not USER_WORKING_DIR) | Works via include, brittle | N/A |
-| `roadmap:render` | `"{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"` | Works | ✓ |
+| `roadmap:render` | `"{{.USER_WORKING_DIR}}/xbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"` | Works | ✓ |
 | `roadmap:check` | same + `--check` | Works | ✓ |
-| `spec:validate` | `"{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"` | Works | ✓ |
+| `spec:validate` | `"{{.USER_WORKING_DIR}}/xbrief/specification.xbrief.json"` | Works | ✓ |
 | `spec:render` | both args USER_WORKING_DIR | Works | ✓ |
 | `vbrief:validate` | `--vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"` | Works (but #536 D11/exit-1 issue) | #536 |
 | `migrate:vbrief` | `"{{.USER_WORKING_DIR}}"` | Works | ✓ |
@@ -1964,7 +2067,7 @@ Running `task deft:prd:render` (or `task -t ./deft/Taskfile.yml prd:render`) on 
 3. Dirties the deft submodule working tree.
 4. Reports `"PRD.md written to PRD.md"` — misleadingly appears to have succeeded.
 
-Observed on slizard-rc3-test: the framework's existing `deft/PRD.md` (132 lines of real content titled "Deft Directive PRD") was replaced with a 15-line auto-generated stub derived from `deft/vbrief/specification.vbrief.json`. A sample of the diff:
+Observed on slizard-rc3-test: the framework's existing `deft/PRD.md` (132 lines of real content titled "Deft Directive PRD") was replaced with a 15-line auto-generated stub derived from `deft/xbrief/specification.xbrief.json`. A sample of the diff:
 
 ```
 -# Deft Directive PRD
@@ -1972,7 +2075,7 @@ Observed on slizard-rc3-test: the framework's existing `deft/PRD.md` (132 lines 
 -**Status**: Approved
 -**Closes**: #67 ...
 +<!-- AUTO-GENERATED by task prd:render -- DO NOT EDIT -->
-+<!-- Source of truth: vbrief/specification.vbrief.json -->
++<!-- Source of truth: xbrief/specification.xbrief.json -->
 ```
 
 Had the developer not run `git -C deft checkout -- PRD.md` immediately, the submodule would have been left in a dirty state with 117 lines of framework-author content silently gone.
@@ -1982,9 +2085,9 @@ The `prd:render` task definition in `deft/tasks/prd.yml`:
 ```yaml
 tasks:
   render:
-    desc: Export plan.narratives from specification.vbrief.json to a read-only PRD.md
+    desc: Export plan.narratives from specification.xbrief.json to a read-only PRD.md
     summary: |
-      Reads specification.vbrief.json and extracts plan.narratives into a
+      Reads specification.xbrief.json and extracts plan.narratives into a
       human-readable PRD.md for stakeholder export. PRD.md is never
       authoritative -- the vBRIEF is the source of truth.
     cmds:
@@ -2014,7 +2117,7 @@ Key changes:
 
 1. **Add `dir: '{{.USER_WORKING_DIR}}'`** to every task. This makes the script's CWD the consumer project root, so:
    - `gh issue list` / `gh pr view` / `git remote get-url` resolve to the consumer's repo (fixes #538)
-   - Relative path arguments (like `vbrief/proposed/X.json`) resolve to the consumer's files (fixes #535)
+   - Relative path arguments (like `xbrief/proposed/X.json`) resolve to the consumer's files (fixes #535)
    - Relative writes (like `PRD.md`) write to the consumer's root (fixes this issue's destructive behavior)
 
 2. **Use `{{.TASKFILE_DIR}}/scripts/...`** for the script path so it resolves to `deft/scripts/` regardless of where `dir:` is set.
@@ -2031,7 +2134,7 @@ Key changes:
      cmds:
        - uv run python {{.TASKFILE_DIR}}/scripts/scope_lifecycle.py promote "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}"
    ```
-   (Note: `{{.CLI_ARGS}}` in Task is the tail after `--`. So `task scope:promote -- vbrief/proposed/X.json` gives CLI_ARGS = `vbrief/proposed/X.json`.)
+   (Note: `{{.CLI_ARGS}}` in Task is the tail after `--`. So `task scope:promote -- xbrief/proposed/X.json` gives CLI_ARGS = `xbrief/proposed/X.json`.)
 
 ### Refactored `deft/tasks/prd.yml` (example)
 
@@ -2040,18 +2143,18 @@ version: '3'
 
 tasks:
   render:
-    desc: Export plan.narratives from specification.vbrief.json to a read-only PRD.md
+    desc: Export plan.narratives from specification.xbrief.json to a read-only PRD.md
     summary: |
-      Reads specification.vbrief.json and extracts plan.narratives into a
+      Reads specification.xbrief.json and extracts plan.narratives into a
       human-readable PRD.md for stakeholder export. PRD.md is never
       authoritative -- the vBRIEF is the source of truth.
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/scripts/prd_render.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
+      - uv run python {{.TASKFILE_DIR}}/scripts/prd_render.py "{{.USER_WORKING_DIR}}/xbrief/specification.xbrief.json" "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
     sources:
-      - '{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json'
+      - '{{.USER_WORKING_DIR}}/xbrief/specification.xbrief.json'
     generates:
       - '{{.USER_WORKING_DIR}}/PRD.md'
 ```
@@ -2060,7 +2163,7 @@ tasks:
 
 Add a consumer-integration test suite that:
 
-1. Creates a tmpdir with a minimal consumer project (`Taskfile.yml`, `vbrief/`, `deft/` as a fake submodule or git clone)
+1. Creates a tmpdir with a minimal consumer project (`Taskfile.yml`, `xbrief/`, `deft/` as a fake submodule or git clone)
 2. Runs every `task deft:*` from the tmpdir
 3. Asserts changes happen in the tmpdir, not in `deft/`
 4. Asserts `gh` / `git` calls (mocked) see the consumer's repo identity, not deft's
@@ -2156,18 +2259,18 @@ Example diff for `deft/tasks/spec.yml`:
 ```yaml
 tasks:
   validate:
-    desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
+    desc: Validate that xbrief/specification.xbrief.json exists and is well-formed JSON
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/spec_validate.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
+      - uv run python scripts/spec_validate.py "{{.USER_WORKING_DIR}}/xbrief/specification.xbrief.json"
 
   render:
-    desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
+    desc: Render xbrief/specification.xbrief.json to SPECIFICATION.md
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/spec_render.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
+      - uv run python scripts/spec_render.py "{{.USER_WORKING_DIR}}/xbrief/specification.xbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
 
   pipeline:
     desc: Run full spec pipeline (validate then render)
@@ -2254,7 +2357,7 @@ core\ralph.md:216     -> ./README.md
 docs\claude-code-integration.md:325 -> ../deft/REFERENCES.md
 languages\markdown.md:37 -> ./guide.md#setup
 main.md:20            -> ../main.md
-main.md:215           -> ./vbrief/PROJECT-DEFINITION.vbrief.json
+main.md:215           -> ./xbrief/PROJECT-DEFINITION.xbrief.json
 skills\deft-directive-setup\SKILL.md:282 -> ../main.md
 ```
 
@@ -2283,7 +2386,7 @@ Fix: either add `## Testing` (or `## Tests`, whatever anchor form `validate-link
 
 ### Group C: project-relative path in framework doc
 
-- `main.md:215 -> ./vbrief/PROJECT-DEFINITION.vbrief.json` — this path is only valid inside a consumer project, not inside deft itself. The link assumes the reader is in a deft-installed consumer project, but `main.md` is framework documentation.
+- `main.md:215 -> ./xbrief/PROJECT-DEFINITION.xbrief.json` — this path is only valid inside a consumer project, not inside deft itself. The link assumes the reader is in a deft-installed consumer project, but `main.md` is framework documentation.
   - If this is intentional (the link is meant to describe where consumers find their project config), it should be wrapped in a code fence or annotated with "(in your consumer project)" rather than emitted as a clickable link.
   - If it's a mistake, delete or reword.
 
@@ -2330,7 +2433,7 @@ Pure documentation append. Add five RC3-validation lessons as a new top-level '#
 
 ### 2026-04-22-migrator-version-bump-issue-571: migrator ingestion does not bump vBRIEFInfo.version v0.5 -> v0.6 (post-migration spec:validate fails with misleading 'migrator sweep' error)  `[completed]`
 
-`task migrate:vbrief` leaves pre-existing `vbrief/specification.vbrief.json` and `vbrief/plan.vbrief.json` at vBRIEFInfo.version 0.5 after ingestion; post-migration `task spec:validate` then fails with a misleading error pointing at a non-existent 'migrator sweep' command. Fix: (1) migrator's _ingest_spec_narratives path bumps vBRIEFInfo.version to EMITTED_VBRIEF_VERSION before writing (same for any pre-existing plan.vbrief.json, whether or not speckit-shaped); (2) `scripts/spec_validate.py` error wording updated so the 'migrator sweep' phrase is either removed (preferred — the sweep now happens during migration) or points at a real recovery command; (3) `deft/main.md` Schema-version paragraph rewritten so the 'bulk sweep is part of the migrator flip PR' claim matches reality. Regression test on a new fixture asserting vBRIEFInfo.version == '0.6' post-migration for both files. See GitHub issue #571 for full root cause and acceptance criteria.
+`task migrate:vbrief` leaves pre-existing `xbrief/specification.xbrief.json` and `xbrief/plan.xbrief.json` at vBRIEFInfo.version 0.5 after ingestion; post-migration `task spec:validate` then fails with a misleading error pointing at a non-existent 'migrator sweep' command. Fix: (1) migrator's _ingest_spec_narratives path bumps vBRIEFInfo.version to EMITTED_VBRIEF_VERSION before writing (same for any pre-existing plan.xbrief.json, whether or not speckit-shaped); (2) `scripts/spec_validate.py` error wording updated so the 'migrator sweep' phrase is either removed (preferred — the sweep now happens during migration) or points at a real recovery command; (3) `deft/main.md` Schema-version paragraph rewritten so the 'bulk sweep is part of the migrator flip PR' claim matches reality. Regression test on a new fixture asserting vBRIEFInfo.version == '0.6' post-migration for both files. See GitHub issue #571 for full root cause and acceptance criteria.
 
 ### 2026-04-22-scope-cli-args-windows-issue-577: tasks/scope.yml quoted CLI_ARGS breaks all 7 scope lifecycle tasks on Windows (single-quote collision)  `[completed]`
 
@@ -2408,7 +2511,7 @@ ROADMAP Completed section
 
 ROADMAP Completed section
 
-### 2026-04-23-126-specification-vbrief-json-schema-non-conformance-agent: specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests  `[completed]`
+### 2026-04-23-126-specification-vbrief-json-schema-non-conformance-agent: specification.xbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests  `[completed]`
 
 ROADMAP Completed section
 
@@ -2941,14 +3044,14 @@ ROADMAP Completed section
 
 ROADMAP Completed section
 
-### 2026-04-23-593-migrator-completed-routing: migrator: ROADMAP.md Completed section items routed to vbrief/proposed/ instead of vbrief/completed/  `[completed]`
+### 2026-04-23-593-migrator-completed-routing: migrator: ROADMAP.md Completed section items routed to xbrief/proposed/ instead of xbrief/completed/  `[completed]`
 
-task migrate:vbrief parses items from ROADMAP.md's ## Completed section and recognizes them as completed (visible in the migrator's own log via the (completed:...) prefix), but routes every one of them to vbrief/proposed/ instead of vbrief/completed/. The migrator has the classification information; it just doesn't use it when choosing the destination folder. Surfaced during the v0.20.0-rc.3 validation session (rc.4-candidate dogfood pass) running the post-swarm-fix migrator on deft's own repo, which has a ROADMAP.md with 165 completed items. Same recognition-without-action failure shape as #571 / #572 / #574.
+task migrate:vbrief parses items from ROADMAP.md's ## Completed section and recognizes them as completed (visible in the migrator's own log via the (completed:...) prefix), but routes every one of them to xbrief/proposed/ instead of xbrief/completed/. The migrator has the classification information; it just doesn't use it when choosing the destination folder. Surfaced during the v0.20.0-rc.3 validation session (rc.4-candidate dogfood pass) running the post-swarm-fix migrator on deft's own repo, which has a ROADMAP.md with 165 completed items. Same recognition-without-action failure shape as #571 / #572 / #574.
 
 **Acceptance**:
 
 - Follow directive guidelines: AGENTS.md, deft/main.md, conventional commits, task check before commit `[running]`
-- Routing correction: items parsed from ROADMAP.md ## Completed section route to vbrief/completed/ (not vbrief/proposed/) `[running]`
+- Routing correction: items parsed from ROADMAP.md ## Completed section route to xbrief/completed/ (not xbrief/proposed/) `[running]`
 - Status alignment: Completed-sourced scope vBRIEFs have plan.status='completed'; active-phase items keep plan.status='proposed' `[running]`
 - Regression test: pytest fixture with active + ## Completed sections asserts partition and status for both `[running]`
 - Windows CI coverage: extend windows-task-dispatch CI job (from #568) to run migrator against a Completed-section fixture and assert partition `[running]`
@@ -3111,7 +3214,7 @@ Go installer (cmd/deft-install/setup.go) still writes AGENTS.md from a hardcoded
 
 ### 2026-04-24-638-refinement-batch-roadmapproject-renders-during-multi-item-tr: refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion  `[completed]`
 
-skills/deft-directive-refinement/SKILL.md currently directs agents to call task roadmap:render after promotions/demotions and task project:render after significant lifecycle changes. The wording is semantically correct but operationally inefficient during conversational one-by-one triage -- agents interpret it as 'rerender after every accepted/rejected item'. A dry-run ingest preview surfacing 131 new issues would spend disproportionate time rebuilding derived artifacts instead of continuing triage. The roadmap and project artifacts are derived views; the source of truth is the lifecycle folders under vbrief/.
+skills/deft-directive-refinement/SKILL.md currently directs agents to call task roadmap:render after promotions/demotions and task project:render after significant lifecycle changes. The wording is semantically correct but operationally inefficient during conversational one-by-one triage -- agents interpret it as 'rerender after every accepted/rejected item'. A dry-run ingest preview surfacing 131 new issues would spend disproportionate time rebuilding derived artifacts instead of continuing triage. The roadmap and project artifacts are derived views; the source of truth is the lifecycle folders under xbrief/.
 
 **Acceptance**:
 
@@ -3119,19 +3222,19 @@ skills/deft-directive-refinement/SKILL.md currently directs agents to call task 
 - Refinement skill Phase 5 wording updated: task roadmap:render is the checkpoint before showing the reordered backlog, not a per-edit tax `[pending]`
 - task project:render clarified as once-per-refinement-pass unless the user explicitly needs an intermediate registry refresh `[pending]`
 - Anti-pattern or note added: agents should not rerender after every single accept/reject during high-volume triage `[pending]`
-- Documented workflow still guarantees ROADMAP.md and PROJECT-DEFINITION.vbrief.json are refreshed before the user is shown final backlog state `[pending]`
+- Documented workflow still guarantees ROADMAP.md and PROJECT-DEFINITION.xbrief.json are refreshed before the user is shown final backlog state `[pending]`
 - A large refinement session can ingest/evaluate/promote multiple issues with one final render checkpoint rather than N repetitive renders `[pending]`
 - Any skill tests or snapshots reflecting the old wording are updated `[pending]`
 - CHANGELOG.md entry under [Unreleased] `[pending]`
 
 ### 2026-04-24-639-issueingest-emits-legacy-v05-scope-vbriefs-and-non-canonical: issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6  `[completed]`
 
-scripts/issue_ingest.py::_build_issue_vbrief() hardcodes vBRIEFInfo.version = '0.5' and emits legacy reference shape {type: 'github-issue', id: '#N', url: ...} instead of canonical v0.6 shape {uri, type: 'x-vbrief/github-issue', title}. The refinement skill, vendored schema, and conventions/references.md already describe the canonical shape (fixed in #534 for docs, #613 for migrator); issue:ingest is the last laggard. Freshly ingested vBRIEFs in this branch (including the #636 brief) carry the legacy shape.
+scripts/issue_ingest.py::_build_issue_vbrief() hardcodes vBRIEFInfo.version = '0.5' and emits legacy reference shape {type: 'github-issue', id: '#N', url: ...} instead of canonical v0.6 shape {uri, type: 'x-xbrief/github-issue', title}. The refinement skill, vendored schema, and conventions/references.md already describe the canonical shape (fixed in #534 for docs, #613 for migrator); issue:ingest is the last laggard. Freshly ingested vBRIEFs in this branch (including the #636 brief) carry the legacy shape.
 
 **Acceptance**:
 
 - scripts/issue_ingest.py::_build_issue_vbrief() emits vBRIEFInfo.version = '0.6' `[pending]`
-- Emitted reference shape is {uri, type, title} with uri = 'https://github.com/{owner}/{repo}/issues/{N}', type = 'x-vbrief/github-issue', title = 'Issue #{N}: {issue title}' `[pending]`
+- Emitted reference shape is {uri, type, title} with uri = 'https://github.com/{owner}/{repo}/issues/{N}', type = 'x-xbrief/github-issue', title = 'Issue #{N}: {issue title}' `[pending]`
 - No newly ingested vBRIEF uses legacy github-issue / id / url fields `[pending]`
 - Task tests, snapshots, and fixture expectations that asserted the legacy shape are updated `[pending]`
 - Refinement skill text and conventions/references.md remain aligned with the implementation after the fix `[pending]`
@@ -3297,7 +3400,7 @@ feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Ph
 **Acceptance**:
 
 - Add --apply-lifecycle-fixes flag to scripts/reconcile_issues.py with idempotent three-state contract `[pending]`
-  - Acceptance: Flag implemented with the three-state exit contract and idempotent semantics. Accepts both legacy bare `github-issue` and canonical `x-vbrief/github-issue` reference shapes. No-issue-ref vBRIEFs (older 2026-04-14-* shape) silently skipped. Tests under `tests/cli/test_reconcile_issues_apply.py` cover apply-mode, idempotent re-run, mixed reference shapes, reverse-mismatch reporting, no-op default.
+  - Acceptance: Flag implemented with the three-state exit contract and idempotent semantics. Accepts both legacy bare `github-issue` and canonical `x-xbrief/github-issue` reference shapes. No-issue-ref vBRIEFs (older 2026-04-14-* shape) silently skipped. Tests under `tests/cli/test_reconcile_issues_apply.py` cover apply-mode, idempotent re-run, mixed reference shapes, reverse-mismatch reporting, no-op default.
 - Add scripts/release.py::check_vbrief_lifecycle_sync helper wired as new pre-flight Step 3 with --allow-vbrief-drift escape hatch `[pending]`
   - Acceptance: Pre-flight gate fails the release pipeline on any Section (c) mismatch unless `--allow-vbrief-drift` is set. Tests under `tests/cli/test_release_vbrief_lifecycle.py` cover detection, clean-pass, escape-hatch, and pipeline step renumbering. `_TOTAL_STEPS` constant updated 11 -> 12.
 - Update skills/deft-directive-release/SKILL.md Phase 1 with `!` rule + `⊗` anti-pattern citing the v0.21.0 cut as recurrence record `[pending]`
@@ -3601,14 +3704,14 @@ Universal upgrade gate: stale-AGENTS.md consumers silently follow obsolete instr
 
 **Scope Acceptance**:
 
-- Five coordinated changes that share one principle: the gate is upgrade-path-agnostic; the framework owns the AGENTS.md contract; UPGRADING.md is the only source of truth per state. (1) NEW cmd_gate in run -- read-only state-vector probe emitting 'OK v<current>' or 'NEEDS-UPGRADE recorded=<recorded|unknown> current=<current> precutover=<csv|empty> agents-md=<current|stale|missing|absent>' with --json variant; reuses _read_version_marker, _detect_pre_cutover_legacy, _running_inside_deft_repo, dynamic VERSION (#741); no marker writes / no migrations / no commits; agents-md= axis computed via cmd_agents_refresh --check. (2) Universal '<!-- DEFT-PREAMBLE-V1 -->' preamble at line 1 of deft/main.md AND every legacy redirect stub at historical AGENTS.md target paths (skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md, SKILL.md, plus any path enumerated by 'git --no-pager log --all -- cmd/deft-install/setup.go'). Preamble instructs agent to run 'python3 deft/run gate' before any other instruction; on non-zero, read deft/UPGRADING.md, find section whose 'Applies when' matches the state vector, execute verbatim, honor 'Restart required' directives. (3) NEW cmd_agents_refresh in run -- Python reference implementation of the AGENTS.md contract; --dry-run shows planned changes; --check exits 0 if managed section is byte-identical to current rendered template; reads templates/agents-entry.md, substitutes documented placeholder tokens, handles four states: agents-md=current (no-op), stale (rewrite content between markers), missing (wrap legacy block in markers then refresh -- one-time migration), absent (create AGENTS.md from rendered template). (4) Contract artifacts: <!-- deft:managed-section v1 --> ... <!-- /deft:managed-section --> markers added to templates/agents-entry.md (versioned for future format detection); NEW templates/agents-entry.placeholders.md documenting the placeholder spec (UPSTREAM_SHA, UPSTREAM_REF, UPSTREAM_TAG, FETCHED_AT, FETCHED_BY -- inherited from webinstaller); cmd_upgrade in run/run.py modified to call cmd_agents_refresh automatically alongside writing vbrief/.deft-version; conformance test tests/content/test_agents_entry_contract.py asserting template parses, placeholders match documented spec, markers well-formed, byte-identical refresh produces byte-identical output. (5) UPGRADING.md retrofit: every '## From <prev> -> <new>' section gains four-field micro-format header (Applies when / Safe to auto-run / Restart required / Commands), with deft/run agents:refresh in Commands when AGENTS.md template changes between versions. Tests: tests/cli/test_cmd_gate.py covers all four agents-md= states + version drift + pre-cutover combinations + --json structure; tests/cli/test_cmd_agents_refresh.py covers fresh write / marker round-trip / legacy-to-marker migration / --check exit codes / --dry-run output; tests/content/test_upgrading_sections.py asserts every section has all four fields; tests/content/test_main_md_preamble.py asserts marker present at line 1 of every required file; tests/content/test_agents_entry_contract.py is the rail-agnostic conformance test. Manual repro: v0.5-state fixture bumped to current, agent reads ./AGENTS.md, runs gate, gets NEEDS-UPGRADE recorded=0.5.0 ... agents-md=missing, reads UPGRADING.md, executes matching section's commands (including agents:refresh), halts with start-fresh-session message. CHANGELOG entry under Added.
+- Five coordinated changes that share one principle: the gate is upgrade-path-agnostic; the framework owns the AGENTS.md contract; UPGRADING.md is the only source of truth per state. (1) NEW cmd_gate in run -- read-only state-vector probe emitting 'OK v<current>' or 'NEEDS-UPGRADE recorded=<recorded|unknown> current=<current> precutover=<csv|empty> agents-md=<current|stale|missing|absent>' with --json variant; reuses _read_version_marker, _detect_pre_cutover_legacy, _running_inside_deft_repo, dynamic VERSION (#741); no marker writes / no migrations / no commits; agents-md= axis computed via cmd_agents_refresh --check. (2) Universal '<!-- DEFT-PREAMBLE-V1 -->' preamble at line 1 of deft/main.md AND every legacy redirect stub at historical AGENTS.md target paths (skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md, SKILL.md, plus any path enumerated by 'git --no-pager log --all -- cmd/deft-install/setup.go'). Preamble instructs agent to run 'python3 deft/run gate' before any other instruction; on non-zero, read deft/UPGRADING.md, find section whose 'Applies when' matches the state vector, execute verbatim, honor 'Restart required' directives. (3) NEW cmd_agents_refresh in run -- Python reference implementation of the AGENTS.md contract; --dry-run shows planned changes; --check exits 0 if managed section is byte-identical to current rendered template; reads templates/agents-entry.md, substitutes documented placeholder tokens, handles four states: agents-md=current (no-op), stale (rewrite content between markers), missing (wrap legacy block in markers then refresh -- one-time migration), absent (create AGENTS.md from rendered template). (4) Contract artifacts: <!-- deft:managed-section v1 --> ... <!-- /deft:managed-section --> markers added to templates/agents-entry.md (versioned for future format detection); NEW templates/agents-entry.placeholders.md documenting the placeholder spec (UPSTREAM_SHA, UPSTREAM_REF, UPSTREAM_TAG, FETCHED_AT, FETCHED_BY -- inherited from webinstaller); cmd_upgrade in run/run.py modified to call cmd_agents_refresh automatically alongside writing xbrief/.deft-version; conformance test tests/content/test_agents_entry_contract.py asserting template parses, placeholders match documented spec, markers well-formed, byte-identical refresh produces byte-identical output. (5) UPGRADING.md retrofit: every '## From <prev> -> <new>' section gains four-field micro-format header (Applies when / Safe to auto-run / Restart required / Commands), with deft/run agents:refresh in Commands when AGENTS.md template changes between versions. Tests: tests/cli/test_cmd_gate.py covers all four agents-md= states + version drift + pre-cutover combinations + --json structure; tests/cli/test_cmd_agents_refresh.py covers fresh write / marker round-trip / legacy-to-marker migration / --check exit codes / --dry-run output; tests/content/test_upgrading_sections.py asserts every section has all four fields; tests/content/test_main_md_preamble.py asserts marker present at line 1 of every required file; tests/content/test_agents_entry_contract.py is the rail-agnostic conformance test. Manual repro: v0.5-state fixture bumped to current, agent reads ./AGENTS.md, runs gate, gets NEEDS-UPGRADE recorded=0.5.0 ... agents-md=missing, reads UPGRADING.md, executes matching section's commands (including agents:refresh), halts with start-fresh-session message. CHANGELOG entry under Added.
 
 **Acceptance**:
 
 - Audit historical AGENTS.md target paths via 'git --no-pager log --all -- cmd/deft-install/setup.go' to enumerate ALL stub paths needing the preamble `[pending]`
 - NEW cmd_gate in run/run.py: read-only state-vector probe; reuses _read_version_marker, _detect_pre_cutover_legacy, _running_inside_deft_repo, dynamic VERSION; --json variant; exit 0 OK, non-zero NEEDS-UPGRADE; agents-md= axis computed via cmd_agents_refresh --check `[pending]`
 - NEW cmd_agents_refresh in run/run.py: Python reference impl of AGENTS.md contract; --dry-run, --check; reads templates/agents-entry.md; handles 4 states (current/stale/missing/absent); legacy-to-marker migration on first run `[pending]`
-- Modify cmd_upgrade in run/run.py to call cmd_agents_refresh automatically alongside writing vbrief/.deft-version `[pending]`
+- Modify cmd_upgrade in run/run.py to call cmd_agents_refresh automatically alongside writing xbrief/.deft-version `[pending]`
 - Add <!-- deft:managed-section v1 --> ... <!-- /deft:managed-section --> markers to templates/agents-entry.md (versioned) `[pending]`
 - NEW templates/agents-entry.placeholders.md: placeholder token spec (UPSTREAM_SHA, UPSTREAM_REF, UPSTREAM_TAG, FETCHED_AT, FETCHED_BY) `[pending]`
 - Inject '<!-- DEFT-PREAMBLE-V1 -->' at line 1 of deft/main.md with gate-then-UPGRADING-then-respect-restart instructions `[pending]`
@@ -3726,12 +3829,12 @@ Elevate the rule to the deterministic tier. New scripts/verify_encoding.py scans
 
 ### 2026-05-01-801-periodic-remote-version-probe-prompt-on-new-upstream-tags: Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update  `[completed]`
 
-Five coordinated changes that share one principle: the probe is opt-out, throttled, and never auto-mutates project state. (1) NEW cmd_check_updates in run -- read-only `git ls-remote --tags --refs <upstream>` probe with --json variant; honors DEFT_NO_NETWORK and DEFT_REMOTE_PROBE_TIMEOUT. (2) Throttle file vbrief/.deft-remote-probe.json with 24h probe / 24h notification cadence keyed on (remote_tag, last_notified_at) plus per-session dedup. (3) Wire into _check_upgrade_gate to fork the probe in the background, swallow all errors, append a single informational warn line on BEHIND -- never blocks CI. (4) NEW Taskfile entry framework:check-updates (with --force) for synchronous interactive use; documented in QUICK-START.md and UPGRADING.md. (5) Emit framework:remote-drift via scripts/_event_detect.py and register in events/registry.json so observability mirrors the #635 pattern for version:drift / pre-cutover:detected.
+Five coordinated changes that share one principle: the probe is opt-out, throttled, and never auto-mutates project state. (1) NEW cmd_check_updates in run -- read-only `git ls-remote --tags --refs <upstream>` probe with --json variant; honors DEFT_NO_NETWORK and DEFT_REMOTE_PROBE_TIMEOUT. (2) Throttle file xbrief/.deft-remote-probe.json with 24h probe / 24h notification cadence keyed on (remote_tag, last_notified_at) plus per-session dedup. (3) Wire into _check_upgrade_gate to fork the probe in the background, swallow all errors, append a single informational warn line on BEHIND -- never blocks CI. (4) NEW Taskfile entry framework:check-updates (with --force) for synchronous interactive use; documented in QUICK-START.md and UPGRADING.md. (5) Emit framework:remote-drift via scripts/_event_detect.py and register in events/registry.json so observability mirrors the #635 pattern for version:drift / pre-cutover:detected.
 
 **Acceptance**:
 
 - NEW cmd_check_updates in run/run.py: read-only `git ls-remote --tags --refs` probe; --json variant; OK/BEHIND output; exit 0/1 `[completed]`
-- Throttle file vbrief/.deft-remote-probe.json with 24h probe / 24h notification cadence, per-tag keyed `[completed]`
+- Throttle file xbrief/.deft-remote-probe.json with 24h probe / 24h notification cadence, per-tag keyed `[completed]`
 - Wire cmd_check_updates into _check_upgrade_gate behind the throttle, after the existing marker-drift check `[completed]`
 - Register framework:remote-drift in events/registry.json and emit via scripts/_event_detect.py on positive BEHIND `[completed]`
 - NEW Taskfile entry framework:check-updates with --force flag `[completed]`
@@ -3744,7 +3847,7 @@ Five coordinated changes that share one principle: the probe is opt-out, throttl
 
 ### 2026-05-01-810-implementation-intent-gate-prevent-unauthorized-agent-spawn: Implementation-intent inference is non-deterministic: enforce action-verb gate via preflight + AGENTS.md anti-pattern  `[completed]`
 
-Two coordinated changes, layered for belt-and-suspenders determinism. Change 1 -- structural enforcement: NEW scripts/preflight_implementation.py (mirrors scripts/preflight_branch.py from #747) takes a vBRIEF path, asserts folder is vbrief/active/ AND plan.status == 'running', exits non-zero with actionable message 'Run task vbrief:activate <file> before spawning an implementation agent.' otherwise. NEW Taskfile entry vbrief:activate atomically validates source is in pending/, flips plan.status from pending/approved to running, moves to active/, updates vBRIEFInfo.updated. Both deft-directive-build and deft-directive-swarm skills require the preflight call as a '!' rule before any code-writing tool call. Change 2 -- prompt-side guardrail: append 'Implementation Intent Gate' block to templates/agents-entry.md inside the existing <!-- deft:managed-section v1 --> markers (so cmd_agents_refresh #768 propagates it on next refresh) AND repo-level AGENTS.md, with four bullets: (a) ⊗ infer implementation intent from lifecycle/branching/PR-process language; (b) ! require explicit build/implement/ship/swarm/run-agents/start-agent directive before start_agent; (c) ! ask one targeted question on ambiguity; (d) ⊗ treat affirmative continuation phrases (yes/go/proceed) as implementation authorization unless the prior turn explicitly proposed implementation.
+Two coordinated changes, layered for belt-and-suspenders determinism. Change 1 -- structural enforcement: NEW scripts/preflight_implementation.py (mirrors scripts/preflight_branch.py from #747) takes a vBRIEF path, asserts folder is xbrief/active/ AND plan.status == 'running', exits non-zero with actionable message 'Run task vbrief:activate <file> before spawning an implementation agent.' otherwise. NEW Taskfile entry vbrief:activate atomically validates source is in pending/, flips plan.status from pending/approved to running, moves to active/, updates vBRIEFInfo.updated. Both deft-directive-build and deft-directive-swarm skills require the preflight call as a '!' rule before any code-writing tool call. Change 2 -- prompt-side guardrail: append 'Implementation Intent Gate' block to templates/agents-entry.md inside the existing <!-- deft:managed-section v1 --> markers (so cmd_agents_refresh #768 propagates it on next refresh) AND repo-level AGENTS.md, with four bullets: (a) ⊗ infer implementation intent from lifecycle/branching/PR-process language; (b) ! require explicit build/implement/ship/swarm/run-agents/start-agent directive before start_agent; (c) ! ask one targeted question on ambiguity; (d) ⊗ treat affirmative continuation phrases (yes/go/proceed) as implementation authorization unless the prior turn explicitly proposed implementation.
 
 **Acceptance**:
 
@@ -3817,12 +3920,12 @@ Three coordinated changes per the issue. Change 1: force UTF-8 stdout/stderr rec
 
 ### 2026-05-03-845-pre-ingest-triage-workflow-epic: feat(triage,cache,refinement): pre-ingest triage workflow with sidecar issue cache  `[completed]`
 
-Three-tier inventory model: (1) `.deft-cache/issues/<repo>/<N>.{json,md}` local mirror with injection quarantine; (2) `vbrief/.eval/candidates.jsonl` append-only audit log of triage decisions; (3) `vbrief/proposed/` reserved for items the user/agent has accepted as worth tracking. Triage actions: accept / reject / defer / needs-AC / mark-duplicate. Reject closes upstream issue with reason + label. Refinement skill gains a Phase 0 that operates on the cache and routes decisions; existing Phase 1 operates on accepted-only.
+Three-tier inventory model: (1) `.deft-cache/issues/<repo>/<N>.{json,md}` local mirror with injection quarantine; (2) `xbrief/.eval/candidates.jsonl` append-only audit log of triage decisions; (3) `xbrief/proposed/` reserved for items the user/agent has accepted as worth tracking. Triage actions: accept / reject / defer / needs-AC / mark-duplicate. Reject closes upstream issue with reason + label. Refinement skill gains a Phase 0 that operates on the cache and routes decisions; existing Phase 1 operates on accepted-only.
 
 **Acceptance**:
 
 - Cache infra + quarantine: `.deft-cache/issues/<repo>/<N>.{json,md}` + `task triage:cache` + `task triage:show` + gitcrawl install/wrapper + #583 quarantine on cache path `[running]`
-- Audit log core: `vbrief/.eval/candidates.jsonl` append-only writer/reader + JSON schema (`vbrief/schemas/candidates.schema.json`) `[running]`
+- Audit log core: `xbrief/.eval/candidates.jsonl` append-only writer/reader + JSON schema (`xbrief/schemas/candidates.schema.json`) `[running]`
 - Triage actions: `task triage:accept|reject|defer|needs-ac|mark-duplicate|status|reset|history` consuming cache (Story 1) + audit log (Story 2) `[running]`
 - Bulk ops + pre-swarm freshness gate: `task triage:bulk-*` filter ops + `task triage:refresh-active` `[running]`
 - Extend `skills/deft-directive-refinement/SKILL.md` with Phase 0 (cache + triage); existing Phase 1 operates on accepted-only with auto-skip on empty cache `[running]`
@@ -3858,7 +3961,7 @@ Implement `scripts/triage_bootstrap.py` exposing `task triage:bootstrap`: (1) po
 
 ### 2026-05-03-845-triage-bulk-and-freshness: feat(scripts,tasks): triage bulk ops + pre-swarm freshness gate  `[completed]`
 
-Implement `scripts/triage_bulk.py` exposing `triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac` with --label, --author, --age-days, --cluster filter flags. Implement `scripts/triage_refresh.py` exposing `triage:refresh-active`: refreshes cache for all issues referenced by `vbrief/active/*.vbrief.json` and surfaces drifted items with a three-way prompt (proceed-with-stale / refresh-and-update-local / defer-from-this-batch).
+Implement `scripts/triage_bulk.py` exposing `triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac` with --label, --author, --age-days, --cluster filter flags. Implement `scripts/triage_refresh.py` exposing `triage:refresh-active`: refreshes cache for all issues referenced by `xbrief/active/*.xbrief.json` and surfaces drifted items with a three-way prompt (proceed-with-stale / refresh-and-update-local / defer-from-this-batch).
 
 **Acceptance**:
 
@@ -3881,13 +3984,13 @@ Implement a sidecar issue cache at `.deft-cache/issues/<owner>-<repo>/<N>.json` 
 - tests/test_triage_cache.py covers populate/idempotent/stale/quarantine/fallback/arg-validation `[running]`
 - CHANGELOG.md [Unreleased] entry: feat(triage): local issue cache + #583 quarantine (#845 Story 1) `[running]`
 
-### 2026-05-03-845-triage-candidates-audit-log: feat(scripts,vbrief/schemas): triage candidates.jsonl audit log + JSON schema  `[completed]`
+### 2026-05-03-845-triage-candidates-audit-log: feat(scripts,xbrief/schemas): triage candidates.jsonl audit log + JSON schema  `[completed]`
 
-Implement `scripts/candidates_log.py` providing append/read/scan operations on `vbrief/.eval/candidates.jsonl`. Each line is a JSON object validated against `vbrief/schemas/candidates.schema.json`. Schema fields (frozen interface for downstream agents): `decision_id` (uuid), `timestamp` (ISO-8601 UTC), `repo` (owner/name), `issue_number` (int), `decision` (enum: accept|reject|defer|needs-ac|mark-duplicate|reset), `actor` (string: user identity or `agent:<name>`), `reason` (string, optional), `linked_to` (int, only for mark-duplicate), `prior_decision_id` (uuid, only for reset).
+Implement `scripts/candidates_log.py` providing append/read/scan operations on `xbrief/.eval/candidates.jsonl`. Each line is a JSON object validated against `xbrief/schemas/candidates.schema.json`. Schema fields (frozen interface for downstream agents): `decision_id` (uuid), `timestamp` (ISO-8601 UTC), `repo` (owner/name), `issue_number` (int), `decision` (enum: accept|reject|defer|needs-ac|mark-duplicate|reset), `actor` (string: user identity or `agent:<name>`), `reason` (string, optional), `linked_to` (int, only for mark-duplicate), `prior_decision_id` (uuid, only for reset).
 
 **Acceptance**:
 
-- vbrief/schemas/candidates.schema.json with all 9 fields per Overview, JSON Schema 2020-12 draft `[running]`
+- xbrief/schemas/candidates.schema.json with all 9 fields per Overview, JSON Schema 2020-12 draft `[running]`
 - scripts/candidates_log.py with append/read_all/find_by_issue/latest_decision public surface `[running]`
 - Concurrent-append safety via advisory lock (portalocker or equivalent stdlib path) `[running]`
 - tests/test_candidates_log.py covers all 5 test cases per Test narrative `[running]`
@@ -3949,12 +4052,12 @@ Ship `tasks/scm.yml` exposing 4 scm:* commands as thin ghx-or-gh fallback wrappe
 
 ### 2026-05-05-883-story-2-cache-infrastructure: feat(cache,quarantine): unified cache + scanner v2 baseline (#883 Story 2)  `[completed]`
 
-Ship `scripts/cache.py` (5 cache commands), `scripts/cache_scanner.py` (3 baseline categories), `tasks/cache.yml` (Taskfile fragment), and `vbrief/schemas/cache-meta.schema.json` (frozen meta.json contract validated on read AND write). Storage layout: `.deft-cache/<source>/<key>/{raw.json, content.md, meta.json}` plus `.deft-cache/quarantine-audit.jsonl` global audit log. Hard-coded TTL: github-issue=7d. Scanner severity is per-category (NOT uniform hard-fail per epic design_doc_departures): injection-heading=fence-and-pass, credentials=hard-fail, invisible-unicode=strip-and-pass.
+Ship `scripts/cache.py` (5 cache commands), `scripts/cache_scanner.py` (3 baseline categories), `tasks/cache.yml` (Taskfile fragment), and `xbrief/schemas/cache-meta.schema.json` (frozen meta.json contract validated on read AND write). Storage layout: `.deft-cache/<source>/<key>/{raw.json, content.md, meta.json}` plus `.deft-cache/quarantine-audit.jsonl` global audit log. Hard-coded TTL: github-issue=7d. Scanner severity is per-category (NOT uniform hard-fail per epic design_doc_departures): injection-heading=fence-and-pass, credentials=hard-fail, invisible-unicode=strip-and-pass.
 
 **Acceptance**:
 
 - scripts/cache.py NEW: 5 commands (cache:put, cache:get, cache:invalidate, cache:fetch-all, cache:prune); atomic write semantics; storage layout .deft-cache/<source>/<key>/{raw.json,content.md,meta.json} `[proposed]`
-- vbrief/schemas/cache-meta.schema.json NEW: JSON Schema 2020-12 validating full meta.json field set (source, key, fetched_at, ttl_seconds, expires_at, scan_result {passed, scanned_at, scanner_version, flags[]}, size_bytes, stale; etag optional/reserved); validated on read AND write (M4) `[proposed]`
+- xbrief/schemas/cache-meta.schema.json NEW: JSON Schema 2020-12 validating full meta.json field set (source, key, fetched_at, ttl_seconds, expires_at, scan_result {passed, scanned_at, scanner_version, flags[]}, size_bytes, stale; etag optional/reserved); validated on read AND write (M4) `[proposed]`
 - cache:put runs scanner before content.md write; on credentials hard-fail writes only raw.json + meta.json (no content.md), exits 2; on injection-heading wraps in fences and writes content.md; on invisible-unicode strips chars and writes content.md; one append to quarantine-audit.jsonl per cache:put regardless of outcome `[proposed]`
 - cache:get returns content.md path + meta.json contents; computes stale=true when current time > expires_at; never auto-refreshes; --allow-stale and --no-stale flags supported `[proposed]`
 - cache:fetch-all rate-limit handling (M1): --batch-size N (default 10), --delay-ms N (default 500), 429 response retry with Retry-After header parsing; calls task scm:issue:view (Story 1 interface) per issue `[proposed]`
@@ -3980,7 +4083,7 @@ DELETE: scripts/triage_cache.py, tasks/triage-cache.yml, parent Taskfile.yml tri
 - Rewrite scripts/triage_bulk.py: drop v0.25.2's _list_cached_candidates helper; consume cache:get for candidate body retrieval; preserve audit-log Tier-2 short-circuit invariants verbatim `[proposed]`
 - Rewrite scripts/triage_actions.py: per-action body reads via cache:get instead of triage_cache.show; preserve all 8 actions semantics (accept/reject/defer/needs-ac/mark-duplicate/status/reset/history) `[proposed]`
 - Rewrite scripts/triage_refresh.py: read meta.json.fetched_at via cache:get for staleness detection (compare to live `gh issue view <N> --json updatedAt`); preserve three-way drift prompt (proceed-with-stale / refresh-and-update-local / defer-from-this-batch) `[proposed]`
-- Rewrite scripts/triage_bootstrap.py (M3 explicit scope): orchestrate task cache:fetch-all --source=github-issue + audit-log init + gitignore-ensure for both .deft-cache/ and vbrief/.eval/; idempotent re-run; gitcrawl install path optional or dropped per epic design `[proposed]`
+- Rewrite scripts/triage_bootstrap.py (M3 explicit scope): orchestrate task cache:fetch-all --source=github-issue + audit-log init + gitignore-ensure for both .deft-cache/ and xbrief/.eval/; idempotent re-run; gitcrawl install path optional or dropped per epic design `[proposed]`
 - Edit skills/deft-directive-refinement/SKILL.md Phase 0 prose (~30-50 lines): Tier 1 references point at cache:* (not triage:cache); task name references throughout updated; three-tier inventory model + action menu structure preserved verbatim; UTF-8 safe via Python pathlib `[proposed]`
 - External surface for 13 kept triage:* tasks unchanged: accept, reject, defer, needs-ac, mark-duplicate, bulk-accept, bulk-reject, bulk-defer, bulk-needs-ac, status, reset, history, refresh-active, bootstrap. Verified by re-running v0.25.2 smoke test pattern against the rebound scripts `[proposed]`
 - Update / add regression tests: test_triage_bulk.py + test_triage_actions.py + test_triage_refresh.py + test_triage_bootstrap.py with fake cache fixtures asserting cache:get is the new read path; tests/integration/test_triage_smoke.py updated as needed for new internal calls `[proposed]`
@@ -3995,12 +4098,12 @@ Append `## v0.25.x -> v0.26.0` section to UPGRADING.md (~30-40 lines, terse-impe
 **Acceptance**:
 
 - UPGRADING.md append `## v0.25.x -> v0.26.0` section, ~30-40 lines, terse-imperative tone matching existing sections, four-field header (Applies when / Safe to auto-run / Restart required / Commands) `[proposed]`
-- UPGRADING.md content covers: (1) task triage:cache removed -> use task cache:fetch-all --source=github-issue --repo=OWNER/NAME; (2) task triage:show removed -> use task cache:get github-issue <owner>/<repo>/<N>; (3) on-disk layout change + recommend Remove-Item .deft-cache/issues/ then re-run cache populate; (4) audit log vbrief/.eval/candidates.jsonl unchanged; (5) all other task triage:* actions semantically unchanged `[proposed]`
+- UPGRADING.md content covers: (1) task triage:cache removed -> use task cache:fetch-all --source=github-issue --repo=OWNER/NAME; (2) task triage:show removed -> use task cache:get github-issue <owner>/<repo>/<N>; (3) on-disk layout change + recommend Remove-Item .deft-cache/issues/ then re-run cache populate; (4) audit log xbrief/.eval/candidates.jsonl unchanged; (5) all other task triage:* actions semantically unchanged `[proposed]`
 - CHANGELOG.md v0.26.0 entry leads with `### Breaking` block citing the surface removal + layout change; NOT buried in `### Added` `[proposed]`
 - tests/integration/test_cache_e2e.py NEW: ~3-5 test functions covering cache:fetch-all layout correctness, cache:get meta.json shape (scanner_version, stale, fetched_at), audit log append, cache:invalidate cleanup, idempotent re-run; fake-gh shim hermetic `[proposed]`
 - Re-run the v0.25.2 real-world bulk-triage smoke pattern against v0.26.0 master (10 newest issues against deftai/directive; populate -> bulk-defer; assert 10 cached, 10 actioned, idempotent, fails closed on empty cache); release gate, not CI `[proposed]`
 - Invoke skills/deft-directive-release/SKILL.md for v0.26.0: CHANGELOG promote, ROADMAP refresh, build, tag, draft, publish; release agent owns the 8-phase workflow `[proposed]`
-- Lifecycle-move epic vBRIEF + 4 story vBRIEFs from vbrief/active/ to vbrief/completed/ via task scope:complete (or task reconcile:issues --apply-lifecycle-fixes); plan.status flipped to completed; vBRIEFInfo.updated stamped `[proposed]`
+- Lifecycle-move epic vBRIEF + 4 story vBRIEFs from xbrief/active/ to xbrief/completed/ via task scope:complete (or task reconcile:issues --apply-lifecycle-fixes); plan.status flipped to completed; vBRIEFInfo.updated stamped `[proposed]`
 - task check passes (validate + lint + test + verify:encoding + verify:branch); coverage threshold maintained `[proposed]`
 - CHANGELOG.md [Unreleased] -> ### Added (Story 4-side bullet only): docs(upgrading): v0.25.x -> v0.26.0 migration section + tests(integration): cache layer e2e (#883 Story 4) `[proposed]`
 
@@ -4030,7 +4133,7 @@ Fix scripts/triage_bootstrap.py argparse to accept the full set of populate-side
 
 ### 2026-05-05-915-fix-triage-cache-bypass: P0: triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log -- iterates live gh issue list (#845 Story 4)  `[completed]`
 
-scripts/triage_bulk.py iterates live `gh issue list` output and skips the .deft-cache/issues sidecar entirely. It also never reads vbrief/.eval/candidates.jsonl, so repeat runs silently re-action issues and poison the append-only audit log. Together this violates the Tier-1 / Tier-2 contracts documented in skills/deft-directive-refinement/SKILL.md and the #845 epic vBRIEF: cache is supposed to be the read surface, the audit log is supposed to short-circuit terminal/in-progress decisions. The fix rewrites the candidate source to walk .deft-cache/issues/<owner>-<repo>/*.json, intersects results with candidates_log records to skip terminal (accept | reject | mark-duplicate) and in-progress (defer | needs-ac) decisions (the latter overridable via a new --re-action flag), hard-fails with exit 2 when the cache is empty (no live-gh fallback), and re-enables the four task triage:bulk-* surfaces that PR #916 gated. A new tests/integration/test_triage_smoke.py file regression-covers the cache-only contract end-to-end via a fake-gh shim on PATH; tests/test_triage_bulk.py gains unit tests for _list_cached_candidates.
+scripts/triage_bulk.py iterates live `gh issue list` output and skips the .deft-cache/issues sidecar entirely. It also never reads xbrief/.eval/candidates.jsonl, so repeat runs silently re-action issues and poison the append-only audit log. Together this violates the Tier-1 / Tier-2 contracts documented in skills/deft-directive-refinement/SKILL.md and the #845 epic vBRIEF: cache is supposed to be the read surface, the audit log is supposed to short-circuit terminal/in-progress decisions. The fix rewrites the candidate source to walk .deft-cache/issues/<owner>-<repo>/*.json, intersects results with candidates_log records to skip terminal (accept | reject | mark-duplicate) and in-progress (defer | needs-ac) decisions (the latter overridable via a new --re-action flag), hard-fails with exit 2 when the cache is empty (no live-gh fallback), and re-enables the four task triage:bulk-* surfaces that PR #916 gated. A new tests/integration/test_triage_smoke.py file regression-covers the cache-only contract end-to-end via a fake-gh shim on PATH; tests/test_triage_bulk.py gains unit tests for _list_cached_candidates.
 
 **Acceptance**:
 
@@ -4038,14 +4141,14 @@ scripts/triage_bulk.py iterates live `gh issue list` output and skips the .deft-
 - Bulk operations skip issues with terminal audit-log records (accept | reject | mark-duplicate) and in-progress records (defer | needs-ac) UNLESS --re-action is passed. `[pending]`
 - Empty cache -> exit 2 with stderr message `triage_bulk: cache is empty for {repo}; run \`task triage:bootstrap\` first.` `[pending]`
 - tasks/triage-bulk.yml: bulk-accept / bulk-reject / bulk-defer / bulk-needs-ac restored to original cmds: invocations of triage_bulk.py with PYTHONUTF8 env block and non-DISABLED desc; refresh-active untouched. The four triage:bulk-* root aliases dispatch to the re-enabled inner tasks. `[pending]`
-- .gitignore gains a `vbrief/.eval/` entry; scripts/triage_bootstrap.py adds an idempotent step_ensure_gitignore_eval_dir() step so upgrading projects auto-add the line on next bootstrap run. `[pending]`
+- .gitignore gains a `xbrief/.eval/` entry; scripts/triage_bootstrap.py adds an idempotent step_ensure_gitignore_eval_dir() step so upgrading projects auto-add the line on next bootstrap run. `[pending]`
 - tests/integration/test_triage_smoke.py: test_bulk_defer_actions_only_cached, test_bulk_defer_idempotent, test_empty_cache_hard_fails -- all three pass via a fake-gh PATH shim, no live network calls. `[pending]`
 - tests/test_triage_bulk.py: unit coverage for _list_cached_candidates -- missing dir -> hard fail path, populated dir -> parsed issue dicts, invalid JSON -> warn+skip with valid entries returned. `[pending]`
-- CHANGELOG.md: Unreleased -> Fixed entries describing the cache-walk rewrite and the bulk-* re-enable; Unreleased -> Added entries for vbrief/.eval gitignore + bootstrap ensure step + integration test. `[pending]`
+- CHANGELOG.md: Unreleased -> Fixed entries describing the cache-walk rewrite and the bulk-* re-enable; Unreleased -> Added entries for xbrief/.eval gitignore + bootstrap ensure step + integration test. `[pending]`
 
 ### 2026-05-05-915-hotfix-disable-triage-bulk: fix(triage): disable bulk-* tasks pending v0.25.2 (#915 hot-fix)  `[completed]`
 
-scripts/triage_bulk.py bypasses the .deft-cache contract and poisons vbrief/.eval/candidates.jsonl on every bulk-* invocation (#915). The proper fix is the cache-walk rewrite slated for v0.25.2; until it ships, every operator who runs `task triage:bulk-accept` / `bulk-reject` / `bulk-defer` / `bulk-needs-ac` against v0.25.0 or v0.25.1 corrupts the audit log. Single-issue triage actions (`task triage:accept` / `triage:reject` / `triage:defer` / `triage:needs-ac`) and the freshness gate (`task triage-bulk:refresh-active`) are NOT affected and remain the supported path.
+scripts/triage_bulk.py bypasses the .deft-cache contract and poisons xbrief/.eval/candidates.jsonl on every bulk-* invocation (#915). The proper fix is the cache-walk rewrite slated for v0.25.2; until it ships, every operator who runs `task triage:bulk-accept` / `bulk-reject` / `bulk-defer` / `bulk-needs-ac` against v0.25.0 or v0.25.1 corrupts the audit log. Single-issue triage actions (`task triage:accept` / `triage:reject` / `triage:defer` / `triage:needs-ac`) and the freshness gate (`task triage-bulk:refresh-active`) are NOT affected and remain the supported path.
 
 **Acceptance**:
 
@@ -4457,7 +4560,7 @@ This is an adoption blocker: the institutional knowledge exists, but only the ag
 - `docs/getting-started.md` does not mention `triage`, `refinement`, or `ingest` at all.
 - `docs/CONCEPTS.md` and `docs/ARCHITECTURE.md` do not cover the flow.
 - `commands.md` does not surface `task triage:*` and `task cache:fetch-all` with user-shaped (verb -> outcome) descriptions.
-- The full description of the three-tier model (`.deft-cache/github-issue/` / `vbrief/.eval/candidates.jsonl` / `vbrief/proposed/`), the action menu, and the rate-limit-friendly flags (`--limit`, `--state`, `--batch-size`, `--delay-ms`) lives only inside `skills/deft-directive-refinement/SKILL.md`, which is written for the agent.
+- The full description of the three-tier model (`.deft-cache/github-issue/` / `xbrief/.eval/candidates.jsonl` / `xbrief/proposed/`), the action menu, and the rate-limit-friendly flags (`--limit`, `--state`, `--batch-size`, `--delay-ms`) lives only inside `skills/deft-directive-refinement/SKILL.md`, which is written for the agent.
 
 The user-discoverable interface today is effectively the trigger-word list inside `AGENTS.md` Skill Routing (line 51) -- if a user does not know to say "triage" / "work the cache" / "pre-ingest", the workflow is invisible.
 
@@ -4469,7 +4572,7 @@ Three small, additive doc surfaces (one PR is sufficient):
 
 2. **`docs/getting-started.md`** — add a "Working an existing backlog" section explaining:
    - `task triage:bootstrap -- --limit 50 --state open` for a scoped first populate.
-   - The Phase 0 action menu (`accept | reject | defer | needs-ac | mark-duplicate`) and where accepted items land (`vbrief/proposed/`).
+   - The Phase 0 action menu (`accept | reject | defer | needs-ac | mark-duplicate`) and where accepted items land (`xbrief/proposed/`).
    - The three-tier model in user vocabulary (cache / audit log / accepted backlog) and why writes flow only through `task triage:accept`.
    - Why this avoids the shared GraphQL bucket drain (REST-backed cache, batched delays, no live `gh issue view` per decision).
 
@@ -4598,9 +4701,9 @@ effectively invisible to new users landing on the repo.
 - Does NOT establish webinstaller as the recommended default -- it stays an
   alternative.
 
-### 2026-05-08-985-bugtriagerefinement-task-triageaccept-skips-issueingest-dele: bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`  `[completed]`
+### 2026-05-08-985-bugtriagerefinement-task-triageaccept-skips-issueingest-dele: bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `xbrief/proposed/`  `[completed]`
 
-bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`
+bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `xbrief/proposed/`
 
 **Acceptance**:
 
@@ -4626,7 +4729,7 @@ bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.
 
 ### 2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an: feat(installer): adopt .deft/core/ as canonical install layout; ship relocator and contract flip in v0.27 (#992)  `[completed]`
 
-Three coordinated workstreams shipping as a single v0.27 release line. (1) PR1 contract flip -- string swap deft/run -> .deft/core/run across templates/agents-entry.md, main.md, legacy redirect stubs, every skills/**/*.md, README, UPGRADING, QUICK-START, docs/**; bump managed-section marker v1 -> v2 so cmd_gate fires agents-md=stale automatically on every current install; matching test updates pinned. (2) PR2 wipe-and-reinstall relocator -- new scripts/relocate.py + tasks/relocate.yml + webinstaller-hosted upgrade.sh / upgrade.ps1 bootstrap; bootstrap fetches fresh framework to a temp dir and runs the relocator FROM that copy (never self-destructive); state A-G synthetic-fixture test matrix; pre-flight hard-fail without --force on customized framework OR active vbrief/active/*.vbrief.json with plan.status running. (3) PR3 cmd_gate auto-prompt -- gate detects state A/B/C/D and surfaces 'Run <framework>/run relocate to upgrade. (Y/n)'; auto-prompt ONLY, never auto-wipe (mirrors #884 ghx-install consent gate); UPGRADING.md '## From deft/ -> .deft/core/' section with four-field micro-format header; dogfood validation harness. Sequencing: PR1 lands first (PR2/PR3 reference new strings); PR2 + PR3 parallelize after PR1 merges; tag v0.27.0-rc.1 once all three are merged + state matrix is green; dogfood across 2-3 deftai repos covering states A/B/C with snapshot-rollback verified at least once; tag v0.27.0 GA on clean dogfood. Tier 2-4 (pre-v0.23 reach) is out-of-band via deft-news / release notes / <webinstaller>/upgrade -- bootstrap is the universal entry point regardless of source state; pre-v0.20 schema migration chains through existing scripts/migrate_vbrief.py (#793).
+Three coordinated workstreams shipping as a single v0.27 release line. (1) PR1 contract flip -- string swap deft/run -> .deft/core/run across templates/agents-entry.md, main.md, legacy redirect stubs, every skills/**/*.md, README, UPGRADING, QUICK-START, docs/**; bump managed-section marker v1 -> v2 so cmd_gate fires agents-md=stale automatically on every current install; matching test updates pinned. (2) PR2 wipe-and-reinstall relocator -- new scripts/relocate.py + tasks/relocate.yml + webinstaller-hosted upgrade.sh / upgrade.ps1 bootstrap; bootstrap fetches fresh framework to a temp dir and runs the relocator FROM that copy (never self-destructive); state A-G synthetic-fixture test matrix; pre-flight hard-fail without --force on customized framework OR active xbrief/active/*.xbrief.json with plan.status running. (3) PR3 cmd_gate auto-prompt -- gate detects state A/B/C/D and surfaces 'Run <framework>/run relocate to upgrade. (Y/n)'; auto-prompt ONLY, never auto-wipe (mirrors #884 ghx-install consent gate); UPGRADING.md '## From deft/ -> .deft/core/' section with four-field micro-format header; dogfood validation harness. Sequencing: PR1 lands first (PR2/PR3 reference new strings); PR2 + PR3 parallelize after PR1 merges; tag v0.27.0-rc.1 once all three are merged + state matrix is green; dogfood across 2-3 deftai repos covering states A/B/C with snapshot-rollback verified at least once; tag v0.27.0 GA on clean dogfood. Tier 2-4 (pre-v0.23 reach) is out-of-band via deft-news / release notes / <webinstaller>/upgrade -- bootstrap is the universal entry point regardless of source state; pre-v0.20 schema migration chains through existing scripts/migrate_vbrief.py (#793).
 
 **Acceptance**:
 
@@ -4891,9 +4994,9 @@ Directive's existing gates would have refused (2)'s push step three times over. 
 - `scripts/preflight_branch.py` (template for `preflight_gh.py`)
 - `scripts/policy.py::disclosure_line` (template for session-start surface)
 - `scripts/setup_ghx.py` (template for consent-gated install)
-- `vbrief/completed/2026-04-30-746-*.vbrief.json` (typed policy flag pattern)
-- `vbrief/completed/2026-04-30-747-*.vbrief.json` (three-surface enforcement pattern)
-- `vbrief/completed/2026-04-28-725-*.vbrief.json` (force-push prevention prose tier)
+- `xbrief/completed/2026-04-30-746-*.xbrief.json` (typed policy flag pattern)
+- `xbrief/completed/2026-04-30-747-*.xbrief.json` (three-surface enforcement pattern)
+- `xbrief/completed/2026-04-28-725-*.xbrief.json` (force-push prevention prose tier)
 
 ### 2026-05-11-1020-installer-cmddeft-install-drifts-from-v0271-canonical-layout: installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)  `[completed]`
 
@@ -4928,10 +5031,10 @@ deft/          (full framework deposit -- LEGACY layout)
 - 4a `.deft/core/` framework deposit present -- **FAIL** (absent; deposit is at `deft/`)
 - 4b AGENTS.md carries `<!-- deft:managed-section v2 -->` -- **PASS** (template-sourced)
 - 4c `.gitignore` contains `.deft-cache/` -- **FAIL** (absent; installer never touches `.gitignore`)
-- 4d `.gitignore` contains `vbrief/.eval/` -- **FAIL** (absent)
+- 4d `.gitignore` contains `xbrief/.eval/` -- **FAIL** (absent)
 - 4e `.gitignore` does NOT contain `.deft/core/` -- **PASS** (vacuously)
 - 4f pre-existing `.gitignore` lines preserved -- **PASS** (untouched)
-- 4g `vbrief/` at consumer root with `schemas/` + `vbrief.md` -- **FAIL** (absent; framework `vbrief/` is at `deft/vbrief/`)
+- 4g `xbrief/` at consumer root with `schemas/` + `vbrief.md` -- **FAIL** (absent; framework `xbrief/` is at `deft/xbrief/`)
 - 4h legacy `deft/` is NOT created -- **FAIL** (created)
 
 5 of 8 assertions fail. The installer is producing what the relocator classifies as **state A** (pure `deft/` legacy install) -- the exact state the v0.27 release line was designed to migrate consumers OFF of.
@@ -4948,12 +5051,12 @@ The target framework directory is hardcoded to `deft/`. Additional drift surface
 
 - `cmd/deft-install/setup.go::agentsMDSentinel = "deft/main.md"` -- idempotency sentinel still references legacy path.
 - `cmd/deft-install/setup.go` thin-pointer skill content (`agentsSkillDeft`, `agentsSkillDeftDirectiveSetup`, ...) hardcodes `Read and follow: deft/skills/...` references.
-- The installer never touches `.gitignore`, so the F2 defaults (`.deft-cache/`, `vbrief/.eval/`) are not deposited.
-- The installer never creates a consumer-side `vbrief/schemas/` + `vbrief/vbrief.md` template (those exist at `deft/vbrief/` under the cloned framework, not at the consumer root).
+- The installer never touches `.gitignore`, so the F2 defaults (`.deft-cache/`, `xbrief/.eval/`) are not deposited.
+- The installer never creates a consumer-side `xbrief/schemas/` + `xbrief/vbrief.md` template (those exist at `deft/xbrief/` under the cloned framework, not at the consumer root).
 
 ## Why this is NOT a #992 blocker
 
-The active scope vBRIEF (`vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json`) ships the relocator (scripts/relocate.py) as the migration vehicle from any of states A/B/C/D to canonical. A consumer who runs `cmd/deft-install` today and then runs `python .deft/core/scripts/relocate.py` (or `task relocate` once relocated) ends up at canonical layout. The Go installer is on the **state-A producer side** of the equation, not the state-A consumer side.
+The active scope vBRIEF (`xbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.xbrief.json`) ships the relocator (scripts/relocate.py) as the migration vehicle from any of states A/B/C/D to canonical. A consumer who runs `cmd/deft-install` today and then runs `python .deft/core/scripts/relocate.py` (or `task relocate` once relocated) ends up at canonical layout. The Go installer is on the **state-A producer side** of the equation, not the state-A consumer side.
 
 PR #1017's `TestF2GitignoreDefault` pins the relocator's output. There is no equivalent test pinning the Go installer's output against the canonical contract.
 
@@ -4962,8 +5065,8 @@ PR #1017's `TestF2GitignoreDefault` pins the relocator's output. There is no equ
 1. Update `cmd/deft-install/wizard.go` to deposit at `.deft/core/` (rename `DeftDir` semantics).
 2. Update `cmd/deft-install/setup.go` `agentsMDSentinel` to `.deft/core/main.md` (or to a marker substring less coupled to path).
 3. Update the 9 thin-pointer skill string constants to reference `.deft/core/skills/...`.
-4. Add `.gitignore` upkeep (`.deft-cache/`, `vbrief/.eval/`) mirroring `scripts/relocate.py::_ensure_gitignore_lines`.
-5. Deposit `vbrief/schemas/` + `vbrief/vbrief.md` template at consumer root.
+4. Add `.gitignore` upkeep (`.deft-cache/`, `xbrief/.eval/`) mirroring `scripts/relocate.py::_ensure_gitignore_lines`.
+5. Deposit `xbrief/schemas/` + `xbrief/vbrief.md` template at consumer root.
 6. Update `templates/agents-entry.md` body prose (the marker-managed section currently says "Deft is installed in deft/. Full guidelines: deft/main.md" -- consistent with the legacy installer but inconsistent with canonical).
 7. Add a conformance test mirroring `tests/relocate/test_self_bootstrap.py::TestF2GitignoreDefault` against the Go installer output.
 
@@ -5025,12 +5128,12 @@ Spotted while running `task check` as the pre-PR gate for the cohort #992 instal
 ### 2026-05-11-1025-swarm-phase-0-missing-lifecycle-bridge-setup-deposits-vbrief: Swarm Phase 0 missing lifecycle bridge: setup deposits vBRIEFs in proposed/, swarm expects active/  `[completed]`
 
 ## Summary
-The deft setup skill (deft-directive-setup) deposits scope vBRIEFs in vbrief/proposed/ after Phase 3. The swarm skill (deft-directive-swarm) Phase 0 Step 1 expects vBRIEFs to already be in vbrief/active/ with plan.status == "running" before the preflight gate will pass.
+The deft setup skill (deft-directive-setup) deposits scope vBRIEFs in xbrief/proposed/ after Phase 3. The swarm skill (deft-directive-swarm) Phase 0 Step 1 expects vBRIEFs to already be in xbrief/active/ with plan.status == "running" before the preflight gate will pass.
 
 There is no bridging guidance in Phase 0. The monitor must manually run:
 ```
-task scope:promote vbrief/proposed/<file>
-task scope:activate vbrief/pending/<file>
+task scope:promote xbrief/proposed/<file>
+task scope:activate xbrief/pending/<file>
 ```
 for each scope vBRIEF before the swarm can allocate them — but neither Phase 0 Step 0 nor Step 1 mentions this.
 
@@ -5040,7 +5143,7 @@ Monitor discovered the gap at runtime when task vbrief:preflight rejected all fo
 ## Proposed fix
 Phase 0 Step 0 (Work-Item Source) or Step 1 (Read Project State) should add:
 
-> If candidate vBRIEFs are in vbrief/proposed/, run task scope:promote <path> then task scope:activate <path> for each before proceeding. The preflight gate (task vbrief:preflight) will reject any vBRIEF not in vbrief/active/ with status: running.
+> If candidate vBRIEFs are in xbrief/proposed/, run task scope:promote <path> then task scope:activate <path> for each before proceeding. The preflight gate (task vbrief:preflight) will reject any vBRIEF not in xbrief/active/ with status: running.
 
 ## Source
 Discovered during a first-session consumer project swarm (tic-tac-toe, 2026-05-10).
@@ -5070,7 +5173,7 @@ The CLEAN gate then requires `confidence > 3`, which `None > 3` evaluates False 
 Safe to merge once corrected.
 ...
 ```
-Plus per-finding sections like `### P1 -- vbrief/active/2026-05-11-1025-... has U+000B (Vertical Tab) corruption in Overview narrative` -- which DO match the existing `^\s*P[01]\s+--\s` Tier 3 line regex, so this particular review actually did flip `has_blocking=True` via Tier 3. The agent caught it. But the cousin heading shape `### P1: ...` (colon separator instead of double-dash) would NOT be matched.
+Plus per-finding sections like `### P1 -- xbrief/active/2026-05-11-1025-... has U+000B (Vertical Tab) corruption in Overview narrative` -- which DO match the existing `^\s*P[01]\s+--\s` Tier 3 line regex, so this particular review actually did flip `has_blocking=True` via Tier 3. The agent caught it. But the cousin heading shape `### P1: ...` (colon separator instead of double-dash) would NOT be matched.
 
 **Proposed fix:** Two additions to the detector body in `templates/swarm-greptile-poller-prompt.md`:
 
@@ -5313,7 +5416,7 @@ Deft is installed in deft/. Full guidelines: deft/main.md
 ```
 
 ```
-**USER.md exists, PROJECT-DEFINITION.vbrief.json missing** (./vbrief/):
+**USER.md exists, PROJECT-DEFINITION.xbrief.json missing** (./xbrief/):
 → Read deft/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
 ```
 
@@ -5338,7 +5441,7 @@ Only these lines at the end of the **Commands** section were flipped (per PR4 of
 
 ## Why this matters
 
-1. **Agents follow broken paths.** A returning agent following AGENTS.md routing for "USER.md exists, PROJECT-DEFINITION.vbrief.json missing" tries to read `deft/skills/deft-directive-setup/SKILL.md`, which does not exist on a state-B install. The QUICK-START Case G fallback ("read `deft/QUICK-START.md` instead") points at another nonexistent path.
+1. **Agents follow broken paths.** A returning agent following AGENTS.md routing for "USER.md exists, PROJECT-DEFINITION.xbrief.json missing" tries to read `deft/skills/deft-directive-setup/SKILL.md`, which does not exist on a state-B install. The QUICK-START Case G fallback ("read `deft/QUICK-START.md` instead") points at another nonexistent path.
 2. **The #992 PR3 install-layout detector contradicts the rendered AGENTS.md it just refreshed.** PR3 added a one-line auto-prompt "[deft] install layout state: B (pure .deft/core/ canonical install). Run .deft/core/run relocate to upgrade." But once the operator runs the relocator / upgrades, AGENTS.md is rewritten by `agents:refresh` from a template that still says "Deft is installed in deft/". Reads as the framework not believing its own canonical layout claim.
 3. **The single-namespace contract from #992 is not actually delivered.** The release notes for v0.27.0 describe `_INSTALL_LAYOUT_RELOCATE_TARGET = ".deft/core"` as "the canonical target string regardless of source state (single-namespace contract for v0.27 per the active vBRIEF DesignChoice)." The template body has not been brought into lockstep with that contract.
 
@@ -5391,7 +5494,7 @@ This issue captures every framework gap surfaced by walking through this single 
 
 `templates/agents-entry.md` literally says *"Deft is installed in `deft/`. Full guidelines: `deft/main.md`"* and every routing line is `deft/...`. But the install location is not contractually fixed:
 
-- An existing pending vBRIEF, `2026-04-23-52-install-into-deft-hidden-directory-instead-of-deft.vbrief.json`, proposes installing at `.deft/` as a feature.
+- An existing pending vBRIEF, `2026-04-23-52-install-into-deft-hidden-directory-instead-of-deft.xbrief.json`, proposes installing at `.deft/` as a feature.
 - `oz-agent-upgrade` ships installs at `.deft/core/` today (provenance recorded in `.deft/VERSION`).
 - `setup.go::WriteAgentsMD` (referenced from `QUICK-START.md` Case G step 2) writes a template that bakes `deft/` into every routing line.
 
@@ -5503,7 +5606,7 @@ Happy to spec this as an ADR or vBRIEF if that's the right next step.
 
 # Implementation Intent Gate (#810): Taskfile target hardcodes `deft/scripts/preflight_implementation.py`, fails open silently when install is at `.deft/core/`
 
-Filed as a focused follow-up to #1046 (B5). #810 introduced the Implementation Intent Gate as a **safety** rule: no code-writing tool call or `start_agent` dispatch may proceed unless `task vbrief:preflight -- <path>` exits 0, which only happens when the candidate vBRIEF is in `vbrief/active/` with `plan.status == "running"`. The gate is intended to be fail-closed.
+Filed as a focused follow-up to #1046 (B5). #810 introduced the Implementation Intent Gate as a **safety** rule: no code-writing tool call or `start_agent` dispatch may proceed unless `task vbrief:preflight -- <path>` exits 0, which only happens when the candidate vBRIEF is in `xbrief/active/` with `plan.status == "running"`. The gate is intended to be fail-closed.
 
 It currently fails open silently on every install at `.deft/core/` (state B), every hybrid install (state C), and every AGENTS.md-only install (state D), because the Taskfile target wraps a hardcoded `deft/scripts/preflight_implementation.py` path that doesn't resolve.
 
@@ -5511,7 +5614,7 @@ It currently fails open silently on every install at `.deft/core/` (state B), ev
 
 On a consumer with framework at `.deft/core/` (post-#992 canonical layout):
 
-1. `task vbrief:preflight -- vbrief/active/some.vbrief.json` is intended to invoke `deft/scripts/preflight_implementation.py`.
+1. `task vbrief:preflight -- xbrief/active/some.xbrief.json` is intended to invoke `deft/scripts/preflight_implementation.py`.
 2. `deft/scripts/preflight_implementation.py` does not exist; the script is at `.deft/core/scripts/preflight_implementation.py`.
 3. Depending on how the wrapping Taskfile target resolves the path:
    - If it errors loudly (`uv run python` against a missing file), the agent treats the gate as unreachable and routes around it.
@@ -5530,7 +5633,7 @@ This is independent of B1+B2 (the gate path is broken even when the agent does r
 ## Source-level location
 
 - The rule text in `templates/agents-entry.md` (managed-section body):
-  > Run `task vbrief:preflight -- <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate vBRIEF lives in `vbrief/active/` AND `plan.status == "running"`. The Taskfile target wraps `deft/scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory.
+  > Run `task vbrief:preflight -- <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate vBRIEF lives in `xbrief/active/` AND `plan.status == "running"`. The Taskfile target wraps `deft/scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory.
 - The Taskfile target wraps a hardcoded `deft/scripts/preflight_implementation.py` path.
 - The actual script in v0.27 installs lives at `.deft/core/scripts/preflight_implementation.py`.
 
@@ -6365,7 +6468,7 @@ None. #1070 merged at PR #1077; #1071 merged at PR #1076; both shipped in v0.29.
 
 ## Summary
 
-`task issue:ingest -- <N>` (via `scripts/issue_ingest.py`) refuses to ingest an issue whenever **any** existing vBRIEF (in any lifecycle folder, including `completed/`) carries a reference whose URI mentions issue `#N` — regardless of whether that reference represents **provenance** (`x-vbrief/github-issue` = "this vBRIEF implements issue #N") or just an **informational/sibling mention** (e.g. companion ref, related-plan, "see also").
+`task issue:ingest -- <N>` (via `scripts/issue_ingest.py`) refuses to ingest an issue whenever **any** existing vBRIEF (in any lifecycle folder, including `completed/`) carries a reference whose URI mentions issue `#N` — regardless of whether that reference represents **provenance** (`x-xbrief/github-issue` = "this vBRIEF implements issue #N") or just an **informational/sibling mention** (e.g. companion ref, related-plan, "see also").
 
 The result is a recurring false-positive dedup gate: legitimate new issues that are merely *referenced* in some unrelated vBRIEF can no longer be ingested through the canonical task surface, forcing operators to either mutate existing vBRIEFs (including completed history) or hand-author a new vBRIEF (anti-pattern per `skills/deft-directive-refinement/SKILL.md`).
 
@@ -6373,23 +6476,23 @@ The result is a recurring false-positive dedup gate: legitimate new issues that 
 
 Two false-positive blocks within one refinement session against tracker #1094:
 
-1. **#480** -- blocked because `pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json` carried a `Companion: #480 (agent trap defenses; same source paper as #481)` reference (type `x-vbrief/github-issue`). #481 does not implement #480; the reference was a sibling/source-paper link. Resolved by editing #481's pending brief to remove the companion ref (acceptable -- still in lifecycle).
+1. **#480** -- blocked because `pending/2026-04-30-481-patterns-directory-and-llm-app-standards.xbrief.json` carried a `Companion: #480 (agent trap defenses; same source paper as #481)` reference (type `x-xbrief/github-issue`). #481 does not implement #480; the reference was a sibling/source-paper link. Resolved by editing #481's pending brief to remove the companion ref (acceptable -- still in lifecycle).
 
-2. **#835** -- blocked because `completed/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json` carried a `Issue #835: memory write security scan (sibling consumer of the unified scanner; visionik's design doc lists this as a related issue alongside ...)` reference (type `x-vbrief/github-issue`). #883 did not implement #835; the reference was a related-future-consumer link in a design doc. **Skipped** from the cohort because mutating a `completed/` vBRIEF rewrites history and was deemed an unacceptable workaround.
+2. **#835** -- blocked because `completed/2026-05-05-883-deft-cache-quarantine-v1.xbrief.json` carried a `Issue #835: memory write security scan (sibling consumer of the unified scanner; visionik's design doc lists this as a related issue alongside ...)` reference (type `x-xbrief/github-issue`). #883 did not implement #835; the reference was a related-future-consumer link in a design doc. **Skipped** from the cohort because mutating a `completed/` vBRIEF rewrites history and was deemed an unacceptable workaround.
 
 The skill explicitly forbids hand-authoring as a workaround (`⊗ Hand-author scope vBRIEFs inside the skill when the ingest task exists`), so the dedup false positive is currently load-bearing failure -- the affected story has no canonical ingest path.
 
 ## Root cause
 
-`scripts/issue_ingest.py::ingest_one` calls `scan_vbrief_dir(vbrief_dir)` to build `dict[int, list[str]]` keyed on issue number alone, then short-circuits on `if number in refs:`. The lookup ignores the reference's `type` field and ignores the matched vBRIEF's lifecycle folder. Any reference whose URI contains `/issues/<N>` -- including `x-vbrief/related-plan`, companion mentions, and design-doc related-issue lists -- counts as "already ingested."
+`scripts/issue_ingest.py::ingest_one` calls `scan_vbrief_dir(vbrief_dir)` to build `dict[int, list[str]]` keyed on issue number alone, then short-circuits on `if number in refs:`. The lookup ignores the reference's `type` field and ignores the matched vBRIEF's lifecycle folder. Any reference whose URI contains `/issues/<N>` -- including `x-xbrief/related-plan`, companion mentions, and design-doc related-issue lists -- counts as "already ingested."
 
 ## Reproduction
 
 ```
 # vBRIEF A is in pending/ or completed/ with references:
-#   [{"uri": "https://github.com/o/r/issues/100", "type": "x-vbrief/github-issue",
+#   [{"uri": "https://github.com/o/r/issues/100", "type": "x-xbrief/github-issue",
 #     "title": "Issue #100 (primary)"},
-#    {"uri": "https://github.com/o/r/issues/101", "type": "x-vbrief/github-issue",
+#    {"uri": "https://github.com/o/r/issues/101", "type": "x-xbrief/github-issue",
 #     "title": "Related future consumer: #101"}]
 
 task issue:ingest -- 101 --dry-run
@@ -6400,11 +6503,11 @@ task issue:ingest -- 101 --dry-run
 
 Differentiate provenance references from informational references in the dedup pass. Two reasonable shapes:
 
-**Option A (type-aware):** treat **only** `x-vbrief/github-issue` references as provenance candidates, but additionally require that the matched vBRIEF's `vBRIEFInfo.description` or `plan.narratives.Origin` mention issue `#N` (i.e. confirm the vBRIEF was *ingested from* `#N`, not merely *referencing* it). Reject the dedup match if the type is `x-vbrief/github-issue` but the matched vBRIEF was ingested from a different issue.
+**Option A (type-aware):** treat **only** `x-xbrief/github-issue` references as provenance candidates, but additionally require that the matched vBRIEF's `vBRIEFInfo.description` or `plan.narratives.Origin` mention issue `#N` (i.e. confirm the vBRIEF was *ingested from* `#N`, not merely *referencing* it). Reject the dedup match if the type is `x-xbrief/github-issue` but the matched vBRIEF was ingested from a different issue.
 
 **Option B (position-aware):** only the FIRST reference in `plan.references` is treated as the provenance ref; subsequent references are considered companion/related and skipped during dedup. This matches the de-facto convention (`task issue:ingest` writes the primary ref first; the related-plan reference for the #480 fix landed after the primary).
 
-**Option C (explicit type split):** add a new reference type `x-vbrief/related-issue` and reserve `x-vbrief/github-issue` for provenance only. Migrate existing companion/sibling refs (one-time data correction). Dedup matches only on `x-vbrief/github-issue`. Cleanest long-term; biggest blast radius.
+**Option C (explicit type split):** add a new reference type `x-xbrief/related-issue` and reserve `x-xbrief/github-issue` for provenance only. Migrate existing companion/sibling refs (one-time data correction). Dedup matches only on `x-xbrief/github-issue`. Cleanest long-term; biggest blast radius.
 
 **Recommendation:** start with Option A as a surgical fix; track Option C as a v0.7 schema cleanup if the recurrence pattern continues.
 
@@ -6418,7 +6521,7 @@ Differentiate provenance references from informational references in the dedup p
 
 ## Out of scope
 
-- Retroactive cleanup of all existing `x-vbrief/github-issue`-typed companion references across the lifecycle folders. The fix should make new ingest correct without requiring a data-migration sweep first.
+- Retroactive cleanup of all existing `x-xbrief/github-issue`-typed companion references across the lifecycle folders. The fix should make new ingest correct without requiring a data-migration sweep first.
 - Bulk-ingest (`--all`) behaviour beyond what the single-issue fix touches.
 
 ## References
@@ -6476,7 +6579,7 @@ Extend source provenance convention (see #479) with an explicit trust level fiel
 - `"TrustLevel": "internal"` — from directive framework or user-authored content
 - `"TrustLevel": "external"` — originated from GitHub, web, or third-party source
 
-External-tagged content must not be promoted to `verified` without explicit revalidation. Document in `vbrief/vbrief.md`.
+External-tagged content must not be promoted to `verified` without explicit revalidation. Document in `xbrief/vbrief.md`.
 
 ### 5. Swarm compositional fragment defense in `swarm/swarm.md`
 
@@ -6790,7 +6893,7 @@ Add Phase 4.5 Story Decomposition / Swarm Readiness, deterministic decomposition
 **Acceptance**:
 
 - Document Phase 4.5 and vBRIEF story contract `[completed]`
-  - Acceptance: strategies/speckit.md and vbrief/vbrief.md define phase/epic/story semantics and required swarm-ready story fields.
+  - Acceptance: strategies/speckit.md and xbrief/vbrief.md define phase/epic/story semantics and required swarm-ready story fields.
 - Add scope:decompose and swarm:readiness commands `[completed]`
   - Acceptance: Taskfile exposes deterministic decomposition and readiness commands backed by tested Python scripts.
 - Update skills, renderers, templates, and stale Speckit examples `[completed]`
@@ -6804,7 +6907,7 @@ Add Phase 4.5 Story Decomposition / Swarm Readiness, deterministic decomposition
 
 No code. Two mechanical operations executed in this order:
 
-1. `task scope:complete -- vbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json` -- moves the gh-arch scope vBRIEF active/ -> completed/ and flips plan.status to completed. Commit standalone.
+1. `task scope:complete -- xbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.xbrief.json` -- moves the gh-arch scope vBRIEF active/ -> completed/ and flips plan.status to completed. Commit standalone.
 2. `task spec:render` -- regenerates SPECIFICATION.md from current vBRIEF lifecycle state. Diff will be large (catch-up across many prior PRs) but is auto-generated content; human review skips body. Commit standalone.
 
 ## Type
@@ -6813,8 +6916,8 @@ Chore -- vBRIEF lifecycle housekeeping + auto-generated artifact catch-up. No sk
 
 ## Acceptance criteria
 
-- [ ] `vbrief/completed/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json` exists with plan.status == "completed"
-- [ ] `vbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json` no longer exists
+- [ ] `xbrief/completed/2026-05-13-442-reland-skill-deft-directive-gh-arch.xbrief.json` exists with plan.status == "completed"
+- [ ] `xbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.xbrief.json` no longer exists
 - [ ] `SPECIFICATION.md` regenerated via `task spec:render`; the diff is the catch-up content only (no manual edits)
 - [ ] Two commits on the feature branch (scope:complete + spec render, in that order)
 - [ ] `task check` passes
@@ -6824,7 +6927,7 @@ Chore -- vBRIEF lifecycle housekeeping + auto-generated artifact catch-up. No sk
 ## Refs
 
 - Predecessor (merged): https://github.com/deftai/directive/pull/1125
-- Originating scope vBRIEF (to be completed by this PR): vbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json
+- Originating scope vBRIEF (to be completed by this PR): xbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.xbrief.json
 
 ### 2026-05-13-442-reland-skill-deft-directive-gh-arch: feat(skills): re-land deft-directive-gh-arch (supersedes #442)  `[completed]`
 
@@ -6874,16 +6977,16 @@ Framework content (new skill + AGENTS.md routing + CHANGELOG). No code-path chan
 ## What to build
 
 1. `scripts/scope_demote.py` -- single-file demote + batch demote driver.
-2. `scripts/scope_audit_log.py` -- append-only writer for `vbrief/.eval/scope-lifecycle.jsonl` with cross-process locking mirroring `candidates_log.py`.
+2. `scripts/scope_audit_log.py` -- append-only writer for `xbrief/.eval/scope-lifecycle.jsonl` with cross-process locking mirroring `candidates_log.py`.
 3. `tasks/scope.yml` -- new `demote` task forwarding `{{.CLI_ARGS}}` to `scope_demote.py` (same shape as existing scope verbs).
-4. `.gitignore` entry for `vbrief/.eval/scope-lifecycle.jsonl` (operator-private, mirrors `candidates.jsonl`).
+4. `.gitignore` entry for `xbrief/.eval/scope-lifecycle.jsonl` (operator-private, mirrors `candidates.jsonl`).
 5. Tests under `tests/cli/test_scope_demote.py` covering single-demote happy path, invalid source rejection, idempotent re-demote, batch with `--older-than-days`, batch no-op when nothing eligible, `demote_meta` block presence + content (every field), and `original_promotion_decision_id` traceability.
 
 ## Acceptance criteria
 
 - `task scope:demote <path>` moves a `pending/` vBRIEF to `proposed/`, flips `plan.status` to `proposed`, refreshes `plan.updated`.
 - `task scope:demote -- --batch --older-than-days 45` demotes every `pending/` vBRIEF whose `plan.updated` (or file mtime fallback) is older than 45 days; idle when none match.
-- Every demote appends one JSONL entry to `vbrief/.eval/scope-lifecycle.jsonl` with the full `demote_meta` block (5 fields).
+- Every demote appends one JSONL entry to `xbrief/.eval/scope-lifecycle.jsonl` with the full `demote_meta` block (5 fields).
 - 30%-threshold gate is NOT shipped; metrics over the log are deferred to #1180.
 - `task check` green (lint/test/encoding).
 - PR body references #1119 + #1121 + Current Shape comment.
@@ -6902,7 +7005,7 @@ Feature -- framework scope-lifecycle primitive; consumer-agnostic.
 
 ## What to build
 
-1. `scripts/triage_summary.py` -- pure-stdlib helper that walks the unified cache for the active triageScope, reads candidates.jsonl via scripts/candidates_log.py, derives the four counts, formats the one-liner under the 120-char cap, appends a record to vbrief/.eval/summary-history.jsonl, and exits 0 in every scenario.
+1. `scripts/triage_summary.py` -- pure-stdlib helper that walks the unified cache for the active triageScope, reads candidates.jsonl via scripts/candidates_log.py, derives the four counts, formats the one-liner under the 120-char cap, appends a record to xbrief/.eval/summary-history.jsonl, and exits 0 in every scenario.
 2. `tasks/triage-summary.yml` -- fragment file under `includes:` namespace `triage-summary` exposing the internal `summary` inner task that forwards `{{.CLI_ARGS}}`. Pattern mirrors `tasks/triage-scope.yml` from D12 (#1190 -- just landed).
 3. `Taskfile.yml` -- register the new include + add the alias `triage:summary` that delegates to `triage-summary:summary` (mirrors the existing triage:scope alias block).
 4. `tests/test_triage_summary.py` -- cover empty/missing cache prompt, populated cache w/ WIP under cap (no glyph), WIP at/above cap (glyph), stale-defer>0 (field appears), long-content overflow (graceful truncation), summary-history append (verify JSONL line written per call).
@@ -6919,7 +7022,7 @@ Feature -- Deliverable 2 of #1119. Status surface, not a gate (always exits 0).
 - Empty/missing cache prints `[triage] cache empty -- run task triage:bootstrap` (no zeros, no warning glyph).
 - WIP warning glyph appears only when count >= cap; stale-defer field appears only when count >= 1.
 - Long lines truncate gracefully at 120 chars.
-- Every emission appends a JSONL record `{emitted_at, line, ...computed_fields}` to vbrief/.eval/summary-history.jsonl.
+- Every emission appends a JSONL record `{emitted_at, line, ...computed_fields}` to xbrief/.eval/summary-history.jsonl.
 - D11 dependency hand-rolled in v1; comment notes the post-D11 wrap-up.
 - CHANGELOG entry under `[Unreleased]`.
 - `task check` green.
@@ -6939,7 +7042,7 @@ Feature -- Deliverable 2 of #1119. Status surface, not a gate (always exits 0).
 - This deliverable: #1122
 - Sibling (consumer of summary output via session-start ritual): N9 / #1149 (landed)
 - Sibling (D11 / triage:audit --format=json -- planned follow-up wrap-up): #1128
-- N4 / #1144 (vbrief/.eval/ governance -- landed)
+- N4 / #1144 (xbrief/.eval/ governance -- landed)
 - Foundation: #845 (cache + candidates.jsonl)
 
 ### 2026-05-17-1127-d5-cache-fresh: feat(verify): verify:cache-fresh pre-start_agent gate (subscription-aware) (#1127)  `[completed]`
@@ -7081,24 +7184,24 @@ Feature -- framework cache-scope contract; consumer-agnostic primitives only.
 - Issue: https://github.com/deftai/directive/issues/1131
 - Current Shape: https://github.com/deftai/directive/issues/1131#issuecomment-4471901494
 
-### 2026-05-17-1144-n4-eval-governance: feat(eval): govern vbrief/.eval/ tracking + merge=union (#1144)  `[completed]`
+### 2026-05-17-1144-n4-eval-governance: feat(eval): govern xbrief/.eval/ tracking + merge=union (#1144)  `[completed]`
 
 ## What to build
 
-1. `.gitignore` -- replace the blanket `vbrief/.eval/` line with selective entries for `vbrief/.eval/candidates.jsonl` and `vbrief/.eval/summary-history.jsonl`. `slices.jsonl` remains tracked by default.
-2. `.gitattributes` (new file at repo root) -- declare `vbrief/.eval/*.jsonl  merge=union` so append-only JSONLs auto-resolve concatenation conflicts on rebase.
-3. `vbrief/.eval/README.md` -- concise (does not duplicate the Current Shape comment). Covers which files are tracked vs gitignored and why, fresh-clone regeneration via `task triage:bootstrap`, and what `merge=union` means for operators rebasing.
+1. `.gitignore` -- replace the blanket `xbrief/.eval/` line with selective entries for `xbrief/.eval/candidates.jsonl` and `xbrief/.eval/summary-history.jsonl`. `slices.jsonl` remains tracked by default.
+2. `.gitattributes` (new file at repo root) -- declare `xbrief/.eval/*.jsonl  merge=union` so append-only JSONLs auto-resolve concatenation conflicts on rebase.
+3. `xbrief/.eval/README.md` -- concise (does not duplicate the Current Shape comment). Covers which files are tracked vs gitignored and why, fresh-clone regeneration via `task triage:bootstrap`, and what `merge=union` means for operators rebasing.
 4. Test under `tests/` simulating two append-branches on a `.jsonl` and verifying that `git merge` with the `merge=union` attribute produces the union of each branch's appended lines (note: `merge=union` does NOT dedupe -- the test asserts concatenation semantics explicitly).
 
 ## Type
 
-Feature -- governance / infrastructure for the #1119 triage-eval cohort. Foundational for D1 (#1121), D3 (#1123), D13 (#1132), and #1180 -- ships before any child writes to vbrief/.eval/.
+Feature -- governance / infrastructure for the #1119 triage-eval cohort. Foundational for D1 (#1121), D3 (#1123), D13 (#1132), and #1180 -- ships before any child writes to xbrief/.eval/.
 
 ## Acceptance criteria
 
 - [ ] `.gitignore` selective entries land exactly as specified (candidates.jsonl + summary-history.jsonl), slices.jsonl remains tracked.
-- [ ] `.gitattributes` carries `vbrief/.eval/*.jsonl  merge=union`.
-- [ ] `vbrief/.eval/README.md` is concise and operator-readable.
+- [ ] `.gitattributes` carries `xbrief/.eval/*.jsonl  merge=union`.
+- [ ] `xbrief/.eval/README.md` is concise and operator-readable.
 - [ ] Append-merge test passes.
 - [ ] `task check` green (lint + tests + encoding gate + branch gate).
 - [ ] PR body references the Current Shape comment + lists downstream consumers (D1/#1121, D3/#1123, D13/#1132, #1180) and `Closes #1144`.
@@ -7152,8 +7255,8 @@ Feature -- AGENTS.md framework meta-instruction consolidation. No skill body cha
 
 ## What to build
 
-1. `scripts/resume_conditions.py` -- pure-stdlib grammar parser + evaluator. Atomic types: `ref:closed:#N`, `ref:merged:#N`, `date:>=YYYY-MM-DD`, `pending-count:>=N`, `pending-count:<=N`. Top-level composition: `<atomic> AND <atomic>` | `<atomic> OR <atomic>` (no nesting in v1). `ResumeContext` dataclass carries `today: date`, `closed_issues: set[int]`, `merged_prs: set[int]`, `pending_count: int`. `ResumeEvaluator` walks `candidates.jsonl`, derives the context from `.deft-cache/github-issue/` + `vbrief/pending/`, evaluates each open defer entry whose `resume_on` is non-null, and appends an idempotent `resume-eligible` entry via `candidates_log.append`.
-2. `vbrief/schemas/candidates.schema.json` -- additive only. Append `resume-eligible` to the `decision` enum. Add optional `resume_on` (string). Permit `prior_decision_id` for `decision in {reset, resume-eligible}` and require it for both.
+1. `scripts/resume_conditions.py` -- pure-stdlib grammar parser + evaluator. Atomic types: `ref:closed:#N`, `ref:merged:#N`, `date:>=YYYY-MM-DD`, `pending-count:>=N`, `pending-count:<=N`. Top-level composition: `<atomic> AND <atomic>` | `<atomic> OR <atomic>` (no nesting in v1). `ResumeContext` dataclass carries `today: date`, `closed_issues: set[int]`, `merged_prs: set[int]`, `pending_count: int`. `ResumeEvaluator` walks `candidates.jsonl`, derives the context from `.deft-cache/github-issue/` + `xbrief/pending/`, evaluates each open defer entry whose `resume_on` is non-null, and appends an idempotent `resume-eligible` entry via `candidates_log.append`.
+2. `xbrief/schemas/candidates.schema.json` -- additive only. Append `resume-eligible` to the `decision` enum. Add optional `resume_on` (string). Permit `prior_decision_id` for `decision in {reset, resume-eligible}` and require it for both.
 3. `scripts/candidates_log.py` -- mirror schema additions in the hand-rolled validator (`_VALID_DECISIONS`, `_OPTIONAL_FIELDS`, conditional checks).
 4. `scripts/triage_actions.py` -- `defer()` now takes `reason: str` (required) + `resume_on: str | None`. Pre-validates `resume_on` via `resume_conditions.parse`. CLI: `--reason` becomes required for `defer`; new `--resume-on` flag.
 5. `scripts/triage_queue.py` + `scripts/_triage_queue_cli.py` -- extend `derive_group` so `latest_decision == 'resume-eligible'` routes to the `RESUME` bucket. Add `--evaluate-resume` flag to the `audit` subcommand; when passed, invoke the evaluator BEFORE rendering the audit dump.
@@ -7240,7 +7343,7 @@ Feature -- framework policy primitive; consumer-agnostic; framework default 10.
 
 ### 2026-05-18-1132-d13-slices-writer: feat(triage): slices.jsonl writer + orphan/slice-coverage audit flags + D3 slice-wave-ready atomic (#1132)  `[completed]`
 
-See issue #1132 for full spec. Files owned: vbrief/schemas/slices.schema.json (new); scripts/slice_record.py (new); scripts/triage_queue.py + scripts/_triage_queue_cli.py (extend with Slice operations argparse group + ORPHAN ranking); scripts/resume_conditions.py (slice-wave-ready atomic); skills/deft-directive-gh-slice/SKILL.md + skills/deft-directive-gh-arch/SKILL.md + skills/deft-directive-refinement/SKILL.md (slice write step); tests/test_slice_record.py (new); tests/test_resume_conditions.py + tests/test_triage_queue.py (extend); CHANGELOG.md ([Unreleased]).
+See issue #1132 for full spec. Files owned: xbrief/schemas/slices.schema.json (new); scripts/slice_record.py (new); scripts/triage_queue.py + scripts/_triage_queue_cli.py (extend with Slice operations argparse group + ORPHAN ranking); scripts/resume_conditions.py (slice-wave-ready atomic); skills/deft-directive-gh-slice/SKILL.md + skills/deft-directive-gh-arch/SKILL.md + skills/deft-directive-refinement/SKILL.md (slice write step); tests/test_slice_record.py (new); tests/test_resume_conditions.py + tests/test_triage_queue.py (extend); CHANGELOG.md ([Unreleased]).
 
 ### 2026-05-18-1133-d14-scope-drift: feat(triage): scope-drift detector + milestone rule type + subscribe/unsubscribe verbs + triageScopeIgnores[] foundation (#1133)  `[completed]`
 
@@ -7260,7 +7363,7 @@ See issue #1132 for full spec. Files owned: vbrief/schemas/slices.schema.json (n
 - Drift detection fires when >=3 cached issues use an unsubscribed label/milestone; <=2 is below threshold and not surfaced
 - triageScopeIgnores[] entries suppress the surface for those labels/milestones; drift detector excludes them on subsequent runs
 - task triage:scope-drift renders unsubscribed labels + milestones with counts; documents both subscribe and ignore paths in output
-- task triage:subscribe --label=X / --milestone=M / --issue=N mutate PROJECT-DEFINITION atomically; idempotent on re-run; record a subscription-change audit entry to vbrief/.eval/subscription-history.jsonl; print a reconciliation hint pointing at task triage:bootstrap -- --resume
+- task triage:subscribe --label=X / --milestone=M / --issue=N mutate PROJECT-DEFINITION atomically; idempotent on re-run; record a subscription-change audit entry to xbrief/.eval/subscription-history.jsonl; print a reconciliation hint pointing at task triage:bootstrap -- --resume
 - task triage:unsubscribe reverses the operation; out-of-scope entries marked (not deleted)
 - task triage:scope-drift -- --ignore-label=X / --ignore-milestone=M records ignores; future drift surfaces exclude them
 - milestone rule type accepts {name: '<exact-name>'}; rejects malformed; evaluator matches issues by milestone.title exact match
@@ -7330,7 +7433,7 @@ Docs / framework -- Deliverable N1 of #1119 Wave-2d-1. Skill body rewrite + cont
 
 - Phase 0 documents three sub-phases (0a Triage gate, 0b Cache-first ingestion, 0c Resume conditions) in canonical order.
 - Phase 0a invokes `task triage:summary` and points operator at `skills/deft-directive-triage/SKILL.md`.
-- Phase 0b consumes `task triage:queue --state=accept`; existing `vbrief/proposed/` items join the cache rather than being enumerated separately.
+- Phase 0b consumes `task triage:queue --state=accept`; existing `xbrief/proposed/` items join the cache rather than being enumerated separately.
 - Phase 0c surfaces `[RESUME]`-tagged items first.
 - Empty-cache fallback emits clear stderr prompt pointing at `task triage:welcome`.
 - Phase 4 verb table gains `task scope:undo` (referencing D15/#1134).
@@ -7444,7 +7547,7 @@ Feature -- Deliverable N3 of #1119 Wave-2a. Consolidating onboarding ritual; ide
 
 ## What to build
 
-1. `tests/fixtures/triage_smoketest/` -- hermetic 20-issue fixture (issues.json spec, PROJECT-DEFINITION with consumer research rule, pre-existing active vBRIEF, proposed test-1.vbrief.json).
+1. `tests/fixtures/triage_smoketest/` -- hermetic 20-issue fixture (issues.json spec, PROJECT-DEFINITION with consumer research rule, pre-existing active vBRIEF, proposed test-1.xbrief.json).
 2. `scripts/triage_smoketest.py` -- driver. Copies fixture into a temp working directory, renders the .deft-cache from issues.json, runs the 9 stages, writes `tests/fixtures/triage_smoketest/last_run.json` (gitignored), exits 0 on pass / 1 on first failure.
 3. `tasks/triage-smoketest.yml` + Taskfile include + `triage:smoketest` root alias.
 4. `tests/test_triage_smoketest.py` -- pytest wrapper that runs the script against the fixture and asserts exit 0.
@@ -7679,16 +7782,16 @@ Feature -- framework cache-scope contract extension; consumer-agnostic primitive
 
 ## What to build
 
-1. Update vbrief/PROJECT-DEFINITION.vbrief.json plan.policy.* with the typed values per the issue body. wipCap omitted (deft accepts framework default 10).
+1. Update xbrief/PROJECT-DEFINITION.xbrief.json plan.policy.* with the typed values per the issue body. wipCap omitted (deft accepts framework default 10).
 2. New docs/example-project-definition.md reference doc with empty template / deft filled-in / side-by-side annotation / clone-and-edit closing note.
 3. New tests/content/test_consumer_config_example.py that pins the doc's section structure (mirrors N9/N12 content-test pattern) AND validates the deft PROJECT-DEFINITION via the existing vbrief_validate + per-primitive validators.
 4. CHANGELOG.md [Unreleased] entry.
 
 ## Acceptance criteria
 
-- vbrief/PROJECT-DEFINITION.vbrief.json carries the four plan.policy.* arrays from the issue body verbatim
+- xbrief/PROJECT-DEFINITION.xbrief.json carries the four plan.policy.* arrays from the issue body verbatim
 - `task vbrief:validate` exits 0
-- `task vbrief:preflight -- vbrief/active/<this>.vbrief.json` exits 0
+- `task vbrief:preflight -- xbrief/active/<this>.xbrief.json` exits 0
 - docs/example-project-definition.md exists with the four sections: empty template / deft filled-in / annotation column / clone-and-edit closing note
 - Content tests pin the doc section structure AND the deft PROJECT-DEFINITION validation
 - NO framework code edits anywhere (validators, defaults, primitives untouched)
@@ -7789,7 +7892,7 @@ Per #1119: commit message footer, PR body, and any new artifact provenance MUST 
 
 ## Why
 
-D13 (#1132) writes `vbrief/.eval/slices.jsonl` only when slicing **skills** fire (`deft-directive-gh-slice`, `deft-directive-gh-arch`, refinement's slice phase). Hand-filed umbrella + manually-created children is the dominant historical pattern in deftai/directive — including #1119 itself, which was hand-authored and whose 16+ children were filed via individual `gh issue create` (or `issue_write` MCP) calls, NOT by a slicing skill. The result: no `slices.jsonl` entry exists for #1119's cohort.
+D13 (#1132) writes `xbrief/.eval/slices.jsonl` only when slicing **skills** fire (`deft-directive-gh-slice`, `deft-directive-gh-arch`, refinement's slice phase). Hand-filed umbrella + manually-created children is the dominant historical pattern in deftai/directive — including #1119 itself, which was hand-authored and whose 16+ children were filed via individual `gh issue create` (or `issue_write` MCP) calls, NOT by a slicing skill. The result: no `slices.jsonl` entry exists for #1119's cohort.
 
 Consequence: D13's `triage:audit --orphans` / `--slice-stalled` / `--slice-coverage` flags catch zero of the umbrellas that exist today. The orphan-surfacing surface is built on a writer that didn't see the historical cohorts. Future operators who file umbrellas by hand will have the same gap.
 
@@ -7824,7 +7927,7 @@ Operator-invoked. Writes a `slices.jsonl` entry for an existing cohort that the 
 
 ### Output
 
-Writes a single entry to `vbrief/.eval/slices.jsonl` matching D13's schema:
+Writes a single entry to `xbrief/.eval/slices.jsonl` matching D13's schema:
 
 ```json
 {
@@ -7875,7 +7978,7 @@ $ task slice:record-existing \
     --wave-4=1133,1134,1135,1136,1137,1138 \
     --actor=manual:operator \
     --notes="backfill after N7 landed; cohort hand-authored across four design passes 2026-05-12..2026-05-14"
-Wrote vbrief/.eval/slices.jsonl entry for umbrella #1119 (23 children, 4 waves)
+Wrote xbrief/.eval/slices.jsonl entry for umbrella #1119 (23 children, 4 waves)
 ```
 
 Later, `task triage:audit --orphans` correctly identifies #1140 (or any other child) as an orphan when #1119 itself closes.
@@ -7884,7 +7987,7 @@ Later, `task triage:audit --orphans` correctly identifies #1140 (or any other ch
 
 - D13 (#1132) — `slices.jsonl` schema and writer (this child writes via the same helper `scripts/slice_record.py::write_slice()`)
 - N5 (source-agnostic shim) — preferred for validation calls; falls back to direct `gh` if N5 not yet landed
-- Existing `vbrief/.eval/` directory governance (N4 / #1144) — must respect the gitignored vs committed decision (`slices.jsonl` is committed per N4's recommendation)
+- Existing `xbrief/.eval/` directory governance (N4 / #1144) — must respect the gitignored vs committed decision (`slices.jsonl` is committed per N4's recommendation)
 
 Wave 4 (depends on D13 + N4; N5 is preferred but not strict).
 
@@ -8180,7 +8283,7 @@ SLizard v0.3.582 raised 2× P1 + 1× P2 findings on PR #1229 (N7 / #1147) head `
 
 In practice the verb is operator-invoked at human cadence, so the race window is rarely hit. But the idempotency guarantee in #1147's acceptance criteria is unconditional ("re-running with same umbrella + children set is a no-op"). Make it atomic.
 
-Suggested fix: wrap the read-decide-write under a file lock on the `slices.jsonl` path (project already has `vbrief/.eval/scope-lifecycle.jsonl.lock` precedent — same approach is fine here). Re-check duplicate detection after acquiring the lock so the decision happens under the same critical section as the append.
+Suggested fix: wrap the read-decide-write under a file lock on the `slices.jsonl` path (project already has `xbrief/.eval/scope-lifecycle.jsonl.lock` precedent — same approach is fine here). Re-check duplicate detection after acquiring the lock so the decision happens under the same critical section as the append.
 
 Add a test that exercises the concurrent-invocation path (e.g. two threads, both with same args, neither passing `--force`) and asserts exactly one record is written.
 
@@ -8362,11 +8465,11 @@ Bootstrap creates 396 issue dirs at `.deft-cache/github-issue/deftai/directive/`
 ✓ deft cache-fresh: vbrief\.eval\candidates.jsonl absent and --allow-missing-bootstrap was passed -- treating as bootstrap state.
 ```
 
-The user's mental model is: "I just bootstrapped — why does the gate still call me a bootstrap consumer?" Answer: `verify:cache-fresh` also requires `vbrief/.eval/candidates.jsonl`, which `triage:bootstrap` does not seed.
+The user's mental model is: "I just bootstrapped — why does the gate still call me a bootstrap consumer?" Answer: `verify:cache-fresh` also requires `xbrief/.eval/candidates.jsonl`, which `triage:bootstrap` does not seed.
 
 ## Fix candidates
 
-- **A.** `triage:bootstrap` seeds an empty `vbrief/.eval/candidates.jsonl` (zero-length file) as part of step 4 (the same step that already mutates `.gitignore`). After bootstrap, the gate sees both the cache AND the audit log and stops claiming "bootstrap state".
+- **A.** `triage:bootstrap` seeds an empty `xbrief/.eval/candidates.jsonl` (zero-length file) as part of step 4 (the same step that already mutates `.gitignore`). After bootstrap, the gate sees both the cache AND the audit log and stops claiming "bootstrap state".
 - **B.** `verify:cache-fresh` rewrites the message so it doesn't conflate "no audit log yet" with "consumer hasn't bootstrapped". Distinguish: cache present + audit log absent = "fresh bootstrap, no triage actions yet" (not "bootstrap state").
 
 Option A is cleaner because it brings the two surfaces into agreement on a single state machine. Option B is the smaller change.
@@ -8456,7 +8559,7 @@ The root cause is process, not pipeline: CHANGELOG entries have drifted into "en
 
 ## Reproduction (2026-05-20 session, master @ pre-#1143 follow-up)
 
-Starting state: fresh checkout, `vbrief/.eval/candidates.jsonl` absent.
+Starting state: fresh checkout, `xbrief/.eval/candidates.jsonl` absent.
 
 ```
 $ task verify:cache-fresh
@@ -8637,11 +8740,11 @@ Cosmetic / observability — not functionally broken, but actively misleading on
 
 ## Summary
 
-`task issue:ingest` produces vBRIEFs with only three narratives (`Description`, `Origin`, `Labels`) and zero `plan.items` — essentially a structural echo of the GH issue title + labels. The resulting `proposed/*.vbrief.json` files contribute almost nothing to the refinement workflow that's supposed to consume them; an operator running `deft-directive-refinement` must reconstruct the substance from scratch by re-reading the GH issue.
+`task issue:ingest` produces vBRIEFs with only three narratives (`Description`, `Origin`, `Labels`) and zero `plan.items` — essentially a structural echo of the GH issue title + labels. The resulting `proposed/*.xbrief.json` files contribute almost nothing to the refinement workflow that's supposed to consume them; an operator running `deft-directive-refinement` must reconstruct the substance from scratch by re-reading the GH issue.
 
-## Reproduction (audit pass of `vbrief/proposed/` on 2026-05-20)
+## Reproduction (audit pass of `xbrief/proposed/` on 2026-05-20)
 
-Of 46 vBRIEFs in `vbrief/proposed/`, **40 are stub-only** (no `Overview` narrative, `len(plan.items) == 0`). The pattern is uniform:
+Of 46 vBRIEFs in `xbrief/proposed/`, **40 are stub-only** (no `Overview` narrative, `len(plan.items) == 0`). The pattern is uniform:
 
 ```json
 {
@@ -8667,7 +8770,7 @@ Of 46 vBRIEFs in `vbrief/proposed/`, **40 are stub-only** (no `Overview` narrati
 `task issue:ingest` should at minimum:
 - Populate `narratives.Overview` from the issue body's first paragraph (or full body, truncated to a sensible length).
 - Surface acceptance criteria / checklists from the issue body as initial `plan.items[]` entries (one item per checkbox or numbered AC).
-- Preserve issue body cross-refs (`Closes #N`, `Refs #N`, `Blocked by #N`) as additional `plan.references[]` entries with appropriate types (`x-vbrief/closes`, `x-vbrief/refs`, `x-vbrief/blocks`).
+- Preserve issue body cross-refs (`Closes #N`, `Refs #N`, `Blocked by #N`) as additional `plan.references[]` entries with appropriate types (`x-xbrief/closes`, `x-xbrief/refs`, `x-xbrief/blocks`).
 
 ## Impact
 
@@ -8698,13 +8801,13 @@ This may be the issue tracked elsewhere — search for prior work on `issue_inge
 
 ## Summary
 
-`task triage:welcome` materializes `plan.policy.wipCap=10` into `vbrief/PROJECT-DEFINITION.vbrief.json` and appends an entry to `meta/policy-changes.log`. This directly violates the existing policy contract documented in #1186 Deliverable 1 ("deft accepts the framework default 10 -- the typed field is omitted from PROJECT-DEFINITION") and breaks the maintainer-design test `tests/content/test_consumer_config_example.py::test_policy_omits_wip_cap`.
+`task triage:welcome` materializes `plan.policy.wipCap=10` into `xbrief/PROJECT-DEFINITION.xbrief.json` and appends an entry to `meta/policy-changes.log`. This directly violates the existing policy contract documented in #1186 Deliverable 1 ("deft accepts the framework default 10 -- the typed field is omitted from PROJECT-DEFINITION") and breaks the maintainer-design test `tests/content/test_consumer_config_example.py::test_policy_omits_wip_cap`.
 
 ## Reproduction (2026-05-20 dogfood session)
 
-1. Fresh `vbrief/PROJECT-DEFINITION.vbrief.json` with no `plan.policy.wipCap` key.
+1. Fresh `xbrief/PROJECT-DEFINITION.xbrief.json` with no `plan.policy.wipCap` key.
 2. Run `task triage:welcome` (or `task triage:welcome -- --no-subprocess`). Accept default `wipCap=10` when prompted.
-3. Observe `vbrief/PROJECT-DEFINITION.vbrief.json` diff: `+      "wipCap": 10` materialized at the end of `plan.policy`.
+3. Observe `xbrief/PROJECT-DEFINITION.xbrief.json` diff: `+      "wipCap": 10` materialized at the end of `plan.policy`.
 4. Observe new file `meta/policy-changes.log` with row `2026-05-20T12:51:16Z actor=triage-welcome field=plan.policy.wipCap value=10 previous=None changed=true`.
 5. Run `task check` (or `pytest tests/content/test_consumer_config_example.py::test_policy_omits_wip_cap`). Result:
 
@@ -8745,21 +8848,21 @@ The ritual writes the field unconditionally on operator confirmation, regardless
 
 ## Workaround
 
-After running `task triage:welcome`, manually revert the `plan.policy.wipCap` field from `PROJECT-DEFINITION.vbrief.json` and delete the corresponding `meta/policy-changes.log` row.
+After running `task triage:welcome`, manually revert the `plan.policy.wipCap` field from `PROJECT-DEFINITION.xbrief.json` and delete the corresponding `meta/policy-changes.log` row.
 
-### 2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe: bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy  `[completed]`
+### 2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe: bug(triage,policy): task triage:bootstrap blanket-ignores xbrief/.eval/, violating #1144 hybrid policy  `[completed]`
 
 ## Summary
 
-`task triage:bootstrap` step 4 (`ensure_gitignore_eval_dir`) appends a blanket `vbrief/.eval/` line to `.gitignore`, ignoring the entire eval directory. This directly violates the #1144 hybrid policy ("vbrief/.eval/ tracking governance"), which specifies that selective files (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`) are gitignored while `slices.jsonl` is TRACKED. The blanket ignore defeats the hybrid policy and breaks the maintainer-design test `tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory`.
+`task triage:bootstrap` step 4 (`ensure_gitignore_eval_dir`) appends a blanket `xbrief/.eval/` line to `.gitignore`, ignoring the entire eval directory. This directly violates the #1144 hybrid policy ("xbrief/.eval/ tracking governance"), which specifies that selective files (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`) are gitignored while `slices.jsonl` is TRACKED. The blanket ignore defeats the hybrid policy and breaks the maintainer-design test `tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory`.
 
 ## Reproduction (2026-05-20 dogfood session)
 
 1. Fresh `.gitignore` with the proper #1144 selective entries in place:
 ```
-vbrief/.eval/candidates.jsonl
-vbrief/.eval/summary-history.jsonl
-vbrief/.eval/scope-lifecycle.jsonl
+xbrief/.eval/candidates.jsonl
+xbrief/.eval/summary-history.jsonl
+xbrief/.eval/scope-lifecycle.jsonl
 ```
 2. Run `task triage:bootstrap` (any path; step 4 fires unconditionally on first bootstrap).
 3. Observe `.gitignore` diff:
@@ -8768,12 +8871,12 @@ vbrief/.eval/scope-lifecycle.jsonl
 +# evaluation artefacts written by triage actions. Per-machine operator state;
 +# never versioned (would leak triage timing/identity). Comment this line out
 +# to opt in to committing the audit log.
-+vbrief/.eval/
++xbrief/.eval/
 ```
 4. Run `task check` (or `pytest tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory`). Result:
 
 ```
-AssertionError: blanket gitignore of vbrief/.eval/ defeats the hybrid policy (#1144)
+AssertionError: blanket gitignore of xbrief/.eval/ defeats the hybrid policy (#1144)
 ```
 
 The PR carrying this change (#1249) is unmergeable until the blanket ignore is removed.
@@ -8783,12 +8886,12 @@ The PR carrying this change (#1249) is unmergeable until the blanket ignore is r
 `task triage:bootstrap` step 4 should be idempotent w.r.t. the #1144 hybrid policy:
 - Check whether `.gitignore` already carries the three selective entries (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`).
 - If yes: no-op. The policy is already satisfied.
-- If no: append the SELECTIVE entries (not a blanket `vbrief/.eval/`), plus the `.gitattributes merge=union` rule for any tracked-but-mergeable eval files, plus a `vbrief/.eval/README.md` documenting the policy.
+- If no: append the SELECTIVE entries (not a blanket `xbrief/.eval/`), plus the `.gitattributes merge=union` rule for any tracked-but-mergeable eval files, plus a `xbrief/.eval/README.md` documenting the policy.
 - Step name should be renamed from `ensure_gitignore_eval_dir` to `ensure_gitignore_eval_entries` to reflect the per-file semantics.
 
 ## Actual
 
-Step 4 appends a blanket `vbrief/.eval/` line regardless of whether the selective entries are already present. This:
+Step 4 appends a blanket `xbrief/.eval/` line regardless of whether the selective entries are already present. This:
 - Ignores tracked eval files (e.g. `slices.jsonl` per #1132 / D13) that the hybrid policy explicitly requires to be team-shared.
 - Creates `.gitignore` precedence ambiguity (more-specific selective entries above + less-specific blanket below — git resolves to blanket).
 - Breaks the `task check` deterministic gate against #1144 violations.
@@ -8803,7 +8906,7 @@ Step 4 appends a blanket `vbrief/.eval/` line regardless of whether the selectiv
 
 - `scripts/triage_bootstrap.py` step 4 (`ensure_gitignore_eval_dir`): replace the blanket-line append with the per-file convention from #1144 Current Shape v3.
 - Check whether step 4 is supposed to be a no-op when `.gitignore` already has the #1144 entries (likely yes; this is the consumer-clone case).
-- Verify the step also adds `.gitattributes merge=union vbrief/.eval/*.jsonl` for the tracked-and-mergeable case if missing.
+- Verify the step also adds `.gitattributes merge=union xbrief/.eval/*.jsonl` for the tracked-and-mergeable case if missing.
 
 ## Related
 
@@ -8813,14 +8916,14 @@ Step 4 appends a blanket `vbrief/.eval/` line regardless of whether the selectiv
 
 ## Workaround
 
-After running `task triage:bootstrap`, manually edit `.gitignore` to remove the trailing `# Triage v1 audit/eval scratch ... vbrief/.eval/` block. The selective entries higher in the file already cover the #1144 hybrid policy.
+After running `task triage:bootstrap`, manually edit `.gitignore` to remove the trailing `# Triage v1 audit/eval scratch ... xbrief/.eval/` block. The selective entries higher in the file already cover the #1144 hybrid policy.
 
 **Acceptance**:
 
-- Replace blanket vbrief/.eval/ append with three selective entries `[completed]`
+- Replace blanket xbrief/.eval/ append with three selective entries `[completed]`
 - Rename step_ensure_gitignore_eval_dir -> step_ensure_gitignore_eval_entries `[completed]`
-- Add .gitattributes vbrief/.eval/*.jsonl merge=union rule when missing `[completed]`
-- Write canonical vbrief/.eval/README.md on fresh clone `[completed]`
+- Add .gitattributes xbrief/.eval/*.jsonl merge=union rule when missing `[completed]`
+- Write canonical xbrief/.eval/README.md on fresh clone `[completed]`
 - Re-run against already-configured repo is a true no-op `[completed]`
 - Unit tests cover fresh-clone, idempotent, and never-blanket paths `[completed]`
 - Addendum: FetchAllReport.summary_line() compatibility shim `[completed]`
@@ -8857,7 +8960,7 @@ A per-clone, gitignored JSON file written at ritual exit:
   "schemaVersion": 1,
   "deftVersion": "0.32.0",
   "timestamp": "2026-05-20T20:00:00Z",
-  "lastActiveVbrief": "vbrief/active/2026-05-13-1125-followup-scope-complete-and-spec-render.vbrief.json",
+  "lastActiveVbrief": "xbrief/active/2026-05-13-1125-followup-scope-complete-and-spec-render.xbrief.json",
   "lastBranch": "feat/foo-bar"
 }
 ```
@@ -8873,14 +8976,14 @@ A per-clone, gitignored JSON file written at ritual exit:
 A 6th conditional line in the session-start ritual, fired only when ALL of the following are true:
 
 - Sentinel exists and parses cleanly.
-- `lastActiveVbrief` is still under `vbrief/active/` (NOT promoted to `completed/` since last session).
+- `lastActiveVbrief` is still under `xbrief/active/` (NOT promoted to `completed/` since last session).
 - Last session was >= 2h ago (avoid nagging on terminal-restart within an active session).
 - `lastActiveVbrief` references a file that exists on disk (defensive against branch-switched-away or filesystem-deleted cases).
 
 Banner shape:
 
 ```
-[deft] Last session: vbrief/active/2026-05-13-1125-followup-scope-complete-and-spec-render.vbrief.json (branch: feat/foo-bar), 8h ago. Resume? Run `task vbrief:show <path>`.
+[deft] Last session: xbrief/active/2026-05-13-1125-followup-scope-complete-and-spec-render.xbrief.json (branch: feat/foo-bar), 8h ago. Resume? Run `task vbrief:show <path>`.
 ```
 
 Silent (no banner) when:
@@ -8981,7 +9084,7 @@ Refined 2026-05-22 via two deep-think passes with operator. Body replaced in pla
 - Session-start ritual writer hook persists the sentinel at exit `[proposed]`
   - Acceptance: Given scripts/_session_start_hook.py is invoked at the end of a session-start ritual run, when the hook executes, then .deft/last-session.json is written with the current deftVersion, an ISO-8601 UTC timestamp, the currently active vBRIEF path, and the current branch name.
 - Resume nudge gating fires only on >=2h-ago active vBRIEFs `[proposed]`
-  - Acceptance: Given a parseable sentinel whose lastActiveVbrief is still under vbrief/active/ and whose timestamp is >= 2h before now, when compute_resume_signal() runs, then it returns a nudge payload pointing at task vbrief:show <path>; given any other input it returns None (silent).
+  - Acceptance: Given a parseable sentinel whose lastActiveVbrief is still under xbrief/active/ and whose timestamp is >= 2h before now, when compute_resume_signal() runs, then it returns a nudge payload pointing at task vbrief:show <path>; given any other input it returns None (silent).
 - Fail-open behaviour on corrupt, missing, or stale sentinels `[proposed]`
   - Acceptance: Given a missing sentinel, corrupt JSON, schema-version mismatch, missing deftVersion, or a lastActiveVbrief path that does not exist on disk, when compute_resume_signal() runs, then it returns None without raising and the ritual continues silently.
 - .deft/ ignored and tests + CHANGELOG land in this PR `[proposed]`
@@ -8994,19 +9097,19 @@ Refined 2026-05-22 via two deep-think passes with operator. Body replaced in pla
 The session-start ritual's `task triage:summary` headline silently disagrees with the filesystem. Worked example from the 2026-05-20 session that motivated this issue:
 
 1. Ritual at session start: `[triage] 359 untriaged · 38 in-flight · WIP 1/10`
-2. `task issue:ingest -- 1269` → vBRIEF lands in `vbrief/proposed/`
-3. `task scope:promote` → moves to `vbrief/pending/`, ritual now reads `… · 38 in-flight · WIP 2/10` (WIP moved, in-flight didn't)
-4. `task scope:activate` → moves to `vbrief/active/` with `plan.status: "running"`, ritual still reads `… · 38 in-flight · WIP 2/10`
+2. `task issue:ingest -- 1269` → vBRIEF lands in `xbrief/proposed/`
+3. `task scope:promote` → moves to `xbrief/pending/`, ritual now reads `… · 38 in-flight · WIP 2/10` (WIP moved, in-flight didn't)
+4. `task scope:activate` → moves to `xbrief/active/` with `plan.status: "running"`, ritual still reads `… · 38 in-flight · WIP 2/10`
 
-The activate succeeded — `vbrief/active/2026-05-20-1269-...vbrief.json` exists with the right status, and every downstream gate (`task vbrief:preflight`, #810 implementation-intent gate, dispatch, queue ranker) sees the new in-flight scope correctly. Only the **ritual headline** silently lies.
+The activate succeeded — `xbrief/active/2026-05-20-1269-...xbrief.json` exists with the right status, and every downstream gate (`task vbrief:preflight`, #810 implementation-intent gate, dispatch, queue ranker) sees the new in-flight scope correctly. Only the **ritual headline** silently lies.
 
-Root cause: `WIP` is computed from the live filesystem (`vbrief/pending/` + `vbrief/active/` glob), while `in-flight` is computed from the **triage-scoped cache view** filtered by `plan.policy.triageScope[]`. When `triageScope[]` is empty or backfill-only (current deftai/directive clone state per `verify:cache-fresh`), the cache view structurally cannot see freshly-activated scopes. The two numbers in the same one-liner come from different sources, which is a coherence bug even when they happen to agree.
+Root cause: `WIP` is computed from the live filesystem (`xbrief/pending/` + `xbrief/active/` glob), while `in-flight` is computed from the **triage-scoped cache view** filtered by `plan.policy.triageScope[]`. When `triageScope[]` is empty or backfill-only (current deftai/directive clone state per `verify:cache-fresh`), the cache view structurally cannot see freshly-activated scopes. The two numbers in the same one-liner come from different sources, which is a coherence bug even when they happen to agree.
 
 This is a worse failure mode than verbose-but-correct output: silent absence trains operators to distrust the ritual headline, which erodes the whole #1149 ritual's value. For Cohort 1 returning users, it breaks the "did anything change since yesterday?" feedback loop. For Cohort 2 multi-version-absence users, it misrepresents project state on arrival.
 
 ## Recommendation
 
-The `in-flight` count should be **filesystem-truth**: live count of `vbrief/active/*.vbrief.json` files with `plan.status == "running"`. When (and only when) that count diverges from the triage-scoped cache view, append a conditional second line.
+The `in-flight` count should be **filesystem-truth**: live count of `xbrief/active/*.xbrief.json` files with `plan.status == "running"`. When (and only when) that count diverges from the triage-scoped cache view, append a conditional second line.
 
 ```
 [triage] 359 untriaged · 39 in-flight · WIP 2/10
@@ -9030,7 +9133,7 @@ This restores single-source-of-truth for the headline, surfaces scope-filter mis
 
 ## Acceptance criteria
 
-- [ ] `scripts/triage_summary.py` `in-flight` count reads `len(glob("vbrief/active/*.vbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)
+- [ ] `scripts/triage_summary.py` `in-flight` count reads `len(glob("xbrief/active/*.xbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth)
 - [ ] When `filesystem_count != cache_scoped_count`, append `[triage:scope] N in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)` (loud discrepancy line)
 - [ ] When `plan.policy.triageScope[]` is empty / backfill-only, fall back to filesystem-truth AND emit a config-not-set discrepancy line (`[triage:scope] N in-flight; plan.policy.triageScope[] not configured (uncounted in queue ranking)`) so the empty-scope state is surfaced as an actionable signal rather than silently hidden (revised from suppression per SLizard P2 advisory on PR #1271)
 - [ ] When the triage cache is stale (per `verify:cache-fresh`), the discrepancy line distinguishes `(cache stale)` from `(out of scope)` so the operator knows which corrective action applies (refresh cache vs. configure scope)
@@ -9063,7 +9166,7 @@ This restores single-source-of-truth for the headline, surfaces scope-filter mis
 
 **Acceptance**:
 
-- `scripts/triage_summary.py` `in-flight` count reads `len(glob("vbrief/active/*.vbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth) `[proposed]`
+- `scripts/triage_summary.py` `in-flight` count reads `len(glob("xbrief/active/*.xbrief.json"))` filtered by `plan.status == "running"` (filesystem-truth) `[proposed]`
 - When `filesystem_count != cache_scoped_count`, append `[triage:scope] N in-flight outside plan.policy.triageScope[] (uncounted in queue ranking)` (loud discrepancy line) `[proposed]`
 - When `plan.policy.triageScope[]` is empty / backfill-only, fall back to filesystem-truth AND emit `[triage:scope] N in-flight; plan.policy.triageScope[] not configured (uncounted in queue ranking)` so the operator sees the config gap as an actionable signal (replaces prior suppression design per SLizard P2 advisory on PR #1271) `[proposed]`
 - When the triage cache is stale (per `verify:cache-fresh`), the discrepancy line distinguishes `(cache stale)` from `(out of scope)` so the operator knows which corrective action applies (refresh cache vs. configure scope) `[proposed]`
@@ -9074,7 +9177,7 @@ This restores single-source-of-truth for the headline, surfaces scope-filter mis
 - `CHANGELOG.md [Unreleased]` entry in #1242-compliant style (lead with user-visible benefit: "Ritual headline now reflects activated work correctly") `[proposed]`
 - `task check` passes `[proposed]`
 
-### 2026-05-21-1179-installer-leaves-vbrief-in-partial-state-agentsmd-pre-cutove: Installer leaves vbrief/ in partial state -> AGENTS.md pre-cutover guard fires on every fresh install  `[completed]`
+### 2026-05-21-1179-installer-leaves-vbrief-in-partial-state-agentsmd-pre-cutove: Installer leaves xbrief/ in partial state -> AGENTS.md pre-cutover guard fires on every fresh install  `[completed]`
 
 ## Summary
 
@@ -9095,9 +9198,9 @@ This blocks **every** new consumer install on a clean machine.
 ```
 1. Loads AGENTS.md, confirms Deft alignment.
 2. Runs pre-cutover check (AGENTS.md condition 3):
-   "./vbrief/ exists but any of the five lifecycle subfolders
+   "./xbrief/ exists but any of the five lifecycle subfolders
     (proposed/, pending/, active/, completed/, cancelled/) is missing"
-   -> Project state: vbrief/ exists, only schemas/ + vbrief.md present.
+   -> Project state: xbrief/ exists, only schemas/ + vbrief.md present.
    -> Guard FIRES.
 3. Reads .deft/core/skills/deft-directive-setup/SKILL.md Pre-Cutover Detection Guard.
 4. Runs environment preflight:
@@ -9110,7 +9213,7 @@ This blocks **every** new consumer install on a clean machine.
 
 ## Root cause
 
-`cmd/deft-install/setup.go::WriteConsumerVbrief` (added in #1020) creates `vbrief/`, copies `vbrief/schemas/` from the framework deposit, and writes `vbrief/vbrief.md` -- but never creates the five lifecycle subdirectories that AGENTS.md and `deft-directive-setup` SKILL.md treat as the canonical v0.20 layout:
+`cmd/deft-install/setup.go::WriteConsumerVbrief` (added in #1020) creates `xbrief/`, copies `xbrief/schemas/` from the framework deposit, and writes `xbrief/vbrief.md` -- but never creates the five lifecycle subdirectories that AGENTS.md and `deft-directive-setup` SKILL.md treat as the canonical v0.20 layout:
 
 ```go
 // cmd/deft-install/setup.go (around line 644)
@@ -9126,9 +9229,9 @@ func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 The function's own stub `vbriefReadmeBody` (lines 619-634) documents the five lifecycle folders it fails to create. Two contracts disagree about who owns lifecycle-folder creation:
 
 - **Installer side** assumes Phase 2 of setup will materialise lifecycle folders later.
-- **AGENTS.md pre-cutover guard + setup-skill Greenfield contract** assume a v0.20 install ships with all five lifecycle folders from the start. Half a `vbrief/` is treated as partial migration (QUICK-START Case I).
+- **AGENTS.md pre-cutover guard + setup-skill Greenfield contract** assume a v0.20 install ships with all five lifecycle folders from the start. Half a `xbrief/` is treated as partial migration (QUICK-START Case I).
 
-The webinstaller (`deftai/webinstaller` -- internal) deposits **only** `.deft/core/<framework>`, `.deft/VERSION`, and `AGENTS.md`, with `vbrief/` entirely absent. That avoids the guard because condition 3 requires `vbrief/` to exist. Phase 2 of setup then creates the full layout downstream. So the webinstaller rail works by default, and the Go installer is the only rail that ships the broken half-state.
+The webinstaller (`deftai/webinstaller` -- internal) deposits **only** `.deft/core/<framework>`, `.deft/VERSION`, and `AGENTS.md`, with `xbrief/` entirely absent. That avoids the guard because condition 3 requires `xbrief/` to exist. Phase 2 of setup then creates the full layout downstream. So the webinstaller rail works by default, and the Go installer is the only rail that ships the broken half-state.
 
 ## Cross-references
 
@@ -9145,7 +9248,7 @@ Smallest delta. In `WriteConsumerVbrief`, immediately after `os.MkdirAll(consume
 ```go
 for _, sub := range []string{"proposed", "pending", "active", "completed", "cancelled"} {
     if err := os.MkdirAll(filepath.Join(consumerVbrief, sub), 0o755); err != nil {
-        return false, fmt.Errorf("could not create vbrief/%s: %w", sub, err)
+        return false, fmt.Errorf("could not create xbrief/%s: %w", sub, err)
     }
 }
 ```
@@ -9158,7 +9261,7 @@ Plus:
 
 Alternative considered and rejected:
 
-- **Match webinstaller exactly** (remove `WriteConsumerVbrief`, let Phase 2 create everything): cleaner unification across rails but requires Phase 2 to also mirror `vbrief/schemas/` from the framework deposit. Bigger blast radius and changes the "after install, here's your starter workspace" UX. Park as a follow-up RFC if desired.
+- **Match webinstaller exactly** (remove `WriteConsumerVbrief`, let Phase 2 create everything): cleaner unification across rails but requires Phase 2 to also mirror `xbrief/schemas/` from the framework deposit. Bigger blast radius and changes the "after install, here's your starter workspace" UX. Park as a follow-up RFC if desired.
 - **Loosen pre-cutover condition 3** (only fire when scope vBRIEFs are present alongside missing lifecycle folders): couples the guard to whatever the installer happens to ship at any given version. Brittle.
 
 ## Repro environment
@@ -9175,7 +9278,7 @@ Adoption blocker. Every new install on a clean machine hits this on the very fir
 **Acceptance**:
 
 - Lifecycle folders are created `[proposed]`
-  - Acceptance: Given a fresh installer target, `WriteConsumerVbrief` creates proposed, pending, active, completed, and cancelled directories under `vbrief/`.
+  - Acceptance: Given a fresh installer target, `WriteConsumerVbrief` creates proposed, pending, active, completed, and cancelled directories under `xbrief/`.
 - Empty folders survive `[proposed]`
   - Acceptance: When the installer creates lifecycle directories, each empty directory stores a marker file so the directory is copied or committed without disappearing.
 - Pre-cutover guard is not triggered `[proposed]`
@@ -9518,7 +9621,7 @@ Output order: toolchain -> install integrity -> AGENTS.md freshness -> directori
 
 ### Default = full check, time-gated; never exits silently
 
-State file: `vbrief/.eval/doctor-state.json`:
+State file: `xbrief/.eval/doctor-state.json`:
 
 ```
 {
@@ -9585,7 +9688,7 @@ The AGENTS.md `## Session-start ritual (#1149)` block and the `⊗ Reorder, skip
 - `task framework:doctor` continues to work but emits a one-line deprecation hint pointing at `task doctor`.
 - The 4 install-integrity checks land in `cmd_doctor`'s findings list under their existing names (quick-start-resolves, skill-paths-resolve, manifest-agreement, install-path-consistency); implementation reuses `framework_doctor.run_checks` rather than duplicating.
 - New `agents-md-managed-section-fresh` check fires; pass / fail / skip with the same `CheckResult` shape. Maintainer-repo skip semantics implemented (no markers -> skip finding with documented reason). Reuses `cmd_agents_refresh --check` byte-compare internals; no duplicate freshness logic.
-- Throttle: 24h clean / 4h dirty (where "dirty" = `last_error_count > 0`). State file at `vbrief/.eval/doctor-state.json` with the schema above. `--full` bypasses throttle. Corrupt state file -> run full check. **Never silent**: every invocation emits at least the status line (no headless/CI suppression).
+- Throttle: 24h clean / 4h dirty (where "dirty" = `last_error_count > 0`). State file at `xbrief/.eval/doctor-state.json` with the schema above. `--full` bypasses throttle. Corrupt state file -> run full check. **Never silent**: every invocation emits at least the status line (no headless/CI suppression).
 - Persistent-dirty-within-window halts the session-start ritual until operator addresses or `--full`-re-probes.
 - `task doctor` becomes session-start ritual step 2 (after alignment confirmation, before branch-policy disclosure). AGENTS.md `## Session-start ritual (#1149)` block updated to the new 5-step canonical order.
 - `--json` output schema covers both `status: "throttle-skipped"` and `status: "completed"` shapes per the spec above.
@@ -9634,7 +9737,7 @@ Refined 2026-05-22 via deep-think pass with operator. Body replaced in place per
 - AGENTS.md managed-section freshness check `[proposed]`
   - Acceptance: Given a consumer repo with stale managed-section content, when run doctor runs, it emits a warning finding from the agents-md-managed-section-fresh check; on a maintainer repo without v3 markers, it emits a skip finding with the documented reason.
 - Throttle state and --full bypass `[proposed]`
-  - Acceptance: When run doctor is invoked within 24h of a clean run, it emits a status line, persists vbrief/.eval/doctor-state.json, and skips the full check; the --full flag bypasses the throttle and always runs the full check, and corrupt state files trigger a full run.
+  - Acceptance: When run doctor is invoked within 24h of a clean run, it emits a status line, persists xbrief/.eval/doctor-state.json, and skips the full check; the --full flag bypasses the throttle and always runs the full check, and corrupt state files trigger a full run.
 - Ritual halt on persistent-dirty `[proposed]`
   - Acceptance: Given last_error_count > 0 within the 4h dirty window, when run doctor runs, it emits a prominent unresolved status line, rejects downstream session-start steps, and halts the ritual until the operator re-probes with --full or addresses findings.
 - Deprecation alias and JSON schema `[proposed]`
@@ -9685,7 +9788,7 @@ Extend `templates/agents-entry.md` to mirror the maintainer's prescriptive conte
 `task triage:welcome` becomes the unified onboarding + status surface that REPLACES `task triage:summary` in the session-start ritual:
 
 - **Default mode** (`task triage:welcome` no flag): emits the `task triage:summary` one-liner (queue state), then appends a state-conditional nudge:
-  - First-time (no `vbrief/.eval/candidates.jsonl`, no `triageScope`, no `wipCap`): `[welcome] First-time? Run \`task triage:welcome --onboard\` to set up triage.`
+  - First-time (no `xbrief/.eval/candidates.jsonl`, no `triageScope`, no `wipCap`): `[welcome] First-time? Run \`task triage:welcome --onboard\` to set up triage.`
   - Incomplete onboarding (partial state): `[welcome] Onboarding incomplete: <missing-piece>. Run \`task triage:welcome --onboard\` to resume.`
   - Fully set up: nothing extra (just the summary line).
   - No interactive prompts in default mode.
@@ -10013,7 +10116,7 @@ This was observed repeatedly during:
 - `git status --porcelain --branch`: succeeded cleanly
 
 ### Branch policy (required disclosure per AGENTS.md)
-`plan.policy.allowDirectCommitsToMaster = true` (typed) on this project's `vbrief/PROJECT-DEFINITION.vbrief.json`.
+`plan.policy.allowDirectCommitsToMaster = true` (typed) on this project's `xbrief/PROJECT-DEFINITION.xbrief.json`.
 
 ### Direct comparison
 The identical Windows machine + Warpdev terminal shows **zero** equivalent noise when the same class of work (complex git, rebases, multi-step operations) is performed by Claude. The difference is architectural: Warp + Claude agent uses PTY + shell-integration boundary observation rather than generic process + redirection + post-read capture.
@@ -10845,7 +10948,7 @@ Provides a deterministic task swarm:launch entry point that turns an operator-su
 **Acceptance**:
 
 - Resolve named stories `[pending]`
-  - Acceptance: When invoked with --stories 612,547,543,610, the command resolves each issue number to its vbrief/active story file and rejects any unresolved id with a nonzero exit.
+  - Acceptance: When invoked with --stories 612,547,543,610, the command resolves each issue number to its xbrief/active story file and rejects any unresolved id with a nonzero exit.
 - Enforce gates `[pending]`
   - Acceptance: When any named story has not passed task vbrief:preflight or task swarm:readiness, the command fails with a nonzero exit and names the failing story.
 - Emit launch manifest `[pending]`
@@ -11100,7 +11203,7 @@ Contributing factors:
 
 ## TDD Fix Plan
 
-1. **RED**: Write a test that asserts: given a project with (a) stale AGENTS.md and (b) pre-cutover `.md` artifacts, a single QUICK-START session can execute Case G's refresh AND Case H's migration without an intermediate session restart. Assert that the post-remediation state matches the state produced by running Case G + Case H in separate sessions today (byte-equivalent AGENTS.md, byte-equivalent migrated `vbrief/` lifecycle).
+1. **RED**: Write a test that asserts: given a project with (a) stale AGENTS.md and (b) pre-cutover `.md` artifacts, a single QUICK-START session can execute Case G's refresh AND Case H's migration without an intermediate session restart. Assert that the post-remediation state matches the state produced by running Case G + Case H in separate sessions today (byte-equivalent AGENTS.md, byte-equivalent migrated `xbrief/` lifecycle).
    **GREEN**: Add a "combined remediation" path to QUICK-START's Step 2 / Step 3 that detects the (stale AGENTS.md AND pre-cutover) joint condition and prescribes: refresh AGENTS.md first (Case G's writes), then run migration (Case H's flow), then a single end-of-session new-session instruction.
 
 2. **RED**: Write a contract test that the QUICK-START prose contains explicit guidance for the combined-condition case (either as a top-level Case or as a callout in Case G / Case H pointing at the joint path). The test fails today because the prose only treats the two cases as mutually exclusive.
@@ -11203,14 +11306,14 @@ Surfaced during a Slizard project v0.18 → v0.29 upgrade. The eleven-minor-vers
 - Cross-references between UPGRADING.md, QUICK-START.md, and the framework-doctor command surface are mutually consistent. `[proposed]`
 - task check passes. `[proposed]`
 
-### 2026-06-03-1311-bugscriptsproject-render-task-projectrender-leaks-vbriefproj: bug(scripts/project_render): task project:render leaks vbrief/PROJECT-DEFINITION.vbrief.json.lock; trapped by git add -A on every chore commit  `[completed]`
+### 2026-06-03-1311-bugscriptsproject-render-task-projectrender-leaks-vbriefproj: bug(scripts/project_render): task project:render leaks xbrief/PROJECT-DEFINITION.xbrief.json.lock; trapped by git add -A on every chore commit  `[completed]`
 
 ## Problem
 
-`task project:render` creates a transient mutation-lock file at `vbrief/PROJECT-DEFINITION.vbrief.json.lock` (1 byte) during the render operation. The lock is NOT removed after a clean render. The path is also NOT in `.gitignore`, so `git add -A` traps it on every chore commit cycle.
+`task project:render` creates a transient mutation-lock file at `xbrief/PROJECT-DEFINITION.xbrief.json.lock` (1 byte) during the render operation. The lock is NOT removed after a clean render. The path is also NOT in `.gitignore`, so `git add -A` traps it on every chore commit cycle.
 
 Observed 2026-05-22 during a deft-directive chore commit (master HEAD `b17d128`):
-- After `task project:render`, `git status` showed `Untracked: vbrief/PROJECT-DEFINITION.vbrief.json.lock`
+- After `task project:render`, `git status` showed `Untracked: xbrief/PROJECT-DEFINITION.xbrief.json.lock`
 - The lock got picked up by `git add -A` and committed as a tracked binary file
 - Detected post-commit; reverted via `git rm --cached` + `.gitignore` append in an amend
 
@@ -11221,19 +11324,19 @@ The `.gitignore` append landed in `b17d128`, so the maintainer repo is now prote
 
 ## What landed in `b17d128`
 
-- `vbrief/PROJECT-DEFINITION.vbrief.json.lock` added to `.gitignore`
+- `xbrief/PROJECT-DEFINITION.xbrief.json.lock` added to `.gitignore`
 - Tracked copy removed via `git rm --cached`
 
 ## What is still needed
 
 - [ ] **Primary fix**: `scripts/project_render.py` (or wherever the lock is held) MUST delete the lock file on successful exit, not just on context-manager `__exit__`. Verify the lock-acquisition codepath uses a `try/finally` or equivalent that always cleans up.
-- [ ] **Consumer propagation**: add `vbrief/PROJECT-DEFINITION.vbrief.json.lock` (or a broader `*.lock` pattern, scope-appropriate) to whichever consumer-template `.gitignore` ships with `task install` / framework bootstrap, so consumers are protected on their first render.
-- [ ] **Unit test**: assert that `task project:render` exits with no `.lock` file remaining in `vbrief/` (deterministic gate per the Rule Authority [AXIOM] -- prose tier mitigations should escalate to test-tier once a leak path is confirmed).
-- [ ] **Cross-check**: are any other deft scripts using the same lock pattern (`*.lock` files in `vbrief/`)? Audit and apply the same cleanup discipline.
+- [ ] **Consumer propagation**: add `xbrief/PROJECT-DEFINITION.xbrief.json.lock` (or a broader `*.lock` pattern, scope-appropriate) to whichever consumer-template `.gitignore` ships with `task install` / framework bootstrap, so consumers are protected on their first render.
+- [ ] **Unit test**: assert that `task project:render` exits with no `.lock` file remaining in `xbrief/` (deterministic gate per the Rule Authority [AXIOM] -- prose tier mitigations should escalate to test-tier once a leak path is confirmed).
+- [ ] **Cross-check**: are any other deft scripts using the same lock pattern (`*.lock` files in `xbrief/`)? Audit and apply the same cleanup discipline.
 
 ## Acceptance
 
-- `task project:render` leaves NO `.lock` file in `vbrief/` after a successful render.
+- `task project:render` leaves NO `.lock` file in `xbrief/` after a successful render.
 - The deterministic gate above passes in `task check`.
 - Consumer-side `.gitignore` (whichever path that is) carries the matching ignore entry.
 - This issue closes when the primary fix + the unit test + the consumer-template update have all landed.
@@ -11312,14 +11415,14 @@ For a vendored install:
 
 ## Impact
 
-The periodic remote-drift gate (#801) is effectively dead for vendored installs, which is now the canonical install layout per AGENTS.md template v3. Consumers fall arbitrarily far behind without any session-start warning. The 24-hour throttle and `vbrief/.deft-remote-probe.json` state file are no defense — the probe affirmatively returns `no-tags` rather than erroring.
+The periodic remote-drift gate (#801) is effectively dead for vendored installs, which is now the canonical install layout per AGENTS.md template v3. Consumers fall arbitrarily far behind without any session-start warning. The 24-hour throttle and `xbrief/.deft-remote-probe.json` state file are no defense — the probe affirmatively returns `no-tags` rather than erroring.
 
 ## Suggested fix
 
 Resolve `upstream_url` in this priority order:
 
 1. Parse the YAML manifest at `<install>/VERSION` for a `source.url` (or similar) field.
-2. Read an explicit `framework.upstream_url` knob from `vbrief/PROJECT-DEFINITION.vbrief.json` or `.deft/config.toml`.
+2. Read an explicit `framework.upstream_url` knob from `xbrief/PROJECT-DEFINITION.xbrief.json` or `.deft/config.toml`.
 3. Use a baked-in framework constant (`DEFT_UPSTREAM_URL = "https://github.com/deftai/directive.git"`).
 4. **Never** fall back to the consumer's `origin` — that is guaranteed wrong on a vendored install.
 
@@ -11352,7 +11455,7 @@ The framework's `VERSION = _resolve_version()` (`run` line 50–85, mirrored by 
 This means every vendored install reports its version as `0.0.0-dev` everywhere the framework's in-process `VERSION` is shown:
 
 - `task deft:install:upgrade` header line ("Deft CLI v0.0.0-dev - Upgrade")
-- `.deft-version` marker file (just writes `0.0.0-dev` into `vbrief/.deft-version`)
+- `.deft-version` marker file (just writes `0.0.0-dev` into `xbrief/.deft-version`)
 - `.deft/core/VERSION` YAML manifest (`ref: 'v0.0.0-dev'`, `tag: 'v0.0.0-dev'`)
 - `task deft:framework:check-updates` output (`current: "0.0.0-dev"`)
 - Any other surface that consumes the `VERSION` constant
@@ -11707,7 +11810,7 @@ Rework `_filter_scoped_meta_paths` to evaluate the rule set ONCE over the whole 
 `deft-install v0.39.3 --yes --upgrade --repo-root .` on a vendored (no-`.git`) install now **succeeds** (the #1433 `pax_global_header` extractor bug is fixed and the payload refreshes to v0.39.3 with an atomic backup). But the run leaves the install in a **doctor-failing state**: the vendored file-swap refreshes everything under `.deft/core/` yet does not correctly update the **two project-root artifacts derived from it**:
 
 - **A.** the root `AGENTS.md` managed section is **appended (duplicated)** instead of rewritten, and
-- **B.** the bare `vbrief/.deft-version` derivative is **not regenerated**.
+- **B.** the bare `xbrief/.deft-version` derivative is **not regenerated**.
 
 Post-install `doctor --session` reports `errors: 1, warnings: 2` (`agents-md-managed-section-fresh: unreadable`, `manifest-agreement: fail`). Both are filed together because they share one root behavior: the file-swap upgrade only owns `.deft/core/**` and skips the root-level derived artifacts.
 
@@ -11744,25 +11847,25 @@ Two parts:
 
 Add regression fixtures: (a) an `AGENTS.md` whose marker is `<!-- deft:managed-section v3 sha=... refreshed=... session=... -->` is rewritten (single section); (b) an `AGENTS.md` that already contains **two** managed sections collapses to exactly one; (c) a clean single-section file stays single.
 
-## B. Bare `vbrief/.deft-version` not regenerated
+## B. Bare `xbrief/.deft-version` not regenerated
 
 ### Observed
 ```
 .deft/core/VERSION  -> tag: 'v0.39.3'   (fetched_by: deft-install)   <- refreshed
-vbrief/.deft-version -> 0.0.0-dev                                     <- stale
+xbrief/.deft-version -> 0.0.0-dev                                     <- stale
 ```
 Doctor: `{"install_check": "manifest-agreement", "status": "fail", "message": "Drift detected: YAML manifest tag='0.39.3' does NOT agree with bare .deft-version='0.0.0-dev'. ... run \`task upgrade\` to regenerate the bare derivative from the manifest."}`
 
 ### Root cause
-The vendored file-swap updates `.deft/core/VERSION` (the canonical YAML manifest) but does not regenerate the **bare** `vbrief/.deft-version` derivative at the project root. The doctor's own remediation (`task upgrade`) is exactly the regeneration step the upgrade should perform itself.
+The vendored file-swap updates `.deft/core/VERSION` (the canonical YAML manifest) but does not regenerate the **bare** `xbrief/.deft-version` derivative at the project root. The doctor's own remediation (`task upgrade`) is exactly the regeneration step the upgrade should perform itself.
 
 ### Fix
-Have the vendored refresh (`upgrade.go`) regenerate `vbrief/.deft-version` from the manifest as part of the swap, so a fresh `--upgrade` is self-consistent and doctor-clean without a manual follow-up. (Same family as #1323/#1324/#1325.)
+Have the vendored refresh (`upgrade.go`) regenerate `xbrief/.deft-version` from the manifest as part of the swap, so a fresh `--upgrade` is self-consistent and doctor-clean without a manual follow-up. (Same family as #1323/#1324/#1325.)
 
 ## Acceptance criteria
 - After `--upgrade` on a vendored install whose `AGENTS.md` carries an attributed v3 marker, `AGENTS.md` has **exactly one** managed section (rewritten in place; operator prose preserved).
 - Given an `AGENTS.md` that already contains **multiple** deft managed sections (e.g. produced by this bug), `--upgrade` removes all of them and collapses to **exactly one** canonical managed section.
-- After `--upgrade`, `vbrief/.deft-version` agrees with `.deft/core/VERSION`.
+- After `--upgrade`, `xbrief/.deft-version` agrees with `.deft/core/VERSION`.
 - Post-install `doctor --session` reports no `agents-md-managed-section-fresh` or `manifest-agreement` failures.
 - Regression tests for the attributed-marker rewrite, the multi-section collapse (self-heal), and the bare-derivative regeneration.
 
@@ -11777,7 +11880,7 @@ Evidence: tested with `deft-install v0.39.3` on a vendored `.deft/core` (no `.gi
 
 - Bug A: match the AGENTS.md managed-section open marker by regex ('<!-- deft:managed-section v3[^>]*-->') in the hasV3 probe, agentsMDManagedSlice, and rewriteAgentsMDBlock (setup.go), so attributed v3 markers (sha=/refreshed=/session=) are recognized and rewritten in place `[proposed]`
 - Bug A self-heal: the rewrite removes ALL existing deft managed sections (v2|v3, attributed or bare) and re-emits exactly one canonical section, preserving operator prose outside the fences; converges 0/1/N sections to exactly one `[proposed]`
-- Bug B: the vendored refresh (upgrade.go) regenerates the bare vbrief/.deft-version derivative from the manifest during the file-swap so it agrees with .deft/core/VERSION `[proposed]`
+- Bug B: the vendored refresh (upgrade.go) regenerates the bare xbrief/.deft-version derivative from the manifest during the file-swap so it agrees with .deft/core/VERSION `[proposed]`
 - Unit regression tests: attributed-marker rewrite -> single section; a pre-existing two-section file collapses to one; a clean single-section file stays single; bare .deft-version regenerated to match the manifest `[proposed]`
 - End-to-end smoke test: run the vendored upgrade against a realistic fixture (attributed v3 AGENTS.md marker + real-shaped tarball + stale bare .deft-version) and assert the doctor invariants hold (exactly one managed section AND .deft-version agrees with the manifest); fail on pre-fix code, pass after `[proposed]`
 
@@ -11789,7 +11892,7 @@ Evidence: tested with `deft-install v0.39.3` on a vendored `.deft/core` (no `.gi
 
 ## Summary
 
-`deft-core-guard.yml` refuses any PR whose diff mixes `.deft/core/**` with non-framework paths. But `deft-install --upgrade` writes **machine-managed files outside `.deft/core/`** too (`AGENTS.md`, `.agents/**`, `.gitignore`, `.gitattributes`, `greptile.json`, `.github/codeql/codeql-config.yml`, `.github/workflows/deft-core-guard.yml`, `vbrief/` scaffolding + `vbrief/.deft-version`). The guard classifies those installer-owned root files as "app," so an upgrade PR always looks "mixed" and is rejected.
+`deft-core-guard.yml` refuses any PR whose diff mixes `.deft/core/**` with non-framework paths. But `deft-install --upgrade` writes **machine-managed files outside `.deft/core/`** too (`AGENTS.md`, `.agents/**`, `.gitignore`, `.gitattributes`, `greptile.json`, `.github/codeql/codeql-config.yml`, `.github/workflows/deft-core-guard.yml`, `xbrief/` scaffolding + `xbrief/.deft-version`). The guard classifies those installer-owned root files as "app," so an upgrade PR always looks "mixed" and is rejected.
 
 ## Reproduction (live)
 
@@ -11806,7 +11909,7 @@ if [ -n "$core" ] && [ -n "$app" ]; then
   exit 1
 fi
 ```
-There is no exemption for the installer's **own** root deposits. Worse, the upgrade legitimately *must* touch some of these every run — e.g. `AGENTS.md` (managed-section rewrite) and `vbrief/.deft-version` (manifest reconcile) per #1437 — so even a "steady-state" upgrade trips the guard.
+There is no exemption for the installer's **own** root deposits. Worse, the upgrade legitimately *must* touch some of these every run — e.g. `AGENTS.md` (managed-section rewrite) and `xbrief/.deft-version` (manifest reconcile) per #1437 — so even a "steady-state" upgrade trips the guard.
 
 ## Proposed fix (allowlist the installer-managed surface)
 
@@ -11814,9 +11917,9 @@ Fail only when `.deft/core/**` is mixed with paths that are **neither core nor i
 - `AGENTS.md`, `.agents/**`
 - `.gitattributes`, `.gitignore`, `greptile.json`
 - `.github/codeql/codeql-config.yml`, `.github/workflows/deft-core-guard.yml`
-- `vbrief/.deft-version`, `vbrief/vbrief.md`, `vbrief/schemas/**`, `vbrief/migration/**`, `vbrief/<lifecycle>/.gitkeep`
+- `xbrief/.deft-version`, `xbrief/vbrief.md`, `xbrief/schemas/**`, `xbrief/migration/**`, `xbrief/<lifecycle>/.gitkeep`
 
-**Critical nuance — do NOT exempt consumer-authored vBRIEF content:** `vbrief/PROJECT-DEFINITION.vbrief.json` and `vbrief/**/*.vbrief.json` are the user's data; if those are mixed with a `.deft/core/**` change the guard SHOULD still fire. That separation is the whole point of #1430.
+**Critical nuance — do NOT exempt consumer-authored vBRIEF content:** `xbrief/PROJECT-DEFINITION.xbrief.json` and `xbrief/**/*.xbrief.json` are the user's data; if those are mixed with a `.deft/core/**` change the guard SHOULD still fire. That separation is the whole point of #1430.
 
 Keep the allowlist authoritative by having the **installer emit the set of paths it manages** (e.g. in the VERSION manifest or a sibling list the guard reads), so the guard and the installer never drift. If a manifest is too much for now, hardcode the allowlist in the guard template and add a test asserting it matches exactly what `deposit.go` / the installer writes.
 
@@ -11828,7 +11931,7 @@ Keep the allowlist authoritative by having the **installer emit the set of paths
 ## Acceptance criteria
 
 - An upgrade-only PR (diff limited to `.deft/core/**` + the installer-managed allowlist) **passes** `deft-core-guard`.
-- A PR mixing `.deft/core/**` with genuine app files **or** consumer vBRIEF content (`PROJECT-DEFINITION.vbrief.json`, `*.vbrief.json`) still **fails**.
+- A PR mixing `.deft/core/**` with genuine app files **or** consumer vBRIEF content (`PROJECT-DEFINITION.xbrief.json`, `*.xbrief.json`) still **fails**.
 - The allowlist is installer-emitted (or a test asserts the hardcoded guard allowlist matches exactly what the installer deposits).
 - Regression fixtures for both the passing (upgrade-only) and failing (mixed-with-app) cases.
 
@@ -11836,7 +11939,7 @@ Keep the allowlist authoritative by having the **installer emit the set of paths
 
 - #1430 — the `deft-core-guard` deposit (the guard this issue fixes).
 - #1425 / #1428 — vendored upgrade support + git-free file swap (the upgrade path that writes both core and root files).
-- #1437 — upgrade rewrites `AGENTS.md` + regenerates `vbrief/.deft-version`, i.e. why root files change on every upgrade.
+- #1437 — upgrade rewrites `AGENTS.md` + regenerates `xbrief/.deft-version`, i.e. why root files change on every upgrade.
 - #1433 — prior upgrade-path defect (extraction).
 
 Evidence: `deft-install v0.39.4` upgrade on a vendored install produced a 194-file commit spanning `.deft/core/**` + the root files listed above; guard logic read from the deposited `.github/workflows/deft-core-guard.yml`.
@@ -11844,7 +11947,7 @@ Evidence: `deft-install v0.39.4` upgrade on a vendored install produced a 194-fi
 **Acceptance**:
 
 - Update the deposited deft-core-guard template (cmd/deft-install/deposit.go) to subtract an installer-managed allowlist from the 'app' set so a core + allowlisted-root upgrade diff no longer trips the guard `[proposed]`
-- Keep the guard firing when .deft/core/** is mixed with genuine app files OR consumer vBRIEF data (vbrief/PROJECT-DEFINITION.vbrief.json, vbrief/**/*.vbrief.json) `[proposed]`
+- Keep the guard firing when .deft/core/** is mixed with genuine app files OR consumer vBRIEF data (xbrief/PROJECT-DEFINITION.xbrief.json, xbrief/**/*.xbrief.json) `[proposed]`
 - Make the allowlist authoritative: installer-emitted, or hardcoded in the template with a test asserting it matches exactly what deposit.go deposits `[proposed]`
 - Regression fixtures for the passing (upgrade-only) and failing (mixed-with-app and mixed-with-consumer-vbrief) cases `[proposed]`
 
@@ -11917,7 +12020,7 @@ Severity: low–moderate. The upgrade itself works (the backup is a good safety 
 
 ## Problems (verified)
 
-1. **Not gitignored → accidental-commit trap.** The installer's canonical `.gitignore` deposit is only `.deft-cache/` + `vbrief/.eval/` (see `deposit.go` `canonicalGitignoreLines`). `.deft/core.bak-<ts>/` (~3,500 files each) is therefore **untracked** and is swept up by `git add -A` / `git add .`. A routine "stage everything + commit" after an upgrade silently commits a full duplicate of the previous payload.
+1. **Not gitignored → accidental-commit trap.** The installer's canonical `.gitignore` deposit is only `.deft-cache/` + `xbrief/.eval/` (see `deposit.go` `canonicalGitignoreLines`). `.deft/core.bak-<ts>/` (~3,500 files each) is therefore **untracked** and is swept up by `git add -A` / `git add .`. A routine "stage everything + commit" after an upgrade silently commits a full duplicate of the previous payload.
 2. **They accumulate.** Every `--upgrade` drops another full-payload backup; there is no prune/retention. Repeated upgrades pile up multiple thousand-file copies in the project.
 3. **Outside the neutralization scope (#1430).** The path `.deft/core.bak-<ts>/...` does **not** match `^\.deft/core/` (so the `deft-core-guard` treats it as **app**, not framework), and it is not covered by the linguist `.deft/core/**`, CodeQL paths-ignore, or greptile `.deft/core/**` globs, nor by the #1440 installer-managed allowlist. If committed, backups skew linguist language stats, get bot-reviewed/CodeQL-scanned as app code, and count as "app" in the guard.
 4. **No cleanup path.** The installer leaves backups indefinitely; the operator has to know to delete them.
@@ -11966,9 +12069,9 @@ The vBRIEF migration / spec-render step run during install/upgrade writes `*.pre
 `deft-install v0.39.6 --yes --upgrade --repo-root .` (v0.33.0 -> v0.39.6, vendored install) left three new untracked files at the repo root / vbrief:
 - `ROADMAP.premigrate.md`
 - `SPECIFICATION.premigrate.md`
-- `vbrief/specification.premigrate.vbrief.json`
+- `xbrief/specification.premigrate.xbrief.json`
 
-These are not matched by the canonical `.gitignore` deposit (which after v0.39.6 covers `vbrief/.eval/`, `vbrief/*.lock`, `.deft/core.bak-*/`, `.deft/*.bak-*` -- but not `*.premigrate.*`), and not by the #1440 installer-managed allowlist. So:
+These are not matched by the canonical `.gitignore` deposit (which after v0.39.6 covers `xbrief/.eval/`, `xbrief/*.lock`, `.deft/core.bak-*/`, `.deft/*.bak-*` -- but not `*.premigrate.*`), and not by the #1440 installer-managed allowlist. So:
 1. `git add -A` / `git add .` stages them -- committing pre-migration snapshots into the consumer repo.
 2. Mixed with a `.deft/core/**` change they trip the deft-core-guard (#1440) as "app" files (verified: a `*.premigrate.*` path matches neither `^\.deft/core/` nor the allowlist).
 
@@ -11976,8 +12079,8 @@ These are not matched by the canonical `.gitignore` deposit (which after v0.39.6
 
 ## Proposed fix (ranked -- mirrors #1445)
 
-1. **Best -- keep them out of the consumer tree:** write the snapshots under the migration audit dir `vbrief/migration/` (already in the #1440 allowlist and the documented migration audit trail), or under a gitignored / out-of-tree location like the #1445 backup dir.
-2. **Or -- gitignore them:** add `*.premigrate.*` (or `**/*.premigrate.*`) to the canonical `.gitignore` deposit, alongside the `vbrief/*.lock` / `.deft/*.bak-*` patterns added in v0.39.6.
+1. **Best -- keep them out of the consumer tree:** write the snapshots under the migration audit dir `xbrief/migration/` (already in the #1440 allowlist and the documented migration audit trail), or under a gitignored / out-of-tree location like the #1445 backup dir.
+2. **Or -- gitignore them:** add `*.premigrate.*` (or `**/*.premigrate.*`) to the canonical `.gitignore` deposit, alongside the `xbrief/*.lock` / `.deft/*.bak-*` patterns added in v0.39.6.
 3. **Or -- prune after success:** treat them as transient and remove (or fold into the `LEGACY-REPORT` audit) once migration/render completes.
 
 ## Acceptance criteria
@@ -11988,7 +12091,7 @@ These are not matched by the canonical `.gitignore` deposit (which after v0.39.6
 ## Related
 
 - #1445 -- vendored-upgrade backups relocated out of tree + gitignore hardening (same class, fixed v0.39.6).
-- #1311 -- `vbrief/*.lock` gitignore (same class, fixed v0.39.6).
+- #1311 -- `xbrief/*.lock` gitignore (same class, fixed v0.39.6).
 - #1440 -- deft-core-guard installer-managed allowlist (these files are non-core / non-allowlist -> "app").
 
 Evidence: reproduced on a v0.33.0 -> v0.39.6 vendored upgrade (Windows); files excluded from the upgrade commit in deftai/statusreport#8.
@@ -12126,15 +12229,15 @@ In a vendored consumer project (framework at .deft/core/), the deft git hooks ne
 - task verify:hooks-installed fails (not passes) when hooks are wired but non-functional. `[completed]`
 - Regression coverage for the vendored-consumer layout (not just the directive own-repo layout). `[completed]`
 
-### 2026-06-03-1464-eval-gitignore-selective: fix(installer): installer + relocator deposit selective vbrief/.eval/ ignores and heal the forbidden blanket (#1464, supersedes #1452)  `[completed]`
+### 2026-06-03-1464-eval-gitignore-selective: fix(installer): installer + relocator deposit selective xbrief/.eval/ ignores and heal the forbidden blanket (#1464, supersedes #1452)  `[completed]`
 
-Three deposit rails disagree on the vbrief/.eval/ gitignore policy. The bootstrap rail (scripts/_triage_bootstrap_gitignore.py) is correct post-#1251: it deposits selective per-file entries (candidates.jsonl / summary-history.jsonl / scope-lifecycle.jsonl) and treats the blanket vbrief/.eval/ as forbidden. The Go installer (cmd/deft-install/setup.go::canonicalGitignoreLines) and the relocator (scripts/relocate.py::GITIGNORE_LINES) still ship the blanket, so every fresh install / upgrade / relocate re-introduces the exact line the bootstrap step then warns the operator to remove -- silently hiding the team-shared slices.jsonl and README.md that #1144 / #1132 (D13) want tracked. This change: (1) replaces the blanket in both stale rails with the selective entries, reusing GITIGNORE_EVAL_ENTRIES as the single source of truth (the relocator imports it; the Go installer mirrors it with a parity test); (2) adds vbrief/.eval/doctor-state.json (per-machine task doctor throttle state) to the selective ignore set and the README table; (3) adds a forbidden-blanket heal so deft-install --upgrade and task relocate strip a pre-existing blanket vbrief/.eval/ (and vbrief/.eval) line instead of leaving it. Regression coverage spans all three rails (installer, relocator, bootstrap) asserting #1144 / #1251 parity, the heal behaviour, and doctor-state.json membership.
+Three deposit rails disagree on the xbrief/.eval/ gitignore policy. The bootstrap rail (scripts/_triage_bootstrap_gitignore.py) is correct post-#1251: it deposits selective per-file entries (candidates.jsonl / summary-history.jsonl / scope-lifecycle.jsonl) and treats the blanket xbrief/.eval/ as forbidden. The Go installer (cmd/deft-install/setup.go::canonicalGitignoreLines) and the relocator (scripts/relocate.py::GITIGNORE_LINES) still ship the blanket, so every fresh install / upgrade / relocate re-introduces the exact line the bootstrap step then warns the operator to remove -- silently hiding the team-shared slices.jsonl and README.md that #1144 / #1132 (D13) want tracked. This change: (1) replaces the blanket in both stale rails with the selective entries, reusing GITIGNORE_EVAL_ENTRIES as the single source of truth (the relocator imports it; the Go installer mirrors it with a parity test); (2) adds xbrief/.eval/doctor-state.json (per-machine task doctor throttle state) to the selective ignore set and the README table; (3) adds a forbidden-blanket heal so deft-install --upgrade and task relocate strip a pre-existing blanket xbrief/.eval/ (and xbrief/.eval) line instead of leaving it. Regression coverage spans all three rails (installer, relocator, bootstrap) asserting #1144 / #1251 parity, the heal behaviour, and doctor-state.json membership.
 
 **Acceptance**:
 
-- canonicalGitignoreLines (setup.go) and GITIGNORE_LINES (relocate.py) deposit the selective vbrief/.eval/* entries, never the blanket vbrief/.eval/. `[proposed]`
-- vbrief/.eval/doctor-state.json is in the selective ignore set (GITIGNORE_EVAL_ENTRIES) and the vbrief/.eval/README.md table. `[proposed]`
-- deft-install --upgrade and task relocate strip a pre-existing blanket vbrief/.eval/ (and vbrief/.eval) line on upgrade (heal), so task triage:bootstrap no longer warns. `[proposed]`
+- canonicalGitignoreLines (setup.go) and GITIGNORE_LINES (relocate.py) deposit the selective xbrief/.eval/* entries, never the blanket xbrief/.eval/. `[proposed]`
+- xbrief/.eval/doctor-state.json is in the selective ignore set (GITIGNORE_EVAL_ENTRIES) and the xbrief/.eval/README.md table. `[proposed]`
+- deft-install --upgrade and task relocate strip a pre-existing blanket xbrief/.eval/ (and xbrief/.eval) line on upgrade (heal), so task triage:bootstrap no longer warns. `[proposed]`
 - Regression parity across all three rails (installer, relocator, bootstrap) asserting #1144 / #1251 policy + the heal behaviour + doctor-state.json membership. `[proposed]`
 
 ### 2026-06-03-1465-events-log-gitignore: fix(events): relocate default event log out of the no-longer-gitignored .deft/ so it stops leaking untracked in consumers (#1465)  `[completed]`
@@ -12171,12 +12274,12 @@ A concurrent sibling worker (#1464) owns the canonical gitignore lists in `cmd/d
 
 ### 2026-06-03-1468-triage-audit-reconcile: triage: reconcile/self-heal audit log from proposed/pending/active vBRIEF inventory (#1468)  `[completed]`
 
-The triage audit log vbrief/.eval/candidates.jsonl is the single source of truth for 'has issue #N been triaged?', yet it can silently desync from the ingested vBRIEF inventory in vbrief/proposed/ / pending/ / active/. The audit log is operator-private and gitignored (sibling #1464), so branch churn or a vbrief/.eval/ cleanup can wipe it without git noticing. Bootstrap backfill (scripts/triage_bootstrap.py::step_backfill_audit_log) is point-in-time only: it writes one accept per vBRIEF present at the instant it runs and skips issue numbers already logged, so later-ingested vBRIEFs are never re-backfilled. The net effect is that a proposed/pending/active vBRIEF for #N carrying a valid x-vbrief/github-issue reference but no accept decision in the log is an internally inconsistent state that triage:summary faithfully (but confusingly) counts as untriaged, with no discoverable repair path short of a full task triage:bootstrap re-run (which also re-fetches the cache). This scope adds a discoverable, idempotent self-heal: a new `task triage:reconcile` verb that derives the missing accept decisions from the on-disk vBRIEF inventory without a cache re-fetch, plus a `[triage:reconcile] N` divergence hint emitted by triage:summary (mirroring the existing [triage:scope] line) so the operator is pointed at the repair verb. Coordinates with #1464: because the audit log is silently wipeable, the filesystem vBRIEF inventory must remain a recoverable source for lost accept decisions.
+The triage audit log xbrief/.eval/candidates.jsonl is the single source of truth for 'has issue #N been triaged?', yet it can silently desync from the ingested vBRIEF inventory in xbrief/proposed/ / pending/ / active/. The audit log is operator-private and gitignored (sibling #1464), so branch churn or a xbrief/.eval/ cleanup can wipe it without git noticing. Bootstrap backfill (scripts/triage_bootstrap.py::step_backfill_audit_log) is point-in-time only: it writes one accept per vBRIEF present at the instant it runs and skips issue numbers already logged, so later-ingested vBRIEFs are never re-backfilled. The net effect is that a proposed/pending/active vBRIEF for #N carrying a valid x-xbrief/github-issue reference but no accept decision in the log is an internally inconsistent state that triage:summary faithfully (but confusingly) counts as untriaged, with no discoverable repair path short of a full task triage:bootstrap re-run (which also re-fetches the cache). This scope adds a discoverable, idempotent self-heal: a new `task triage:reconcile` verb that derives the missing accept decisions from the on-disk vBRIEF inventory without a cache re-fetch, plus a `[triage:reconcile] N` divergence hint emitted by triage:summary (mirroring the existing [triage:scope] line) so the operator is pointed at the repair verb. Coordinates with #1464: because the audit log is silently wipeable, the filesystem vBRIEF inventory must remain a recoverable source for lost accept decisions.
 
 **Acceptance**:
 
 - A consumer whose candidates.jsonl is reset/lost can recover full triage state from the on-disk vBRIEF inventory via a single, discoverable repair verb (no manual JSONL editing, no full cache re-fetch required). `[proposed]`
-- task triage:summary does not report an issue as untriaged when a proposed/pending/active vBRIEF for it exists with a valid x-vbrief/github-issue reference (either via self-heal or via a surfaced reconcile hint). `[proposed]`
+- task triage:summary does not report an issue as untriaged when a proposed/pending/active vBRIEF for it exists with a valid x-xbrief/github-issue reference (either via self-heal or via a surfaced reconcile hint). `[proposed]`
 - Regression coverage: reset the audit log to a single backfill entry while N proposed/ vBRIEFs exist; assert the reconcile path restores N accept decisions and the summary untriaged count returns to 0. `[proposed]`
 
 ### 2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)  `[completed]`
@@ -12200,14 +12303,14 @@ Sibling to #1463 / #1464 / #1465 / #1468 (framework runtime behavior that misbeh
 All 14 failures + 6 errors are framework self-tests under `.deft/core/tests/`. Categories:
 
 - Tests asserting framework CI workflow files exist — e.g. `.deft/core/.github/workflows/release.yml`, `.deft/core/.github/workflows/branch-gate.yml` (not shipped in the vendored payload).
-- Tests asserting the framework's own docs exist — e.g. `test_eval_readme_documents_policy` checks `.deft/core/vbrief/.eval/README.md` (a framework-repo file; the consumer's bootstrap writes the README at repo-root `vbrief/.eval/README.md` instead).
+- Tests asserting the framework's own docs exist — e.g. `test_eval_readme_documents_policy` checks `.deft/core/xbrief/.eval/README.md` (a framework-repo file; the consumer's bootstrap writes the README at repo-root `xbrief/.eval/README.md` instead).
 - Version-resolution tests expecting a dev/older version but getting the pinned release `0.39.7`.
 
 Proven pre-existing + path-independent (consumer-side): stashing an unrelated consumer doc edit and re-running still reproduces the same failures. Tracked consumer-side in `deftai/statusreport#12`.
 
 ## Root cause
 
-The committed `.deft/core/` payload (#11) ships the framework's **own test suite**, and the consumer-facing `task deft:check` runs it. Those tests were written to validate the framework *in its own repo* and depend on framework-repo-only artifacts (CI workflows, the framework's `vbrief/.eval/README.md`, the framework's dev version string). There is no "am I running inside the framework repo vs. a vendored consumer?" guard, and no consumer-scoped check target that runs only consumer-relevant validation.
+The committed `.deft/core/` payload (#11) ships the framework's **own test suite**, and the consumer-facing `task deft:check` runs it. Those tests were written to validate the framework *in its own repo* and depend on framework-repo-only artifacts (CI workflows, the framework's `xbrief/.eval/README.md`, the framework's dev version string). There is no "am I running inside the framework repo vs. a vendored consumer?" guard, and no consumer-scoped check target that runs only consumer-relevant validation.
 
 ## Gaps
 
@@ -12463,11 +12566,11 @@ Found on `deftai/statusreport` PR #15 (v0.40.0 upgrade). Related: #1463 (consume
 
 ### 2026-06-03-1485-bugscope-scopeactivatescopecomplete-do-not-update-decomposed: bug(scope): scope:activate/scope:complete do not update decomposed-parent back-references (D4 linkage breaks)  `[completed]`
 
-During the 2026-06-03 swarm, decompose created child vBRIEFs in pending/ with the parent epic referencing the child's pending/ path. Running task scope:activate (pending->active) and task scope:complete (active->completed) moves the child file but does NOT update the parent epic's x-vbrief/plan back-reference, so task vbrief:validate fails the D4 bidirectional-linkage check (parent references a non-existent path; the moved child's planRef parent no longer lists it). This required a manual reference repair mid-session (see PR #1484). Fix: have scope:activate / scope:complete (and any lifecycle move of a decomposed child) update the parent reference to the child's new path; add a regression test. Suggested labels: bug, determinism, process. Refs #1484.
+During the 2026-06-03 swarm, decompose created child vBRIEFs in pending/ with the parent epic referencing the child's pending/ path. Running task scope:activate (pending->active) and task scope:complete (active->completed) moves the child file but does NOT update the parent epic's x-xbrief/plan back-reference, so task vbrief:validate fails the D4 bidirectional-linkage check (parent references a non-existent path; the moved child's planRef parent no longer lists it). This required a manual reference repair mid-session (see PR #1484). Fix: have scope:activate / scope:complete (and any lifecycle move of a decomposed child) update the parent reference to the child's new path; add a regression test. Suggested labels: bug, determinism, process. Refs #1484.
 
 **Acceptance**:
 
-- `task scope:activate` updates the decomposed parent epic's `x-vbrief/plan` child reference to the child's new `active/` path. `[pending]`
+- `task scope:activate` updates the decomposed parent epic's `x-xbrief/plan` child reference to the child's new `active/` path. `[pending]`
 - `task scope:complete` updates the decomposed parent epic's child reference to the child's new `completed/` path. `[pending]`
 - After activating/completing a decomposed child, `task vbrief:validate` passes the D4 bidirectional-linkage check with no manual reference repair. `[pending]`
 - A regression test covers the activate/complete decomposed-parent back-reference update. `[pending]`
@@ -12476,9 +12579,9 @@ During the 2026-06-03 swarm, decompose created child vBRIEFs in pending/ with th
 
 ## Summary
 
-When the `deft-directive-swarm` skill finishes a cohort (all worker PRs merged), the cohort's story vBRIEFs are left in `vbrief/active/` -- they are never moved to `vbrief/completed/`. The swarm skill should OWN this lifecycle cleanup as part of its completion (Phase 5 "Complete vBRIEFs" / Phase 6 "Close"), so a completed swarm leaves no stories stranded in `active/`.
+When the `deft-directive-swarm` skill finishes a cohort (all worker PRs merged), the cohort's story vBRIEFs are left in `xbrief/active/` -- they are never moved to `xbrief/completed/`. The swarm skill should OWN this lifecycle cleanup as part of its completion (Phase 5 "Complete vBRIEFs" / Phase 6 "Close"), so a completed swarm leaves no stories stranded in `active/`.
 
-Observed in the 2026-06-03 swarm: after PR #1484 merged all 8 stories, the 8 child story vBRIEFs remained in `vbrief/active/` and their decompose-created epic parents remained in `vbrief/pending/`. Nothing in the swarm flow swept them to `completed/`.
+Observed in the 2026-06-03 swarm: after PR #1484 merged all 8 stories, the 8 child story vBRIEFs remained in `xbrief/active/` and their decompose-created epic parents remained in `xbrief/pending/`. Nothing in the swarm flow swept them to `completed/`.
 
 ## Why this is swarm-skill cleanup (not a one-off chore)
 
@@ -12497,7 +12600,7 @@ Naively running `task scope:complete` (active -> completed) RE-BREAKS the D4 par
 
 ## Acceptance criteria
 
-- After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in `vbrief/active/`; each is in `vbrief/completed/` with status `completed`.
+- After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in `xbrief/active/`; each is in `xbrief/completed/` with status `completed`.
 - The decompose-created epic parents are completed/closed once their children are complete.
 - `task vbrief:validate` is green after the sweep (no D4 linkage regressions).
 - The `deft-directive-swarm` SKILL documents the completion sweep as a required Phase 6 step.
@@ -12506,7 +12609,7 @@ Suggested labels: process, agent-experience. Blocked by #1485. Refs #1484.
 
 **Acceptance**:
 
-- After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in `vbrief/active/`; each is in `vbrief/completed/` with status `completed`. `[proposed]`
+- After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in `xbrief/active/`; each is in `xbrief/completed/` with status `completed`. `[proposed]`
 - The decompose-created epic parents are completed/closed once their children are complete. `[proposed]`
 - `task vbrief:validate` is green after the sweep (no D4 linkage regressions). `[proposed]`
 - The `deft-directive-swarm` SKILL documents the completion sweep as a required Phase 6 step. `[proposed]`
@@ -12782,7 +12885,7 @@ The epic estimate only affects the **forward** view; backward adherence counts r
 
 **Outcome signal (closing the loop).** Capacity is an *input* metric; pair it with an *outcome* metric so a bucket can't be "busy but failing" invisibly. A per-bucket **outcome health overlay** (does NOT change the allocation metric): the **revert/rework rate** — git reverts plus follow-up fix vBRIEFs that `reference` a completed vBRIEF — computed filesystem-truth over the same window. Optionally integrate an external code-health/coverage signal where available. Surfaced in `capacity:show`; sustained high rework is a Tier-2 nudge.
 
-**Where running totals live (derived, not stored).** Tallies computed on demand from the lifecycle folders: backward from `vbrief/completed/` (frozen `capacityBucket` + `completedAt`), forward from `pending/`+`active/`. Deficit computed at decision time. Optional rebuildable cache in `vbrief/.eval/` only; never authoritative.
+**Where running totals live (derived, not stored).** Tallies computed on demand from the lifecycle folders: backward from `xbrief/completed/` (frozen `capacityBucket` + `completedAt`), forward from `pending/`+`active/`. Deficit computed at decision time. Optional rebuildable cache in `xbrief/.eval/` only; never authoritative.
 
 **Cost capture (rev 11 overlay; rev 12 capture plan; rev 13 Analytics-API grounding).** Agentic work has real, variable credit/$ cost; a count-based denominator can hide that one bucket is many times the spend of another. `capacity:show` surfaces a per-bucket **cost** column. Capture mechanics:
 - **`plan.metadata.cost = { credits, tokens, usd, source, partial, asOf }`** is stamped on completed vBRIEFs whenever a figure is available — additive metadata that defaults absent, so projects **start collecting actuals now** and history accrues (you cannot backfill spend from git, so starting early matters — same logic as `completedAt`). `credits` is the native Warp unit; `usd` is derived via a configured credit→$ rate; `tokens` is populated only when a token-level source is available (the Warp Analytics API reports credits, not tokens).
@@ -12925,8 +13028,8 @@ Human job: confirm the 4 targets + skim the low-confidence batch. **Window-first
 
 ## Receipts & Audit
 Two tiers, reusing existing conventions (no new store):
-- **Durable, committed audit** (`vbrief/.audit/*.jsonl`) — authority-bearing events: gate clearances, `--force` overrides, allocation approvals, autonomy-level changes. Record-of-record; append-only; must survive.
-- **Gitignored telemetry** (`vbrief/.eval/`) — high-volume selection-ranking traces. Observability only; capped/rotatable; rebuildable since selection is deterministic.
+- **Durable, committed audit** (`xbrief/.audit/*.jsonl`) — authority-bearing events: gate clearances, `--force` overrides, allocation approvals, autonomy-level changes. Record-of-record; append-only; must survive.
+- **Gitignored telemetry** (`xbrief/.eval/`) — high-volume selection-ranking traces. Observability only; capped/rotatable; rebuildable since selection is deterministic.
 
 ## Agentic Pre-Grooming + Human Oversight
 Agents handle pre-grooming (impact analysis, dedup, risk flagging, bucket/gate proposals, brownfield classification, first-pass review); humans retain final authority on allocation changes, gate clearances, target confirmation, merge approval, and high-context calls. Existing checkpoints (swarm Phase 0, #1378 Gate 0, review-cycle) are reused as the human-approval surface.
@@ -12984,7 +13087,7 @@ Existing vBRIEF trees remain valid; all new fields default to absent → today's
 - **Spec-readiness eligibility:** only swarm-ready/well-specified work is promotable; reuse `swarm:readiness`.
 - **Cost capture (rev 12 → rev 13):** start collecting actuals now via additive `plan.metadata.cost = { credits, tokens, usd, source, partial, asOf }` — **never agent self-report**. Primary source is the **Warp Enterprise Analytics API** `events` endpoint (per-message `credit_charged`, covering interactive + cloud), synced post-hoc by **`task capacity:cost-sync`** and attributed via `git_context.branch`/`head` + `conversation_id` (with the `vBRIEF:` trailer for batched sessions); harness OTEL / API `usage` fill `tokens` where available; `usd` derived via a credit→$ rate; `source`+`partial` provenance. Two-tier coverage: **enterprise-grounded** vs **estimate-only** (`deft-directive-cost`) below enterprise. **warpdotdev/warp#12075** narrowed to sub-enterprise access + raw token/$; cost-as-`unit` deferred.
 - **Cognitive-debt drift:** context/doc drift is the measurable signal that could graduate cognitive debt to its own bucket.
-- **Receipts:** durable committed audit (`vbrief/.audit/`) for authority-bearing events; gitignored `vbrief/.eval/` telemetry for selection traces.
+- **Receipts:** durable committed audit (`xbrief/.audit/`) for authority-bearing events; gitignored `xbrief/.eval/` telemetry for selection traces.
 
 ## Open Questions v2 (research-informed)
 - **Autonomy ratchet metric:** exact signal + thresholds for advancing/retreating the autonomy level.
@@ -13002,7 +13105,7 @@ Existing vBRIEF trees remain valid; all new fields default to absent → today's
 - Warp Enterprise Analytics API — https://docs.warp.dev/enterprise/enterprise-features/analytics-api/ (`summary`/`users`/`events`; per-message `credit_charged` + `git_context`; enterprise/admin-only; primary cost-capture source)
 - Upstream: **warpdotdev/warp#12075** (narrowed to sub-enterprise access + raw token/$ exposure; enterprise interactive+cloud capture now unblocked via the Analytics API)
 - AGENTS.md: pre-`start_agent` gate stack (#1378), headless launch (#1387), template propagation (#1309), SCM boundary (#1145), filesystem-truth in-flight count (#1270), swarm per-story checkpoint commits, session-start ritual + D2 suppression (#1149 / #1143)
-- `vbrief/vbrief.md` (kind / epic-story model, decomposition)
+- `xbrief/vbrief.md` (kind / epic-story model, decomposition)
 - Industry best-practice basis: Anthropic 2026 Agentic Coding Trends Report; 2025 DORA findings; CodeScene (code-health/coverage signals); autonomy-dial + risk-tiered-escalation patterns; multi-agent production post-mortems (cost caps, cascade/blast-radius, receipts-not-chat-logs).
 
 ### 2026-06-04-add-capacity-allocation-accounting-with-buckets-windows-and: Add capacity allocation accounting with buckets, windows, and capacity:show  `[completed]`
@@ -13545,7 +13648,7 @@ deft-install v0.42.1
 ```
 
 ## Observed
-The install itself exits 0 and deposits `.deft/core`, `AGENTS.md`, `.agents/skills`, `.githooks`, `Taskfile.yml`, `vbrief/`, and guard files correctly. However, output includes:
+The install itself exits 0 and deposits `.deft/core`, `AGENTS.md`, `.agents/skills`, `.githooks`, `Taskfile.yml`, `xbrief/`, and guard files correctly. However, output includes:
 
 ```text
 Missing core tools (consent implied by --yes): gh, task, uv
@@ -13641,7 +13744,7 @@ Observed during Ubuntu/WSL validation of `deft-install v0.43.0`:
 The Linux bootstrap fix worked: missing `gh`, `task`, and `uv` were installed successfully. But the installer also staged consumer-style changes in the framework repo, including:
 
 - `AGENTS.md` managed-section header rewritten toward consumer-installed shape
-- `.gitignore` additions for `.deft/core.bak-*`, `.deft/*.bak-*`, and `vbrief/*.lock`
+- `.gitignore` additions for `.deft/core.bak-*`, `.deft/*.bak-*`, and `xbrief/*.lock`
 - `.gitattributes` additions marking `.deft/core/**` as generated/vendored
 - consumer support files such as `greptile.json`, CodeQL config, core guard workflow, and lifecycle `.gitkeep` files
 
@@ -13760,7 +13863,7 @@ Re-enable the Deft local branch-policy gate for the directive framework reposito
 - Disable direct default-branch commits in project policy `[completed]`
   - Acceptance: Given the directive project policy, when `task policy:show -- --field=plan.policy.allowDirectCommitsToMaster` runs, then it reports `current: false`.
 - Verify branch policy gates still run `[completed]`
-  - Acceptance: Given the updated policy, when `task verify:branch` runs from a feature branch, then it passes while still resolving the typed policy field from `PROJECT-DEFINITION.vbrief.json`.
+  - Acceptance: Given the updated policy, when `task verify:branch` runs from a feature branch, then it passes while still resolving the typed policy field from `PROJECT-DEFINITION.xbrief.json`.
 
 ### 2026-06-08-integrate-selected-sub-agent-backend-into-headless-swarm-lau: Integrate selected sub-agent backend into headless swarm launch and audit output  `[completed]`
 
@@ -13811,12 +13914,12 @@ After applying the v0.37.0 release tree to a consumer project and running the do
 `DEFT_RELEASE_VERSION=0.37.0 task verify:encoding` reports 48 hits across 5 files, including:
 
 ```
-.deft/core/history/archive/2026-03-20-agent-auto-alignment/tasks.vbrief.json:1 [unexpected UTF-8 BOM]
-.deft/core/history/archive/2026-03-20-agent-auto-alignment/tasks.vbrief.json:82 [U+2014 (—) corrupted via cp1252 read]
-.deft/core/history/archive/2026-03-20-agents-md-onboarding/tasks.vbrief.json:17 [U+2192 (→) corrupted via cp1252 read]
+.deft/core/history/archive/2026-03-20-agent-auto-alignment/tasks.xbrief.json:1 [unexpected UTF-8 BOM]
+.deft/core/history/archive/2026-03-20-agent-auto-alignment/tasks.xbrief.json:82 [U+2014 (—) corrupted via cp1252 read]
+.deft/core/history/archive/2026-03-20-agents-md-onboarding/tasks.xbrief.json:17 [U+2192 (→) corrupted via cp1252 read]
 .deft/core/scripts/verify_encoding.py:25 [U+2019 (’) corrupted via cp1252 read]
 .deft/core/tests/cli/test_verify_encoding.py:189 [U+2297 (⊗) corrupted via cp437 read]
-.deft/core/vbrief/completed/2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t.vbrief.json:30 [multiple cp1252 hits]
+.deft/core/xbrief/completed/2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t.xbrief.json:30 [multiple cp1252 hits]
 ```
 
 The script appears to flag known mojibake pattern literals in `verify_encoding.py` / tests, plus historical framework fixtures and completed vBRIEFs included in the release tree.
@@ -13837,7 +13940,7 @@ Consumers upgrading to v0.37.0 cannot get a green `task check` without locally p
 **Acceptance**:
 
 - Vendored framework exception paths are allowlisted `[completed]`
-  - Acceptance: Given the installer or local archive builder packages the framework for a consumer deposit, when the payload is extracted, then `history/archive/**` and completed vBRIEF history are absent while runtime files such as `scripts/verify_encoding.py` and `vbrief/schemas/**` are preserved.
+  - Acceptance: Given the installer or local archive builder packages the framework for a consumer deposit, when the payload is extracted, then `history/archive/**` and completed vBRIEF history are absent while runtime files such as `scripts/verify_encoding.py` and `xbrief/schemas/**` are preserved.
 - Consumer-owned corruption still fails `[completed]`
   - Acceptance: Given the same consumer repo also tracks a non-framework file containing mojibake or an unexpected BOM, when the encoding verifier runs, then it exits 1 and reports the consumer-owned file.
 - Regression test covers direct vendored verify command shape `[completed]`
@@ -14107,8 +14210,8 @@ The vBRIEF lifecycle-sync release gate (`scripts/release.py::check_vbrief_lifecy
 
 ## Reproduction (2026-06-05 session)
 
-1. Issue #1001 was closed as a duplicate of #1016 (`state_reason=not_planned`); its scope vBRIEF was correctly moved to `vbrief/cancelled/` via `task scope:cancel`.
-2. Pre-release `task reconcile:issues -- --apply-lifecycle-fixes` reported `moved=1` and relocated `cancelled/2026-06-05-1001-...vbrief.json` -> `completed/...`.
+1. Issue #1001 was closed as a duplicate of #1016 (`state_reason=not_planned`); its scope vBRIEF was correctly moved to `xbrief/cancelled/` via `task scope:cancel`.
+2. Pre-release `task reconcile:issues -- --apply-lifecycle-fixes` reported `moved=1` and relocated `cancelled/2026-06-05-1001-...xbrief.json` -> `completed/...`.
 3. Reverting #1001 back to `cancelled/` makes the release Step-3 gate count it as 1 mismatch and refuse the cut.
 
 ## Root cause
@@ -14153,22 +14256,22 @@ Kept #1001 in `cancelled/` (correct state) and cut the release with `--allow-vbr
 
 ## Summary
 
-In a vBRIEF-centric consumer project, `task scope:complete -- <active-scope-vbrief>` moves the scope file to `vbrief/completed/` and updates the `PROJECT-DEFINITION.vbrief.json` reference URI to point at `completed/...`, but the matching `plan.items[]` registry entry can remain at `status: proposed`.
+In a vBRIEF-centric consumer project, `task scope:complete -- <active-scope-vbrief>` moves the scope file to `xbrief/completed/` and updates the `PROJECT-DEFINITION.xbrief.json` reference URI to point at `completed/...`, but the matching `plan.items[]` registry entry can remain at `status: proposed`.
 
 ## Observed behavior
 
 After completing a scope with:
 
 ```bash
-task scope:complete -- vbrief/active/2026-06-04-sites-membership-api.vbrief.json
+task scope:complete -- xbrief/active/2026-06-04-sites-membership-api.xbrief.json
 ```
 
-The lifecycle move succeeded and `PROJECT-DEFINITION.vbrief.json` references now include:
+The lifecycle move succeeded and `PROJECT-DEFINITION.xbrief.json` references now include:
 
 ```json
 {
-  "uri": "completed/2026-06-04-sites-membership-api.vbrief.json",
-  "type": "x-vbrief/plan",
+  "uri": "completed/2026-06-04-sites-membership-api.xbrief.json",
+  "type": "x-xbrief/plan",
   "title": "Sites and Site Membership API"
 }
 ```
@@ -14187,7 +14290,7 @@ The same consumer project also had previously completed scope references whose r
 
 ## Expected behavior
 
-When lifecycle tooling completes a scope and updates `PROJECT-DEFINITION.vbrief.json`, the matching `plan.items[]` entry should either:
+When lifecycle tooling completes a scope and updates `PROJECT-DEFINITION.xbrief.json`, the matching `plan.items[]` entry should either:
 
 - be updated to `status: completed`, or
 - be intentionally left alone with a documented validation rule explaining that `plan.items[].status` is not authoritative and may diverge from lifecycle folder/status.
@@ -14664,7 +14767,7 @@ Possible fixes:
 
 The two confirmed corruption patterns observed in the wild:
 
-- `\vbrief/` → `<U+000B>brief/` (the `\v` becomes a vertical-tab control char)
+- `\xbrief/` → `<U+000B>brief/` (the `\v` becomes a vertical-tab control char)
 - `\task` → `<U+0009>ask` (the `\t` becomes a tab control char)
 
 Other JSON escapes in the same class (`\b`, `\f`, `\n`, `\r`, `\\`, `\"`, `\uXXXX`) are likely affected the same way. `\u` in particular would silently drop the leading backslash plus four hex chars and substitute the codepoint.
@@ -14676,10 +14779,10 @@ Live evidence (2026-05-11, deftai/directive):
 1. **Upstream issue #1025** body contains paragraphs like:
    ```
    The deft setup skill (deft-directive-setup) deposits scope vBRIEFs in
-   \vbrief/proposed/ after Phase 3. The swarm skill (deft-directive-swarm)
-   Phase 0 Step 1 expects vBRIEFs in `\vbrief/active/`.
+   \xbrief/proposed/ after Phase 3. The swarm skill (deft-directive-swarm)
+   Phase 0 Step 1 expects vBRIEFs in `\xbrief/active/`.
    ```
-   (the literal `\vbrief/` and `\task` substrings come from the issue author's habit of escaping backticks for the dollar-sign-and-other-special-chars markdown shell rendering).
+   (the literal `\xbrief/` and `\task` substrings come from the issue author's habit of escaping backticks for the dollar-sign-and-other-special-chars markdown shell rendering).
 
 2. **Accept the issue via the canonical path:**
    ```pwsh
@@ -14688,11 +14791,11 @@ Live evidence (2026-05-11, deftai/directive):
 
 3. **Read the produced vBRIEF Overview:**
    ```pwsh
-   $j = Get-Content vbrief/proposed/2026-05-11-1025-*.vbrief.json -Raw -Encoding UTF8 | ConvertFrom-Json
+   $j = Get-Content xbrief/proposed/2026-05-11-1025-*.xbrief.json -Raw -Encoding UTF8 | ConvertFrom-Json
    $j.plan.narratives.Overview
    ```
 
-   Result: `\vbrief/` appears as `<VT>brief/` (U+000B), `\task` appears as `<TAB>ask` — the body is corrupted at write time, not at read time. The raw JSON file on disk literally contains the control characters.
+   Result: `\xbrief/` appears as `<VT>brief/` (U+000B), `\task` appears as `<TAB>ask` — the body is corrupted at write time, not at read time. The raw JSON file on disk literally contains the control characters.
 
 4. **Greptile flagged this on PR #1034** (the surfacing event) with confidence 3/5 and a P1-class finding. The corrupted vBRIEF is unreadable as a downstream artifact -- the swarm-dispatch contract documented at `skills/deft-directive-swarm/SKILL.md` Phase 0 Step 0B requires `plan.narratives.Overview` to be the verbatim issue body; corruption silently breaks that contract.
 
@@ -14702,7 +14805,7 @@ Somewhere along the `gh api repos/.../issues/<N>` → `scripts/cache.py::cache_p
 
 Most likely candidate: `_fetch_from_cache` reads `raw.json` via `json.loads` (correct -- this decodes the JSON-string escapes back to their character values), but then the value is treated as already-decoded markdown when it should be treated as opaque source-text-that-happens-to-contain-backslashes.
 
-The `gh api` output is itself JSON, and the GitHub REST `body` field SHOULD escape `\v` to `\\v` in the JSON serialization. If GitHub is emitting `body: "...\\vbrief/..."` (correctly escaped), and `cache_put` writes raw.json by re-serializing the parsed dict via `json.dumps(..., ensure_ascii=False)`, then the round-trip should preserve `\\vbrief/` in raw.json as `"\\vbrief/"`. When `issue_ingest` re-reads via `json.loads`, the unescape produces `\vbrief/` (a literal backslash followed by `vbrief/`) which is correct.
+The `gh api` output is itself JSON, and the GitHub REST `body` field SHOULD escape `\v` to `\\v` in the JSON serialization. If GitHub is emitting `body: "...\\xbrief/..."` (correctly escaped), and `cache_put` writes raw.json by re-serializing the parsed dict via `json.dumps(..., ensure_ascii=False)`, then the round-trip should preserve `\\xbrief/` in raw.json as `"\\xbrief/"`. When `issue_ingest` re-reads via `json.loads`, the unescape produces `\xbrief/` (a literal backslash followed by `xbrief/`) which is correct.
 
 If the chain instead writes raw.json by passing the gh stdout bytes through some intermediate path that double-decodes -- e.g. `json.loads(gh_stdout)["body"]` then re-encoding without `ensure_ascii=False`, or any path that interprets the body string as a Python format string -- the second decode flips `\\v` → `\v` (a vertical tab in Python string semantics, which is U+000B). That's the observed corruption shape.
 
@@ -14712,7 +14815,7 @@ Cross-references: the recurrence pattern matches the same "double-encoding/decod
 
 1. **Audit the body-extraction path** end-to-end: `gh api` → `cache.cache_put` (raw.json write) → `cache.cache_get` (raw.json read) → `issue_ingest._fetch_from_cache` (Overview extraction). Add a regression test that round-trips a synthetic issue body containing `\v`, `\t`, `\n`, `\r`, `\b`, `\f`, `\\`, `\"`, `\uXXXX` through the full chain and asserts the resulting `plan.narratives.Overview` contains the literal bytes verbatim (no control-char substitution).
 
-2. **Add a `verify_encoding` gate hook** for ingested vBRIEFs: extend `scripts/verify_encoding.py` (#798) to scan `vbrief/proposed/` and `vbrief/active/` files for U+000B / U+0008 / U+000C / U+0009 (when not in indentation context) / other non-printable control chars in narrative fields. Wire into `task check`. Three-state exit consistent with the existing scanner.
+2. **Add a `verify_encoding` gate hook** for ingested vBRIEFs: extend `scripts/verify_encoding.py` (#798) to scan `xbrief/proposed/` and `xbrief/active/` files for U+000B / U+0008 / U+000C / U+0009 (when not in indentation context) / other non-printable control chars in narrative fields. Wire into `task check`. Three-state exit consistent with the existing scanner.
 
 3. **Document the contract** in `scripts/issue_ingest.py` module docstring: "Issue body MUST be treated as opaque text. Never `format()`, never `eval()`, never re-decode through `json.loads(json.dumps(body))` -- pass the body bytes through unmodified."
 
@@ -14918,7 +15021,7 @@ Net: without backfill, capacity allocation can never leave advisory mode on a pr
 `task capacity:backfill` — a one-time migration, same shape/safety as `task migrate:vbrief` (window-first, dry-run-default, git-reversible):
 
 - `completedAt` ← git landing time of the file in `completed/` (deterministic, zero human).
-- `capacityBucket` ← bucket `match` rules (the `labels.any-of` predicates already declared per bucket) evaluated against each vBRIEF's origin-issue labels (via its `x-vbrief/github-issue` reference) → agent inference for ambiguous → **human reviews only the low-confidence batch**. Records `capacityBucketSource` (`match` | `agent` | `human`).
+- `capacityBucket` ← bucket `match` rules (the `labels.any-of` predicates already declared per bucket) evaluated against each vBRIEF's origin-issue labels (via its `x-xbrief/github-issue` reference) → agent inference for ambiguous → **human reviews only the low-confidence batch**. Records `capacityBucketSource` (`match` | `agent` | `human`).
 - In-flight epic `estimatedChildren` ← agent-proposed in the same pass.
 - Note: historical **cost** actuals are NOT backfillable (no telemetry for past runs) — `cost` accrues forward only.
 
@@ -15284,14 +15387,14 @@ obra/superpowers `systematic-debugging` (166K stars) + the `forensic-research` s
 
 ### 2026-06-15-1274a-issue-emit-tool: task issue:emit -- vBRIEF -> GitHub issue write path  `[completed]`
 
-Ship task issue:emit, the write-direction counterpart to task issue:ingest, so a scope vBRIEF can be filed as a GitHub issue with one command. The verb renders the issue body from the vBRIEF title, Description, Acceptance, and Traces narratives, files the issue through the scripts/scm.py shim, and writes the resulting issue URL back into the source vBRIEF's references[] as an x-vbrief/github-issue entry.
+Ship task issue:emit, the write-direction counterpart to task issue:ingest, so a scope vBRIEF can be filed as a GitHub issue with one command. The verb renders the issue body from the vBRIEF title, Description, Acceptance, and Traces narratives, files the issue through the scripts/scm.py shim, and writes the resulting issue URL back into the source vBRIEF's references[] as an x-xbrief/github-issue entry.
 
 **Acceptance**:
 
 - issue:emit single + umbrella + per-vbrief modes via scm shim `[pending]`
   - Acceptance: Running task issue:emit creates a GitHub issue for a single vBRIEF, while --umbrella creates one checklist issue and --per-vbrief creates one issue per matched vBRIEF, all routed through scripts/scm.py.
 - references[] write-back with external TrustLevel `[pending]`
-  - Acceptance: After a successful emit, each source vBRIEF records an x-vbrief/github-issue reference with the issue URL and TrustLevel external, and a re-run detects the existing reference instead of creating a duplicate.
+  - Acceptance: After a successful emit, each source vBRIEF records an x-xbrief/github-issue reference with the issue URL and TrustLevel external, and a re-run detects the existing reference instead of creating a duplicate.
 - Dry-run and DEFT_NO_NETWORK print a plan without calling the forge `[pending]`
   - Acceptance: When --dry-run or DEFT_NO_NETWORK=1 is set, task issue:emit emits a plan of the issues it would file and persists no change to any source vBRIEF on disk.
 
@@ -15316,7 +15419,7 @@ Implement the #1595 PR 2 slice: define a concrete codeStructure shape, validate 
 
 ## Plan Validity Check
 
-The 2026-06-15 #1595 current-shape override resolved the physical home: canonical codeStructure lives only at PROJECT-DEFINITION.plan.architecture.codeStructure, typed through vbrief/schemas/vbrief-core.schema.json. Standalone paths are reserved for generated projections only, and x-directive/architecture.codeStructure remains a consumer fallback rather than Directive's dogfood home.
+The 2026-06-15 #1595 current-shape override resolved the physical home: canonical codeStructure lives only at PROJECT-DEFINITION.plan.architecture.codeStructure, typed through xbrief/schemas/vbrief-core.schema.json. Standalone paths are reserved for generated projections only, and x-directive/architecture.codeStructure remains a consumer fallback rather than Directive's dogfood home.
 
 ## Scope
 
@@ -15343,14 +15446,14 @@ The 2026-06-15 #1595 current-shape override resolved the physical home: canonica
 
 ### 2026-06-15-1620-vbrief-conformance-gate: vBRIEF 0.6 conformance: Category A migrations + verify:vbrief-conformance gate  `[completed]`
 
-directive is the vBRIEF reference implementation but emits bare, non-namespaced fields that are neither spec-core nor x-directive/-namespaced. That drift produced the statusreport #34 false-RED. This story ships the no-upstream-dependency half of #1620: (A) migrate misused/misspelled CORE fields to their correct core home across the corpus, and (B) add a verify:vbrief-conformance gate that fails task check + pre-commit when any vBRIEF carries a bare key outside spec-core / x-directive/ / x-vbrief/. Category B (plan.policy -> x-directive/policy, completedNote) is DEFERRED to a follow-up because it depends on upstream vBRIEF #12 (x-<consumer>/ namespace ratification + round-trip preservation); the gate ships with a documented temporary allow-list for plan.policy and plan.completedNote, and a follow-up issue is filed to remove the allow-list once #12 lands.
+directive is the vBRIEF reference implementation but emits bare, non-namespaced fields that are neither spec-core nor x-directive/-namespaced. That drift produced the statusreport #34 false-RED. This story ships the no-upstream-dependency half of #1620: (A) migrate misused/misspelled CORE fields to their correct core home across the corpus, and (B) add a verify:vbrief-conformance gate that fails task check + pre-commit when any vBRIEF carries a bare key outside spec-core / x-directive/ / x-xbrief/. Category B (plan.policy -> x-directive/policy, completedNote) is DEFERRED to a follow-up because it depends on upstream vBRIEF #12 (x-<consumer>/ namespace ratification + round-trip preservation); the gate ships with a documented temporary allow-list for plan.policy and plan.completedNote, and a follow-up issue is filed to remove the allow-list once #12 lands.
 
 **Acceptance**:
 
 - Category A core-field migration across the vBRIEF corpus `[pending]`
-  - Acceptance: Running scripts/vbrief_migrate_conformance.py creates a deduped plan.references[] x-vbrief/github-issue entry from plan.planRef, updates item description to narrative and item narratives(plural) to narrative across all vBRIEF files; when re-run with --check it exits 0 and mutates no other fields.
+  - Acceptance: Running scripts/vbrief_migrate_conformance.py creates a deduped plan.references[] x-xbrief/github-issue entry from plan.planRef, updates item description to narrative and item narratives(plural) to narrative across all vBRIEF files; when re-run with --check it exits 0 and mutates no other fields.
 - verify:vbrief-conformance gate with temporary Category B allow-list `[pending]`
-  - Acceptance: task verify:vbrief-conformance fails (exit 1) when any vBRIEF carries a bare key outside spec-core / x-directive/ / x-vbrief/ at document, plan, or item level; plan.policy and plan.completedNote are carved out via a documented TEMPORARY allow-list citing the Category B follow-up issue.
+  - Acceptance: task verify:vbrief-conformance fails (exit 1) when any vBRIEF carries a bare key outside spec-core / x-directive/ / x-xbrief/ at document, plan, or item level; plan.policy and plan.completedNote are carved out via a documented TEMPORARY allow-list citing the Category B follow-up issue.
 - Wire the gate into task check + pre-commit; corpus stays green `[pending]`
   - Acceptance: When wired into task check and the .githooks/pre-commit --staged step, verify:vbrief-conformance validates the migrated corpus and task check passes green; the Category B follow-up issue (depends-on vBRIEF #12) is filed and referenced in the allow-list comment.
 
@@ -15459,7 +15562,7 @@ bug-labeled issues are not prioritized in the triage queue. 'bug' is in plan.pol
 **Acceptance**:
 
 - Append 'bug' to deft's triageRankingLabels `[pending]`
-  - Acceptance: plan.policy.triageRankingLabels in vbrief/PROJECT-DEFINITION.vbrief.json is [blocks-merge, blocks-release-tag, adoption-blocker, breaking-change, urgent, bug], and task triage:queue ranks a bug-labeled untriaged issue above unlabeled/feature peers and below the four higher escalation labels.
+  - Acceptance: plan.policy.triageRankingLabels in xbrief/PROJECT-DEFINITION.xbrief.json is [blocks-merge, blocks-release-tag, adoption-blocker, breaking-change, urgent, bug], and task triage:queue ranks a bug-labeled untriaged issue above unlabeled/feature peers and below the four higher escalation labels.
 - Propagate to the consumer-example default + annotation `[pending]`
   - Acceptance: docs/example-project-definition.md JSON example includes 'bug' after 'urgent' in triageRankingLabels, and the ### triageRankingLabels[] annotation column documents 'bug' as a common convention.
 - Update the priority-order contract test `[pending]`
@@ -15644,7 +15747,7 @@ The #1595 current-shape override resolved that canonical codeStructure lives onl
 - vbrief-core.schema.json contains the codeStructure type surface used by PROJECT-DEFINITION. `[completed]`
 - Validator discovery and tests reject standalone canonical files while preserving the x-directive consumer fallback. `[completed]`
 - Projection manifest shape stores path/kind/generated/source and no runner-specific command strings. `[completed]`
-- Docs, FILES index, CHANGELOG, and completed PR2 record no longer describe vbrief/architecture as canonical. `[completed]`
+- Docs, FILES index, CHANGELOG, and completed PR2 record no longer describe xbrief/architecture as canonical. `[completed]`
 
 ### 2026-06-16-1648-in-process-session-ritual-entrypoints: fix(ritual): call gated session ritual entrypoints in-process  `[completed]`
 
@@ -15849,8 +15952,8 @@ Discovered while running the v0.20.0 migration on `deftai/bridge` (commit `ffafb
 - `PROJECT.md`
 - `ROADMAP.md`
 - `SPECIFICATION.md`
-- `vbrief/migration/LEGACY-REPORT.md`
-- `vbrief/specification.vbrief.json`
+- `xbrief/migration/LEGACY-REPORT.md`
+- `xbrief/specification.xbrief.json`
 
 Running `pnpm exec prettier --check` (or `task fmt:check`, which is the documented bridge gate) against any of these flagged them. `prettier --write` then made byte-level changes (whitespace / line-break / JSON-indent normalisations); the diff was purely cosmetic.
 
@@ -15858,7 +15961,7 @@ Running `pnpm exec prettier --check` (or `task fmt:check`, which is the document
 
 - Every consumer that adopts the bridge-style `task check` gate (fmt:check + lint + typecheck + test) hits a baseline failure on a fresh post-migration checkout.
 - Contributors and agents are tempted to either (a) bypass the gate, or (b) silently re-format the auto-generated files, which then drifts back the next time the migrator runs.
-- The bridge scope vBRIEF [`vbrief/proposed/eval-build-fix-migrate-vbrief-prettier-output.vbrief.json`](https://github.com/deftai/bridge/blob/main/vbrief/proposed/eval-build-fix-migrate-vbrief-prettier-output.vbrief.json) tracks the downstream-side problem.
+- The bridge scope vBRIEF [`xbrief/proposed/eval-build-fix-migrate-vbrief-prettier-output.xbrief.json`](https://github.com/deftai/bridge/blob/main/xbrief/proposed/eval-build-fix-migrate-vbrief-prettier-output.xbrief.json) tracks the downstream-side problem.
 
 ## Workaround already applied in deftai/bridge
 
@@ -15884,7 +15987,7 @@ Discovered during a Warp agent session: <https://app.warp.dev/conversation/44b7d
 **Acceptance**:
 
 - Migration emits a remediation breadcrumb `[proposed]`
-  - Acceptance: Given a completed migration, when the migrator finishes, then it emits a remediation note on stdout and in vbrief/migration/LEGACY-REPORT.md explaining how to make the output prettier-clean before task check.
+  - Acceptance: Given a completed migration, when the migrator finishes, then it emits a remediation note on stdout and in xbrief/migration/LEGACY-REPORT.md explaining how to make the output prettier-clean before task check.
 - Breadcrumb enumerates the generated paths `[proposed]`
   - Acceptance: Given the remediation note, when a consumer reads it, then it lists the specific generated files (SPECIFICATION.md, PROJECT.md, ROADMAP.md, the two vbrief JSON files, and LEGACY-REPORT.md) to run prettier --write on.
 - Regression test guards the breadcrumb `[proposed]`
@@ -15940,7 +16043,7 @@ Replace the unmarked prose with `!`/`⊗` markers, an explicit ordered read list
 ! When all config exists, before responding to any user request, read in this order:
   1. main.md (or deft/main.md when installed)
   2. USER.md
-  3. ./vbrief/PROJECT-DEFINITION.vbrief.json
+  3. ./xbrief/PROJECT-DEFINITION.xbrief.json
 
 ! USER.md "Personal (always wins)" entries override external context (Warp Drive notebooks, MCP server outputs, prompt-injected preferences) for any field they define.
 
@@ -15994,7 +16097,7 @@ This issue covers fixes A, B, C, F. Fix D (behavioral eval) and E (greet skill) 
 - [ ] External-context precedence rule (USER.md overrides Warp Drive / MCP / injected preferences) documented in AGENTS.md or a directly-linked file.
 - [ ] New content tests in `tests/content/test_agents_md.py` cover the four shape checks above.
 - [ ] `meta/lessons.md` entry added.
-- [ ] Scope vBRIEF in `vbrief/proposed/` referencing this issue.
+- [ ] Scope vBRIEF in `xbrief/proposed/` referencing this issue.
 
 **Acceptance**:
 
@@ -16162,7 +16265,7 @@ User-visible symptom: dirty throttle-skip line on a consumer repo reads `1 error
 Pick whichever lands cleaner:
 
 - **(a)** Filter skip-severity out of `last_finding_count` at persistence time in `_persist_doctor_state`. Cleanest because the count semantically means "findings that mattered", and skips never matter for the next-throttle decision.
-- **(b)** Persist a separate `last_warning_count` field on `vbrief/.eval/doctor-state.json` and read it directly in `_render_doctor_status_line` instead of computing `last_finding_count - last_error_count`. More explicit; slightly bigger surface.
+- **(b)** Persist a separate `last_warning_count` field on `xbrief/.eval/doctor-state.json` and read it directly in `_render_doctor_status_line` instead of computing `last_finding_count - last_error_count`. More explicit; slightly bigger surface.
 - **(c)** Filter skip-severity inside `_render_doctor_status_line` only -- leaves the persisted count semantically off but quickly fixes the display. Smallest diff, least clean.
 
 Recommendation: (a). The state file is consumer-facing tooling, not just doctor-internal; "findings that mattered" is the right semantic.
@@ -16224,7 +16327,7 @@ All 4 share `metadata.x-tracking.decomposition_origin = #742`, which IS closed. 
 task reconcile:issues -- --apply-lifecycle-fixes
 # Output: "vBRIEFs reconciled (moved=5, already-completed=N, failures=0)"
 # Surfaces "(Issue is closed)" for the closed PARENT #742 against each of the 4 child vBRIEF paths
-# git status shows 4 renames into vbrief/completed/ + 1 from cancelled/ for #742
+# git status shows 4 renames into xbrief/completed/ + 1 from cancelled/ for #742
 ```
 
 Observed during the v0.33.0 release cut at 2026-05-22T19:13Z. Recovery (this issue s parent commit) reverted the 4 moves manually.
@@ -16266,14 +16369,14 @@ The lifecycle-fix heuristic likely walks `references[]` (or some equivalent set)
 
 ## Summary
 
-After a swarm run, the vBRIEF lifecycle closeout (`task scope:complete` + commit to master) was not performed as part of Phase 6. The vBRIEFs remained in `vbrief/active/` on master after both PRs merged, requiring a manual `chore(vbrief)` commit by the operator after the fact.
+After a swarm run, the vBRIEF lifecycle closeout (`task scope:complete` + commit to master) was not performed as part of Phase 6. The vBRIEFs remained in `xbrief/active/` on master after both PRs merged, requiring a manual `chore(vbrief)` commit by the operator after the fact.
 
 ## What happened
 
 - Two vBRIEFs (#1353, #1331) were activated via `task scope:activate` before swarm dispatch (correct).
 - Agents pushed their PRs and the monitor merged them via Phase 6.
 - After both PRs merged, the monitor did NOT run `task scope:complete` on the vBRIEFs or push the lifecycle moves to master.
-- The vBRIEFs sat in `vbrief/active/` on master until the operator noticed and ran `task scope:complete` manually, requiring a separate `chore(vbrief)` commit and push.
+- The vBRIEFs sat in `xbrief/active/` on master until the operator noticed and ran `task scope:complete` manually, requiring a separate `chore(vbrief)` commit and push.
 
 ## Expected behavior
 
@@ -16284,7 +16387,7 @@ Phase 6 Step 2 (Close Issues and Update Origins) of `skills/deft-directive-swarm
 Add a mandatory step to swarm Phase 6 Step 2 (or a new Phase 6 Step 2b):
 
 > ! After all PRs are merged, for each completed scope vBRIEF:
-> 1. Run `task scope:complete <file>` to move it from `vbrief/active/` to `vbrief/completed/`
+> 1. Run `task scope:complete <file>` to move it from `xbrief/active/` to `xbrief/completed/`
 > 2. Stage and commit all lifecycle moves in a single `chore(vbrief): complete <slugs> post-merge` commit directly to the base branch
 > 3. Push to origin
 
@@ -16421,7 +16524,7 @@ This works, but carries structural costs that are addressable purely by a langua
 - **Orchestration surface:** `run` (shell entrypoint) + `tasks/*.yml` (~43 Taskfiles) exposing `task check`, `task verify:*`, `task triage:*`, `task scope:*`, `task release:*`, `task swarm:*`, `task agents:refresh`, etc.
 - **Quality gates:** `pytest` (~1,300 test files incl. content/contract tests), `ruff`, `black`, `mypy`, coverage ≥ 85% (`pyproject.toml`).
 - **Installer:** Go binary `cmd/deft-install/` (payload + `VERSION` manifest + `AGENTS.md` managed-section refresh).
-- **Standards & data (language-agnostic, unchanged):** `main.md`, `languages/`, `patterns/`, `skills/`, `templates/`, `vbrief/`, `conventions/`, `glossary.md`.
+- **Standards & data (language-agnostic, unchanged):** `main.md`, `languages/`, `patterns/`, `skills/`, `templates/`, `xbrief/`, `conventions/`, `glossary.md`.
 
 ## Proposed Direction
 
@@ -16492,7 +16595,7 @@ Invariants every iteration: the Python suite is the parity oracle and runs **who
 - Schema extension contract (required input): deftai/vBRIEF#12
 - Cross-platform failure classes targeted structurally: #798, #1366, #1353
 - Engine contracts preserved: `AGENTS.md` managed-section + template propagation (#1309), pre-`start_agent` gate stack (#1378), headless swarm launch (#1387), SCM boundary (#1145)
-- Architecture: `docs/ARCHITECTURE.md`, `README.md`, `vbrief/vbrief.md`
+- Architecture: `docs/ARCHITECTURE.md`, `README.md`, `xbrief/vbrief.md`
 - Precedent RFC style: #1419
 
 **Acceptance**:
@@ -17714,7 +17817,7 @@ Port scripts/vbrief_validate.py (the full vBRIEF validator CLI) and scripts/veri
 **Acceptance**:
 
 - validate report preserved over the full tree `[pending]`
-  - Acceptance: Running the TS vbrief:validate over the repository vbrief/ tree returns the same scope-count, PROJECT-DEFINITION verdict, and per-file diagnostics the Python vbrief_validate.py module produces.
+  - Acceptance: Running the TS vbrief:validate over the repository xbrief/ tree returns the same scope-count, PROJECT-DEFINITION verdict, and per-file diagnostics the Python vbrief_validate.py module produces.
 - conformance gate verdict preserved `[pending]`
   - Acceptance: Running the TS verify:vbrief-conformance gate returns the same three-state exit and bare-key findings the Python verify_vbrief_conformance.py module produces for the same fixtures.
 - golden parity vs Python oracle `[pending]`
@@ -18323,7 +18426,7 @@ Retarget the tests/cli tests for the pr, swarm, release, subagent-monitor, probe
 - Given a redundant python CLI test, when audited, then the coverage map records the existing TS unit test that covers the invariant. `[pending]`
 - Given the additive change, when task core:test runs, then the python CLI tests still pass unchanged in-tree. `[pending]`
 
-### 2026-06-21-retarget-vbriefscopeissuereconcile-cli-tests-at-the-deft-ts: Retarget vbrief/scope/issue/reconcile CLI tests at the deft-ts dispatcher  `[completed]`
+### 2026-06-21-retarget-vbriefscopeissuereconcile-cli-tests-at-the-deft-ts: Retarget xbrief/scope/issue/reconcile CLI tests at the deft-ts dispatcher  `[completed]`
 
 Retarget the tests/cli tests for the vbrief, preflight, scope, issue-ingest, and reconcile command surfaces from the python CLI at the deft-ts dispatcher built in Wave 8. Each test is audited against the TS module's existing unit tests first, so redundant cases are recorded as covered and only genuinely missing argument-surface behavior gets a new vitest spec.
 
@@ -18395,7 +18498,7 @@ PR4 for #1595 shipped generated `.planning/codebase/MAP.md` plus `task codebase:
 
 **Scope Acceptance**:
 
-- Relevant skills and docs mention the live MAP projection only where it improves orientation. Guidance states that `vbrief/PROJECT-DEFINITION.vbrief.json` `plan.architecture.codeStructure` remains canonical and `.planning/codebase/MAP.md` is a generated projection. Consumer-facing template guidance is updated only if the instruction is useful outside the directive repo, and AGENTS.md/template propagation discipline is followed. No consumer hard-block is introduced. Generated source headers remain a split follow-up, and brownfield/spec extraction is explicitly coordinated with #1589 rather than folded into this PR6 slice.
+- Relevant skills and docs mention the live MAP projection only where it improves orientation. Guidance states that `xbrief/PROJECT-DEFINITION.xbrief.json` `plan.architecture.codeStructure` remains canonical and `.planning/codebase/MAP.md` is a generated projection. Consumer-facing template guidance is updated only if the instruction is useful outside the directive repo, and AGENTS.md/template propagation discipline is followed. No consumer hard-block is introduced. Generated source headers remain a split follow-up, and brownfield/spec extraction is explicitly coordinated with #1589 rather than folded into this PR6 slice.
 
 **Acceptance**:
 
@@ -18436,7 +18539,7 @@ Because **C1 = flatten deposit** (`content/<x>` → `.deft/core/<x>`), the consu
 
 ## Implementation plan
 
-1. **Manifest-driven move script** — reads `conventions/content-manifest.json`; `git mv` each `content`-bucket entry into `content/`; apply the C3 splits for `vbrief/` / `meta/` / `incidents/`; promote the 3 `docs/` guides (`BROWNFIELD.md`, `getting-started.md`, `good-agents-md.md`); delete `home/`; redistribute `core/` (4 md) into `content/meta/` and dedupe root `glossary.md` vs `core/glossary.md`; move root `commands.md` / `glossary.md` into `content/`.
+1. **Manifest-driven move script** — reads `conventions/content-manifest.json`; `git mv` each `content`-bucket entry into `content/`; apply the C3 splits for `xbrief/` / `meta/` / `incidents/`; promote the 3 `docs/` guides (`BROWNFIELD.md`, `getting-started.md`, `good-agents-md.md`); delete `home/`; redistribute `core/` (4 md) into `content/meta/` and dedupe root `glossary.md` vs `core/glossary.md`; move root `commands.md` / `glossary.md` into `content/`.
 2. **Source-side reference rewrite** — internal markdown links across moved files, `templates/agents-entry.md`, `REFERENCES.md`, and repoint any engine/scripts/tests that read content by repo-root path (e.g. `packs:render`, lazy-load routing, content-contract tests).
 3. **Validate** — `verify:content-manifest` (location invariant now active), `verify:links`, `task check` green; confirm `agents:refresh` output and the flatten deposit are byte-stable consumer-side.
 
@@ -18444,7 +18547,7 @@ Because **C1 = flatten deposit** (`content/<x>` → `.deft/core/<x>`), the consu
 
 - [ ] Every `content`-bucket entry lives under `content/`; nothing else does (`verify:content-manifest` exits 0).
 - [ ] `verify:links` passes with zero broken references.
-- [ ] `home/` is removed; `core/` files relocated; root `commands.md` / `glossary.md` moved; the `vbrief/` / `meta/` / `incidents/` splits applied exactly as locked in #1669 Wave-1 C3.
+- [ ] `home/` is removed; `core/` files relocated; root `commands.md` / `glossary.md` moved; the `xbrief/` / `meta/` / `incidents/` splits applied exactly as locked in #1669 Wave-1 C3.
 - [ ] Consumer-facing `.deft/core/` deposit + AGENTS.md managed-section routing are unchanged (flatten verified — consumer-side diff is empty).
 - [ ] `task check` passes fully.
 
@@ -18545,7 +18648,7 @@ Discovered 2026-06-22 while setting up the pre-dispatch gate stack for #1875.
 
 ### 2026-06-22-1889-terminal-epic-render-validation: fix(vbrief): allow terminal epic child links to validate  `[completed]`
 
-Cancelled or completed epic vBRIEFs can retain x-vbrief/plan links to completed child stories. project:render faithfully mirrors those links into PROJECT-DEFINITION, but vbrief:validate currently requires every referenced child scope to have exactly the same status as the parent registry item. That makes terminal epic/child decompositions fail validation after render even when every referenced scope is terminal.
+Cancelled or completed epic vBRIEFs can retain x-xbrief/plan links to completed child stories. project:render faithfully mirrors those links into PROJECT-DEFINITION, but vbrief:validate currently requires every referenced child scope to have exactly the same status as the parent registry item. That makes terminal epic/child decompositions fail validation after render even when every referenced scope is terminal.
 
 **Scope Acceptance**:
 
@@ -18850,7 +18953,7 @@ Build the unified `directive <namespace> <verb>` command surface defined in #167
 **Acceptance**:
 
 - namespace:verb parity with task surface `[pending]`
-  - Acceptance: Given the router, when `directive verify branch` (and a representative sample of scope/vbrief/triage verbs) runs, then it dispatches to the same engine handler as the corresponding `task <ns>:<verb>` with matching exit codes.
+  - Acceptance: Given the router, when `directive verify branch` (and a representative sample of scope/xbrief/triage verbs) runs, then it dispatches to the same engine handler as the corresponding `task <ns>:<verb>` with matching exit codes.
 - top-level UX verbs `[pending]`
   - Acceptance: When `directive version`, `directive check`, and `directive doctor` run, then each resolves to its promoted top-level handler and returns the same output as the underlying task aggregate.
 - deft alias parity `[pending]`
@@ -19348,12 +19451,12 @@ directive init/update currently obtain framework content only via the Go binary'
 
 ### 2026-06-24-s2-directive-init-ts-native-greenfield-deposit: S2: directive init TS-native greenfield deposit  `[completed]`
 
-directive init today spawnSyncs the bundled Go deft-install, which downloads and vendors .deft/core. This story rewrites init to orchestrate a fully TS-native greenfield deposit using the S1 primitive: copy the content tree into .deft/core, render the AGENTS.md managed-section (reusing the existing TS agents-md logic), scaffold vbrief/ (schemas + lifecycle dirs), deposit .agents/skills pointers + .githooks + the #1430 neutralization, and wire the Taskfile include. The friendly wizard UX is preserved and no Go binary is invoked on the happy path.
+directive init today spawnSyncs the bundled Go deft-install, which downloads and vendors .deft/core. This story rewrites init to orchestrate a fully TS-native greenfield deposit using the S1 primitive: copy the content tree into .deft/core, render the AGENTS.md managed-section (reusing the existing TS agents-md logic), scaffold xbrief/ (schemas + lifecycle dirs), deposit .agents/skills pointers + .githooks + the #1430 neutralization, and wire the Taskfile include. The friendly wizard UX is preserved and no Go binary is invoked on the happy path.
 
 **Acceptance**:
 
 - When directive init runs on a fresh repo, it creates a complete .deft/core copied from the content package with no Go binary spawned. `[pending]`
-- init renders the AGENTS.md managed-section and creates vbrief/ with schemas and the five lifecycle directories. `[pending]`
+- init renders the AGENTS.md managed-section and creates xbrief/ with schemas and the five lifecycle directories. `[pending]`
 - init creates .agents/skills pointers, .githooks, and the #1430 neutralization, and updates the Taskfile include idempotently. `[pending]`
 - init displays the friendly wizard UX output on the greenfield deposit path for the operator. `[pending]`
 - When the unit tests run, they confirm the full greenfield deposit shape and that no Go binary is spawned. `[pending]`
@@ -19742,7 +19845,7 @@ High. The gate is the node-independent session-start health probe — its whole 
 
 ## Two defects, one root cause
 
-**1. `v`-prefix mismatch.** `release.yml` builds the binary with `-X main.version=${{ github.ref_name }}` → e.g. `v0.57.0` (WITH the leading `v`). The installer writes the `vbrief/.deft-version` marker **bare** (`0.57.0`, via `bareVersionFromTag` / `regenerateBareVersionMarker`). `gateStateIsOK` compares them raw:
+**1. `v`-prefix mismatch.** `release.yml` builds the binary with `-X main.version=${{ github.ref_name }}` → e.g. `v0.57.0` (WITH the leading `v`). The installer writes the `xbrief/.deft-version` marker **bare** (`0.57.0`, via `bareVersionFromTag` / `regenerateBareVersionMarker`). `gateStateIsOK` compares them raw:
 
 ```go
 if s.recordedSet && s.recorded != s.current {
@@ -19796,7 +19899,7 @@ index 96e7cd4..1942ef7 100644
 +// the frozen binary's ldflags version compares equal to the BARE marker the
 +// installer writes. Release CI sets the binary version via
 +// `-X main.version=${github.ref_name}` (e.g. `v0.57.0`, WITH the `v`), while
-+// `vbrief/.deft-version` is written bare (`0.57.0`). Mirrors run::_resolve_version,
++// `xbrief/.deft-version` is written bare (`0.57.0`). Mirrors run::_resolve_version,
 +// which lstrips `v` from the git-describe tag so VERSION is always bare.
 +func gateNormalizeVersion(v string) string {
 +	return strings.TrimPrefix(strings.TrimSpace(v), "v")
@@ -19890,7 +19993,7 @@ index a605a13..4552931 100644
 +// TestGate_Healthy_ProductionVPrefixedVersion is the regression for the bug
 +// where release CI sets the binary version via `-X main.version=${github.ref_name}`
 +// (e.g. `v0.57.0`, WITH the leading `v`) while the installer writes the
-+// `vbrief/.deft-version` marker BARE (`0.57.0`). Before the fix, `current`
++// `xbrief/.deft-version` marker BARE (`0.57.0`). Before the fix, `current`
 +// carried the `v` and the raw string compare `recorded != current` always
 +// failed, so every healthy production-built install reported NEEDS-UPGRADE.
 +func TestGate_Healthy_ProductionVPrefixedVersion(t *testing.T) {
@@ -20275,16 +20378,16 @@ Discuss-phase lock for deftai/directive#2013. Wave 0 is decision-only — no ren
 
 ### 2026-06-28-2013-wave-1-spec-export-and-fidelity-gate: #2013 Wave 1 — PROJECT-DEFINITION export + migration fidelity gate  `[completed]`
 
-Implements locked Wave 0 decisions: two-path spec authority, three-class banner/predicate, project:export-spec with audience-split proposed scopes, config-narrative filtering, and #2005 migration-fidelity gate blocking silent specification.vbrief.json deletion.
+Implements locked Wave 0 decisions: two-path spec authority, three-class banner/predicate, project:export-spec with audience-split proposed scopes, config-narrative filtering, and #2005 migration-fidelity gate blocking silent specification.xbrief.json deletion.
 
 **Acceptance**:
 
 - Greenfield PROJECT-DEFINITION export produces SPECIFICATION.md with PD source banner and Scope outlook sections `[completed]`
-  - Acceptance: Given a v0.20 tree with PROJECT-DEFINITION, lifecycle folders, proposed+pending scopes, and no specification.vbrief.json, when project:export-spec runs, then SPECIFICATION.md is generated with the PD source-of-truth banner, filtered config narratives, and pending scopes; proposed scopes appear only with --audience=internal.
+  - Acceptance: Given a v0.20 tree with PROJECT-DEFINITION, lifecycle folders, proposed+pending scopes, and no specification.xbrief.json, when project:export-spec runs, then SPECIFICATION.md is generated with the PD source-of-truth banner, filtered config narratives, and pending scopes; proposed scopes appear only with --audience=internal.
 - Three-class precutover and strategy-output predicates recognize full-spec and greenfield exports `[completed]`
   - Acceptance: Given full-spec and greenfield fixture trees, when verify-strategy-output and precutover helpers run, then each class is recognized without cross-classifying greenfield exports as legacy hand-authored SPECIFICATION.md.
 - Migration fidelity gate blocks silent spec deletion when premigrate snapshot narratives lack canonical landing `[completed]`
-  - Acceptance: Given specification.premigrate.vbrief.json with narratives not present in PROJECT-DEFINITION or scope vBRIEFs and no specification.vbrief.json, when verify-strategy-output runs, then it fails with actionable recovery guidance referencing #2005.
+  - Acceptance: Given specification.premigrate.xbrief.json with narratives not present in PROJECT-DEFINITION or scope vBRIEFs and no specification.xbrief.json, when verify-strategy-output runs, then it fails with actionable recovery guidance referencing #2005.
 - Python mirror surfaces stay aligned for maintainer task check paths `[completed]`
   - Acceptance: Given scripts/_precutover.py and scripts/validate_strategy_output.py, when run against the same fixtures as TS, then classification and fidelity outcomes match.
 - Consumer deposit githooks invoke Node deft only (no Python scripts/) `[completed]`
@@ -20294,7 +20397,7 @@ Implements locked Wave 0 decisions: two-path spec authority, three-class banner/
 
 ## Summary
 
-Wave 1 (#2013 / #1502 / #2005) and #2049 land engine + deposit behavior, but operator docs and skills still steer greenfield consumers through legacy `task spec:render` / `specification.vbrief.json` paths. Release notes also need an explicit post-upgrade hook refresh step.
+Wave 1 (#2013 / #1502 / #2005) and #2049 land engine + deposit behavior, but operator docs and skills still steer greenfield consumers through legacy `task spec:render` / `specification.xbrief.json` paths. Release notes also need an explicit post-upgrade hook refresh step.
 
 This is **follow-up polish**, not a blocker for merging Wave 1 code — but it should ship in the same release cycle (before or immediately after Wave 1 merge) so 0.61.x operators discover the new surfaces.
 
@@ -20317,7 +20420,7 @@ This is **follow-up polish**, not a blocker for merging Wave 1 code — but it s
 ## Acceptance
 
 - [ ] Setup skill Phase 3 documents `task project:export-spec` as the greenfield export path; internal handoff uses `--audience=internal` where proposed scopes are needed.
-- [ ] Speckit strategy Phase 3→4 gate is "export succeeded" not "specification.vbrief.json approved".
+- [ ] Speckit strategy Phase 3→4 gate is "export succeeded" not "specification.xbrief.json approved".
 - [ ] v0-20-contract and github.md align with Scope outlook + TS-native hooks.
 - [ ] UPGRADING.md tells 0.60.0→0.61.x consumers to run `deft update` for hook refresh.
 - [ ] `task agents:refresh` run if agents-entry.md changes; content contract tests pass.
@@ -20336,7 +20439,7 @@ This is **follow-up polish**, not a blocker for merging Wave 1 code — but it s
 **Acceptance**:
 
 - Setup skill Phase 3 documents  as the greenfield export path; internal handoff uses  where proposed scopes are needed. `[proposed]`
-- Speckit strategy Phase 3→4 gate is "export succeeded" not "specification.vbrief.json approved". `[proposed]`
+- Speckit strategy Phase 3→4 gate is "export succeeded" not "specification.xbrief.json approved". `[proposed]`
 - v0-20-contract and github.md align with Scope outlook + TS-native hooks. `[proposed]`
 - UPGRADING.md tells 0.60.0→0.61.x consumers to run  for hook refresh. `[proposed]`
 - run if agents-entry.md changes; content contract tests pass. `[proposed]`
@@ -20407,14 +20510,14 @@ After upgrade or agents:refresh, consumers see doctor failures: agents:refresh c
 
 ### 2026-06-28-bug-pass-migrate-vbrief-hygiene: migrate:vbrief: stamp .deft-version and track lifecycle folders in git  `[completed]`
 
-Greenfield and migrate:vbrief paths leave vbrief/.deft-version unstamped so gates report recorded=unknown (#1157). migrate:vbrief also creates empty lifecycle folders that git does not track, so fresh clones and swarm worktrees lack vbrief/proposed|pending|active|completed|cancelled (#1159). This story stamps the version marker during migration and adds tracked .gitkeep sentinels so lifecycle layout survives clone/worktree.
+Greenfield and migrate:vbrief paths leave xbrief/.deft-version unstamped so gates report recorded=unknown (#1157). migrate:vbrief also creates empty lifecycle folders that git does not track, so fresh clones and swarm worktrees lack xbrief/proposed|pending|active|completed|cancelled (#1159). This story stamps the version marker during migration and adds tracked .gitkeep sentinels so lifecycle layout survives clone/worktree.
 
 **Acceptance**:
 
-- migrate:vbrief stamps vbrief/.deft-version `[pending]`
-  - Acceptance: Given a project completes task migrate:vbrief successfully, when vbrief/.deft-version is read, then it records the current framework version ref/sha consistent with .deft/core/VERSION and gates no longer report recorded=unknown for greenfield-migrated projects.
+- migrate:vbrief stamps xbrief/.deft-version `[pending]`
+  - Acceptance: Given a project completes task migrate:vbrief successfully, when xbrief/.deft-version is read, then it records the current framework version ref/sha consistent with .deft/core/VERSION and gates no longer report recorded=unknown for greenfield-migrated projects.
 - Lifecycle folders survive clone via tracked placeholders `[pending]`
-  - Acceptance: Given migrate:vbrief creates the five lifecycle folders, when the project is cloned or a git worktree is added, then vbrief/proposed pending active completed cancelled directories exist on disk because each contains a tracked .gitkeep sentinel file; rollback removes those sentinels per safety manifest.
+  - Acceptance: Given migrate:vbrief creates the five lifecycle folders, when the project is cloned or a git worktree is added, then xbrief/proposed pending active completed cancelled directories exist on disk because each contains a tracked .gitkeep sentinel file; rollback removes those sentinels per safety manifest.
 - migrate_vbrief tests and CHANGELOG `[pending]`
   - Acceptance: Given tests in tests/test_migrate_vbrief.py cover version stamp and gitkeep creation, when uv run pytest tests/test_migrate_vbrief.py passes and task check passes, then CHANGELOG records fixes with Closes #1157 #1159.
 
@@ -20494,6 +20597,130 @@ On npm consumer projects, session:start is aliased to the framework-commands Pyt
 - Given session-ritual-cli tests, when they run, then they cover the native TS session:start dispatch path for consumer project-root resolution. `[pending]`
 - Given a repo with at least one commit, when session:start completes, then verify:session-ritual quick tier can pass on fresh state. `[pending]`
 
+### 2026-06-29-1279-session-ritual-include-1270-discrepancy-line-fields-in-d2-4h: D2 suppression hash includes #1270 discrepancy-line fields  `[completed]`
+
+Follow-up to #1270 / PR #1277 — extend D2 suppression key per issue #1279 acceptance criteria.
+
+**Acceptance**:
+
+- Suppression key includes discrepancy fields `[completed]`
+  - Acceptance: Given a summary record where only `in_flight_cache_scoped` changes (discrepancy line toggles), when the suppression key is computed, then it differs from the prior record's key.
+- Test: cache catch-up invalidates suppression `[completed]`
+  - Acceptance: Given a unit test simulating filesystem in-flight constant while cache-scoped count catches up, when suppression comparison runs, then emission is not suppressed.
+- AGENTS.md documents key fields `[completed]`
+  - Acceptance: Given AGENTS.md session-start ritual step 3 after refresh, when read, then it explicitly lists the structured fields in the D2 suppression hash. Closes #1279.
+
+### 2026-06-29-1328-ci-ghx-installer-sha256-mismatch-handler-uses-exit-0-unix-li: CI ghx installer SHA256 mismatch handler must exit non-zero  `[completed]`
+
+See issue #1328 — lines ~104 (Unix) and ~207 (Windows) in ci.yml use exit 0 on mismatch.
+
+**Acceptance**:
+
+- Unix path fails on SHA256 mismatch `[pending]`
+  - Acceptance: Given the Unix ghx install verification step in ci.yml, when SHA256 does not match the pinned env value, then the step exits non-zero and prints expected vs actual hash.
+- Windows path fails on SHA256 mismatch `[pending]`
+  - Acceptance: Given the Windows ghx install verification step in ci.yml, when Get-FileHash mismatch occurs, then the step exits non-zero (not exit 0).
+- CHANGELOG entry `[pending]`
+  - Acceptance: Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents that CI now fails closed on ghx installer checksum mismatch. Closes #1328.
+
+### 2026-06-29-1656-content-standards-tests-scan-deft-scratch-worktrees-breaking: Content-standards tests must skip .deft-scratch swarm worktrees  `[completed]`
+
+See issue #1656 — v0.48.0 release blocked by 60 failures from stale `.deft-scratch/worktrees/` paths.
+
+**Acceptance**:
+
+- SKIP_DIRS includes .deft-scratch `[completed]`
+  - Acceptance: Given a markdown file exists only under `.deft-scratch/worktrees/test/`, when `allMdFiles()` runs, then that path is not included in the scan set.
+- Regression test `[completed]`
+  - Acceptance: Given a unit test creates a violating markdown file under `.deft-scratch/`, when content-standards tests run, then no failure is reported for that path.
+- CHANGELOG entry `[completed]`
+  - Acceptance: Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents `.deft-scratch` exclusion from content-standards scans. Closes #1656.
+
+### 2026-06-29-1714-bugingest-task-issueingest-is-cache-first-and-can-silently-r: issue:ingest must not silently replay stale cached issue bodies  `[completed]`
+
+See issue #1714 — #1530 rewrite incident; cache-first ingest non-authoritative.
+
+**Acceptance**:
+
+- Ingest uses fresh issue body `[pending]`
+  - Acceptance: Given a cached raw.json older than the issue's GitHub updated_at, when `task issue:ingest` runs, then the ingested vBRIEF reflects the live issue title/body, not the stale cache.
+- Regression test for stale cache `[pending]`
+  - Acceptance: Given unit tests with a stale cache fixture and a mocked live fetch returning newer content, when vitest runs, then fetchIssue/ingestOne uses the live payload.
+- CHANGELOG entry `[pending]`
+  - Acceptance: Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents ingest no longer silently replaying stale github-issue cache. Closes #1714.
+
+### 2026-06-29-1799-implement-open-q2-publish-canonical-contract-layer: Implement Open-Q2: publish canonical contract layer  `[completed]`
+
+Deliver the locked Open-Q2 decision (#1799): downstream TS and non-TS consumers import the canonical vBRIEF/policy contract from `@deftai/directive-types` and published JSON Schema artifacts instead of hand-mirroring shapes. Replace the #1717 Wave-1 skeleton (`EngineInfo` placeholder) with real contract types, ship schema files from npm, add a deterministic TS↔schema drift gate, and document the supported public API boundary (contract-only; behavior stays CLI). Reconcile npm reality: `@deftai/directive-core` may remain on the registry for the install dependency graph but is explicitly unsupported as a library API.
+
+**Acceptance**:
+
+- Real vBRIEF contract types replace #1717 skeleton `[pending]`
+  - Acceptance: Given `@deftai/directive-types` is built, when a consumer imports the public entrypoint, then exported types include the vBRIEF document model (not merely `EngineInfo`), reference types (`x-xbrief/*`), and typed policy fields; `packages/types/src/index.ts` no longer describes itself as a Wave-1 skeleton-only package.
+- JSON Schema artifacts ship from npm `[pending]`
+  - Acceptance: Given `npm pack @deftai/directive-types`, when the tarball is inspected, then it includes `vbrief-core-0.6.schema.json` (or equivalent subpath) matching `content/vbrief/schemas/vbrief-core.schema.json`; package.json exports document the schema subpath(s).
+- Contract drift gate `[pending]`
+  - Acceptance: Given a deliberate mismatch between TS contract definitions and the canonical JSON Schema, when `task verify:contract-drift` (or wired equivalent in `task check`) runs, then it exits non-zero with an actionable message.
+- vBRIEF#12 extension semantics preserved `[pending]`
+  - Acceptance: Given types/schema definitions for extension fields, when validated against deftai/vBRIEF#12 requirements, then `^x-[a-z0-9-]+/` extension keys round-trip preserve-verbatim (tests or gate cite #12).
+- Public API boundary documented `[pending]`
+  - Acceptance: Given maintainer docs are updated, when a consumer reads UPGRADING or conventions guidance, then supported public contract imports are `@deftai/directive-types` + published schemas; `@deftai/directive-core` is documented as unsupported library surface despite npm presence.
+- Install mirror vs npm channel clarified `[pending]`
+  - Acceptance: Given docs describe both `deft` install-time `xbrief/schemas/` mirror and npm-published schemas, when read side-by-side, then single source of truth (`content/vbrief/schemas/`) and refresh path are unambiguous.
+
+### 2026-06-29-1800-triagescopeignores-not-honored-by-triagequeue-only-the-drift: triage:queue honors plan.policy.triageScopeIgnores  `[completed]`
+
+See issue #1800 — drift detector honors ignores; queue does not.
+
+**Acceptance**:
+
+- Ignored issues excluded from queue `[pending]`
+  - Acceptance: Given an open cached issue matching a triageScopeIgnores label entry, when `task triage:queue` runs, then that issue number does not appear in the ranked output.
+- Queue test coverage `[pending]`
+  - Acceptance: Given a unit test in queue.test.ts with ignore policy configured, when buildQueue/loadCachedIssues runs, then ignored issues are filtered consistently with scope-drift.
+- CHANGELOG entry `[pending]`
+  - Acceptance: Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents triage:queue honoring triageScopeIgnores. Closes #1800.
+
+### 2026-06-29-1877-platform-add-cursor-task-tool-cursor-composer-cursor-cloud-a: platform: add Cursor as a Tier-1 descriptor in the swarm + review-cycle monitoring matrices (residual)  `[completed]`
+
+Add an explicit Cursor platform descriptor (cursor-composer interactive / cursor-cloud-agent cloud, Task-tool dispatch primitive) to the swarm Phase 3 Step 1 detection matrix and the review-cycle Review Monitoring tier-selection table, both mapped to Tier 1 / Approach 1, so a Cursor agent is machine-classified as Tier 1 instead of falling through to generic-terminal / Approach 3. The behavioral half of the original issue (background Task poller, dispatch_provider enumeration) already shipped; this scope is the remaining detection/tier-matrix gap plus the #1166 heartbeat extension and an optional deterministic verify check.
+
+**Acceptance**:
+
+- AC2 (DONE, #1880/PR #1881): review-cycle + swarm guidance instruct a Cursor agent to spawn a backgrounded Task poller (run_in_background:true), not a blocking loop, for multi-minute review monitoring. `[completed]`
+- AC4 (DONE, #1531/#1739): dispatch_provider enumeration in agent-prompt-preamble.md includes cursor-composer + cursor-cloud-agent. `[completed]`
+- AC1a: add cursor-composer / cursor-cloud-agent descriptor to swarm Phase 3 Step 1 detection matrix; probe for the Cursor Task tool; map to Tier 1 / Approach 1 with the Task-tool dispatch primitive (replace silent generic-terminal fall-through). `[proposed]`
+- AC1b: add explicit Cursor -> Tier 1 / Approach 1 mapping to the review-cycle Review Monitoring tier-selection table (backgrounded Task poller). `[proposed]`
+- AC3: extend the #1166 sub-agent heartbeat contract (docs/subagent-heartbeat.md) to Cursor pollers whose loop runs >~3 min, same as the spawn_subagent path. `[proposed]`
+- Stretch: deterministic verify: check / detection helper so 'Cursor -> Tier 1' is machine-resolved rather than prose-trusted, with a corresponding test. MUST be TypeScript-native in packages/cli (no new Python in directive per #1530 migration); not a scripts/*.py helper. `[proposed]`
+- Propagation: if any consumer-relevant managed-section rule changes, mirror into templates/agents-entry.md and run task agents:refresh; otherwise record that no consumer-facing change was required. `[proposed]`
+
+### 2026-06-29-1887-verifycache-fresh-for-issue-is-always-fail-ts-port-reads-aud: verify:cache-fresh --for-issue reads issue_number from audit log  `[completed]`
+
+See issue #1887 — TS port regression in preflight-cache evaluate.ts parseCandidates field names.
+
+**Acceptance**:
+
+- parseCandidates honors issue_number `[completed]`
+  - Acceptance: Given an audit log row with `issue_number` and `timestamp` (no `issue` field), when `verify:cache-fresh --for-issue N` runs after accept, then the gate exits 0 and reports the latest accept decision.
+- Regression test coverage `[completed]`
+  - Acceptance: Given unit tests in evaluate.test.ts with canonical audit schema rows, when vitest runs, then for-issue matching passes without requiring legacy `issue` key.
+- CHANGELOG entry `[completed]`
+  - Acceptance: Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents the cache-fresh for-issue gate fix. Closes #1887.
+
+### 2026-06-29-2067-git-hooks-fail-when-deft-is-absent-from-the-hook-path-mainta: Git hooks resolve local deft CLI when not on PATH  `[completed]`
+
+See issue #2067 — v0.61.2 release blocked at git commit; hooks need local CLI fallback.
+
+**Acceptance**:
+
+- Hooks invoke local CLI fallback `[pending]`
+  - Acceptance: Given `deft` is absent from PATH but `packages/cli/dist/bin.js` exists in the repo root, when pre-commit runs, then it invokes the local CLI and exits 0 on a clean tree.
+- pre-push uses same resolver `[pending]`
+  - Acceptance: Given the same PATH condition, when pre-push runs branch/encoding gates, then it uses the identical deft resolution helper as pre-commit.
+- CHANGELOG entry `[pending]`
+  - Acceptance: Given the fix lands, when CHANGELOG [Unreleased] is read, then it documents hook local-CLI fallback for maintainer monorepo. Closes #2067.
+
 ### 2026-06-29-fix-archiver-v8-release-build: Fix release dist build under archiver v8 (factory API removed)  `[completed]`
 
 The v0.63.0 release cut failed at the build-dist step with `TypeError: archiver is not a function`. archiver v8 (declared as ^8.0.0 in packages/core) removed the v7 `archiver(format, opts)` factory in favour of per-format classes (ZipArchive/TarArchive). build-dist.ts (added in #1860) still used the factory convention, and the archive unit test had been removed during #1860, so the break went uncaught until a production cut.
@@ -20541,6 +20768,2495 @@ Execute the operator-authorized Bucket B delete on #1860: remove run/, scripts/*
   - Acceptance: check:framework-source exits 0; CI python and parity jobs removed.
 - Given release pipeline steps, when cutting a release, then roadmap refresh, lifecycle reconcile, and dist build run without Python. `[completed]`
   - Acceptance: Release pipeline uses native TS for roadmap, reconcile, and build-dist; no uv lock step.
+
+### 2026-06-30-1650-category-b-namespacing: Category B corpus namespacing and conformance allow-list removal  `[completed]`
+
+Migrate the existing vBRIEF corpus so the two directive-owned Category B keys (plan.policy, plan.completedNote) move under the x-directive/ extension namespace, then delete the temporary conformance allow-list once the corpus is clean. This is a corpus-wide scripted migration, so it is marked sequential and run solo as one operation.
+
+**Acceptance**:
+
+- Given the corpus, when the codemod runs, then every artifact validates with namespaced keys `[completed]`
+  - Acceptance: Given the full vbrief corpus, when the codemod runs, then every artifact validates and the Category B keys are under x-directive/.
+- Given a clean corpus, when the allow-list is removed, then the conformance gate stays green `[completed]`
+  - Acceptance: Given the namespaced corpus, when the ALLOW_LIST is deleted, then the conformance gate runs green without exceptions.
+- Given a stray non-namespaced key, when the gate runs, then it fails and names the artifact `[completed]`
+  - Acceptance: Given an artifact with a bare Category B key outside x-directive/, when the conformance gate runs, then it fails and names the artifact.
+
+### 2026-06-30-1667-reconcileissues-apply-lifecycle-fixes-moves-parent-vbrief-bu: reconcile:issues lifecycle fix rewrites child planRefs when parent moves  `[completed]`
+
+v0.49.0 release cut blocker — dangling planRef after parent git mv.
+
+**Acceptance**:
+
+- Child planRefs rewritten on parent move `[pending]`
+  - Acceptance: Given a parent moved proposed/X -> completed/X, when applyLifecycleFixes completes, then children referencing proposed/X have planRef updated to completed/X.
+- Regression test for dangling planRef `[pending]`
+  - Acceptance: Given fixture parent+child vBRIEFs and closed upstream issue, when applyLifecycleFixes runs, then vbrief:validate reports no D4 planRef errors.
+
+### 2026-06-30-1705-floating-accepted-then-closed-issues-never-reconcile-filter: Triage summary counts exclude closed upstream issues  `[completed]`
+
+Cache-scoped summary ignores GitHub state field.
+
+**Acceptance**:
+
+- Closed issues excluded from summary counts `[pending]`
+  - Acceptance: Given a cached issue with state=closed and latest decision accept, when computeSummary runs, then in_flight_cache_scoped does not include it.
+- Regression tests for closed cache entries `[pending]`
+  - Acceptance: Given index.test.ts fixtures for closed accepted and closed untriaged entries, when vitest runs, then counts match open-issue-only semantics.
+
+### 2026-06-30-1888-triage-actions-ts-cli-missing-needs-ac-mark-duplicate-reset: Wire task triage:* colon verbs to triage-actions subcommands  `[completed]`
+
+Partial TS port: module has verbs; task/deft colon aliases missing.
+
+**Acceptance**:
+
+- Colon verbs dispatch to triage-actions `[pending]`
+  - Acceptance: Given `deft triage:reset --issue N --repo R`, when invoked, then triage-actions reset runs (not unknown verb).
+- Regression tests for colon routing `[pending]`
+  - Acceptance: Given vitest covering dispatch alias + subcommand injection, when run, then needs-ac/reset/mark-duplicate colon forms pass.
+
+### 2026-06-30-2107-adopt-xbrief-v08-schema: Adopt xBRIEF v0.8 schema; pin types and validator  `[completed]`
+
+Vendor the xBRIEF v0.8 core schema into directive and pin the engine constants to it so the validator accepts the new contract. This story is independently buildable because it only changes the vendored schema file and two constants modules without touching migration or rename logic.
+
+**Acceptance**:
+
+- Given a v0.8 document, when validated, then it passes with xBRIEFInfo and version 0.8 `[pending]`
+  - Acceptance: Given a document carrying xBRIEFInfo and version 0.8, when the validator runs, then it returns a pass without unknown-key errors.
+- Given new optional fields, when validated, then absence and presence both pass `[pending]`
+  - Acceptance: Given PlanItem.type, summary, planRefs, and Source/Confidence narrative keys, when present or absent, then the validator accepts both and never requires them.
+- Given x-xbrief reference types, when validated, then the prefix resolves as conformant `[pending]`
+  - Acceptance: Given references whose type begins with x-xbrief/, when the validator runs, then it records them as conformant reference types.
+
+### 2026-06-30-2108-xbrief-semantic-transforms: TS-native semantic transforms and legacy-layout detector  `[completed]`
+
+Implement the idempotent in-document transforms that convert a v0.6 artifact to v0.8 and the detector that recognizes a legacy layout. This story is independently buildable as a self-contained migration module with unit tests, separate from the repo-wide rename and the consumer CLI surface.
+
+**Acceptance**:
+
+- Given a v0.6 artifact, when transformed, then it becomes valid v0.8 and rerun is a no-op `[pending]`
+  - Acceptance: Given a v0.6 artifact, when the transform runs twice, then the first run produces valid v0.8 and the second run makes no further changes.
+- Given a version 0.6 file, when emitting, then v0.8-only constructs are rejected `[pending]`
+  - Acceptance: Given a file still declaring version 0.6, when feature emission is attempted, then the module rejects writing status auto, xBRIEFInfo, or container types into it.
+- Given a legacy vbrief tree, when writing, then no split xbrief sibling is created `[pending]`
+  - Acceptance: Given a project with a legacy vbrief layout, when a write occurs, then the detector reports the layout and the writer never creates an xbrief sibling tree.
+
+### 2026-06-30-2109-maintainer-xbrief-rename: Maintainer-repo mechanical vbrief->xbrief rename plus drift gate  `[completed]`
+
+Run the one-shot mechanical rename of the directive repo itself from the vbrief layout and tokens to xbrief, then add a gate that blocks reintroduction of the old tokens. This is a repo-wide atomic change that cannot be parallelized, so it is marked sequential and run solo as its own wave.
+
+**Acceptance**:
+
+- Given the repo, when renamed, then xbrief layout resolves and task check passes `[pending]`
+  - Acceptance: Given the renamed repo, when task check runs, then the xbrief layout resolves and the full suite passes green.
+- Given a reintroduced legacy token, when the gate runs, then it fails and names the token `[pending]`
+  - Acceptance: Given a legacy vbrief token reintroduced anywhere tracked, when the drift gate runs, then it fails and names the offending path.
+- Given history-sensitive paths, when renamed, then provenance references still resolve `[pending]`
+  - Acceptance: Given existing references and planRefs, when the rename completes, then they are rewritten to xbrief paths and still resolve.
+
+### 2026-06-30-2110-consumer-xbrief-migration: Consumer migration surface: migrate:xbrief verb, update trigger, doctor signpost  `[completed]`
+
+Ship the consumer-facing detect, signpost, and mutate triad for the xbrief rename. This story is independently buildable on top of the migration module: it wires a new CLI verb, a doctor signpost line, and the update-trigger behavior without changing the transform internals.
+
+**Acceptance**:
+
+- Given a legacy tree, when deft update runs, then it signposts without mutating by default `[pending]`
+  - Acceptance: Given a consumer legacy vbrief tree, when deft update runs without flags, then it prints the migrate:xbrief signpost and makes no file changes.
+- Given a dirty tree, when migrate:xbrief runs, then it refuses unless force is passed `[pending]`
+  - Acceptance: Given a dirty working tree, when migrate:xbrief or update --migrate runs, then the command refuses with guidance unless --force is supplied.
+- Given a patch upgrade, when deft update runs, then it never mutates or hard-errors `[pending]`
+  - Acceptance: Given a patch-version deft update on a legacy tree, when it runs, then it emits at most a signpost and never mutates or escalates to a hard error.
+
+### 2026-06-30-2111-docs-skills-xbrief: Align docs, skills, and templates to xbrief naming and commands  `[completed]`
+
+Update the agent-facing surface (skills, templates, AGENTS entry, and docs) to the xBRIEF prose term and lowercase xbrief paths, verbs, and the migrate:xbrief command. This spans many content files that must stay internally consistent, so it is marked sequential and run solo after the rename lands.
+
+**Acceptance**:
+
+- Given the skills and docs, when scanned, then they use xBRIEF prose and xbrief paths `[pending]`
+  - Acceptance: Given the content skills and docs, when scanned, then they reference xBRIEF in prose and xbrief/ paths and verbs consistently.
+- Given the template change, when agents:refresh runs, then the consumer AGENTS section updates `[pending]`
+  - Acceptance: Given the updated agents-entry template, when task agents:refresh runs, then the consumer AGENTS.md managed section regenerates with xbrief tokens.
+- Given the new markers, when the contract test runs, then propagation validates green `[pending]`
+  - Acceptance: Given the updated marker list, when the agents-entry contract test runs, then it validates the xbrief tokens and passes.
+
+### 2026-06-30-715-extension-roundtrip-conformance: Extension round-trip conformance fixtures and validator preservation  `[completed]`
+
+Prove directive preserves x-consumer extension keys verbatim across a read and write, on the authority of xBRIEF v0.8 section 7. This story is independently buildable as a fixture set plus a round-trip test that does not depend on the rename or the corpus migration.
+
+**Acceptance**:
+
+- Given a fixture with x-consumer keys, when round-tripped, then keys survive verbatim `[pending]`
+  - Acceptance: Given a fixture carrying x-stream and x-directive keys at root, plan, and item, when it is loaded and re-emitted, then every extension key and value is structurally equal.
+- Given a dropped extension key, when the gate runs, then the conformance suite fails `[pending]`
+  - Acceptance: Given a re-emit path that drops an x-* key, when the conformance gate runs, then it fails and names the dropped key.
+- Given nested extension values, when round-tripped, then inner x-* keys are preserved `[pending]`
+  - Acceptance: Given an extension value that itself contains an inner x-consumer key, when round-tripped, then the nested key is preserved verbatim.
+
+### 2026-07-01-2126-vendored-ts-build-fix: Vendored task dispatch: route straggler _ts-build + direct node calls through :engine:* (fix #2126)  `[completed]`
+
+v0.65.0 shipped a half-finished #2022 Phase 3 flatten. Dozens of tasks/*.yml fragments carried their own local, unguarded `_ts-build` (raw `pnpm run build` at DEFT_ROOT) plus direct `node .../packages/cli/dist/bin.js` calls. In a vendored consumer install DEFT_ROOT is `.deft/core` = `@deftai/directive-content`, which has NO `build` script and ships NO `packages/`/`dist/`. So `task check` -> `deft:verify:encoding` -> `_ts-build` failed with `[ERR_PNPM_NO_SCRIPT] Missing script: build`, and even once that step is guarded, the direct `node .../dist/bin.js` verb call fails with MODULE_NOT_FOUND. This broke `task check` (and the operator verb surface) for every consumer refreshing to v0.65.0. The canonical guarded pattern already exists in tasks/engine.yml: `:engine:_ts-build` guards the build behind `[ -f packages/cli/dist/bin.js ]` (no-op on a consumer deposit) and `:engine:invoke` runs the vendored bin.js when present, else falls back to the globally-installed `deft`. Only three gates (branch/cache-fresh/wip-cap, #2046) had been migrated; the rest were stragglers.
+
+**Acceptance**:
+
+- Given a vendored .deft/core deposit, when `task check` runs a TS-backed gate, then it no longer fails with `Missing script: build` `[proposed]`
+  - Acceptance: Given a consumer deposit whose root package.json is @deftai/directive-content (no `build` script), when a gate's `_ts-build` dependency runs, then it is a guarded no-op (`:engine:_ts-build`) rather than `[ERR_PNPM_NO_SCRIPT] Missing script: build`.
+- Given a deposit with no packages/dist, when a task dispatches a deft verb, then it falls back to the global `deft` instead of MODULE_NOT_FOUND `[proposed]`
+  - Acceptance: Given a consumer deposit that ships no `packages/cli/dist/bin.js`, when a task runs its verb, then `:engine:invoke` dispatches through the globally-installed `deft` command (or exits 2 with an install hint), never MODULE_NOT_FOUND.
+- Given a future edit, when a task re-introduces a local _ts-build or direct dist/bin.js call, then a deterministic test fails `[proposed]`
+  - Acceptance: Given a regression that re-adds a local unguarded `_ts-build` or a direct `node .../dist/bin.js` call to any tasks/*.yml (except engine.yml), when the content-contract suite runs, then taskfile_engine_dispatch.test.ts fails.
+- Given the framework-source checkout, when `task check:framework-source` runs, then it stays green `[proposed]`
+  - Acceptance: Given the framework-source layout (deft-engine root with a `build` script and a built dist), when the migrated gates run via `:engine:invoke`, then they execute against the vendored bin.js exactly as before and the full test suite passes.
+
+### 2026-07-01-2128-canonicalize-emit-tokens: Canonicalize emit-site reference tokens to x-xbrief/ and dual-namespace reader matchers  `[completed]`
+
+After the vbrief->xbrief flip (#2109), the engine still mints legacy reference tokens at its emit sites, so a freshly ingested or built artifact committed under xbrief/ trips the new verify:xbrief-drift pre-commit gate. This story flips the canonical emit constants to x-xbrief/ and makes the remaining single-namespace reader matchers dual-namespace so migrated x-xbrief/ refs are no longer silently skipped, while keeping legacy reference tokens read-accepted for consumer back-compat.
+
+**Acceptance**:
+
+- Given a freshly ingested or built artifact, when committed under xbrief/, then verify:xbrief-drift passes `[completed]`
+  - Acceptance: Given a newly ingested or built vBRIEF written under xbrief/, when the pre-commit drift gate runs, then it passes because the artifact carries x-xbrief/ reference tokens.
+- Given a migrated x-xbrief/ reference, when a reader matcher evaluates it, then it is matched not skipped `[completed]`
+  - Acceptance: Given an artifact using x-xbrief/ reference types, when capacity/scope/swarm reader matchers evaluate it, then they match it via the shared dual-namespace helper.
+- Given a legacy reference, when a reader matcher evaluates it, then it is still accepted `[completed]`
+  - Acceptance: Given a legacy artifact using the old reference prefix, when the reader matchers evaluate it, then it is still accepted for consumer back-compat.
+
+### 2026-07-01-2132-spec-prd-xbrief-paths: Fix spec/prd render tasks to resolve xbrief layout (#2132)  `[completed]`
+
+After the vbrief/ -> xbrief/ rename (#2109), spec:validate, spec:render, and prd:render task fragments hardcode the legacy vbrief/specification.vbrief.json path. On migrated xbrief/ trees the path does not exist, causing all three tasks to fail. Fix by routing through the existing layout resolver (resolveSpecArtifactPath) so migrated trees use xbrief/specification.xbrief.json and unmigrated trees fall back to vbrief/specification.vbrief.json.
+
+### 2026-07-01-2134-go-installer-xbrief: Fix Go installer test and next-steps for xbrief layout (fixes master CI red)  `[completed]`
+
+After the vbrief/->xbrief/ rename (#2109), the Go installer's AGENTS.md template now references PROJECT-DEFINITION.xbrief.json, but main_test.go:497-498 still asserts the legacy 'vbrief.json' string. Additionally, setup.go:1816 emits 'PROJECT-DEFINITION.vbrief.json' in its next-steps user-facing output. Fix the stale test assertion and the next-steps output string to match the current xbrief layout, making the Go (test + build) CI job pass on master.
+
+**Acceptance**:
+
+- main_test.go asserts PROJECT-DEFINITION.xbrief.json in generated AGENTS.md `[pending]`
+  - Acceptance: Given the Go installer test suite, when TestWriteAgentsMD_CreateNew runs, then it passes because the AGENTS.md template now references xbrief not vbrief.
+- setup.go next-steps output references PROJECT-DEFINITION.xbrief.json `[pending]`
+  - Acceptance: Given a fresh deft install, when PrintNextSteps runs, then the user-facing step 3 message references PROJECT-DEFINITION.xbrief.json.
+- All Go installer tests pass with 'go test ./cmd/deft-install/' `[pending]`
+  - Acceptance: Given the fixes applied, when 'go test ./cmd/deft-install/' runs, then the exit code is 0 with no FAIL lines.
+
+### 2026-07-01-2135-branch-coverage: Restore branch coverage above 85% threshold  `[completed]`
+
+Global branch coverage sits at 84.99% (20922/24616) on master HEAD, just under the 85% threshold. Recent xbrief rename/layout PRs (#2109, #2110, #2119, #2122, #2125, #2127, #2128, #2130) added code branches (layout resolver, xbrief-migrate, dual-namespace readers, call-site wiring) without full branch coverage, tipping the global number just under the gate.
+
+**Acceptance**:
+
+- Given uncovered branches in xbrief-migrate modules, when targeted tests are added, then branch coverage >= 85% `[proposed]`
+  - Acceptance: pnpm -w test exits 0 with branch coverage >= 85% on master HEAD.
+
+### 2026-07-01-2139-task-fragment-xbrief-paths: Route remaining task fragments through xbrief layout resolver  `[completed]`
+
+After the vbrief/->xbrief/ rename (#2109), task fragments for reconcile-issues, issue-ingest, project-render, and roadmap-render still hardcoded the vanished vbrief/ directory path, causing all four verbs to fail on migrated trees. This fix routes each verb through the layout resolver (prefer xbrief/, fall back to vbrief/ for unmigrated trees), consistent with the #2132 spec/prd fix.
+
+**Scope Acceptance**:
+
+- task reconcile:issues, task issue:ingest, task project:render, and task roadmap:render all resolve xbrief/ on migrated trees and no longer error with 'vbrief directory not found'. Release dry-run passes cleanly.
+
+**Acceptance**:
+
+- Update reconcile-issues and issue-ingest to derive vbriefDir from projectRoot via layout resolver `[proposed]`
+- Add --project-root support to roadmap-render and project-render CLI entries `[proposed]`
+- Update task fragments to pass --project-root instead of hardcoded vbrief/ paths `[proposed]`
+- Add tests for --project-root on migrated xbrief and legacy vbrief trees `[proposed]`
+
+### 2026-07-01-2142-v0660-ts-build-guard-breaks-task-deft-on-deposits-containing: v0.66.0 `_ts-build` guard breaks `task deft:*` on deposits containing a stray `packages/` tree (#2126 regression for git-vendored-payload repos)  `[completed]`
+
+> Consolidated issue superseding #2141. Root cause is fully traced; #2141 contains the investigation trail (including an initial misdiagnosis that blamed `deft update`, since retracted).
+
+## Summary
+
+On v0.66.0, the entire `task deft:*` surface (including `task check`) fails with `[ERR_PNPM_NO_SCRIPT] Missing script: build` on any consumer whose `.deft/core` contains a `packages/` source tree. The engine itself is fine — global `deft` works against the same project — so this is purely the `task` wrapper via the `#2126` `:engine:_ts-build` guard.
+
+The published npm content package is **not** at fault (it ships 0 `packages/` files), and `deft update` is **not** at fault (a clean-room `deft update` deposits 0 `packages/` files). The regression is in the v0.66.0 `#2126` fix's guard heuristic, which fires on deposits that carry a stray `packages/`.
+
+## Recommended fix (safe, auto-heals, no file deletion)
+
+Harden the `_ts-build` guard to require the **buildability precondition**, not just source presence — build only if `packages/cli/package.json` exists AND the deposit root actually has a `build` script.
+
+Complementary (secondary):
+- `deft doctor` advisory that flags a consumer `.deft/core` containing `packages/`.
+
+Refs #2126. Supersedes #2141.
+
+**Acceptance**:
+
+- `_ts-build` no-ops on stray packages/ deposit without root build script `[pending]`
+  - Acceptance: Given a consumer deposit with `packages/cli/package.json` but no root `build` script, when `:engine:_ts-build` runs, then it no-ops and `task deft:check:consumer` passes using global `deft`.
+- `_ts-build` still builds framework source checkout `[pending]`
+  - Acceptance: Given a real framework source checkout with root `build` script and no prebuilt dist, when `:engine:_ts-build` runs, then `pnpm run build` executes successfully.
+- `deft doctor` flags stray packages/ in consumer deposit `[pending]`
+  - Acceptance: Given a consumer `.deft/core` containing `packages/`, when `deft doctor` runs, then it emits an advisory flagging the stray source tree.
+- Regression test for stray packages deposit shape `[pending]`
+  - Acceptance: Given the stray-`packages/`-without-root-build fixture, when the regression test runs, then it asserts no-op build behavior and passing consumer check path.
+
+### 2026-07-01-2143-generalize-bodycomments-reading-discipline-to-any-dispatched: Generalize body→comments reading discipline to any dispatched issue + machine-checkable gate  `[completed]`
+
+## Problem
+
+When ingesting a GitHub issue to build a worker dispatch envelope, the reading discipline for "what does this issue actually ask for?" is body-only by habit. A corrective maintainer comment that supersedes the original write-up is therefore invisible unless `/comments` is explicitly fetched.
+
+## Proposed fix
+
+1. Generalize the reading rule from umbrellas to any issue being ingested or dispatched.
+2. Make it machine-checkable: issue-ingest fetches `/comments` by default OR a dispatch preflight gate refuses body-only envelopes when comments exist.
+3. Mirror into orchestrator preamble and intake skills.
+
+Refs #1152, #2066, #2126, #2034.
+
+**Acceptance**:
+
+- Issue ingest surfaces comment thread by default `[pending]`
+  - Acceptance: Given an issue with N>0 comments, when issue-ingest runs, then the ingested overview includes comment-thread context (not body-only).
+- Body-vs-comment supersession cannot silently ship wrong fix `[pending]`
+  - Acceptance: Given a fixture where the body suggests fix X and a comment corrects to fix Y, when ingest or the gate runs, then fix Y is what reaches the worker artifact.
+- Reading discipline mirrored into preamble and AGENTS `[pending]`
+  - Acceptance: Given the orchestrator preamble and AGENTS.md, when read, then the body→comments discipline applies to general issues (not only umbrellas).
+
+### 2026-07-01-645-agents-md-size-budget-gate: Encode and enforce an AGENTS.md line-budget ceiling with a deterministic gate  `[completed]`
+
+The maintainer AGENTS.md grew from 102 lines (when #645 was filed) to 569 lines (2026-07-01), 5.6x the empirically-supported 100-150 line ceiling in content/docs/good-agents-md.md. A prose-only ceiling demonstrably did not hold. Per main.md Rule Authority [AXIOM], a size budget that matters must be a deterministic gate, not a sentence. This story adds a verify:agents-md-budget gate that counts the managed section and the maintainer/unmanaged region separately (the #1309 propagation duplicates content across the deft:managed-section marker). CRITICAL DESIGN DECISION: the gate is a RATCHET seeded at the CURRENT per-region line counts, failing on INCREASE, not a static absolute ceiling. This decouples the story from #1882: a ratchet ships green today because the current file is by definition within its own seeded budget, and it immediately delivers the value (no further growth is possible without a deliberate, reviewed budget bump). A static 150-line ceiling would instead couple this story to #1882 -- it would warn/fail permanently until the reduction work lands. #1882 then LOWERS the ratchet: each reduction PR tightens the allowed max toward the 150 target. This story owns the ceiling mechanism and the freeze; #1882 owns the shrink that ratchets it down.
+
+**Acceptance**:
+
+- Given an AGENTS.md region that grew past its ratchet baseline, when the gate runs, then it reports over-budget with a remediation hint `[completed]`
+  - Acceptance: Given an AGENTS.md whose managed or unmanaged region exceeds its ratchet-seeded line budget, when verify:agents-md-budget runs, then it exits non-zero and names the offending region plus the push-to-reference remediation. Given the file exactly at its seeded baseline, the gate passes (the ratchet ships green with no reduction required).
+- Given the managed-section markers, when the gate counts lines, then managed and unmanaged regions are budgeted separately `[completed]`
+  - Acceptance: Given the deft:managed-section markers, when the gate parses AGENTS.md, then it counts the managed section and the maintainer/unmanaged region independently and applies each region's own budget.
+- Given a project Taskfile, when task check runs, then the budget gate participates at the configured tier `[completed]`
+  - Acceptance: Given task check, when it runs on a PR touching AGENTS.md or the template, then verify:agents-md-budget participates at the configured (advisory by default) tier.
+- Given the docs, when a contributor reads REFERENCES.md/CONTRIBUTING.md, then the ceiling rule and remediation are documented `[completed]`
+  - Acceptance: Given REFERENCES.md / CONTRIBUTING.md, when a contributor reads the AGENTS.md maintenance guidance, then the line-budget ceiling, the push-detail-to-references default, and the empirical basis (content/docs/good-agents-md.md) are stated.
+
+### 2026-07-01-838-unify-skill-doc-routing-references: Unify skill routing and doc routing into a single REFERENCES.md Level-0 index  `[completed]`
+
+Directive has two routing systems solving the same 'what do I load when condition X is true?' problem inconsistently: the task-triggered doc routing map in REFERENCES.md, and the keyword->path Skill Routing table hardcoded in AGENTS.md (and duplicated into the managed section via the #1309 propagation, so it appears twice in the maintainer AGENTS.md). The Skill Routing table is a content-routing index living in a policy file (wrong layer), has no descriptions (agents cannot judge relevance without reading full SKILL.md, defeating lazy loading), and is incomplete (only a subset of the skills catalog). This story removes the Skill Routing section from AGENTS.md (leaving the behavioral 'check skills/ before improvising' gate + a pointer to REFERENCES.md) and adds a Skills Index section to REFERENCES.md as the unified Level-0 index: name + one-sentence description + triggers for every skill. Because it is a reduction, it MUST lower the #645 ratchet (plan.policy.agentsMdBudget) to the new per-region line counts -- lowering the ratchet is the documented Wave-2 pattern from #1882.
+
+**Acceptance**:
+
+- Given REFERENCES.md, when an agent needs to pick a skill, then a Skills Index lists every skill with description + triggers `[completed]`
+  - Acceptance: Given REFERENCES.md, when read at Level 0, then a '## Skills Index' section lists every skill under content/skills/ with a name, a one-sentence description, and trigger keywords, plus the Level 0/1/2 loading-semantics note.
+- Given AGENTS.md, when the Skill Routing table is removed, then only a behavioral gate + pointer to REFERENCES.md remain `[completed]`
+  - Acceptance: Given the maintainer AGENTS.md and content/templates/agents-entry.md, when the Skill Routing content table is removed, then the behavioral 'check skills/ before improvising' gate remains and a one-line pointer to the REFERENCES.md Skills Index replaces the table; `task agents:refresh` regenerates the managed section and the agents-entry contract test passes.
+- Given the reduction, when it lands, then the #645 ratchet is lowered to the new per-region counts `[completed]`
+  - Acceptance: Given the smaller AGENTS.md after refresh, when the PR lands, then plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} is lowered to the new counts and `task verify:agents-md-budget` passes at the tighter budget.
+- Given task check, when it runs on the PR, then all gates pass `[completed]`
+  - Acceptance: Given `task check`, when it runs on a PR touching AGENTS.md, the template, and REFERENCES.md, then the agents-entry contract test, verify:agents-md-budget, verify:encoding, and the full suite pass.
+
+### 2026-07-02-1877-cursor-tier1-descriptor-routing: Cursor Tier-1 descriptor + single-dispatch routing enforcement + cursor provider resolution  `[completed]`
+
+Cursor has a first-class backgroundable sub-agent primitive (the Task tool) and is therefore Tier 1, but the swarm Phase 3 Step 1 detection matrix and the review-cycle Review Monitoring tier table never probe for it, so a Cursor agent falls through to generic-terminal / a blocking poll. Separately, `task verify:routing` resolves the provider as 'cloud-headless' when running in Cursor (confirmed live), and the routing gate is only wired for swarm cohorts -- a single Cursor Task dispatch can silently inherit the parent model with no resolved-model enforcement (the exact miss observed in the #1882 Wave-3 swarm). This story delivers the documented #1877 residual (AC1 + AC3 + the #1880-folded single-dispatch + cursor-provider items + optional stretch verify check).
+
+**Acceptance**:
+
+- verify:routing resolves as a Cursor provider in Cursor `[proposed]`
+  - Acceptance: Given an agent running under Cursor, when `task verify:routing` (and the session advisory) run, then the resolved provider is a Cursor descriptor (cursor-composer / cursor-cloud-agent), not cloud-headless / generic-terminal.
+- Cursor is a Tier-1 descriptor in both matrices `[proposed]`
+  - Acceptance: Given the swarm Phase 3 Step 1 detection matrix and the review-cycle Review Monitoring tier table, when read, then each enumerates a Cursor descriptor (Task-tool primitive) mapped to Tier 1 -> Approach 1 (backgrounded Task poller); a content-contract test asserts it.
+- Single Cursor Task dispatch is gated on a resolved model `[proposed]`
+  - Acceptance: Given a single (non-cohort) Cursor Task implementation/monitor dispatch, when the pre-dispatch gate stack runs, then `verify:routing` requires a resolved model for the dispatched role and fails/prompts when the role is undecided.
+- Heartbeat extended to Cursor pollers >3min `[proposed]`
+  - Acceptance: Given a Cursor poller whose loop runs > ~3 min, when the guidance is read, then the #1166 heartbeat contract requirement explicitly applies to it, same as the spawn_subagent path.
+- task check green `[proposed]`
+  - Acceptance: Given `task check`, when it runs on the PR, then content-contract tests, any new verify check, verify:encoding, and the full suite pass; template propagation ran if a consumer-relevant rule changed.
+
+### 2026-07-02-2065-unmanaged-header-contract: Retire the rot-prone unmanaged AGENTS.md header pattern (Option A) + document canonical orientation sources  `[completed]`
+
+Consumer AGENTS.md has an unmanaged project header (above the managed-section marker) that the framework preserves verbatim on `agents:refresh` (#794); `deft doctor` / managed-section freshness (#1308) only byte-compare the managed block, so the header is invisible to mechanical checks. Result: header sections like `Status`, `Next:`, `Known Issues` rot silently and misorient agents at session start (Returning Sessions ritual) while the install looks healthy. These sections duplicate and compete with the canonical, freshness-guaranteed sources (scoped work -> xbrief/ lifecycle; ranked queue -> `deft triage:queue`; tracked bugs -> GitHub issues; identity -> PROJECT-DEFINITION.xbrief.json). This story implements Option A (recommended): stop scaffolding those rot-prone sections for new consumer installs, document the canonical orientation sources, and tell agents not to treat the unmanaged header as a work queue. Reference implementation: deftai/cartograph#75.
+
+**Acceptance**:
+
+- New consumer scaffolds do not emit rot-prone header sections `[proposed]`
+  - Acceptance: Given a fresh consumer install / scaffold, when the unmanaged AGENTS.md header is written, then it does NOT include Status / Next / Known Issues blocks — only a bounded project one-liner + orientation pointer; a fixture/test demonstrates the retired-header scaffold.
+- Docs record Option A + canonical orientation sources `[proposed]`
+  - Acceptance: Given UPGRADING.md and the scaffold template, when read, then they document that Status/Next/Known Issues are retired and session orientation comes from PROJECT-DEFINITION.xbrief.json + `deft triage:queue`/`triage:welcome` + GitHub issues + xbrief/ lifecycle.
+- Sync / session-start guidance tells agents not to treat the header as a work queue `[proposed]`
+  - Acceptance: Given content/skills/deft-directive-sync/SKILL.md (or session-start orientation guidance), when read, then it instructs agents NOT to treat the unmanaged AGENTS.md header as the work queue and to consult triage/xbrief/issues instead.
+- task check green; propagation consistent `[proposed]`
+  - Acceptance: Given `task check`, when it runs, then agents-entry contract + verify:encoding + full suite pass; if a consumer-relevant managed rule changed, `task agents:refresh` ran and the contract marker list is consistent.
+
+### 2026-07-02-2149-issue-ingest-xbrief: Make issue-ingest and project-render honor migrated xbrief-only layout  `[completed]`
+
+On projects that already completed migrate:xbrief (legacy vbrief/ removed, xbrief/ present), issue-ingest still writes proposed scope files using legacy suffix/envelope (.vbrief.json with vBRIEFInfo.version 0.6), and project-render can recreate a stray vbrief/PROJECT-DEFINITION.vbrief.json. This produces layout drift and forces manual normalization after ingest. The fix makes both write paths detect layout using detectLegacyVbriefLayout(projectRoot): migrated xbrief-only projects emit xbrief/proposed/*.xbrief.json with xBRIEFInfo.version 0.8 (or project-declared xBRIEF schema version), while legacy vbrief-layout projects preserve existing .vbrief.json v0.6 behavior until migration.
+
+**Acceptance**:
+
+- Issue-ingest writes layout-aware scope artifacts `[proposed]`
+  - Acceptance: Given a migrated project where vbrief/ is absent and xbrief/ exists, when issue-ingest runs, then the created scope file uses .xbrief.json and an xBRIEFInfo envelope with xBRIEF schema version 0.8 (or project-declared version). Given a legacy vbrief-layout project, existing .vbrief.json + vBRIEFInfo v0.6 behavior remains unchanged.
+- Project-render avoids recreating legacy vbrief on xbrief-only projects `[proposed]`
+  - Acceptance: Given an xbrief-only project, when project:render/project-render executes, then output targets xbrief/PROJECT-DEFINITION.xbrief.json and does not recreate vbrief/PROJECT-DEFINITION.vbrief.json.
+- Parity tests cover both layouts `[proposed]`
+  - Acceptance: Given parity test scenarios in packages/core/src/intake/, when tests run, then legacy layout still emits .vbrief.json v0.6 and migrated xbrief-only layout emits .xbrief.json v0.8.
+- Docs and changelog reflect user-visible fix `[proposed]`
+  - Acceptance: Given UPGRADING.md and CHANGELOG [Unreleased], when this story lands, then they document the layout-aware ingest/render behavior and reference #2149.
+
+### 2026-07-02-2152-parserouting-skill-routing-source: parseRouting no longer depends on the removed AGENTS.md '## Skill Routing' heading  `[completed]`
+
+#838 removed the '## Skill Routing' keyword->path table from AGENTS.md and the managed-section template, moving the routing index to the REFERENCES.md Skills Index. But dispatch.ts::parseRouting still parses the '## Skill Routing' heading to build its trigger map, so post-#838 it yields an EMPTY trigger map (latent coupling). This story re-sources the routing/trigger map from a durable source -- SKILL.md frontmatter (canonical, per-skill) and/or the REFERENCES.md Skills Index -- instead of the removed AGENTS.md heading, restoring a non-empty trigger map and decoupling routing data from the always-loaded policy file.
+
+**Acceptance**:
+
+- parseRouting yields a non-empty trigger map without the removed heading `[proposed]`
+  - Acceptance: Given #838 removed '## Skill Routing' from AGENTS.md, when parseRouting runs, then it returns a non-empty trigger map sourced from SKILL.md frontmatter / the REFERENCES.md Skills Index, covering the shipped skills.
+- No dependency on AGENTS.md '## Skill Routing' heading `[proposed]`
+  - Acceptance: Given the routing source, when AGENTS.md contains no '## Skill Routing' heading, then parseRouting still returns the full trigger map; a regression test asserts this.
+- task check green `[proposed]`
+  - Acceptance: Given `task check`, when it runs on the PR, then the new/updated tests and the full suite pass.
+
+### 2026-07-02-2154-migrate-xbrief-header-patch: migrate:xbrief mechanically patches stale vbrief/ path literals in the AGENTS.md unmanaged header  `[completed]`
+
+After a successful `deft migrate:xbrief` crossover, the consumer AGENTS.md UNMANAGED header can still reference the legacy vbrief/ layout (Session orientation, Lifecycle task examples, Local dev artifact names) while the lifecycle tree and managed section are already on xbrief/. Agents read AGENTS.md every session and get wrong path orientation, yet `deft doctor` reports healthy (managed-section byte compare passes, #1308). This story implements Option A from the issue (recommended minimum): after lifecycle migration + agents:refresh, apply a bounded, idempotent rewrite pass over the UNMANAGED header only, for known crossover tokens, preserving freeform prose and never touching the managed section. It also adds a detection signpost so the regression is catchable (Option B, lightweight).
+
+**Acceptance**:
+
+- migrate:xbrief rewrites known vbrief tokens in the unmanaged header `[proposed]`
+  - Acceptance: Given a fixture consumer AGENTS.md with a typical stale unmanaged header, when `deft migrate:xbrief` runs, then header lifecycle/path examples reference xbrief/ (vbrief/ -> xbrief/, *.vbrief.json -> *.xbrief.json, vbrief:preflight -> xbrief:preflight), freeform prose is preserved, and the managed section is untouched.
+- Rewrite pass is idempotent `[proposed]`
+  - Acceptance: Given a header already on xbrief/, when migrate runs again, then the header is unchanged (no double-rewrite, no corruption).
+- Detection catches xbrief-tree + vbrief-header drift `[proposed]`
+  - Acceptance: Given xbrief/ exists and the managed section is fresh but the unmanaged header matches legacy vbrief patterns, when doctor or the dedicated verify gate runs, then it warns and points at the remediation.
+- Docs + task check `[proposed]`
+  - Acceptance: Given UPGRADING.md, then the managed vs unmanaged header expectation is documented; `task check` passes with the new tests.
+
+### 2026-07-02-2155-consumer-agents-md-advisory: Advisory consumer AGENTS.md legibility signal (unmanaged-focused, non-failing)  `[completed]`
+
+The #645 ratchet governs the MAINTAINER (deftai/directive) AGENTS.md and is fail-closed for this repo only. Consumers get the managed section propagated but their UNMANAGED section is theirs -- we cannot know their real needs, so we must not fail-close their build on size. This story adds an ADVISORY consumer-side legibility signal: it measures the consumer AGENTS.md (focused on the unmanaged region, since the managed section is framework-owned) against a soft, operator-adjustable budget and SURFACES guidance without failing the gate. It follows the advise->observe->enforce posture (#1419): advisory-only in v1, operator can raise/configure the soft budget, and it never fail-closes check:consumer.
+
+**Acceptance**:
+
+- Advisory-only: never fail-closes check:consumer `[proposed]`
+  - Acceptance: Given a consumer AGENTS.md over the soft budget, when check:consumer / doctor runs, then an advisory message is surfaced and the command still exits 0 (never fail-closed).
+- Unmanaged-focused count with configurable soft budget `[proposed]`
+  - Acceptance: Given the consumer AGENTS.md, when measured, then the framework-owned managed section is excluded and the soft budget is an operator-adjustable typed policy field with a documented override to raise it.
+- Tests + docs + task check `[proposed]`
+  - Acceptance: Given tests for at/under/over budget + configurable-raise + managed-excluded, and a consumer-facing doc note, then `task check` passes.
+
+### 2026-07-02-2156-agents-md-rationale-collapse: Collapse AGENTS.md rationale/recurrence narrative to rule+pointer; de-dup managed/maintainer overlap  `[completed]`
+
+The maintainer AGENTS.md carries ~9 long narrative blocks ('Why this rule exists', 'Recurrence record', 'Cross-references') that explain the HISTORY behind a rule rather than the rule itself. Per Rule Authority [AXIOM], the enforceable rule (and its deterministic gate) is the authority; the narrative is reference material that belongs in docs/analysis/, not in the always-loaded policy file. This story collapses each such block to a one-line rule + a pointer to its analysis doc / issue, and de-dups the maintainer/managed overlap where the maintainer half restates managed-section rules. It is the single biggest raw line reduction in the #1882 umbrella (~130 lines targeted). Because it is a reduction, it MUST lower the #645 ratchet (plan.policy.agentsMdBudget) to the new per-region counts after `task agents:refresh`.
+
+**Acceptance**:
+
+- Narrative blocks collapsed to rule+pointer, rationale moved to docs/analysis/ `[proposed]`
+  - Acceptance: Given AGENTS.md, when read, then each 'Why this rule exists' / 'Recurrence record' / long 'Cross-references' block is replaced by the actionable rule + a one-line pointer to a docs/analysis/ doc that holds the moved history; no enforceable rule or gate reference is dropped or weakened.
+- Managed/maintainer verbatim restatements de-duped to pointers `[proposed]`
+  - Acceptance: Given a maintainer-half rule that verbatim restates a managed-section rule (task->deft / path substitutions only), when de-duped, then the maintainer copy is a short pointer to the managed section, preserving any maintainer-only nuance; `task agents:refresh` + the agents-entry contract test pass.
+- #645 ratchet lowered to the new counts `[proposed]`
+  - Acceptance: Given the smaller AGENTS.md after refresh, when the PR lands, then plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} is lowered to the new counts and verify:agents-md-budget passes at the tighter budget.
+- task check green; no rule lost `[proposed]`
+  - Acceptance: Given `task check`, when it runs, then verify:agents-md-budget, the agents-entry contract test, verify:encoding, and the full suite pass, and a diff review confirms every enforceable directive still present (only rationale prose moved).
+
+### 2026-07-02-2157-lazy-load-platform-conditional-rules: Lazy-load platform/tool/runtime-conditional PowerShell rules out of the always-loaded surface  `[completed]`
+
+A rule that can only fire on a specific OS/shell/runtime is dead weight for every consumer not on it -- it crowds scarce always-loaded context and dilutes signal (#1882 failure modes 1+2). Two concrete instances: (1) the `## PowerShell` #1353 Grok Build Windows+pwsh7 capture rule ships in the MANAGED section (content/templates/agents-entry.md -> every consumer's AGENTS.md) yet only fires on one runtime; (2) the #798 PS 5.1 non-ASCII rule (maintainer half of AGENTS.md) is already enforced by the deterministic `verify:encoding` gate. Design rule: gate-enforced ⇒ don't ship the prose in the always-loaded surface (the gate is the rule, platform-correct by construction); non-gated runtime rules ⇒ runtime-detect + lazy-load, not render into everyone's file; avoid environment-aware rendering keyed to the install host (breaks shared cross-platform repos). This story moves the full PowerShell prose (both #798 how-to and #1353 capture) into content/scm/github.md as the single source of truth, and replaces the always-loaded blocks with terse runtime/platform-conditional POINTERS that tell a matching session to load github.md before the risky op. The maintainer↔managed ~70% restate and the orchestration-block/agent-prompt-preamble duplication are OUT OF SCOPE here (they belong with #2156's de-dup line, already merged); this story is strictly the platform-conditional-rule relocation.
+
+**Acceptance**:
+
+- content/scm/github.md is the single source of truth for both PowerShell rules `[proposed]`
+  - Acceptance: Given content/scm/github.md, when read, then it contains BOTH the #798 PS 5.1 non-ASCII encoding how-to (already present) AND the #1353 Grok Build Windows+pwsh7 capture guidance (no piped/redirected commands through the agent shell tool; PTY-based Warp+Claude exempt) as a headed subsection.
+- Managed section carries a runtime-detect pointer, not the prose `[proposed]`
+  - Acceptance: Given content/templates/agents-entry.md (and the regenerated AGENTS.md managed section), when read, then the PowerShell prose is replaced by a terse platform-conditional pointer with runtime-detect triggers pointing at content/scm/github.md; no consumer-inapplicable platform prose remains in the always-loaded managed section.
+- Maintainer half collapses to the same pointer `[proposed]`
+  - Acceptance: Given the AGENTS.md maintainer-half `## PowerShell` block, when read, then the #798 + #1353 prose is collapsed to a terse platform-conditional pointer (verify:encoding framing retained) referencing content/scm/github.md.
+- REFERENCES.md makes the relocated rules discoverable + ratchet lowered + task check green `[proposed]`
+  - Acceptance: Given REFERENCES.md, the contract test, the budget, and `task check`: the github.md entry surfaces the PowerShell platform-conditional guidance; the `## PowerShell` contract marker is updated to the new header; managedMaxLines + unmanagedMaxLines are lowered to the new counts; agents-entry contract + verify:encoding + full suite pass; CHANGELOG has a user-visible entry.
+
+### 2026-07-02-2158-2161-agents-md-quick-wins: AGENTS.md quick-wins batch: Commands drift + personal-rule leak + reserved placeholders + inlined field-list  `[completed]`
+
+Four independent legibility/correctness fixes to the always-loaded AGENTS.md surface, batched into one PR because they all edit the same files and the #645 ratchet. (1) #2158: the maintainer-authored '## Commands' section still advertises deprecated command forms (/deft:change, /deft:run:*, run bootstrap, run spec) as current, drifted from its own managed section which already documents the /deft:directive:* namespace (#418/#1670) and the deprecated run CLI (#1933) -- update the maintainer Commands section to match the current surface (or reduce it to a pointer). (2) #2159: remove the hardcoded personal Warp-profile rule ID (3MieNBQjwlObZM1If060iy) from the shared PowerShell section -- keep the 'project-side mirror' intent without the opaque personal identifier. (3) #2160: drop the reserved placeholder sections (the '## Resume nudge (conditional, #1269)' anticipatory anchor and the 'Note: A true UI indicator ... deferred to Phase 5' line) from BOTH halves and the template -- they consume always-loaded budget for rules that do not exist yet. (4) #2161: compress the inlined triage:welcome summary-history field enumeration (~15 field names, #1279) in the Session-start ritual paragraph to a one-line behavioral rule + a pointer to the owning doc, in BOTH halves and the template. Because #2160 and #2161 reduce lines, this PR MUST lower the #645 ratchet (plan.policy.agentsMdBudget) to the new per-region counts after `task agents:refresh`.
+
+**Acceptance**:
+
+- Maintainer Commands section matches current surface (#2158) `[completed]`
+  - Acceptance: Given AGENTS.md, when the maintainer '## Commands' section is read, then it no longer presents /deft:change, /deft:run:*, run bootstrap, or run spec as the current surface -- it agrees with the managed section (/deft:directive:* + run deprecated) or points at the single source.
+- No personal Warp-profile rule ID in AGENTS.md/template (#2159) `[completed]`
+  - Acceptance: Given AGENTS.md and the template, when the PowerShell section is read, then no personal Warp-profile rule ID appears; the PS 5.1 non-ASCII rule itself is unchanged and verify:encoding still passes.
+- Reserved placeholders removed from always-loaded surface (#2160) `[completed]`
+  - Acceptance: Given AGENTS.md and content/templates/agents-entry.md, when read, then the '## Resume nudge (#1269)' reserved anchor and the Phase 5 UI-indicator note are absent; `task agents:refresh` regenerates the managed section and the agents-entry contract test passes.
+- Inlined triage:welcome field enumeration compressed to a pointer (#2161) `[completed]`
+  - Acceptance: Given the Session-start ritual section in both halves + the template, when read, then the verbatim summary-history.jsonl field enumeration is replaced by a one-line rule + pointer; the actionable 'run task session:start' rule is preserved.
+- #645 ratchet lowered; task check green `[completed]`
+  - Acceptance: Given the smaller AGENTS.md after refresh, when the PR lands, then plan.policy.agentsMdBudget.{managedMaxLines,unmanagedMaxLines} is lowered to the new counts and `task check` (verify:agents-md-budget, agents-entry contract, verify:encoding, full suite) passes.
+
+### 2026-07-02-2166-flaky-subprocess-tests: test: remove real subprocess/network calls from mocked unit tests (flaky 5s timeouts)  `[completed]`
+
+packages/core/src/doctor/main-branches.test.ts ("payload staleness skip branches") intermittently fails with a 5s vitest timeout because its default runGitLsRemote seam can perform a real network `git ls-remote`. Sibling tests (framework-commands, intake-coverage-boost, and the cmdCoreValidate / validateGithubAuthForWorker execFileSync tests folded in from #644/#2157 observations) share the same class of bug: a fully-mocked unit test depending on a real subprocess/network call. Fix by stubbing/injecting the seam, not by raising the timeout.
+
+**Acceptance**:
+
+- git-ls-remote seam stubbed in main-branches + siblings `[proposed]`
+  - Acceptance: The "payload staleness skip branches" test and siblings using the seam make no real network call; the seam is stubbed/injected.
+- execFileSync-backed flaky sites hardened `[proposed]`
+  - Acceptance: framework-commands, intake-coverage-boost, cmdCoreValidate, validateGithubAuthForWorker tests inject/stub the subprocess seam; no real subprocess spawned.
+- Deterministic + task check green `[proposed]`
+  - Acceptance: Tests are deterministic under a constrained/offline runner and well under the timeout; task check passes; CHANGELOG entry added; no production change.
+
+### 2026-07-02-2169-pr-merge-ready-ci-gate: harden(pr:merge-ready): gate on CI check-run conclusions  `[completed]`
+
+task pr:merge-ready computes MERGE-READY purely from the Greptile parse (HEAD-SHA, confidence, P0/P1/P2). It does not consult GitHub CI check-run conclusions on the primary/fallback1 paths, so a red required CI check + clean Greptile reports MERGE-READY. fetchCheckRunsRest exists but is only used in the degraded fallback2 diagnostics path. Add required-check-run gating to the primary/fallback1 verdict.
+
+**Acceptance**:
+
+- Required check-run failure blocks MERGE-READY on primary/fallback1 `[proposed]`
+  - Acceptance: pr:merge-ready reports NOT-READY when a required check-run on HEAD is failure/cancelled/timed_out; READY only when required checks green AND Greptile clean.
+- Pending checks yield NOT-READY-yet (distinct from fail) `[proposed]`
+  - Acceptance: in_progress/queued required checks produce a distinct not-ready-yet state, not a hard fail.
+- Output + escape hatch `[proposed]`
+  - Acceptance: Human output shows a CI summary line; --json includes conclusions; a documented --skip-ci / non-required allow-list escape hatch exists.
+- Cohort verifier inherits the CI gate `[proposed]`
+  - Acceptance: swarm:verify-review-clean shares the same CI gate (lockstep per #1364).
+- Tests + task check green `[proposed]`
+  - Acceptance: Tests cover ready / red-required / pending / flaky-non-required; task check passes; CHANGELOG entry added.
+
+### 2026-07-02-2178-ghx-install-integrity: Download-verify-execute the ghx installer instead of piping remote scripts into a shell  `[completed]`
+
+packages/cli/src/dispatch.ts's runSetupGhx (ported from the retired scripts/setup_ghx.py in #2022 Phase 1) installs ghx via `irm <url> | iex` on Windows (with `-ExecutionPolicy Bypass`) and `curl -fsSL <url> | bash` on unix, where `<url>` points at the mutable `v1.5.1` git tag on brunoborges/ghx. Socket Security's AI heuristic flags this exact live-pipe-with-no-integrity-check pattern and scores @deftai/directive as ~65% likely malicious (severity 0.78), which blocks every consumer PR that bumps the dependency under a Socket policy that treats that alert as Block (deftai/evolution#1046, #1047). The CI workflow (.github/workflows/ci.yml) already download-verifies the Windows installer against a vendored SHA-256 as a #1070/#1328 quick-win, but the native TS setup:ghx handler that ships to consumers still does the live pipe. This story ports the same download->verify->execute discipline into the native handler for both platforms, additionally pinning the fetch URL to the immutable commit SHA the v1.5.1 tag currently resolves to (rather than the mutable tag name) so a future tag force-move cannot silently swap the fetched bytes out from under the vendored hash, and drops -ExecutionPolicy Bypass for the verified local temp file on Windows (Unblock-File is not needed since the file is written by Node, not a Windows web-download API, so it never carries a Mark-of-the-Web zone identifier).
+
+**Acceptance**:
+
+- Installer URLs pin to an immutable commit SHA with vendored SHA-256 hashes `[proposed]`
+  - Acceptance: Given dispatch.ts, when INSTALL_PS1_URL/INSTALL_SH_URL are read, then they reference the resolved commit SHA for the v1.5.1 tag (not the mutable tag name) and GHX_INSTALL_SH_SHA256/GHX_INSTALL_PS1_SHA256 constants exist with correctly vendored 64-hex-char SHA-256 values matching the actual bytes at that commit.
+- Installer is downloaded, hash-verified, then executed from a local temp file (no live pipe) `[proposed]`
+  - Acceptance: Given a user consents to install, when runSetupGhx runs, then the installer bytes are fetched to memory, written to a private temp file, and only executed via a direct local-file invocation (`bash <tempfile>` / `pwsh ... -File <tempfile>`) after a SHA-256 match; there is no `curl | bash`, `irm | iex`, or `-ExecutionPolicy Bypass` anywhere in the install path; a hash mismatch aborts before any execution and reports an error without running the file.
+- Existing consent + skip mitigations unchanged; new tests cover the integrity gate `[proposed]`
+  - Acceptance: Given the [y/N] consent prompt, --yes, --check, and DEFT_SETUP_GHX_SKIP behaviors, when runSetupGhx runs, then they behave identically to before this change; new dispatch.test.ts cases cover hash-mismatch-aborts-without-executing, happy-path-executes-verified-temp-file, and consent-gate-still-honored-before-any-download.
+- task check green; CI hashes in lockstep; CHANGELOG entry `[proposed]`
+  - Acceptance: Given task check, when it runs, then build/lint/test all pass; .github/workflows/ci.yml env.GHX_VERSION and its vendored SHA-256 hashes remain consistent with the native handler's constants; CHANGELOG.md [Unreleased] has a brief user-visible entry referencing #2178.
+
+### 2026-07-02-2182-pkg-manager-network-scope: Make package-manager network access explicit and security-scoped  `[completed]`
+
+Directive runs against arbitrary repos incl. private monorepos. Session/ritual/doctor/read-only flows must not silently invoke npm/pnpm commands that can contact registries (disclosing package names/scopes/graph shape, tripping sandbox network approval, or creating confusing prompts). Registry traffic itself is sensitive. Package-manager network access must be opt-in, offline-by-default where possible, and disclosed before it runs.
+
+**Acceptance**:
+
+- Read-only/session/ritual flows do no pkg-manager network access `[proposed]`
+  - Acceptance: task session:start and read-only flows perform no npm/pnpm registry access (verified by a stubbed seam asserting no network invocation).
+- Doctor offline tier vs network tier `[proposed]`
+  - Acceptance: task doctor runs an offline tier by default without contacting registries; network-enabled dependency checks require an explicit command/flag and disclose the tool + registry class first.
+- Explicit naming + approval disclosure `[proposed]`
+  - Acceptance: Any command that may contact npm/pnpm registries is explicit in name/output/approval prompt; offline/frozen modes used where possible.
+- Tests with private-scope registry fixture `[proposed]`
+  - Acceptance: Tests cover a repo with private scope registry config and verify session/read-only flows do not invoke npm/pnpm with network.
+- Docs (content doc, NOT AGENTS.md) + task check green `[proposed]`
+  - Acceptance: Agent-facing guidance lives in a content doc (not AGENTS.md/template); task check passes; CHANGELOG entry added.
+
+### 2026-07-02-2183-2184-agents-md-reduction-r2: refactor(agents-md): de-duplicate maintainer half + reduce managed-section template  `[completed]`
+
+The maintainer AGENTS.md restated ~70% of the managed section (Returning Sessions, Deft Alignment Confirmation, Session-start ritual, Implementation Intent Gate, Story Start Gate) in full prose (#2183). The managed-section template also carried verbose mechanism paragraphs that propagate to every consumer (#2184). Both were collapsed to the established #2156 'Same rules as the managed section below; substitute task for deft' pointer pattern, preserving every #1309 propagation marker (commands, policy keys, headers, action verbs) and the #645 ratchet.
+
+**Acceptance**:
+
+- Maintainer half de-duplicated against managed (#2183) `[completed]`
+  - Acceptance: Returning Sessions, Deft Alignment Confirmation, Session-start ritual, Implementation Intent Gate, Story Start Gate collapse to the #2156 pointer pattern; all required task-form markers preserved.
+- Managed-section template reduced (#2184) `[completed]`
+  - Acceptance: Template Session-start ritual mechanism paragraphs + Branch Policy Disclosure override list collapse to pointers; agents:refresh regenerates AGENTS.md; consumer markers preserved.
+- Ratchet down + task check green `[completed]`
+  - Acceptance: plan.policy.agentsMdBudget lowered to new actuals; contract test green; task check passes; CHANGELOG entry added.
+
+### 2026-07-02-2189-slizard-merge-gate: Gate merge-readiness on the SLizard structured review verdict (mirror the Greptile + CI gates)  `[completed]`
+
+PR #2187 merged through `task pr:wait-mergeable-and-merge` while a SLizard review was still requesting changes (Decision: request_changes, Merge impact: blocking, P1: 1). The merge-readiness gate only parses the Greptile rolling-summary comment for its verdict; it has no equivalent check for SLizard, which posts its verdict in a check-run named `SLizard` (output.summary carries `Decision:` / `Merge impact:` / severity counts). Because the cascade uses `gh pr merge --admin`, branch-protection required-status enforcement is also bypassed, so nothing caught the blocking finding. The generic CI check-run gate (#2169) fails closed on a check-run `conclusion=failure`, which partially covers a failing SLizard run, but it (a) does not parse the structured verdict, so a `request_changes`/`blocking` decision carried on a non-`failure` conclusion is missed, and (b) surfaces SLizard indistinctly among build/test checks. This story adds a dedicated SLizard verdict gate that parses the check-run summary and fails merge-readiness on a blocking decision, mirroring the existing Greptile + CI gates, and wires it into both `pr:merge-ready` and `swarm:verify-review-clean` in lockstep.
+
+**Acceptance**:
+
+- SLizard check-run verdict is fetched and parsed `[proposed]`
+  - Acceptance: Given a commit whose check-runs include a `SLizard` run with output.summary containing `Decision:` / `Merge impact:` / severity counts, when fetchCheckRunsRest runs, then the SLizard run's summary is captured and parseSlizardVerdict extracts decision, merge impact, and P0/P1/P2 counts.
+- Blocking SLizard verdict fails merge-readiness `[proposed]`
+  - Acceptance: Given a SLizard verdict with Decision=request_changes or Merge impact=blocking (or a failing conclusion), when evaluateSlizardGate runs, then it returns a failure and pr:merge-ready exits non-zero; a clean approve verdict passes; an absent SLizard check-run or --skip-slizard yields ready_state=skipped without failing.
+- Gate wired into pr:merge-ready and swarm:verify-review-clean in lockstep `[proposed]`
+  - Acceptance: Given compute.ts (primary + fallback1) and verify-review-clean.ts evaluatePr, when a blocking SLizard verdict is present, then both surfaces report the SLizard failure and the SLizard check is excluded from the generic CI required set (no double-count); the human/JSON output surfaces the SLizard verdict distinctly.
+- task check green; nit folded; CHANGELOG entry `[proposed]`
+  - Acceptance: Given task check, when it runs, then the new slizard-gate tests + full suite + verify:encoding + agents-md-budget pass; the network-gate.test.ts JSON.parse null-guard nit is folded in; CHANGELOG [Unreleased] has a user-visible entry.
+
+### 2026-07-02-2190-biome-determinism: Make biome lint severity deterministic and config-owned (noUnusedVariables / noNonNullAssertion)  `[completed]`
+
+PR #2186's CI run reported `noUnusedVariables` (packages/cli/src/*-fixtures.ts) and `noNonNullAssertion` (packages/core/src/architecture/sor-preflight.ts(.test.ts), packages/core/src/verify-source/cursor-tier1.test.ts) as 12 ERRORS (exit 1), while master/local report the identical diagnostics as 50 WARNINGS (exit 0) on the same pinned `@biomejs/biome@2.5.0`. `--frozen-lockfile` rules out version skew. `biome.json` currently relies on `linter.rules.preset: "recommended"` for these two rules, so their severity is preset-derived rather than config-owned -- a latent flip-to-error risk that can redden unrelated PRs. Repeated local reproduction (worktree checkout, main checkout, and an untracked-file file-discovery probe) consistently showed 0 errors / 50 warnings / `Checked 1162 files` across multiple runs; the error-tier flip did not reproduce locally, consistent with it being either a run-specific biome 2.5.0 internal non-determinism or an artifact of the CI runner environment (documented in docs/analysis/2026-07-02-2190-biome-determinism.md). Regardless of root cause, the fix is to remove the two flip-able rules from preset-inherited severity entirely.
+
+**Acceptance**:
+
+- Determinism reproduction characterized and documented `[proposed]`
+  - Acceptance: Given repeated `biome check .` runs in a clean worktree checkout, the main checkout, and with an extra untracked file, when the runs are compared, then the checked-file count and error/warning split are recorded in docs/analysis/2026-07-02-2190-biome-determinism.md along with whether the error-tier flip reproduced locally.
+- noUnusedVariables and noNonNullAssertion severities are explicit and config-owned `[proposed]`
+  - Acceptance: Given biome.json, when `linter.rules` is read, then `correctness.noUnusedVariables` and `style.noNonNullAssertion` both carry an explicit "warn" (or "info") severity string that is not "error", independent of `preset`; `biome check .` still exits 0 on the current 50 diagnostics.
+- biome pinned to an exact version `[proposed]`
+  - Acceptance: Given package.json devDependencies, when `@biomejs/biome` is read, then its specifier is the exact `2.5.0` (no `^` range) and pnpm-lock.yaml's specifier field matches; `pnpm install --frozen-lockfile` succeeds unchanged.
+- Guard test + CHANGELOG entry; task check green `[proposed]`
+  - Acceptance: Given the new biome-config guard test, when `pnpm run test` (part of `task check`) runs, then it fails if either rule's severity is missing or set to "error", and passes today; CHANGELOG [Unreleased] has a user-visible entry referencing #2190; `task check` exits 0 across repeated runs.
+
+### 2026-07-02-2192-agents-md-trim: Trim AGENTS.md template duplicate story and preflight mechanism prose  `[completed]`
+
+Issue #2192 closes the small residual AGENTS.md template trim after #2153 by removing two true redundancies while preserving layered disclosure. The story merges the duplicate one-story-per-branch guidance into a single Story Start Gate bullet and shortens the Implementation Intent Gate's install-layout mechanism detail into a concise rule plus recovery pointers.
+
+**Acceptance**:
+
+- Story Start Gate one-story guidance is consolidated `[proposed]`
+  - Acceptance: Given content/templates/agents-entry.md, when the Story Start Gate is read, then it contains one bullet with the one story per branch/PR default, explicit approval plus rationale for batching, and checkpoint commit after each completed story language; the swarm-cohort consent-token carve-out remains in its own adjacent bullet.
+- Implementation Intent Gate preflight prose is shortened `[proposed]`
+  - Acceptance: Given content/templates/agents-entry.md, when the Implementation Intent Gate is read, then the first xbrief:preflight bullet keeps the gate requirement and active/running condition, points to gate-stack step 2 plus Story Start Gate workflow, and points to deft framework:doctor / UPGRADING for misconfigured installs without carrying _resolve_preflight_path.py mechanism prose.
+- Generated AGENTS.md and budget ratchet are refreshed `[proposed]`
+  - Acceptance: Given the template edit, when node packages/cli/dist/bin.js agents-refresh runs, then maintainer AGENTS.md reflects the managed-section changes and plan.policy.agentsMdBudget is lowered to the new actual managed/unmanaged line counts when the trim reduces them.
+- Quality gates and changelog are complete `[proposed]`
+  - Acceptance: Given task check, when it runs, then agents_entry_contract, agents_md_session_start, story_start_gate, verify:encoding, and verify:agents-md-budget pass; CHANGELOG [Unreleased] includes a brief user-visible #2192 entry.
+
+### 2026-07-02-2207-fixtriage-triagequeue-misses-audit-log-and-ranking-labels-af: fix(triage): triage:queue misses audit log and ranking labels after xbrief migration (#2109 gap)  `[completed]`
+
+## Summary
+
+After the `vbrief/` → `xbrief/` migration (#2109), `task triage:queue` reports every cached issue as `[untriaged]` and prints `consumer ranking labels: <empty>`, even when the operator has a populated `xbrief/.eval/candidates.jsonl` with accept decisions and `plan.policy.triageRankingLabels` configured in `xbrief/PROJECT-DEFINITION.xbrief.json`.
+
+Sibling verbs (`triage:summary`, `triage:reconcile`) read the correct paths and see the audit state; only `triage:queue` is broken.
+
+## User-visible impact
+
+- Accepted/triaged issues surface as `[untriaged]` — operators lose the primary work-selection signal (D11 / #1128).
+- Configured ranking labels (`blocks-merge`, `urgent`, `bug`, …) are ignored; queue header shows `<empty>` and `(label: …)` hints never appear.
+- `triageScopeIgnores[]` may not load from PROJECT-DEFINITION on migrated trees (same hardcoded vbrief path in scope-rules).
+- On npm consumer installs (framework root = `.deft/core`, project root = clone), audit/slices resolution via `frameworkRoot` reads the wrong tree entirely.
+
+## Root cause (two bugs, one missed #2109 part-2a sweep)
+
+### 1. Audit log + slices log resolve against wrong root
+
+`packages/cli/src/triage-queue.ts` passes `frameworkRoot: resolveFrameworkRoot()` to `readAuditEntries()` and `loadSliceRecords()`. When `DEFT_ROOT` is unset, `resolveFrameworkRoot()` walks up two levels from `packages/cli/dist/bin.js` → **`packages/`**, not the repo/project root.
+
+Observed audit path:
+
+```
+/home/msadams/repos/deft/directive/packages/vbrief/.eval/candidates.jsonl  ← missing
+```
+
+Actual audit path (44 accept rows present):
+
+```
+/home/msadams/repos/deft/directive/xbrief/.eval/candidates.jsonl
+```
+
+Result: zero audit entries loaded → all issues derive to `[untriaged]`.
+
+**Contrast:** `packages/core/src/triage/summary/index.ts` correctly uses `projectRoot` + `resolveEvalPath()`.
+
+### 2. PROJECT-DEFINITION + policy still hardcoded to vbrief path
+
+`packages/core/src/triage/queue/project.ts` and `packages/core/src/triage/scope-drift/scope-rules.ts` still read:
+
+```
+vbrief/PROJECT-DEFINITION.vbrief.json
+```
+
+On migrated trees this file is absent, so `triageRankingLabels`, `triageScope[]`, and `triageScopeIgnores[]` fall back to framework defaults (empty ranking labels).
+
+**Contrast:** `packages/core/src/policy/resolve.ts` already exposes layout-aware `projectDefinitionPath()` via `resolveProjectDefinitionPath()`.
+
+## Reproduction
+
+On a migrated `xbrief/` tree with populated audit log:
+
+```bash
+# Confirm audit log exists and has accept rows
+wc -l xbrief/.eval/candidates.jsonl
+
+# Queue shows everything untriaged + empty ranking labels
+task triage:queue -- --limit=10
+
+# Sibling verbs see the real state
+task triage:summary
+task triage:reconcile -- --dry-run
+```
+
+Debug one-liner (frameworkRoot from bin.js resolves to `packages/`):
+
+```bash
+node -e "
+import { resolveAuditLogPath, readAuditEntries } from './packages/core/dist/triage/queue/audit.js';
+const fw = '/home/msadams/repos/deft/directive/packages';
+console.log(resolveAuditLogPath({ frameworkRoot: fw }));
+console.log(readAuditEntries('deftai/directive', { frameworkRoot: fw }).length);
+"
+# → packages/vbrief/.eval/candidates.jsonl, 0 entries
+```
+
+## Proposed fix
+
+1. **`triage:queue` CLI:** pass `projectRoot` (not `frameworkRoot`) to audit/slices resolution, matching `triage:summary`.
+2. **`queue/project.ts`:** switch to `projectDefinitionPath()` / `resolveProjectDefinitionPath()` from `packages/core/src/layout/resolve.js` (or re-export from `policy/resolve.ts`).
+3. **`scope-drift/scope-rules.ts`:** same layout-aware PROJECT-DEFINITION load (or delegate to shared helper).
+4. **Constants cleanup:** update `packages/core/src/triage/queue/constants.ts` stale `vbrief/` default paths or mark deprecated in favor of `resolveEvalPath()`.
+5. **Tests:** add regression coverage for migrated `xbrief/` tree — queue must show `[other]` for issues with accept decisions in `xbrief/.eval/candidates.jsonl` and must print configured ranking labels from `xbrief/PROJECT-DEFINITION.xbrief.json`.
+
+## Acceptance criteria
+
+- [ ] On migrated `xbrief/` tree, `task triage:queue` loads audit entries from `xbrief/.eval/candidates.jsonl` via `projectRoot`.
+- [ ] Issues with latest `accept` decision in audit log appear in `[other]` group, not `[untriaged]`.
+- [ ] Queue header lists `plan.policy.triageRankingLabels` from `xbrief/PROJECT-DEFINITION.xbrief.json`.
+- [ ] Consumer install scenario (framework root ≠ project root) resolves audit/slices under project root.
+- [ ] Existing `triage:queue` tests updated; new xbrief-layout regression test added.
+- [ ] `task check` passes.
+
+## Related
+
+- Refs #2109 (part 2a claimed full triage sweep; `triage:queue` submodules missed)
+- Refs #2112 (remove vbrief read path — this bug should be fixed before/alongside that cleanup)
+- Refs #1128 (D11 triage queue)
+- Refs #1186 (consumer triage config / ranking labels)
+
+## Discovered during
+
+Interactive session triage investigation after xbrief migration — operator reported queue previously showed triaged items with ranking labels; post-migration all items show `[untriaged]`.
+
+**Acceptance**:
+
+- On migrated `xbrief/` tree, `task triage:queue` loads audit entries from `xbrief/.eval/candidates.jsonl` via `projectRoot`. `[proposed]`
+- Issues with latest `accept` decision in audit log appear in `[other]` group, not `[untriaged]`. `[proposed]`
+- Queue header lists `plan.policy.triageRankingLabels` from `xbrief/PROJECT-DEFINITION.xbrief.json`. `[proposed]`
+- Consumer install scenario (framework root ≠ project root) resolves audit/slices under project root. `[proposed]`
+- Existing `triage:queue` tests updated; new xbrief-layout regression test added. `[proposed]`
+- `task check` passes. `[proposed]`
+
+### 2026-07-02-2209-flakyci-verify-envbranchestestts-toolchain-check-times-out-a: flaky(ci): verify-env/branches.test.ts toolchain-check times out at 5s in CI (real subprocess spawn)  `[completed]`
+
+## Summary
+
+`packages/core/src/verify-env/branches.test.ts:262` — *"exercises runToolchainCheck with defaultCommandRunner and a single tool"* — intermittently fails in the **TypeScript (build + lint + test)** CI job with:
+
+```
+Error: Test timed out in 5000ms.
+ ❯ packages/core/src/verify-env/branches.test.ts:262:3
+```
+
+Observed on PR #2208 (run 28624441344). The test passes locally in ~457ms.
+
+## Root cause
+
+The test exercises `runToolchainCheck` with the real `defaultCommandRunner`, which spawns actual subprocesses (e.g. `node --version`). On a cold / loaded CI runner, subprocess spawn + process startup can exceed vitest's default 5000ms `testTimeout`, producing a non-deterministic failure that has nothing to do with the code under test in a given PR.
+
+## Impact
+
+- False-red CI on unrelated PRs; blocks merge until a re-run happens to land under 5s.
+- Wastes a CI round-trip and operator attention per occurrence.
+
+## Proposed fix (pick one)
+
+1. Inject a fake/stubbed command runner for this branch instead of `defaultCommandRunner`, so no real subprocess is spawned (preferred — removes the wall-clock dependency entirely, per the #975 test-performance discipline).
+2. If a real subprocess is intentional for this branch, raise the per-test `testTimeout` (e.g. 20000ms) so cold-runner spawn latency doesn't trip the default.
+
+## Repro
+
+Re-run the TS CI lane on a cold runner, or run under artificial load:
+
+```
+npx vitest run packages/core/src/verify-env/branches.test.ts
+```
+
+Refs #975 (test performance discipline). Discovered while landing #2207 (PR #2208).
+
+### 2026-07-02-2210-bugtriage-scope-driftadd-ignorets-writes-triagescopeignores: bug(triage): scope-drift/add-ignore.ts writes triageScopeIgnores to vbrief/ path on migrated trees  `[completed]`
+
+## Summary
+
+Follow-up from PR #2208 (#2207) — Greptile P2. After that PR, `scope-drift/scope-rules.ts` **reads** `triageScopeIgnores` via the layout-aware `resolveProjectDefinitionPath()` (so it resolves `xbrief/PROJECT-DEFINITION.xbrief.json` on migrated trees), but the sibling `packages/core/src/triage/scope-drift/add-ignore.ts` still **hardcodes** `vbrief/PROJECT-DEFINITION.vbrief.json` for both its read and its write.
+
+## Impact
+
+On a fully-migrated tree (no `vbrief/PROJECT-DEFINITION.vbrief.json`):
+
+- `addIgnore()` (`triage:add-ignore`) throws `PROJECT-DEFINITION not found at …vbrief/…`, or
+- if a stale `vbrief/` copy exists, entries are written there and are **invisible** to `triage:queue`, which now reads from `xbrief/`.
+
+This is the write-side mirror of the read-side bug fixed in #2207.
+
+## Fix
+
+Swap the hardcoded `vbrief/PROJECT-DEFINITION.vbrief.json` join in `add-ignore.ts` for `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts`, matching `scope-rules.ts` / `queue/project.ts`. Add a migrated-tree regression test.
+
+## Related
+
+- Refs #2207 (PR #2208, read-side fix)
+- Refs #2109 (vbrief→xbrief migration — missed call-site)
+- Refs #2112 (remove vbrief read path — natural home for this write-side cleanup)
+
+### 2026-07-02-2211-bugtriage-scoperesolvets-loads-triagescope-from-hardcoded-vb: bug(triage): scope/resolve.ts loads triageScope from hardcoded vbrief/ path on migrated trees  `[completed]`
+
+## Summary
+
+Same class as #2207 / #2210. `packages/core/src/triage/scope/resolve.ts` resolves `plan.policy.triageScope` via a hardcoded path:
+
+```ts
+// scope/resolve.ts:4,6-7
+import { DEFAULT_TRIAGE_SCOPE, PROJECT_DEFINITION_REL_PATH } from "./constants.js"; // "vbrief/PROJECT-DEFINITION.vbrief.json"
+export function projectDefinitionPath(projectRoot: string): string {
+  return join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+}
+```
+
+`loadProjectDefinition()` then reads that path; on a migrated `xbrief/` tree the file is absent, `existsSync` fails, and it returns `null` -> `triageScope` silently falls back to `DEFAULT_TRIAGE_SCOPE`.
+
+## Impact
+
+On migrated trees the project's configured `plan.policy.triageScope[]` is ignored for scope-drift classification -- the queue's `[scope-drift]` / in-plan counts use the default scope, not the project's. Silent (graceful fallback masks it), exactly like the #2207 read-side bug.
+
+## Fix
+
+Replace the hardcoded `join(projectRoot, PROJECT_DEFINITION_REL_PATH)` with `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts`, matching `queue/project.ts` / `scope-drift/scope-rules.ts`. Add a migrated-tree regression test.
+
+## Related
+- Refs #2207 (PR #2208, read-side fix), #2210 (write-side sibling)
+- Refs #2109 (vbrief->xbrief migration -- missed call-site), #2112 (remove vbrief read path)
+
+### 2026-07-02-2212-bugscope-capacity-stampts-reads-capacityallocation-from-hard: bug(scope): capacity-stamp.ts reads capacityAllocation from hardcoded vbrief/ path on migrated trees  `[completed]`
+
+## Summary
+
+Same class as #2207 / #2210. `packages/core/src/scope/capacity-stamp.ts` reads `plan.policy.capacityAllocation.defaultBucket` from a hardcoded path:
+
+```ts
+// capacity-stamp.ts:4,8
+import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js"; // "vbrief/PROJECT-DEFINITION.vbrief.json"
+const path = join(resolve(projectRoot), PROJECT_DEFINITION_REL_PATH);
+```
+
+The read is wrapped in `try/catch` returning `""` on failure. On a migrated `xbrief/` tree the file is absent -> catch -> `""`.
+
+## Impact
+
+`stampCompletionMetadata()` (#1419) never stamps `metadata.capacityBucket` on completing briefs on migrated trees, because the default bucket resolves to empty. Silent capacity-accounting gap.
+
+## Fix
+
+Resolve via `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts` instead of `join(projectRoot, PROJECT_DEFINITION_REL_PATH)`. Add a migrated-tree regression test asserting the bucket is stamped.
+
+## Related
+- Refs #2207 (PR #2208), #2210, #2109, #2112, #1419
+
+### 2026-07-02-2213-bugscope-project-definition-syncts-skips-project-definition: bug(scope): project-definition-sync.ts skips PROJECT-DEFINITION sync (hardcoded vbrief/ path) on migrated trees  `[completed]`
+
+## Summary
+
+Same class as #2207 / #2210. `packages/core/src/scope/project-definition-sync.ts::syncProjectDefinitionAfterScopeMove` (#1527) resolves the PROJECT-DEFINITION to sync via a hardcoded path:
+
+```ts
+// project-definition-sync.ts:4,128-131
+import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js"; // "vbrief/PROJECT-DEFINITION.vbrief.json"
+const projectRoot = dirname(resolve(vbriefRoot));
+const projectDefPath = join(projectRoot, PROJECT_DEFINITION_REL_PATH);
+if (!existsSync(projectDefPath)) { return; }
+```
+
+On a migrated `xbrief/` tree the file is absent -> the guard returns early -> the "best-effort sync" is a silent no-op.
+
+## Impact
+
+After every `scope:promote / activate / complete / demote / reopen`, PROJECT-DEFINITION `references[]` / `items[]` path rewrites are skipped on migrated trees. PROJECT-DEFINITION drifts out of sync with the moved brief's new lifecycle path. Silent (best-effort + early return).
+
+## Fix
+
+Resolve via `resolveProjectDefinitionPath(projectRoot)` from `packages/core/src/layout/resolve.ts`. Add a migrated-tree regression test asserting references are rewritten after a scope move.
+
+## Related
+- Refs #2207 (PR #2208), #2210, #2109, #2112, #1527
+
+### 2026-07-02-2219-flakyci-verify-env-clitestts-toolchain-check-runs-without-co: flaky(ci): verify-env-cli.test.ts 'toolchain-check runs without config error' times out at 5s (real subprocess) — #2209 follow-up  `[completed]`
+
+## Summary
+
+Sibling of #2209. `packages/cli/src/gates-cli/verify-env-cli.test.ts:72` — *"deft-ts toolchain-check > runs without config error"* — intermittently fails the **TypeScript (build + lint + test)** CI job with `Test timed out in 5000ms`. Observed on PR #2218 (run 28627819108): 8161 passed, this 1 test flaked; a re-run passes.
+
+## Root cause
+
+The test calls `runDeftTs("toolchain-check", [], { cwd: repoRoot })`, which spawns the real `deft-ts` CLI subprocess; `toolchain-check` in turn shells out to probe tool versions. On a cold/loaded CI runner the spawn + probes exceed vitest's default 5000ms `testTimeout`. This is the CLI-level twin of the core-level flake fixed in #2209 (`packages/core/src/verify-env/branches.test.ts`) — that fix was scoped to the core test and did not cover this CLI harness.
+
+## Fix (pick one)
+
+1. Inject a stub command runner / fake toolchain probe so no real subprocess is spawned (preferred, per #975).
+2. If a real end-to-end `runDeftTs` invocation is intentional here, raise this test's `testTimeout` (e.g. 20000ms) so cold-runner spawn latency doesn't trip the default.
+
+## Repro
+
+Re-run the TS lane on a cold runner, or: `npx vitest run packages/cli/src/gates-cli/verify-env-cli.test.ts`
+
+Refs #2209, #975. Discovered while landing the #2209-#2213 xbrief-migration swarm cohort.
+
+### 2026-07-02-2220-bugcheck-task-check-diverges-from-ci-ts-lane-pnpm-run-lint-b: bug(check): `task check` diverges from CI TS lane (`pnpm run lint`) — biome format violations pass locally, fail CI  `[completed]`
+
+## Summary
+
+The documented pre-commit gate `task check` does **not** run the same biome lint/format that the CI **TypeScript (build + lint + test)** lane enforces via `pnpm run lint` (`biome check .`). As a result an agent (or human) can get a green `task check` locally and still fail CI on a biome **format** violation.
+
+## Evidence
+
+During the #2209–#2213 xbrief-migration swarm cohort, worker for #2209 reported `task check` green and opened PR #2214. CI's TypeScript lane failed in 13s with **"Found 1 error"** — a biome *formatter* violation in `packages/core/src/verify-env/branches.test.ts` (an `it(..., 20_000)` call biome wanted collapsed). `npx biome check --write` on the file fixed it and CI went green. The pre-existing `Capture`/non-null items are *warnings* (biome exits 0), so those are not the issue — the gap is that `task check` never surfaced the format **error** that `pnpm run lint` did.
+
+## Root cause (suspected)
+
+`task check` dispatches to `engine:invoke check` (the consumer-safe / lifecycle gate, #1519). The biome lane (`ts:check-lane`) is wired under `check:framework-source`, and CI runs `pnpm run lint` (`biome check .`) as its own step. So the everyday `task check` an agent runs before committing does not include the biome check CI blocks on.
+
+## Impact
+
+- False-green local pre-commit gate; biome format/lint regressions only surface after a full CI round-trip.
+- Especially costly for swarm workers (each false-green PR burns a CI cycle + orchestrator intervention).
+
+## Proposed fix (pick one)
+
+1. Make `task check` (framework-source path) include the biome lane (`pnpm run lint` / `ts:check-lane`) so the local gate matches CI.
+2. If `task check` must stay lifecycle-only, document prominently that `task check:framework-source` (or `pnpm run lint`) is required before pushing, and have the swarm/pre-pr skills invoke it.
+
+## Related
+- Discovered landing the #2209–#2213 swarm cohort (PRs #2214–#2218).
+- Adjacent to #2219 (flaky CLI test) — both are "local gate ≠ CI" gaps surfaced by the same cohort.
+
+### 2026-07-02-644-surrounding-docs-footprint-audit: Audit surrounding-docs footprint + encode the reference-chain discovery principle in REFERENCES.md  `[completed]`
+
+Augment Code's empirical AGENTS.md study (content/docs/good-agents-md.md) measured documentation-discovery rates: AGENTS.md hierarchy 100%, directly-referenced files 90%+, directory READMEs 80%+, nested READMEs elsewhere ~40%, orphan docs <10%. The corollary: a good AGENTS.md sitting on top of a large reachable doc corpus does NOT protect an agent from overexploration -- reachable-but-unreferenced docs are still found, and referenced-but-stale docs are followed wrongly. Directive's own reachable footprint is large: 359 tracked .md files / ~81.5K lines, with content/ alone at 226 files / ~38K lines; the biggest agent-visible clusters are content/deployments/ (52 files / ~12.4K lines), docs/ (56 files / ~9K lines), content/skills/ (27 / ~5.7K, trigger-gated), and content/languages/ (26 / ~4.9K). REFERENCES.md is the lazy-loading spine (Level 0/1/2 + Skills Index + task-based loading) and is structurally sound, but it carries stale reference-chain drift: it still points at vbrief/ paths and content/vbrief/ docs throughout even though the framework moved to xbrief/ (#2034/#2110). Because those references sit in the 90%+-discovery chain, agents follow them to wrong/renamed paths -- the exact failure the study warns about. This story does the audit and encodes the finding as a durable named principle; the mechanical doc-sprawl health-check gate is OUT OF SCOPE (that is #647).
+
+**Acceptance**:
+
+- Footprint audit recorded in a durable analysis doc `[proposed]`
+  - Acceptance: Given docs/analysis/2026-07-02-644-surrounding-docs-footprint-audit.md, when read, then it records the reachable .md count/line volume, the per-cluster breakdown (deployments/, docs/, skills/, languages/ as the largest), the discovery-rate table, and the de-referencing assessment for the largest clusters.
+- Named reference-chain discovery principle encoded in REFERENCES.md `[proposed]`
+  - Acceptance: Given REFERENCES.md, when read, then it carries a named principle stating the discovery-rate table and the rules: must-follow docs live in the reference chain; orphan docs are invisible; reachable-but-unreferenced clusters are still found and must stay behind task-gated pointers; a stale reference is followed at 90%+ and is worse than none.
+- Reference-chain drift corrected (vbrief -> xbrief) `[proposed]`
+  - Acceptance: Given REFERENCES.md, when scanned for reference paths, then vbrief/ and content/vbrief/ references are updated to the current xbrief/ / content/xbrief/ equivalents (PROJECT-DEFINITION.xbrief.json, plan.xbrief.json, continue.xbrief.json, xbrief.md/schema, .xbrief.json naming) and each cited target resolves.
+- task check green; scope boundary honored `[proposed]`
+  - Acceptance: Given task check, when it runs, then verify:encoding + agents-md-budget + full suite pass; no enforcement gate was added (that is #647); CHANGELOG [Unreleased] has a user-visible entry.
+
+### 2026-07-02-646-647-consumer-agent-docs-guidance: Consumer-facing agent-docs guidance: structure pattern (#646) + doc-sprawl health check (#647)  `[completed]`
+
+The final two #1882 children are consumer-facing and both derive from Augment Code's empirically-measured AGENTS.md study (content/docs/good-agents-md.md). #646: directive teaches the effective structure pattern to projects it creates via a new content/docs/agent-docs.md reference (co-located with its empirical source; discoverability anchored in REFERENCES.md per the reference-chain contract). #647: an ADVISORY (never a hard gate) doc-sprawl awareness step added to the deft-directive-sync skill, plus a concise pointer in deft-directive-pre-pr. Batched per operator approval (same-source consumer-facing guidance; #647's check surfaces violations of #646's pattern). Skill edits go through the skills content pack (packs/skills/skills-pack-0.1.json) + pack-render, since SKILL.md files are pack projections.
+
+**Acceptance**:
+
+- content/docs/agent-docs.md encodes the empirical structure pattern `[completed]`
+  - Acceptance: Doc contains the structure-pattern table, overexploration-trap warning, and a pointer to the reference-chain contract (#644).
+- agent-docs.md discoverable in the reference chain `[completed]`
+  - Acceptance: REFERENCES.md carries a task-based-loading entry for docs/agent-docs.md.
+- deft-sync gains advisory doc-sprawl step `[completed]`
+  - Acceptance: Skills pack + rendered SKILL.md has an advisory (never-blocking) Phase 6e doc-sprawl awareness step.
+- deft-pre-pr notes orphan-doc check `[completed]`
+  - Acceptance: Phase 4 advises verifying newly added docs are in the reference chain.
+- task check green; drift clean; CHANGELOG entry `[completed]`
+  - Acceptance: task check passes; pack-render --check 44/44 in sync; CHANGELOG [Unreleased] has a user-visible entry; no hard gate added.
+
+### 2026-07-02-codeql-code-scanning-alerts: Remediate 3 open CodeQL code-scanning alerts (#50 / #51 / #52)  `[completed]`
+
+GitHub code-scanning (CodeQL) reports 3 open alerts on deftai/directive: (1) alert #51 HIGH `js/incomplete-url-substring-sanitization` at packages/core/src/preflight-cache/evaluate.ts:77 -- `normaliseRepoUrl` gates on `cleaned.includes("github.com")`, which matches attacker-controlled hosts like `github.com.evil.com` or `evil.com/github.com`; (2) alert #50 HIGH `js/incomplete-sanitization` at packages/core/src/codebase/map.ts:25 -- `markdownText` escapes the `|` table delimiter but not the backslash escape character first, so the escaping is bypassable; (3) alert #52 MEDIUM `js/prototype-polluting-assignment` at packages/core/src/swarm/routing.ts:246 -- `block[role] = {...}` where `role` (and `provider`) is user/CLI-supplied can set `Object.prototype` if a `__proto__` key is injected. All three are localized, low-blast-radius fixes with clear canonical remediations. Each fix gets a focused regression test that exercises the malicious input.
+
+**Acceptance**:
+
+- #51 host-anchored git-remote parsing `[proposed]`
+  - Acceptance: Given normaliseRepoUrl, when passed `https://github.com.evil.com/o/r` or `https://evil.com/github.com/o/r`, then it returns null; when passed valid https/ssh/scp github.com remotes, then it returns `owner/repo`. A test covers both.
+- #50 backslash-first markdown escaping `[proposed]`
+  - Acceptance: Given markdownText, when the input contains a backslash followed by a pipe, then the backslash is escaped before the pipe so the delimiter escape cannot be bypassed. A test asserts the escaped output.
+- #52 prototype-pollution guard on routing writes `[proposed]`
+  - Acceptance: Given writeModelDecision, when `role` or `provider` is `__proto__` (or `constructor`/`prototype`), then it throws and `Object.prototype` is not mutated. A test asserts no pollution.
+- task check green; CHANGELOG entry `[proposed]`
+  - Acceptance: Given `task check`, when it runs, then the full suite + gates pass; CHANGELOG [Unreleased] carries a user-visible security-hardening entry.
+
+### 2026-07-03-1056-task-pr-watch-deterministic-pr-verdict-polling-surface: feat(tasks): task pr:watch -- deterministic PR-verdict polling surface  `[completed]`
+
+See https://github.com/deftai/directive/issues/1056. Recurring failure: orchestrator pushes to a PR, says 'awaiting Greptile', sets no poller, and silently stalls (2026-05-11 three-strikes on #1051/#1054). Fix by making the wait deterministic: a task whose invocation IS the poll. Mirrors task pr:merge-ready (#796). Blocking-by-default so linear systems get it free; orchestrator wrap is an optional layer. Reuse the canonical verdict detector; no duplicate detector code.
+
+**Acceptance**:
+
+- task pr:watch exists: blocking-by-default poll, --one-shot, three-state exit, documented flags, reusing the canonical verdict detector (no duplicate). `[proposed]`
+- SHA-match gating so a pre-push stale review is not read as the verdict; --json shape per AC-4, stable. `[proposed]`
+- Routes gh through the safe-subprocess/scm shim; platform-agnostic (no start_agent in the script). `[proposed]`
+- AGENTS.md #954 gets a Tier-4 cross-reference (+ template propagation if consumer-relevant); rule body stays in the task. `[proposed]`
+- Hermetic verdict-matrix + exit-code + --json + blocking-loop tests; existing pr:merge-ready + poller-template tests still pass after any detector extraction. `[proposed]`
+
+### 2026-07-03-1102-skills-pre-filing-master-diff-check-before-proposing-a-new-file: fix(skills): pre-filing master-diff check -- run git ls-tree origin/master before filing an issue that proposes adding a file  `[completed]`
+
+See https://github.com/deftai/directive/issues/1102. On 2026-05-12 an agent filed #1099 proposing to add .github/dependabot.yml without checking master -- it already existed (PR #1070). #1099 closed as duplicate; #1100 re-filed as the additive delta. A 1s git ls-tree origin/master check prevents this class. Land a `!` MUST rule + `⊗` anti-pattern in the canonical filing skill, cross-ref from refinement Phase 1, recurrence note in lessons, plus a deterministic content test.
+
+**Acceptance**:
+
+- A `!` MUST rule (pre-filing git ls-tree origin/master existence check for add-file proposals) lands in the canonical issue-filing skill (via source pack if projection-rendered). `[proposed]`
+- A `⊗` MUST NOT anti-pattern prohibiting stale 'add file already on master' filings is added. `[proposed]`
+- The refinement skill Phase 1 filing step cross-references the new rule. `[proposed]`
+- A recurrence cross-reference is recorded in the current lessons surface. `[proposed]`
+- A deterministic content test asserts the rule + anti-pattern tokens are present in the rendered skill. `[proposed]`
+
+### 2026-07-03-1260-adopt-project-definition-mutation-lock-across-all-rmw-mutators: bug(triage,policy): adopt PROJECT-DEFINITION mutation lock across all RMW mutators  `[completed]`
+
+See https://github.com/deftai/directive/issues/1260. PR #1257 introduced a PROJECT-DEFINITION mutation lock but only covered the welcome ritual's two writers; the broader adoption was deferred. In the TS migration the lock primitive exists (projectDefinitionMutationLock) but not all mutators route through it. Adopt it at every mutation site + atomic write, with concurrency tests. Out of scope: locking arbitrary lifecycle xBRIEF renames; schema changes.
+
+**Acceptance**:
+
+- Every TS writer of xbrief/PROJECT-DEFINITION.xbrief.json routes its RMW through the existing mutation lock + atomic write. `[proposed]`
+- Concurrency test: two simultaneous setters on one project root -> no lost update, second reads first's persisted state. `[proposed]`
+- Lock-blocked second invocation observes the first's on-disk value before mutating. `[proposed]`
+- No surface behavior change for serial callers (typed flag, audit row, output identical). `[proposed]`
+- task check green with the new concurrency tests; no competing lock util introduced. `[proposed]`
+
+### 2026-07-03-1310-forward-coverage-gate-prose-to-deterministic-verify-forward-coverage: Forward-coverage gate: migrate the prose 'new source files MUST include tests' rule to deterministic enforcement (verify:forward-coverage)  `[completed]`
+
+See https://github.com/deftai/directive/issues/1310. Prose-tier rules erode under context drift; sub-agents ship new src/ code with no unit tests because a per-task checklist's specificity beats prose authority. Mirror the #798 encoding-gate and #747 branch-gate prose->deterministic migration: add verify:forward-coverage (three-state exit), wire into task check + pre-commit, document an allow-list, and cross-reference the AGENTS.md prose rule. v1 = new-file granularity; modified-file public-symbol scanning is explicitly out of scope.
+
+**Acceptance**:
+
+- task verify:forward-coverage exists (TS, three-state exit) and fails on a synthetic diff adding a new source file without a test. `[proposed]`
+- task check runs the new gate. `[proposed]`
+- .githooks/pre-commit runs the gate with --staged. `[proposed]`
+- A documented allow-list mechanism exists for genuine exceptions (shims, generated code). `[proposed]`
+- The AGENTS.md prose forward-coverage rule is cross-referenced to the gate, mirrored into content/templates/agents-entry.md, and agents:refresh re-run (#1309). `[proposed]`
+- Regression test exercises the gate against clean / missing-test / config-error fixture diffs. `[proposed]`
+
+### 2026-07-03-1329-agentsrefresh-managed-section-session-write-has-a-concurrent-write-race: agents:refresh managed-section `session=` write has a concurrent-write race (TS: platform/agents-md.ts + agents-refresh.ts)  `[completed]`
+
+See https://github.com/deftai/directive/issues/1329 (retargeted). Hazard: (A) reads base S0, (B) reads S0, (A) writes, (B) writes from S0 overwriting A. Bare writeFileSync also risks partial writes. Invoked by install/upgrade/migrate (not session:start, which records session_id in .deft/ritual-state.json via session-start.ts). A prior swarm worker hit its verify-first gate and documented that the cited Python module is dead and the race moved to the TS agents:refresh path -- see the forensic comment on the issue.
+
+**Acceptance**:
+
+- Hazard verified live on the TS agents:refresh write path before implementing (else stop-and-report). `[proposed]`
+- Managed-section read-modify-write is serialized (advisory lock or CAS) against concurrent writers. `[proposed]`
+- AGENTS.md write is atomic (temp-file + rename), no partial writes. `[proposed]`
+- Regression test: N concurrent agents:refresh writers -> final session= equals one of the N inputs (no corruption). `[proposed]`
+
+### 2026-07-03-1576-installer-taskfileyml-include-is-modified-but-not-staged-or: installer: Taskfile.yml include is modified but not staged or guard-allowlisted during upgrade  `[completed]`
+
+## Summary
+
+During a real consumer upgrade in `deftai/cartograph`, `deft-install --yes --upgrade --repo-root . --json` appended the Deft include block to the project root `Taskfile.yml`, but did not stage `Taskfile.yml` or list it in the success JSON `staged_paths`.
+
+That leaves the upgrade in a confusing mixed state: the framework payload and known installer-managed paths are staged, while one installer-created project-root diff remains unstaged and is not obviously covered by `deft-core-guard`'s installer-managed allowlist.
+
+## Observed
+
+Ran from project root on branch `chore/upgrade-directive`:
+
+```bash
+/tmp/deft-upgrade-cartograph/install-linux-amd64 --yes --upgrade --repo-root . --json
+```
+
+The installer reported:
+
+```text
+Appended new `includes:` block with deft entry to Taskfile.yml (Epic-4).
+```
+
+It also printed a scoped staging set / `staged_paths`, but that set did not include `Taskfile.yml`.
+
+After the upgrade:
+
+```bash
+git diff --name-only
+# Taskfile.yml
+```
+
+The unstaged project-root diff was:
+
+```diff
++# Added by deft-install --yes (Epic-4)
++includes:
++  deft:
++    taskfile: ./.deft/core/Taskfile.yml
++    optional: true
+```
+
+The vendored framework payload `.deft/core/Taskfile.yml` was correctly staged as part of the framework refresh. The problematic file is the consumer project's root `Taskfile.yml`.
+
+## Expected
+
+If the installer modifies the project `Taskfile.yml` to wire in `.deft/core/Taskfile.yml`, it should treat that exact edit as installer-managed:
+
+- Stage `Taskfile.yml` when the only change is the Deft include projection.
+- Include `Taskfile.yml` in the `staged_paths` / success JSON so agents can see it was intentional.
+- Update the `deft-core-guard` installer-managed allowlist so an upgrade PR containing `.deft/core/**` plus the Deft include projection does not look like a mixed framework+app PR.
+- Ideally make the behavior idempotent and safe around existing project taskfiles: append only when absent, preserve existing project tasks, and avoid overwriting unrelated user edits.
+
+## Why this matters
+
+#1453 shifted upgrade commit hygiene left by scoped-staging only framework + installer-managed paths and warning against `git add -A`. This `Taskfile.yml` projection appears to be a missed installer-managed path in that model.
+
+In the same live run, #1458 behavior worked as intended: an earlier attempt downloaded the installer binary into the repo, making the tree dirty, and the installer refused the upgrade with `dirty_tree_require_clean`. After rerunning from `/tmp` on a clean tree, the upgrade succeeded but left the `Taskfile.yml` include unstaged.
+
+## Acceptance criteria
+
+- A clean consumer upgrade that appends/repairs the Deft `includes.deft` block leaves no unstaged installer-created `Taskfile.yml` diff.
+- `--json` success output includes `Taskfile.yml` in `staged_paths` when the installer stages it.
+- The generated `deft-core-guard` allowlist treats the Deft include projection as installer-managed when mixed with `.deft/core/**` in the same PR.
+- Tests cover a consumer root `Taskfile.yml` with existing app tasks and assert those tasks are preserved while the Deft include is added idempotently.
+
+## Related
+
+- #1453
+- #1458
+
+**Acceptance**:
+
+- A clean consumer upgrade that appends/repairs the Deft `includes.deft` block leaves no unstaged installer-created `Taskfile.yml` diff. `[proposed]`
+- `--json` success output includes `Taskfile.yml` in `staged_paths` when the installer stages it. `[proposed]`
+- The generated `deft-core-guard` allowlist treats the Deft include projection as installer-managed when mixed with `.deft/core/**` in the same PR. `[proposed]`
+- Tests cover a consumer root `Taskfile.yml` with existing app tasks and assert those tasks are preserved while the Deft include is added idempotently. `[proposed]`
+
+### 2026-07-03-1926-path-based-planref-dangles-when-reconcileissues-moves-a-clos: Path-based planRef dangles when reconcile:issues moves a closed parent vBRIEF across lifecycle folders  `[completed]`
+
+## Symptom
+When `task reconcile:issues --apply-lifecycle-fixes` moves a closed parent/umbrella vBRIEF from `proposed/` to `completed/`, every child vBRIEF that references it via a folder-qualified `planRef` is left pointing at a now-empty path. This forced `--allow-vbrief-drift` on both the v0.55.0 and v0.55.1 release cuts.
+
+Example: closed issue #11's umbrella vBRIEF `2026-04-23-11-npm-pip-cli-distribution-...vbrief.json` has children with:
+
+```json
+"planRef": "proposed/2026-04-23-11-npm-pip-cli-distribution-...vbrief.json"
+```
+
+Moving the parent to `completed/` dangles those `proposed/...` refs.
+
+## Root cause
+`planRef` (and the `decomposed from proposed/...` description string) embed the lifecycle folder in the path. Lifecycle moves are routine (reconcile, scope:complete), so any folder-qualified cross-reference is inherently fragile.
+
+## Impact
+- Reconcile's correct lifecycle fix (closed parent -> completed/) cannot be committed without breaking child refs.
+- Release cuts must repeatedly revert the move and pass `--allow-vbrief-drift`, which masks *all* drift, not just this benign case.
+
+## Suggested fix (pick one)
+- Make `planRef` lifecycle-folder-agnostic (store the vBRIEF id/basename, resolve folder at read time), or
+- Have `reconcile:issues` / `scope:*` rewrite dependent `planRef`s when they move a referenced vBRIEF, or
+- Add a resolver that treats `planRef` as a basename and searches all lifecycle folders.
+
+Found during the v0.55.0 and v0.55.1 releases. Refs #11.
+
+### 2026-07-03-2064-consolidate-install-upgrade-redirect-to-directive-update: consolidate: redirect deft install-upgrade to directive update (Option A)  `[completed]`
+
+See https://github.com/deftai/directive/issues/2064. Umbrella #2057 closed after behavioral fixes (#2058) + discoverability (#2062); both verbs work on vendored installs but overlap. Option A: install-upgrade -> thin redirect to directive update with parity. Option B (fallback): document dual surface. Default to A unless verify-first shows a redirect would drop a needed behavior.
+
+**Acceptance**:
+
+- Decision implemented: install-upgrade redirects to directive update (Option A) unless verify-first proves it unsafe (then stop-and-report for Option B). `[proposed]`
+- install-upgrade delegates to the update path with a one-line notice and no behavioral drift. `[proposed]`
+- Parity test proves identical deposit state/output vs directive update on a vendored install. `[proposed]`
+- No regression to #2053 version resolution or #2055/#2056 refresh transaction. `[proposed]`
+- UPGRADING.md + doctor prose name the single canonical verb; CHANGELOG updated. `[proposed]`
+
+### 2026-07-03-2115-bugdoctor-payload-staleness-recommendation-omits-required-de: bug(doctor): payload-staleness recommendation omits required `deft update` for vendored consumers (incomplete follow-on to #1997)  `[completed]`
+
+## Summary
+
+On a vendored `.deft/core/` (npm-managed) consumer install, when `deft doctor` detects a stale payload it recommends **only** `npm i -g @deftai/directive@latest`. For a vendored deposit that command refreshes the **global** package but does **not** refresh the project's `.deft/core/` payload — so an operator who follows the advice literally and re-runs `doctor` is **still BEHIND**, with no indication that a second step (`deft update`) is required.
+
+This is the incomplete-fix follow-on to the **closed** #1997: that issue correctly swapped the post-freeze recommendation from the Go bridge (`deft-install --yes --upgrade ...`) to npm, but it only emits the **first hop** of the documented happy path. The path established at #2057's closure is:
+
+```bash
+npm i -g @deftai/directive@latest
+deft update      # <-- the step doctor never names
+deft migrate     # one-time, idempotent
+deft doctor
+```
+
+## Environment
+
+- OS: WSL2 (Linux), Node v22.22.3
+- Consumer layout: vendored `.deft/core/`, `managed_by: npm`
+- Project deposit: `ref v0.63.0`; global `@deftai/directive`: 0.64.0; npm registry latest: 0.65.0
+
+## Observed
+
+`deft doctor` payload-staleness block:
+
+```
+⚠ Framework payload is stale (installed v0.63.0 behind npm registry v0.65.0 for ref 'v0.63.0').
+  Recommendation: run `npm i -g @deftai/directive@latest` from any shell with Node ≥ 20.
+```
+
+After running exactly that recommendation, `deft framework:check-updates` still reported `BEHIND upstream=v0.65.0 current=v0.63.0`. The deposit only refreshed once `deft update` was run (which `doctor` never mentioned).
+
+## Expected
+
+For a vendored / npm-managed deposit, the staleness recommendation should name the **two-step** path — global package bump **and** `deft update` (the in-place deposit refresh) — e.g.:
+
+```
+Recommendation: npm i -g @deftai/directive@latest && deft update
+```
+
+Equivalently: doctor should distinguish "global package stale" from "vendored deposit stale" and emit the command that actually closes the gap for the detected layout.
+
+## Why this isn't already covered
+
+- **#1997 (closed)** only swapped Go-bridge → npm-global in `CANONICAL_UPGRADE_COMMAND` / `payload-staleness.ts`; it did not add the `deft update` follow-up for vendored deposits.
+- **#2064 (open)** is the `install-upgrade` vs `directive update` *product/consolidation* decision — a different surface than the doctor signpost text.
+
+## Repro
+
+1. On a vendored `.deft/core/` npm-managed install one minor version behind, run `deft doctor`.
+2. Observe the staleness recommendation names only `npm i -g @deftai/directive@latest`.
+3. Run exactly that, then `deft framework:check-updates` → still `BEHIND`.
+4. Run `deft update` → deposit refreshes; `check-updates` → `OK`.
+
+## Suggested fix
+
+- Update `payload-staleness.ts` recommendation text to emit the layout-appropriate command: for vendored/npm-managed deposits, `npm i -g @deftai/directive@latest && deft update`.
+- Add a regression assertion that the vendored-deposit staleness recommendation contains `deft update`.
+
+_Filed from a live consumer "update directive" session on the `statusreport` project (0.63.0 → 0.65.0)._
+
+### 2026-07-03-2181-stop-session-startruntime-commands-from-invoking-pnpm-builds: Stop session-start/runtime commands from invoking pnpm builds or package-manager retry loops  `[completed]`
+
+## Summary
+
+Runtime/session commands such as `task session:start` should not invoke `pnpm`, build TypeScript, install/check dependencies, or enter package-manager retry loops. They should run the installed/built Directive CLI or fail fast with a clear prerequisite message.
+
+## Problem
+
+In a normal issue-filing session, `task session:start` ran `engine:_ts-build`, which invoked `pnpm --dir <repo> run build`. That caused:
+
+- registry/DNS retry noise under sandboxed network restrictions,
+- an unsupported engine warning from pnpm (`node >=24` wanted, Node v22 present),
+- long retry/backoff behavior that was not doing useful project work,
+- an eventual `engine:_ts-build` exit 130 after the stuck retry was interrupted,
+- generated local artifacts such as `.pnpm-store/`.
+
+This is too much work for a session-start command. It also blurs runtime and development concerns: an installed CLI package should rely on its packaged `bin`/dependencies, and source checkouts should not compile on every session invocation.
+
+## Proposed behavior
+
+- `task session:start` and other runtime/session commands do not run `pnpm`, `npm`, dependency installation, dependency verification, or TypeScript builds.
+- Installed Directive uses the packaged CLI entrypoint.
+- Source checkouts use an existing built CLI artifact when present.
+- If a source checkout lacks a required build artifact, fail fast with a clear message such as `Run task build first`.
+- Node compatibility is checked directly from Node (`process.versions.node`) where needed, not by invoking pnpm and relying on package-manager engine warnings.
+- Explicit development commands such as `task build`, `task check`, or release/e2e packaging flows remain allowed to run package-manager/build steps.
+
+## Acceptance criteria
+
+- `task session:start` completes without invoking `pnpm` or `npm`.
+- `task session:start` does not contact the npm registry.
+- `task session:start` does not create `.pnpm-store/` or other package-manager artifacts.
+- Missing build artifacts in a source checkout produce a fast, actionable error.
+- Package-manager retry/backoff cannot block session-start.
+- Exit 130 from an interrupted package-manager retry loop is no longer possible in `session:start` because no package manager is invoked.
+- Tests assert that `session:start` dispatch does not depend on `engine:_ts-build` or raw `pnpm run build`.
+
+## Non-goals
+
+- This does not remove TypeScript builds from explicit build/check/release workflows.
+- This does not remove package `engines` declarations.
+- This does not prevent `doctor` from checking toolchain health when explicitly requested.
+
+## Related
+
+Related: #2176, #2180. This is the runtime/package-manager failure mode exposed by the current session ritual behavior.
+
+**Acceptance**:
+
+- `task session:start` completes without invoking `pnpm` or `npm`. `[proposed]`
+- `task session:start` does not contact the npm registry. `[proposed]`
+- `task session:start` does not create `.pnpm-store/` or other package-manager artifacts. `[proposed]`
+- Missing build artifacts in a source checkout produce a fast, actionable error. `[proposed]`
+- Package-manager retry/backoff cannot block session-start. `[proposed]`
+- Exit 130 from an interrupted package-manager retry loop is no longer possible in `session:start` because no package manager is invoked. `[proposed]`
+- Tests assert that `session:start` dispatch does not depend on `engine:_ts-build` or raw `pnpm run build`. `[proposed]`
+
+### 2026-07-03-2205-deft-doctor-pre-cutover-detector-false-positives-on-xbrief-m: deft doctor pre-cutover detector false-positives on xbrief-migrated projects (hardcodes vbrief/ paths)  `[completed]`
+
+## Summary
+
+`deft doctor` (observed in `@deftai/directive-core@0.66.2`) emits a **false-positive pre-cutover / migration-needed warning** for projects that are **already fully migrated** to the new `xbrief/` layout:
+
+> Pre-cutover: migration needed -- SPECIFICATION.md is a pre-v0.20 hand-authored doc (not a deprecation redirect or current generated export).
+
+The pre-cutover detector module was never updated for the `vbrief/` → `xbrief/` rename and still hardcodes `vbrief/` paths. On a correctly-migrated `xbrief/` project those `vbrief/` paths do not exist, so a **generated** `SPECIFICATION.md` gets mislabeled as a pre-v0.20 hand-authored doc.
+
+## Evidence
+
+- The affected project has **no** `vbrief/` directory and **no** `PROJECT.md`. It is fully on the `xbrief/` layout with:
+  - `xbrief/specification.xbrief.json` (xBRIEF **v0.8** schema)
+  - `xbrief/PROJECT-DEFINITION.xbrief.json`
+  - all five lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`)
+- Its `SPECIFICATION.md` is a **generated export**, not hand-authored — the header contains:
+  - `<!-- AUTO-GENERATED by task spec:render -->`
+  - `<!-- Purpose: rendered specification -->`
+  - and its narratives match the xbrief specification content verbatim.
+- The engine's own layout-aware resolver classifies the project as `full-spec` on the `xbrief` layout (`isFullSpecState()` → true), and **`deft doctor` itself prints on the very next line**:
+  > xBrief migration: none -- project is on the xbrief layout
+  So the two `deft doctor` lines **directly contradict each other**.
+
+## Root cause (file references)
+
+- `@deftai/directive-core/dist/vbrief-validate/precutover.js` is stale:
+  - defines `SPEC_SOURCE_RELPATH = join("vbrief", "specification.vbrief.json")`
+  - `missingLifecycleFolders()` checks `join(projectRoot, "vbrief")`
+  - `isCurrentGeneratedSpecification()` bails unless a complete `vbrief/` lifecycle **and** `vbrief/specification.vbrief.json` exist. On a migrated project those `vbrief/` paths don't exist → the check returns `false` → the generated `SPECIFICATION.md` is mislabeled "pre-v0.20 hand-authored."
+- `@deftai/directive-core/dist/spec-authority/constants.js` is also stale:
+  - hardcodes `GENERATED_SPEC_SOURCE_SPEC = "<!-- Source of truth: vbrief/specification.vbrief.json -->"` (old `vbrief/` path).
+
+## Impact
+
+- **Any** xbrief-migrated project that keeps a rendered `SPECIFICATION.md` trips this flag **permanently**. It cannot be cleared by any legitimate migration.
+- The documented remedy (the frozen `v0.59.0 task migrate:vbrief` path) is **destructive and semantically wrong here**: v0.59.0 predates the xbrief rename and would create a split-brain `vbrief/` tree.
+- Net effect: `deft doctor` misleadingly tells users to run a destructive migration they must **not** run — an adoption/onboarding hazard for correctly-migrated projects.
+
+## Suggested fix
+
+Make the pre-cutover detector (`precutover.js`) and `spec-authority/constants.js` **layout-aware**:
+
+- Recognize the `xbrief/` layout: `xbrief/specification.xbrief.json`, the xbrief lifecycle folders, and the `xbrief/` "Source of truth" comment.
+- Classify a generated `SPECIFICATION.md` on a migrated project as a **current generated export**, not a pre-v0.20 hand-authored doc.
+- Ensure the pre-cutover check does **not** contradict the xbrief-layout detection that already runs alongside it in `deft doctor` (the two lines should agree).
+
+## Environment
+
+- `@deftai/directive-core@0.66.2`
+
+### 2026-07-03-2225-enhswarm-auto-sweep-cohort-briefs-active-completed-after-prs: enh(swarm): auto-sweep cohort briefs active/ -> completed/ after PRs merge (eliminate stop-at:pr-open lifecycle-sweep tax)  `[completed]`
+
+## Problem
+
+Every swarm dispatched with `stop-at: pr-open` (the default for the orchestrator-owns-merge pattern) leaves each worker's scope xBRIEF in `xbrief/active/` after its PR merges. The worker runs `scope:activate` (pending -> active) and commits it, but nothing moves the brief active -> completed, because completion happens *after* the merge, outside the worker's envelope.
+
+The result is a recurring **lifecycle-sweep tax**: the orchestrator must open a *separate* `swarm:complete-cohort` PR (branch-policy routes it through a PR) purely to move the merged briefs active/ -> completed/ and reset WIP.
+
+Observed twice in a single session:
+- 5-issue cohort #2209-#2213 -> PRs #2214-#2218 merged -> briefs stuck in `active/` (WIP 5/10) -> sweep PR #2221.
+- Follow-up cohort #2219-#2220 -> PRs #2222/#2223 merged -> briefs stuck in `active/` again (WIP 2/10) -> sweep PR #2224.
+
+Each cohort therefore costs **N implementation PRs + 1 extra ceremony PR**. The extra PR carries no code, only lifecycle JSON moves, but still burns a full CI round-trip, a review-bot pass, and operator attention.
+
+## Impact / who hits this
+
+Any operator running a `stop-at: pr-open` swarm cohort (the documented orchestrator-owns-merge doctrine, #1880 Gap C). WIP stays inflated until a human remembers to sweep, and `triage:summary` reads a misleading in-flight count between merge and sweep. The `deft-directive-swarm` skill has no completion step wired to the merge cascade, so the sweep is easy to forget entirely.
+
+## Proposed options (pick during design)
+
+1. **Post-cascade auto-sweep hook.** After `pr:wait-mergeable-and-merge` reports `MERGED` for a cohort's PRs, have the cascade surface (or a new `swarm:finalize-cohort`) automatically run `swarm:complete-cohort` for the merged stories and open/land the sweep as part of the same automation, instead of leaving it manual.
+2. **`drive-to: merge-ready` completion ownership.** Extend the worker envelope so a `drive-to: merge-ready` worker (not `stop-at: pr-open`) is responsible for the active -> completed move once its own PR is merge-ready, folding the lifecycle transition into the unit of work (aligns with #1880 Gap C worker-owns-lifecycle).
+3. **Merge-hook / label-driven sweep.** On PR merge, detect the `Closes #N` story + its active brief and sweep it (GH Action or local post-merge step), so no dedicated PR is ever needed for the lifecycle move.
+
+Option 1 is the smallest change and keeps the human in the loop for the merge decision while removing the *separate-PR* tax (the sweep can piggyback on the last cohort merge or a single batched finalize). Option 2 is the more principled fix but touches the dispatch envelope contract.
+
+## Acceptance criteria
+
+- Running a `stop-at: pr-open` cohort through the standard merge cascade ends with the cohort's briefs in `completed/` and WIP reset, **without** an operator hand-authoring a separate `swarm:complete-cohort` PR.
+- `swarm:complete-cohort` remains available as a manual/idempotent primitive.
+- Consumer-safe: no regression to the #1519 consumer `check` split or branch policy.
+- Skill docs (`deft-directive-swarm` Phase 5->6) reference the new completion path.
+
+## Context
+
+Surfaced while dogfooding the xbrief-migration fix swarm on 2026-07-02. Refs #1880 (worker-owns-lifecycle / orchestrator dispatch doctrine), #1487 (`swarm:complete-cohort`), #1369 (cascade automation surface).
+
+**Acceptance**:
+
+- Running a `stop-at: pr-open` cohort through the standard merge cascade ends with the cohort's briefs in `completed/` and WIP reset, **without** an operator hand-authoring a separate `swarm:complete-cohort` PR. `[proposed]`
+- `swarm:complete-cohort` remains available as a manual/idempotent primitive. `[proposed]`
+- Consumer-safe: no regression to the #1519 consumer `check` split or branch policy. `[proposed]`
+- Skill docs (`deft-directive-swarm` Phase 5->6) reference the new completion path. `[proposed]`
+
+### 2026-07-03-2230-bugswarm-finalize-cohort-scrapes-pr-body-regex-for-closing-i: bug(swarm): finalize-cohort scrapes PR body regex for closing issues -- matches descriptive 'closed #N' (should use GitHub structured closing references)  `[completed]`
+
+## Summary
+
+`task swarm:finalize-cohort` (added in #2225 / PR #2228) resolves *which* scope briefs to sweep by fetching each merged PR's body and regex-scraping closing-issue references. The regex over-matches: it treats the **adjective** "closed #N" (and "fixed #N" / "resolved #N" used descriptively) as a closing directive, so it can pull in issues the PR never actually closed.
+
+## Root cause
+
+`fetchClosingIssues` in `packages/core/src/swarm/finalize-cohort.ts` matches:
+
+```
+/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi
+```
+
+against the raw PR body. The alternative `close[sd]?` matches the word **"closed"**, and `\s+#(\d+)` then captures the following number. A body that *describes* another issue's state — e.g. "the incomplete-fix follow-on to the **closed #1997**" — is parsed as "closes #1997".
+
+## Observed
+
+While finalizing the #2225/#2115/#2181 cohort (`--pr 2226,2227,2228`), the command reported:
+
+```
+Closing issues: #1997, #2115, #2181, #2225
+```
+
+`#1997` is a long-closed prior issue that PR #2226's body (fixing #2115) only *referenced* narratively ("closed #1997" / "Refs #1997"), never closed. The three real stories still resolved correctly, so **this instance was harmless** — `#1997` has no brief in `xbrief/active/`, so `resolveStories` produced no extra sweep.
+
+## Impact / why it matters
+
+The false positive is benign only because the spurious issue had no active brief. If a PR body ever says "closed #N" / "fixed #N" / "resolved #N" describing an issue that **does** have an active brief in the tree, `finalize-cohort` would sweep a brief that was NOT part of the merged cohort — moving it `active/ -> completed/` and resetting its lifecycle incorrectly. This is a latent correctness bug in a brand-new automation surface that mutates lifecycle state.
+
+## Proposed fix
+
+Prefer GitHub's **structured closing references** over body regex-scraping:
+
+- Use `closingIssuesReferences` (the same linkage GitHub itself uses to auto-close on merge) via the PR's GraphQL node, or the REST timeline/`closed`-event data, instead of `matchAll` over `body`.
+- This also aligns with the umbrella/protected-issue tooling (#701) which already reasons about `closingIssuesReferences`.
+- If a regex fallback must stay (offline / body-only path), anchor it to the canonical GitHub closing-keyword grammar and reject bare descriptive forms — but structured references are authoritative and should be the primary source.
+
+## Acceptance criteria
+
+- `finalize-cohort` resolves cohort stories from the PRs' actual closing-issue links, not arbitrary body text.
+- A PR body containing "closed #N" / "fixed #N" as descriptive prose does NOT add #N to the swept set.
+- Regression test: a PR whose body mentions "closed #<unrelated-with-active-brief>" does not sweep that unrelated brief.
+- Existing cohort-finalize behavior (real `Closes #N` links) unchanged.
+
+## Context
+
+Surfaced dogfooding `swarm:finalize-cohort` on 2026-07-02 (the cohort that shipped the command itself). Refs #2225, #2228, #701.
+
+**Acceptance**:
+
+- `finalize-cohort` resolves cohort stories from the PRs' actual closing-issue links, not arbitrary body text. `[proposed]`
+- A PR body containing "closed #N" / "fixed #N" as descriptive prose does NOT add #N to the swept set. `[proposed]`
+- Regression test: a PR whose body mentions "closed #<unrelated-with-active-brief>" does not sweep that unrelated brief. `[proposed]`
+- Existing cohort-finalize behavior (real `Closes #N` links) unchanged. `[proposed]`
+
+### 2026-07-03-2237-capacity-completion-stamps-defaultbucket-instead-of-label-matched: bug(capacity): completion stamps defaultBucket instead of label-matched capacityBucket  `[completed]`
+
+See https://github.com/deftai/directive/issues/2237 for full detail. stampCompletionMetadata in packages/core/src/scope/capacity-stamp.ts stamps metadata.capacityBucket from capacityAllocation.defaultBucket ("new-capability") whenever a completing brief has no pre-existing bucket, ignoring the label->bucket mapping already present in the config (bug -> technical-debt). Surfaced dogfooding swarm:finalize-cohort (#2225) on the #2230/#2205/#1926/#1576 cohort: all four bug-labeled briefs were stamped new-capability. Greptile flagged it P1 on sweep PR #2235. Affects scope:complete (#1419) too -- stampCompletionMetadata is the shared surface.
+
+**Acceptance**:
+
+- stampCompletionMetadata resolves capacityBucket by matching issue labels against capacityAllocation.buckets[].match.labels (first declared match wins). `[proposed]`
+- A brief with no matching label falls back to defaultBucket. `[proposed]`
+- An explicit pre-existing metadata.capacityBucket is respected (never overwritten). `[proposed]`
+- Both scope:complete and swarm:finalize-cohort paths exercise the label-aware resolution. `[proposed]`
+- Regression tests cover label-match, no-match fallback, pre-existing-bucket precedence, and first-declared-match ordering. `[proposed]`
+
+### 2026-07-03-2238-triage-queue-lists-recently-closed-issues-as-untriaged-until-cache: bug(triage): queue lists recently-closed issues as [untriaged] until cache refresh  `[completed]`
+
+See https://github.com/deftai/directive/issues/2238. Observed wrapping the #2225 dogfood cohort: the now-closed #2115 stayed in triage:queue as [untriaged] after its PR merged because no formal triage decision was recorded and the cache had not refreshed. Cosmetic but misleading -- operators can re-pick closed work. Distinct from the #2207/#2210/#2211/#2212/#2213 xbrief-migration read-path fixes (those were wrong-path reads; this is stale-cache vs live-state).
+
+**Acceptance**:
+
+- triage:queue does not present closed issues as [untriaged] actionable work. `[proposed]`
+- Queue reconciles cached candidates against live issue state (or honors an existing state field) before rendering. `[proposed]`
+- Ranking-label ordering and existing output shape are unchanged for open issues. `[proposed]`
+- Regression test: a closed issue in the candidate set is filtered out; an open issue still renders (injected state reader). `[proposed]`
+
+### 2026-07-03-2246-capacity-label-stamp-live-fallback-on-cache-miss: bug(capacity): label-aware completion stamping misses freshly-filed issues absent from the on-disk label cache  `[completed]`
+
+See https://github.com/deftai/directive/issues/2246. During the #2245 finalize sweep, older bug issues (#1102/#1329/#1310) stamped technical-debt but freshly-filed #2237/#2238 fell back to new-capability (cache miss); they were hand-corrected on the sweep branch. Fix: fail-open live-label fallback on cache miss in stampCompletionMetadata.
+
+**Acceptance**:
+
+- Cache-miss on a bug-labeled issue triggers a fail-open live label read that resolves the correct bucket (technical-debt), not defaultBucket. `[proposed]`
+- Cache-hit path makes no new network call (fast path preserved). `[proposed]`
+- Live-read failure falls back to defaultBucket without crashing. `[proposed]`
+- All #2237 guarantees preserved (pre-existing bucket respected, first-declared-match-wins, config-driven ids). `[proposed]`
+- Regression tests cover cache-miss+live-match, cache-miss+live-fail, and cache-hit-no-call. `[proposed]`
+
+### 2026-07-03-2247-finalize-cohort-skip-closing-ref-with-no-active-brief: bug(swarm): finalize-cohort aborts the whole sweep on a closing ref to an already-completed/absent issue (no active brief)  `[completed]`
+
+See https://github.com/deftai/directive/issues/2247. Finalizing #2240-#2244, PR #2241 carried a structured closingIssuesReferences link to #2115 (completed in the prior cohort). finalize-cohort resolved #2115, found no active brief, and hard-errored 'FINALIZE INCOMPLETE' though all 5 real stories resolved. Worked around with --stories. Fix: skip benign already-closed/completed closing refs with a warning; keep hard error only for genuine misconfig.
+
+**Acceptance**:
+
+- A cohort PR closing an already-completed/closed issue with no active brief finalizes CLEAN, skipping that ref with a warning. `[proposed]`
+- The real cohort stories still sweep active/ -> completed/ regardless of the skipped ref. `[proposed]`
+- A closing ref to an open issue with neither active nor completed brief is still surfaced (genuine misconfig not hidden). `[proposed]`
+- Three-state exit contract + result shape preserved; skips reported as warnings, not errors. `[proposed]`
+- Regression test reproduces the #2115 case (CLEAN-with-warning) plus the genuine-misconfig case. `[proposed]`
+
+### 2026-07-03-2248-githooks-prefer-local-cli-over-stale-global-in-framework-source: bug(hooks): .githooks run_deft prefers a stale global deft over the fresh local CLI in a framework-source checkout (new verbs block commits)  `[completed]`
+
+See https://github.com/deftai/directive/issues/2248. .githooks/_deft-run.sh's run_deft does `if command -v deft; then deft "$@"; elif [ -f dist/bin.js ]; then node dist/bin.js ...`. Global always wins when present, even in a maintainer monorepo where the local build is authoritative and fresher for verb coverage. Fix: prefer local build in framework-source checkouts; keep global for consumers; add an escape hatch.
+
+**Acceptance**:
+
+- In a framework-source checkout with a built packages/cli/dist/bin.js, the hooks invoke the local CLI (new verbs work without refreshing the global). `[proposed]`
+- Consumer installs (no local build) still resolve the global `deft` exactly as before. `[proposed]`
+- A newly-added verb wired into a hook does not block commits in the monorepo after `task build`. `[proposed]`
+- DEFT_HOOKS_PREFER_GLOBAL=1 escape hatch forces the global resolution. `[proposed]`
+- Regression coverage exercises local-preferred, consumer-global, and the override. `[proposed]`
+
+### 2026-07-03-2256-pyproject-version-freshness-test-offline-no-ls-remote-flake: bug(test): pyproject_version_freshness test flakes on a live git ls-remote (5s vitest timeout in CI)  `[completed]`
+
+See https://github.com/deftai/directive/issues/2256. On PR #2249 the check failed with 'Test timed out in 5000ms' for test_manifest_version_matches_latest_tag; 8256/8257 passed and a re-run went green. Same flaky class as #2209/#2219 (wall-clock/network dependence in a unit test). The culprit is a synchronous git ls-remote origin inside the test. Fix: make the unit test offline/deterministic.
+
+**Acceptance**:
+
+- test_manifest_version_matches_latest_tag runs offline and deterministically (no git ls-remote / network in the test path). `[proposed]`
+- The test still verifies manifest-vs-tag freshness when a tag is resolvable locally, and early-returns cleanly when none is available. `[proposed]`
+- The whole test file runs in well under 1s with no wall-clock/network dependence that can exceed vitest's 5s budget. `[proposed]`
+- Production resolve-version.ts remote helper behavior is unchanged for real release tooling (or any timeout added is additive + tested). `[proposed]`
+
+### 2026-07-03-2260-pr-wait-mergeable-reconcile-verdict-gate-with-github-mergeability: bug(cascade): pr:wait-mergeable-and-merge polls without merging a GitHub-mergeable PR (verdict gate diverges from mergeStateStatus; no heartbeat)  `[completed]`
+
+See https://github.com/deftai/directive/issues/2260. Observed on PR #2258: gh pr view reported CLEAN/MERGEABLE with no failing required checks, yet pr:wait-mergeable-and-merge polled ~17.7 min (elapsed_ms 1062844) without merging; killing it and running gh pr merge --admin merged instantly. Second sighting: #2240 surfaced a confusing timeout/error tail though result was MERGED (Node engines warning noise). Most likely to bite heavy-check-matrix PRs (Go/CodeQL/Windows/multiple Analyze legs) and rebased head SHAs.
+
+**Acceptance**:
+
+- A PR that is mergeStateStatus:CLEAN + mergeable:MERGEABLE with all required checks green is merged promptly, even when the optional review verdict for the head SHA is absent/stale. `[proposed]`
+- Rebased-head-SHA verdict staleness does not cause an indefinite wait on an otherwise-mergeable PR. `[proposed]`
+- The poller emits periodic progress (elapsed / poll# / blocked-on) so a healthy long poll is visibly distinct from a hang. `[proposed]`
+- A genuine failing required check or a real P0/P1 review finding still blocks (three-state exit + #701 precondition preserved). `[proposed]`
+- Regression test (injected monitor/gh seam) reproduces 'GitHub-mergeable but verdict-absent/stale' and asserts a prompt merge with no wait-to-cap. `[proposed]`
+
+### 2026-07-03-2264-resolution-spine-fact-set-classifier-plan-contract-global-fi: Resolution spine: fact-set classifier + plan() contract + global-first ladder + pin (keystone)  `[completed]`
+
+Part of epic #2203. Keystone child — everything else depends on this.
+
+## Summary
+
+Build the shared resolution spine that all three consumption contexts (matched shell, mismatched sandbox, headless product) stand on: the fact-set classifier, the `plan()` contract, the global-first engine-resolution ladder, the `package.json` version pin + `VERSION` reconciliation, and the three-band skew policy.
+
+Absorbs #2124 (global-first ladder + committed pin) and the version half of #2199.
+
+## Classifier + plan() (Decision 5)
+
+- `classify()` returns an **orthogonal fact-set**, never a single enum: `hasGit, hasAppCode, hasDeftCore, deftCorePayloadVersion, hasManagedSection, managedSectionSha, hasVbrief, hasXbrief, preCutoverArtifacts, engineReachable, engineVersion, pinVersion`.
+- `plan()` applies an explicit, ordered **precedence table** over the fact-set and emits exactly one recommended action + rationale.
+- `plan()` output is a **versioned public JSON schema** — `{ schemaVersion, mode, files: [{ path, content, encoding }], nextAction: { command, rootCause, remediation }, warnings[] }`. `doctor` prints it; headless (#child E) serializes it; products consume it. Single source of truth (closes the #537 split-source drift risk).
+
+## Global-first engine-resolution ladder (from #2124)
+
+```text
+1. global `deft` reachable AND >= pin?                    -> use it   (matched / new machine / post-upgrade)
+2. local .deft/.cli/<platform> reachable, intact, >= pin? -> use it   (warm mismatched sandbox)
+3. must install:
+   a. registry up + global prefix writable                -> npm i -g @deftai/directive@<pin>
+   b. registry up + global prefix NOT writable (sandbox)  -> npm install --prefix .deft/.cli/<platform>
+   c. registry down                                        -> pre-staged tarball / vendored payload; else hard-fail "stage this"
+```
+
+Reproduced motivation (Cowork session, 2026-06-30, preserved from #2124): a native Ubuntu `coworkd/oneshot-*` container bridges only user-selected folders over FUSE; the host FS and its global npm install are invisible; `$HOME` is outside persistent mounts so in-sandbox `npm i -g` evaporates next session; each bash invocation is independent so PATH does not carry over. The agent could read every rule in `.deft/core/` but execute no gate. The defect is **execution-env != install-env**, not "ephemeral sandbox" — the ladder detects the mismatch (is `deft` reachable in the env I am actually running in?) and self-heals only then.
+
+## Version artifacts (Decision 2)
+
+- **Committed pin** = `package.json` devDependency on `@deftai/directive` (exact version, `"private": true`). Read before directive runs; npm-native so the ladder is plain npm. Canonical; converges with deftai/deftvisage#1036.
+- **`.deft/core/VERSION`** = currently-projected content marker, engine-written. `update` (#child C) forward-migrates content and re-stamps it.
+- Reconciliation compares engine version, the pin, and `VERSION`; the AGENTS managed-section `sha=` is part of the reconciliation, not just `VERSION`.
+
+## Three-band skew policy (Decision 4)
+
+Content is always forward-migrated (`update`) before any gate runs.
+
+- `engine == pin` -> proceed silently (trace only).
+- `engine > pin` within `plan.policy.engineSkewWindow` (default ~3 minors pre-1.0; "same major" post-1.0) -> proceed, emit loud delta, run `update` first.
+- `engine > pin` beyond the window -> **fail closed** non-interactively (require `--accept-engine-jump`); prompt when interactive. `DEFT_ACCEPT_ENGINE_SKEW=1` is the CI escape.
+- `engine < pin` -> reject global, fall through the ladder.
+
+## Acceptance criteria
+
+- One classifier module + one ordered precedence table, both unit-tested across the major fact combinations (incl. brownfield+pre-cutover, initialized-stale+legacy-vbrief).
+- `plan()` emits the versioned schema; `doctor` and headless derive from it (no second classifier).
+- Ladder self-heals in a mismatched env with zero manual npm/PATH steps and emits a **structured trace** ("global: absent; local: v0.63 < pin v0.65; installed --prefix; re-projected content v0.65").
+- Local-engine **integrity check**: a present-but-partial `.deft/.cli/` (interrupted install) is treated as not-usable, not as a valid engine.
+- Three-band skew policy enforced; large pre-1.0 jump fails closed without `--accept-engine-jump` / `DEFT_ACCEPT_ENGINE_SKEW=1`.
+- Pin read from `package.json`; `VERSION` reconciled; managed-section sha included.
+
+## Related
+
+Absorbs #2124. Parent #2203. Bootstrap block that invokes this ladder is #child J1.
+
+**Acceptance**:
+
+- Given a project directory in any of the major state combinations (matched, brownfield+pre-cutover, initialized-stale+legacy-vbrief, warm sandbox, cold sandbox, registry-down), when classify() runs, then it returns the orthogonal fact-set (never a single enum) and plan() applies one ordered precedence table to emit exactly one recommended action + rationale, both unit-tested across those combinations. `[pending]`
+- Given plan() output, when a downstream consumer (doctor / headless) needs a decision, then it derives from the versioned resolution-plan-v1 JSON schema plan() emits (no second classifier), enforced by a contract test and by resolution-plan-v1.schema.json matching its TS types under task verify:contract-drift. `[pending]`
+- Given a mismatched execution environment (global deft absent or < pin), when the global-first ladder runs, then it self-heals with zero manual npm/PATH steps and emits a structured trace (e.g. "global: absent; local: v0.63 < pin v0.65; installed --prefix; re-projected content v0.65"), and given a present-but-partial .deft/.cli/<platform> (interrupted install) the integrity check treats it as not-usable and falls through to install. `[pending]`
+- Given engine vs pin skew, when the skew policy runs, then engine==pin proceeds silently, within-window proceeds loud + update-first, beyond-window fails closed non-interactively (requires --accept-engine-jump or DEFT_ACCEPT_ENGINE_SKEW=1), and engine<pin rejects the global and falls through the ladder. `[pending]`
+- Given a scaffolded project, when directive resolves, then the pin is read from package.json (exact @deftai/directive devDependency, "private": true preserved), .deft/core/VERSION and the AGENTS managed-section sha= are reconciled against it, .deft/.cli/ is gitignored, and the pin is written on scaffold so #2269 (gated on pin existing) is unblocked. `[pending]`
+
+### 2026-07-03-2265-directive-init-universal-adoption-dispatcher: directive init: universal adoption dispatcher  `[completed]`
+
+Part of epic #2203. Absorbs #2198.
+
+## Summary
+
+Make `directive init` the **universal adoption entrypoint** — a dispatcher that classifies the directory (via the #child A fact-set) and does the right thing, so users never have to choose between `update`, `doctor`, `migrate`, or `migrate:xbrief` before their first command.
+
+## Behavior (Decision 6 — dispatcher, not hidden-update)
+
+`init` reads the fact-set/`plan()` result and **dispatches transparently**, always printing a state summary + exactly one action:
+
+- Empty dir -> scaffold Directive (`.deft/core` projection, AGENTS.md managed section, xBRIEF layout, `package.json` pin).
+- Brownfield (app code, no Directive) -> install Directive support without disturbing app code; point toward brownfield spec extraction + xBRIEF setup.
+- Already initialized + current -> **delegate to `update`** with a disclosure line ("Existing current install detected — refreshing via `update`."). Never silently masquerade as update (that is the #2199 anti-pattern), never bounce the user to a second command.
+- Legacy / pre-cutover -> **route to `migrate`** (the specific migration path), one clear next action.
+
+Logic is single-sourced: init calls `update`/`migrate`; it does not re-implement them. CI/scripts that want predictability call the narrow verbs directly.
+
+## Acceptance criteria
+
+- `init` handles empty, brownfield, already-initialized, stale, and legacy-layout dirs from any cwd.
+- Prints a concise state summary + exactly one recommended next action.
+- On an initialized-current project, delegates to `update` with disclosure — does not re-scaffold and does not silently refresh under the `init` name.
+- Prefers `directive ...` over `task ...` for normal users.
+- `--dry-run` / `--plan` prints the plan without executing.
+- Idempotent.
+- Tests cover the major project-state cases including brownfield+pre-cutover.
+
+## Related
+
+Absorbs #2198. Depends on #child A. Parent #2203.
+
+**Acceptance**:
+
+- Given any directory state (empty, brownfield, already-initialized, stale, legacy/pre-cutover) from an arbitrary cwd, when `directive init` runs, then it classifies via the shared plan() fact-set and dispatches to the correct path, printing a concise state summary plus exactly one recommended next action. `[pending]`
+- Given an already-initialized + current project, when `directive init` runs, then it delegates to `update` with an explicit disclosure line, does NOT re-scaffold, and does NOT silently refresh under the init name (no #2199 masquerade). `[pending]`
+- Given a legacy or pre-cutover layout, when `directive init` runs, then it routes to the specific `migrate` path with one clear next action and prefers `directive ...` over bare `task ...` for normal users. `[pending]`
+- Given the dispatcher delegates to update/migrate, when it executes any branch, then it calls the existing verb implementations (runRefreshDepositCli / runMigrateCli) rather than re-implementing them, verified by tests that assert delegation. `[pending]`
+- Given `--dry-run` (or `--plan`), when `directive init` runs, then it prints the classified plan without executing, and re-running init on the same directory is idempotent (no duplicate scaffold, no state change). `[pending]`
+
+### 2026-07-03-2266-directive-update-refresh-only-self-heal: directive update: refresh-only + self-heal  `[completed]`
+
+Part of epic #2203. Absorbs #2199 (behavior half; version half is #child A #2264).
+
+## Summary
+
+Narrow `directive update` to **refresh-only + self-heal** of an existing Directive install. `update` is never the hidden first-run adoption command.
+
+## Contract (Decisions 2, 3, 4, 6)
+
+- Valid install exists -> refresh framework-owned payload + managed files; run the global-first ladder (#child A) to self-heal the engine when needed; forward-migrate content and re-stamp `VERSION`.
+- No install exists -> stop: `This project is not initialized. Run directive init.` (Never create a partial install.)
+- Initialized + current -> report no update needed.
+- Migration required -> report update is not enough; point to `directive init` or the exact `migrate` command.
+- **Non-destructive `.gitignore` write only**: `update` may add the ignore entry for framework-owned paths, but it MUST NOT run the destructive `git rm --cached .deft/core` -- that is the deliberate `migrate --untrack-core` step (#child F #2269, merged).
+- Output distinguishes `not initialized` / `current` / `updated` / `migration required`.
+
+## Acceptance criteria
+
+- `update` in a non-Directive project does not create a partial install and prints the `init` hint.
+- `update` in an initialized project refreshes only framework-owned files.
+- Self-heal path works in a mismatched env (delegates to #child A ladder).
+- `update` writes the gitignore entry but never un-tracks `.deft/core`.
+- `--dry-run` / `--plan` supported; idempotent.
+- Tests cover initialized, uninitialized, current, stale, migration-needed, and mismatched-env states.
+
+## Related
+
+Absorbs #2199. Depends on #child A (#2264). Un-track is #child F (#2269). Parent #2203.
+
+**Acceptance**:
+
+- Given a project with no Directive install, when `directive update` runs, then it creates no partial install and prints `This project is not initialized. Run directive init.` `[pending]`
+- Given an initialized project, when `directive update` runs, then it refreshes only framework-owned payload + managed files, re-stamps VERSION, and reports the `updated` (or `current`) state without touching app code. `[pending]`
+- Given a mismatched environment where the engine is unreachable, when `directive update` runs, then it self-heals by delegating to the keystone global-first ladder and completes the refresh with zero manual npm/PATH steps. `[pending]`
+- Given the update code path, when it reconciles ignore state, then it writes the .gitignore entry for framework-owned paths but never invokes git rm --cached (the destructive un-track stays in migrate --untrack-core), verified by a boundary test. `[pending]`
+- Given `--dry-run` (or `--plan`), when `directive update` runs, then it prints the classified plan (not-initialized/current/updated/migration-required) without executing, and re-running update on a current project is a no-op reporting `current`. `[pending]`
+
+### 2026-07-03-2267-directive-doctor-read-only-one-next-action-with-root-cause-r: directive doctor: read-only, one next action with root-cause + remediation rationale  `[completed]`
+
+Part of epic #2203. Absorbs #2200.
+
+## Summary
+
+Make `directive doctor` diagnostic-only and decision-oriented: inspect health, report findings, emit exactly one next command **with its reason**, and never mutate.
+
+## Behavior (Decision 3 addendum, Decisions 6/4)
+
+- Read-only. Inspects install integrity, AGENTS/managed-section state + sha, toolchain, layout, xBRIEF/vBRIEF state, engine-vs-pin-vs-`VERSION` skew.
+- Derives findings from the same `plan()` schema as #child A (#2264) / #child E (no second classifier).
+- States the **operating mode** ("This project is in hybrid mode; engine v0.65 global, content v0.65, pin v0.65 -- current").
+- Emits exactly one `Next command:` when action is required, each paired with a two-part rationale: **root cause** (why the finding exists) + **what the remediation does / why it is safe**. Example:
+
+```text
+Finding: .deft/core is tracked in git but hybrid mode expects it gitignored.
+  Root cause: legacy vendored install predates the hybrid cutover.
+Next command: directive migrate --untrack-core
+  Does: removes .deft/core from the git index + adds the ignore entry; content
+  is reconstituted from the pinned engine, so nothing is lost.
+```
+
+- Suppresses secondary migration advice until the primary blocker is resolved (no contradictory instructions for one state).
+- Never recommends a bare `task ...` in a project without Taskfile wiring; prefers `directive ...`.
+- Surfaces cross-platform engine skew (Windows-native vs Linux-sandbox `.deft/.cli/<platform>` divergence).
+- The `migrate --untrack-core` remediation this doctor points at is the verb SHIPPED by #2269 (merged); this story owns the doctor-side detection + emission.
+
+## Acceptance criteria
+
+- Never mutates project files.
+- Exactly one primary next command when action is required, with root-cause + remediation rationale.
+- No contradictory migration instructions for the same state; no bare `task` without a Taskfile.
+- States operating mode + version reconciliation; surfaces platform skew.
+- Tests cover pre-cutover, legacy `vbrief`, missing Taskfile, current xBRIEF, partial install, and mismatched-env states.
+
+## Related
+
+Absorbs #2200. Depends on #child A (#2264). Parent #2203.
+
+**Acceptance**:
+
+- Given any project state, when `directive doctor` runs in its default report mode, then it mutates no project files (only the existing throttle-state file may be written), verified by a no-mutation test. `[pending]`
+- Given a project state that requires action, when `directive doctor` runs, then it emits exactly one primary `Next command:` derived from the shared plan() schema, each paired with a root-cause line and a remediation-does/why-safe line. `[pending]`
+- Given a single project state, when `directive doctor` reports, then it gives no contradictory migration instructions (secondary advice suppressed until the primary blocker clears) and never prints a bare `task ...` command in a project with no Taskfile wiring. `[pending]`
+- Given engine/pin/VERSION and cross-platform state, when `directive doctor` runs, then it states the operating mode plus the version reconciliation and surfaces cross-platform .deft/.cli/<platform> engine skew. `[pending]`
+
+### 2026-07-03-2268-directive-init-headless-manifest-emit-for-no-shell-consumer: directive init --headless: manifest emit for no-shell consumer products  `[completed]`
+
+Part of epic #2203. Absorbs #2253. Unblocks deftai/deftvisage#1036.
+
+## Summary
+
+Provide an official headless, non-interactive init mode for hosted consumer products with no shell/npm access to the end user's machine. It serializes the `plan()` schema (#child A) with all execution side effects suppressed.
+
+## Contract
+
+```bash
+npx @deftai/directive@latest init --headless --output=manifest.json
+```
+
+- No interactive prompts, no git operations, no git-hook installation, no writes outside the explicit output target.
+- Runs against an empty / non-existent directory (no git-repo assumption).
+- Emits `{ version, files: [{ path, content, encoding }] }` — `.deft/core/**`, a rendered AGENTS.md managed section, xBRIEF scaffold, and a `package.json` devDependency snippet pinned to the resolved version.
+- The emitted AGENTS.md managed section is **version-consistent** with the payload in the same manifest (same sha/version).
+- Documents the version-compat contract (answers #2253's open question): given a `package.json` pin at X + pre-vendored `.deft/core/` at X, `doctor`/`init` treat it as an existing **current** install (refresh path), not a fresh scaffold or mismatch error.
+
+## Acceptance criteria
+
+- `--headless --output` produces a valid manifest with zero side effects; exit non-zero + JSON error on registry failure (caller treats as non-fatal).
+- Manifest AGENTS.md + payload versions are internally consistent.
+- Runs against an empty dir.
+- Manifest derives from the same `plan()` schema as `doctor` (#child D) — no separate "what would init produce" reimplementation.
+- Tests: manifest shape, empty-dir run, version-consistency, graceful registry failure.
+
+## Related
+
+Absorbs #2253. Depends on #child A. Downstream consumer deftai/deftvisage#1036. Parent #2203.
+
+**Acceptance**:
+
+- Given `directive init --headless --output=<path>`, when it runs, then it produces a valid `{version, files:[{path,content,encoding}]}` manifest with ZERO side effects (no prompts, no git ops, no hook install, no writes outside the output target). `[pending]`
+- Given a headless manifest, when its AGENTS.md managed section and payload are inspected, then their versions/sha are internally consistent (same resolved version). `[pending]`
+- Given an empty or non-existent directory (no git repo), when `init --headless` runs, then it succeeds and the manifest is derived from the same plan() schema doctor uses (no separate what-would-init-produce reimplementation). `[pending]`
+- Given a registry/content-resolution failure, when `init --headless` runs, then it exits non-zero and emits a JSON error object (so the calling backend can treat it as non-fatal), not a crash or partial write. `[pending]`
+
+### 2026-07-03-2269-migrate-untrack-core-own-the-vendored-hybrid-deftcore-un-com: migrate --untrack-core: own the vendored->hybrid .deft/core un-commit  `[completed]`
+
+Part of epic #2203. Un-orphans #2123.
+
+## Summary
+
+Own the one-time vendored->hybrid un-commit (`git rm --cached .deft/core`) as an explicit, doctor-surfaced `migrate --untrack-core` step. This closes the circular deferral in #2123 where #1941 and #1942 each deferred it to the other, leaving migrated consumers tracked-but-should-be-ignored indefinitely.
+
+## Behavior (Decision 3)
+
+- The **destructive** index mutation lives here, never in `update`. `update`/`init` only write the non-destructive `.gitignore` entry.
+- `doctor` (#child D, #2267) detects "payload tracked but should be ignored" and emits `Next command: directive migrate --untrack-core` with root-cause + remediation rationale. That detection/emission is OWNED by D; this story provides the verb D points at.
+- `migrate --untrack-core` runs `git rm --cached -r .deft/core`, ensures the ignore entry, and leaves an unambiguous layout.
+- **Gated on the pin existing** (#child A #2264 / Decision 2): content can be reconstituted from the pinned engine after un-tracking, so nothing is lost. Reuse the committed-pin reader from `packages/core/src/resolution/pin.ts` (keystone) for the guard. This is the safety precondition #2124 identified for #2123.
+- Idempotent: once untracked + ignored, re-running is a no-op and `doctor` stops recommending it.
+
+## Acceptance criteria
+
+- `update`/`init` never run `git rm --cached`; they only write the gitignore entry.
+- `migrate --untrack-core` un-tracks `.deft/core`, writes the ignore entry, and is idempotent.
+- Refuses / warns if no committed pin exists (would leave content unrecoverable).
+- `.gitignore` reconciled: ignores `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache; NOT `package.json`.
+- Tests: tracked deposit, already-untracked, missing-pin guard, rerun.
+
+## Related
+
+Absorbs #2123. Depends on #child A (#2264). Surfaced by #child D (#2267). Parent #2203.
+
+**Acceptance**:
+
+- Given the init and update code paths, when they run, then neither invokes `git rm --cached` (they only write the non-destructive .gitignore entry) and the only call site of the destructive index mutation is the untrack-core module, verified by a boundary test. `[pending]`
+- Given a project whose .deft/core is git-tracked and a committed pin exists, when `directive migrate --untrack-core` runs, then it runs git rm --cached -r .deft/core, ensures the ignore entry, and re-running is a no-op that mutates nothing. `[pending]`
+- Given a project with no committed package.json pin, when `directive migrate --untrack-core` runs, then it refuses (or warns and aborts) the git rm --cached so content that could not be reconstituted from a pinned engine is never left unrecoverable. `[pending]`
+- Given the .gitignore reconciliation, when untrack-core runs, then it ignores .deft/core/, .deft/.cli/, ritual-state.json, and the cache path, and it never adds package.json to the ignore set. `[pending]`
+
+### 2026-07-03-2270-migratexbrief-clean-up-ambiguous-empty-vbriefxbrief-roots: migrate:xbrief: clean up ambiguous empty vbrief/xbrief roots  `[completed]`
+
+Part of epic #2203. Absorbs #2202.
+
+## Summary
+
+Make `migrate:xbrief` converge project layout cleanly instead of leaving ambiguous empty `vbrief/` and `xbrief/` roots.
+
+## Behavior
+
+- Successful `migrate:xbrief` leaves an unambiguous layout: if `vbrief/` is fully migrated and empty, remove it or replace it with an explicit deprecation marker per the compatibility contract.
+- If `vbrief/` remains for read-compatibility, it must not look like an active source-of-truth folder.
+- `doctor` (#child D) reports `xbrief active` and either `vbrief legacy marker` or `vbrief removed` — never an ambiguous dual layout.
+- Idempotent cleanup.
+
+## Acceptance criteria
+
+- Successful `migrate:xbrief` does not leave two indistinguishable empty lifecycle roots.
+- Doctor reports an unambiguous state.
+- Cleanup is idempotent.
+- Tests cover empty legacy folder, non-empty legacy folder, already-migrated layout, and rerun behavior.
+
+## Related
+
+Absorbs #2202. Related #2034, #2110. Parent #2203.
+
+**Acceptance**:
+
+- Given a successful `migrate:xbrief` where `vbrief/` is fully migrated and empty, when the command completes, then the layout has no two indistinguishable empty lifecycle roots -- the empty `vbrief/` is removed or carries an explicit deprecation marker. `[pending]`
+- Given a migrated project, when the migrate signpost is rendered (as consumed by doctor), then it reports `xbrief active` plus either `vbrief legacy marker` or `vbrief removed`, never an ambiguous dual layout. `[pending]`
+- Given migrate:xbrief has already converged the layout, when it is rerun, then the cleanup is idempotent -- no error, no re-removal, no duplicate marker, no state change. `[pending]`
+- Given a `vbrief/` retained for read-compatibility, when migrate:xbrief converges, then the retained folder does not look like an active source-of-truth root (explicit deprecation marker present). `[pending]`
+
+### 2026-07-03-2271-usermd-user-config-resolution-in-mismatched-headless-envs: USER.md / user-config resolution in mismatched + headless envs  `[completed]`
+
+Part of epic #2203 (Decision 7).
+
+## Summary
+
+Resolve USER.md / user-config automatically in mismatched and headless environments so session-start does not require a manual `DEFT_USER_PATH`. In agentic sandboxes `$HOME` is often not under a persistent mount, so the default `~/.config/deft/USER.md` is absent (reproduced in the #2124 Cowork session).
+
+## Behavior
+
+Resolve USER.md across an explicit search order, first hit wins:
+
+1. `DEFT_USER_PATH` (explicit override) — unchanged, highest precedence.
+2. Workspace-local user config (a bridged, persistent location inside the workspace).
+3. Bridged platform config dir (`%APPDATA%\deft\USER.md` / `~/.config/deft/USER.md`) when reachable.
+4. Sensible default + a clear "no USER.md found; using defaults" diagnostic (never a hard failure).
+
+Diagnostics state which path was resolved, so the boundary is visible.
+
+## Acceptance criteria
+
+- Session-start resolves USER.md with zero manual `DEFT_USER_PATH` when a bridged config exists.
+- Search order honored; `DEFT_USER_PATH` still wins.
+- Missing USER.md degrades to defaults with a clear diagnostic, not a crash.
+- Resolved path surfaced in diagnostics / `doctor`.
+- Tests cover each search-order branch + the absent-everywhere fallback.
+
+## Related
+
+Parent #2203. Sibling of the out-of-scope SCM/gh auth follow-up (same "environment resource in a sandbox" family).
+
+**Acceptance**:
+
+- Given a bridged user config exists and DEFT_USER_PATH is unset, when session-start runs in a mismatched/headless env, then USER.md resolves automatically with zero manual DEFT_USER_PATH. `[pending]`
+- Given multiple candidate locations, when the resolver runs, then it honors the first-hit-wins search order and DEFT_USER_PATH (when set) always wins over workspace-local and platform-dir candidates. `[pending]`
+- Given USER.md is absent everywhere, when the resolver runs, then it degrades to sensible defaults with a clear `no USER.md found; using defaults` diagnostic and never crashes. `[pending]`
+- Given a resolved (or defaulted) USER.md, when doctor / diagnostics run, then the resolved path (and which search rung matched) is surfaced so the resolution boundary is visible. `[pending]`
+
+### 2026-07-03-2272-cold-clone-reconstitution-end-to-end-acceptance-test: Cold-clone reconstitution: end-to-end acceptance test  `[completed]`
+
+Part of epic #2203 (resolves the M1 gap).
+
+## Summary
+
+Prove the core cold-clone reconstitution scenario end-to-end: a fresh `git clone` of a hybrid consumer in a mismatched sandbox, where both `.deft/core/` and `.deft/.cli/` are gitignored (so NEITHER content nor engine is present on clone), reaches a ready-to-use state with zero manual steps.
+
+## The ordered flow under test
+
+```text
+1. read committed pin from package.json          (always present in git)
+2. global-first ladder (#child A):
+     global engine? -> else local .deft/.cli? -> else install (npm i -g OR npm install --prefix .deft/.cli/<platform>)
+3. run `update` -> engine re-projects .deft/core/ (content), stamps VERSION
+4. USER.md resolution (#child H)
+5. proceed: framework-local gates now runnable
+```
+
+This is the scenario the whole epic exists to make work; it must be an explicit, executable acceptance test, not an assumption.
+
+## Acceptance criteria
+
+- A simulated cold clone (both dirs absent) reconstitutes engine + content and runs `session:start` + `verify:*` with zero manual npm/PATH/`DEFT_USER_PATH` steps.
+- The reconstitution trace is emitted and asserted (ties to #child A structured trace).
+- Registry-down path hard-fails with the "stage this" message rather than hanging or failing open.
+- Matched-env clone (engine already global) short-circuits the ladder at step 1/2 with no reinstall.
+
+## Related
+
+Parent #2203. Integration test spanning #child A, #child C, #child H.
+
+**Acceptance**:
+
+- Given a simulated cold clone with both `.deft/core/` and `.deft/.cli/` absent, when the reconstitution flow runs, then engine + content are reconstituted and `session:start` + `verify:*` run with zero manual npm/PATH/DEFT_USER_PATH steps. `[pending]`
+- Given the reconstitution flow, when it completes, then the structured reconstitution trace from the keystone ladder is emitted and asserted step-by-step. `[pending]`
+- Given a registry-down environment, when the ladder cannot install the engine, then it hard-fails with the canonical `stage this` message rather than hanging or failing open. `[pending]`
+- Given a matched-env clone where the engine is already global, when the ladder runs, then it short-circuits at step 1/2 with no reinstall. `[pending]`
+
+### 2026-07-03-2273-cold-start-bootstrap-block-in-readme-agents-managed-section: Cold-start bootstrap block in README + AGENTS managed section  `[completed]`
+
+Part of epic #2203 (Decision 1). Ships early against the contract.
+
+## Summary
+
+Add the always-present cold-start bootstrap block to README.md (the agent's/human's first read) and mirror it in the AGENTS.md managed section. Fixes the bug where the current cold-start recovery pointer lives inside `.deft/core/` — the exact payload that is absent when recovery is needed.
+
+## Behavior
+
+- **README.md top-of-file** carries the cold-start bootstrap: the global-first ladder as a few prose steps invoking standard npm (`deft` -> `.deft/.cli` -> `npm i -g` / `npm install --prefix .deft/.cli/<platform>` -> staged tarball), keyed off the `package.json` pin. No committed shell shim — the agent/human is the interpreter.
+- **AGENTS.md managed section** carries a minimal mirror so the block is found whether the agent opens README or AGENTS first; both are always-committed and never gitignored.
+- `directive` with no args prints the three-command model (`init` / `update` / `doctor`) + first-run guidance before exhaustive verbs.
+- Remove/replace the stale `read .deft/core/UPGRADING.md` cold-start pointer that assumes the payload is present.
+
+## Acceptance criteria
+
+- README top section + AGENTS managed-section carry the bootstrap block; both present on a fresh clone.
+- No-arg `directive` prints the three-command model.
+- Cold-start pointer no longer depends on `.deft/core/` being present.
+- Managed-section mirror is emitted by the managed-section renderer (stays in sync via `agents:refresh`).
+- Snapshot test for no-arg help + the managed-section block.
+
+## Related
+
+Parent #2203. Invokes the #child A ladder. Full docs are #child J2.
+
+**Acceptance**:
+
+- Given a fresh clone, when README.md and the AGENTS.md managed section are read, then both carry the cold-start bootstrap block (README top-of-file + managed-section mirror), present without the `.deft/core/` payload. `[pending]`
+- Given `directive` is run with no args, when it prints help, then it shows the three-command model (init / update / doctor) + first-run guidance BEFORE the exhaustive verb list, covered by a snapshot test. `[pending]`
+- Given the cold-start recovery pointer, when it is followed, then it no longer depends on `.deft/core/` being present (the stale `read .deft/core/UPGRADING.md` pointer is replaced), and the content-contract tests assert the new payload-independent pointer. `[pending]`
+- Given the managed-section source template is edited, when `task agents:refresh` runs, then the repo-root AGENTS.md managed-section mirror is regenerated in sync (no drift), verified by the content-contract suite. `[pending]`
+
+### 2026-07-03-2274-rewrite-readme-top-level-docs-around-initupdatedoctor: Rewrite README + top-level docs around init/update/doctor  `[completed]`
+
+Part of epic #2203. Absorbs #2201. Ships last, after behavior lands.
+
+## Summary
+
+Rewrite README and top-level docs around the three-command model (`init` / `update` / `doctor`), routing users by situation, after the behavior in #child A–I is real or staged behind the contract.
+
+## Scope
+
+- README "Getting Started" starts with `npm i -g @deftai/directive`, then `directive init`.
+- Route by situation: new empty project -> `init`; existing codebase -> `init`; existing Directive project -> `update`; unsure/broken -> `doctor`; legacy/pre-v0.20 -> `init`/`doctor` routes to the specific migration path.
+- BROWNFIELD docs start with `directive init`, not submodule/clone/legacy-installer paths.
+- UPGRADING preserves advanced detail but points ordinary users to `directive update`.
+- Reconcile the README gitignore claim with reality (ignore `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache; NOT `package.json`).
+
+## Acceptance criteria
+
+- README/BROWNFIELD/UPGRADING and top-level help all agree on the three-command model.
+- Gitignore claim matches actual `init`/`update` behavior.
+- Docs do not promise location-independent `init` beyond what #child A delivers (matched vs mismatched scoped honestly).
+- Snapshot tests for top-level help.
+
+## Related
+
+Absorbs #2201. Depends on #child A–I + #child J1. Parent #2203.
+
+**Acceptance**:
+
+- Given README, content/docs/BROWNFIELD.md, content/UPGRADING.md, and the top-level help, when they are read, then they all agree on the three-command init/update/doctor model and route users by situation to exactly one command. `[pending]`
+- Given the README gitignore claim, when compared to actual init/update behavior, then it matches reality (ignores `.deft/core/`, `.deft/.cli/`, `ritual-state.json`, cache; NOT `package.json`) and no longer says vbrief/. `[pending]`
+- Given the adoption docs, when they describe `directive init`, then they do not promise location-independent init beyond what the merged #2265 dispatcher delivers (matched vs mismatched env scoped honestly). `[pending]`
+- Given the top-level help, when the snapshot/content-contract tests run, then they assert the three-command model agreement and the corrected gitignore claim, and pass under task check:framework-source. `[pending]`
+
+### 2026-07-03-2277-deft-core-guard-allowlist-omits-xbrief-paths: deft-core-guard allowlist omits xbrief/ paths -- blocks framework-deposit PRs on migrated projects  `[completed]`
+
+## Summary
+
+The deft-core-guard.yml workflow's allowlist (the `grep -vE` that classifies 'non-framework' changes) only enumerates legacy vbrief/ paths and was never given the xbrief/ equivalents when the vbrief->xbrief migration (#2034 / #2110) landed.
+
+As a result, on any project that has migrated to xbrief/, a normal `deft update` framework-deposit PR fails the no-mixed-core-and-app guard: the framework-managed xbrief/.deft-version marker (bumped automatically by the upgrade, and intended to travel with the .deft/core deposit) is classified as a non-framework file, so the PR appears to 'mix' framework + app changes.
+
+## Root cause
+
+The single source of truth is `installerManagedMatchers()` in packages/core/src/init-deposit/hygiene.ts, which feeds both `installerManagedGuardEre()` (the deposited guard workflow's POSIX ERE alternation, embedded via coreGuardWorkflowContent() in scaffold.ts) and the TS classifier. It lists vbrief/.deft-version, vbrief/vbrief.md, vbrief/schemas/, vbrief/migration/, and the vbrief/<lifecycle>/.gitkeep markers -- but has NO xbrief/ counterparts. Because .deft-version now lives at xbrief/.deft-version on migrated projects, it is no longer allowlisted, and the guard trips whenever it co-occurs with .deft/core/** changes -- which is exactly every framework upgrade. The legacy Go path (cmd/deft-install/hygiene.go + deposit.go installerManagedMatchers) is the parity mirror referenced by the TS module header.
+
+## Suggested fix
+
+In installerManagedMatchers() (hygiene.ts), mirror the vbrief/ allowlist entries for xbrief/: xbrief/.deft-version, xbrief/xbrief.md, xbrief/schemas/, xbrief/migration/, and xbrief/<lifecycle>/.gitkeep for each of proposed/pending/active/completed/cancelled. Keep the vbrief/ entries for back-compat with not-yet-migrated projects. Mirror the same additions into the Go parity source (cmd/deft-install/hygiene.go / deposit.go) so the two classifiers stay in lockstep per the module header contract.
+
+## Impact
+
+- Every migrated (xbrief/) consumer hits a red guard on routine framework upgrades.
+- Workaround forces either a hand-edit of a generated file (churn, reverted next upgrade) or dropping the version marker from the deposit.
+
+Observed on cartograph consumer, framework payload v0.68.0. Related churn/guard issues: #2148, #1672, #1478 (same class -- allowlist omitted .githooks/).
+
+**Acceptance**:
+
+- installerManagedMatchers() enumerates xbrief/.deft-version, xbrief/xbrief.md, xbrief/schemas/, xbrief/migration/, and xbrief/<lifecycle>/.gitkeep alongside the existing vbrief/ entries (vbrief/ retained for back-compat). `[proposed]`
+- The generated deft-core-guard.yml allowlist (installerManagedGuardEre()) allowlists xbrief/.deft-version so a migrated-project framework-deposit PR carrying xbrief/.deft-version + .deft/core/** passes no-mixed-core-and-app. `[proposed]`
+- Go parity source (cmd/deft-install hygiene/deposit installerManagedMatchers) mirrors the xbrief/ additions to keep the two classifiers in lockstep. `[proposed]`
+- Regression tests pin xbrief/.deft-version (and the xbrief/ lifecycle .gitkeep markers) as installer-managed / allowlisted, guarding against future re-omission. `[proposed]`
+
+### 2026-07-04-2197-first-class-pnpm-support-for-installupgrade-path: First-class pnpm support for the install/upgrade path  `[completed]`
+
+Standalone follow-up to the resolution spine (#2264/#2203). The documented distribution path assumes `npm i -g @deftai/directive@latest`; pnpm-managed setups have no supported install/upgrade flow and mixing an npm global into a pnpm environment breaks PATH/shim/store consistency.
+
+## Locked decisions (see #2197 scoping comment)
+
+1. **No additional registry, no republish.** pnpm reads from `registry.npmjs.org` by default; the published `@deftai/directive` tarball is unchanged. `pnpm add -g`, `pnpm dlx`, and `pnpm add -D` all pull the same artifact.
+2. **Sandbox stays on npm.** The ladder's sandbox rung (`npm install --prefix .deft/.cli/<platform>`) produces an npm-shaped `node_modules/.bin` tree that `resolution/integrity.ts` validates; that dir is gitignored and PM-invisible. Vary only the global / project-local / ephemeral / upgrade command forms by PM. pnpm-shaped sandbox vendoring is an explicit non-goal (deferred).
+3. **Additive rendering.** Keep npm as the default so existing content-contract assertions (`contains npm i -g ...`) stay green; ADD the pnpm forms alongside rather than replacing.
+
+## Why smaller than it looks
+
+The ladder's engine DETECTION (rungs 1-2) is already PM-agnostic -- it PATH-probes for a reachable `deft`/`directive` binary, so a `pnpm add -g` install just works for detection. Only the emitted install/upgrade command STRINGS are npm-shaped.
+
+## Acceptance criteria
+
+- A `PackageManager` seam detects the active PM (env override -> corepack/packageManager -> pnpm-lock.yaml -> npm_config_user_agent -> npm default) and renders pnpm commands when pnpm is active.
+- Default (no pnpm signal) still emits the existing npm forms unchanged; existing tests stay green.
+- The sandbox rung stays on `npm install --prefix` regardless of detected PM (boundary test).
+- README / UPGRADING / BROWNFIELD document the pnpm install + upgrade path plus the PNPM_HOME / `pnpm setup` PATH caveat.
+- No emitted command carries a custom `--registry` flag; update/migrate/doctor work identically against the shared npm registry.
+
+## Related
+
+Builds on #2264 (resolution spine). Parent context #2203 (merged). Issue #2197.
+
+**Acceptance**:
+
+- Given pnpm is the active package manager (env override, packageManager/corepack, pnpm-lock.yaml, or npm_config_user_agent), when the resolution plan or doctor renders an install/upgrade remediation, then the emitted command uses pnpm forms (`pnpm add -g @deftai/directive@<pin>`, `pnpm dlx`) rather than npm. `[pending]`
+- Given no pnpm signal, when install/upgrade commands render, then they emit the existing npm forms (`npm i -g`, `npx @deftai/directive update`) unchanged and all existing content-contract tests stay green. `[pending]`
+- Given the sandbox rung (`.deft/.cli/<platform>`), when the ladder emits its install command, then it stays on `npm install --prefix` regardless of the detected package manager (locked non-goal), verified by a boundary test. `[pending]`
+- Given the README / UPGRADING / BROWNFIELD docs, when a pnpm user reads the install/upgrade path, then a first-class pnpm variant (`pnpm add -g @deftai/directive@latest`, `pnpm dlx`) and the `pnpm setup` / `PNPM_HOME` PATH caveat are documented alongside npm. `[pending]`
+- Given the published package, when installed/upgraded via pnpm, then no emitted command carries a custom `--registry` flag and update/migrate/doctor operate identically against the shared npm registry (no additional registry config). `[pending]`
+
+### 2026-07-05-1703-eval-namespace-cleanup: Reclaim the .eval namespace for version-eval results  `[completed]`
+
+The .eval directory was named for evaluation but became the triage working-set cache. Move the triage cache to a dedicated namespace so the version-eval results store can own .eval, de-conflicting the two concepts.
+
+**Acceptance**:
+
+- Resolver points to new path `[completed]`
+  - Acceptance: The triage cache resolver returns the dedicated triage-cache path instead of the .eval directory.
+- Existing cache migrated `[completed]`
+  - Acceptance: When triage runs after migration, it loads candidates from the new cache path.
+- Namespace de-conflicted `[completed]`
+  - Acceptance: The results store persists to .eval and no longer collides with the triage cache.
+
+### 2026-07-05-1703-tier0-health: Tier 0 static self-consistency aggregation (eval:health)  `[completed]`
+
+Aggregate directive's existing static gates such as render-staleness, dead cross-refs, conformance, encoding, and template propagation drift, plus a new contradictory-gate detector, into a single per-version framework health score. This tier is the cheapest, model-free, highest-ROI signal and is trended over time.
+
+**Acceptance**:
+
+- Versioned health score `[pending]`
+  - Acceptance: task eval:health emits a versioned framework health score aggregated from the existing static gates.
+- Contradictory-gate detector `[pending]`
+  - Acceptance: When a gate contradicts another gate, the detector records the unsatisfiable-nudge contradiction.
+- Trended over time `[pending]`
+  - Acceptance: The health run persists each score to a versioned store so runs can be trended across releases.
+
+### 2026-07-05-1703-tier1-crud-telemetry: Tier 1 instrumented CRUD chokepoint telemetry  `[completed]`
+
+Route structured vBRIEF mutations through one instrumented CRUD tool so real dogfooding emits per-operation metrics tagged with the directive version. Metrics include schema-validity, field-invention, byte-diff minimality, and workflow-level gate-pass-first-try and turns-per-workflow counters.
+
+**Acceptance**:
+
+- Per-operation metrics tagged by version `[pending]`
+  - Acceptance: The CRUD chokepoint records per-operation metrics each tagged with the directive version.
+- Field-invention detection `[pending]`
+  - Acceptance: When an agent invents a non-spec key, the tool records a field-invention metric.
+- Byte-diff minimality `[pending]`
+  - Acceptance: The tool persists a byte-diff minimality metric distinguishing whole-file rewrites from surgical patches.
+
+### 2026-07-05-1703-tier2-golden-eval: Tier 2 synthetic golden-task champion-challenger eval  `[completed]`
+
+Build a fixed corpus of spec-to-expected-outcome tasks with automated graders, run as champion-challenger with pinned model and harness across N seeds and pre-registered thresholds. This gates releases rather than commits, and never trusts stored baselines across model changes.
+
+**Acceptance**:
+
+- Corpus run per model and seed `[pending]`
+  - Acceptance: task eval:run executes the golden corpus per model and seed and stores versioned results.
+- Version-diff report `[pending]`
+  - Acceptance: task eval:report returns metric deltas and significance between two directive versions.
+- Rotating holdout guard `[pending]`
+  - Acceptance: A rotating holdout set validates that gated metrics stay tripwires rather than tuning targets.
+
+### 2026-07-05-1709-adoption-registry: Capability adoption registry with applicability heuristics  `[completed]`
+
+Catalog directive capabilities such as planning, cost, decompose, swarm, pre-PR, debug, glossary, and lessons, each with a conservative applicability heuristic and a usage signal. This registry powers underutilization nudges that only fire on genuinely relevant work.
+
+**Acceptance**:
+
+- Capability catalog with heuristics `[pending]`
+  - Acceptance: The registry records each capability with an applicability heuristic and a usage-signal source.
+- Applicable-but-unused detection `[pending]`
+  - Acceptance: When large multi-file work runs without decompose, the registry emits an adoption signal.
+- Conservative false-positive guard `[pending]`
+  - Acceptance: The registry rejects adoption nudges for small or non-parallelizable work to avoid false positives.
+
+### 2026-07-05-1709-attribution-ledger: Attribution ledger for the four value signal classes  `[completed]`
+
+Record value, bypass, adoption, and friction signal classes on directive's existing emit-only events infrastructure, each entry flag-gated by the value-feedback policy. Wire a few high-signal sources first so the ledger is credible rather than noisy.
+
+**Acceptance**:
+
+- Four signal classes recorded `[completed]`
+  - Acceptance: The ledger records value, bypass, adoption, and friction events each tagged with a signal class.
+- Gated on the policy flag `[completed]`
+  - Acceptance: When the policy flag is off, no ledger entries are emitted for any wired source.
+- Initial sources wired `[completed]`
+  - Acceptance: Each wired gate-catch and WIP-cap source records ledger entries that persist across the session.
+
+### 2026-07-05-1709-awareness-readbacks: Budgeted awareness readbacks (session line + value:show)  `[completed]`
+
+Add a budgeted one-line session readback that surfaces in-flow value, boundary, and adoption signals, staying silent when nothing is attributed. Add a pull-based value:show trend readout that fills the currently-stubbed metrics slot.
+
+**Acceptance**:
+
+- Budgeted session line `[pending]`
+  - Acceptance: The session readback renders at most one line and stays silent when nothing is attributed.
+- Pull-based value:show `[pending]`
+  - Acceptance: The value:show command returns a trend readout of attributed value over recent sessions.
+- Silence when empty `[pending]`
+  - Acceptance: When the ledger is empty, the readback emits no session line at all.
+
+### 2026-07-05-1709-gap-escalation: Gap escalation to upstream feedback (feedback:file + skill)  `[completed]`
+
+Add a feedback:file command that drafts and dedups a framework-gap issue against deftai/directive, gated behind a confirmation prompt and consumer-only guards. Add a deft-directive-feedback skill for the conversational batched session-end flow.
+
+**Acceptance**:
+
+- Confirmation-gated filing `[pending]`
+  - Acceptance: The command drafts a framework-gap issue and rejects filing until the user explicitly confirms.
+- Consumer-only guard `[pending]`
+  - Acceptance: When run inside the maintainer repo, the feedback path emits no upstream issue.
+- Duplicate detection `[pending]`
+  - Acceptance: Duplicate detection rejects filing when a matching upstream issue already exists.
+
+### 2026-07-05-1709-institutionalization: Institutionalization and propagation of value-feedback rules  `[completed]`
+
+Mirror the RFC2119 value-feedback rules across AGENTS.md, the agents-entry template, and the agent-prompt-preamble, and lock them with contract-test markers. Add skill-routing triggers and reconcile the documented-but-unimplemented 4h summary debounce the readback relies on.
+
+**Acceptance**:
+
+- Contract-locked markers `[pending]`
+  - Acceptance: The agents-entry contract test rejects a diff that drops any mirrored value-feedback marker.
+- Consumer projection inherits rules `[pending]`
+  - Acceptance: Running agents refresh updates the consumer AGENTS.md with the mirrored value-feedback rule blocks.
+- Debounce reconciled `[pending]`
+  - Acceptance: A test validates the 4h summary debounce suppression window that the readback relies on.
+
+### 2026-07-05-1709-optin-gate: Opt-in typed policy gate for value feedback (default OFF)  `[completed]`
+
+Introduce a typed plan.policy.valueFeedback policy block that defaults to OFF and gates the entire value-attribution feature. Add granular sub-flags for event emission, session line, and upstream prompt, plus a capability-cost disclosure printed when a consumer enables it.
+
+**Acceptance**:
+
+- Master flag gates all downstream code paths `[pending]`
+  - Acceptance: When valueFeedback.enabled is false, the gate rejects all emit, session-line, and upstream-prompt code paths.
+- Capability-cost disclosure on enable `[pending]`
+  - Acceptance: Enabling the flag persists the typed policy value only after it shows a capability-cost disclosure.
+- Policy reader surface `[pending]`
+  - Acceptance: policy:show --field=valueFeedback returns the resolved enabled state and every sub-flag value.
+
+### 2026-07-05-2294-doctor-version-reportable: Doctor-harden version reporting when VERSION manifest tag/ref is empty  `[completed]`
+
+Legacy `deft-install` without an explicit release pin writes `.deft/core/VERSION` with empty `ref`/`tag` and only a short sha, so version-reporting tooling shows nothing. Because the Go installer is a frozen legacy bridge (#1912) and the Python/Go rails are retired (#1933/#2022/#2068), the fix lives on the doctor side: surface an actionable finding when the located manifest resolves no semver tag/ref but does carry a sha, pointing the operator at `directive update` to obtain a pinned npm-managed manifest. This converts a silent unreportable state into a visible, remediable one without fabricating a semver or extending the frozen installer.
+
+**Acceptance**:
+
+- Given a manifest with empty tag/ref but a sha, when doctor runs, then it emits an advisory finding recommending `directive update` `[pending]`
+  - Acceptance: Given `.deft/core/VERSION` with empty `ref`/`tag` and a non-empty `sha`, when the doctor runs, then a `manifest-version-reportable` finding reports the sha-only state and recommends `directive update`, and the finding does NOT change the doctor exit code.
+- Given a manifest with a semver tag, when doctor runs, then the reportable-version check passes `[pending]`
+  - Acceptance: Given a manifest whose tag/ref resolves to a semver, when the doctor runs, then `manifest-version-reportable` passes and reports the resolved version.
+- Given no manifest or no provenance, when doctor runs, then the check skips cleanly `[pending]`
+  - Acceptance: Given no install manifest (or a manifest with neither semver nor sha), when the doctor runs, then `manifest-version-reportable` returns skip and never fails.
+
+### 2026-07-05-2295-triage-welcome-onboard: Implement triage:welcome --onboard in the TS CLI (kill the dead-end nudge loop)  `[completed]`
+
+Every welcome nudge (FIRST_TIME_NUDGE / INCOMPLETE_NUDGE_TEMPLATE) tells the user to run `deft triage:welcome --onboard`, but the CLI handler is a hard stub that writes 'not implemented' and returns 2 -- a guaranteed dead-end loop for every fresh consumer. The underlying core writers already exist and are tested (`subscriptionPreset`, `writeTriageScope`, `writeWipCap`, `previewWipRelief`), so the fix is orchestration, not new subsystem logic. Add a non-interactive `runOnboardMode` in core that self-heals the cache, writes the chosen triage-scope preset and wipCap into the project definition (via the existing writers, which already target the canonical `x-directive/policy` key and migrate any legacy bare block), previews WIP relief when over cap, and prints a clear summary plus next-step guidance. Wire the CLI `--onboard` flag (plus `--preset` and `--wip-cap`) to it. Non-interactive by design: agents/CI pass flags; sensible defaults apply otherwise. P2/P3 items from #2295 are out of scope for this story.
+
+**Acceptance**:
+
+- Given the onboard command, when run in a project, then it writes a triage-scope preset and exits 0 `[pending]`
+  - Acceptance: Given a project with a PROJECT-DEFINITION, when `deft triage:welcome --onboard` runs (default or explicit --preset), then triageScope is written under the canonical policy key and the command exits 0 with a completion summary -- never the old 'not implemented' exit 2.
+- Given --wip-cap N, when onboard runs, then the WIP cap is persisted `[pending]`
+  - Acceptance: Given `--wip-cap N` (non-default positive int), when onboard runs, then wipCap is persisted via the existing writer and reflected in the summary.
+- Given a bad preset or missing project definition, when onboard runs, then it fails cleanly with guidance `[pending]`
+  - Acceptance: Given an unknown --preset value or a project with no PROJECT-DEFINITION, when onboard runs, then it prints an actionable error and exits 2 without partial writes.
+
+### 2026-07-05-2297-durable-prev020-migration: Durable, self-documenting frozen pre-v0.20 migration path (cheap-durable variant)  `[completed]`
+
+The pre-v0.20 document-model migrator (`migrate_vbrief.py`) was removed from current npm deposits; the only way to run it is to pin framework v0.59.0. The real permanence dependency is the v0.59.0 git tag (GitHub generates source tarballs from tags on demand), not any uploaded release asset. Rather than vendor a heavyweight migrator bundle (dropped Option 1), make the path durable-by-documentation: frame support as best-effort, anchor on the git tag, spell out the two-hop chain (pre-v0.20 flat -> vBRIEF v0.6 -> xBRIEF v0.8), and give operators a manual fresh-start fallback (`directive init`) for when the frozen payload is unavailable. The one code change extends the shared frozen-migration guidance string so `task migrate:preflight` and `deft doctor` both surface the fresh-start fallback.
+
+**Acceptance**:
+
+- Given a pre-cutover project, when preflight/doctor emit frozen guidance, then it names a manual fresh-start fallback `[pending]`
+  - Acceptance: Given the shared frozen-migration guidance, when rendered by `task migrate:preflight` or `deft doctor`, then it frames support as best-effort, cites the v0.59.0 git tag, and points at a manual `directive init` fresh-start fallback when the frozen payload is unavailable.
+- Given UPGRADING.md, when a reader reaches the frozen section, then durability, the two-hop chain, and the fresh-start fallback are documented `[pending]`
+  - Acceptance: Given content/UPGRADING.md, when a reader reaches the Frozen pre-v0.20 section, then it explains the git-tag durability anchor + best-effort horizon, the two-hop migration chain, and a fresh-start fallback subsection.
+
+### 2026-07-05-2301-policy-shadow-diagnostic-and-set-preset: stray bare plan.policy silently ignored when x-directive/policy exists (triageScope not applied, no warning)  `[completed]`
+
+## Problem
+
+`readPlanExtension` in packages/core/src/policy/plan-extensions.ts reads the namespaced `x-directive/policy` key first and only falls back to bare `plan.policy` when the namespaced key is absent. Once `x-directive/policy` exists (after migrate or any policy CLI write), a hand-added bare `plan.policy.triageScope` / `wipCap` is silently ignored with no diagnostic.
+
+## Two parts
+
+1. **triage:scope --set-preset small|mid|mega writer.** triage:scope currently wires only --add-label / --add-milestone / --ignore-label. The preset primitive already exists (subscriptionPreset + writeTriageScope, also used by triage:welcome --onboard); wrap it as a shared writer path rather than duplicating.
+2. **Loud shadow diagnostic.** When a bare plan.policy coexists with x-directive/policy, emit a visible warning (never a silent no-op). Surfaces: doctor and policy show.
+
+## Acceptance
+
+- A hand-added bare plan.policy alongside x-directive/policy produces a visible warning (never a silent no-op).
+- triage:scope --set-preset <key> persists the preset via the shared writer.
+
+Refs #2295.
+
+**Acceptance**:
+
+- Add `triage:scope --set-preset small|mid|mega` flag (CLI parse + mutation) that persists the preset via the shared subscriptionPreset + writeTriageScope helper (no duplication of the onboard path). `[proposed]`
+- --set-preset is mutually exclusive with --add-label / --add-milestone / --ignore-label; unknown preset keys produce a helpful error listing valid keys. `[proposed]`
+- Add a shadow-detection primitive in plan-extensions.ts that flags every plan-extension key (policy, completedNote) where the bare and namespaced forms coexist, plus a message formatter. `[proposed]`
+- Surface the shadow diagnostic as a visible warning in `policy show` (stderr) and as a `deft doctor` warning finding. `[proposed]`
+- Unit tests cover the --set-preset writer path, the shadow detector, and both surfacing sites (forward-coverage). `[proposed]`
+
+### 2026-07-05-2302-triage-welcome-help-discoverability: #2302 item 3: triage:welcome onboarding flags discoverable in help/usage  `[completed]`
+
+The final remaining slice of #2302 (items 1 & 2 shipped in PR #2304). The --onboard / --preset / --wip-cap flags implemented by PR #2300 are not discoverable in --help / usage listings. Surface them in the triage help registry (source scripts/triage_help.py, regenerated into packages/core/src/triage/help/registry-data.ts) and the triage-welcome CLI usage text. Closing #2302 lets the #2295 tracker close (its other child #2301 is already closed).
+
+**Acceptance**:
+
+- Add --onboard / --preset / --wip-cap flags to the triage:welcome help registry entry (scripts/triage_help.py) and regenerate registry-data.ts `[proposed]`
+- Surface the onboarding flags in the triage-welcome CLI --help / usage text `[proposed]`
+- After PR merges, close #2302; verify #2295 tracker closes `[proposed]`
+
+### 2026-07-05-2302-triage-welcome-papercuts: triage:welcome papercuts -- layout-aware not-found warnings, cache passthrough guard, help text  `[completed]`
+
+P3 low-severity papercuts split from #2295 while shipping the P1 fix (PR #2300). Each item independently shippable. This slice ships items 1 and 2 on origin/master; item 3 defers to PR #2300 (which owns the CLI flags it must document).
+
+**Acceptance**:
+
+- Given an xbrief-layout project with no PROJECT-DEFINITION, when a not-found warning is emitted (policy:show, vbrief-build loader), then the message names the resolved xbrief path, not the hardcoded vbrief path. `[pending]`
+  - Acceptance: Given an xbrief-layout project with no PROJECT-DEFINITION, when a not-found warning is emitted (policy:show, vbrief-build loader), then the message names the resolved xbrief path, not the hardcoded vbrief path; a vbrief-layout project is unchanged (fallback).
+- Given the go-task cache:fetch-all arg passthrough, when investigated, then it is confirmed to preserve flag order and values (not reproducible), and a deterministic regression guard prevents sources/generates short-circuit or double-quoted CLI_ARGS from dropping flags. `[pending]`
+- Given help/usage for --onboard/--preset/--wip-cap depends on PR #2300 (open, owns triage-welcome.ts and defines those flags), when this slice ships on origin/master, then item 3 is deferred with documented rationale (no fabricated flags, no conflict with #2300). `[pending]`
+  - Acceptance: Item 3 is documented as deferred/coupled to PR #2300 in the PR body and final report; not attempted on master where the flags do not exist.
+
+### 2026-07-05-2308-review-surface-precedence: orchestrator reaches for Cursor bugbot/security-review subagents instead of deft-directive-review-cycle (review-surface precedence)  `[completed]`
+
+## Root cause
+
+1. No precedence rule binds the review surface. The framework mandates `deft-directive-review-cycle` for workers (agent-prompt-preamble.md, swarm Phase 3/5->6), and AGENTS.md has a general "Before Improvising -- scan content/skills/ first" rule, but nothing tells an ORCHESTRATOR that when a host harness provides overlapping review tooling (subagent types OR skills), the deft review skill wins.
+2. Keyword-vs-intent routing (inherited from #1862): "use sub agents for reviews" contains none of the literal review-cycle triggers, so the router never fired.
+3. Namespace collision generalizes beyond #2261 (which named only the babysit case) to the review subagent types (`bugbot`, `security-review`) and `review-*` skills.
+
+## Remediation
+
+1. Add a review-surface precedence rule to AGENTS.md (maintainer) + mirror into content/templates/agents-entry.md (consumer, then `task agents:refresh`) + content/templates/agent-prompt-preamble.md: when the active harness exposes review-labeled skills or subagent types (Cursor `bugbot` / `security-review` / `review-bugbot` / `review-security`, or any future host equivalent), route review work through `deft-directive-review-cycle`; host review tools MAY only be folded in as advisory finding sources (the #2019 path), never as a replacement.
+2. Broaden the intent-routing fix from #1862/#2261: a generic "review / get this reviewed / use sub-agents for reviews" request maps to `deft-directive-review-cycle` by intent, not literal keyword. Extend the Skills Index trigger vocabulary in REFERENCES.md accordingly.
+3. Consider a deterministic guardrail (mirroring verify:* gates): flag an orchestrator dispatch whose envelope names a host review subagent/skill as the review surface without referencing `deft-directive-review-cycle`. If added as a new script, it needs tests (forward-coverage) and wiring into `task check`.
+
+## Template propagation discipline (#1309)
+
+This is a consumer-relevant rule (skill routing / review-cycle), so the SAME PR MUST update content/templates/agents-entry.md to mirror the AGENTS.md rule, then run `task agents:refresh`. Extend the marker list in tests/content/test_agents_entry_contract.py so the deterministic containment gate covers the new rule.
+
+## Acceptance
+
+- AGENTS.md (+ mirrored agents-entry.md) and agent-prompt-preamble.md carry a review-surface precedence rule: deft review-cycle wins over host-provided review tools; host reviewers are advisory-only inputs folded into the cycle.
+- The rule explicitly names the Cursor `bugbot` / `security-review` subagent types and `review-*` skills as covered host surfaces (with "or future host equivalent" generalization).
+- Intent-routing coverage: a generic "use sub-agents for reviews" / "get this reviewed" request routes to `deft-directive-review-cycle` without literal trigger words (extends #1862).
+- Cross-referenced with #1862, #2261, #2019, #2018.
+- `task agents:refresh` run; agents-entry contract test extended and green; `task check` green.
+
+Refs #2308, #1862, #2261, #2019, #2018.
+
+**Acceptance**:
+
+- Add a review-surface precedence rule to the maintainer AGENTS.md (deft-directive-review-cycle wins over host-provided review tooling; host reviewers are advisory-only inputs folded into the cycle per #2019). `[proposed]`
+- Mirror the rule into content/templates/agents-entry.md (consumer template) and run `task agents:refresh` so the consumer-rendered AGENTS.md inherits it (#1309 propagation discipline). `[proposed]`
+- Add the precedence rule to content/templates/agent-prompt-preamble.md so orchestrator dispatch envelopes bind it; name the Cursor bugbot / security-review subagent types and review-* skills explicitly (with 'or future host equivalent'). `[proposed]`
+- Broaden intent-routing: extend REFERENCES.md Skills Index trigger vocabulary so a generic 'review / get this reviewed / use sub-agents for reviews' request maps to deft-directive-review-cycle by intent, not literal keyword (extends #1862/#2261). `[proposed]`
+- Extend the marker list in tests/content/test_agents_entry_contract.py to cover the new review-surface precedence rule so the deterministic containment gate enforces template->consumer propagation; keep `task check` green. `[proposed]`
+
+### 2026-07-05-2319-raise-default-wip-cap-to-20: Raise framework default WIP cap from 10 to 20  `[completed]`
+
+The framework default WIP cap counts in-flight scope xBRIEFs (pending/ + active/) and is enforced at scope:promote. Decomposing a single epic into its swarm-ready story cohort routinely produces 6-10 child stories, so staging even one or two epics for a swarm blows past 10 in-flight and refuses every further promote. Raise the framework default from 10 to 20. Consumers can still override per-project via the typed plan.policy.wipCap; this only moves the framework default. Both DEFAULT_WIP_CAP definitions (packages/core/src/policy/wip.ts and packages/core/src/triage/welcome/constants.ts) move together because writers.ts couples them via a wipCap === DEFAULT_WIP_CAP equality check, and the auto-generated projections (AGENTS.md managed section from content/templates/agents-entry.md, rendered SKILL.md files from content/packs/skills/skills-pack-0.1.json) are regenerated so the documented default matches behavior.
+
+**Acceptance**:
+
+- #2319 raise DEFAULT_WIP_CAP from 10 to 20 in policy/wip.ts and triage/welcome/constants.ts; update agents-entry.md + skills-pack prose; regenerate AGENTS.md + SKILL.md projections; assert DEFAULT_WIP_CAP === 20; CHANGELOG entry `[proposed]`
+
+### 2026-07-05-2337-task-aliases-value-feedback-metrics: Add Taskfile aliases for policy:enable-value-feedback, value:show, triage:metrics  `[completed]`
+
+Several documented value-feedback commands exist on the deft CLI but lack tasks/*.yml wrappers, so `task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` fail with task not found. Add the missing Taskfile entries forwarding {{.CLI_ARGS}} to the engine and a contract test guarding the value/metrics surface.
+
+**Acceptance**:
+
+- Taskfile aliases resolve for all three commands `[completed]`
+  - Acceptance: `task policy:enable-value-feedback`, `task value:show`, and `task triage:metrics` are listed by go-task and forward CLI_ARGS to the engine.
+- Contract test guards value/metrics task surface `[completed]`
+  - Acceptance: A deterministic test fails when any documented value-feedback `task` name from AGENTS.md / templates is missing from the Taskfile surface.
+
+### 2026-07-05-2338-stale-triage-metrics-help-text: #2338: Fix stale triage:metrics help text  `[completed]`
+
+The triage:metrics help registry entry still describes the old summary-history.jsonl placeholder. Update packages/core/src/triage/help/registry-data.ts so help accurately documents the shipped value-feedback attribution-ledger behavior (alias of value:show / #1709 readback handler).
+
+**Acceptance**:
+
+- Rewrite triage:metrics help entry to describe attribution-ledger trend reporting `[completed]`
+- Update help registry test expectations for triage:metrics `[completed]`
+- Add CHANGELOG [Unreleased] entry and open PR closing #2338 `[completed]`
+
+### 2026-07-05-2339-wire-attribution-detectors: Wire adoption/bypass/friction attribution detectors (#2339)  `[completed]`
+
+Wire production detectors for bypass (gate overrides), adoption (registry at session boundary), and friction (contradictory gates), all gated on plan.policy.valueFeedback.emitEvents.
+
+**Acceptance**:
+
+- Emit bypass:off-flow on env-bypass and --allow-over-cap paths `[completed]`
+- Invoke adoption registry at session readback boundary `[completed]`
+- Emit friction:directive-gap from contradictory-gate detection `[completed]`
+
+### 2026-07-05-security-triage-deposit-ingest-umbrella-omnibus: Security omnibus: close four Medium findings from the 2026-07-03 app-sec review  `[completed]`
+
+Group the four Medium-severity findings from the scheduled application-security review (commit 6449c04e) into a single coherent security PR. All four are independent, disjoint-file trust-boundary fixes that share the scan() quarantine primitive and the same review provenance, so they land together for a single security review pass.
+
+**Acceptance**:
+
+- #2279 triage:bulk-* defaults to project-local Python bridge (arbitrary code execution): route bulk actions through the native TS triage/actions module; drop DEFT_ROOT/project scripts/ resolution from the bulk path `[proposed]`
+- #2305 directive init/update deposit copy follows a .deft/.deft/core symlink (arbitrary-location write): add shared assertDepositContained guard (lstat/realpath, path-segment containment) before any copy in init-deposit.ts + refresh.ts; copy-tree lstat not stat; UPGRADING.md trust-the-repo note `[proposed]`
+- #2306 issue:ingest writes untrusted bodies/comments verbatim into plan.narratives.Overview: run scan() over overviewSource in buildIssueVbrief, fail closed on credential hard-fail, make cache path consume scanned content `[proposed]`
+- #2307 umbrella:current-shape emits attacker-controlled comments as authoritative state: carry author_association, restrict selection to maintainer-authored, scan emitted body, gate --strict on provenance `[proposed]`
+
+### 2026-07-06-1470-discussion-all-deterministic-questioning-must-carry-a-stop-a: discussion: ALL deterministic questioning MUST carry a stop-and-discuss (Discuss + Back) escape -- enforce #767 contract on the agent-runtime surface  `[completed]`
+
+> Scope note: this is an enforcement/scope gap on an existing contract, not a request for a new rule. The rule already exists — see `contracts/deterministic-questions.md` (#767, closed).
+
+## The invariant
+ALL deterministic questioning MUST carry a "stop and discuss" escape (and a `Back`). This is already the canonical rule:
+
+- `contracts/deterministic-questions.md` (landed by #767): "Every structured `ask_user_question` prompt (single-select OR multi-select) and every numbered-menu prompt rendered in skill prose MUST include `Discuss` and `Back` as the final two numbered options, in that order."
+- The contract also defines the verbatim Discuss-pause semantic: on `Discuss`, the agent MUST pause immediately, halt the in-progress sequence, prompt `What would you like to discuss?`, and resume ONLY on an explicit resume signal.
+- `skills/deft-directive-interview/SKILL.md` Rule 10 (slot-0 "Discuss with agent") and Rule 2 Click-Commit Rendering already require the escape on every interview question.
+
+## The gap
+The contract's *rule text* covers "every structured `ask_user_question` prompt," but the *only enforcement* — `tests/content/test_deterministic_questions.py` — **scans skill prose for documented numbered menus**. It cannot observe an agent calling the host `ask_user_question` tool at runtime. So the invariant holds for skill-authored menus and is silently unenforced for **agent-initiated, ad-hoc questioning** (an orchestrator asking the user a structured question outside any interview loop).
+
+The result: deterministic questioning that originates from the agent runtime — not from skill prose — routinely omits `Discuss`/`Back`, leaving the user with no first-class "stop and discuss" exit. The contract is honored by convention on exactly the surface (agent ad-hoc prompts) where convention is least reliable.
+
+## Reproduction (observed live)
+During a 2026-06-03 session, the agent (orchestrator, not inside the interview skill) issued four structured `ask_user_question` prompts to walk the #212 discussion decisions. None of the four carried a `Discuss` or `Back` option. The user had to break out by typing "do in conversational mode" — i.e. they manually re-created the missing escape hatch. This is precisely the pre-#767 failure mode ("users typed `discuss (user-provided)` to break out … honored by convention only") re-appearing on the agent-runtime surface that the prose-scanning test does not cover.
+
+## Why it matters
+- **Consistency / determinism**: the invariant is supposed to be universal ("Render `Discuss` or `Back` only in some skills — the rule is universal"). A runtime carve-out makes it non-universal in practice.
+- **Agent-experience**: the escape hatch is the user's guaranteed way to stop a rigid Q&A and talk. Without it on agent-initiated prompts, the user is forced into a multiple-choice frame for decisions that need discussion.
+- **Per main.md Rule Authority [AXIOM]** (deterministic > Taskfile > vBRIEF > RFC2119 > prose), an invariant this load-bearing should not rest on prose + a prose-only test for its highest-traffic surface.
+
+## Proposed direction (discussion — not prescribing implementation)
+1. **Make the runtime obligation explicit and always-loaded.** Add a managed-section directive in `AGENTS.md` (mirrored into `templates/agents-entry.md` per the Template propagation discipline) stating that ANY agent-initiated structured/numbered question — inside or outside a skill — MUST include `Discuss` and `Back` as the final two options and obey the `contracts/deterministic-questions.md` Discuss-pause semantic. This puts the rule in front of the orchestrator, not only inside skills.
+2. **Tighten the contract's scope language** so "agent-initiated ad-hoc `ask_user_question` prompts" are named as in-scope alongside skill-prose menus, removing the implicit "skill prose only" reading.
+3. **Close the enforcement gap.** Prose-scanning cannot see runtime tool calls; options to discuss:
+   - a lightweight pre-flight/self-check the agent runs before emitting any `ask_user_question` (behavioral, like the session-start ritual);
+   - extending the canonical orchestrator preamble (`templates/agent-prompt-preamble.md`) so dispatched sub-agents inherit the obligation;
+   - if/when host tooling allows, a structural default that injects `Discuss`/`Back` into every `ask_user_question` render.
+
+## Acceptance criteria (draft)
+- The "every deterministic question carries Discuss + Back" invariant is stated for the agent-runtime surface in an always-loaded location (AGENTS.md managed section + template mirror).
+- `contracts/deterministic-questions.md` scope text explicitly names agent-initiated `ask_user_question` prompts.
+- There is a named enforcement or self-check mechanism for the runtime surface (not only the prose-scanning test).
+- The #212-style reproduction no longer occurs: an orchestrator walking decisions presents `Discuss` and `Back` on every structured prompt.
+
+## Related
+- #767 — the contract this extends/enforces (closed)
+- #477, #478 — click-commit rendering + always-structured rendering in the interview skill (closed)
+- #431 — deterministic-questions RC2 (confirm step, back nav, escape-hatch-distinct-from-Other) (closed prior art)
+- Contract: `contracts/deterministic-questions.md`; test: `tests/content/test_deterministic_questions.py`
+
+
+---
+
+## Issue comment thread
+
+_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._
+
+### Comment by @MScottAdams (2026-07-06T12:42:08Z)
+
+## Fresh recurrence (2026-07-06) — orchestrator swarm-dispatch approval
+
+Another live instance on the exact agent-runtime surface this issue names. During a maintainer session (AGENTS.md loaded, `session:start` ritual run), the orchestrator posed a **swarm-cohort dispatch approval** via the host structured-question tool (Cursor `AskQuestion`) — three sub-questions: worker concurrency, a scope confirmation, and model routing. **None of the three carried a `Discuss` / `Back` option.**
+
+The host UI's automatic free-text "Other" affordance was present, but per `contracts/deterministic-questions.md` that is explicitly NOT the escape hatch (line 16: "MUST NOT combine `Discuss` and `Other` … `Other` widens the question's answer space; `Discuss` exits the question entirely"). So the user had no first-class stop-and-discuss exit and broke out by typing the discussion inline ("you are supposed to have a discuss item on every multiple choice question"). This is the same pre-#767 failure mode re-appearing — identical in shape to the #212-walkthrough reproduction already in the body.
+
+### Why this instance is notable
+- It happened **outside any deterministic skill flow** — an ad-hoc orchestration approval — which is exactly the uncovered surface the prose-scanning test (`tests/content/test_deterministic_questions.py`) cannot observe.
+- It happened **with AGENTS.md fully loaded**. The Discuss/Back MUST lives in `contracts/deterministic-questions.md` + per-skill `!` cross-references, but is **not** in the always-loaded managed section — so the orchestrator never had the rule in front of it. This is direct evidence for **Proposed direction #1** (always-loaded AGENTS.md managed-section directive + `templates/agents-entry.md` mirror per Template propagation discipline #1309).
+
+### Net
+Reinforces all three proposed directions; #1 (always-loaded runtime obligation) would have prevented this specific recurrence. No new issue filed — logging here to keep the recurrence trail on the canonical root-cause issue.
+
+**Acceptance**:
+
+- The "every deterministic question carries Discuss + Back" invariant is stated for the agent-runtime surface in an always-loaded location (AGENTS.md managed section + template mirror). `[completed]`
+- `contracts/deterministic-questions.md` scope text explicitly names agent-initiated `ask_user_question` prompts. `[completed]`
+- There is a named enforcement or self-check mechanism for the runtime surface (not only the prose-scanning test). `[completed]`
+- The #212-style reproduction no longer occurs: an orchestrator walking decisions presents `Discuss` and `Back` on every structured prompt. `[completed]`
+
+### 2026-07-06-2344-stray-operator-private-artifacts-gitignore-gap-in-reclaimed: Stray operator-private artifacts + gitignore gap in reclaimed .eval/ namespace (#1703)  `[completed]`
+
+## Summary
+
+The reclaimed `.eval/` namespace (#1703 Tier 2) accumulates operator-private cache stragglers and accidentally-committed scratch files that were never added to `.gitignore`.
+
+Observed in a maintainer working tree on `master`:
+
+- **15 tracked junk files** committed under `xbrief/.eval/` — scratch issue-body dumps from earlier issue-editing operations (`_tmp_976_body_*.md`, `_tmp_985_*`, `_tmp_988_*`, `_tmp_issue_*.json`). These are runtime artefacts that should never have been versioned.
+- **3 loose untracked legacy triage-cache files** in `xbrief/.eval/`: `candidates.jsonl`, `summary-history.jsonl`, `doctor-state.json`. These are the exact operator-private basenames that `.triage-cache/` already gitignores (`.gitignore` lines 99–104), but the `.eval/` namespace has no equivalent rule.
+
+```quarantined
+## Why this matters
+
+`.eval/` was the legacy triage-cache directory. `packages/core/src/triage/cache-path.ts` migrates those basenames into `.triage-cache/` on resolve (`LEGACY_TRIAGE_EVAL_DIR_NAME = ".eval"`), and #1703 reclaimed `.eval/` for team-shared **tracked** version-eval results under `.eval/results/` (`health-history.jsonl`, `golden-runs.jsonl`).
+
+Two gaps:
+
+1. **Gitignore gap.** The loose operator-private basenames and `_tmp_*` scratch under `.eval/` are not ignored, so `git status` is perpetually dirty and it is easy to re-commit operator-private cache (as already happened with the 15 `_tmp_*` files). We must NOT blanket-ignore `.eval/` — that would drop the tracked `results/` ledger (see the #1464 "forbidden blanket `vbrief/.eval/` line" heal path in `init-deposit/gitignore.ts`).
+
+2. **Root-cause question (needs investigation).** `xbrief/.eval/doctor-state.json` was rewritten *today*, after the migration code exists — so a code path is still creating legacy triage-cache files in the legacy `.eval/` location instead of `.triage-cache/`, or the migration only runs lazily on a triage resolve that this tree never hit. Worth confirming which component writes `doctor-state.json` / `candidates.jsonl` to `.eval/` and whether the migration should run proactively.
+
+```
+## Proposed fix
+
+- Remove the 15 tracked `_tmp_*` junk files.
+- Add `.gitignore` rules (mirroring the `.triage-cache` block) for the loose legacy basenames and `_tmp_*` under `xbrief/.eval/` and `vbrief/.eval/`, without touching tracked `.eval/results/`.
+- Investigate and fix the root cause of legacy triage-cache files being written into `.eval/` post-migration (item 2).
+
+The first two are addressed by the accompanying PR; item 2 remains open for a follow-up if the immediate gitignore + cleanup is deemed sufficient for now.
+
+
+---
+
+## Issue comment thread
+
+_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._
+
+### Comment by @MScottAdams (2026-07-06T00:41:18Z)
+
+Immediate cleanup landed in #2345 (merged): the 15 stray `_tmp_*` files are removed, and `.gitignore` now covers the loose legacy triage-cache basenames + `_tmp_*` under `xbrief/.eval/` and `vbrief/.eval/` (without blanket-ignoring the tracked `.eval/results/` ledger). The stale `standards.test.ts` cases for the removed files were dropped.
+
+**Remaining (leaving this issue open):** item 2 — root-cause investigation into why `doctor-state.json` (and the other legacy triage-cache basenames) are still being written to the legacy `.eval/` location post-migration instead of `.triage-cache/`. Either a writer still targets the legacy dir, or the `triage/cache-path.ts` migration only runs lazily on a resolve path that some trees never hit and should run proactively.
+
+### 2026-07-06-2349-docs-v0710-triage-cache-relocation-eval-triage-cache-undocum: docs: v0.71.0 triage-cache relocation (.eval/ -> .triage-cache/) undocumented in UPGRADING.md + stale .eval/ paths across docs (#1703)  `[completed]`
+
+## Summary
+
+The v0.71.0 / #1703 split of the `.eval/` namespace is only documented in `CHANGELOG.md`. Consumers upgrading to the latest version get **no operator-facing guidance** that their triage working-set cache moved, and several docs + task descriptions still cite the old `.eval/` paths. This is a documentation/adoption gap, distinct from the gitignore gaps tracked in #2344 and #2348.
+
+## Background
+
+#1703 (shipped v0.71.0) split what used to live under `<lifecycle-root>/.eval/` into two namespaces:
+
+- **Triage working-set** (`candidates.jsonl`, `slices.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`, `subscription-history.jsonl`, `doctor-state.json`, `decompositions/`, `README.md`) moved to `<lifecycle-root>/.triage-cache/`.
+- `.eval/` was reclaimed for the **new** framework-eval results store at `.eval/results/` (health/golden/crud ledgers) — a store with no prior home.
+
+The relocation of the triage working-set is handled by `migrateLegacyTriageCacheFromEval()` in `packages/core/src/triage/cache-path.ts`, which `renameSync`s each known legacy file/dir from `.eval/` -> `.triage-cache/` **lazily**, the first time any triage path is resolved after upgrade. It is idempotent and canonical-wins on conflict.
+
+Crucially, this migration is **not** triggered by `deft update`, `deft migrate`, or `deft migrate:xbrief` (the last copies `vbrief/.eval/` -> `xbrief/.eval/` as-is). It only fires on a triage/scope/doctor path resolve (e.g. `deft triage:summary`, `deft triage:bootstrap`, `deft doctor`). There is no dedicated `migrate:triage-cache` verb.
+
+## Gaps
+
+### 1. UPGRADING.md has no #1703 / v0.71.0 section
+
+`UPGRADING.md` still documents the older v0.25 -> v0.26 (#883) `vbrief/.eval/candidates.jsonl` shape and has **no** section describing:
+
+- that the triage cache moved from `.eval/` to `.triage-cache/`,
+- that migration is automatic-but-lazy (run any triage command after upgrading; nothing to do manually otherwise),
+- the conflict policy (if both a legacy `.eval/` copy and a canonical `.triage-cache/` copy exist, the legacy one is skipped),
+- that `.eval/` is now the framework-eval results store.
+
+A consumer reading UPGRADING.md would not know their cache moved or how to trigger the move.
+
+### 2. Stale `.eval/` triage-path references across docs + task descriptions
+
+The engine has moved but operator-facing surfaces still cite the old paths. Known stale references (verify + sweep during the fix):
+
+- `README.md` (e.g. `vbrief/.eval/slices.jsonl` around line 223)
+- `docs/CONCEPTS.md`, `docs/ARCHITECTURE.md`, `docs/FILES.md` — describe `.eval/` as the triage audit store
+- `tasks/slice.yml`, `tasks/triage-summary.yml` — task descriptions referencing `.eval/` triage paths
+
+## Proposed fix
+
+- Add a v0.71.0 / #1703 section to `UPGRADING.md` covering the relocation, the automatic-lazy migration behavior, the "run any triage command to trigger it" note, the conflict policy, and the `.eval/` -> `.eval/results/` reclaim.
+- Sweep the stale `.eval/` triage-path references in the docs + task descriptions above to `.triage-cache/` (leaving `.eval/results/` references intact where they correctly refer to the framework-eval store).
+
+## Related
+
+- #1703 (the relocation itself)
+- #2344 (stray artifacts + gitignore gap in reclaimed `.eval/`)
+- #2348 (`deft update` omits `xbrief/.triage-cache/*` gitignore entries)
+
+Refs #1703
+
+---
+
+## Issue comment thread
+
+_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._
+
+```quarantined
+### Comment by @MScottAdams (2026-07-06T12:35:43Z)
+
+Additional sweep item for Gap 2: the **generated/relocated per-project `<lifecycle-root>/.triage-cache/README.md`** also keeps stale `.eval/` content after upgrade.
+
+The lazy `migrateLegacyTriageCacheFromEval()` does a bare `renameSync` of `.eval/README.md` -> `.triage-cache/README.md`, so the moved file retains its old body — it still titles and documents `.eval/`, references the `.eval` gitignore paths, and claims those paths are gitignored (which, per #2348, they aren't on the xbrief layout).
+
+Repro (consumer on xbrief layout, post-0.71.0 upgrade + any triage command):
+
+- `xbrief/.triage-cache/README.md` exists (relocated by the lazy migration) but its content describes `xbrief/.eval/`.
+
+This is distinct from the framework's own docs listed in Gap 2 (root `README.md`, `docs/*`, task descriptions) — it's the deposited artifact that lands in every consumer repo. Fixing it likely means regenerating the README body during/after relocation rather than a plain `renameSync`, so the moved file reflects `.triage-cache/` (and the correct gitignore state once #2348 lands).
+```
+
+### 2026-07-06-2350-bugtriage-deft-triageaccept-broken-delegates-to-removed-lega: bug(triage): deft triage:accept broken — delegates to removed legacy Python issue_ingest (ModuleNotFoundError), blocks verify:cache-fresh dispatch gate  `[completed]`
+
+## Summary
+
+`deft triage:accept` / `task triage:accept -- --repo <owner>/<repo> --issue <N>` fails on the npm/TS engine with:
+
+```
+ModuleNotFoundError: No module named 'issue_ingest'
+```
+
+The TS accept path still delegates vBRIEF authoring to a **legacy Python** `scripts/issue_ingest.py` module that no longer exists (the entire `scripts/*.py` surface was removed in the legacy-Python deprecation, #1933).
+
+## Root cause
+
+`packages/core/src/triage/actions/index.ts` `defaultIssueIngest()` shells out to Python:
+
+```ts
+// packages/core/src/triage/actions/index.ts ~L109-134
+function defaultIssueIngest(deftRoot: string): IssueIngest {
+  return {
+    ingestSingleForAccept(issueNumber, repo, options = {}) {
+      const script = [
+        "import sys",
+        "from pathlib import Path",
+        `sys.path.insert(0, ${JSON.stringify(join(deftRoot, "scripts"))})`,
+        "import issue_ingest",                       // <-- module removed in #1933
+        "issue_ingest.ingest_single_for_accept(",
+        ...
+      ].join("\n");
+      const result = spawnSync("uv", ["run", "python", "-c", script], { cwd: deftRoot, ... });
+      ...
+    },
+  };
+}
+```
+
+`ls scripts/*.py` returns nothing — there are no Python scripts in the repo anymore. So every `triage:accept` invocation raises `ModuleNotFoundError: No module named 'issue_ingest'` and exits non-zero.
+
+A native TS ingest path already exists at `packages/core/src/intake/issue-ingest.ts` (it is what powers the working `task issue:ingest <N>` and is the subject of #2314). The accept path should delegate to that TS surface instead of a `uv run python` shell-out to a deleted module.
+
+## Impact
+
+This is a workflow blocker, not a cosmetic defect:
+
+- `triage:accept` is the **documented recovery path** for the `verify:cache-fresh` decision gate (gate-stack step 3 in AGENTS.md). When an issue is untriaged, `deft verify:cache-fresh -- --for-issue <N>` exits 1 with `Recovery: deft triage:accept -- --repo <owner>/<repo> --issue <N>` — which itself then fails.
+- That makes the canonical **pre-`start_agent` gate stack** unclearable for any untriaged issue: you cannot record the `accept` decision the gate requires, so you cannot dispatch an implementation agent through the sanctioned path.
+- Surfaced live while dispatching a swarm cohort on deftai/directive (2026-07-06): cache refresh cleared the staleness half of the gate, but `triage:accept` could not record the decision half.
+
+## Repro
+
+```bash
+task triage:accept -- --repo deftai/directive --issue 2318
+# ModuleNotFoundError: No module named 'issue_ingest'
+# task: Failed to run task "triage:accept" ... exit status 1
+```
+
+## Suggested fix
+
+1. Replace the `uv run python -c "import issue_ingest"` delegation in `defaultIssueIngest()` with a direct call into the native TS `intake/issue-ingest` surface (`ingestSingleForAccept` equivalent), removing the Python shell-out entirely.
+2. Add a regression test asserting `triage:accept` records an `accept` audit entry AND authors/updates the scope xBRIEF without spawning Python.
+3. Grep the engine for any other residual `uv run python` / `scripts/*.py` delegations left behind by #1933 and file/fix as needed (this may not be the only stranded shim).
+
+## Related
+
+- #1933 (legacy Python `run` CLI deprecation — the change that removed `scripts/*.py`)
+- #2314 (native TS `intake/issue-ingest` cache-hit vs live-fetch drift — same TS module the fix should delegate to)
+- AGENTS.md `### Implementation Intent Gate` / pre-`start_agent` gate stack (the workflow this blocks)
+
+### 2026-07-06-2376-value-feedback-org-autoenable: feat(value-feedback): enrich attribution events + trusted-org auto-enable of local collection (Refs #1709)  `[completed]`
+
+See https://github.com/deftai/directive/issues/2376. Company policy decision (resolved): for deftai-owned repos, org membership IS the consent for local, no-egress collection; network/upstream still requires explicit opt-in. Open sub-decision resolved during dispatch: keep the maintainer-repo split (in-org emit auto-enables, session readback stays behind DEFT_VALUE_SELF_DOGFOOD=1).
+
+**Acceptance**:
+
+- Attribution records enriched with repo, directive_version, install_id, schema_version `[proposed]`
+  - Acceptance: Every attribution ledger record carries repo (normalized owner/name), directive_version (from readCorePackageVersion at emit), a stable install_id persisted once in .deft-cache/, and a schema_version. Enrichment is best-effort and never interrupts the emit path.
+- Trusted-org auto-enable resolution layer (local-only) `[proposed]`
+  - Acceptance: A github.com/deftai/* clone with no explicit typed valueFeedback flag resolves emitEvents+sessionLine ON with source=org-auto and network OFF. Explicit typed enabled:false overrides. Non-matching org or no origin remote stays OFF. DEFT_VALUE_AUTOENABLE_ORGS extends the matched-org set.
+- Contract-locked doc rules reworded in lockstep `[proposed]`
+  - Acceptance: The #1709 value-feedback block in AGENTS.md, content/templates/agents-entry.md, and content/templates/agent-prompt-preamble.md carries the trusted-org local auto-enable rule and scopes the operator-confirmation prohibition to network/upstream surfaces; VALUE_FEEDBACK_MARKERS is updated; agents:refresh has been run; the agents-entry contract test is green.
+- Tests and quality gates `[proposed]`
+  - Acceptance: New/changed source files ship with tests (verify:forward-coverage); task check is green; a CHANGELOG [Unreleased] entry is added.
 
 ### 2026-05-21-1286-triage-queue-blocked-filter: Demote vBRIEF-status:blocked items in triage:queue  `[completed]`
 
@@ -20642,7 +23358,7 @@ Stand up the first tier-3 extension pack end-to-end: migrate the framework's han
 **Acceptance**:
 
 - lessons-pack-0.1 structured source + schema `[pending]`
-  - Acceptance: A migration creates packs/lessons/lessons-pack-0.1.json from the 39 meta/lessons.md sections, and the source validates against vbrief/schemas/lessons-pack.schema.json with each entry carrying date, issue_refs, tags, and a body blob.
+  - Acceptance: A migration creates packs/lessons/lessons-pack-0.1.json from the 39 meta/lessons.md sections, and the source validates against xbrief/schemas/lessons-pack.schema.json with each entry carrying date, issue_refs, tags, and a body blob.
 - Deterministic renderer makes lessons.md a projection `[pending]`
   - Acceptance: task packs:render regenerates meta/lessons.md from the canonical source with a provenance banner, and task verify:pack-drift fails when the rendered output diverges from the committed lessons.md.
 - task packs:slice surface with two slices `[pending]`
@@ -20657,7 +23373,7 @@ Stand up the second tier-3 extension pack and, in doing so, prove the #1294 pack
 **Acceptance**:
 
 - skills-pack-0.1 schema + structured source (all skills' metadata) `[pending]`
-  - Acceptance: A migration creates packs/skills/skills-pack-0.1.json holding name, description, triggers, and path for every skill, and the source validates against vbrief/schemas/skills-pack.schema.json.
+  - Acceptance: A migration creates packs/skills/skills-pack-0.1.json holding name, description, triggers, and path for every skill, and the source validates against xbrief/schemas/skills-pack.schema.json.
 - Pack machinery generalizes to a second pack `[pending]`
   - Acceptance: task packs:slice --list-packs displays both the lessons and skills packs, and the renderer and slice resolver are driven by the pack schema rather than lessons-specific code paths.
 - by-trigger and list slices over skill metadata `[pending]`
@@ -20672,7 +23388,7 @@ Phase 3 of the vBRIEF-as-canonical rollout (epic #1284, ADR-001 Layer B) and the
 **Acceptance**:
 
 - rules-pack-0.1 schema + source + by-tier/by-domain slices `[pending]`
-  - Acceptance: task packs:slice rules by-tier --tier MUST returns the MUST-tier directives parsed from coding/*.md, and by-domain --domain testing returns coding/testing.md's directives; the rules-pack JSON source validates against vbrief/schemas/rules-pack.schema.json and is built by scripts/pack_migrate_rules.py.
+  - Acceptance: task packs:slice rules by-tier --tier MUST returns the MUST-tier directives parsed from coding/*.md, and by-domain --domain testing returns coding/testing.md's directives; the rules-pack JSON source validates against xbrief/schemas/rules-pack.schema.json and is built by scripts/pack_migrate_rules.py.
 - strategies-pack-0.1 schema + source + slice `[pending]`
   - Acceptance: task packs:slice strategies list returns one entry per strategies/*.md with title/description/path, and task packs:slice --list-packs now lists rules and strategies alongside lessons and skills; the strategies-pack JSON source validates against its schema.
 - Reused machinery: render proofs + drift gate over all four packs, no regression `[pending]`
