@@ -17,6 +17,7 @@ import {
   resolveLifecycleLayout,
   resolveLifecycleRoot,
   resolveProjectDefinitionPath,
+  specArtifactRelPath,
   stripArtifactSuffix,
 } from "./resolve.js";
 
@@ -179,5 +180,15 @@ describe("layout-aware path helpers (#2109 part 2a)", () => {
     seedXbrief();
     expect(resolveLifecycleRoot(root)).toBe(resolveLifecycleLayout(root).root);
     expect(resolveLifecycleRoot(root)).toBe(join(root, "xbrief"));
+  });
+
+  it("specArtifactRelPath returns xbrief/specification.xbrief.json path under the migrated layout", () => {
+    seedXbrief();
+    expect(specArtifactRelPath(root)).toBe("xbrief/specification.xbrief.json");
+  });
+
+  it("projectDefinitionFilename falls back to canonical name when no layout exists at all", () => {
+    // Covers the catch-block return path (line 206) -- empty dir, no vbrief/ and no xbrief/.
+    expect(projectDefinitionFilename(root)).toBe("PROJECT-DEFINITION.xbrief.json");
   });
 });
