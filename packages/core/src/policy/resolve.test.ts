@@ -365,6 +365,16 @@ describe("wip cap", () => {
     writeProjectDef(r, { policy: { wipCap: true as unknown as number } });
     expect(resolveWipCap(r).source).toBe("default-on-error");
   });
+
+  it("rejects object wipCap values and reports the python 'dict' type name", () => {
+    // Covers the pythonTypeName `typeof value === "object"` branch.
+    const r = mkdtempSync(join(tmpdir(), "deft-wip-obj-"));
+    roots.push(r);
+    writeProjectDef(r, { policy: { wipCap: {} as unknown as number } });
+    const result = resolveWipCap(r);
+    expect(result.source).toBe("default-on-error");
+    expect(result.error).toContain("dict");
+  });
 });
 
 describe("inspectAllPolicies", () => {

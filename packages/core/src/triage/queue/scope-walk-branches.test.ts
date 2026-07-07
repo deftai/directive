@@ -72,6 +72,13 @@ describe("scopeIsBlocked branches", () => {
     expect(scopeIsBlocked(plan, new Set(["dep-a"]))).toBe(true);
     expect(scopeIsBlocked(plan, new Set(["dep-a", "dep-b"]))).toBe(false);
   });
+
+  it("treats a non-array depends_on as no dependencies (dependsOnIds branch)", () => {
+    const plan = {
+      metadata: { swarm: { depends_on: "not-an-array" } },
+    };
+    expect(scopeIsBlocked(plan, new Set())).toBe(false);
+  });
 });
 
 describe("walkScopeFolders integration branches", () => {
@@ -111,5 +118,19 @@ describe("walkScopeFolders integration branches", () => {
     writeVbrief(root, "active", "bad.xbrief.json", "not-json");
     expect(activeReferencedIssueNumbers(root)).toEqual(new Set());
     expect(blockedByIssueNumber(root, ["missing-folder"])).toEqual(new Set());
+  });
+
+  it("skips a completed artifact with no plan key when computing completed ids", () => {
+    // Covers the completedPlanIds `plan === null` continue branch.
+    const root = makeRoot();
+    writeVbrief(root, "completed", "no-plan-key.xbrief.json", { notPlan: true });
+    writeVbrief(root, "completed", "done.xbrief.json", { plan: { id: "dep-done" } });
+    writeVbrief(root, "pending", "blocked.xbrief.json", {
+      plan: {
+        metadata: { swarm: { depends_on: ["dep-done"] } },
+        references: [{ type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/7" }],
+      },
+    });
+    expect([...blockedByIssueNumber(root)]).toEqual([]);
   });
 });

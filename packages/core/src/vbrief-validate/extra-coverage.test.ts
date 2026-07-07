@@ -655,6 +655,31 @@ describe("vbrief-validate extra coverage", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it("skips non-string and blank narrative values when checking PRD staleness", () => {
+    // Covers the `typeof value === "string"` and `value.trim()` sub-branches
+    // in checkPrdStaleness -- non-string / blank narrative entries never
+    // trigger a staleness warning by themselves.
+    const root = mkdtempSync(join(tmpdir(), "vb-stale4-"));
+    const vbrief = join(root, "xbrief");
+    mkdirSync(vbrief, { recursive: true });
+    writeFileSync(
+      join(vbrief, "specification.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "",
+          status: "approved",
+          narratives: { Count: 3, Blank: "   " },
+          items: [],
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(join(root, "PRD.md"), "some content", "utf8");
+    expect(checkRenderStaleness(vbrief)).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
   it("covers project definition existing file refs without errors", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-pd-ok-ref-"));
     const vbrief = join(root, "xbrief");
