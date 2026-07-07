@@ -474,6 +474,53 @@ describe("project-render D3 registry-status round-trip (#1715)", () => {
   });
 
   /**
+   * xbrief-native fixture helpers (post-#2112): the legacy vbrief/ read path was
+   * removed, so `resolveLifecycleLayout` hard-stops on a vbrief-only tree. These
+   * regression scopes therefore live in an `xbrief/` tree with `.xbrief.json`
+   * artifacts and an xBRIEFInfo envelope.
+   */
+  function writeXbriefScope(
+    xbriefDir: string,
+    folder: string,
+    filename: string,
+    plan: Record<string, unknown>,
+  ): void {
+    const dir = join(xbriefDir, folder);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, filename),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`,
+      "utf8",
+    );
+  }
+
+  function writeXbriefProjectDefinition(xbriefDir: string): void {
+    writeFileSync(
+      join(xbriefDir, "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify(
+        {
+          xBRIEFInfo: { version: "0.8", created: "2026-06-01T00:00:00Z" },
+          plan: {
+            title: "PROJECT-DEFINITION",
+            status: "running",
+            narratives: {
+              Overview: "Test",
+              "tech stack": "TS",
+              Architecture: "Monolith",
+              Configuration: "Defaults",
+            },
+            items: [],
+            metadata: { staleness_flags: [] },
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+  }
+
+  /**
    * Regression test for #1715: the TS renderer is validator-clean by construction
    * because it derives each registry item's status directly from the scope file's
    * `plan.status` (via deriveRegistryItemStatus). The D3 registry-status check
@@ -488,10 +535,10 @@ describe("project-render D3 registry-status round-trip (#1715)", () => {
   it("render-then-validate passes for umbrella (running) with completed children (#1715)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-pr-1715-"));
     tmpDirs.push(root);
-    const vbrief = join(root, "vbrief");
-    mkdirSync(vbrief, { recursive: true });
+    const xbrief = join(root, "xbrief");
+    mkdirSync(xbrief, { recursive: true });
 
-    writeScope(vbrief, "active", "2026-06-12-umbrella-epic.vbrief.json", {
+    writeXbriefScope(xbrief, "active", "2026-06-12-umbrella-epic.xbrief.json", {
       title: "Umbrella epic (still active/running)",
       status: "running",
       items: [],
@@ -500,50 +547,50 @@ describe("project-render D3 registry-status round-trip (#1715)", () => {
         ISSUE_REF,
         {
           type: "x-vbrief/plan",
-          uri: "completed/2026-06-12-child-a.vbrief.json",
+          uri: "completed/2026-06-12-child-a.xbrief.json",
           title: "Child A",
         },
         {
           type: "x-vbrief/plan",
-          uri: "completed/2026-06-12-child-b.vbrief.json",
+          uri: "completed/2026-06-12-child-b.xbrief.json",
           title: "Child B",
         },
         {
           type: "x-vbrief/plan",
-          uri: "completed/2026-06-12-child-c.vbrief.json",
+          uri: "completed/2026-06-12-child-c.xbrief.json",
           title: "Child C",
         },
         {
           type: "x-vbrief/plan",
-          uri: "completed/2026-06-12-child-d.vbrief.json",
+          uri: "completed/2026-06-12-child-d.xbrief.json",
           title: "Child D",
         },
       ],
     });
     for (const child of ["child-a", "child-b", "child-c", "child-d"]) {
-      writeScope(vbrief, "completed", `2026-06-12-${child}.vbrief.json`, {
+      writeXbriefScope(xbrief, "completed", `2026-06-12-${child}.xbrief.json`, {
         title: `Child ${child}`,
         status: "completed",
         items: [],
         metadata: { kind: "story" },
         references: [ISSUE_REF],
-        planRef: "active/2026-06-12-umbrella-epic.vbrief.json",
+        planRef: "active/2026-06-12-umbrella-epic.xbrief.json",
       });
     }
 
-    writeProjectDefinition(vbrief);
+    writeXbriefProjectDefinition(xbrief);
 
-    const [ok, message] = renderProjectDefinition(vbrief, {
+    const [ok, message] = renderProjectDefinition(xbrief, {
       now: new Date("2026-06-18T12:00:00Z"),
     });
     expect(ok).toBe(true);
     expect(message).toContain("5 scope items");
 
-    const projectDef = readJsonObject(join(vbrief, "PROJECT-DEFINITION.vbrief.json"));
+    const projectDef = readJsonObject(join(xbrief, "PROJECT-DEFINITION.xbrief.json"));
     const errors = validateProjectDefinition(
-      "vbrief/PROJECT-DEFINITION.vbrief.json",
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
       projectDef,
-      vbrief,
+      xbrief,
     );
     expect(errors.filter((e) => e.includes("registry-status"))).toEqual([]);
 
@@ -551,7 +598,7 @@ describe("project-render D3 registry-status round-trip (#1715)", () => {
     const umbrella = plan.items.find(
       (item) =>
         (item.metadata as Record<string, string>)?.source_path ===
-        "active/2026-06-12-umbrella-epic.vbrief.json",
+        "active/2026-06-12-umbrella-epic.xbrief.json",
     );
     expect(umbrella).toBeDefined();
     // Status derives from the umbrella's own plan.status, NOT from children.
@@ -561,35 +608,35 @@ describe("project-render D3 registry-status round-trip (#1715)", () => {
   it("deterministic items[] ordering prevents reorder churn on re-render (#1715)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-pr-1715-order-"));
     tmpDirs.push(root);
-    const vbrief = join(root, "vbrief");
-    mkdirSync(vbrief, { recursive: true });
+    const xbrief = join(root, "xbrief");
+    mkdirSync(xbrief, { recursive: true });
 
     for (const name of ["alpha", "beta", "gamma"]) {
-      writeScope(vbrief, "completed", `2026-06-12-${name}.vbrief.json`, {
+      writeXbriefScope(xbrief, "completed", `2026-06-12-${name}.xbrief.json`, {
         title: name,
         status: "completed",
         items: [],
       });
     }
-    writeScope(vbrief, "active", "2026-06-12-delta.vbrief.json", {
+    writeXbriefScope(xbrief, "active", "2026-06-12-delta.xbrief.json", {
       title: "delta",
       status: "running",
       items: [],
     });
-    writeProjectDefinition(vbrief);
+    writeXbriefProjectDefinition(xbrief);
 
-    const [ok1] = renderProjectDefinition(vbrief, { now: new Date("2026-06-18T12:00:00Z") });
+    const [ok1] = renderProjectDefinition(xbrief, { now: new Date("2026-06-18T12:00:00Z") });
     expect(ok1).toBe(true);
     const ids1 = (
-      readJsonObject(join(vbrief, "PROJECT-DEFINITION.vbrief.json")).plan as {
+      readJsonObject(join(xbrief, "PROJECT-DEFINITION.xbrief.json")).plan as {
         items: Array<{ id: string }>;
       }
     ).items.map((i) => i.id);
 
-    const [ok2] = renderProjectDefinition(vbrief, { now: new Date("2026-06-18T13:00:00Z") });
+    const [ok2] = renderProjectDefinition(xbrief, { now: new Date("2026-06-18T13:00:00Z") });
     expect(ok2).toBe(true);
     const ids2 = (
-      readJsonObject(join(vbrief, "PROJECT-DEFINITION.vbrief.json")).plan as {
+      readJsonObject(join(xbrief, "PROJECT-DEFINITION.xbrief.json")).plan as {
         items: Array<{ id: string }>;
       }
     ).items.map((i) => i.id);
