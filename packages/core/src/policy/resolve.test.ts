@@ -342,6 +342,23 @@ describe("wip cap", () => {
     expect(countVbriefWip(r)).toBe(0);
   });
 
+  it("throws for legacy-only vbrief/ project (#2112)", () => {
+    // Exercises the re-throw branch in countVbriefWip catch block: vbrief/ exists, no xbrief/.
+    const r = mkdtempSync(join(tmpdir(), "deft-wip-legacy-"));
+    roots.push(r);
+    mkdirSync(join(r, "vbrief", "pending"), { recursive: true });
+    expect(() => countVbriefWip(r)).toThrow("Run `deft migrate:xbrief`");
+  });
+
+  it("returns 0 when xbrief/ exists but has no .xbrief.json artifacts", () => {
+    // Exercises the short-circuit branch in countVbriefWip catch block: xbrief/ dir exists
+    // (resolveLifecycleRoot throws) but no vbrief/ -- result is 0, not a throw.
+    const r = mkdtempSync(join(tmpdir(), "deft-wip-empty-xbrief-"));
+    roots.push(r);
+    mkdirSync(join(r, "xbrief", "active"), { recursive: true });
+    expect(countVbriefWip(r)).toBe(0);
+  });
+
   it("rejects boolean wipCap values", () => {
     const r = mkdtempSync(join(tmpdir(), "deft-wip-bool-"));
     roots.push(r);

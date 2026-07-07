@@ -282,21 +282,27 @@ jobs:
           # project used by the migrate:preflight step above.
           # must match the YYYY-MM-DD-<slug>.vbrief.json convention so the
           # scope_lifecycle.py path resolver accepts it end-to-end.
-          $proposedDir = Join-Path $env:fixture 'vbrief\proposed'
+          # xbrief/ layout is required since v0.73.0 (#2112): seed a minimal project
+          # so the WIP cap check (countVbriefWip -> resolveLifecycleRoot) can resolve.
+          $xbriefActive = Join-Path $env:fixture 'xbrief\active'
+          New-Item -ItemType Directory -Path $xbriefActive -Force | Out-Null
+          $placeholderJson = '{"xBRIEFInfo":{"version":"0.8","description":"ci-placeholder"},"plan":{"title":"placeholder","status":"running","items":[]}}'
+          [System.IO.File]::WriteAllText((Join-Path $xbriefActive 'ci-placeholder.xbrief.json'), $placeholderJson, (New-Object System.Text.UTF8Encoding $false))
+          $proposedDir = Join-Path $env:fixture 'xbrief\proposed'
           New-Item -ItemType Directory -Path $proposedDir -Force | Out-Null
-          $scopeFile = Join-Path $proposedDir '2026-04-22-scope-cli-args-windows-ci.vbrief.json'
-          $scopeJson = '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"scope CLI_ARGS windows CI fixture","status":"proposed","narratives":{"Overview":"Regression fixture for #577."},"items":[]}}'
+          $scopeFile = Join-Path $proposedDir '2026-04-22-scope-cli-args-windows-ci.xbrief.json'
+          $scopeJson = '{"xBRIEFInfo":{"version":"0.8","description":"Regression fixture for #577."},"plan":{"title":"scope CLI_ARGS windows CI fixture","status":"proposed","narratives":{},"items":[]}}'
           $utf8NoBom = New-Object System.Text.UTF8Encoding $false
           [System.IO.File]::WriteAllText($scopeFile, $scopeJson, $utf8NoBom)
           # Dispatch scope:promote against a relative path -- this is the
           # exact invocation shape that previously failed on Windows with
-          # ``File not found: ...\'.\vbrief\proposed\<slug>.vbrief.json'``
+          # ``File not found: ...\'.\.xbrief\proposed\<slug>.xbrief.json'``
           # because ``tasks/scope.yml`` wrapped ``{{.CLI_ARGS}}`` in
           # double quotes (#577).
-          task -t $deftTaskfile scope:promote -- .\vbrief\proposed\2026-04-22-scope-cli-args-windows-ci.vbrief.json
+          task -t $deftTaskfile scope:promote -- .\xbrief\proposed\2026-04-22-scope-cli-args-windows-ci.xbrief.json
           if ($LASTEXITCODE -ne 0) { throw "scope:promote exited $LASTEXITCODE" }
           # Assert the file moved from proposed/ to pending/.
-          $pendingFile = Join-Path $env:fixture 'vbrief\pending\2026-04-22-scope-cli-args-windows-ci.vbrief.json'
+          $pendingFile = Join-Path $env:fixture 'xbrief\pending\2026-04-22-scope-cli-args-windows-ci.xbrief.json'
           if (Test-Path $scopeFile) { throw "scope:promote did not remove source file: $scopeFile" }
           if (-not (Test-Path $pendingFile)) { throw "scope:promote did not create target file: $pendingFile" }
           Write-Host "scope:promote end-to-end OK -- $scopeFile -> $pendingFile"
