@@ -84,6 +84,14 @@ describe("swarm coverage boost", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("expandReadinessPaths returns empty list when no xbrief/ or vbrief/ present", () => {
+    // Covers the catch-block `return []` branch in expandPaths (#2112).
+    const project = mkdtempSync(join(tmpdir(), "sw-empty-"));
+    const paths = expandReadinessPaths(project, []);
+    expect(paths).toEqual([]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("covers loadWorktreeMapFile invalid json", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-map-"));
     const bad = join(project, "bad.json");

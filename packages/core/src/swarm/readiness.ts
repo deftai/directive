@@ -7,6 +7,8 @@ import {
   LEGACY_ARTIFACT_DIR,
   LIFECYCLE_DIR_NAMES,
   MIGRATED_ARTIFACT_DIR,
+  MIGRATED_ARTIFACT_SUFFIX,
+  MIGRATED_INFO_ROOT_KEY,
   resolveLifecycleLayout,
   resolveLifecycleRoot,
   stripArtifactSuffix,
@@ -71,8 +73,8 @@ function expandPaths(projectRoot: string, patterns: readonly string[]): string[]
       layout = {
         root: xbriefDir,
         artifactDir: MIGRATED_ARTIFACT_DIR,
-        artifactSuffix: ".xbrief.json",
-        infoRootKey: "xBRIEFInfo",
+        artifactSuffix: MIGRATED_ARTIFACT_SUFFIX,
+        infoRootKey: MIGRATED_INFO_ROOT_KEY,
         migrated: true,
       };
     } else if (existsSync(join(projectRoot, LEGACY_ARTIFACT_DIR))) {

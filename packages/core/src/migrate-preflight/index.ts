@@ -138,14 +138,14 @@ export function checkDocumentModel(projectRoot: string): CheckResult {
     }
   }
 
-  const vbriefRoot = join(projectRoot, "xbrief");
-  if (existsSync(vbriefRoot)) {
+  const xbriefRoot = join(projectRoot, "xbrief");
+  if (existsSync(xbriefRoot)) {
     const missing = missingLifecycleFolders(projectRoot);
     if (missing.length > 0) {
       return {
         name: "document-model",
         status: "FAIL",
-        message: `Partial vBRIEF layout detected; missing lifecycle folder(s): ${missing.join(", ")}. Create the folders or follow ${frozenPreCutoverMigrationGuidance()}`,
+        message: `Partial xBRIEF layout detected; missing lifecycle folder(s): ${missing.join(", ")}. Create the folders or follow ${frozenPreCutoverMigrationGuidance()}`,
       };
     }
   }
