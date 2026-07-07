@@ -92,6 +92,16 @@ describe("swarm coverage boost", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("expandReadinessPaths handles xbrief/ dir with no artifacts yet", () => {
+    // Covers the catch-block `existsSync(xbriefDir)` truthy branch in expandPaths (#2112).
+    const project = mkdtempSync(join(tmpdir(), "sw-emptybrief-"));
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    // No .xbrief.json files → resolveLifecycleLayout throws, but xbrief/ dir exists
+    const paths = expandReadinessPaths(project, []);
+    expect(paths).toEqual([]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("covers loadWorktreeMapFile invalid json", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-map-"));
     const bad = join(project, "bad.json");
