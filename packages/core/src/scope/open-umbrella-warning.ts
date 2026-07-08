@@ -183,7 +183,11 @@ function chooseOpenIssueRef(projectRoot: string, refs: readonly IssueRef[]): Iss
   return firstUnknown;
 }
 
-function refUriMatchesPath(uri: unknown, targetPath: string, vbriefRoot: string): boolean {
+function refUriMatchesPath(
+  uri: unknown,
+  targetPaths: ReadonlySet<string>,
+  vbriefRoot: string,
+): boolean {
   if (typeof uri !== "string" || uri.length === 0) {
     return false;
   }
@@ -191,10 +195,14 @@ function refUriMatchesPath(uri: unknown, targetPath: string, vbriefRoot: string)
   if (resolved === null) {
     return false;
   }
-  return resolve(resolved) === resolve(targetPath);
+  return targetPaths.has(resolve(resolved));
 }
 
-function planReferenceMatchesTarget(ref: unknown, targetPath: string, vbriefRoot: string): boolean {
+function planReferenceMatchesTarget(
+  ref: unknown,
+  targetPaths: ReadonlySet<string>,
+  vbriefRoot: string,
+): boolean {
   if (typeof ref !== "object" || ref === null || Array.isArray(ref)) {
     return false;
   }
@@ -202,27 +210,27 @@ function planReferenceMatchesTarget(ref: unknown, targetPath: string, vbriefRoot
   if (!referenceTypeMatches(String(typed.type ?? ""), "plan")) {
     return false;
   }
-  return refUriMatchesPath(typed.uri, targetPath, vbriefRoot);
+  return refUriMatchesPath(typed.uri, targetPaths, vbriefRoot);
 }
 
 function planReferencesTarget(
   plan: Record<string, unknown>,
-  targetPath: string,
+  targetPaths: ReadonlySet<string>,
   vbriefRoot: string,
 ): boolean {
   const refs = plan.references;
   if (!Array.isArray(refs)) {
     return false;
   }
-  return refs.some((ref) => planReferenceMatchesTarget(ref, targetPath, vbriefRoot));
+  return refs.some((ref) => planReferenceMatchesTarget(ref, targetPaths, vbriefRoot));
 }
 
 function planRefsTarget(
   plan: Record<string, unknown>,
-  targetPath: string,
+  targetPaths: ReadonlySet<string>,
   vbriefRoot: string,
 ): boolean {
-  return collectPlanRefs(plan).some((uri) => refUriMatchesPath(uri, targetPath, vbriefRoot));
+  return collectPlanRefs(plan).some((uri) => refUriMatchesPath(uri, targetPaths, vbriefRoot));
 }
 
 function relToRoot(path: string, root: string): string {
@@ -285,6 +293,12 @@ function findLocalReferences(
   out: Map<string, MutableReference>,
 ): void {
   const vbriefRoot = dirname(dirname(resolve(completedScopePath)));
+  const targetScopePaths = new Set(
+    [
+      completedScopePath,
+      ...OPEN_FOLDERS.map((folder) => join(vbriefRoot, folder, basename(completedScopePath))),
+    ].map((path) => resolve(path)),
+  );
   const targetParentPaths = collectPlanRefs(completedPlan)
     .map((uri) => resolveVbriefRef(uri, vbriefRoot))
     .filter((path): path is string => path !== null)
@@ -304,10 +318,10 @@ function findLocalReferences(
         continue;
       }
       const sources: string[] = [];
-      if (planReferencesTarget(plan, completedScopePath, vbriefRoot)) {
+      if (planReferencesTarget(plan, targetScopePaths, vbriefRoot)) {
         sources.push("plan.references");
       }
-      if (planRefsTarget(plan, completedScopePath, vbriefRoot)) {
+      if (planRefsTarget(plan, targetScopePaths, vbriefRoot)) {
         sources.push("planRef");
       }
       if (targetParentPaths.includes(resolve(path))) {
@@ -335,7 +349,7 @@ function findLocalReferences(
   }
 }
 
-function cachedRepoDirs(projectRoot: string, targetRepos: ReadonlySet<string>): string[] {
+function cachedRepoDirs(projectRoot: string): string[] {
   const base = join(projectRoot, CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE);
   if (!existsSync(base)) {
     return [];
@@ -356,10 +370,7 @@ function cachedRepoDirs(projectRoot: string, targetRepos: ReadonlySet<string>): 
         continue;
       }
       const name = repoEntry.name;
-      const repo = `${owner}/${name}`;
-      if (targetRepos.size === 0 || targetRepos.has(repo)) {
-        repos.push(repo);
-      }
+      repos.push(`${owner}/${name}`);
     }
   }
   return repos;
@@ -369,14 +380,27 @@ function issueNumberToken(issueNumber: number): string | null {
   return Number.isSafeInteger(issueNumber) && issueNumber > 0 ? String(issueNumber) : null;
 }
 
-function textMentionsIssue(text: string, issueNumber: number): boolean {
-  const token = issueNumberToken(issueNumber);
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function textMentionsIssue(text: string, ref: IssueRef, cachedRepo: string): boolean {
+  const token = issueNumberToken(ref.number);
   if (token === null) {
     return false;
   }
   const hash = new RegExp(`(^|[^A-Za-z0-9_#])#${token}(?!\\d)`);
-  const url = new RegExp(`/issues/${token}(?:\\D|$)`);
-  return hash.test(text) || url.test(text);
+  if (ref.repo === cachedRepo && hash.test(text)) {
+    return true;
+  }
+  if (ref.repo === null) {
+    return false;
+  }
+  const repo = escapeRegExp(ref.repo);
+  const qualifiedUrl = new RegExp(
+    `(?:github\\.com|api\\.github\\.com/repos)/${repo}/issues/${token}(?:\\D|$)`,
+  );
+  return qualifiedUrl.test(text);
 }
 
 function looksLikeTracker(issue: CachedIssue): boolean {
@@ -398,10 +422,10 @@ function findCachedIssueBodyReferences(
   if (targetNumbers.size === 0) {
     return;
   }
-  const targetRepos = new Set(
-    targetIssueRefs.flatMap((ref) => (ref.repo === null ? [] : [ref.repo])),
-  );
-  for (const repo of cachedRepoDirs(projectRoot, targetRepos)) {
+  if (!targetIssueRefs.some((ref) => ref.repo !== null)) {
+    return;
+  }
+  for (const repo of cachedRepoDirs(projectRoot)) {
     const [owner, name] = repo.split("/", 2);
     if (!owner || !name) {
       continue;
@@ -422,7 +446,7 @@ function findCachedIssueBodyReferences(
         continue;
       }
       const haystack = `${issue.title}\n${issue.body}`;
-      if (![...targetNumbers].some((number) => textMentionsIssue(haystack, number))) {
+      if (!targetIssueRefs.some((ref) => textMentionsIssue(haystack, ref, repo))) {
         continue;
       }
       addReference(out, {

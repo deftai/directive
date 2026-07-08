@@ -124,6 +124,32 @@ describe("scope complete open umbrella warning", () => {
     expect(warning).toContain("task vbrief:reconcile:umbrellas");
   });
 
+  it("detects direct stale active-scope links after the child moves to completed", () => {
+    root = makeRepo();
+    writeScope(root, "active", "umbrella.xbrief.json", {
+      title: "Umbrella tracker",
+      status: "running",
+      planRef: "active/child.xbrief.json",
+      references: [
+        { type: "x-xbrief/plan", uri: "active/child.xbrief.json" },
+        { type: "x-xbrief/github-issue", uri: `https://github.com/${REPO}/issues/1119` },
+      ],
+    });
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
+    });
+    writeCachedIssue(root, 1119, { title: "Umbrella tracker", labels: ["epic"] });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs).toHaveLength(1);
+    expect(refs[0]?.sources).toEqual(expect.arrayContaining(["plan.references", "planRef"]));
+  });
+
   it("suppresses a local parent reference when the cached issue is closed", () => {
     root = makeRepo();
     writeScope(root, "active", "umbrella.xbrief.json", {
@@ -170,12 +196,14 @@ describe("scope complete open umbrella warning", () => {
     expect(refs[0]?.sources).toContain("cached issue body");
   });
 
-  it("scans cached markdown and URL mentions when the completed issue ref has no repo", () => {
+  it("scans cross-repo cached markdown URL mentions for qualified completed issue refs", () => {
     root = makeRepo();
     const child = writeScope(root, "completed", "child.xbrief.json", {
       title: "Completed child",
       status: "completed",
-      references: [{ type: "x-vbrief/github-issue", uri: "2322" }],
+      references: [
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
     });
     writeCachedIssue(root, 1119, {
       repo: "deftai/other",
@@ -375,6 +403,19 @@ describe("scope complete open umbrella warning", () => {
       ],
     });
     expect(findOpenUmbrellaReferences(root, childWithoutCache)).toEqual([]);
+
+    const childBare = writeScope(root, "completed", "bare.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [{ type: "x-vbrief/github-issue", uri: "2322" }],
+    });
+    writeCachedIssue(root, 1200, {
+      repo: "deftai/other",
+      title: "Bare ref near miss",
+      labels: ["meta"],
+      body: "Current shape still lists #2322.",
+    });
+    expect(findOpenUmbrellaReferences(root, childBare)).toEqual([]);
 
     const childZero = writeScope(root, "completed", "zero.xbrief.json", {
       title: "Completed child",
