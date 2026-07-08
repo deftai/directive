@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { lifecycleMain } from "./main.js";
-import { findOpenUmbrellaReferences, renderOpenUmbrellaWarning } from "./open-umbrella-warning.js";
+import {
+  completedPathForScopeMove,
+  findOpenUmbrellaReferences,
+  renderOpenUmbrellaWarning,
+} from "./open-umbrella-warning.js";
 import { formatVbriefJson } from "./vbrief-json.js";
 
 const REPO = "deftai/directive";
@@ -242,6 +246,150 @@ describe("scope complete open umbrella warning", () => {
       path: "xbrief/active/loose-parent.xbrief.json",
       title: "Loose parent",
     });
+  });
+
+  it("deduplicates local issue refs and preserves unknown local parents", () => {
+    root = makeRepo();
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+    });
+    writeScope(root, "active", "a-parent.xbrief.json", {
+      status: "running",
+      references: [
+        { type: "x-xbrief/plan", uri: "completed/child.xbrief.json" },
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/1119` },
+      ],
+    });
+    writeScope(root, "active", "b-parent.xbrief.json", {
+      title: "Named umbrella",
+      status: "running",
+      references: [
+        { type: "x-xbrief/plan", uri: "completed/child.xbrief.json" },
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/1119` },
+      ],
+    });
+    writeScope(root, "active", "c-parent.xbrief.json", {
+      status: "running",
+      planRef: "completed/child.xbrief.json",
+    });
+    writeScope(root, "active", "d-parent.xbrief.json", {
+      title: "Number-only parent",
+      status: "running",
+      references: [
+        { type: "x-xbrief/plan", uri: "completed/child.xbrief.json" },
+        { type: "x-vbrief/github-issue", uri: "1118" },
+        { type: "x-vbrief/github-issue", uri: "1119" },
+      ],
+    });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs).toHaveLength(3);
+    expect(refs.find((ref) => ref.issueNumber === 1119 && ref.repo === REPO)).toMatchObject({
+      title: "Named umbrella",
+      path: "xbrief/active/a-parent.xbrief.json",
+    });
+    expect(refs.find((ref) => ref.issueNumber === 1118 && ref.repo === null)).toMatchObject({
+      title: "Number-only parent",
+    });
+    expect(refs.find((ref) => ref.path === "xbrief/active/c-parent.xbrief.json")).toMatchObject({
+      title: "open scope",
+    });
+
+    const warning = renderOpenUmbrellaWarning([
+      { repo: null, issueNumber: null, title: "Manual tracker", path: null, sources: [] },
+      ...refs,
+    ]);
+    expect(warning).toContain("Manual tracker: Manual tracker");
+    expect(warning).toContain("#1118");
+  });
+
+  it("handles malformed references and cache-directory edge cases", () => {
+    root = makeRepo();
+    rmSync(join(root, "xbrief", "proposed"), { recursive: true, force: true });
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [
+        null,
+        [],
+        { type: "note", uri: "https://github.com/deftai/directive/issues/2322" },
+        { type: "x-vbrief/github-issue", uri: "not-an-issue" },
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
+    });
+    writeScope(root, "active", "noise.xbrief.json", {
+      title: "Noise",
+      status: "running",
+      references: [
+        null,
+        [],
+        { type: "note", uri: "completed/child.xbrief.json" },
+        { type: "x-xbrief/plan", uri: "https://github.com/deftai/directive/issues/2322" },
+      ],
+    });
+    const cacheRoot = join(root, ".deft-cache", "github-issue");
+    mkdirSync(join(cacheRoot, "deftai", "directive", "not-a-number"), { recursive: true });
+    writeFileSync(join(cacheRoot, "not-owner"), "not a directory", "utf8");
+    writeFileSync(join(cacheRoot, "deftai", "not-repo"), "not a directory", "utf8");
+    writeFileSync(join(cacheRoot, "deftai", "directive", "readme.txt"), "not a directory", "utf8");
+    mkdirSync(join(cacheRoot, "deftai", "directive", "1200"), { recursive: true });
+    writeCachedIssue(root, 1119, {
+      title: "Omnibus tracker",
+      labels: ["bug"],
+      body: "Current shape still lists #2322.",
+      rawLabels: [{ name: 42 }, []],
+    });
+    writeCachedIssue(root, 1120, {
+      title: "Closed tracker",
+      state: "closed",
+      labels: ["meta"],
+      body: "Current shape still lists #2322.",
+    });
+    writeCachedIssue(root, 1300, {
+      repo: "deftai/other",
+      title: "Other repo tracker",
+      labels: ["meta"],
+      body: "Current shape still lists #2322.",
+    });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs.map((ref) => ref.issueNumber)).toEqual([1119]);
+    expect(refs[0]?.title).toBe("Omnibus tracker");
+  });
+
+  it("returns empty results for invalid completed payloads, missing cache, and issue zero", () => {
+    root = makeRepo();
+    const invalid = join(root, "xbrief", "completed", "invalid.xbrief.json");
+    writeFileSync(invalid, "[]\n", "utf8");
+    expect(findOpenUmbrellaReferences(root, invalid)).toEqual([]);
+
+    const childWithoutCache = writeScope(root, "completed", "without-cache.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
+    });
+    expect(findOpenUmbrellaReferences(root, childWithoutCache)).toEqual([]);
+
+    const childZero = writeScope(root, "completed", "zero.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [{ type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/0` }],
+    });
+    writeCachedIssue(root, 1119, {
+      title: "Zero tracker",
+      labels: ["meta"],
+      body: "Current shape still lists #0.",
+    });
+    expect(findOpenUmbrellaReferences(root, childZero)).toEqual([]);
+    expect(completedPathForScopeMove(join(root, "xbrief", "active", "story.xbrief.json"))).toBe(
+      join(root, "xbrief", "completed", "story.xbrief.json"),
+    );
   });
 
   it("returns an empty warning for no open references", () => {
