@@ -8,13 +8,30 @@
  * Refs #1942 S1, #1477.
  */
 
-import { createReadStream, createWriteStream } from "node:fs";
-import { chmod, lstat, mkdir, readdir, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { lstat, mkdir, open, readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { pipeline } from "node:stream/promises";
 
 const DEFAULT_FILE_MODE = 0o644;
 const DEFAULT_DIR_MODE = 0o755;
+
+async function assertDestinationIsNotSymlink(path: string): Promise<void> {
+  try {
+    const info = await lstat(path);
+    if (info.isSymbolicLink()) {
+      throw new Error(`copyTree: refusing to write through destination symlink ${path}`);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("copyTree: refusing")) {
+      throw err;
+    }
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      // Missing paths are created by the caller; only pre-existing symlinks matter.
+      return;
+    }
+    throw err;
+  }
+}
 
 async function copyFilePreserveMode(src: string, dst: string): Promise<void> {
   let mode = DEFAULT_FILE_MODE;
@@ -26,13 +43,23 @@ async function copyFilePreserveMode(src: string, dst: string): Promise<void> {
   }
 
   await mkdir(dirname(dst), { recursive: true, mode: DEFAULT_DIR_MODE });
-  await pipeline(createReadStream(src), createWriteStream(dst, { mode }));
-  // createWriteStream mode applies on create; chmod ensures the final bits match
-  // the source even when the destination file already existed.
-  await chmod(dst, mode);
+  await assertDestinationIsNotSymlink(dst);
+  const handle = await open(
+    dst,
+    constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | constants.O_NOFOLLOW,
+    mode,
+  );
+  try {
+    await handle.writeFile(await readFile(src));
+    // Use the opened handle, not the path, so chmod cannot follow a swapped symlink.
+    await handle.chmod(mode);
+  } finally {
+    await handle.close();
+  }
 }
 
 async function copyDirContents(src: string, dst: string): Promise<void> {
+  await assertDestinationIsNotSymlink(dst);
   await mkdir(dst, { recursive: true, mode: DEFAULT_DIR_MODE });
   const entries = await readdir(src, { withFileTypes: true });
   for (const entry of entries) {

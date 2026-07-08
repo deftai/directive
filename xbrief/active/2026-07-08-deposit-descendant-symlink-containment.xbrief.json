@@ -1,0 +1,46 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for blocking repo-controlled descendant symlinks during TS deposit copy.",
+    "created": "2026-07-08T21:20:00Z",
+    "updated": "2026-07-08T21:30:00Z"
+  },
+  "plan": {
+    "id": "deposit-descendant-symlink-containment",
+    "title": "Block descendant symlink escapes during TypeScript deposit copy",
+    "status": "running",
+    "narratives": {
+      "Overview": "The scheduled application-security review found that directive init/update guard the .deft/core boundary but do not inspect existing descendant paths before copying @deftai/directive-content into that tree. A malicious repository can pre-create .deft/core child symlinks pointing outside the checkout, causing the copy primitive to overwrite and chmod external files through standard destination-symlink following.",
+      "Action": "Make the TypeScript copy-tree deposit primitive refuse destination symlinks before writing or chmoding files, and add regression coverage for the external-target overwrite case.",
+      "Test": "Run focused deposit tests, build, and changed-file lint before opening the PR. The full repository gate was also attempted; it failed in unrelated session/story/swarm/value tests that are outside this scoped deposit change."
+    },
+    "items": [
+      {
+        "id": "deposit-descendant-symlink-containment-a1",
+        "title": "copyTree refuses a destination file path that is already a symlink.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "A crafted .deft/core child symlink is not followed, its external target remains unchanged, and copyTree rejects the copy with a clear error."
+        }
+      },
+      {
+        "id": "deposit-descendant-symlink-containment-a2",
+        "title": "Existing source-symlink and mode-preservation behavior remains covered.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Existing copyTree tests still pass alongside the new destination-symlink regression."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "security-fix",
+      "file_scope": [
+        "packages/core/src/deposit/copy-tree.ts",
+        "packages/core/src/deposit/copy-tree.test.ts",
+        "CHANGELOG.md"
+      ],
+      "source": "scheduled application-security review 2026-07-08"
+    }
+  }
+}

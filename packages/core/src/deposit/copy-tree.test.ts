@@ -70,6 +70,36 @@ describe("copyTree (#1477 mode-preserving recursive copy)", () => {
     expect(existsSync(join(dst, "escape"))).toBe(false);
   });
 
+  it("refuses to overwrite a destination file symlink", async () => {
+    const workspace = freshRoot("copy-tree-dst-file-symlink-");
+    const src = join(workspace, "src");
+    const dst = join(workspace, "dst");
+    const outside = join(workspace, "outside.txt");
+    mkdirSync(join(src, "templates"), { recursive: true });
+    mkdirSync(join(dst, "templates"), { recursive: true });
+    writeFileSync(join(src, "templates", "agents-entry.md"), "managed", "utf-8");
+    writeFileSync(outside, "do not overwrite", "utf-8");
+    symlinkSync(outside, join(dst, "templates", "agents-entry.md"));
+
+    await expect(copyTree(src, dst)).rejects.toThrow(/destination symlink/);
+    expect(readFileSync(outside, "utf-8")).toBe("do not overwrite");
+  });
+
+  it("refuses to recurse into a destination directory symlink", async () => {
+    const workspace = freshRoot("copy-tree-dst-dir-symlink-");
+    const src = join(workspace, "src");
+    const dst = join(workspace, "dst");
+    const outside = join(workspace, "outside");
+    mkdirSync(join(src, "templates"), { recursive: true });
+    mkdirSync(dst, { recursive: true });
+    mkdirSync(outside, { recursive: true });
+    writeFileSync(join(src, "templates", "agents-entry.md"), "managed", "utf-8");
+    symlinkSync(outside, join(dst, "templates"), "dir");
+
+    await expect(copyTree(src, dst)).rejects.toThrow(/destination symlink/);
+    expect(existsSync(join(outside, "agents-entry.md"))).toBe(false);
+  });
+
   it("rejects a non-directory source", async () => {
     const workspace = freshRoot("copy-tree-file-");
     const file = join(workspace, "not-a-dir");
