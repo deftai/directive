@@ -118,6 +118,7 @@ describe("routeArgv", () => {
   it("passes meta flags through unchanged", () => {
     expect(routeArgv(["--help"]).argv).toEqual(["--help"]);
     expect(routeArgv(["-h"]).argv).toEqual(["-h"]);
+    expect(routeArgv(["--commands"]).argv).toEqual(["--commands"]);
   });
 
   it("routes init and update to dispatch handlers", () => {

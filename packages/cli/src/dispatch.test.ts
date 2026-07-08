@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { engineInfo } from "@deftai/directive-core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { routeAndDispatch } from "./cli-router/index.js";
+import { routeAndDispatch, routeArgv } from "./cli-router/index.js";
 import {
   CLI_MODULE_VERBS,
   CORE_MODULE_VERBS,
@@ -127,6 +127,24 @@ Run \`directive commands\` (or \`directive --commands\`) for the exhaustive regi
     expect(body).not.toContain("Registered commands and aliases:");
     expect(body).not.toContain("verify-encoding");
     expect(body).not.toContain("framework-commands");
+  });
+
+  it("keeps curated task-style help commands routed to registered handlers (#2172)", () => {
+    const registered = new Set(registeredVerbs());
+    for (const command of [
+      "session:start",
+      "verify:cache-fresh",
+      "triage:welcome",
+      "triage:queue",
+      "scope:promote",
+      "scope:activate",
+      "project:render",
+      "spec:render",
+    ]) {
+      const routed = routeArgv([command]);
+      expect(routed.kind, command).toBe("dispatch");
+      expect(registered.has(routed.argv[0] ?? ""), command).toBe(true);
+    }
   });
 
   it("prints the exhaustive registered list only on the explicit command surface (#2172)", () => {

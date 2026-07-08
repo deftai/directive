@@ -101,7 +101,13 @@ export interface RoutedArgv {
 }
 
 function isMetaVerb(token: string): boolean {
-  return token === "--help" || token === "-h" || token === "--version" || token === "-V";
+  return (
+    token === "--help" ||
+    token === "-h" ||
+    token === "--version" ||
+    token === "-V" ||
+    token === "--commands"
+  );
 }
 
 function routeTopLevel(first: string, rest: string[]): RoutedArgv | null {
