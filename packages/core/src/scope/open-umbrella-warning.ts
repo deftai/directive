@@ -77,7 +77,7 @@ function issueRefsFromPlan(plan: Record<string, unknown> | null): IssueRef[] {
     if (number === null) {
       continue;
     }
-    const key = `${repo ?? ""}:${number}`;
+    const key = repo === null ? `bare:${number}` : `${repo}:${number}`;
     if (seen.has(key)) {
       continue;
     }
