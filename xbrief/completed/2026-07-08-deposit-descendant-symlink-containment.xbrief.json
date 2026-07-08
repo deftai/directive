@@ -8,7 +8,7 @@
   "plan": {
     "id": "deposit-descendant-symlink-containment",
     "title": "Block descendant symlink escapes during TypeScript deposit copy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "The scheduled application-security review found that directive init/update guard the .deft/core boundary but do not inspect existing descendant paths before copying @deftai/directive-content into that tree. A malicious repository can pre-create .deft/core child symlinks pointing outside the checkout, causing the copy primitive to overwrite and chmod external files through standard destination-symlink following.",
       "Action": "Make the TypeScript copy-tree deposit primitive refuse destination symlinks before writing or chmoding files, and add regression coverage for the external-target overwrite case.",
@@ -40,7 +40,9 @@
         "packages/core/src/deposit/copy-tree.test.ts",
         "CHANGELOG.md"
       ],
-      "source": "scheduled application-security review 2026-07-08"
-    }
+      "source": "scheduled application-security review 2026-07-08",
+      "completedAt": "2026-07-08T21:32:50Z"
+    },
+    "updated": "2026-07-08T21:32:50Z"
   }
 }
