@@ -365,9 +365,17 @@ function cachedRepoDirs(projectRoot: string, targetRepos: ReadonlySet<string>): 
   return repos;
 }
 
+function issueNumberToken(issueNumber: number): string | null {
+  return Number.isSafeInteger(issueNumber) && issueNumber > 0 ? String(issueNumber) : null;
+}
+
 function textMentionsIssue(text: string, issueNumber: number): boolean {
-  const hash = new RegExp(`(^|[^A-Za-z0-9_#])#${issueNumber}(?!\\d)`);
-  const url = new RegExp(`/issues/${issueNumber}(?:\\D|$)`);
+  const token = issueNumberToken(issueNumber);
+  if (token === null) {
+    return false;
+  }
+  const hash = new RegExp(`(^|[^A-Za-z0-9_#])#${token}(?!\\d)`);
+  const url = new RegExp(`/issues/${token}(?:\\D|$)`);
   return hash.test(text) || url.test(text);
 }
 

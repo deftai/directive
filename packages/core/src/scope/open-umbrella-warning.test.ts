@@ -38,14 +38,18 @@ function writeCachedIssue(
   root: string,
   number: number,
   payload: {
+    readonly repo?: string;
     readonly title: string;
     readonly state?: string;
     readonly body?: string;
     readonly labels?: readonly string[];
+    readonly rawLabels?: unknown;
     readonly subIssuesTotal?: number;
+    readonly contentMarkdown?: string;
   },
 ): void {
-  const issueDir = join(root, ".deft-cache", "github-issue", "deftai", "directive", String(number));
+  const [owner, repoName] = (payload.repo ?? REPO).split("/", 2);
+  const issueDir = join(root, ".deft-cache", "github-issue", owner, repoName, String(number));
   mkdirSync(issueDir, { recursive: true });
   writeFileSync(
     join(issueDir, "raw.json"),
@@ -55,7 +59,7 @@ function writeCachedIssue(
         title: payload.title,
         state: payload.state ?? "open",
         body: payload.body ?? "",
-        labels: (payload.labels ?? []).map((name) => ({ name })),
+        labels: payload.rawLabels ?? (payload.labels ?? []).map((name) => ({ name })),
         sub_issues_summary: { total: payload.subIssuesTotal ?? 0 },
       },
       null,
@@ -63,6 +67,9 @@ function writeCachedIssue(
     )}\n`,
     "utf8",
   );
+  if (payload.contentMarkdown !== undefined) {
+    writeFileSync(join(issueDir, "content.md"), payload.contentMarkdown, "utf8");
+  }
 }
 
 describe("scope complete open umbrella warning", () => {
@@ -157,6 +164,88 @@ describe("scope complete open umbrella warning", () => {
 
     expect(refs.map((ref) => ref.issueNumber)).toEqual([1119]);
     expect(refs[0]?.sources).toContain("cached issue body");
+  });
+
+  it("scans cached markdown and URL mentions when the completed issue ref has no repo", () => {
+    root = makeRepo();
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [{ type: "x-vbrief/github-issue", uri: "2322" }],
+    });
+    writeCachedIssue(root, 1119, {
+      repo: "deftai/other",
+      title: "Other repo umbrella",
+      labels: ["bug"],
+      contentMarkdown: "Current shape links https://github.com/deftai/directive/issues/2322.",
+    });
+    writeCachedIssue(root, 1200, {
+      repo: "deftai/other",
+      title: "Other repo tracker",
+      labels: ["meta"],
+      body: "This near miss references #23220 only.",
+    });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs).toHaveLength(1);
+    expect(refs[0]).toMatchObject({
+      repo: "deftai/other",
+      issueNumber: 1119,
+      title: "Other repo umbrella",
+    });
+  });
+
+  it("uses string labels and sub-issue totals to classify cached trackers", () => {
+    root = makeRepo();
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+      references: [
+        { type: "x-vbrief/github-issue", uri: `https://github.com/${REPO}/issues/2322` },
+      ],
+    });
+    writeCachedIssue(root, 1119, {
+      title: "Label tracker",
+      rawLabels: ["umbrella"],
+      body: "Current shape still lists #2322.",
+    });
+    writeCachedIssue(root, 1120, {
+      title: "Sub-issue parent",
+      subIssuesTotal: 2,
+      body: "Current shape still lists #2322.",
+    });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs.map((ref) => ref.issueNumber)).toEqual([1119, 1120]);
+  });
+
+  it("keeps unknown local parent references while ignoring malformed scopes", () => {
+    root = makeRepo();
+    writeFileSync(join(root, "xbrief", "active", "broken.xbrief.json"), "{", "utf8");
+    writeScope(root, "active", "loose-parent.xbrief.json", {
+      title: "Loose parent",
+      status: "running",
+      references: [{ type: "x-xbrief/plan", uri: "completed/child.xbrief.json" }],
+    });
+    const child = writeScope(root, "completed", "child.xbrief.json", {
+      title: "Completed child",
+      status: "completed",
+    });
+
+    const refs = findOpenUmbrellaReferences(root, child);
+
+    expect(refs).toHaveLength(1);
+    expect(refs[0]).toMatchObject({
+      issueNumber: null,
+      path: "xbrief/active/loose-parent.xbrief.json",
+      title: "Loose parent",
+    });
+  });
+
+  it("returns an empty warning for no open references", () => {
+    expect(renderOpenUmbrellaWarning([])).toBe("");
   });
 
   it("prints a non-blocking warning after scope:complete succeeds", () => {
