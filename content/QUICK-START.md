@@ -38,42 +38,35 @@ Invoke-WebRequest -Uri https://github.com/deftai/directive/releases/latest/downl
 
 ⊗ Do NOT `go build` from a source checkout or a developer-specific path (e.g. a hardcoded `/Users/<name>/...` clone). Once the installer finishes, continue with Step 1 below.
 
-## Step 1 — Who are you?
-
-Ask the user: **"Are you (1) using deft in your project, or (2) working on deft itself?"**
-
-- If **(2)**: Tell the user: "Read `./AGENTS.md` in this directory instead — it has contributor instructions." **Stop here.**
-- If **(1)**: Continue to Step 2.
-
-## Step 2 — Detect project state
+## Step 1 — Detect project state
 
 Before touching `../AGENTS.md`, inspect the user's project root to decide whether this is a fresh install, a re-run, a stale-AGENTS.md upgrade, or a pre-cutover project that needs migration.
 
 Run these deterministic checks, in order:
 
-### 2a. Does `../AGENTS.md` exist?
+### 1a. Does `../AGENTS.md` exist?
 
-- **No:** treat as fresh install — jump to Case F ("No AGENTS.md") in Step 3.
-- **Yes:** continue to 2b.
+- **No:** treat as fresh install — jump to Case F ("No AGENTS.md") in Step 2.
+- **Yes:** continue to 1b.
 
-### 2b. Does `../AGENTS.md`'s managed section match the current template? Do referenced paths resolve?
+### 1b. Does `../AGENTS.md`'s managed section match the current template? Do referenced paths resolve?
 
 Three checks here, in this order. The first match wins; later checks only run when earlier checks pass.
 
 1. **Template-content byte comparison (Case G gate).** Locate the managed section in `../AGENTS.md` (the block bounded by the `<!-- deft:managed-section v2 -->` and `<!-- /deft:managed-section -->` markers). Compare those bytes against the current `./templates/agents-entry.md` rendered managed-section output.
-   - ! If the managed section is **byte-different** from the current template render (or the markers are absent in `../AGENTS.md`), treat as **stale content** -- jump to Case G ("Stale AGENTS.md") in Step 3. Case G is the right remediation for byte-different staleness because the refresh actually rewrites the content.
+   - ! If the managed section is **byte-different** from the current template render (or the markers are absent in `../AGENTS.md`), treat as **stale content** -- jump to Case G ("Stale AGENTS.md") in Step 2. Case G is the right remediation for byte-different staleness because the refresh actually rewrites the content.
 2. **Install-path resolution (Case K gate -- #1046 PR-A).** When the managed section IS byte-current, parse the section for its install-path declaration (`Full guidelines: <root>/main.md`, e.g. `.deft/core/main.md` for the canonical install layout or `deft/main.md` for the legacy install layout). Verify that `../<root>/main.md` exists on disk.
-   - ! If the managed section is **byte-identical** to the current template render BUT the declared install path does NOT resolve, jump to **Case K ("Install location mismatch")** in Step 3. Refreshing the managed section is a documented no-op when the content already matches -- Case K is a different failure class than Case G and demands a different remediation (#1046 finding #2).
+   - ! If the managed section is **byte-identical** to the current template render BUT the declared install path does NOT resolve, jump to **Case K ("Install location mismatch")** in Step 2. Refreshing the managed section is a documented no-op when the content already matches -- Case K is a different failure class than Case G and demands a different remediation (#1046 finding #2).
 3. **Legacy skill-path resolution (v0.19 AGENTS.md backstop).** Parse `../AGENTS.md` for any token matching `deft/skills/<name>/SKILL.md` (the legacy v0.19 path shape) and verify the file exists under `./skills/<name>/SKILL.md` (relative to this QUICK-START.md).
-   - ! If any referenced path does not exist on disk, treat `../AGENTS.md` as **stale** -- jump to Case G in Step 3.
-   - ! If the referenced path exists but its first 200 characters contain `<!-- deft:deprecated-skill-redirect -->`, also treat as stale. These stubs exist to keep v0.19 `AGENTS.md` files working until QUICK-START can refresh them. (The 200-character window matches the same budget used in 2c and is guaranteed to cover the sentinel position in every stub this repo ships -- see `tests/content/test_deprecated_skill_redirects.py::test_stub_has_sentinel`.)
-   - If all referenced paths exist and none are redirect stubs, continue to 2c.
+   - ! If any referenced path does not exist on disk, treat `../AGENTS.md` as **stale** -- jump to Case G in Step 2.
+   - ! If the referenced path exists but its first 200 characters contain `<!-- deft:deprecated-skill-redirect -->`, also treat as stale. These stubs exist to keep v0.19 `AGENTS.md` files working until QUICK-START can refresh them. (The 200-character window is guaranteed to cover the sentinel position in every stub this repo ships -- see `tests/content/test_deprecated_skill_redirects.py::test_stub_has_sentinel`.)
+   - If all referenced paths exist and none are redirect stubs, continue to 1c.
 
 Priority ordering: Case G (byte-different content) always wins over Case K (install-path mismatch) because the refresh path is the higher-priority remediation -- when the template content has moved on, the refresh closes BOTH the content drift and any incidental install-path mismatch that the new content might re-introduce. Case K only fires when the content is byte-current AND the path is unresolved -- the exact "refresh would be a no-op" failure class issue #1046 documents.
 
-**Big-jump joint check (Case G+H gate).** Before acting on ANY Case G routing above (a byte-different managed section, or an unresolved / redirect-stub legacy skill path), first ALSO evaluate the 2c pre-cutover check below against `../`. ! If 2c ALSO holds (real pre-v0.20 `SPECIFICATION.md` / `PROJECT.md` present), the project is in the **joint big-jump state** where both the AGENTS.md refresh (Case G) and the pre-cutover migration (Case H) are due — jump to **Case G+H** (combined single-session remediation) in Step 3 instead of Case G. The combined path runs the refresh and the migration in one session and emits a single restart, avoiding the wasted Case G → restart → Case H round-trip. If 2c does not hold, route to Case G as usual.
+**Big-jump joint check (Case G+H gate).** Before acting on ANY Case G routing above (a byte-different managed section, or an unresolved / redirect-stub legacy skill path), first ALSO evaluate the 1c pre-cutover check below against `../`. ! If 1c ALSO holds (real pre-v0.20 `SPECIFICATION.md` / `PROJECT.md` present), the project is in the **joint big-jump state** where both the AGENTS.md refresh (Case G) and the pre-cutover migration (Case H) are due — jump to **Case G+H** (combined single-session remediation) in Step 2 instead of Case G. The combined path runs the refresh and the migration in one session and emits a single restart, avoiding the wasted Case G → restart → Case H round-trip. If 1c does not hold, route to Case G as usual.
 
-### 2c. Are there pre-v0.20 artifacts at the user's project root?
+### 1c. Are there pre-v0.20 artifacts at the user's project root?
 
 Check both of these files at `../` (the user's project root), using the same
 rule implemented by `scripts/_precutover.py`:
@@ -81,27 +74,27 @@ rule implemented by `scripts/_precutover.py`:
 - `../SPECIFICATION.md` — exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: xbrief/specification.xbrief.json -->`, and `../xbrief/specification.xbrief.json` plus all five lifecycle folders exist.
 - `../PROJECT.md` — exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
 
-- If **either** holds (real pre-v0.20 content present), treat as **pre-cutover** — jump to Case H ("Pre-cutover migration") in Step 3.
-- If both contain the sentinel (or neither exists), continue to 2d.
+- If **either** holds (real pre-v0.20 content present), treat as **pre-cutover** — jump to Case H ("Pre-cutover migration") in Step 2.
+- If both contain the sentinel (or neither exists), continue to 1d.
 
-### 2d. Partial migration?
+### 1d. Partial migration?
 
-Check whether `../xbrief/` exists. If it does, inspect for the 5 lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`). If `xbrief/` exists but any lifecycle subfolder is missing, treat as **partial migration** — jump to Case I ("Partial migration repair") in Step 3.
+Check whether `../xbrief/` exists. If it does, inspect for the 5 lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`). If `xbrief/` exists but any lifecycle subfolder is missing, treat as **partial migration** — jump to Case I ("Partial migration repair") in Step 2.
 
-### 2e. Everything clean
+### 1e. Everything clean
 
-If none of 2a–2d triggered, `../AGENTS.md` is current and the project is on v0.20+. Jump to Case J ("Everything clean") in Step 3.
+If none of 1a–1d triggered, `../AGENTS.md` is current and the project is on v0.20+. Jump to Case J ("Everything clean") in Step 2.
 
-## Step 3 — Act on detected state
+## Step 2 — Act on detected state
 
-Pick exactly one case from Step 2 and follow its instructions. Do not mix cases.
+Pick exactly one case from Step 1 and follow its instructions. Do not mix cases.
 
 ### Case F — No AGENTS.md (fresh install)
 
 1. Read `./templates/agents-entry.md` (this directory).
 2. Write that content to `../AGENTS.md`.
 3. Tell the user: "✓ Created AGENTS.md at your project root."
-4. Continue to Step 4.
+4. Continue to Step 3.
 
 ### Case G — Stale AGENTS.md (v0.19 → v0.20 upgrade)
 
@@ -116,12 +109,12 @@ Pick exactly one case from Step 2 and follow its instructions. Do not mix cases.
 1. Tell the user: "Your project uses the pre-v0.20 document model. Current npm releases no longer ship in-product `task migrate:vbrief` (#2068). Follow [UPGRADING.md § Frozen pre-v0.20 document-model migration](./UPGRADING.md#frozen-pre-v020-document-model-migration-2068): pin framework **v0.59.0** (frozen Go installer or git tag), install Python 3.11+ and `uv`, run `task migrate:vbrief` once from that payload, then upgrade to current npm."
 2. ! Run `task migrate:preflight` (or `task -t ./.deft/core/Taskfile.yml migrate:preflight`) to confirm pre-cutover state and print the frozen-release guidance. ⊗ Do NOT offer to run `task migrate:vbrief` from the current npm deposit — the migrator is not bundled.
 3. See [./main.md](../main.md#migrating-from-pre-v020) for what pre-cutover looks like and what the migrator produces, and [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for the brownfield adoption guide.
-4. After migration completes on v0.59.0 and the operator upgrades to current npm, re-run Step 2 of this QUICK-START — the project state has changed. Most likely you land in Case G (AGENTS.md still references old paths) or Case J.
+4. After migration completes on v0.59.0 and the operator upgrades to current npm, re-run Step 1 of this QUICK-START — the project state has changed. Most likely you land in Case G (AGENTS.md still references old paths) or Case J.
 5. When AGENTS.md is refreshed, ! instruct the user: **"Framework updated. Start a new agent session to pick up the changes. The current session has stale context."**
 
 ### Case G+H — Combined stale AGENTS.md + pre-cutover migration (big-jump, one session)
 
-Reached only via the **Big-jump joint check** in 2b: the managed section in `../AGENTS.md` is stale (Case G) AND pre-v0.20 artifacts are present at `../` (Case H). This is the typical shape of a multi-version "big jump" that crossed both the AGENTS.md managed-section refresh and the pre-v0.20 document-model cutover.
+Reached only via the **Big-jump joint check** in 1b: the managed section in `../AGENTS.md` is stale (Case G) AND pre-v0.20 artifacts are present at `../` (Case H). This is the typical shape of a multi-version "big jump" that crossed both the AGENTS.md managed-section refresh and the pre-v0.20 document-model cutover.
 
 ! Run the two remediations in this exact order — **AGENTS.md refresh first, frozen migration guidance second** — then emit a **single** restart instruction at the very end:
 
@@ -134,13 +127,13 @@ For the version-by-version context of a big jump, see the [big-jump triage entry
 ### Case I — Partial migration repair
 
 1. Tell the user: "Your project has a partial xBRIEF layout. Missing lifecycle folders: <list the absent ones>. Complete the layout via the frozen v0.59.0 migrator (see UPGRADING.md § Frozen pre-v0.20 document-model migration) or create the missing folders manually after migrating narratives."
-2. Run `task migrate:preflight` to confirm state. If the operator has v0.59.0 deposited, they may run `task migrate:vbrief` there; otherwise point at the frozen path. Re-run Step 2 afterwards.
+2. Run `task migrate:preflight` to confirm state. If the operator has v0.59.0 deposited, they may run `task migrate:vbrief` there; otherwise point at the frozen path. Re-run Step 1 afterwards.
 3. If the user declines, point them at [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) §Troubleshooting and stop.
 
 ### Case J — Everything clean
 
 1. Tell the user: "✓ Deft is already configured and current in your AGENTS.md."
-2. Continue to Step 4.
+2. Continue to Step 3.
 
 ### Case K — Install location mismatch (#1046 PR-A)
 
@@ -149,11 +142,13 @@ The managed section in `../AGENTS.md` is byte-identical to the current `./templa
 1. Tell the user (verbatim phrasing, naming the unresolved path): "AGENTS.md's managed section is byte-identical to the current template, but the install path it declares (`<declared-path>`) does NOT exist on disk. Refreshing the managed section would be a no-op -- Case G's remediation does not fix install-location mismatches."
 2. ! Direct the user to run `task framework:doctor` (forthcoming in PR-B of the #1046 cohort -- the diagnostic + remediation surface that owns Case K's fix path) OR to manually verify that the install path AGENTS.md claims actually exists on disk. Until PR-B merges, the manual check is the operator's only path: confirm the framework is deposited at the path AGENTS.md declares, OR re-run the installer / relocator to deposit at that path, OR hand-edit AGENTS.md to point at the path where the framework actually lives.
 3. ⊗ Run a Case G refresh -- it is a documented no-op for Case K. The managed section already byte-matches the current template; refreshing the bytes back to the same bytes does not change which install path is declared.
-4. ! Instruct the user: **"Stop here. Do not continue to Step 4 until the install-path mismatch is resolved -- subsequent sessions will re-enter Case K until then."**
+4. ! Instruct the user: **"Stop here. Do not continue to Step 3 until the install-path mismatch is resolved -- subsequent sessions will re-enter Case K until then."**
 
-## Step 4 — Continue setup
+## Step 3 — Continue setup
 
 Read and follow `../AGENTS.md`. This starts the normal first-session flow (user preferences, project definition, specification). If you reached Case G or completed Case H/I and rewrote AGENTS.md, you have already told the user to start a new session — do not keep going yourself.
+
+**Contributor pointer:** This QUICK-START is the consumer bootstrap and stale-consumer-upgrade path. If you are working inside a `deftai/directive` source checkout, read that checkout's `AGENTS.md`, follow `CONTRIBUTING.md`, and use maintainer installer mode (`deft-install --yes --upgrade --maintainer --repo-root /path/to/directive --json`) instead of the consumer flow.
 
 **Brownfield pointer:** For users retrofitting Deft onto an existing project (existing code, existing docs, or pre-v0.20 Deft layout), the authoritative adoption guide is [docs/BROWNFIELD.md](./docs/BROWNFIELD.md). It covers install options, migration, post-migration checks, and troubleshooting in more depth than the Case H flow above.
 

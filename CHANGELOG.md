@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **QUICK-START now defaults straight into consumer setup detection.** The manual-clone and stale-AGENTS entry flow no longer asks every user whether they are using Directive or working on the framework before setup begins. Contributor guidance remains available as a non-blocking pointer to `AGENTS.md`, `CONTRIBUTING.md`, and maintainer installer mode. Closes #1813.
+
 ### Fixed
 
 ### Removed

@@ -58,14 +58,33 @@ describe("test_quickstart_combined_remediation.py", () => {
   it("test_quick_start_exists", () => {
     expect(isFile("QUICK-START.md")).toBe(true);
   });
+  it("test_quick_start_defaults_to_consumer_detection", () => {
+    const text = readText("QUICK-START.md");
+    expect(text).toContain("## Step 1 — Detect project state");
+    expect(text).not.toContain("## Step 1 — Who are you?");
+    const removedPrompt = ["Are you (1) using deft in your project", "working on deft itself?"];
+    expect(text).not.toContain(removedPrompt.join(", or (2) "));
+    expect(text.indexOf("## Step 1 — Detect project state")).toBeLessThan(
+      text.indexOf("## Step 2 — Act on detected state"),
+    );
+  });
+  it("test_quick_start_keeps_non_blocking_contributor_pointer", () => {
+    const text = readText("QUICK-START.md");
+    const pointerIdx = text.indexOf("**Contributor pointer:**");
+    expect(pointerIdx).toBeGreaterThan(text.indexOf("## Step 3 — Continue setup"));
+    const pointer = text.slice(pointerIdx, text.indexOf("**Brownfield pointer:**", pointerIdx));
+    expect(pointer).toContain("AGENTS.md");
+    expect(pointer).toContain("CONTRIBUTING.md");
+    expect(pointer).toContain("--maintainer");
+  });
   it("test_joint_check_gate_present_in_detection", () => {
     const text = readText("QUICK-START.md");
-    const step3Idx = text.indexOf("## Step 3");
-    expect(step3Idx).not.toBe(-1);
+    const step2Idx = text.indexOf("## Step 2");
+    expect(step2Idx).not.toBe(-1);
     const gateIdx = text.indexOf("Big-jump joint check");
     expect(gateIdx).not.toBe(-1);
-    expect(gateIdx).toBeLessThan(step3Idx);
-    const gateWindow = text.slice(gateIdx, step3Idx);
+    expect(gateIdx).toBeLessThan(step2Idx);
+    const gateWindow = text.slice(gateIdx, step2Idx);
     for (const token of ["Case G+H", "pre-cutover", "Case G", "Case H"]) {
       expect(gateWindow).toContain(token);
     }

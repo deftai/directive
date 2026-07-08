@@ -1,0 +1,51 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1813"
+  },
+  "plan": {
+    "title": "Separate contributor onboarding from the general user flow (don't gate everyone on a \"are you working on deft itself?\" question)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Separate contributor onboarding from the general user flow (don't gate everyone on a \"are you working on deft itself?\" question)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1813",
+      "Overview": "## Summary\n\nWhen a user starts Directive via `QUICK-START.md`, the very first step asks **\"Are you (1) using deft in your project, or (2) working on deft itself?\"** This front-loads a contributor-only branch onto every user. The overwhelming majority are option (1) — they just want to use Deft — so we're taxing the common path to serve a small subset. We should separate internal contributor onboarding from the general flow rather than gating everyone on it.\n\n## Current behavior\n\n`QUICK-START.md` Step 1 (the entry point for manual clones and for stale-AGENTS.md / redirect-stub routing) opens with:\n\n> Ask the user: **\"Are you (1) using deft in your project, or (2) working on deft itself?\"**\n> - If **(2)**: ... read `./AGENTS.md` ... **Stop here.**\n> - If **(1)**: Continue to Step 2.\n\nSo the first interaction every QUICK-START user has is a fork that 99% of them answer \"(1)\" to before any real setup begins.\n\n## Why this is the wrong default\n\n- **It's invasive for the majority.** Consumers installing Deft to use it never need the contributor branch, yet they must answer it first, every time.\n- **The contributor branch is largely redundant.** A genuine framework contributor working inside a `deftai/directive` checkout already has the repo's own contributor `AGENTS.md` and uses the `--maintainer` installer flag (`cmd/deft-install`). They don't rely on QUICK-START Step 1 to be routed.\n- **The binary-installer happy path already does the right thing.** The installer writes `AGENTS.md` from `templates/agents-entry.md`, whose managed section goes straight to the First Session / `USER.md` flow with no contributor question. Only the QUICK-START entry point (manual clone + upgrade routing) carries the fork, so the experience is already inconsistent between entry paths.\n\n## Proposal\n\nMake the general user flow the default and move contributor onboarding out of the gating position.\n\n**Recommended (non-blocking pointer):**\n- Remove the up-front \"(1) or (2)\" gate from `QUICK-START.md` Step 1; default straight into the consumer flow (Step 2 — Detect project state).\n- Add a single, non-blocking pointer for contributors — either at the *end* of QUICK-START or in the README/CONTRIBUTING — e.g. \"Working on Deft itself? See `CONTRIBUTING.md` and use the `--maintainer` install path.\" It informs without interrupting.\n\n**Alternative (cleaner, slightly more aggressive):**\n- Drop the contributor fork from QUICK-START entirely. Contributors are already served by the repo's own `AGENTS.md` and `--maintainer`; QUICK-START is a consumer-facing artifact and doesn't need a contributor branch at all.\n\n## Scope / where it lands\n\n- `QUICK-START.md` — remove/relocate the Step 1 fork; renumber subsequent steps.\n- `README.md` / `CONTRIBUTING.md` — ensure the contributor entry point is clearly documented in a place contributors actually look (so removing the fork loses no information).\n- Check `templates/agents-entry.md` and `docs/getting-started.md` for any matching language so the consumer-vs-contributor split is described consistently across entry points.\n\n## Open questions\n\n1. Remove the fork entirely, or keep a non-blocking end-of-flow pointer? (Draft recommends the pointer.)\n2. Does any automation, test, or doc currently depend on QUICK-START Step 1's numbering or its contributor branch? (`tests/content/` references QUICK-START in places — verify nothing asserts the fork before removing it.)\n3. Should the contributor path get its own short `CONTRIBUTING`-anchored quickstart so \"working on deft itself\" has a real home rather than just \"read AGENTS.md\"?\n\n## Acceptance criteria\n\n- [ ] A user following `QUICK-START.md` is no longer asked a contributor-vs-user question before setup begins; the consumer flow is the default.\n- [ ] Contributors retain a clear, documented entry point (CONTRIBUTING / `--maintainer`)\n      — no information is lost, it's just moved out of the gating position.\n- [ ] QUICK-START step numbering and any cross-references remain consistent after the change.\n- [ ] Existing QUICK-START content tests pass (or are updated to reflect the new flow).\n\n---\n\n## Issue comment thread\n\n_The issue body is the original write-up; maintainer comments below may supersede it. Read the full thread before building a dispatch envelope (#2143)._\n\n### Comment by @MScottAdams (2026-06-21T19:20:27Z)\n\nScoping note after checking current `HEAD`: the consumer-vs-contributor distinction is **already auto-detected** in two places, so this issue is narrower than the title suggests.\n\n1. **Runtime code already distinguishes it** — `scripts/_project_context.py::is_framework_source_context()` compares `framework_root == project_root` (vendored `.deft/core` vs. a source checkout) and routes `check:framework-source` vs. `check:consumer` with no human prompt.\n2. **The binary-installer happy path never asks** — it writes `AGENTS.md` from `templates/agents-entry.md` straight into the consumer first-session flow.\n\nThe \"(1) using deft / (2) working on deft itself?\" fork survives in exactly one place: `QUICK-START.md` Step 1, which is reached only via a manual clone or stale-AGENTS.md / redirect-stub upgrade routing. QUICK-START's Step 2 already does deterministic filesystem detection immediately after, so the same context could be inferred rather than asked.\n\n**Net:** the premise that \"we tax *every* user\" is overstated — the installer path and runtime code already auto-detect; only the manual-clone / upgrade-routing entry still asks. Scope is just removing/relocating the QUICK-START Step 1 leftover (the issue's \"Alternative\"), not a broad UX fix.",
+      "Labels": "enhancement, adoption-blocker, agent-experience"
+    },
+    "items": [
+      {
+        "title": "A user following `QUICK-START.md` is no longer asked a contributor-vs-user question before setup begins; the consumer flow is the default.",
+        "status": "completed"
+      },
+      {
+        "title": "Contributors retain a clear, documented entry point (CONTRIBUTING / `--maintainer`)",
+        "status": "completed"
+      },
+      {
+        "title": "QUICK-START step numbering and any cross-references remain consistent after the change.",
+        "status": "completed"
+      },
+      {
+        "title": "Existing QUICK-START content tests pass (or are updated to reflect the new flow).",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1813",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1813: Separate contributor onboarding from the general user flow (don't gate everyone on a \"are you working on deft itself?\" question)"
+      }
+    ],
+    "updated": "2026-07-08T07:08:23Z",
+    "metadata": {
+      "completedAt": "2026-07-08T07:08:23Z",
+      "capacityBucket": "new-capability"
+    }
+  }
+}
