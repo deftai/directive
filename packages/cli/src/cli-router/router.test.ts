@@ -56,6 +56,15 @@ describe("routeArgv", () => {
     ]);
   });
 
+  it("passes malformed colon tokens through to legacy unknown-verb handling", () => {
+    expect(routeArgv(["scope:", "path.xbrief.json"]).argv).toEqual(["scope:", "path.xbrief.json"]);
+    expect(routeArgv([":scope", "path.xbrief.json"]).argv).toEqual([":scope", "path.xbrief.json"]);
+    expect(routeArgv(["scope::promote", "path.xbrief.json"]).argv).toEqual([
+      "scope::promote",
+      "path.xbrief.json",
+    ]);
+  });
+
   it("maps triage queue to triage:queue", () => {
     expect(routeArgv(["triage", "queue", "--limit", "5"]).argv).toEqual([
       "triage:queue",
